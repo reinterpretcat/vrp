@@ -1,3 +1,4 @@
+use crate::models::common::Profile;
 use crate::models::costs::TransportCost;
 use crate::models::solution::Actor;
 
@@ -8,11 +9,11 @@ impl TransportCost for TestTransportCost {
         unimplemented!()
     }
 
-    fn duration(&self, profile: &String, from: u64, to: u64, departure: f64) -> f64 {
+    fn duration(&self, profile: Profile, from: u64, to: u64, departure: f64) -> f64 {
         (if to > from { to - from } else { from - to }) as f64
     }
 
-    fn distance(&self, profile: &String, from: u64, to: u64, departure: f64) -> f64 {
+    fn distance(&self, profile: Profile, from: u64, to: u64, departure: f64) -> f64 {
         (if to > from { to - from } else { from - to }) as f64
     }
 }

@@ -18,9 +18,9 @@ pub fn test_driver() -> Driver {
     }
 }
 
-pub fn test_vehicle(profile: &str) -> Vehicle {
+pub fn test_vehicle(profile: i32) -> Vehicle {
     Vehicle {
-        profile: profile.to_owned(),
+        profile,
         costs: test_costs(),
         dimens: Default::default(),
         details: vec![],

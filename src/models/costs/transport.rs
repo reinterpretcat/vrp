@@ -9,7 +9,7 @@ pub trait TransportCost {
     /// Returns transport time between two locations.
     fn duration(
         &self,
-        profile: &Profile,
+        profile: Profile,
         from: Location,
         to: Location,
         departure: Timestamp,
@@ -18,7 +18,7 @@ pub trait TransportCost {
     /// Returns transport distance between two locations.
     fn distance(
         &self,
-        profile: &Profile,
+        profile: Profile,
         from: Location,
         to: Location,
         departure: Timestamp,

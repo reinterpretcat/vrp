@@ -1,1 +1,1 @@
-pub const DEFAULT_PROFILE: &'static str = "car";
+pub const DEFAULT_PROFILE: i32 = 0;

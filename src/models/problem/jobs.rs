@@ -2,9 +2,12 @@
 #[path = "../../../tests/unit/models/problem/jobs_test.rs"]
 mod jobs_test;
 
-use crate::models::common::{Dimensions, Distance, Duration, Location, TimeWindow, Timestamp};
+use crate::models::common::{
+    Dimensions, Distance, Duration, Location, Profile, TimeWindow, Timestamp,
+};
 use crate::models::costs::TransportCost;
 use crate::models::problem::Fleet;
+use std::cmp::Ordering;
 use std::cmp::Ordering::Less;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -51,6 +54,23 @@ pub struct Jobs {
     index: BTreeMap<String, JobIndex>,
 }
 
+impl Jobs {
+    pub fn new(fleet: &Fleet, jobs: Vec<Job>) -> Jobs {
+        Jobs {
+            jobs: jobs.into_iter().map(|j| Arc::new(j)).collect(),
+            index: Default::default(),
+        }
+    }
+
+    pub fn all<'a>(&'a self) -> impl Iterator<Item = Arc<Job>> + 'a {
+        self.jobs.iter().cloned()
+    }
+}
+
+// TODO: we don't know actual departure and zero-distance when we create job index.
+const DEFAULT_DEPARTURE: Timestamp = 0.0;
+const DEFAULT_DISTANCE: Distance = 0.0;
+
 /// Creates job index.
 fn create_index(fleet: &Fleet, jobs: Vec<Job>) -> BTreeMap<String, String> {
     fleet
@@ -64,13 +84,9 @@ fn create_index(fleet: &Fleet, jobs: Vec<Job>) -> BTreeMap<String, String> {
         })
 }
 
-// TODO: we don't know actual departure and distance when we create job index.
-const DEFAULT_DEPARTURE: Timestamp = 0.0;
-const DEFAULT_DISTANCE: Distance = 0.0;
-
 /// Returns min distance between job and location.
 fn get_distance_between_job_and_location(
-    profile: &String,
+    profile: Profile,
     transport: impl TransportCost,
     lhs: &Job,
     to: Location,
@@ -86,7 +102,7 @@ fn get_distance_between_job_and_location(
 
 /// Returns minimal distance between jobs.
 fn get_distance_between_jobs(
-    profile: &String,
+    profile: Profile,
     transport: impl TransportCost,
     lhs: &Job,
     rhs: &Job,
@@ -115,19 +131,6 @@ fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Locatio
                 .iter()
                 .flat_map(|j| j.places.iter().map(|p| p.location)),
         ),
-    }
-}
-
-impl Jobs {
-    pub fn new(fleet: &Fleet, jobs: Vec<Job>) -> Jobs {
-        Jobs {
-            jobs: jobs.into_iter().map(|j| Arc::new(j)).collect(),
-            index: Default::default(),
-        }
-    }
-
-    pub fn all<'a>(&'a self) -> impl Iterator<Item = Arc<Job>> + 'a {
-        self.jobs.iter().cloned()
     }
 }
 

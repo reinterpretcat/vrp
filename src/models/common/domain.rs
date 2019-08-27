@@ -7,7 +7,7 @@ use std::rc::Rc;
 pub type Location = u64;
 
 /// Represents a routing profile.
-pub type Profile = String;
+pub type Profile = i32;
 
 /// Represents a time window.
 pub struct TimeWindow {
