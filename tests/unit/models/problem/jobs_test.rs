@@ -102,4 +102,7 @@ parameterized_test! {returns_proper_job_neighbours, (index, expected), {
 
 returns_proper_job_neighbours! {
     case1: (0, vec!["s1", "s2", "s3", "s4"]),
+    case2: (1, vec!["s0", "s2", "s3", "s4"]),
+    case3: (2, vec!["s1", "s3", "s0", "s4"]),
+    case4: (3, vec!["s2", "s4", "s1", "s0"]),
 }

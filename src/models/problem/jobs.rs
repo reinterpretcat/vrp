@@ -83,7 +83,7 @@ impl Jobs {
             .unwrap()
             .0
             .iter()
-            .filter(move |(_, d)| !(0f64..max_distance).contains(d))
+            .filter(move |(_, d)| *d > 0.0 && *d < max_distance)
             .map(|(j, _)| j.clone())
     }
 }
