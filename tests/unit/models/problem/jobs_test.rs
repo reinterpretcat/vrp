@@ -106,3 +106,89 @@ returns_proper_job_neighbours! {
     case3: (2, vec!["s1", "s3", "s0", "s4"]),
     case4: (3, vec!["s2", "s4", "s1", "s0"]),
 }
+
+fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Distance) {
+    let fleet = Fleet::new(
+        vec![test_driver()],
+        vec![
+            VehicleBuilder::new()
+                .id("v1_1")
+                .profile(1)
+                .details(vec![VehicleDetail {
+                    start: Some(0),
+                    end: Some(0),
+                    time: Some(TimeWindow {
+                        start: 0.0,
+                        end: 0.0,
+                    }),
+                }])
+                .build(),
+            VehicleBuilder::new()
+                .id("v1_2")
+                .profile(1)
+                .details(vec![VehicleDetail {
+                    start: Some(15),
+                    end: Some(0),
+                    time: Some(TimeWindow {
+                        start: 0.0,
+                        end: 0.0,
+                    }),
+                }])
+                .build(),
+            VehicleBuilder::new()
+                .id("v2_1")
+                .profile(3)
+                .details(vec![VehicleDetail {
+                    start: Some(30),
+                    end: Some(0),
+                    time: Some(TimeWindow {
+                        start: 0.0,
+                        end: 0.0,
+                    }),
+                }])
+                .build(),
+        ],
+    );
+    let species = vec![
+        SingleBuilder::new()
+            .id("s0")
+            .location(Some(0))
+            .build_as_job_ref(),
+        SingleBuilder::new()
+            .id("s1")
+            .location(Some(10))
+            .build_as_job_ref(),
+        SingleBuilder::new()
+            .id("s2")
+            .location(Some(21))
+            .build_as_job_ref(),
+        SingleBuilder::new()
+            .id("s3")
+            .location(Some(31))
+            .build_as_job_ref(),
+    ];
+    let jobs = Jobs::new(
+        &fleet,
+        species.clone(),
+        &create_profile_aware_transport_cost(),
+    );
+
+    let result = jobs.rank(profile, species.get(index).unwrap());
+
+    assert_eq!(result, expected);
+}
+
+parameterized_test! {returns_proper_job_ranks, (index, profile, expected), {
+    returns_proper_job_ranks_impl(index, profile, expected);
+}}
+
+returns_proper_job_ranks! {
+    case1: (0, 1, 0.0),
+    case2: (1, 1, 5.0),
+    case3: (2, 1, 6.0),
+    case4: (3, 1, 16.0),
+    case5: (0, 3, 30.0),
+    case6: (1, 3, 20.0),
+    case7: (2, 3, 9.0),
+    case8: (3, 3, 1.0),
+}

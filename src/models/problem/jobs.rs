@@ -86,6 +86,11 @@ impl Jobs {
             .filter(move |(_, d)| *d > 0.0 && *d < max_distance)
             .map(|(j, _)| j.clone())
     }
+
+    /// Returns job rank as distance to any vehicle's start position.
+    pub fn rank(&self, profile: Profile, job: &Arc<Job>) -> Distance {
+        self.index.get(&profile).unwrap().get(job).unwrap().1
+    }
 }
 
 impl PartialEq<Job> for Job {
