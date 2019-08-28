@@ -3,6 +3,7 @@
 mod fleet_test;
 
 use crate::models::common::{Dimensions, Location, Profile, TimeWindow};
+use std::cmp::Ordering::Less;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -57,7 +58,7 @@ pub struct Vehicle {
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
     /// Specifies vehicle details.
-    pub details: Vec<DriverDetail>,
+    pub details: Vec<VehicleDetail>,
 }
 
 /// Represents available resources to serve jobs.
@@ -72,7 +73,7 @@ impl Fleet {
     pub fn new(drivers: Vec<Driver>, vehicles: Vec<Vehicle>) -> Fleet {
         let mut profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile.clone()).collect();
         let mut profiles: Vec<Profile> = profiles.into_iter().map(|p| p).collect();
-        profiles.sort();
+        profiles.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Less));
 
         Fleet {
             drivers: drivers.into_iter().map(|d| Arc::new(d)).collect(),

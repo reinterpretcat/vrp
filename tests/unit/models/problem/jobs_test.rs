@@ -14,7 +14,7 @@ fn all_returns_all_jobs() {
 }
 
 parameterized_test! {calculates_proper_distance_between_single_jobs, (left, right, expected), {
-    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, TestTransportCost{}, &left, &right), expected);
+    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, &TestTransportCost{}, &left, &right), expected);
 }}
 
 calculates_proper_distance_between_single_jobs! {
@@ -26,7 +26,7 @@ calculates_proper_distance_between_single_jobs! {
 }
 
 parameterized_test! {calculates_proper_distance_between_multi_jobs, (left, right, expected), {
-    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, TestTransportCost{}, &left, &right), expected);
+    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, &TestTransportCost{}, &left, &right), expected);
 }}
 
 calculates_proper_distance_between_multi_jobs! {
