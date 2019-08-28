@@ -5,8 +5,7 @@ mod jobs_test;
 use crate::models::common::{
     Dimensions, Distance, Duration, Location, Profile, TimeWindow, Timestamp,
 };
-use crate::models::costs::TransportCost;
-use crate::models::problem::Fleet;
+use crate::models::problem::{Fleet, TransportCost};
 use std::cmp::Ordering;
 use std::cmp::Ordering::Less;
 use std::collections::{BTreeMap, HashMap};
@@ -211,8 +210,4 @@ fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Locatio
                 .flat_map(|j| j.places.iter().map(|p| p.location)),
         ),
     }
-}
-
-mod comparators {
-    pub struct CompareJobs {}
 }

@@ -1,3 +1,7 @@
+mod costs;
+pub use self::costs::ActivityCost;
+pub use self::costs::TransportCost;
+
 mod jobs;
 pub use self::jobs::Job;
 pub use self::jobs::Multi;

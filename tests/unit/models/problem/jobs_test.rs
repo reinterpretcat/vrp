@@ -1,9 +1,7 @@
 use super::*;
 use crate::helpers::models::common::DEFAULT_PROFILE;
-use crate::helpers::models::costs::{ProfileAwareTransportCost, TestTransportCost};
 use crate::helpers::models::problem::*;
 use crate::models::problem::VehicleDetail;
-use std::borrow::Borrow;
 
 fn create_profile_aware_transport_cost() -> ProfileAwareTransportCost {
     ProfileAwareTransportCost::new(Box::new(|p, d| if p == 2 { 10.0 - d } else { d }))

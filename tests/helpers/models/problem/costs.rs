@@ -1,14 +1,10 @@
 use crate::models::common::Profile;
-use crate::models::costs::TransportCost;
+use crate::models::problem::TransportCost;
 use crate::models::solution::Actor;
 
 pub struct TestTransportCost {}
 
 impl TransportCost for TestTransportCost {
-    fn cost(&self, actor: &Actor, from: u64, to: u64, departure: f64) -> f64 {
-        subtract(from, to)
-    }
-
     fn duration(&self, profile: Profile, from: u64, to: u64, departure: f64) -> f64 {
         subtract(from, to)
     }
@@ -29,10 +25,6 @@ impl ProfileAwareTransportCost {
 }
 
 impl TransportCost for ProfileAwareTransportCost {
-    fn cost(&self, actor: &Actor, from: u64, to: u64, departure: f64) -> f64 {
-        (self.func)(0, subtract(from, to))
-    }
-
     fn duration(&self, profile: Profile, from: u64, to: u64, departure: f64) -> f64 {
         (self.func)(profile, subtract(from, to))
     }
