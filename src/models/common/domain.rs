@@ -1,7 +1,6 @@
 use crate::models::common::Timestamp;
 use std::any::Any;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 /// Specifies location type.
 pub type Location = u64;
@@ -11,8 +10,8 @@ pub type Profile = i32;
 
 /// Represents a time window.
 pub struct TimeWindow {
-    start: Timestamp,
-    end: Timestamp,
+    pub start: Timestamp,
+    pub end: Timestamp,
 }
 
 /// Represents a schedule.
@@ -25,4 +24,7 @@ pub struct Schedule {
 /// * unit of measure, e.g. volume, mass, size, etc.
 /// * set of skills
 /// * tag.
-pub type Dimensions = HashMap<String, Rc<dyn Any>>;
+pub type Dimensions = HashMap<String, Box<dyn Any>>;
+
+/// Specifies size of requested work.
+pub trait Size {}

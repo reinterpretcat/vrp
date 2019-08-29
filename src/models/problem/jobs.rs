@@ -47,24 +47,44 @@ pub struct Multi {
     pub dimens: Dimensions,
 }
 
-type JobIndex = (Vec<(Arc<Job>, Distance)>, Distance);
+type JobIndex = HashMap<Arc<Job>, (Vec<(Arc<Job>, Distance)>, Distance)>;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
     jobs: Vec<Arc<Job>>,
-    index: BTreeMap<String, JobIndex>,
+    index: HashMap<Profile, JobIndex>,
 }
 
 impl Jobs {
-    pub fn new(fleet: &Fleet, jobs: Vec<Job>) -> Jobs {
+    pub fn new(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCost) -> Jobs {
         Jobs {
-            jobs: jobs.into_iter().map(|j| Arc::new(j)).collect(),
-            index: Default::default(),
+            jobs: jobs.clone(),
+            index: create_index(fleet, jobs, transport),
         }
     }
 
     pub fn all<'a>(&'a self) -> impl Iterator<Item = Arc<Job>> + 'a {
         self.jobs.iter().cloned()
+    }
+
+    /// Returns range of jobs "near" to given one.Near is defined by transport costs,
+    /// its profile and time. Value is filtered by max distance.
+    pub fn neighbors<'a>(
+        &'a self,
+        profile: Profile,
+        job: &Arc<Job>,
+        time: Timestamp,
+        max_distance: Distance,
+    ) -> impl Iterator<Item = Arc<Job>> + 'a {
+        self.index
+            .get(&profile)
+            .unwrap()
+            .get(job)
+            .unwrap()
+            .0
+            .iter()
+            .filter(move |(_, d)| !(0f64..max_distance).contains(d))
+            .map(|(j, _)| j.clone())
     }
 }
 
@@ -91,8 +111,8 @@ const DEFAULT_DISTANCE: Distance = 0.0;
 fn create_index(
     fleet: &Fleet,
     jobs: Vec<Arc<Job>>,
-    transport: impl TransportCost,
-) -> HashMap<Profile, HashMap<Arc<Job>, (Vec<f64>, f64)>> {
+    transport: &impl TransportCost,
+) -> HashMap<Profile, JobIndex> {
     fleet
         .profiles
         .iter()
@@ -110,17 +130,22 @@ fn create_index(
 
             // create job index
             let item = jobs.iter().cloned().fold(HashMap::new(), |mut acc, job| {
-                let mut job_distances: Vec<Distance> = jobs
+                let mut job_distances: Vec<(Arc<Job>, Distance)> = jobs
                     .iter()
                     .filter(|j| j.as_ref() != job.as_ref())
-                    .map(|j| get_distance_between_jobs(profile, &transport, j, &job))
+                    .map(|j| {
+                        (
+                            j.clone(),
+                            get_distance_between_jobs(profile, transport, j, &job),
+                        )
+                    })
                     .collect();
-                job_distances.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Less));
+                job_distances.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
 
                 let fleet_distances = starts
                     .iter()
                     .cloned()
-                    .map(|s| get_distance_between_job_and_location(profile, &transport, &job, s))
+                    .map(|s| get_distance_between_job_and_location(profile, transport, &job, s))
                     .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                     .unwrap_or(DEFAULT_DISTANCE);
 

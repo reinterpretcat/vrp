@@ -1,1 +1,3 @@
-pub const DEFAULT_PROFILE: i32 = 0;
+use crate::models::common::Profile;
+
+pub const DEFAULT_PROFILE: Profile = 0;
