@@ -1,4 +1,4 @@
-use crate::models::common::{Cost, Distance, Location, Profile, Timestamp};
+use crate::models::common::{Cost, Distance, Duration, Location, Profile, Timestamp};
 use crate::models::problem::{Driver, Vehicle};
 use crate::models::solution::Activity;
 
@@ -12,7 +12,18 @@ pub trait ActivityCost {
         driver: &Driver,
         activity: &Activity,
         arrival: Timestamp,
-    ) -> Cost;
+    ) -> Cost {
+        let waiting = if activity.place.time.start > arrival {
+            activity.place.time.start - arrival
+        } else {
+            0.0
+        };
+        let service = self.duration(vehicle, driver, activity, arrival);
+
+        return waiting * (driver.costs.per_waiting_time + vehicle.costs.per_waiting_time)
+            + driver.costs.per_service_time
+            + vehicle.costs.per_service_time;
+    }
 
     /// Returns operation time spent to perform activity.
     fn duration(
@@ -49,7 +60,7 @@ pub trait TransportCost {
         from: Location,
         to: Location,
         departure: Timestamp,
-    ) -> Cost;
+    ) -> Duration;
 
     /// Returns transport distance between two locations.
     fn distance(
@@ -59,4 +70,64 @@ pub trait TransportCost {
         to: Location,
         departure: Timestamp,
     ) -> Distance;
+}
+
+/// Uses custom distance and duration matrices as source of transport cost information.
+/// Not time aware as it ignores departure timestamp.
+pub struct MatrixTransportCost {
+    durations: Vec<Vec<Duration>>,
+    distances: Vec<Vec<Distance>>,
+    size: usize,
+}
+
+impl MatrixTransportCost {
+    fn new(durations: Vec<Vec<Duration>>, distances: Vec<Vec<Distance>>) -> MatrixTransportCost {
+        let size = (durations.first().unwrap().len() as f64).sqrt() as usize;
+
+        assert_eq!(distances.len(), durations.len());
+        assert!(distances
+            .iter()
+            .all(|d| (d.len() as f64).sqrt() as usize == size));
+        assert!(durations
+            .iter()
+            .all(|d| (d.len() as f64).sqrt() as usize == size));
+
+        MatrixTransportCost {
+            durations,
+            distances,
+            size,
+        }
+    }
+}
+
+impl TransportCost for MatrixTransportCost {
+    fn duration(
+        &self,
+        profile: Profile,
+        from: Location,
+        to: Location,
+        departure: Timestamp,
+    ) -> Duration {
+        self.durations
+            .get(profile as usize)
+            .unwrap()
+            .get(from * self.size + to)
+            .unwrap()
+            .clone()
+    }
+
+    fn distance(
+        &self,
+        profile: Profile,
+        from: Location,
+        to: Location,
+        departure: Timestamp,
+    ) -> Distance {
+        self.distances
+            .get(profile as usize)
+            .unwrap()
+            .get(from * self.size + to)
+            .unwrap()
+            .clone()
+    }
 }

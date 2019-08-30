@@ -13,7 +13,7 @@ pub struct Place {
 
 /// Represents activity which is needed to be performed.
 pub struct Activity {
-    place: Place,
-    schedule: Schedule,
-    job: Option<Single>,
+    pub place: Place,
+    pub schedule: Schedule,
+    pub job: Option<Single>,
 }

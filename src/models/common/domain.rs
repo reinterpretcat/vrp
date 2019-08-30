@@ -3,7 +3,7 @@ use std::any::Any;
 use std::collections::HashMap;
 
 /// Specifies location type.
-pub type Location = u64;
+pub type Location = usize;
 
 /// Represents a routing profile.
 pub type Profile = i32;
