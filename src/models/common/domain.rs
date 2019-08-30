@@ -16,8 +16,8 @@ pub struct TimeWindow {
 
 /// Represents a schedule.
 pub struct Schedule {
-    arrival: Timestamp,
-    departure: Timestamp,
+    pub arrival: Timestamp,
+    pub departure: Timestamp,
 }
 
 /// Multiple named dimension which can represents anything:

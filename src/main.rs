@@ -3,7 +3,7 @@
 #[macro_use]
 pub mod helpers;
 
+mod construction;
 mod models;
-use models::problem::Job;
 
 fn main() {}
