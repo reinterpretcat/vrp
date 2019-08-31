@@ -9,12 +9,14 @@ pub type Location = usize;
 pub type Profile = i32;
 
 /// Represents a time window.
+#[derive(Clone)]
 pub struct TimeWindow {
     pub start: Timestamp,
     pub end: Timestamp,
 }
 
 /// Represents a schedule.
+#[derive(Clone)]
 pub struct Schedule {
     pub arrival: Timestamp,
     pub departure: Timestamp,

@@ -7,6 +7,33 @@ use crate::models::{Problem, Solution};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+/// Specifies insertion result.
+pub enum InsertionResult {
+    Success(InsertionSuccess),
+    Failure(InsertionFailure),
+}
+
+/// Specifies insertion result needed to insert job into tour.
+pub struct InsertionSuccess {
+    /// Specifies delta cost change for the insertion.
+    pub cost: Cost,
+
+    /// Original job to be inserted.
+    pub job: Arc<Job>,
+
+    /// Specifies activities within index where they have to be inserted.
+    pub activities: Vec<(Arc<Activity>, usize)>,
+
+    /// Specifies route context where insertion happens.
+    pub context: RouteContext,
+}
+
+/// Specifies insertion failure.
+pub struct InsertionFailure {
+    /// Failed constraint code.
+    pub constraint: i32,
+}
+
 /// Provides the way to get some meta information about insertion progress.
 pub struct InsertionProgress {
     /// Specifies best known cost depending on context.
@@ -75,4 +102,16 @@ pub struct SolutionContext {
 
     /// Keeps track of used resources.
     pub registry: Arc<Registry>,
+}
+
+impl InsertionResult {
+    /// Creates result which represents insertion failure.
+    pub fn make_failure() -> InsertionResult {
+        InsertionResult::make_failure_with_code(0)
+    }
+
+    /// Creates result which represents insertion failure with given code.
+    pub fn make_failure_with_code(code: i32) -> InsertionResult {
+        InsertionResult::Failure(InsertionFailure { constraint: code })
+    }
 }
