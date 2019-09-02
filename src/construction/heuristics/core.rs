@@ -1,4 +1,4 @@
-use crate::construction::states::{InsertionContext, InsertionResult};
+use crate::construction::states::{InsertionContext, InsertionResult, RouteContext};
 use crate::models::problem::Job;
 use std::sync::Arc;
 
@@ -12,8 +12,11 @@ impl InsertionEvaluator {
 
     /// Evaluates possibility to preform insertion from given insertion context.
     pub fn evaluate(&self, job: &Arc<Job>, ctx: &InsertionContext) -> InsertionResult {
-        //        ctx.solution.routes.iter().chain(ctx.solution.registry.next())
-        //            .fold(InsertionResult::make_failure())
-        InsertionResult::make_failure()
+        ctx.solution
+            .routes
+            .iter()
+            .cloned()
+            .chain(ctx.solution.registry.next().map(|a| RouteContext::new(a)))
+            .fold(InsertionResult::make_failure(), |acc, rCtx| acc)
     }
 }

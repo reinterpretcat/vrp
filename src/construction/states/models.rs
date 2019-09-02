@@ -2,7 +2,7 @@ use super::*;
 use crate::construction::states::route::RouteState;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use crate::models::solution::{Activity, Registry, Route};
+use crate::models::solution::{Activity, Actor, Registry, Route, Tour};
 use crate::models::{Problem, Solution};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -52,16 +52,17 @@ pub struct ActivityContext {
     pub index: usize,
 
     /// Previous activity.
-    pub prev: Activity,
+    pub prev: Arc<Activity>,
 
     /// Target activity.
-    pub target: Activity,
+    pub target: Arc<Activity>,
 
     /// Next activity. Absent if tour is open and target activity inserted last.
-    pub next: Option<Activity>,
+    pub next: Option<Arc<Activity>>,
 }
 
 /// Specifies insertion context for route.
+#[derive(Clone)]
 pub struct RouteContext {
     /// Used route.
     pub route: Arc<Route>,
@@ -79,7 +80,7 @@ pub struct InsertionContext {
     pub problem: Arc<Problem>,
 
     /// Solution context.
-    pub solution: Arc<Solution>,
+    pub solution: Arc<SolutionContext>,
 
     /// Random generator.
     pub random: Arc<String>,
@@ -113,5 +114,17 @@ impl InsertionResult {
     /// Creates result which represents insertion failure with given code.
     pub fn make_failure_with_code(code: i32) -> InsertionResult {
         InsertionResult::Failure(InsertionFailure { constraint: code })
+    }
+}
+
+impl RouteContext {
+    pub fn new(actor: Arc<Actor>) -> RouteContext {
+        RouteContext {
+            route: Arc::new(Route {
+                actor,
+                tour: Tour::new(),
+            }),
+            state: Arc::new(RouteState::new((2, 4))),
+        }
     }
 }

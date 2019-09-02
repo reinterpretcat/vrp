@@ -1,5 +1,6 @@
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::Single;
+use crate::models::solution::{Actor, Tour};
 use std::sync::Arc;
 
 /// Specifies activity place.
@@ -27,4 +28,11 @@ pub struct Activity {
     pub job: Option<Arc<Single>>,
 }
 
-pub struct Route {}
+/// Represents a tour performing jobs.
+pub struct Route {
+    /// An actor associated within route.
+    pub actor: Arc<Actor>,
+
+    /// Specifies job tour assigned to this route.
+    pub tour: Tour,
+}
