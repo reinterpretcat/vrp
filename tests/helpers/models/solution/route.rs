@@ -1,6 +1,6 @@
 use crate::helpers::models::problem::*;
 use crate::models::common::Schedule;
-use crate::models::problem::Single;
+use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Place};
 use std::sync::Arc;
 
@@ -17,7 +17,7 @@ pub fn test_activity() -> Activity {
             time: DEFAULT_JOB_TIME_WINDOW,
         },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: Some(Arc::new(test_single())),
+        job: Some(Arc::new(test_single_job())),
     }
 }
 
@@ -42,8 +42,8 @@ impl ActivityBuilder {
         self
     }
 
-    pub fn job(&mut self, single: Option<Arc<Single>>) -> &mut ActivityBuilder {
-        self.activity.job = single;
+    pub fn job(&mut self, job: Option<Arc<Job>>) -> &mut ActivityBuilder {
+        self.activity.job = job;
         self
     }
 

@@ -68,12 +68,14 @@ pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> J
 }
 
 pub fn get_job_id(job: &Job) -> &String {
-    let dimen_any = match job {
-        Job::Single(single) => single.dimens.get(&"id".to_string()).unwrap(),
-        Job::Multi(multi) => multi.dimens.get(&"id".to_string()).unwrap(),
-    };
-
-    dimen_any.downcast_ref::<String>().unwrap()
+    match job {
+        Job::Single(single) => &single.dimens,
+        Job::Multi(multi) => &multi.dimens,
+    }
+    .get(&"id".to_string())
+    .unwrap()
+    .downcast_ref::<String>()
+    .unwrap()
 }
 
 pub struct SingleBuilder {
