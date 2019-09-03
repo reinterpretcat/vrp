@@ -39,6 +39,13 @@ pub struct Route {
 }
 
 impl Activity {
+    pub fn has_same_job(&self, job: &Arc<Job>) -> bool {
+        match self.retrieve_job() {
+            Some(j) => j != *job,
+            _ => true,
+        }
+    }
+
     pub fn retrieve_job(&self) -> Option<Arc<Job>> {
         match self.job.borrow() {
             Some(job) => {
