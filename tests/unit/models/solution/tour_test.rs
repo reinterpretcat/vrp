@@ -147,3 +147,54 @@ fn can_get_legs() {
     compare_legs(legs.get(1).unwrap(), &(&[a1.clone(), a2.clone()], 1));
     compare_legs(legs.get(2).unwrap(), &(&[a2.clone(), end.clone()], 2));
 }
+
+#[test]
+fn can_get_job_index() {
+    let mut tour = Tour::new();
+    tour.set_start(test_tour_activity_without_job());
+    tour.set_end(test_tour_activity_without_job());
+    let job = Arc::new(test_single_job());
+    tour.insert_last(test_tour_activity_with_default_job());
+    tour.insert_last(test_tour_activity_with_job(job.clone()));
+    tour.insert_last(test_tour_activity_with_default_job());
+    tour.insert_last(test_tour_activity_with_job(job.clone()));
+    tour.insert_last(test_tour_activity_with_default_job());
+
+    let index = tour.index(&job);
+
+    assert_eq!(index.unwrap(), 2);
+    assert_eq!(tour.job_count(), 4);
+}
+
+#[test]
+fn can_get_activity_and_job_count() {
+    let mut tour = Tour::new();
+
+    tour.set_start(test_tour_activity_without_job());
+    assert_eq!(tour.activity_count(), 0);
+    assert_eq!(tour.job_count(), 0);
+
+    tour.set_end(test_tour_activity_without_job());
+    assert_eq!(tour.activity_count(), 0);
+    assert_eq!(tour.job_count(), 0);
+
+    tour.insert_last(test_tour_activity_with_default_job());
+    assert_eq!(tour.activity_count(), 1);
+    assert_eq!(tour.job_count(), 1);
+}
+
+#[test]
+fn can_get_start_and_end() {
+    let start = test_tour_activity_without_job();
+    let end = test_tour_activity_without_job();
+    let a1 = test_tour_activity_with_default_job();
+    let a2 = test_tour_activity_with_default_job();
+    let mut tour = Tour::new();
+    tour.set_start(start.clone());
+    tour.set_end(end.clone());
+    tour.insert_last(a1.clone());
+    tour.insert_last(a2.clone());
+
+    assert_eq!(get_pointer(&start), get_pointer(tour.start().unwrap()));
+    assert_eq!(get_pointer(&end), get_pointer(tour.end().unwrap()));
+}

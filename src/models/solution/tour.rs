@@ -10,6 +10,7 @@ use crate::models::solution::{Activity, Place};
 use std::borrow::Borrow;
 use std::io::empty;
 
+/// Represents a tour, a smart container for jobs with their associated activities.
 pub struct Tour {
     /// Stores activities in the order the performed.
     activities: Vec<Arc<Activity>>,
