@@ -4,6 +4,7 @@ pub use self::costs::TransportCost;
 
 mod jobs;
 pub use self::jobs::Job;
+pub use self::jobs::Jobs;
 pub use self::jobs::Multi;
 pub use self::jobs::Place;
 pub use self::jobs::Single;
