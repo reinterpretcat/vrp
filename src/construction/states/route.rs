@@ -18,8 +18,13 @@ pub struct RouteState {
 }
 
 impl RouteState {
+    /// Creates a new RouteState.
+    pub fn new() -> RouteState {
+        RouteState::new_with_sizes((2, 4))
+    }
+
     /// Creates a new RouteState using giving capacities.
-    pub fn new(sizes: (usize, usize)) -> RouteState {
+    pub fn new_with_sizes(sizes: (usize, usize)) -> RouteState {
         RouteState {
             route_states: HashMap::with_capacity(sizes.0),
             activity_states: HashMap::with_capacity(sizes.1),

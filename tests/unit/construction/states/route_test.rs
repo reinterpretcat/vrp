@@ -9,7 +9,7 @@ fn new_activity_ref() -> Arc<Activity> {
 
 #[test]
 fn can_put_and_get_activity_state() {
-    let mut route_state = RouteState::new((1, 1));
+    let mut route_state = RouteState::new();
     let activity = new_activity_ref();
 
     route_state.put_activity_state(1, &activity, "my_value".to_string());
@@ -20,7 +20,7 @@ fn can_put_and_get_activity_state() {
 
 #[test]
 fn can_put_and_get_empty_activity_state() {
-    let mut route_state = RouteState::new((1, 1));
+    let mut route_state = RouteState::new();
     let activity1 = new_activity_ref();
     let activity2 = new_activity_ref();
 
@@ -32,7 +32,7 @@ fn can_put_and_get_empty_activity_state() {
 
 #[test]
 fn can_put_and_get_activity_state_with_different_keys() {
-    let mut route_state = RouteState::new((1, 1));
+    let mut route_state = RouteState::new();
     let activity = new_activity_ref();
 
     route_state.put_activity_state(1, &activity, "key1".to_string());
@@ -51,7 +51,7 @@ fn can_put_and_get_activity_state_with_different_keys() {
 
 #[test]
 fn can_put_and_get_route_state() {
-    let mut route_state = RouteState::new((1, 1));
+    let mut route_state = RouteState::new();
 
     route_state.put_route_state(1, "my_value".to_string());
     let result = route_state.get_route_state::<String>(1);
@@ -61,7 +61,7 @@ fn can_put_and_get_route_state() {
 
 #[test]
 fn can_put_and_get_empty_route_state() {
-    let mut route_state = RouteState::new((1, 1));
+    let mut route_state = RouteState::new();
 
     route_state.put_route_state(1, "my_value".to_string());
     let result = route_state.get_route_state::<String>(2);
@@ -71,7 +71,7 @@ fn can_put_and_get_empty_route_state() {
 
 #[test]
 fn can_remove_activity_states() {
-    let mut route_state = RouteState::new((1, 1));
+    let mut route_state = RouteState::new();
     let activity = new_activity_ref();
 
     route_state.put_activity_state(1, &activity, "key1".to_string());

@@ -1,8 +1,8 @@
 use super::*;
 use crate::construction::states::route::RouteState;
-use crate::models::common::Cost;
+use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::problem::Job;
-use crate::models::solution::{Activity, Actor, Registry, Route, Tour};
+use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour};
 use crate::models::{Problem, Solution};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -119,12 +119,54 @@ impl InsertionResult {
 
 impl RouteContext {
     pub fn new(actor: Arc<Actor>) -> RouteContext {
+        let mut tour = Tour::new();
+        tour.set_start(RouteContext::create_start_activity(&actor));
+        RouteContext::create_end_activity(&actor).map(|end| tour.set_end(end));
+
         RouteContext {
-            route: Arc::new(Route {
-                actor,
-                tour: Tour::new(),
-            }),
-            state: Arc::new(RouteState::new((2, 4))),
+            route: Arc::new(Route { actor, tour }),
+            state: Arc::new(RouteState::new()),
         }
+    }
+
+    fn create_start_activity(actor: &Arc<Actor>) -> Arc<Activity> {
+        Arc::new(Activity {
+            place: Place {
+                location: actor
+                    .detail
+                    .start
+                    .unwrap_or_else(|| unimplemented!("Optional start is not yet implemented")),
+                duration: 0.0,
+                time: TimeWindow {
+                    start: actor.detail.time.start,
+                    end: std::f64::MAX,
+                },
+            },
+            schedule: Schedule {
+                arrival: actor.detail.time.start,
+                departure: actor.detail.time.start,
+            },
+            job: None,
+        })
+    }
+
+    fn create_end_activity(actor: &Arc<Actor>) -> Option<Arc<Activity>> {
+        actor.detail.end.map(|location| {
+            Arc::new(Activity {
+                place: Place {
+                    location,
+                    duration: 0.0,
+                    time: TimeWindow {
+                        start: 0.0,
+                        end: actor.detail.time.end,
+                    },
+                },
+                schedule: Schedule {
+                    arrival: actor.detail.time.end,
+                    departure: actor.detail.time.end,
+                },
+                job: None,
+            })
+        })
     }
 }

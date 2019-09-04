@@ -17,6 +17,10 @@ impl InsertionEvaluator {
             .iter()
             .cloned()
             .chain(ctx.solution.registry.next().map(|a| RouteContext::new(a)))
-            .fold(InsertionResult::make_failure(), |acc, rCtx| acc)
+            .fold(InsertionResult::make_failure(), |acc, rCtx| {
+                // TODO
+
+                acc
+            })
     }
 }
