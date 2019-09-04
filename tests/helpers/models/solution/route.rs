@@ -10,6 +10,10 @@ pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule {
 };
 
 pub fn test_activity() -> Activity {
+    test_activity_with_job(Arc::new(test_single_job()))
+}
+
+pub fn test_activity_with_job(job: Arc<Job>) -> Activity {
     Activity {
         place: Place {
             location: DEFAULT_JOB_LOCATION,
@@ -17,7 +21,19 @@ pub fn test_activity() -> Activity {
             time: DEFAULT_JOB_TIME_WINDOW,
         },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: Some(Arc::new(test_single_job())),
+        job: Some(job),
+    }
+}
+
+pub fn test_activity_without_job() -> Activity {
+    Activity {
+        place: Place {
+            location: DEFAULT_JOB_LOCATION,
+            duration: DEFAULT_JOB_DURATION,
+            time: DEFAULT_JOB_TIME_WINDOW,
+        },
+        schedule: DEFAULT_ACTIVITY_SCHEDULE,
+        job: None,
     }
 }
 

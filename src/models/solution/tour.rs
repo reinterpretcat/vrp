@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/models/solution/tour_test.rs"]
+mod tour_test;
+
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -65,16 +69,17 @@ impl Tour {
     }
 
     /// Removes job within its activities from the tour.
-    pub fn remove(&mut self, job: &Arc<Job>) {
-        self.activities.retain(|a| a.has_same_job(job))
+    pub fn remove(&mut self, job: &Arc<Job>) -> bool {
+        self.activities.retain(|a| !a.has_same_job(job));
+        self.jobs.remove(job)
     }
 
     /// Returns all activities in tour for specific job.
-    pub fn activities<'a>(&'a self, job: Arc<Job>) -> impl Iterator<Item = Arc<Activity>> + 'a {
+    pub fn activities<'a>(&'a self, job: &'a Arc<Job>) -> impl Iterator<Item = Arc<Activity>> + 'a {
         self.activities
             .iter()
+            .filter(move |a| a.has_same_job(job))
             .cloned()
-            .filter(move |a| a.has_same_job(&job))
     }
 
     /// Returns counted tour legs.

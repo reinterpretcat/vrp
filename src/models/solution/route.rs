@@ -41,8 +41,8 @@ pub struct Route {
 impl Activity {
     pub fn has_same_job(&self, job: &Arc<Job>) -> bool {
         match self.retrieve_job() {
-            Some(j) => j != *job,
-            _ => true,
+            Some(j) => j == *job,
+            _ => false,
         }
     }
 
@@ -57,7 +57,7 @@ impl Activity {
 
                 match job_ref {
                     Some(value) => value.downcast_ref::<Arc<Job>>().map(|o| (*o).clone()),
-                    _ => None,
+                    _ => Some(job.clone()),
                 }
             }
             _ => None,
