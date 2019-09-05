@@ -2,6 +2,7 @@ use crate::construction::states::{ActivityContext, RouteContext, SolutionContext
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use std::sync::Arc;
+use crate::models::Solution;
 
 /// Specifies a base constraint behavior.
 pub trait Constraint {
@@ -54,4 +55,29 @@ pub struct ActivityCheckResult {
     pub stopped: bool,
 }
 
-pub struct ConstraintPipeline {}
+enum ConstraintVariant {
+    Hard()
+}
+
+/// Provides the way to work with multiple constraints.
+pub struct ConstraintPipeline {
+    constraints: Vec<ConstraintVariant>
+}
+
+impl ConstraintPipeline {
+    /// Accepts solution with its context.
+    pub fn accept_solution(&self, ctx: &SolutionContext) {
+        //self.constraints.iter().for_each(|c| c.)
+    }
+
+    /// Accepts solution with its context.
+    pub fn accept_route(&self, ctx: &RouteContext) {
+        unimplemented!()
+    }
+
+    /// Adds constraint to collection as last.
+    pub fn add(&mut self, constraint: ConstraintVariant) -> &mut ConstraintPipeline {
+        self.constraints.push(constraint);
+        self
+    }
+}
