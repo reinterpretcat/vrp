@@ -5,6 +5,7 @@ pub use self::route::Route;
 
 mod actors;
 pub use self::actors::Actor;
+pub use self::actors::Detail;
 pub use self::actors::Registry;
 
 mod tour;

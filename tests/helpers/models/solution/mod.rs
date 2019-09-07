@@ -1,3 +1,7 @@
+mod actor;
+
+pub use self::actor::test_actor;
+
 mod route;
 
 pub use self::route::test_activity;

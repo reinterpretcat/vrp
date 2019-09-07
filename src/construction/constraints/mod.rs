@@ -1,6 +1,6 @@
 mod pipeline;
 pub use self::pipeline::ActivityConstraintViolation;
-pub use self::pipeline::Constraint;
+pub use self::pipeline::ConstraintModule;
 pub use self::pipeline::ConstraintPipeline;
 pub use self::pipeline::HardActivityConstraint;
 pub use self::pipeline::HardRouteConstraint;
