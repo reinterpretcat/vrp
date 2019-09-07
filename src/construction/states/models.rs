@@ -4,6 +4,7 @@ use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour};
 use crate::models::{Problem, Solution};
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -107,18 +108,34 @@ pub struct SolutionContext {
 
 impl InsertionResult {
     /// Creates result which represents insertion failure.
-    pub fn make_failure() -> InsertionResult {
-        InsertionResult::make_failure_with_code(0)
+    pub fn make_failure() -> Self {
+        Self::make_failure_with_code(0)
     }
 
     /// Creates result which represents insertion failure with given code.
-    pub fn make_failure_with_code(code: i32) -> InsertionResult {
-        InsertionResult::Failure(InsertionFailure { constraint: code })
+    pub fn make_failure_with_code(code: i32) -> Self {
+        Self::Failure(InsertionFailure { constraint: code })
+    }
+
+    /// Compares two insertion results and returns the cheapest by cost.
+    pub fn choose_best_result(left: Self, right: Self) -> Self {
+        match (left.borrow(), right.borrow()) {
+            (Self::Success(_), Self::Failure(_)) => left,
+            (Self::Failure(_), Self::Success(_)) => right,
+            (Self::Success(lhs), Self::Success(rhs)) => {
+                if lhs.cost < rhs.cost {
+                    left
+                } else {
+                    right
+                }
+            }
+            _ => left,
+        }
     }
 }
 
 impl RouteContext {
-    pub fn new(actor: Arc<Actor>) -> RouteContext {
+    pub fn new(actor: Arc<Actor>) -> Self {
         let mut tour = Tour::new();
         tour.set_start(RouteContext::create_start_activity(&actor));
         RouteContext::create_end_activity(&actor).map(|end| tour.set_end(end));
