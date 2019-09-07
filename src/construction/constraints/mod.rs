@@ -2,6 +2,7 @@ mod pipeline;
 pub use self::pipeline::ActivityConstraintViolation;
 pub use self::pipeline::ConstraintModule;
 pub use self::pipeline::ConstraintPipeline;
+pub use self::pipeline::ConstraintVariant;
 pub use self::pipeline::HardActivityConstraint;
 pub use self::pipeline::HardRouteConstraint;
 pub use self::pipeline::RouteConstraintViolation;

@@ -7,10 +7,7 @@ use std::sync::Arc;
 
 struct TestConstraintModule {
     state_keys: Vec<i32>,
-    hard_route_constraint: Option<Arc<dyn HardRouteConstraint>>,
-    hard_activity_constraint: Option<Arc<dyn HardActivityConstraint>>,
-    soft_route_constraint: Option<Arc<dyn SoftRouteConstraint>>,
-    soft_activity_constraint: Option<Arc<dyn SoftActivityConstraint>>,
+    constraints: Vec<ConstraintVariant>,
 }
 
 impl ConstraintModule for TestConstraintModule {
@@ -26,20 +23,8 @@ impl ConstraintModule for TestConstraintModule {
         self.state_keys.iter()
     }
 
-    fn get_hard_route_constraint(&self) -> Option<Arc<dyn HardRouteConstraint>> {
-        self.hard_route_constraint.clone()
-    }
-
-    fn get_hard_activity_constraint(&self) -> Option<Arc<dyn HardActivityConstraint>> {
-        self.hard_activity_constraint.clone()
-    }
-
-    fn get_soft_route_constraint(&self) -> Option<Arc<dyn SoftRouteConstraint>> {
-        self.soft_route_constraint.clone()
-    }
-
-    fn get_soft_activity_constraint(&self) -> Option<Arc<dyn SoftActivityConstraint>> {
-        self.soft_activity_constraint.clone()
+    fn get_constraints(&self) -> Iter<ConstraintVariant> {
+        self.constraints.iter()
     }
 }
 
@@ -72,22 +57,20 @@ fn can_evaluate_hard_activity_constraints() {
     let mut pipeline = ConstraintPipeline::new();
     pipeline.add_module(TestConstraintModule {
         state_keys: vec![1, 2],
-        hard_route_constraint: None,
-        hard_activity_constraint: Some(Arc::new(TestHardActivityConstraint { violation: None })),
-        soft_route_constraint: None,
-        soft_activity_constraint: None,
+        constraints: vec![ConstraintVariant::HardActivity(Arc::new(
+            TestHardActivityConstraint { violation: None },
+        ))],
     });
     pipeline.add_module(TestConstraintModule {
         state_keys: vec![3, 4],
-        hard_route_constraint: None,
-        hard_activity_constraint: Some(Arc::new(TestHardActivityConstraint {
-            violation: Some(ActivityConstraintViolation {
-                code: 5,
-                stopped: true,
-            }),
-        })),
-        soft_route_constraint: None,
-        soft_activity_constraint: None,
+        constraints: vec![ConstraintVariant::HardActivity(Arc::new(
+            TestHardActivityConstraint {
+                violation: Some(ActivityConstraintViolation {
+                    code: 5,
+                    stopped: true,
+                }),
+            },
+        ))],
     });
 
     let result = pipeline.evaluate_hard_activity(
@@ -111,17 +94,15 @@ fn can_estimate_hard_activity_constraints() {
     let mut pipeline = ConstraintPipeline::new();
     pipeline.add_module(TestConstraintModule {
         state_keys: vec![1, 2],
-        hard_route_constraint: None,
-        hard_activity_constraint: None,
-        soft_route_constraint: None,
-        soft_activity_constraint: Some(Arc::new(TestSoftActivityConstraint { cost: 5.0 })),
+        constraints: vec![ConstraintVariant::SoftActivity(Arc::new(
+            TestSoftActivityConstraint { cost: 5.0 },
+        ))],
     });
     pipeline.add_module(TestConstraintModule {
         state_keys: vec![3, 4],
-        hard_route_constraint: None,
-        hard_activity_constraint: None,
-        soft_route_constraint: None,
-        soft_activity_constraint: Some(Arc::new(TestSoftActivityConstraint { cost: 7.0 })),
+        constraints: vec![ConstraintVariant::SoftActivity(Arc::new(
+            TestSoftActivityConstraint { cost: 7.0 },
+        ))],
     });
 
     let result = pipeline.evaluate_soft_activity(
