@@ -39,6 +39,24 @@ pub struct Route {
 }
 
 impl Activity {
+    pub fn new_with_job(job: Arc<Job>) -> Self {
+        Activity {
+            place: Place {
+                location: 0,
+                duration: 0.0,
+                time: TimeWindow {
+                    start: 0.0,
+                    end: std::f64::MAX,
+                },
+            },
+            schedule: Schedule {
+                arrival: 0.0,
+                departure: 0.0,
+            },
+            job: Some(job),
+        }
+    }
+
     pub fn has_same_job(&self, job: &Arc<Job>) -> bool {
         match self.retrieve_job() {
             Some(j) => j == *job,
