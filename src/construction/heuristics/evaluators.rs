@@ -57,17 +57,14 @@ impl InsertionEvaluator {
         job: &Arc<Job>,
         single: &Single,
         ctx: &InsertionContext,
-        route_context: &RouteContext,
+        route_ctx: &RouteContext,
         progress: &InsertionProgress,
     ) -> InsertionResult {
-        let mut activity = Arc::new(RwLock::new(Activity::new_with_job(job.clone())));
-        let route_costs = ctx
-            .problem
-            .constraint
-            .evaluate_soft_route(route_context, job);
+        let activity = Arc::new(RwLock::new(Activity::new_with_job(job.clone())));
+        let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
 
         // 1. analyze route legs
-        let result = unwrap_from_result(route_context.route.tour.legs().try_fold(
+        let result = unwrap_from_result(route_ctx.route.tour.legs().try_fold(
             SingleContext::new(progress.cost),
             |out, (items, index)| {
                 let (prev, next) = match items {
@@ -98,7 +95,7 @@ impl InsertionEvaluator {
                         if let Some(violation) = ctx
                             .problem
                             .constraint
-                            .evaluate_hard_activity(route_context, &activity_ctx)
+                            .evaluate_hard_activity(route_ctx, &activity_ctx)
                         {
                             return SingleContext::fail(violation, in2);
                         }
@@ -106,7 +103,7 @@ impl InsertionEvaluator {
                         let total_costs = ctx
                             .problem
                             .constraint
-                            .evaluate_soft_activity(route_context, &activity_ctx);
+                            .evaluate_soft_activity(route_ctx, &activity_ctx);
 
                         if total_costs < in2.cost {
                             SingleContext::success(
@@ -132,7 +129,7 @@ impl InsertionEvaluator {
                 result.cost,
                 job.clone(),
                 vec![(activity, result.index)],
-                route_context.clone(),
+                route_ctx.clone(),
             )
         } else {
             InsertionResult::make_failure_with_code(result.violation.unwrap().code)
