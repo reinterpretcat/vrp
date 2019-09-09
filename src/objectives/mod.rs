@@ -1,1 +1,1 @@
-pub struct ObjectiveFunction {}
+pub trait ObjectiveFunction {}

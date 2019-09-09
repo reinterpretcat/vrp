@@ -13,7 +13,9 @@ fn all_returns_all_jobs() {
     let jobs = vec![Arc::new(test_single_job()), Arc::new(test_single_job())];
 
     assert_eq!(
-        Jobs::new(&fleet, jobs, &TestTransportCost {}).all().count(),
+        Jobs::new(&fleet, jobs, &TestTransportCost::new())
+            .all()
+            .count(),
         2
     )
 }

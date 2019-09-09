@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
+mod evaluators_test;
+
 use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::states::*;
 use crate::models::common::{Cost, TimeWindow, NO_COST};

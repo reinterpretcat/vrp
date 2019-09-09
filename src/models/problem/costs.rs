@@ -32,7 +32,9 @@ pub trait ActivityCost {
         driver: &Driver,
         activity: &Activity,
         arrival: Timestamp,
-    ) -> Cost;
+    ) -> Cost {
+        activity.place.duration
+    }
 }
 
 /// Provides the way to get routing information for specific locations.

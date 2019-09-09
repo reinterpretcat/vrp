@@ -1,4 +1,6 @@
+pub mod construction;
 pub mod models;
+pub mod objectives;
 
 // See https://stackoverflow.com/questions/34662713/how-can-i-create-parameterized-tests-in-rust
 macro_rules! with_dollar_sign {
