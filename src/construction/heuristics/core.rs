@@ -1,7 +1,8 @@
+use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::states::*;
-use crate::models::common::{Cost, TimeWindow};
+use crate::models::common::{Cost, TimeWindow, NO_COST};
 use crate::models::problem::{Job, Multi, Single};
-use crate::models::solution::{Activity, Detail, Place};
+use crate::models::solution::{Activity, Place};
 use std::borrow::Borrow;
 use std::sync::{Arc, RwLock};
 
@@ -32,7 +33,7 @@ impl InsertionEvaluator {
                 let progress = InsertionProgress {
                     cost: match acc.borrow() {
                         InsertionResult::Success(success) => success.cost,
-                        _ => std::f64::MAX,
+                        _ => NO_COST,
                     },
                     completeness: ctx.progress.completeness,
                     total: ctx.progress.total,
@@ -94,16 +95,48 @@ impl InsertionEvaluator {
                             time: time.clone(),
                         };
 
-                        // TODO
+                        if let Some(violation) = ctx
+                            .problem
+                            .constraint
+                            .evaluate_hard_activity(route_context, &activity_ctx)
+                        {
+                            return SingleContext::fail(violation, in2);
+                        }
 
-                        Result::Ok(in2)
+                        let total_costs = ctx
+                            .problem
+                            .constraint
+                            .evaluate_soft_activity(route_context, &activity_ctx);
+
+                        if total_costs < in2.cost {
+                            SingleContext::success(
+                                activity_ctx.index,
+                                total_costs,
+                                Place {
+                                    location: activity.read().unwrap().place.location,
+                                    duration: detail.duration,
+                                    time: time.clone(),
+                                },
+                            )
+                        } else {
+                            SingleContext::skip(in2)
+                        }
                     })
                 })
             },
         ));
 
-        // TODO
-        InsertionResult::make_failure()
+        if result.is_success() {
+            activity.write().unwrap().place = result.place;
+            InsertionResult::make_success(
+                result.cost,
+                job.clone(),
+                vec![(activity, result.index)],
+                route_context.clone(),
+            )
+        } else {
+            InsertionResult::make_failure_with_code(result.violation.unwrap().code)
+        }
     }
 
     fn evaluate_multi(
@@ -119,35 +152,64 @@ impl InsertionEvaluator {
 
 /// Stores information needed for single insertion.
 struct SingleContext {
-    /// True, if processing has to be stopped.
-    pub is_stopped: bool,
-    /// Violation code.
-    pub code: i32,
+    /// Constraint violation.
+    pub violation: Option<ActivityConstraintViolation>,
     /// Insertion index.
     pub index: usize,
     /// Best cost.
     pub cost: Cost,
-    /// Activity detail.
-    pub detail: Detail,
+    /// Activity place.
+    pub place: Place,
 }
 
 impl SingleContext {
     /// Creates a new empty context with given cost.
     fn new(cost: Cost) -> Self {
         Self {
-            is_stopped: false,
-            code: 0,
+            violation: None,
             index: 0,
             cost,
-            detail: Detail {
-                start: None,
-                end: None,
+            place: Place {
+                location: 0,
+                duration: 0.0,
                 time: TimeWindow {
                     start: 0.0,
                     end: 0.0,
                 },
             },
         }
+    }
+
+    fn fail(violation: ActivityConstraintViolation, other: SingleContext) -> Result<Self, Self> {
+        let stopped = violation.stopped;
+        let ctx = Self {
+            violation: Some(violation),
+            index: other.index,
+            cost: other.cost,
+            place: other.place,
+        };
+        if stopped {
+            Result::Err(ctx)
+        } else {
+            Result::Ok(ctx)
+        }
+    }
+
+    fn success(index: usize, cost: Cost, place: Place) -> Result<Self, Self> {
+        Result::Ok(Self {
+            violation: None,
+            index,
+            cost,
+            place,
+        })
+    }
+
+    fn skip(other: SingleContext) -> Result<Self, Self> {
+        Result::Ok(other)
+    }
+
+    fn is_success(&self) -> bool {
+        self.cost < NO_COST
     }
 }
 

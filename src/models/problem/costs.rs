@@ -20,9 +20,9 @@ pub trait ActivityCost {
         };
         let service = self.duration(vehicle, driver, activity, arrival);
 
-        return waiting * (driver.costs.per_waiting_time + vehicle.costs.per_waiting_time)
+        waiting * (driver.costs.per_waiting_time + vehicle.costs.per_waiting_time)
             + driver.costs.per_service_time
-            + vehicle.costs.per_service_time;
+            + vehicle.costs.per_service_time
     }
 
     /// Returns operation time spent to perform activity.
@@ -49,8 +49,8 @@ pub trait TransportCost {
         let distance = self.distance(vehicle.profile, from, to, departure);
         let duration = self.duration(vehicle.profile, from, to, departure);
 
-        return distance * (driver.costs.per_distance + vehicle.costs.per_distance)
-            + duration * (driver.costs.per_driving_time + vehicle.costs.per_driving_time);
+        distance * (driver.costs.per_distance + vehicle.costs.per_distance)
+            + duration * (driver.costs.per_driving_time + vehicle.costs.per_driving_time)
     }
 
     /// Returns transport time between two locations.

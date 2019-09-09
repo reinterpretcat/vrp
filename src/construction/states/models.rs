@@ -23,7 +23,7 @@ pub struct InsertionSuccess {
     pub job: Arc<Job>,
 
     /// Specifies activities within index where they have to be inserted.
-    pub activities: Vec<(Arc<Activity>, usize)>,
+    pub activities: Vec<(TourActivity, usize)>,
 
     /// Specifies route context where insertion happens.
     pub context: RouteContext,
@@ -107,6 +107,20 @@ pub struct SolutionContext {
 }
 
 impl InsertionResult {
+    pub fn make_success(
+        cost: Cost,
+        job: Arc<Job>,
+        activities: Vec<(TourActivity, usize)>,
+        route_ctx: RouteContext,
+    ) -> Self {
+        Self::Success(InsertionSuccess {
+            cost,
+            job,
+            activities,
+            context: route_ctx,
+        })
+    }
+
     /// Creates result which represents insertion failure.
     pub fn make_failure() -> Self {
         Self::make_failure_with_code(0)
