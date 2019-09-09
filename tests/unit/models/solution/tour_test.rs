@@ -4,14 +4,15 @@ use crate::helpers::models::solution::{
     test_tour_activity_without_job,
 };
 use crate::models::problem::Job;
-use crate::models::solution::{Activity, Tour};
+use crate::models::solution::{Activity, Tour, TourActivity};
 use std::borrow::Borrow;
+use std::ops::Deref;
 use std::sync::Arc;
 
-type RouteLeg<'a> = (&'a [Arc<Activity>], usize);
+type RouteLeg<'a> = (&'a [TourActivity], usize);
 
-fn get_pointer(activity: &Arc<Activity>) -> *const Activity {
-    &*activity.borrow() as *const Activity
+fn get_pointer(activity: &TourActivity) -> *const Activity {
+    &*activity.read().unwrap().deref() as *const Activity
 }
 
 fn get_test_tour() -> Tour {
@@ -120,7 +121,7 @@ fn can_get_activities_for_job() {
     let activity = test_tour_activity_with_job(job.clone());
     tour.insert_at(activity.clone(), 2);
 
-    let result: Vec<Arc<Activity>> = tour.activities(&job).collect();
+    let result: Vec<TourActivity> = tour.activities(&job).collect();
 
     assert_eq!(result.len(), 1);
     assert_eq!(get_pointer(&activity), get_pointer(result.first().unwrap()))

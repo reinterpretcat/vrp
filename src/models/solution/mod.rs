@@ -10,3 +10,4 @@ pub use self::actors::Registry;
 
 mod tour;
 pub use self::tour::Tour;
+pub use self::tour::TourActivity;

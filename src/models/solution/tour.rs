@@ -3,17 +3,19 @@
 mod tour_test;
 
 use std::collections::HashSet;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Place};
 use std::borrow::Borrow;
 use std::io::empty;
 
+pub type TourActivity = Arc<RwLock<Activity>>;
+
 /// Represents a tour, a smart container for jobs with their associated activities.
 pub struct Tour {
     /// Stores activities in the order the performed.
-    activities: Vec<Arc<Activity>>,
+    activities: Vec<TourActivity>,
 
     /// Stores jobs in the order of their activities added.
     jobs: HashSet<Arc<Job>>,
@@ -34,8 +36,8 @@ impl Tour {
     }
 
     /// Sets tour start.
-    pub fn set_start(&mut self, activity: Arc<Activity>) -> &mut Tour {
-        assert!(activity.job.is_none());
+    pub fn set_start(&mut self, activity: TourActivity) -> &mut Tour {
+        assert!(activity.read().unwrap().job.is_none());
         assert!(self.activities.is_empty());
         self.activities.push(activity);
 
@@ -43,8 +45,8 @@ impl Tour {
     }
 
     /// Sets tour end.
-    pub fn set_end(&mut self, activity: Arc<Activity>) -> &mut Tour {
-        assert!(activity.job.is_none());
+    pub fn set_end(&mut self, activity: TourActivity) -> &mut Tour {
+        assert!(activity.read().unwrap().job.is_none());
         assert!(!self.activities.is_empty());
         self.activities.push(activity);
         self.is_closed = true;
@@ -53,17 +55,20 @@ impl Tour {
     }
 
     /// Inserts activity within its job to the end of tour.
-    pub fn insert_last(&mut self, activity: Arc<Activity>) -> &mut Tour {
+    pub fn insert_last(&mut self, activity: TourActivity) -> &mut Tour {
         self.insert_at(activity, self.activity_count() + 1);
         self
     }
 
     /// Inserts activity within its job at specified index.
-    pub fn insert_at(&mut self, activity: Arc<Activity>, index: usize) -> &mut Tour {
-        assert!(activity.job.is_some());
-        assert!(!self.activities.is_empty());
+    pub fn insert_at(&mut self, activity: TourActivity, index: usize) -> &mut Tour {
+        {
+            let activity = activity.read().unwrap();
+            assert!(activity.job.is_some());
+            assert!(!self.activities.is_empty());
 
-        self.jobs.insert(activity.retrieve_job().unwrap());
+            self.jobs.insert(activity.retrieve_job().unwrap());
+        }
         self.activities.insert(index, activity);
 
         self
@@ -71,20 +76,21 @@ impl Tour {
 
     /// Removes job within its activities from the tour.
     pub fn remove(&mut self, job: &Arc<Job>) -> bool {
-        self.activities.retain(|a| !a.has_same_job(job));
+        self.activities
+            .retain(|a| !a.read().unwrap().has_same_job(job));
         self.jobs.remove(job)
     }
 
     /// Returns all activities in tour for specific job.
-    pub fn activities<'a>(&'a self, job: &'a Arc<Job>) -> impl Iterator<Item = Arc<Activity>> + 'a {
+    pub fn activities<'a>(&'a self, job: &'a Arc<Job>) -> impl Iterator<Item = TourActivity> + 'a {
         self.activities
             .iter()
-            .filter(move |a| a.has_same_job(job))
+            .filter(move |a| a.read().unwrap().has_same_job(job))
             .cloned()
     }
 
     /// Returns counted tour legs.
-    pub fn legs<'a>(&'a self) -> impl Iterator<Item = (&'a [Arc<Activity>], usize)> + 'a {
+    pub fn legs<'a>(&'a self) -> impl Iterator<Item = (&'a [TourActivity], usize)> + 'a {
         self.activities.windows(2).zip(0..)
     }
 
@@ -94,17 +100,17 @@ impl Tour {
     }
 
     /// Returns activity by its index in tour.
-    pub fn get(&self, index: usize) -> Option<&Arc<Activity>> {
+    pub fn get(&self, index: usize) -> Option<&TourActivity> {
         self.activities.get(index)
     }
 
     /// Returns start activity in tour.
-    pub fn start(&self) -> Option<&Arc<Activity>> {
+    pub fn start(&self) -> Option<&TourActivity> {
         self.activities.first()
     }
 
     /// Returns end activity in tour.
-    pub fn end(&self) -> Option<&Arc<Activity>> {
+    pub fn end(&self) -> Option<&TourActivity> {
         self.activities.last()
     }
 
@@ -112,7 +118,7 @@ impl Tour {
     pub fn index(&self, job: &Arc<Job>) -> Option<usize> {
         self.activities
             .iter()
-            .position(move |a| a.has_same_job(&job))
+            .position(move |a| a.read().unwrap().has_same_job(&job))
     }
 
     /// Checks whether tour is empty.
@@ -141,7 +147,8 @@ impl Tour {
                 .activities
                 .iter()
                 .map(|a| {
-                    Arc::new(Activity {
+                    let a = a.read().unwrap();
+                    Arc::new(RwLock::new(Activity {
                         place: Place {
                             location: a.place.location.clone(),
                             duration: a.place.duration.clone(),
@@ -149,7 +156,7 @@ impl Tour {
                         },
                         schedule: a.schedule.clone(),
                         job: a.job.clone(),
-                    })
+                    }))
                 })
                 .collect(),
             jobs: Default::default(),

@@ -2,11 +2,11 @@ use super::*;
 use crate::construction::states::route::RouteState;
 use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::problem::Job;
-use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour};
+use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour, TourActivity};
 use crate::models::{Problem, Solution};
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// Specifies insertion result.
 pub enum InsertionResult {
@@ -53,13 +53,13 @@ pub struct ActivityContext {
     pub index: usize,
 
     /// Previous activity.
-    pub prev: Arc<Activity>,
+    pub prev: TourActivity,
 
     /// Target activity.
-    pub target: Arc<Activity>,
+    pub target: TourActivity,
 
     /// Next activity. Absent if tour is open and target activity inserted last.
-    pub next: Option<Arc<Activity>>,
+    pub next: Option<TourActivity>,
 }
 
 /// Specifies insertion context for route.
@@ -146,8 +146,8 @@ impl RouteContext {
         }
     }
 
-    fn create_start_activity(actor: &Arc<Actor>) -> Arc<Activity> {
-        Arc::new(Activity {
+    fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
+        Arc::new(RwLock::new(Activity {
             place: Place {
                 location: actor
                     .detail
@@ -164,12 +164,12 @@ impl RouteContext {
                 departure: actor.detail.time.start,
             },
             job: None,
-        })
+        }))
     }
 
-    fn create_end_activity(actor: &Arc<Actor>) -> Option<Arc<Activity>> {
+    fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
         actor.detail.end.map(|location| {
-            Arc::new(Activity {
+            Arc::new(RwLock::new(Activity {
                 place: Place {
                     location,
                     duration: 0.0,
@@ -183,7 +183,7 @@ impl RouteContext {
                     departure: actor.detail.time.end,
                 },
                 job: None,
-            })
+            }))
         })
     }
 }

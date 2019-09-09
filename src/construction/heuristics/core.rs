@@ -3,7 +3,7 @@ use crate::models::common::{Cost, TimeWindow};
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Detail, Place};
 use std::borrow::Borrow;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 /// Provides the way to evaluate insertion cost.
 pub struct InsertionEvaluator {}
@@ -59,7 +59,7 @@ impl InsertionEvaluator {
         route_context: &RouteContext,
         progress: &InsertionProgress,
     ) -> InsertionResult {
-        let activity = Arc::new(Activity::new_with_job(job.clone()));
+        let mut activity = Arc::new(RwLock::new(Activity::new_with_job(job.clone())));
         let route_costs = ctx
             .problem
             .constraint
@@ -74,7 +74,7 @@ impl InsertionEvaluator {
                     _ => panic!("Unexpected route leg configuration."),
                 };
 
-                let activity_ctx = ActivityContext {
+                let mut activity_ctx = ActivityContext {
                     index,
                     prev,
                     target: activity.clone(),
@@ -86,12 +86,15 @@ impl InsertionEvaluator {
                     // TODO check whether tw is empty
                     // 3. analyze detail time windows
                     detail.times.iter().try_fold(in1, |in2, time| {
+                        activity.write().unwrap().place = Place {
+                            location: detail
+                                .location
+                                .unwrap_or(activity_ctx.prev.read().unwrap().place.location),
+                            duration: detail.duration,
+                            time: time.clone(),
+                        };
+
                         // TODO
-                        //                        activity.lock().unwrap().place = Place {
-                        //                            location: 0,//activity_ctx.prev.place.location,
-                        //                            duration: detail.duration,
-                        //                            time: time.clone()
-                        //                        };
 
                         Result::Ok(in2)
                     })
