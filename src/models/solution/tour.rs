@@ -9,6 +9,7 @@ use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Place};
 use std::borrow::Borrow;
 use std::io::empty;
+use std::slice::Iter;
 
 pub type TourActivity = Arc<RwLock<Activity>>;
 
@@ -81,8 +82,16 @@ impl Tour {
         self.jobs.remove(job)
     }
 
+    /// Returns all activities in tour.
+    pub fn all_activities(&self) -> Iter<TourActivity> {
+        self.activities.iter()
+    }
+
     /// Returns all activities in tour for specific job.
-    pub fn activities<'a>(&'a self, job: &'a Arc<Job>) -> impl Iterator<Item = TourActivity> + 'a {
+    pub fn job_activities<'a>(
+        &'a self,
+        job: &'a Arc<Job>,
+    ) -> impl Iterator<Item = TourActivity> + 'a {
         self.activities
             .iter()
             .filter(move |a| a.read().unwrap().has_same_job(job))

@@ -66,10 +66,10 @@ pub struct ActivityContext {
 #[derive(Clone)]
 pub struct RouteContext {
     /// Used route.
-    pub route: Arc<Route>,
+    pub route: Arc<RwLock<Route>>,
 
     /// Insertion state.
-    pub state: Arc<RouteState>,
+    pub state: Arc<RwLock<RouteState>>,
 }
 
 /// Contains information needed to performed insertions in solution.
@@ -155,8 +155,8 @@ impl RouteContext {
         RouteContext::create_end_activity(&actor).map(|end| tour.set_end(end));
 
         RouteContext {
-            route: Arc::new(Route { actor, tour }),
-            state: Arc::new(RouteState::new()),
+            route: Arc::new(RwLock::new(Route { actor, tour })),
+            state: Arc::new(RwLock::new(RouteState::new())),
         }
     }
 

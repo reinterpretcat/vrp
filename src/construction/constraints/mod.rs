@@ -8,3 +8,5 @@ pub use self::pipeline::HardRouteConstraint;
 pub use self::pipeline::RouteConstraintViolation;
 pub use self::pipeline::SoftActivityConstraint;
 pub use self::pipeline::SoftRouteConstraint;
+
+mod timing;

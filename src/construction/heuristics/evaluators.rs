@@ -68,7 +68,7 @@ impl InsertionEvaluator {
         let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
 
         // 1. analyze route legs
-        let result = unwrap_from_result(route_ctx.route.tour.legs().try_fold(
+        let result = unwrap_from_result(route_ctx.route.read().unwrap().tour.legs().try_fold(
             SingleContext::new(progress.cost),
             |out, (items, index)| {
                 let (prev, next) = match items {

@@ -121,7 +121,7 @@ fn can_get_activities_for_job() {
     let activity = test_tour_activity_with_job(job.clone());
     tour.insert_at(activity.clone(), 2);
 
-    let result: Vec<TourActivity> = tour.activities(&job).collect();
+    let result: Vec<TourActivity> = tour.job_activities(&job).collect();
 
     assert_eq!(result.len(), 1);
     assert_eq!(get_pointer(&activity), get_pointer(result.first().unwrap()))

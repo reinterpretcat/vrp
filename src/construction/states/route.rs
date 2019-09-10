@@ -3,11 +3,12 @@
 mod route_test;
 
 use crate::models::common::Cost;
-use crate::models::solution::Activity;
+use crate::models::solution::{Activity, TourActivity};
 use std::any::Any;
 use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::ops::Deref;
 use std::sync::Arc;
 
 /// Provides the way to associate arbitrary data within route and activity.
@@ -40,7 +41,7 @@ impl RouteState {
     }
 
     /// Gets value associated with key.
-    pub fn get_activity_state<T: 'static>(&self, key: i32, activity: &Arc<Activity>) -> Option<&T> {
+    pub fn get_activity_state<T: 'static>(&self, key: i32, activity: &TourActivity) -> Option<&T> {
         self.activity_states
             .get(&ActivityWithKey(activity.clone(), key))
             .and_then(|s| s.downcast_ref::<T>())
@@ -53,14 +54,14 @@ impl RouteState {
     }
 
     /// Puts value associated with key and specific activity.
-    pub fn put_activity_state<T: 'static>(&mut self, key: i32, activity: &Arc<Activity>, value: T) {
+    pub fn put_activity_state<T: 'static>(&mut self, key: i32, activity: &TourActivity, value: T) {
         self.activity_states
             .insert(ActivityWithKey(activity.clone(), key), Box::new(value));
         self.keys.insert(key);
     }
 
     /// Removes all activity states for given activity.
-    pub fn remove_activity_states(&mut self, activity: &Arc<Activity>) {
+    pub fn remove_activity_states(&mut self, activity: &TourActivity) {
         for (_, key) in self.keys.iter().enumerate() {
             self.activity_states
                 .remove(&ActivityWithKey(activity.clone(), *key));
@@ -76,11 +77,13 @@ impl RouteState {
     }
 }
 
-struct ActivityWithKey(Arc<Activity>, i32);
+struct ActivityWithKey(TourActivity, i32);
 
 impl PartialEq for ActivityWithKey {
     fn eq(&self, other: &Self) -> bool {
-        self.1 == other.1 && (&*self.0 as *const Activity) == (&*other.0 as *const Activity)
+        self.1 == other.1
+            && (&*self.0.read().unwrap().deref() as *const Activity)
+                == (&*other.0.read().unwrap().deref() as *const Activity)
     }
 }
 
@@ -88,7 +91,7 @@ impl Eq for ActivityWithKey {}
 
 impl Hash for ActivityWithKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let address = &*self.0 as *const Activity;
+        let address = &*self.0.read().unwrap().deref() as *const Activity;
         address.hash(state);
         state.write_i32(self.1)
     }
