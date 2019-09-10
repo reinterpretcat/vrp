@@ -4,7 +4,8 @@ use crate::construction::constraints::{
 };
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::problem::{ActivityCost, Job, TransportCost};
-use crate::models::solution::{Route, TourActivity};
+use crate::models::solution::{Actor, Route, TourActivity};
+use std::borrow::Borrow;
 use std::cmp::max;
 use std::ops::Deref;
 use std::slice::Iter;
@@ -71,7 +72,6 @@ impl ConstraintModule for TimingConstraintModule {
             }
 
             let (end_time, prev_loc, waiting) = acc;
-
             let potential_latest = end_time
                 - self
                     .transport
@@ -81,7 +81,6 @@ impl ConstraintModule for TimingConstraintModule {
                     .duration(actor.vehicle.as_ref(), actor.driver.as_ref(), act.deref(), end_time);
 
             let latest_arrival_time = act.place.time.end.min(potential_latest);
-
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0f64);
 
             state.put_activity_state(LATEST_ARRIVAL_KEY, &activity, latest_arrival_time);
@@ -112,12 +111,16 @@ impl ConstraintModule for TimingConstraintModule {
 }
 
 impl TimingConstraintModule {
-    fn new(activity: Arc<dyn ActivityCost>, transport: Arc<dyn TransportCost>, code: i32) -> Self {
+    pub fn new(activity: Arc<dyn ActivityCost>, transport: Arc<dyn TransportCost>, code: i32) -> Self {
         Self {
             code,
             state_keys: vec![LATEST_ARRIVAL_KEY, WAITING_KEY],
             constraints: vec![
-                ConstraintVariant::HardActivity(Arc::new(TimeHardActivityConstraint {})),
+                ConstraintVariant::HardActivity(Arc::new(TimeHardActivityConstraint {
+                    code,
+                    transport: transport.clone(),
+                    activity: activity.clone(),
+                })),
                 ConstraintVariant::SoftActivity(Arc::new(TimeSoftActivityConstraint {})),
             ],
             activity,
@@ -126,7 +129,31 @@ impl TimingConstraintModule {
     }
 }
 
-struct TimeHardActivityConstraint {}
+struct TimeHardActivityConstraint {
+    code: i32,
+    activity: Arc<dyn ActivityCost>,
+    transport: Arc<dyn TransportCost>,
+}
+
+impl TimeHardActivityConstraint {
+    fn fail(&self) -> Option<ActivityConstraintViolation> {
+        Some(ActivityConstraintViolation {
+            code: self.code,
+            stopped: true,
+        })
+    }
+
+    fn stop(&self) -> Option<ActivityConstraintViolation> {
+        Some(ActivityConstraintViolation {
+            code: self.code,
+            stopped: false,
+        })
+    }
+
+    fn success(&self) -> Option<ActivityConstraintViolation> {
+        None
+    }
+}
 
 impl HardActivityConstraint for TimeHardActivityConstraint {
     fn evaluate_activity(
@@ -134,7 +161,102 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        unimplemented!()
+        let route = route_ctx.route.read().unwrap();
+        let actor = route.actor.as_ref();
+
+        let prev = activity_ctx.prev.read().unwrap();
+        let target = activity_ctx.target.read().unwrap();
+        let next = activity_ctx.next.as_ref();
+
+        let departure = prev.schedule.departure;
+        let profile = actor.vehicle.profile;
+
+        if actor.detail.time.end < prev.place.time.start
+            || actor.detail.time.end < target.place.time.start
+            || next.map_or(false, |next| {
+                actor.detail.time.end < next.read().unwrap().place.time.start
+            })
+        {
+            return self.fail();
+        }
+
+        let state = route_ctx.state.read().unwrap();
+
+        let (next_act_location, latest_arr_time_at_next_act) = if next.is_some() {
+            // closed vrp
+            let n = next.unwrap().read().unwrap();
+            if actor.detail.time.end < n.place.time.start {
+                return self.fail();
+            }
+            (
+                n.place.location,
+                *state
+                    .get_activity_state(LATEST_ARRIVAL_KEY, next.unwrap())
+                    .unwrap_or(&n.place.time.end),
+            )
+        } else {
+            // open vrp
+            (target.place.location, target.place.time.end.min(actor.detail.time.end))
+        };
+
+        let arr_time_at_next = departure
+            + self
+                .transport
+                .duration(profile, prev.place.location, next_act_location, departure);
+        if arr_time_at_next > latest_arr_time_at_next_act {
+            return self.fail();
+        }
+        if target.place.time.start > latest_arr_time_at_next_act {
+            return self.stop();
+        }
+
+        let arr_time_at_target_act = departure
+            + self
+                .transport
+                .duration(profile, prev.place.location, target.place.location, departure);
+
+        let end_time_at_new_act = arr_time_at_target_act.max(target.place.time.start)
+            + self.activity.duration(
+                actor.vehicle.as_ref(),
+                actor.driver.as_ref(),
+                target.deref(),
+                arr_time_at_target_act,
+            );
+
+        let latest_arr_time_at_new_act = target.place.time.end.min(
+            latest_arr_time_at_next_act
+                - self.transport.duration(
+                    profile,
+                    target.place.location,
+                    next_act_location,
+                    latest_arr_time_at_next_act,
+                )
+                + self.activity.duration(
+                    actor.vehicle.as_ref(),
+                    actor.driver.as_ref(),
+                    target.deref(),
+                    arr_time_at_target_act,
+                ),
+        );
+
+        if arr_time_at_target_act > latest_arr_time_at_new_act {
+            return self.stop();
+        }
+
+        if next.is_some() {
+            return self.success();
+        }
+
+        let arr_time_at_next_act = end_time_at_new_act
+            + self
+                .transport
+                .duration(profile, target.place.location, next_act_location, end_time_at_new_act);
+
+        if arr_time_at_next_act > latest_arr_time_at_next_act {
+            self.stop()
+        } else {
+            self.success()
+        }
     }
 }
 
