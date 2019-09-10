@@ -57,16 +57,10 @@ impl Registry {
                     detail: Detail {
                         start: detail.start,
                         end: detail.end,
-                        time: detail.time.clone().unwrap_or(TimeWindow {
-                            start: 0.0,
-                            end: std::f64::MAX,
-                        }),
+                        time: detail.time.clone().unwrap_or(TimeWindow { start: 0.0, end: std::f64::MAX }),
                     },
                 });
-                available
-                    .entry(actor.detail.clone())
-                    .or_insert(HashSet::new())
-                    .insert(actor.clone());
+                available.entry(actor.detail.clone()).or_insert(HashSet::new()).insert(actor.clone());
                 all.push(actor);
             }
         }
@@ -96,9 +90,7 @@ impl Registry {
 
     /// Returns next available actors from each different type.
     pub fn next<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
-        self.available
-            .iter()
-            .flat_map(|(_, set)| set.into_iter().take(1).cloned())
+        self.available.iter().flat_map(|(_, set)| set.into_iter().take(1).cloned())
     }
 }
 

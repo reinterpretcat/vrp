@@ -113,12 +113,7 @@ impl InsertionResult {
         activities: Vec<(TourActivity, usize)>,
         route_ctx: RouteContext,
     ) -> Self {
-        Self::Success(InsertionSuccess {
-            cost,
-            job,
-            activities,
-            context: route_ctx,
-        })
+        Self::Success(InsertionSuccess { cost, job, activities, context: route_ctx })
     }
 
     /// Creates result which represents insertion failure.
@@ -163,20 +158,11 @@ impl RouteContext {
     fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
         Arc::new(RwLock::new(Activity {
             place: Place {
-                location: actor
-                    .detail
-                    .start
-                    .unwrap_or_else(|| unimplemented!("Optional start is not yet implemented")),
+                location: actor.detail.start.unwrap_or_else(|| unimplemented!("Optional start is not yet implemented")),
                 duration: 0.0,
-                time: TimeWindow {
-                    start: actor.detail.time.start,
-                    end: std::f64::MAX,
-                },
+                time: TimeWindow { start: actor.detail.time.start, end: std::f64::MAX },
             },
-            schedule: Schedule {
-                arrival: actor.detail.time.start,
-                departure: actor.detail.time.start,
-            },
+            schedule: Schedule { arrival: actor.detail.time.start, departure: actor.detail.time.start },
             job: None,
         }))
     }
@@ -184,18 +170,8 @@ impl RouteContext {
     fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
         actor.detail.end.map(|location| {
             Arc::new(RwLock::new(Activity {
-                place: Place {
-                    location,
-                    duration: 0.0,
-                    time: TimeWindow {
-                        start: 0.0,
-                        end: actor.detail.time.end,
-                    },
-                },
-                schedule: Schedule {
-                    arrival: actor.detail.time.end,
-                    departure: actor.detail.time.end,
-                },
+                place: Place { location, duration: 0.0, time: TimeWindow { start: 0.0, end: actor.detail.time.end } },
+                schedule: Schedule { arrival: actor.detail.time.end, departure: actor.detail.time.end },
                 job: None,
             }))
         })

@@ -42,16 +42,8 @@ fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
     let fleet = Fleet::new(
         vec![test_driver()],
         vec![
-            VehicleBuilder::new()
-                .id("v1")
-                .profile(1)
-                .details(vec![test_vehicle_detail()])
-                .build(),
-            VehicleBuilder::new()
-                .id("v2")
-                .profile(1)
-                .details(vec![test_vehicle_detail()])
-                .build(),
+            VehicleBuilder::new().id("v1").profile(1).details(vec![test_vehicle_detail()]).build(),
+            VehicleBuilder::new().id("v2").profile(1).details(vec![test_vehicle_detail()]).build(),
         ],
     );
     let species = vec![

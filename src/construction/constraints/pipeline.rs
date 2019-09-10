@@ -127,9 +127,7 @@ impl ConstraintPipeline {
     /// Checks whether all hard route constraints are fulfilled.
     /// Returns result of first failed constraint or empty value.
     pub fn evaluate_hard_route(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
-        self.hard_route_constraints
-            .iter()
-            .find_map(|c| c.evaluate_job(ctx, job))
+        self.hard_route_constraints.iter().find_map(|c| c.evaluate_job(ctx, job))
     }
 
     /// Checks whether all activity route constraints are fulfilled.
@@ -139,24 +137,16 @@ impl ConstraintPipeline {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        self.hard_activity_constraints
-            .iter()
-            .find_map(|c| c.evaluate_activity(route_ctx, activity_ctx))
+        self.hard_activity_constraints.iter().find_map(|c| c.evaluate_activity(route_ctx, activity_ctx))
     }
 
     /// Checks soft route constraints and aggregates associated actual and penalty costs.
     pub fn evaluate_soft_route(&self, ctx: &RouteContext, job: &Arc<Job>) -> Cost {
-        self.soft_route_constraints
-            .iter()
-            .map(|c| c.estimate_job(ctx, job))
-            .sum()
+        self.soft_route_constraints.iter().map(|c| c.estimate_job(ctx, job)).sum()
     }
 
     /// Checks soft route constraints and aggregates associated actual and penalty costs.
     pub fn evaluate_soft_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Cost {
-        self.soft_activity_constraints
-            .iter()
-            .map(|c| c.estimate_activity(route_ctx, activity_ctx))
-            .sum()
+        self.soft_activity_constraints.iter().map(|c| c.estimate_activity(route_ctx, activity_ctx)).sum()
     }
 }

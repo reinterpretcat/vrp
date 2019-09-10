@@ -20,12 +20,9 @@ impl InsertionEvaluator {
 
     /// Evaluates possibility to preform insertion from given insertion context.
     pub fn evaluate(&self, job: &Arc<Job>, ctx: &InsertionContext) -> InsertionResult {
-        ctx.solution
-            .routes
-            .iter()
-            .cloned()
-            .chain(ctx.solution.registry.next().map(|a| RouteContext::new(a)))
-            .fold(InsertionResult::make_failure(), |acc, route_ctx| {
+        ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next().map(|a| RouteContext::new(a))).fold(
+            InsertionResult::make_failure(),
+            |acc, route_ctx| {
                 if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
                     return InsertionResult::choose_best_result(
                         acc,
@@ -49,7 +46,8 @@ impl InsertionEvaluator {
                         Job::Multi(multi) => Self::evaluate_multi(job, multi, ctx, &route_ctx, &progress),
                     },
                 )
-            })
+            },
+        )
     }
 
     fn evaluate_single(
@@ -71,12 +69,7 @@ impl InsertionEvaluator {
                     _ => panic!("Unexpected route leg configuration."),
                 };
 
-                let mut activity_ctx = ActivityContext {
-                    index,
-                    prev,
-                    target: activity.clone(),
-                    next: Some(next),
-                };
+                let mut activity_ctx = ActivityContext { index, prev, target: activity.clone(), next: Some(next) };
 
                 // 2. analyze service details
                 single.places.iter().try_fold(out, |in1, detail| {
@@ -84,9 +77,7 @@ impl InsertionEvaluator {
                     // 3. analyze detail time windows
                     detail.times.iter().try_fold(in1, |in2, time| {
                         activity.write().unwrap().place = Place {
-                            location: detail
-                                .location
-                                .unwrap_or(activity_ctx.prev.read().unwrap().place.location),
+                            location: detail.location.unwrap_or(activity_ctx.prev.read().unwrap().place.location),
                             duration: detail.duration,
                             time: time.clone(),
                         };
@@ -118,12 +109,7 @@ impl InsertionEvaluator {
 
         if result.is_success() {
             activity.write().unwrap().place = result.place;
-            InsertionResult::make_success(
-                result.cost,
-                job.clone(),
-                vec![(activity, result.index)],
-                route_ctx.clone(),
-            )
+            InsertionResult::make_success(result.cost, job.clone(), vec![(activity, result.index)], route_ctx.clone())
         } else {
             InsertionResult::make_failure_with_code(result.violation.unwrap().code)
         }
@@ -159,22 +145,13 @@ impl SingleContext {
             violation: None,
             index: 0,
             cost,
-            place: Place {
-                location: 0,
-                duration: 0.0,
-                time: TimeWindow { start: 0.0, end: 0.0 },
-            },
+            place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: 0.0 } },
         }
     }
 
     fn fail(violation: ActivityConstraintViolation, other: SingleContext) -> Result<Self, Self> {
         let stopped = violation.stopped;
-        let ctx = Self {
-            violation: Some(violation),
-            index: other.index,
-            cost: other.cost,
-            place: other.place,
-        };
+        let ctx = Self { violation: Some(violation), index: other.index, cost: other.cost, place: other.place };
         if stopped {
             Result::Err(ctx)
         } else {
@@ -183,12 +160,7 @@ impl SingleContext {
     }
 
     fn success(index: usize, cost: Cost, place: Place) -> Result<Self, Self> {
-        Result::Ok(Self {
-            violation: None,
-            index,
-            cost,
-            place,
-        })
+        Result::Ok(Self { violation: None, index, cost, place })
     }
 
     fn skip(other: SingleContext) -> Result<Self, Self> {

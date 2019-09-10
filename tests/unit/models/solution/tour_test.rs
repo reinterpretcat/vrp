@@ -26,10 +26,7 @@ fn get_test_tour() -> Tour {
 
 fn compare_legs<'a>(left: &RouteLeg<'a>, right: &RouteLeg<'a>) {
     for i in 0..2 {
-        assert_eq!(
-            get_pointer(left.0.get(i).unwrap()),
-            get_pointer(right.0.get(i).unwrap())
-        );
+        assert_eq!(get_pointer(left.0.get(i).unwrap()), get_pointer(right.0.get(i).unwrap()));
     }
     assert_eq!(left.1, right.1);
 }
@@ -42,10 +39,7 @@ fn can_set_and_get_start() {
     tour.set_start(activity.clone());
 
     assert_eq!(get_pointer(&activity), get_pointer(tour.start().unwrap()));
-    assert_ne!(
-        get_pointer(&test_tour_activity_without_job()),
-        get_pointer(tour.start().unwrap())
-    );
+    assert_ne!(get_pointer(&test_tour_activity_without_job()), get_pointer(tour.start().unwrap()));
     assert_eq!(tour.activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 }
@@ -59,10 +53,7 @@ fn can_set_and_get_end() {
     tour.set_end(activity.clone());
 
     assert_eq!(get_pointer(&activity), get_pointer(tour.end().unwrap()));
-    assert_ne!(
-        get_pointer(&test_tour_activity_without_job()),
-        get_pointer(tour.end().unwrap())
-    );
+    assert_ne!(get_pointer(&test_tour_activity_without_job()), get_pointer(tour.end().unwrap()));
     assert_eq!(tour.activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 }

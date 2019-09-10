@@ -4,10 +4,7 @@ use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Place};
 use std::sync::Arc;
 
-pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule {
-    departure: 0.0,
-    arrival: 0.0,
-};
+pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
 
 pub fn test_activity() -> Activity {
     test_activity_with_job(Arc::new(test_single_job()))
@@ -15,11 +12,7 @@ pub fn test_activity() -> Activity {
 
 pub fn test_activity_with_job(job: Arc<Job>) -> Activity {
     Activity {
-        place: Place {
-            location: DEFAULT_JOB_LOCATION,
-            duration: DEFAULT_JOB_DURATION,
-            time: DEFAULT_JOB_TIME_WINDOW,
-        },
+        place: Place { location: DEFAULT_JOB_LOCATION, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: Some(job),
     }
@@ -27,11 +20,7 @@ pub fn test_activity_with_job(job: Arc<Job>) -> Activity {
 
 pub fn test_activity_without_job() -> Activity {
     Activity {
-        place: Place {
-            location: DEFAULT_JOB_LOCATION,
-            duration: DEFAULT_JOB_DURATION,
-            time: DEFAULT_JOB_TIME_WINDOW,
-        },
+        place: Place { location: DEFAULT_JOB_LOCATION, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: None,
     }
@@ -43,9 +32,7 @@ pub struct ActivityBuilder {
 
 impl ActivityBuilder {
     pub fn new() -> ActivityBuilder {
-        ActivityBuilder {
-            activity: test_activity(),
-        }
+        ActivityBuilder { activity: test_activity() }
     }
 
     pub fn place(&mut self, place: Place) -> &mut ActivityBuilder {

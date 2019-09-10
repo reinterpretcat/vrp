@@ -5,10 +5,7 @@ use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;
 pub const DEFAULT_JOB_DURATION: Duration = 0.0;
-pub const DEFAULT_JOB_TIME_WINDOW: TimeWindow = TimeWindow {
-    start: 0.0,
-    end: 1000.0,
-};
+pub const DEFAULT_JOB_TIME_WINDOW: TimeWindow = TimeWindow { start: 0.0, end: 1000.0 };
 
 pub fn test_single() -> Single {
     let mut single = Single {
@@ -28,26 +25,16 @@ pub fn test_single_job() -> Job {
 }
 
 pub fn test_place_with_location(location: Option<Location>) -> Place {
-    Place {
-        location,
-        duration: Default::default(),
-        times: Default::default(),
-    }
+    Place { location, duration: Default::default(), times: Default::default() }
 }
 
 pub fn test_single_job_with_location(location: Option<Location>) -> Job {
-    Job::Single(Single {
-        places: vec![test_place_with_location(location)],
-        dimens: Default::default(),
-    })
+    Job::Single(Single { places: vec![test_place_with_location(location)], dimens: Default::default() })
 }
 
 pub fn test_single_job_with_locations(locations: Vec<Option<Location>>) -> Job {
     Job::Single(Single {
-        places: locations
-            .into_iter()
-            .map(|location| test_place_with_location(location))
-            .collect(),
+        places: locations.into_iter().map(|location| test_place_with_location(location)).collect(),
         dimens: Default::default(),
     })
 }

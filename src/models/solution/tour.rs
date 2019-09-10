@@ -29,11 +29,7 @@ pub struct Statistic {}
 
 impl Tour {
     pub fn new() -> Tour {
-        Tour {
-            activities: Default::default(),
-            jobs: Default::default(),
-            is_closed: false,
-        }
+        Tour { activities: Default::default(), jobs: Default::default(), is_closed: false }
     }
 
     /// Sets tour start.
@@ -88,10 +84,7 @@ impl Tour {
 
     /// Returns all activities in tour for specific job.
     pub fn job_activities<'a>(&'a self, job: &'a Arc<Job>) -> impl Iterator<Item = TourActivity> + 'a {
-        self.activities
-            .iter()
-            .filter(move |a| a.read().unwrap().has_same_job(job))
-            .cloned()
+        self.activities.iter().filter(move |a| a.read().unwrap().has_same_job(job)).cloned()
     }
 
     /// Returns counted tour legs.
@@ -121,9 +114,7 @@ impl Tour {
 
     /// Returns index of first job occurrence in the tour.
     pub fn index(&self, job: &Arc<Job>) -> Option<usize> {
-        self.activities
-            .iter()
-            .position(move |a| a.read().unwrap().has_same_job(&job))
+        self.activities.iter().position(move |a| a.read().unwrap().has_same_job(&job))
     }
 
     /// Checks whether tour is empty.

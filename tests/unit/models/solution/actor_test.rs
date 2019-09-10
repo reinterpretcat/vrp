@@ -20,19 +20,12 @@ fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize
     let fleet = Fleet::new(
         vec![test_driver()],
         vec![
-            VehicleBuilder::new()
-                .id("v1")
-                .details(vec![test_vehicle_detail()])
-                .build(),
+            VehicleBuilder::new().id("v1").details(vec![test_vehicle_detail()]).build(),
             VehicleBuilder::new()
                 .id("v2")
                 .details(vec![
                     test_vehicle_detail(),
-                    VehicleDetail {
-                        start: Some(1),
-                        end: Some(0),
-                        time: Some(TimeWindow { start: 0.0, end: 50.0 }),
-                    },
+                    VehicleDetail { start: Some(1), end: Some(0), time: Some(TimeWindow { start: 0.0, end: 50.0 }) },
                 ])
                 .build(),
         ],
@@ -49,25 +42,15 @@ fn can_provide_next_actors_from_registry() {
     let fleet = Fleet::new(
         vec![test_driver()],
         vec![
-            VehicleBuilder::new()
-                .id("v1")
-                .details(vec![test_vehicle_detail()])
-                .build(),
+            VehicleBuilder::new().id("v1").details(vec![test_vehicle_detail()]).build(),
             VehicleBuilder::new()
                 .id("v2")
                 .details(vec![
                     test_vehicle_detail(),
-                    VehicleDetail {
-                        start: Some(1),
-                        end: Some(0),
-                        time: Some(TimeWindow { start: 0.0, end: 50.0 }),
-                    },
+                    VehicleDetail { start: Some(1), end: Some(0), time: Some(TimeWindow { start: 0.0, end: 50.0 }) },
                 ])
                 .build(),
-            VehicleBuilder::new()
-                .id("v3")
-                .details(vec![test_vehicle_detail()])
-                .build(),
+            VehicleBuilder::new().id("v3").details(vec![test_vehicle_detail()]).build(),
         ],
     );
     let mut registry = Registry::new(&fleet);

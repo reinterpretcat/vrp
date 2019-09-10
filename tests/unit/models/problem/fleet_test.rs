@@ -10,8 +10,5 @@ fn fleet_creates_unique_profiles_from_vehicles() {
     let drivers = vec![test_driver()];
     let vehicles = vec![test_vehicle(profile1), test_vehicle(profile2), test_vehicle(profile1)];
 
-    assert_eq!(
-        Fleet::new(drivers, vehicles).profiles,
-        vec![profile1.to_owned(), profile2.to_owned()]
-    )
+    assert_eq!(Fleet::new(drivers, vehicles).profiles, vec![profile1.to_owned(), profile2.to_owned()])
 }

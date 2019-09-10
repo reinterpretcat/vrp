@@ -40,9 +40,7 @@ impl RouteState {
 
     /// Gets value associated with key.
     pub fn get_activity_state<T: 'static>(&self, key: i32, activity: &TourActivity) -> Option<&T> {
-        self.activity_states
-            .get(&ActivityWithKey(activity.clone(), key))
-            .and_then(|s| s.downcast_ref::<T>())
+        self.activity_states.get(&ActivityWithKey(activity.clone(), key)).and_then(|s| s.downcast_ref::<T>())
     }
 
     /// Puts value associated with key.
@@ -53,8 +51,7 @@ impl RouteState {
 
     /// Puts value associated with key and specific activity.
     pub fn put_activity_state<T: 'static>(&mut self, key: i32, activity: &TourActivity, value: T) {
-        self.activity_states
-            .insert(ActivityWithKey(activity.clone(), key), Box::new(value));
+        self.activity_states.insert(ActivityWithKey(activity.clone(), key), Box::new(value));
         self.keys.insert(key);
     }
 

@@ -7,11 +7,7 @@ use crate::models::solution::Activity;
 pub trait ActivityCost {
     /// Returns cost to perform activity.
     fn cost(&self, vehicle: &Vehicle, driver: &Driver, activity: &Activity, arrival: Timestamp) -> Cost {
-        let waiting = if activity.place.time.start > arrival {
-            activity.place.time.start - arrival
-        } else {
-            0.0
-        };
+        let waiting = if activity.place.time.start > arrival { activity.place.time.start - arrival } else { 0.0 };
         let service = self.duration(vehicle, driver, activity, arrival);
 
         waiting * (driver.costs.per_waiting_time + vehicle.costs.per_waiting_time)
@@ -59,30 +55,16 @@ impl MatrixTransportCost {
         assert!(distances.iter().all(|d| (d.len() as f64).sqrt() as usize == size));
         assert!(durations.iter().all(|d| (d.len() as f64).sqrt() as usize == size));
 
-        MatrixTransportCost {
-            durations,
-            distances,
-            size,
-        }
+        MatrixTransportCost { durations, distances, size }
     }
 }
 
 impl TransportCost for MatrixTransportCost {
     fn duration(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Duration {
-        self.durations
-            .get(profile as usize)
-            .unwrap()
-            .get(from * self.size + to)
-            .unwrap()
-            .clone()
+        self.durations.get(profile as usize).unwrap().get(from * self.size + to).unwrap().clone()
     }
 
     fn distance(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Distance {
-        self.distances
-            .get(profile as usize)
-            .unwrap()
-            .get(from * self.size + to)
-            .unwrap()
-            .clone()
+        self.distances.get(profile as usize).unwrap().get(from * self.size + to).unwrap().clone()
     }
 }

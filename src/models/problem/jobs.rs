@@ -54,10 +54,7 @@ pub struct Jobs {
 
 impl Jobs {
     pub fn new(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCost) -> Jobs {
-        Jobs {
-            jobs: jobs.clone(),
-            index: create_index(fleet, jobs, transport),
-        }
+        Jobs { jobs: jobs.clone(), index: create_index(fleet, jobs, transport) }
     }
 
     pub fn all<'a>(&'a self) -> impl Iterator<Item = Arc<Job>> + 'a {

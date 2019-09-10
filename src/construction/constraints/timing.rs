@@ -39,10 +39,7 @@ impl ConstraintModule for TimingConstraintModule {
             |(loc, dep), activity| {
                 let mut a = activity.write().unwrap();
 
-                a.schedule.arrival = dep
-                    + self
-                        .transport
-                        .duration(actor.vehicle.profile, loc, a.place.location, dep);
+                a.schedule.arrival = dep + self.transport.duration(actor.vehicle.profile, loc, a.place.location, dep);
 
                 a.schedule.departure = a.schedule.arrival.max(a.place.time.start)
                     + self.activity.duration(
@@ -59,10 +56,7 @@ impl ConstraintModule for TimingConstraintModule {
         // update latest arrival and waiting states of non-terminate (jobs) activities
         let init = (
             actor.detail.time.end,
-            actor
-                .detail
-                .end
-                .unwrap_or(actor.detail.start.unwrap_or(panic!(OP_START_MSG))),
+            actor.detail.end.unwrap_or(actor.detail.start.unwrap_or(panic!(OP_START_MSG))),
             0f64,
         );
         route.tour.all_activities().rev().fold(init, |acc, activity| {
@@ -73,12 +67,8 @@ impl ConstraintModule for TimingConstraintModule {
 
             let (end_time, prev_loc, waiting) = acc;
             let potential_latest = end_time
-                - self
-                    .transport
-                    .duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
-                - self
-                    .activity
-                    .duration(actor.vehicle.as_ref(), actor.driver.as_ref(), act.deref(), end_time);
+                - self.transport.duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
+                - self.activity.duration(actor.vehicle.as_ref(), actor.driver.as_ref(), act.deref(), end_time);
 
             let latest_arrival_time = act.place.time.end.min(potential_latest);
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0f64);
@@ -137,17 +127,11 @@ struct TimeHardActivityConstraint {
 
 impl TimeHardActivityConstraint {
     fn fail(&self) -> Option<ActivityConstraintViolation> {
-        Some(ActivityConstraintViolation {
-            code: self.code,
-            stopped: true,
-        })
+        Some(ActivityConstraintViolation { code: self.code, stopped: true })
     }
 
     fn stop(&self) -> Option<ActivityConstraintViolation> {
-        Some(ActivityConstraintViolation {
-            code: self.code,
-            stopped: false,
-        })
+        Some(ActivityConstraintViolation { code: self.code, stopped: false })
     }
 
     fn success(&self) -> Option<ActivityConstraintViolation> {
@@ -173,9 +157,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
 
         if actor.detail.time.end < prev.place.time.start
             || actor.detail.time.end < target.place.time.start
-            || next.map_or(false, |next| {
-                actor.detail.time.end < next.read().unwrap().place.time.start
-            })
+            || next.map_or(false, |next| actor.detail.time.end < next.read().unwrap().place.time.start)
         {
             return self.fail();
         }
@@ -190,19 +172,15 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             }
             (
                 n.place.location,
-                *state
-                    .get_activity_state(LATEST_ARRIVAL_KEY, next.unwrap())
-                    .unwrap_or(&n.place.time.end),
+                *state.get_activity_state(LATEST_ARRIVAL_KEY, next.unwrap()).unwrap_or(&n.place.time.end),
             )
         } else {
             // open vrp
             (target.place.location, target.place.time.end.min(actor.detail.time.end))
         };
 
-        let arr_time_at_next = departure
-            + self
-                .transport
-                .duration(profile, prev.place.location, next_act_location, departure);
+        let arr_time_at_next =
+            departure + self.transport.duration(profile, prev.place.location, next_act_location, departure);
         if arr_time_at_next > latest_arr_time_at_next_act {
             return self.fail();
         }
@@ -210,10 +188,8 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             return self.stop();
         }
 
-        let arr_time_at_target_act = departure
-            + self
-                .transport
-                .duration(profile, prev.place.location, target.place.location, departure);
+        let arr_time_at_target_act =
+            departure + self.transport.duration(profile, prev.place.location, target.place.location, departure);
 
         let end_time_at_new_act = arr_time_at_target_act.max(target.place.time.start)
             + self.activity.duration(
@@ -248,9 +224,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         }
 
         let arr_time_at_next_act = end_time_at_new_act
-            + self
-                .transport
-                .duration(profile, target.place.location, next_act_location, end_time_at_new_act);
+            + self.transport.duration(profile, target.place.location, next_act_location, end_time_at_new_act);
 
         if arr_time_at_next_act > latest_arr_time_at_next_act {
             self.stop()
