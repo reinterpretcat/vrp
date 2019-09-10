@@ -19,9 +19,7 @@ pub fn test_single() -> Single {
         }],
         dimens: Default::default(),
     };
-    single
-        .dimens
-        .insert("id".to_string(), Box::new("single".to_string()));
+    single.dimens.insert("id".to_string(), Box::new("single".to_string()));
     single
 }
 
@@ -84,22 +82,16 @@ pub struct SingleBuilder {
 
 impl SingleBuilder {
     pub fn new() -> SingleBuilder {
-        SingleBuilder {
-            single: test_single(),
-        }
+        SingleBuilder { single: test_single() }
     }
 
     pub fn id(&mut self, id: &str) -> &mut SingleBuilder {
-        self.single
-            .dimens
-            .insert("id".to_string(), Box::new(id.to_string()));
+        self.single.dimens.insert("id".to_string(), Box::new(id.to_string()));
         self
     }
 
     pub fn demand(&mut self, demand: impl Size + 'static) -> &mut SingleBuilder {
-        self.single
-            .dimens
-            .insert("dmd".to_string(), Box::new(demand));
+        self.single.dimens.insert("dmd".to_string(), Box::new(demand));
         self
     }
 
@@ -114,14 +106,7 @@ impl SingleBuilder {
     }
 
     pub fn time(&mut self, tw: TimeWindow) -> &mut SingleBuilder {
-        let mut original_tw = self
-            .single
-            .places
-            .first_mut()
-            .unwrap()
-            .times
-            .first_mut()
-            .unwrap();
+        let mut original_tw = self.single.places.first_mut().unwrap().times.first_mut().unwrap();
         original_tw.start = tw.start;
         original_tw.end = tw.end;
 

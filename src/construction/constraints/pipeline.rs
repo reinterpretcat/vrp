@@ -97,9 +97,7 @@ impl ConstraintPipeline {
 
     /// Accepts solution with its context.
     pub fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        self.modules
-            .iter()
-            .for_each(|c| c.accept_solution_state(ctx))
+        self.modules.iter().for_each(|c| c.accept_solution_state(ctx))
     }
 
     /// Accepts solution with its context.
@@ -111,10 +109,7 @@ impl ConstraintPipeline {
     pub fn add_module(&mut self, module: impl ConstraintModule) -> &mut Self {
         module.state_keys().for_each(|key| {
             if let Some(duplicate) = self.state_keys.get(key) {
-                panic!(
-                    "Attempt to register constraint with key duplication: {}",
-                    duplicate
-                )
+                panic!("Attempt to register constraint with key duplication: {}", duplicate)
             }
             self.state_keys.insert(key.clone());
         });
@@ -131,11 +126,7 @@ impl ConstraintPipeline {
 
     /// Checks whether all hard route constraints are fulfilled.
     /// Returns result of first failed constraint or empty value.
-    pub fn evaluate_hard_route(
-        &self,
-        ctx: &RouteContext,
-        job: &Arc<Job>,
-    ) -> Option<RouteConstraintViolation> {
+    pub fn evaluate_hard_route(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         self.hard_route_constraints
             .iter()
             .find_map(|c| c.evaluate_job(ctx, job))
@@ -162,11 +153,7 @@ impl ConstraintPipeline {
     }
 
     /// Checks soft route constraints and aggregates associated actual and penalty costs.
-    pub fn evaluate_soft_activity(
-        &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
-    ) -> Cost {
+    pub fn evaluate_soft_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Cost {
         self.soft_activity_constraints
             .iter()
             .map(|c| c.estimate_activity(route_ctx, activity_ctx))

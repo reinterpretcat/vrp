@@ -1,7 +1,5 @@
 use crate::helpers::models::common::DEFAULT_PROFILE;
-use crate::helpers::models::problem::{
-    test_driver, test_vehicle, DEFAULT_ACTOR_LOCATION, DEFAULT_ACTOR_TIME_WINDOW,
-};
+use crate::helpers::models::problem::{test_driver, test_vehicle, DEFAULT_ACTOR_LOCATION, DEFAULT_ACTOR_TIME_WINDOW};
 use crate::models::common::TimeWindow;
 use crate::models::solution::{Actor, Detail};
 use std::sync::Arc;

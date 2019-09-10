@@ -12,12 +12,7 @@ fn all_returns_all_jobs() {
     let fleet = Fleet::new(Default::default(), Default::default());
     let jobs = vec![Arc::new(test_single_job()), Arc::new(test_single_job())];
 
-    assert_eq!(
-        Jobs::new(&fleet, jobs, &TestTransportCost::new())
-            .all()
-            .count(),
-        2
-    )
+    assert_eq!(Jobs::new(&fleet, jobs, &TestTransportCost::new()).all().count(), 2)
 }
 
 parameterized_test! {calculates_proper_distance_between_single_jobs, (left, right, expected), {
@@ -60,32 +55,13 @@ fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
         ],
     );
     let species = vec![
-        SingleBuilder::new()
-            .id("s0")
-            .location(Some(0))
-            .build_as_job_ref(),
-        SingleBuilder::new()
-            .id("s1")
-            .location(Some(1))
-            .build_as_job_ref(),
-        SingleBuilder::new()
-            .id("s2")
-            .location(Some(2))
-            .build_as_job_ref(),
-        SingleBuilder::new()
-            .id("s3")
-            .location(Some(3))
-            .build_as_job_ref(),
-        SingleBuilder::new()
-            .id("s4")
-            .location(Some(4))
-            .build_as_job_ref(),
+        SingleBuilder::new().id("s0").location(Some(0)).build_as_job_ref(),
+        SingleBuilder::new().id("s1").location(Some(1)).build_as_job_ref(),
+        SingleBuilder::new().id("s2").location(Some(2)).build_as_job_ref(),
+        SingleBuilder::new().id("s3").location(Some(3)).build_as_job_ref(),
+        SingleBuilder::new().id("s4").location(Some(4)).build_as_job_ref(),
     ];
-    let jobs = Jobs::new(
-        &fleet,
-        species.clone(),
-        &create_profile_aware_transport_cost(),
-    );
+    let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
 
     let result: Vec<String> = jobs
         .neighbors(1, species.get(index).unwrap(), 0.0, u32::max_value() as f64)
@@ -117,10 +93,7 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
                 .details(vec![VehicleDetail {
                     start: Some(0),
                     end: Some(0),
-                    time: Some(TimeWindow {
-                        start: 0.0,
-                        end: 0.0,
-                    }),
+                    time: Some(TimeWindow { start: 0.0, end: 0.0 }),
                 }])
                 .build(),
             VehicleBuilder::new()
@@ -129,10 +102,7 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
                 .details(vec![VehicleDetail {
                     start: Some(15),
                     end: Some(0),
-                    time: Some(TimeWindow {
-                        start: 0.0,
-                        end: 0.0,
-                    }),
+                    time: Some(TimeWindow { start: 0.0, end: 0.0 }),
                 }])
                 .build(),
             VehicleBuilder::new()
@@ -141,37 +111,18 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
                 .details(vec![VehicleDetail {
                     start: Some(30),
                     end: Some(0),
-                    time: Some(TimeWindow {
-                        start: 0.0,
-                        end: 0.0,
-                    }),
+                    time: Some(TimeWindow { start: 0.0, end: 0.0 }),
                 }])
                 .build(),
         ],
     );
     let species = vec![
-        SingleBuilder::new()
-            .id("s0")
-            .location(Some(0))
-            .build_as_job_ref(),
-        SingleBuilder::new()
-            .id("s1")
-            .location(Some(10))
-            .build_as_job_ref(),
-        SingleBuilder::new()
-            .id("s2")
-            .location(Some(21))
-            .build_as_job_ref(),
-        SingleBuilder::new()
-            .id("s3")
-            .location(Some(31))
-            .build_as_job_ref(),
+        SingleBuilder::new().id("s0").location(Some(0)).build_as_job_ref(),
+        SingleBuilder::new().id("s1").location(Some(10)).build_as_job_ref(),
+        SingleBuilder::new().id("s2").location(Some(21)).build_as_job_ref(),
+        SingleBuilder::new().id("s3").location(Some(31)).build_as_job_ref(),
     ];
-    let jobs = Jobs::new(
-        &fleet,
-        species.clone(),
-        &create_profile_aware_transport_cost(),
-    );
+    let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
 
     let result = jobs.rank(profile, species.get(index).unwrap());
 

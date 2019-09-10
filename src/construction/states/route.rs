@@ -35,9 +35,7 @@ impl RouteState {
 
     /// Gets value associated with key.
     pub fn get_route_state<T: 'static>(&self, key: i32) -> Option<&T> {
-        self.route_states
-            .get(&key)
-            .and_then(|s| s.downcast_ref::<T>())
+        self.route_states.get(&key).and_then(|s| s.downcast_ref::<T>())
     }
 
     /// Gets value associated with key.
@@ -63,17 +61,13 @@ impl RouteState {
     /// Removes all activity states for given activity.
     pub fn remove_activity_states(&mut self, activity: &TourActivity) {
         for (_, key) in self.keys.iter().enumerate() {
-            self.activity_states
-                .remove(&ActivityWithKey(activity.clone(), *key));
+            self.activity_states.remove(&ActivityWithKey(activity.clone(), *key));
         }
     }
 
     /// Returns size route state storage.
     pub fn sizes(&self) -> (usize, usize) {
-        (
-            self.route_states.capacity(),
-            self.activity_states.capacity(),
-        )
+        (self.route_states.capacity(), self.activity_states.capacity())
     }
 }
 

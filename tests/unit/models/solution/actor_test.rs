@@ -31,10 +31,7 @@ fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize
                     VehicleDetail {
                         start: Some(1),
                         end: Some(0),
-                        time: Some(TimeWindow {
-                            start: 0.0,
-                            end: 50.0,
-                        }),
+                        time: Some(TimeWindow { start: 0.0, end: 50.0 }),
                     },
                 ])
                 .build(),
@@ -63,10 +60,7 @@ fn can_provide_next_actors_from_registry() {
                     VehicleDetail {
                         start: Some(1),
                         end: Some(0),
-                        time: Some(TimeWindow {
-                            start: 0.0,
-                            end: 50.0,
-                        }),
+                        time: Some(TimeWindow { start: 0.0, end: 50.0 }),
                     },
                 ])
                 .build(),

@@ -6,13 +6,7 @@ use crate::models::solution::Activity;
 /// Provides the way to get cost information for specific activities.
 pub trait ActivityCost {
     /// Returns cost to perform activity.
-    fn cost(
-        &self,
-        vehicle: &Vehicle,
-        driver: &Driver,
-        activity: &Activity,
-        arrival: Timestamp,
-    ) -> Cost {
+    fn cost(&self, vehicle: &Vehicle, driver: &Driver, activity: &Activity, arrival: Timestamp) -> Cost {
         let waiting = if activity.place.time.start > arrival {
             activity.place.time.start - arrival
         } else {
@@ -26,13 +20,7 @@ pub trait ActivityCost {
     }
 
     /// Returns operation time spent to perform activity.
-    fn duration(
-        &self,
-        vehicle: &Vehicle,
-        driver: &Driver,
-        activity: &Activity,
-        arrival: Timestamp,
-    ) -> Cost {
+    fn duration(&self, vehicle: &Vehicle, driver: &Driver, activity: &Activity, arrival: Timestamp) -> Cost {
         activity.place.duration
     }
 }
@@ -40,14 +28,7 @@ pub trait ActivityCost {
 /// Provides the way to get routing information for specific locations.
 pub trait TransportCost {
     /// Returns transport cost between two locations.
-    fn cost(
-        &self,
-        vehicle: &Vehicle,
-        driver: &Driver,
-        from: Location,
-        to: Location,
-        departure: Timestamp,
-    ) -> Cost {
+    fn cost(&self, vehicle: &Vehicle, driver: &Driver, from: Location, to: Location, departure: Timestamp) -> Cost {
         let distance = self.distance(vehicle.profile, from, to, departure);
         let duration = self.duration(vehicle.profile, from, to, departure);
 
@@ -56,22 +37,10 @@ pub trait TransportCost {
     }
 
     /// Returns transport time between two locations.
-    fn duration(
-        &self,
-        profile: Profile,
-        from: Location,
-        to: Location,
-        departure: Timestamp,
-    ) -> Duration;
+    fn duration(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Duration;
 
     /// Returns transport distance between two locations.
-    fn distance(
-        &self,
-        profile: Profile,
-        from: Location,
-        to: Location,
-        departure: Timestamp,
-    ) -> Distance;
+    fn distance(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Distance;
 }
 
 /// Uses custom distance and duration matrices as source of transport cost information.
@@ -87,12 +56,8 @@ impl MatrixTransportCost {
         let size = (durations.first().unwrap().len() as f64).sqrt() as usize;
 
         assert_eq!(distances.len(), durations.len());
-        assert!(distances
-            .iter()
-            .all(|d| (d.len() as f64).sqrt() as usize == size));
-        assert!(durations
-            .iter()
-            .all(|d| (d.len() as f64).sqrt() as usize == size));
+        assert!(distances.iter().all(|d| (d.len() as f64).sqrt() as usize == size));
+        assert!(durations.iter().all(|d| (d.len() as f64).sqrt() as usize == size));
 
         MatrixTransportCost {
             durations,
@@ -103,13 +68,7 @@ impl MatrixTransportCost {
 }
 
 impl TransportCost for MatrixTransportCost {
-    fn duration(
-        &self,
-        profile: Profile,
-        from: Location,
-        to: Location,
-        departure: Timestamp,
-    ) -> Duration {
+    fn duration(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Duration {
         self.durations
             .get(profile as usize)
             .unwrap()
@@ -118,13 +77,7 @@ impl TransportCost for MatrixTransportCost {
             .clone()
     }
 
-    fn distance(
-        &self,
-        profile: Profile,
-        from: Location,
-        to: Location,
-        departure: Timestamp,
-    ) -> Distance {
+    fn distance(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Distance {
         self.distances
             .get(profile as usize)
             .unwrap()

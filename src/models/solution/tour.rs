@@ -77,8 +77,7 @@ impl Tour {
 
     /// Removes job within its activities from the tour.
     pub fn remove(&mut self, job: &Arc<Job>) -> bool {
-        self.activities
-            .retain(|a| !a.read().unwrap().has_same_job(job));
+        self.activities.retain(|a| !a.read().unwrap().has_same_job(job));
         self.jobs.remove(job)
     }
 
@@ -88,10 +87,7 @@ impl Tour {
     }
 
     /// Returns all activities in tour for specific job.
-    pub fn job_activities<'a>(
-        &'a self,
-        job: &'a Arc<Job>,
-    ) -> impl Iterator<Item = TourActivity> + 'a {
+    pub fn job_activities<'a>(&'a self, job: &'a Arc<Job>) -> impl Iterator<Item = TourActivity> + 'a {
         self.activities
             .iter()
             .filter(move |a| a.read().unwrap().has_same_job(job))

@@ -26,8 +26,7 @@ impl InsertionEvaluator {
             .cloned()
             .chain(ctx.solution.registry.next().map(|a| RouteContext::new(a)))
             .fold(InsertionResult::make_failure(), |acc, route_ctx| {
-                if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job)
-                {
+                if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
                     return InsertionResult::choose_best_result(
                         acc,
                         InsertionResult::make_failure_with_code(violation.code),
@@ -46,12 +45,8 @@ impl InsertionEvaluator {
                 InsertionResult::choose_best_result(
                     acc,
                     match job.borrow() {
-                        Job::Single(single) => {
-                            Self::evaluate_single(job, single, ctx, &route_ctx, &progress)
-                        }
-                        Job::Multi(multi) => {
-                            Self::evaluate_multi(job, multi, ctx, &route_ctx, &progress)
-                        }
+                        Job::Single(single) => Self::evaluate_single(job, single, ctx, &route_ctx, &progress),
+                        Job::Multi(multi) => Self::evaluate_multi(job, multi, ctx, &route_ctx, &progress),
                     },
                 )
             })
@@ -96,18 +91,12 @@ impl InsertionEvaluator {
                             time: time.clone(),
                         };
 
-                        if let Some(violation) = ctx
-                            .problem
-                            .constraint
-                            .evaluate_hard_activity(route_ctx, &activity_ctx)
+                        if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx)
                         {
                             return SingleContext::fail(violation, in2);
                         }
 
-                        let total_costs = ctx
-                            .problem
-                            .constraint
-                            .evaluate_soft_activity(route_ctx, &activity_ctx);
+                        let total_costs = ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
 
                         if total_costs < in2.cost {
                             SingleContext::success(
@@ -173,10 +162,7 @@ impl SingleContext {
             place: Place {
                 location: 0,
                 duration: 0.0,
-                time: TimeWindow {
-                    start: 0.0,
-                    end: 0.0,
-                },
+                time: TimeWindow { start: 0.0, end: 0.0 },
             },
         }
     }

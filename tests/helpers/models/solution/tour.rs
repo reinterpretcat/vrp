@@ -1,6 +1,4 @@
-use crate::helpers::models::solution::{
-    test_activity, test_activity_with_job, test_activity_without_job,
-};
+use crate::helpers::models::solution::{test_activity, test_activity_with_job, test_activity_without_job};
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, TourActivity};
 use std::sync::{Arc, RwLock};

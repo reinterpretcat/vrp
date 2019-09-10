@@ -1,6 +1,6 @@
 use crate::construction::constraints::{
-    ActivityConstraintViolation, ConstraintModule, ConstraintVariant, HardActivityConstraint,
-    HardRouteConstraint, RouteConstraintViolation, SoftActivityConstraint,
+    ActivityConstraintViolation, ConstraintModule, ConstraintVariant, HardActivityConstraint, HardRouteConstraint,
+    RouteConstraintViolation, SoftActivityConstraint,
 };
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::problem::{ActivityCost, Job, TransportCost};
@@ -64,42 +64,31 @@ impl ConstraintModule for TimingConstraintModule {
                 .unwrap_or(actor.detail.start.unwrap_or(panic!(OP_START_MSG))),
             0f64,
         );
-        route
-            .tour
-            .all_activities()
-            .rev()
-            .fold(init, |acc, activity| {
-                let act = activity.read().unwrap();
-                if act.job.is_none() {
-                    return acc;
-                }
+        route.tour.all_activities().rev().fold(init, |acc, activity| {
+            let act = activity.read().unwrap();
+            if act.job.is_none() {
+                return acc;
+            }
 
-                let (end_time, prev_loc, waiting) = acc;
+            let (end_time, prev_loc, waiting) = acc;
 
-                let potential_latest = end_time
-                    - self.transport.duration(
-                        actor.vehicle.profile,
-                        act.place.location,
-                        prev_loc,
-                        end_time,
-                    )
-                    - self.activity.duration(
-                        actor.vehicle.as_ref(),
-                        actor.driver.as_ref(),
-                        act.deref(),
-                        end_time,
-                    );
+            let potential_latest = end_time
+                - self
+                    .transport
+                    .duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
+                - self
+                    .activity
+                    .duration(actor.vehicle.as_ref(), actor.driver.as_ref(), act.deref(), end_time);
 
-                let latest_arrival_time = act.place.time.end.min(potential_latest);
+            let latest_arrival_time = act.place.time.end.min(potential_latest);
 
-                let future_waiting =
-                    waiting + (act.place.time.start - act.schedule.arrival).max(0f64);
+            let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0f64);
 
-                state.put_activity_state(LATEST_ARRIVAL_KEY, &activity, latest_arrival_time);
-                state.put_activity_state(WAITING_KEY, &activity, future_waiting);
+            state.put_activity_state(LATEST_ARRIVAL_KEY, &activity, latest_arrival_time);
+            state.put_activity_state(WAITING_KEY, &activity, future_waiting);
 
-                (latest_arrival_time, act.place.location, future_waiting)
-            });
+            (latest_arrival_time, act.place.location, future_waiting)
+        });
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {

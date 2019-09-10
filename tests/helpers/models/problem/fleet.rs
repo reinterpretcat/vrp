@@ -56,9 +56,7 @@ impl VehicleBuilder {
     }
 
     pub fn id(&mut self, id: &str) -> &mut VehicleBuilder {
-        self.vehicle
-            .dimens
-            .insert("id".to_string(), Box::new(id.to_string()));
+        self.vehicle.dimens.insert("id".to_string(), Box::new(id.to_string()));
         self
     }
 

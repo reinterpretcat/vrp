@@ -1,7 +1,6 @@
 use crate::helpers::models::problem::test_single_job;
 use crate::helpers::models::solution::{
-    test_tour_activity_with_default_job, test_tour_activity_with_job,
-    test_tour_activity_without_job,
+    test_tour_activity_with_default_job, test_tour_activity_with_job, test_tour_activity_without_job,
 };
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, Tour, TourActivity};
@@ -86,10 +85,7 @@ fn can_insert_at_specific_position_impl(position: usize) {
 
     tour.insert_at(activity.clone(), position);
 
-    assert_eq!(
-        get_pointer(&activity),
-        get_pointer(tour.get(position).unwrap())
-    );
+    assert_eq!(get_pointer(&activity), get_pointer(tour.get(position).unwrap()));
 }
 
 #[test]

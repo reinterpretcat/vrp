@@ -81,10 +81,7 @@ impl Registry {
 
     /// Adds actor to the list of available actors.
     pub fn free_actor(&mut self, actor: &Arc<Actor>) {
-        self.available
-            .get_mut(&actor.detail)
-            .unwrap()
-            .insert(actor.clone());
+        self.available.get_mut(&actor.detail).unwrap().insert(actor.clone());
     }
 
     /// Returns all actors.
@@ -94,9 +91,7 @@ impl Registry {
 
     /// Returns list of all available actors.
     pub fn available<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
-        self.available
-            .iter()
-            .flat_map(|(_, set)| set.into_iter().cloned())
+        self.available.iter().flat_map(|(_, set)| set.into_iter().cloned())
     }
 
     /// Returns next available actors from each different type.
