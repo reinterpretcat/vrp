@@ -70,8 +70,8 @@ fn can_evaluate_hard_activity_constraints() {
         &RouteContext::new(test_actor()),
         &ActivityContext {
             index: 0,
-            prev: test_tour_activity_without_job(),
-            target: test_tour_activity_without_job(),
+            prev: &test_tour_activity_without_job(),
+            target: &test_tour_activity_without_job(),
             next: None,
         },
     );
@@ -98,8 +98,8 @@ fn can_estimate_hard_activity_constraints() {
         &RouteContext::new(test_actor()),
         &ActivityContext {
             index: 0,
-            prev: test_tour_activity_without_job(),
-            target: test_tour_activity_without_job(),
+            prev: &test_tour_activity_without_job(),
+            target: &test_tour_activity_without_job(),
             next: None,
         },
     );

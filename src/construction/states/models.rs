@@ -48,18 +48,18 @@ pub struct InsertionProgress {
 }
 
 /// Specifies insertion context for activity.
-pub struct ActivityContext {
+pub struct ActivityContext<'a> {
     /// Activity insertion index.
     pub index: usize,
 
     /// Previous activity.
-    pub prev: TourActivity,
+    pub prev: &'a TourActivity,
 
     /// Target activity.
-    pub target: TourActivity,
+    pub target: &'a TourActivity,
 
     /// Next activity. Absent if tour is open and target activity inserted last.
-    pub next: Option<TourActivity>,
+    pub next: Option<&'a TourActivity>,
 }
 
 /// Specifies insertion context for route.
@@ -156,7 +156,7 @@ impl RouteContext {
     }
 
     fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
-        Arc::new(RwLock::new(Activity {
+        Box::new(Activity {
             place: Place {
                 location: actor.detail.start.unwrap_or_else(|| unimplemented!("Optional start is not yet implemented")),
                 duration: 0.0,
@@ -164,16 +164,16 @@ impl RouteContext {
             },
             schedule: Schedule { arrival: actor.detail.time.start, departure: actor.detail.time.start },
             job: None,
-        }))
+        })
     }
 
     fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
         actor.detail.end.map(|location| {
-            Arc::new(RwLock::new(Activity {
+            Box::new(Activity {
                 place: Place { location, duration: 0.0, time: TimeWindow { start: 0.0, end: actor.detail.time.end } },
                 schedule: Schedule { arrival: actor.detail.time.end, departure: actor.detail.time.end },
                 job: None,
-            }))
+            })
         })
     }
 }

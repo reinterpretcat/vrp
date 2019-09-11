@@ -8,10 +8,10 @@ use std::borrow::Borrow;
 use std::ops::Deref;
 use std::sync::Arc;
 
-type RouteLeg<'a> = (&'a [TourActivity], usize);
+type RouteLeg = (Vec<*const Activity>, usize);
 
 fn get_pointer(activity: &TourActivity) -> *const Activity {
-    &*activity.read().unwrap().deref() as *const Activity
+    activity.deref() as *const Activity
 }
 
 fn get_test_tour() -> Tour {
@@ -24,9 +24,9 @@ fn get_test_tour() -> Tour {
     tour
 }
 
-fn compare_legs<'a>(left: &RouteLeg<'a>, right: &RouteLeg<'a>) {
+fn compare_legs<'a>(left: &RouteLeg, right: &RouteLeg) {
     for i in 0..2 {
-        assert_eq!(get_pointer(left.0.get(i).unwrap()), get_pointer(right.0.get(i).unwrap()));
+        assert_eq!(left.0.get(i).unwrap(), right.0.get(i).unwrap());
     }
     assert_eq!(left.1, right.1);
 }
@@ -35,10 +35,11 @@ fn compare_legs<'a>(left: &RouteLeg<'a>, right: &RouteLeg<'a>) {
 fn can_set_and_get_start() {
     let activity = test_tour_activity_without_job();
     let mut tour = Tour::new();
+    let pointer = get_pointer(&activity);
 
-    tour.set_start(activity.clone());
+    tour.set_start(activity);
 
-    assert_eq!(get_pointer(&activity), get_pointer(tour.start().unwrap()));
+    assert_eq!(pointer, get_pointer(tour.start().unwrap()));
     assert_ne!(get_pointer(&test_tour_activity_without_job()), get_pointer(tour.start().unwrap()));
     assert_eq!(tour.activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
@@ -49,10 +50,11 @@ fn can_set_and_get_end() {
     let activity = test_tour_activity_without_job();
     let mut tour = Tour::new();
     tour.set_start(test_tour_activity_without_job());
+    let pointer = get_pointer(&activity);
 
-    tour.set_end(activity.clone());
+    tour.set_end(activity);
 
-    assert_eq!(get_pointer(&activity), get_pointer(tour.end().unwrap()));
+    assert_eq!(pointer, get_pointer(tour.end().unwrap()));
     assert_ne!(get_pointer(&test_tour_activity_without_job()), get_pointer(tour.end().unwrap()));
     assert_eq!(tour.activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
@@ -73,20 +75,22 @@ can_insert_at_specific_position! {
 fn can_insert_at_specific_position_impl(position: usize) {
     let activity = test_tour_activity_with_default_job();
     let mut tour = get_test_tour();
+    let pointer = get_pointer(&activity);
 
-    tour.insert_at(activity.clone(), position);
+    tour.insert_at(activity, position);
 
-    assert_eq!(get_pointer(&activity), get_pointer(tour.get(position).unwrap()));
+    assert_eq!(pointer, get_pointer(tour.get(position).unwrap()));
 }
 
 #[test]
 fn can_insert_at_last_position() {
     let activity = test_tour_activity_with_default_job();
     let mut tour = get_test_tour();
+    let pointer = get_pointer(&activity);
 
-    tour.insert_last(activity.clone());
+    tour.insert_last(activity);
 
-    assert_eq!(get_pointer(&activity), get_pointer(tour.get(3).unwrap()));
+    assert_eq!(pointer, get_pointer(tour.get(3).unwrap()));
 }
 
 #[test]
@@ -106,12 +110,13 @@ fn can_get_activities_for_job() {
     let mut tour = get_test_tour();
     let job = Arc::new(test_single_job());
     let activity = test_tour_activity_with_job(job.clone());
-    tour.insert_at(activity.clone(), 2);
+    let pointer = get_pointer(&activity);
+    tour.insert_at(activity, 2);
 
-    let result: Vec<TourActivity> = tour.job_activities(&job).collect();
+    let result: Vec<&TourActivity> = tour.job_activities(&job).collect();
 
     assert_eq!(result.len(), 1);
-    assert_eq!(get_pointer(&activity), get_pointer(result.first().unwrap()))
+    assert_eq!(pointer, get_pointer(result.first().unwrap()))
 }
 
 #[test]
@@ -120,20 +125,26 @@ fn can_get_legs() {
     let end = test_tour_activity_without_job();
     let a1 = test_tour_activity_with_default_job();
     let a2 = test_tour_activity_with_default_job();
+
+    let start_ptr = get_pointer(&start);
+    let end_ptr = get_pointer(&end);
+    let a1_ptr = get_pointer(&a1);
+    let a2_ptr = get_pointer(&a2);
     // s a1 a2 e
     let mut tour = Tour::new();
-    tour.set_start(start.clone());
-    tour.set_end(end.clone());
-    tour.insert_last(a1.clone());
-    tour.insert_last(a2.clone());
+    tour.set_start(start);
+    tour.set_end(end);
+    tour.insert_last(a1);
+    tour.insert_last(a2);
 
-    let legs = tour.legs().collect::<Vec<RouteLeg>>();
+    let legs: Vec<(Vec<*const Activity>, usize)> =
+        tour.legs().map(|(leg, index)| (leg.iter().map(|a| a.deref() as *const Activity).collect(), index)).collect();
 
     // (s,a1) (a1,a2) (a2,e)
     assert_eq!(legs.len(), 3);
-    compare_legs(legs.get(0).unwrap(), &(&[start.clone(), a1.clone()], 0));
-    compare_legs(legs.get(1).unwrap(), &(&[a1.clone(), a2.clone()], 1));
-    compare_legs(legs.get(2).unwrap(), &(&[a2.clone(), end.clone()], 2));
+    compare_legs(legs.get(0).unwrap(), &(vec![start_ptr, a1_ptr], 0));
+    compare_legs(legs.get(1).unwrap(), &(vec![a1_ptr, a2_ptr], 1));
+    compare_legs(legs.get(2).unwrap(), &(vec![a2_ptr, end_ptr], 2));
 }
 
 #[test]
@@ -177,12 +188,15 @@ fn can_get_start_and_end() {
     let end = test_tour_activity_without_job();
     let a1 = test_tour_activity_with_default_job();
     let a2 = test_tour_activity_with_default_job();
+    let start_ptr = get_pointer(&start);
+    let end_ptr = get_pointer(&end);
     let mut tour = Tour::new();
-    tour.set_start(start.clone());
-    tour.set_end(end.clone());
-    tour.insert_last(a1.clone());
-    tour.insert_last(a2.clone());
 
-    assert_eq!(get_pointer(&start), get_pointer(tour.start().unwrap()));
-    assert_eq!(get_pointer(&end), get_pointer(tour.end().unwrap()));
+    tour.set_start(start);
+    tour.set_end(end);
+    tour.insert_last(a1);
+    tour.insert_last(a2);
+
+    assert_eq!(start_ptr, get_pointer(tour.start().unwrap()));
+    assert_eq!(end_ptr, get_pointer(tour.end().unwrap()));
 }

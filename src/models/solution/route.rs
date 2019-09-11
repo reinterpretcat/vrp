@@ -2,7 +2,7 @@ use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Actor, Tour};
 use std::borrow::Borrow;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// Specifies activity place.
 pub struct Place {

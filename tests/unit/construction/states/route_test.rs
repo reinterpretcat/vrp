@@ -4,7 +4,7 @@ use crate::models::solution::{Activity, TourActivity};
 use std::sync::{Arc, RwLock};
 
 fn new_tour_activity_ref() -> TourActivity {
-    Arc::new(RwLock::new(test_activity()))
+    Box::new(test_activity())
 }
 
 #[test]

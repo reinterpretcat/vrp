@@ -57,7 +57,7 @@ impl InsertionEvaluator {
         route_ctx: &RouteContext,
         progress: &InsertionProgress,
     ) -> InsertionResult {
-        let activity = Arc::new(RwLock::new(Activity::new_with_job(job.clone())));
+        let mut activity = Box::new(Activity::new_with_job(job.clone()));
         let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
 
         // 1. analyze route legs
@@ -69,18 +69,18 @@ impl InsertionEvaluator {
                     _ => panic!("Unexpected route leg configuration."),
                 };
 
-                let mut activity_ctx = ActivityContext { index, prev, target: activity.clone(), next: Some(next) };
-
                 // 2. analyze service details
                 single.places.iter().try_fold(out, |in1, detail| {
                     // TODO check whether tw is empty
                     // 3. analyze detail time windows
                     detail.times.iter().try_fold(in1, |in2, time| {
-                        activity.write().unwrap().place = Place {
-                            location: detail.location.unwrap_or(activity_ctx.prev.read().unwrap().place.location),
+                        activity.place = Place {
+                            location: detail.location.unwrap_or(prev.place.location),
                             duration: detail.duration,
                             time: time.clone(),
                         };
+
+                        let activity_ctx = ActivityContext { index, prev, target: &activity, next: Some(next) };
 
                         if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx)
                         {
@@ -94,7 +94,7 @@ impl InsertionEvaluator {
                                 activity_ctx.index,
                                 total_costs,
                                 Place {
-                                    location: activity.read().unwrap().place.location,
+                                    location: activity.place.location,
                                     duration: detail.duration,
                                     time: time.clone(),
                                 },
@@ -108,7 +108,7 @@ impl InsertionEvaluator {
         ));
 
         if result.is_success() {
-            activity.write().unwrap().place = result.place;
+            activity.place = result.place;
             InsertionResult::make_success(result.cost, job.clone(), vec![(activity, result.index)], route_ctx.clone())
         } else {
             InsertionResult::make_failure_with_code(result.violation.unwrap().code)
