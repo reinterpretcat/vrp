@@ -6,11 +6,10 @@ use crate::construction::states::{ActivityContext, RouteContext, SolutionContext
 use crate::models::common::{Cost, Timestamp};
 use crate::models::problem::{ActivityCost, Job, TransportCost};
 use crate::models::solution::{Activity, Actor, Route, TourActivity};
-use std::borrow::Borrow;
 use std::cmp::max;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::slice::Iter;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 const LATEST_ARRIVAL_KEY: i32 = 1;
 const WAITING_KEY: i32 = 2;
@@ -85,10 +84,7 @@ impl ConstraintModule for TimingConstraintModule {
         // NOTE revise this once routing is sensible to departure time reschedule departure and
         // arrivals if arriving earlier to the first activity do it only in implicit end of algorithm
         if ctx.required.is_empty() {
-            ctx.routes
-                .iter()
-                .filter(|route_ctx| route_ctx.route.read().unwrap().tour.activity_count() > 0)
-                .for_each(|route_ctx| reschedule_departure(route_ctx));
+            ctx.routes.iter().for_each(|route_ctx| self.reschedule_departure(&mut route_ctx.clone(), &route_ctx.route))
         }
     }
 
@@ -120,6 +116,27 @@ impl TimingConstraintModule {
             activity,
             transport,
         }
+    }
+
+    fn reschedule_departure(&self, ctx: &mut RouteContext, route: &Arc<RwLock<Route>>) {
+        let route = route.read().unwrap();
+        if let Some(first) = route.tour.get(1) {
+            let first = first.read().unwrap();
+            let mut start = route.tour.start().unwrap().write().unwrap();
+            let earliest_departure_time = start.place.time.start;
+            let start_to_first = self.transport.duration(
+                route.actor.vehicle.profile,
+                start.place.location,
+                first.place.location,
+                earliest_departure_time,
+            );
+            let new_departure_time = earliest_departure_time.max(first.place.time.start - start_to_first);
+
+            if new_departure_time > earliest_departure_time {
+                start.schedule.departure = new_departure_time;
+                self.accept_route_state(ctx);
+            }
+        };
     }
 }
 
@@ -309,8 +326,4 @@ impl SoftActivityConstraint for TimeSoftActivityConstraint {
 
         new_costs - old_costs
     }
-}
-
-fn reschedule_departure(ctx: &RouteContext) {
-    unimplemented!()
 }
