@@ -3,8 +3,9 @@ use crate::construction::constraints::{
     RouteConstraintViolation, SoftActivityConstraint,
 };
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
+use crate::models::common::{Cost, Timestamp};
 use crate::models::problem::{ActivityCost, Job, TransportCost};
-use crate::models::solution::{Actor, Route, TourActivity};
+use crate::models::solution::{Activity, Actor, Route, TourActivity};
 use std::borrow::Borrow;
 use std::cmp::max;
 use std::ops::Deref;
@@ -111,7 +112,10 @@ impl TimingConstraintModule {
                     transport: transport.clone(),
                     activity: activity.clone(),
                 })),
-                ConstraintVariant::SoftActivity(Arc::new(TimeSoftActivityConstraint {})),
+                ConstraintVariant::SoftActivity(Arc::new(TimeSoftActivityConstraint {
+                    transport: transport.clone(),
+                    activity: activity.clone(),
+                })),
             ],
             activity,
             transport,
@@ -181,6 +185,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
 
         let arr_time_at_next =
             departure + self.transport.duration(profile, prev.place.location, next_act_location, departure);
+
         if arr_time_at_next > latest_arr_time_at_next_act {
             return self.fail();
         }
@@ -234,11 +239,75 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
     }
 }
 
-struct TimeSoftActivityConstraint {}
+struct TimeSoftActivityConstraint {
+    activity: Arc<dyn ActivityCost>,
+    transport: Arc<dyn TransportCost>,
+}
+
+impl TimeSoftActivityConstraint {
+    fn analyze_route_leg(
+        &self,
+        actor: &Actor,
+        start: &Activity,
+        end: &Activity,
+        time: Timestamp,
+    ) -> (Cost, Cost, Timestamp) {
+        let arrival =
+            time + self.transport.duration(actor.vehicle.profile, start.place.location, end.place.location, time);
+        let departure = arrival.max(end.place.time.start)
+            + self.activity.duration(actor.vehicle.deref(), actor.driver.deref(), end, arrival);
+
+        let transport_cost = self.transport.cost(
+            actor.vehicle.deref(),
+            actor.driver.deref(),
+            start.place.location,
+            end.place.location,
+            time,
+        );
+        let activity_cost = self.activity.cost(actor.vehicle.deref(), actor.driver.deref(), end, arrival);
+
+        (transport_cost, activity_cost, departure)
+    }
+}
 
 impl SoftActivityConstraint for TimeSoftActivityConstraint {
     fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> f64 {
-        unimplemented!()
+        let route = route_ctx.route.read().unwrap();
+        let actor = route.actor.as_ref();
+
+        let prev = activity_ctx.prev.read().unwrap();
+        let target = activity_ctx.target.read().unwrap();
+        let next = activity_ctx.next.as_ref();
+
+        let (tp_cost_left, act_cost_left, dep_time_left) =
+            self.analyze_route_leg(actor, prev.deref(), target.deref(), prev.schedule.departure);
+
+        let (tp_cost_right, act_cost_right, dep_time_right) = if let Some(next) = next {
+            self.analyze_route_leg(actor, target.deref(), next.read().unwrap().deref(), dep_time_left)
+        } else {
+            // TODO simplify from target to target
+            self.analyze_route_leg(actor, target.deref(), target.deref(), dep_time_left)
+        };
+
+        let new_costs = tp_cost_left + tp_cost_right + /* progress.completeness * */ (act_cost_left + act_cost_right);
+
+        // no jobs yet or open vrp.
+        if !route.tour.has_jobs() || next.is_none() {
+            return new_costs;
+        }
+
+        let next = next.unwrap();
+        let waiting_time = *route_ctx.state.read().unwrap().get_activity_state(WAITING_KEY, next).unwrap_or(&0.0f64);
+
+        let (tp_cost_old, act_cost_old, dep_time_old) =
+            self.analyze_route_leg(actor, prev.deref(), next.read().unwrap().deref(), prev.schedule.departure);
+
+        let waiting_cost =
+            waiting_time.min(0f64.max(dep_time_right - dep_time_old)) * actor.vehicle.costs.per_waiting_time;
+
+        let old_costs = tp_cost_old + /*progress.completeness * */ (act_cost_old + waiting_cost);
+
+        new_costs - old_costs
     }
 }
 
