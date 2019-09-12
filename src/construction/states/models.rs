@@ -146,34 +146,34 @@ impl InsertionResult {
 impl RouteContext {
     pub fn new(actor: Arc<Actor>) -> Self {
         let mut tour = Tour::new();
-        tour.set_start(RouteContext::create_start_activity(&actor));
-        RouteContext::create_end_activity(&actor).map(|end| tour.set_end(end));
+        tour.set_start(create_start_activity(&actor));
+        create_end_activity(&actor).map(|end| tour.set_end(end));
 
         RouteContext {
             route: Arc::new(RwLock::new(Route { actor, tour })),
             state: Arc::new(RwLock::new(RouteState::new())),
         }
     }
+}
 
-    fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
+pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
+    Box::new(Activity {
+        place: Place {
+            location: actor.detail.start.unwrap_or_else(|| unimplemented!("Optional start is not yet implemented")),
+            duration: 0.0,
+            time: TimeWindow { start: actor.detail.time.start, end: std::f64::MAX },
+        },
+        schedule: Schedule { arrival: actor.detail.time.start, departure: actor.detail.time.start },
+        job: None,
+    })
+}
+
+pub fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
+    actor.detail.end.map(|location| {
         Box::new(Activity {
-            place: Place {
-                location: actor.detail.start.unwrap_or_else(|| unimplemented!("Optional start is not yet implemented")),
-                duration: 0.0,
-                time: TimeWindow { start: actor.detail.time.start, end: std::f64::MAX },
-            },
-            schedule: Schedule { arrival: actor.detail.time.start, departure: actor.detail.time.start },
+            place: Place { location, duration: 0.0, time: TimeWindow { start: 0.0, end: actor.detail.time.end } },
+            schedule: Schedule { arrival: actor.detail.time.end, departure: actor.detail.time.end },
             job: None,
         })
-    }
-
-    fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
-        actor.detail.end.map(|location| {
-            Box::new(Activity {
-                place: Place { location, duration: 0.0, time: TimeWindow { start: 0.0, end: actor.detail.time.end } },
-                schedule: Schedule { arrival: actor.detail.time.end, departure: actor.detail.time.end },
-                job: None,
-            })
-        })
-    }
+    })
 }

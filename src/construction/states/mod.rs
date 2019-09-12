@@ -1,7 +1,10 @@
 mod route;
+pub use self::route::RouteState;
 
 mod models;
 
+pub use self::models::create_end_activity;
+pub use self::models::create_start_activity;
 pub use self::models::ActivityContext;
 pub use self::models::InsertionContext;
 pub use self::models::InsertionFailure;

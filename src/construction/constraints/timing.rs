@@ -1,7 +1,8 @@
-use crate::construction::constraints::{
-    ActivityConstraintViolation, ConstraintModule, ConstraintVariant, HardActivityConstraint, HardRouteConstraint,
-    RouteConstraintViolation, SoftActivityConstraint,
-};
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/constraints/timing_test.rs"]
+mod timing_test;
+
+use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::{Cost, Location, Timestamp};
 use crate::models::problem::{ActivityCost, Job, TransportCost};
@@ -11,8 +12,8 @@ use std::ops::{Deref, DerefMut};
 use std::slice::Iter;
 use std::sync::{Arc, RwLock};
 
-const LATEST_ARRIVAL_KEY: i32 = 1;
-const WAITING_KEY: i32 = 2;
+pub const LATEST_ARRIVAL_KEY: i32 = 1;
+pub const WAITING_KEY: i32 = 2;
 const OP_START_MSG: &str = "Optional start is not yet implemented.";
 
 /// Checks whether vehicle can serve activity taking into account their time windows.
@@ -27,52 +28,8 @@ pub struct TimingConstraintModule {
 
 impl ConstraintModule for TimingConstraintModule {
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        let route = ctx.route.read().unwrap();
-        let mut state = ctx.state.write().unwrap();
-        let start = route.tour.start().unwrap_or(panic!(OP_START_MSG));
-        let actor = route.actor.as_ref();
-
-        // update each activity schedule
-        route.tour.all_activities_mut().skip(1).fold(
-            (start.place.location, start.schedule.departure),
-            |(loc, dep), a| {
-                a.schedule.arrival = dep + self.transport.duration(actor.vehicle.profile, loc, a.place.location, dep);
-                a.schedule.departure = a.schedule.arrival.max(a.place.time.start)
-                    + self.activity.duration(
-                        actor.vehicle.as_ref(),
-                        actor.driver.as_ref(),
-                        a.deref(),
-                        a.schedule.arrival,
-                    );
-
-                (a.place.location, a.schedule.departure)
-            },
-        );
-
-        // update latest arrival and waiting states of non-terminate (jobs) activities
-        let init = (
-            actor.detail.time.end,
-            actor.detail.end.unwrap_or(actor.detail.start.unwrap_or(panic!(OP_START_MSG))),
-            0f64,
-        );
-        route.tour.all_activities().rev().fold(init, |acc, act| {
-            if act.job.is_none() {
-                return acc;
-            }
-
-            let (end_time, prev_loc, waiting) = acc;
-            let potential_latest = end_time
-                - self.transport.duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
-                - self.activity.duration(actor.vehicle.as_ref(), actor.driver.as_ref(), act.deref(), end_time);
-
-            let latest_arrival_time = act.place.time.end.min(potential_latest);
-            let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0f64);
-
-            state.put_activity_state(LATEST_ARRIVAL_KEY, &act, latest_arrival_time);
-            state.put_activity_state(WAITING_KEY, &act, future_waiting);
-
-            (latest_arrival_time, act.place.location, future_waiting)
-        });
+        self.update_route_schedules(ctx);
+        self.update_route_states(ctx);
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
@@ -111,6 +68,54 @@ impl TimingConstraintModule {
             activity,
             transport,
         }
+    }
+
+    fn update_route_schedules(&self, ctx: &mut RouteContext) {
+        let (init, actor) = {
+            let route = ctx.route.read().unwrap();
+            let start = route.tour.start().unwrap();
+            ((start.place.location, start.schedule.departure), route.actor.clone())
+        };
+
+        ctx.route.write().unwrap().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
+            a.schedule.arrival = dep + self.transport.duration(actor.vehicle.profile, loc, a.place.location, dep);
+            a.schedule.departure = a.schedule.arrival.max(a.place.time.start)
+                + self.activity.duration(actor.vehicle.as_ref(), actor.driver.as_ref(), a.deref(), a.schedule.arrival);
+
+            (a.place.location, a.schedule.departure)
+        });
+    }
+
+    fn update_route_states(&self, ctx: &mut RouteContext) {
+        let route = ctx.route.read().unwrap();
+        let actor = route.actor.as_ref();
+        let mut state = ctx.state.write().unwrap();
+
+        // update latest arrival and waiting states of non-terminate (jobs) activities
+        let init = (
+            actor.detail.time.end,
+            actor.detail.end.unwrap_or(actor.detail.start.unwrap_or_else(|| panic!(OP_START_MSG))),
+            0f64,
+        );
+
+        route.tour.all_activities().rev().fold(init, |acc, act| {
+            if act.job.is_none() {
+                return acc;
+            }
+
+            let (end_time, prev_loc, waiting) = acc;
+            let potential_latest = end_time
+                - self.transport.duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
+                - self.activity.duration(actor.vehicle.as_ref(), actor.driver.as_ref(), act.deref(), end_time);
+
+            let latest_arrival_time = act.place.time.end.min(potential_latest);
+            let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0f64);
+
+            state.put_activity_state(LATEST_ARRIVAL_KEY, &act, latest_arrival_time);
+            state.put_activity_state(WAITING_KEY, &act, future_waiting);
+
+            (latest_arrival_time, act.place.location, future_waiting)
+        });
     }
 
     fn reschedule_departure(&self, ctx: &mut RouteContext) {

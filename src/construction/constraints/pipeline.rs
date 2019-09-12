@@ -75,7 +75,7 @@ pub trait ConstraintModule {
 
 /// Provides the way to work with multiple constraints.
 pub struct ConstraintPipeline {
-    modules: Vec<Arc<dyn ConstraintModule>>,
+    modules: Vec<Box<dyn ConstraintModule>>,
     state_keys: HashSet<i32>,
     hard_route_constraints: Vec<Arc<dyn HardRouteConstraint>>,
     hard_activity_constraints: Vec<Arc<dyn HardActivityConstraint>>,
@@ -106,7 +106,7 @@ impl ConstraintPipeline {
     }
 
     /// Adds constraint module.
-    pub fn add_module(&mut self, module: impl ConstraintModule) -> &mut Self {
+    pub fn add_module(&mut self, module: Box<dyn ConstraintModule>) -> &mut Self {
         module.state_keys().for_each(|key| {
             if let Some(duplicate) = self.state_keys.get(key) {
                 panic!("Attempt to register constraint with key duplication: {}", duplicate)
@@ -120,6 +120,8 @@ impl ConstraintPipeline {
             ConstraintVariant::SoftRoute(c) => self.soft_route_constraints.push(c.clone()),
             ConstraintVariant::SoftActivity(c) => self.soft_activity_constraints.push(c.clone()),
         });
+
+        self.modules.push(module);
 
         self
     }

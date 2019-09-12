@@ -1,6 +1,8 @@
 use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::models::common::{Dimensions, Location, Profile, TimeWindow};
 use crate::models::problem::{Costs, Driver, Fleet, Vehicle, VehicleDetail};
+use crate::models::solution::{Actor, Detail};
+use std::sync::Arc;
 
 pub const DEFAULT_ACTOR_LOCATION: Location = 0;
 pub const DEFAULT_ACTOR_TIME_WINDOW: TimeWindow = TimeWindow { start: 0.0, end: 1000.0 };
@@ -21,6 +23,24 @@ pub fn test_vehicle_detail() -> VehicleDetail {
 
 pub fn test_vehicle(profile: i32) -> Vehicle {
     Vehicle { profile, costs: test_costs(), dimens: Default::default(), details: vec![test_vehicle_detail()] }
+}
+
+pub fn get_vehicle_id(vehicle: &Vehicle) -> &String {
+    vehicle.dimens.get(&"id".to_string()).unwrap().downcast_ref::<String>().unwrap()
+}
+
+pub fn get_test_actor_from_fleet(fleet: &Fleet, vehicle_id: &str) -> Arc<Actor> {
+    let vehicle = fleet.vehicles.iter().find(|v| get_vehicle_id(v) == vehicle_id).unwrap();
+    let detail = vehicle.details.iter().next().unwrap();
+    Arc::new(Actor {
+        vehicle: vehicle.clone(),
+        driver: fleet.drivers.iter().next().unwrap().clone(),
+        detail: Detail {
+            start: detail.start,
+            end: detail.end,
+            time: detail.time.as_ref().unwrap_or(&DEFAULT_ACTOR_TIME_WINDOW).clone(),
+        },
+    })
 }
 
 pub struct VehicleBuilder {

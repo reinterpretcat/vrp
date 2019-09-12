@@ -1,5 +1,5 @@
 use crate::helpers::models::problem::*;
-use crate::models::common::Schedule;
+use crate::models::common::{Location, Schedule};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Place};
 use std::sync::Arc;
@@ -8,6 +8,15 @@ pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arriv
 
 pub fn test_activity() -> Activity {
     test_activity_with_job(Arc::new(test_single_job()))
+}
+
+pub fn test_activity_with_location(location: Location) -> Activity {
+    //test_activity_with_job(Arc::new(test_single_job_with_location(location)))
+    Activity {
+        place: Place { location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
+        schedule: DEFAULT_ACTIVITY_SCHEDULE,
+        job: Some(Arc::new(test_single_job_with_location(Some(location)))),
+    }
 }
 
 pub fn test_activity_with_job(job: Arc<Job>) -> Activity {
