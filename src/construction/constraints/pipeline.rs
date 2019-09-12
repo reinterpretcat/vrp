@@ -35,20 +35,36 @@ pub trait SoftActivityConstraint {
 }
 
 /// Specifies result of hard route constraint check.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RouteConstraintViolation {
     /// Violation code.
     pub code: i32,
 }
 
+impl PartialEq<RouteConstraintViolation> for RouteConstraintViolation {
+    fn eq(&self, other: &RouteConstraintViolation) -> bool {
+        self.code == other.code
+    }
+}
+
+impl Eq for RouteConstraintViolation {}
+
 /// Specifies result of hard route constraint check.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ActivityConstraintViolation {
     /// Violation code.
     pub code: i32,
     /// True if further insertions should be attempted.
     pub stopped: bool,
 }
+
+impl PartialEq<ActivityConstraintViolation> for ActivityConstraintViolation {
+    fn eq(&self, other: &ActivityConstraintViolation) -> bool {
+        self.code == other.code && self.stopped == other.stopped
+    }
+}
+
+impl Eq for ActivityConstraintViolation {}
 
 /// A variant for constraint types.
 pub enum ConstraintVariant {
