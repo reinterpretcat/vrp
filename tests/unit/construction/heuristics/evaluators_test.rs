@@ -3,13 +3,21 @@ use crate::construction::states::{InsertionContext, InsertionResult, RouteContex
 use crate::helpers::construction::states::test_insertion_progress;
 use crate::helpers::models::domain::create_empty_problem;
 use crate::helpers::models::problem::*;
-use crate::models::problem::Fleet;
+use crate::models::problem::{Fleet, Job};
 use crate::models::solution::Registry;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-#[test]
-fn can_insert_service_with_location_into_empty_tour() {
+parameterized_test! {can_insert_service_with_location_into_empty_tour, job, {
+    can_insert_service_with_location_into_empty_tour_impl(job);
+}}
+
+can_insert_service_with_location_into_empty_tour! {
+    case1: Arc::new(test_single_job()),
+    case2: Arc::new(test_single_job_with_location(None)),
+}
+
+fn can_insert_service_with_location_into_empty_tour_impl(job: Arc<Job>) {
     let registry = Registry::new(&Fleet::new(
         vec![test_driver_with_costs(empty_costs())],
         vec![VehicleBuilder::new().id("v1").build()],
@@ -29,7 +37,7 @@ fn can_insert_service_with_location_into_empty_tour() {
         random: Arc::new("".to_string()),
     };
 
-    let result = InsertionEvaluator::new().evaluate(&Arc::new(test_single_job()), &ctx);
+    let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
     if let InsertionResult::Success(success) = result {
         assert_eq!(success.activities.len(), 1);

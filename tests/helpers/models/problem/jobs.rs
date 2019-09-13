@@ -25,7 +25,7 @@ pub fn test_single_job() -> Job {
 }
 
 pub fn test_place_with_location(location: Option<Location>) -> Place {
-    Place { location, duration: Default::default(), times: Default::default() }
+    Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_WINDOW] }
 }
 
 pub fn test_single_job_with_location(location: Option<Location>) -> Job {
