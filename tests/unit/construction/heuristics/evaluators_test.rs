@@ -73,14 +73,22 @@ parameterized_test! {can_insert_service_with_location_into_tour_with_two_activit
 }}
 
 can_insert_service_with_location_into_tour_with_two_activities_and_variations! {
-    case1: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
-    case2: (vec![JobPlace { location: Some(8), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 8, 1),
-    case3: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeWindow {start: 15.0, end: 20.0}] }], 7, 2),
-    case4: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeWindow {start: 15.0, end: 20.0}, TimeWindow {start: 7.0, end: 8.0}] }], 7, 1),
+    // vary times
+    case01: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
+    case02: (vec![JobPlace { location: Some(8), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 8, 1),
+    case03: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeWindow {start: 15.0, end: 20.0}] }], 7, 2),
+    case04: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeWindow {start: 15.0, end: 20.0}, TimeWindow {start: 7.0, end: 8.0}] }], 7, 1),
 
-    case5: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
-    case6: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] },
+    // vary locations
+    case05: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
+    case06: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] },
                  JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
+
+    // vary locations and times
+    case07: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] },
+                  JobPlace { location: Some(3), duration: 0.0, times: vec![TimeWindow {start: 0.0, end: 2.0}] }], 20, 1),
+    case08: (vec![JobPlace { location: Some(12), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] },
+                  JobPlace { location: Some(11), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 11, 1),
 }
 
 fn can_insert_service_with_location_into_tour_with_two_activities_and_variations_impl(
