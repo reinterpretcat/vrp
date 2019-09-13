@@ -7,10 +7,12 @@ use crate::helpers::models::domain::{create_empty_problem, create_empty_problem_
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Location, Schedule, TimeWindow};
-use crate::models::problem::{Fleet, Job};
+use crate::models::problem::{Fleet, Job, Single};
 use crate::models::solution::{Place, Registry};
 use std::collections::HashSet;
 use std::sync::Arc;
+
+type JobPlace = crate::models::problem::Place;
 
 fn create_insertion_context(
     registry: Registry,
@@ -60,20 +62,30 @@ fn can_insert_service_with_location_into_empty_tour_impl(job: Arc<Job>) {
     }
 }
 
-parameterized_test! {can_insert_service_with_location_into_tour_with_two_activities_and_time_window_variations, (location, tws, index), {
-    can_insert_service_with_location_into_tour_with_two_activities_and_time_window_variations_impl(location, tws, index);
+parameterized_test! {can_insert_service_with_location_into_tour_with_two_activities_and_variations, (places, location, index), {
+    let job = Arc::new(Job::Single(
+        Single {
+            places,
+            dimens: Default::default()
+        }
+    ));
+    can_insert_service_with_location_into_tour_with_two_activities_and_variations_impl(job, location, index);
 }}
 
-can_insert_service_with_location_into_tour_with_two_activities_and_time_window_variations! {
-    case1: (3, vec![DEFAULT_JOB_TIME_WINDOW], 0),
-    case2: (8, vec![DEFAULT_JOB_TIME_WINDOW], 1),
-    case3: (7, vec![TimeWindow {start: 15.0, end: 20.0}], 2),
-    case4: (7, vec![TimeWindow {start: 15.0, end: 20.0}, TimeWindow {start: 7.0, end: 8.0}], 1),
+can_insert_service_with_location_into_tour_with_two_activities_and_variations! {
+    case1: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
+    case2: (vec![JobPlace { location: Some(8), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 8, 1),
+    case3: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeWindow {start: 15.0, end: 20.0}] }], 7, 2),
+    case4: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeWindow {start: 15.0, end: 20.0}, TimeWindow {start: 7.0, end: 8.0}] }], 7, 1),
+
+    case5: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
+    case6: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] },
+                 JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
 }
 
-fn can_insert_service_with_location_into_tour_with_two_activities_and_time_window_variations_impl(
+fn can_insert_service_with_location_into_tour_with_two_activities_and_variations_impl(
+    job: Arc<Job>,
     location: Location,
-    tws: Vec<TimeWindow>,
     index: usize,
 ) {
     let registry = Registry::new(&Fleet::new(
@@ -106,7 +118,6 @@ fn can_insert_service_with_location_into_tour_with_two_activities_and_time_windo
         );
     let mut routes: HashSet<RouteContext> = HashSet::new();
     routes.insert(route_ctx);
-    let job = Arc::new(Job::Single(SingleBuilder::new().location(Some(location)).duration(0.0).times(tws).build()));
     let mut constraint = create_constraint_pipeline_with_timing();
     let ctx = create_insertion_context(registry, constraint, routes);
 
@@ -120,3 +131,6 @@ fn can_insert_service_with_location_into_tour_with_two_activities_and_time_windo
         assert!(false);
     }
 }
+
+#[test]
+fn can_insert_service_with_location_into_tour_with_two_activities_and_locations_variations_impl() {}
