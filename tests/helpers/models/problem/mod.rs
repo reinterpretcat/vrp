@@ -4,10 +4,12 @@ pub use self::costs::TestActivityCost;
 pub use self::costs::TestTransportCost;
 
 mod fleet;
+pub use self::fleet::empty_costs;
 pub use self::fleet::get_test_actor_from_fleet;
 pub use self::fleet::get_vehicle_id;
 pub use self::fleet::test_costs;
 pub use self::fleet::test_driver;
+pub use self::fleet::test_driver_with_costs;
 pub use self::fleet::test_vehicle;
 pub use self::fleet::test_vehicle_detail;
 pub use self::fleet::FleetBuilder;

@@ -13,8 +13,16 @@ pub fn test_costs() -> Costs {
     DEFAULT_VEHICLE_COSTS
 }
 
+pub fn empty_costs() -> Costs {
+    Costs { fixed: 0.0, per_distance: 0.0, per_driving_time: 0.0, per_waiting_time: 0.0, per_service_time: 0.0 }
+}
+
 pub fn test_driver() -> Driver {
     Driver { costs: test_costs(), dimens: Default::default(), details: vec![] }
+}
+
+pub fn test_driver_with_costs(costs: Costs) -> Driver {
+    Driver { costs, dimens: Default::default(), details: vec![] }
 }
 
 pub fn test_vehicle_detail() -> VehicleDetail {

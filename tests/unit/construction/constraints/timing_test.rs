@@ -4,10 +4,12 @@ use crate::construction::states::{
     create_end_activity, create_start_activity, ActivityContext, RouteContext, RouteState,
 };
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::{test_tour_activity_with_location, ActivityBuilder};
+use crate::helpers::models::solution::{test_tour_activity_with_location, ActivityBuilder, DEFAULT_ACTIVITY_SCHEDULE};
 use crate::models::common::{Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, VehicleDetail};
 use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
+use crate::utils::compare_floats;
+use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
@@ -192,12 +194,12 @@ fn can_update_activity_schedule() {
             vec![
                 Box::new(
                     ActivityBuilder::new()
-                        .place(Place { location: 10, duration: 5f64, time: TimeWindow { start: 20.0, end: 30.0 } })
+                        .place(Place { location: 10, duration: 5.0, time: TimeWindow { start: 20.0, end: 30.0 } })
                         .build(),
                 ),
                 Box::new(
                     ActivityBuilder::new()
-                        .place(Place { location: 20, duration: 10f64, time: TimeWindow { start: 50.0, end: 10.0 } })
+                        .place(Place { location: 20, duration: 10.0, time: TimeWindow { start: 50.0, end: 10.0 } })
                         .build(),
                 ),
             ],
@@ -210,4 +212,42 @@ fn can_update_activity_schedule() {
     let route = route_ctx.route.read().unwrap();
     assert_eq!(route.tour.get(1).unwrap().schedule, Schedule { arrival: 10.0, departure: 25.0 });
     assert_eq!(route.tour.get(2).unwrap().schedule, Schedule { arrival: 35.0, departure: 60.0 });
+}
+
+#[test]
+fn can_calculate_soft_activity_cost() {
+    let fleet = Fleet::new(vec![test_driver_with_costs(empty_costs())], vec![VehicleBuilder::new().id("v1").build()]);
+    let mut route_ctx = RouteContext {
+        route: Arc::new(RwLock::new(create_route_with_activities(
+            &fleet,
+            "v1",
+            vec![
+                Box::new(
+                    ActivityBuilder::new()
+                        .place(Place { location: 10, duration: 0.0, time: DEFAULT_JOB_TIME_WINDOW.clone() })
+                        .schedule(Schedule { arrival: 0.0, departure: 10.0 })
+                        .build(),
+                ),
+                Box::new(
+                    ActivityBuilder::new()
+                        .place(Place { location: 20, duration: 0.0, time: TimeWindow { start: 40.0, end: 70.0 } })
+                        .build(),
+                ),
+            ],
+        ))),
+        state: Arc::new(RwLock::new(RouteState::new())),
+    };
+    let route = route_ctx.route.read().unwrap();
+    let prev = route.tour.get(1).unwrap();
+    let target = Box::new(Activity {
+        place: Place { location: 30, duration: 10.0, time: DEFAULT_JOB_TIME_WINDOW },
+        schedule: DEFAULT_ACTIVITY_SCHEDULE,
+        job: None,
+    });
+    let next = route.tour.get(2);
+    let activity_ctx = ActivityContext { index: 0, prev, target: &target, next };
+
+    let result = create_constraint_pipeline().evaluate_soft_activity(&route_ctx, &activity_ctx);
+
+    assert_eq!(compare_floats(&result, &30.0), Ordering::Equal);
 }

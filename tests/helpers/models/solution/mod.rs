@@ -9,6 +9,7 @@ pub use self::route::test_activity_with_job;
 pub use self::route::test_activity_with_location;
 pub use self::route::test_activity_without_job;
 pub use self::route::ActivityBuilder;
+pub use self::route::DEFAULT_ACTIVITY_SCHEDULE;
 
 mod tour;
 pub use self::tour::test_tour_activity_with_default_job;

@@ -11,8 +11,7 @@ pub trait ActivityCost {
         let service = self.duration(vehicle, driver, activity, arrival);
 
         waiting * (driver.costs.per_waiting_time + vehicle.costs.per_waiting_time)
-            + driver.costs.per_service_time
-            + vehicle.costs.per_service_time
+            + service * (driver.costs.per_service_time + vehicle.costs.per_service_time)
     }
 
     /// Returns operation time spent to perform activity.
