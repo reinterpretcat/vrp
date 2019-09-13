@@ -1,7 +1,7 @@
 use crate::helpers::models::problem::*;
 use crate::models::common::{Location, Schedule};
 use crate::models::problem::{Job, Single};
-use crate::models::solution::{Activity, Place};
+use crate::models::solution::{Activity, Actor, Place, Route, Tour, TourActivity};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
@@ -40,21 +40,21 @@ pub struct ActivityBuilder {
 }
 
 impl ActivityBuilder {
-    pub fn new() -> ActivityBuilder {
-        ActivityBuilder { activity: test_activity() }
+    pub fn new() -> Self {
+        Self { activity: test_activity() }
     }
 
-    pub fn place(&mut self, place: Place) -> &mut ActivityBuilder {
+    pub fn place(&mut self, place: Place) -> &mut Self {
         self.activity.place = place;
         self
     }
 
-    pub fn schedule(&mut self, schedule: Schedule) -> &mut ActivityBuilder {
+    pub fn schedule(&mut self, schedule: Schedule) -> &mut Self {
         self.activity.schedule = schedule;
         self
     }
 
-    pub fn job(&mut self, job: Option<Arc<Job>>) -> &mut ActivityBuilder {
+    pub fn job(&mut self, job: Option<Arc<Job>>) -> &mut Self {
         self.activity.job = job;
         self
     }

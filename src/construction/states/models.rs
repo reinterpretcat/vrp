@@ -6,6 +6,8 @@ use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour, Tou
 use crate::models::{Problem, Solution};
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 /// Specifies insertion result.
@@ -177,3 +179,18 @@ pub fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
         })
     })
 }
+
+impl Hash for RouteContext {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let ptr = self.route.read().unwrap().deref() as *const Route;
+        ptr.hash(state);
+    }
+}
+
+impl PartialEq<RouteContext> for RouteContext {
+    fn eq(&self, other: &RouteContext) -> bool {
+        self.route.read().unwrap().deref() as *const Route == other.route.read().unwrap().deref() as *const Route
+    }
+}
+
+impl Eq for RouteContext {}
