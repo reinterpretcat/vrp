@@ -215,7 +215,28 @@ fn can_update_activity_schedule() {
 }
 
 #[test]
-fn can_calculate_soft_activity_cost() {
+fn can_calculate_soft_activity_cost_for_empty_tour() {
+    let fleet = Fleet::new(vec![test_driver_with_costs(empty_costs())], vec![VehicleBuilder::new().id("v1").build()]);
+    let mut route_ctx = RouteContext {
+        route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
+        state: Arc::new(RwLock::new(RouteState::new())),
+    };
+    let route = route_ctx.route.read().unwrap();
+    let target = Box::new(Activity {
+        place: Place { location: 5, duration: 1.0, time: DEFAULT_JOB_TIME_WINDOW },
+        schedule: DEFAULT_ACTIVITY_SCHEDULE,
+        job: None,
+    });
+    let activity_ctx =
+        ActivityContext { index: 0, prev: route.tour.get(0).unwrap(), target: &target, next: route.tour.get(1) };
+
+    let result = create_constraint_pipeline().evaluate_soft_activity(&route_ctx, &activity_ctx);
+
+    assert_eq!(compare_floats(&result, &21.0), Ordering::Equal);
+}
+
+#[test]
+fn can_calculate_soft_activity_cost_for_non_empty_tour() {
     let fleet = Fleet::new(vec![test_driver_with_costs(empty_costs())], vec![VehicleBuilder::new().id("v1").build()]);
     let mut route_ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route_with_activities(
@@ -238,14 +259,13 @@ fn can_calculate_soft_activity_cost() {
         state: Arc::new(RwLock::new(RouteState::new())),
     };
     let route = route_ctx.route.read().unwrap();
-    let prev = route.tour.get(1).unwrap();
     let target = Box::new(Activity {
         place: Place { location: 30, duration: 10.0, time: DEFAULT_JOB_TIME_WINDOW },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: None,
     });
-    let next = route.tour.get(2);
-    let activity_ctx = ActivityContext { index: 0, prev, target: &target, next };
+    let activity_ctx =
+        ActivityContext { index: 0, prev: route.tour.get(1).unwrap(), target: &target, next: route.tour.get(2) };
 
     let result = create_constraint_pipeline().evaluate_soft_activity(&route_ctx, &activity_ctx);
 
