@@ -4,10 +4,10 @@ use crate::construction::states::{
     create_end_activity, create_start_activity, ActivityContext, RouteContext, RouteState,
 };
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::test_tour_activity_with_location;
+use crate::helpers::models::solution::{test_tour_activity_with_location, ActivityBuilder};
 use crate::models::common::{Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, VehicleDetail};
-use crate::models::solution::{Activity, Place, Route, Tour};
+use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
 use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
@@ -19,14 +19,26 @@ fn create_detail(
 }
 
 fn create_route(fleet: &Fleet, vehicle: &str) -> Route {
+    create_route_with_activities(
+        fleet,
+        vehicle,
+        vec![
+            test_tour_activity_with_location(10),
+            test_tour_activity_with_location(20),
+            test_tour_activity_with_location(30),
+        ],
+    )
+}
+
+fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<TourActivity>) -> Route {
     let actor = get_test_actor_from_fleet(fleet, vehicle);
     let mut tour = Tour::new();
     tour.set_start(create_start_activity(&actor));
     create_end_activity(&actor).map(|end| tour.set_end(end));
 
-    tour.insert_at(test_tour_activity_with_location(10), 1);
-    tour.insert_at(test_tour_activity_with_location(20), 2);
-    tour.insert_at(test_tour_activity_with_location(30), 3);
+    activities.into_iter().enumerate().for_each(|(index, a)| {
+        tour.insert_at(a, index + 1);
+    });
 
     Route { actor, tour }
 }
@@ -168,4 +180,34 @@ fn can_properly_handle_fleet_with_6_vehicles_impl(
     let result = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx);
 
     assert_eq_option!(result, expected);
+}
+
+#[test]
+fn can_update_activity_schedule() {
+    let fleet = Fleet::new(vec![test_driver()], vec![VehicleBuilder::new().id("v1").build()]);
+    let mut route_ctx = RouteContext {
+        route: Arc::new(RwLock::new(create_route_with_activities(
+            &fleet,
+            "v1",
+            vec![
+                Box::new(
+                    ActivityBuilder::new()
+                        .place(Place { location: 10, duration: 5f64, time: TimeWindow { start: 20.0, end: 30.0 } })
+                        .build(),
+                ),
+                Box::new(
+                    ActivityBuilder::new()
+                        .place(Place { location: 20, duration: 10f64, time: TimeWindow { start: 50.0, end: 10.0 } })
+                        .build(),
+                ),
+            ],
+        ))),
+        state: Arc::new(RwLock::new(RouteState::new())),
+    };
+
+    create_constraint_pipeline().accept_route_state(&mut route_ctx);
+
+    let route = route_ctx.route.read().unwrap();
+    assert_eq!(route.tour.get(1).unwrap().schedule, Schedule { arrival: 10.0, departure: 25.0 });
+    assert_eq!(route.tour.get(2).unwrap().schedule, Schedule { arrival: 35.0, departure: 60.0 });
 }
