@@ -1,6 +1,6 @@
 use crate::construction::constraints::{ConstraintPipeline, TimingConstraintModule};
 use crate::construction::heuristics::evaluators::InsertionEvaluator;
-use crate::construction::states::{InsertionContext, InsertionResult, RouteContext, RouteState, SolutionContext};
+use crate::construction::states::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::construction::states::test_insertion_progress;
 use crate::helpers::models::domain::{create_empty_problem, create_empty_problem_with_constraint};
@@ -220,6 +220,43 @@ mod single {
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
+        } else {
+            assert!(false);
+        }
+    }
+}
+
+mod sequence {
+    use super::*;
+
+    fn assert_activities(success: InsertionSuccess, expected: Vec<(usize, Location)>) {
+        assert_eq!(success.activities.len(), expected.len());
+        success.activities.iter().zip(expected.iter()).for_each(|((activity, position), (index, location))| {
+            assert_eq!(&activity.place.location, location);
+            assert_eq!(position, index);
+        });
+    }
+
+    #[test]
+    fn can_insert_job_with_location_into_empty_tour_impl() {
+        let s1_location: Option<Location> = Some(3);
+        let s2_location: Option<Location> = Some(7);
+        let cost: Cost = 28.0;
+
+        let registry = Registry::new(&Fleet::new(
+            vec![test_driver_with_costs(empty_costs())],
+            vec![VehicleBuilder::new().id("v1").build()],
+        ));
+        let job = MultiBuilder::new()
+            .job(SingleBuilder::new().id("s1").location(s1_location).build())
+            .job(SingleBuilder::new().id("s2").location(s2_location).build())
+            .build_as_job_ref();
+        let ctx = create_test_insertion_context(registry);
+
+        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+
+        if let InsertionResult::Success(success) = result {
+            assert_activities(success, vec![(0, 3), (1, 7)]);
         } else {
             assert!(false);
         }

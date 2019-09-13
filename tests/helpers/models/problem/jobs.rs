@@ -8,6 +8,10 @@ pub const DEFAULT_JOB_DURATION: Duration = 0.0;
 pub const DEFAULT_JOB_TIME_WINDOW: TimeWindow = TimeWindow { start: 0.0, end: 1000.0 };
 
 pub fn test_single() -> Single {
+    test_single_with_id("single")
+}
+
+pub fn test_single_with_id(id: &str) -> Single {
     let mut single = Single {
         places: vec![Place {
             location: Some(DEFAULT_JOB_LOCATION),
@@ -16,7 +20,7 @@ pub fn test_single() -> Single {
         }],
         dimens: Default::default(),
     };
-    single.dimens.insert("id".to_string(), Box::new("single".to_string()));
+    single.dimens.insert("id".to_string(), Box::new(id.to_string()));
     single
 }
 
@@ -68,31 +72,31 @@ pub struct SingleBuilder {
 }
 
 impl SingleBuilder {
-    pub fn new() -> SingleBuilder {
-        SingleBuilder { single: test_single() }
+    pub fn new() -> Self {
+        Self { single: test_single() }
     }
 
-    pub fn id(&mut self, id: &str) -> &mut SingleBuilder {
+    pub fn id(&mut self, id: &str) -> &mut Self {
         self.single.dimens.insert("id".to_string(), Box::new(id.to_string()));
         self
     }
 
-    pub fn demand(&mut self, demand: impl Size + 'static) -> &mut SingleBuilder {
+    pub fn demand(&mut self, demand: impl Size + 'static) -> &mut Self {
         self.single.dimens.insert("dmd".to_string(), Box::new(demand));
         self
     }
 
-    pub fn location(&mut self, loc: Option<Location>) -> &mut SingleBuilder {
+    pub fn location(&mut self, loc: Option<Location>) -> &mut Self {
         self.single.places.first_mut().unwrap().location = loc;
         self
     }
 
-    pub fn duration(&mut self, dur: Duration) -> &mut SingleBuilder {
+    pub fn duration(&mut self, dur: Duration) -> &mut Self {
         self.single.places.first_mut().unwrap().duration = dur;
         self
     }
 
-    pub fn time(&mut self, tw: TimeWindow) -> &mut SingleBuilder {
+    pub fn time(&mut self, tw: TimeWindow) -> &mut Self {
         let mut original_tw = self.single.places.first_mut().unwrap().times.first_mut().unwrap();
         original_tw.start = tw.start;
         original_tw.end = tw.end;
@@ -100,7 +104,7 @@ impl SingleBuilder {
         self
     }
 
-    pub fn times(&mut self, tws: Vec<TimeWindow>) -> &mut SingleBuilder {
+    pub fn times(&mut self, tws: Vec<TimeWindow>) -> &mut Self {
         self.single.places.first_mut().unwrap().times = tws;
         self
     }
@@ -110,7 +114,43 @@ impl SingleBuilder {
     }
 
     pub fn build_as_job_ref(&mut self) -> Arc<Job> {
-        let single = std::mem::replace(&mut self.single, test_single());
-        Arc::new(Job::Single(single))
+        Arc::new(Job::Single(self.build()))
+    }
+}
+
+fn test_multi() -> Multi {
+    let mut multi = Multi {
+        jobs: vec![test_single_with_id("single1"), test_single_with_id("single2")],
+        dimens: Default::default(),
+    };
+    multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
+    multi
+}
+
+pub struct MultiBuilder {
+    multi: Multi,
+}
+
+impl MultiBuilder {
+    pub fn new() -> Self {
+        Self { multi: test_multi() }
+    }
+
+    pub fn id(&mut self, id: &str) -> &mut Self {
+        self.multi.dimens.insert("id".to_string(), Box::new(id.to_string()));
+        self
+    }
+
+    pub fn job(&mut self, job: Single) -> &mut Self {
+        self.multi.jobs.push(job);
+        self
+    }
+
+    pub fn build(&mut self) -> Multi {
+        std::mem::replace(&mut self.multi, test_multi())
+    }
+
+    pub fn build_as_job_ref(&mut self) -> Arc<Job> {
+        Arc::new(Job::Multi(self.build()))
     }
 }

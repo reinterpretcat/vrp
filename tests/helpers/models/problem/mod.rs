@@ -26,6 +26,8 @@ pub use self::jobs::test_single;
 pub use self::jobs::test_single_job;
 pub use self::jobs::test_single_job_with_location;
 pub use self::jobs::test_single_job_with_locations;
+pub use self::jobs::test_single_with_id;
+pub use self::jobs::MultiBuilder;
 pub use self::jobs::SingleBuilder;
 pub use self::jobs::DEFAULT_JOB_DURATION;
 pub use self::jobs::DEFAULT_JOB_LOCATION;
