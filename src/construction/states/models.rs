@@ -140,7 +140,7 @@ impl InsertionResult {
                     left
                 }
             }
-            _ => left,
+            _ => right,
         }
     }
 }
