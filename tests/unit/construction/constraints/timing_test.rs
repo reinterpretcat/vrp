@@ -3,6 +3,7 @@ use crate::construction::constraints::{ActivityConstraintViolation, ConstraintPi
 use crate::construction::states::{
     create_end_activity, create_start_activity, ActivityContext, RouteContext, RouteState,
 };
+use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{test_tour_activity_with_location, ActivityBuilder, DEFAULT_ACTIVITY_SCHEDULE};
 use crate::models::common::{Location, Schedule, TimeWindow, Timestamp};
@@ -45,16 +46,6 @@ fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<To
     Route { actor, tour }
 }
 
-fn create_constraint_pipeline() -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::new();
-    constraint.add_module(Box::new(TimingConstraintModule::new(
-        Arc::new(TestActivityCost::new()),
-        Arc::new(TestTransportCost::new()),
-        1,
-    )));
-    constraint
-}
-
 parameterized_test! {can_properly_handle_fleet_with_4_vehicles, (vehicle, activity, time), {
     can_properly_handle_fleet_with_4_vehicles_impl(vehicle, activity, time);
 }}
@@ -89,7 +80,7 @@ fn can_properly_handle_fleet_with_4_vehicles_impl(vehicle: &str, activity: usize
         state: Arc::new(RwLock::new(RouteState::new())),
     };
 
-    create_constraint_pipeline().accept_route_state(&mut ctx);
+    create_constraint_pipeline_with_timing().accept_route_state(&mut ctx);
     let result = ctx
         .state
         .read()
@@ -160,7 +151,7 @@ fn can_properly_handle_fleet_with_6_vehicles_impl(
         route: Arc::new(RwLock::new(create_route(&fleet, vehicle))),
         state: Arc::new(RwLock::new(RouteState::new())),
     };
-    let pipeline = create_constraint_pipeline();
+    let pipeline = create_constraint_pipeline_with_timing();
     pipeline.accept_route_state(&mut route_ctx);
     {
         let mut route = route_ctx.route.write().unwrap();
@@ -207,7 +198,7 @@ fn can_update_activity_schedule() {
         state: Arc::new(RwLock::new(RouteState::new())),
     };
 
-    create_constraint_pipeline().accept_route_state(&mut route_ctx);
+    create_constraint_pipeline_with_timing().accept_route_state(&mut route_ctx);
 
     let route = route_ctx.route.read().unwrap();
     assert_eq!(route.tour.get(1).unwrap().schedule, Schedule { arrival: 10.0, departure: 25.0 });
@@ -230,7 +221,7 @@ fn can_calculate_soft_activity_cost_for_empty_tour() {
     let activity_ctx =
         ActivityContext { index: 0, prev: route.tour.get(0).unwrap(), target: &target, next: route.tour.get(1) };
 
-    let result = create_constraint_pipeline().evaluate_soft_activity(&route_ctx, &activity_ctx);
+    let result = create_constraint_pipeline_with_timing().evaluate_soft_activity(&route_ctx, &activity_ctx);
 
     assert_eq!(compare_floats(&result, &21.0), Ordering::Equal);
 }
@@ -267,7 +258,7 @@ fn can_calculate_soft_activity_cost_for_non_empty_tour() {
     let activity_ctx =
         ActivityContext { index: 0, prev: route.tour.get(1).unwrap(), target: &target, next: route.tour.get(2) };
 
-    let result = create_constraint_pipeline().evaluate_soft_activity(&route_ctx, &activity_ctx);
+    let result = create_constraint_pipeline_with_timing().evaluate_soft_activity(&route_ctx, &activity_ctx);
 
     assert_eq!(compare_floats(&result, &30.0), Ordering::Equal);
 }

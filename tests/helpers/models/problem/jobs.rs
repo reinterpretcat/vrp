@@ -100,6 +100,11 @@ impl SingleBuilder {
         self
     }
 
+    pub fn times(&mut self, tws: Vec<TimeWindow>) -> &mut SingleBuilder {
+        self.single.places.first_mut().unwrap().times = tws;
+        self
+    }
+
     pub fn build(&mut self) -> Single {
         std::mem::replace(&mut self.single, test_single())
     }

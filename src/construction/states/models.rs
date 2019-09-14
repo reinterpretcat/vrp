@@ -134,10 +134,10 @@ impl InsertionResult {
             (Self::Success(_), Self::Failure(_)) => left,
             (Self::Failure(_), Self::Success(_)) => right,
             (Self::Success(lhs), Self::Success(rhs)) => {
-                if lhs.cost < rhs.cost {
-                    left
-                } else {
+                if lhs.cost > rhs.cost {
                     right
+                } else {
+                    left
                 }
             }
             _ => left,
