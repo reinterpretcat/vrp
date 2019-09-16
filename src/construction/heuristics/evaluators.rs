@@ -1,15 +1,20 @@
-#[cfg(test)]
-#[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
-mod evaluators_test;
+extern crate rand;
+
+use std::borrow::Borrow;
+use std::slice::Iter;
+use std::sync::{Arc, RwLock};
+
+use rand::seq::IteratorRandom;
 
 use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::states::*;
 use crate::models::common::{Cost, TimeWindow, NO_COST};
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place};
-use std::borrow::Borrow;
-use std::slice::Iter;
-use std::sync::{Arc, RwLock};
+
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
+mod evaluators_test;
 
 /// Provides the way to evaluate insertion cost.
 pub struct InsertionEvaluator {}
@@ -180,7 +185,21 @@ fn unwrap_from_result<T>(result: Result<T, T>) -> T {
     }
 }
 
-fn create_permutations(size: usize) -> Permutations {
+fn get_job_permutations(multi: &Multi) -> Vec<Vec<&Single>> {
+    // TODO optionally use permutation function defined on multi job
+    // TODO configure sample size
+    // TODO avoid extra memory allocations?
+    const SAMPLE_SIZE: usize = 3;
+
+    let mut rng = rand::thread_rng();
+    get_permutations(multi.jobs.len())
+        .choose_multiple(&mut rng, SAMPLE_SIZE)
+        .iter()
+        .map(|permutation| permutation.iter().map(|&i| multi.jobs.get(i).unwrap()).collect::<Vec<&Single>>())
+        .collect()
+}
+
+fn get_permutations(size: usize) -> Permutations {
     Permutations { idxs: (0..size).collect(), swaps: vec![0; size], i: 0 }
 }
 
