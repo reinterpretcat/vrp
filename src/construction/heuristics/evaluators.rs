@@ -1,10 +1,6 @@
-extern crate rand;
-
 use std::borrow::Borrow;
 use std::slice::Iter;
 use std::sync::{Arc, RwLock};
-
-use rand::seq::IteratorRandom;
 
 use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::states::*;
@@ -288,52 +284,5 @@ fn unwrap_from_result<T>(result: Result<T, T>) -> T {
     match result {
         Ok(result) => result,
         Err(result) => result,
-    }
-}
-
-fn get_job_permutations(multi: &Multi) -> Vec<Vec<&Single>> {
-    // TODO optionally use permutation function defined on multi job
-    // TODO configure sample size
-    // TODO avoid extra memory allocations?
-    const SAMPLE_SIZE: usize = 3;
-
-    let mut rng = rand::thread_rng();
-    get_permutations(multi.jobs.len())
-        .choose_multiple(&mut rng, SAMPLE_SIZE)
-        .iter()
-        .map(|permutation| permutation.iter().map(|&i| multi.jobs.get(i).unwrap()).collect::<Vec<&Single>>())
-        .collect()
-}
-
-fn get_permutations(size: usize) -> Permutations {
-    Permutations { idxs: (0..size).collect(), swaps: vec![0; size], i: 0 }
-}
-
-struct Permutations {
-    idxs: Vec<usize>,
-    swaps: Vec<usize>,
-    i: usize,
-}
-
-impl Iterator for Permutations {
-    type Item = Vec<usize>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.i > 0 {
-            loop {
-                if self.i >= self.swaps.len() {
-                    return None;
-                }
-                if self.swaps[self.i] < self.i {
-                    break;
-                }
-                self.swaps[self.i] = 0;
-                self.i += 1;
-            }
-            self.idxs.swap(self.i, (self.i & 1) * self.swaps[self.i]);
-            self.swaps[self.i] += 1;
-        }
-        self.i = 1;
-        Some(self.idxs.clone())
     }
 }

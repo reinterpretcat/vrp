@@ -48,7 +48,7 @@ pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> J
         jobs: locations
             .into_iter()
             .map(|locs| match test_single_job_with_locations(locs) {
-                Job::Single(single) => single,
+                Job::Single(single) => Arc::new(single),
                 _ => panic!("Unexpected job type!"),
             })
             .collect(),
@@ -120,7 +120,7 @@ impl SingleBuilder {
 
 fn test_multi() -> Multi {
     let mut multi = Multi {
-        jobs: vec![test_single_with_id("single1"), test_single_with_id("single2")],
+        jobs: vec![Arc::new(test_single_with_id("single1")), Arc::new(test_single_with_id("single2"))],
         dimens: Default::default(),
     };
     multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
@@ -142,7 +142,7 @@ impl MultiBuilder {
     }
 
     pub fn job(&mut self, job: Single) -> &mut Self {
-        self.multi.jobs.push(job);
+        self.multi.jobs.push(Arc::new(job));
         self
     }
 

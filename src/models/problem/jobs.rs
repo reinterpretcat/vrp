@@ -39,7 +39,7 @@ pub struct Single {
 /// via specific dimension value.
 pub struct Multi {
     /// A list of jobs which must be performed.
-    pub jobs: Vec<Single>,
+    pub jobs: Vec<Arc<Single>>,
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
 }
