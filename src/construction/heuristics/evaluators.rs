@@ -272,10 +272,39 @@ struct ShadowContext {
 }
 
 impl ShadowContext {
-    fn insert(&mut self, activity: &TourActivity, index: usize) {
+    fn new(problem: &Arc<Problem>, ctx: &RouteContext) -> Self {
+        Self {
+            is_mutated: false,
+            is_dirty: false,
+            problem: problem.clone(),
+            ctx: RouteContext { route: ctx.route.clone(), state: ctx.state.clone() },
+        }
+    }
+
+    fn insert(&mut self, activity: TourActivity, index: usize) {
         if !self.is_mutated {
             self.ctx = self.ctx.deep_copy();
             self.is_mutated = true;
+        }
+
+        {
+            let mut route = self.ctx.route.write().unwrap();
+            route.tour.insert_at(activity, index + 1);
+        }
+
+        self.problem.constraint.accept_route_state(&mut self.ctx);
+        self.is_dirty = true;
+    }
+
+    fn restore(&mut self, job: &Arc<Job>) {
+        if self.is_dirty {
+            {
+                let mut state = self.ctx.state.write().unwrap();
+                let mut route = self.ctx.route.write().unwrap();
+                route.tour.all_activities().for_each(|a| state.remove_activity_states(a));
+                route.tour.remove(job);
+            }
+            self.problem.constraint.accept_route_state(&mut self.ctx);
         }
     }
 }
@@ -285,4 +314,10 @@ fn unwrap_from_result<T>(result: Result<T, T>) -> T {
         Ok(result) => result,
         Err(result) => result,
     }
+}
+
+fn get_job_permutations(multi: &Multi) -> Vec<Vec<Arc<Single>>> {
+    // TODO redesign to avoid memory allocations?
+    // TODO read dimens and use alternative permutations
+    vec![multi.jobs.clone()]
 }
