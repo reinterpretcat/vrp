@@ -10,7 +10,8 @@ use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::states::*;
 use crate::models::common::{Cost, TimeWindow, NO_COST};
 use crate::models::problem::{Job, Multi, Single};
-use crate::models::solution::{Activity, Place};
+use crate::models::solution::{Activity, Place, Route, TourActivity};
+use crate::models::Problem;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
@@ -128,6 +129,8 @@ impl InsertionEvaluator {
         route_context: &RouteContext,
         progress: &InsertionProgress,
     ) -> InsertionResult {
+        //get_job_permutations(multi).iter().try_fold(|acc, services| {});
+
         unimplemented!()
     }
 }
@@ -175,6 +178,109 @@ impl SingleContext {
 
     fn is_success(&self) -> bool {
         self.cost < NO_COST
+    }
+}
+
+/// Stores information needed for multi job insertion.
+struct MultiContext {
+    /// Constraint violation.
+    pub violation: Option<ActivityConstraintViolation>,
+    /// Insertion index for first service.
+    pub start_index: usize,
+    /// Insertion index for next service.
+    pub next_index: usize,
+    /// Cost accumulator.
+    pub cost: Option<Cost>,
+    /// Activities with their indices.
+    pub activities: Vec<(TourActivity, usize)>,
+}
+
+impl MultiContext {
+    /// Creates new empty insertion context.
+    fn new() -> Self {
+        Self { violation: None, start_index: 0, next_index: 0, cost: None, activities: vec![] }
+    }
+
+    /// Promotes insertion context by best price.
+    fn promote(left: Self, right: Self) -> Self {
+        let index = left.start_index.max(right.start_index) + 1;
+        let best = match (left.cost, right.cost) {
+            (Some(left_cost), Some(right_cost)) => {
+                if left_cost < right_cost {
+                    left
+                } else {
+                    right
+                }
+            }
+            (Some(_), None) => left,
+            _ => right,
+        };
+
+        Self {
+            violation: best.violation,
+            start_index: index,
+            next_index: index,
+            cost: best.cost,
+            activities: best.activities,
+        }
+    }
+
+    /// Creates failed insertion context within reason code.
+    fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> Self {
+        let violation = &err_ctx.violation.unwrap();
+        let is_stopped = violation.stopped && other_ctx.activities.is_empty();
+
+        Self {
+            violation: Some(ActivityConstraintViolation { code: violation.code, stopped: is_stopped }),
+            start_index: other_ctx.start_index,
+            next_index: other_ctx.start_index,
+            cost: None,
+            activities: vec![],
+        }
+    }
+
+    /// Creates successful insertion context.
+    fn success(cost: Cost, activities: Vec<(TourActivity, usize)>) -> Self {
+        Self {
+            violation: None,
+            start_index: activities.first().unwrap().1,
+            next_index: activities.last().unwrap().1 + 1,
+            cost: None,
+            activities,
+        }
+    }
+
+    /// Creates next insertion context from existing one.
+    fn next(&self) -> Self {
+        Self {
+            violation: None,
+            start_index: self.start_index,
+            next_index: self.start_index,
+            cost: None,
+            activities: vec![],
+        }
+    }
+
+    /// Checks whether insertion is found.
+    fn is_success(&self) -> bool {
+        self.violation.is_none() & self.cost.is_some()
+    }
+}
+
+/// Provides the way to use copy on write strategy within route state context.
+struct ShadowContext {
+    is_mutated: bool,
+    is_dirty: bool,
+    problem: Arc<Problem>,
+    ctx: RouteContext,
+}
+
+impl ShadowContext {
+    fn insert(&mut self, activity: &TourActivity, index: usize) {
+        if !self.is_mutated {
+            self.ctx = self.ctx.deep_copy();
+            self.is_mutated = true;
+        }
     }
 }
 

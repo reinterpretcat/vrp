@@ -156,6 +156,32 @@ impl RouteContext {
             state: Arc::new(RwLock::new(RouteState::new())),
         }
     }
+
+    pub fn deep_copy(&self) -> Self {
+        let orig_route = self.route.read().unwrap();
+        let orig_state = self.state.read().unwrap();
+
+        let new_route = Route { actor: orig_route.actor.clone(), tour: orig_route.tour.deep_copy() };
+        let mut new_state = RouteState::new_with_sizes(orig_state.sizes());
+
+        // copy activity states
+        orig_route.tour.all_activities().zip(0usize..).for_each(|(a, index)| {
+            orig_state.all_keys().for_each(|key| {
+                if let Some(value) = orig_state.get_activity_state_raw(key, a) {
+                    let a = new_route.tour.get(index).unwrap();
+                    new_state.put_activity_state_raw(key, a, value.clone());
+                }
+            });
+        });
+
+        // copy route states
+        orig_state.all_keys().for_each(|key| {
+            let value = orig_state.get_route_state_raw(key).unwrap();
+            new_state.put_route_state_raw(key, value.clone());
+        });
+
+        RouteContext { route: Arc::new(RwLock::new(new_route)), state: Arc::new(RwLock::new(new_state)) }
+    }
 }
 
 pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {

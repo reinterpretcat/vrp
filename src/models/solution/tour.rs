@@ -9,6 +9,7 @@ use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Place};
 use std::borrow::Borrow;
 use std::io::empty;
+use std::iter::FromIterator;
 use std::slice::{Iter, IterMut};
 
 pub type TourActivity = Box<Activity>;
@@ -148,8 +149,8 @@ impl Tour {
         self.jobs.len()
     }
 
-    /// Creates a copy of existing tour deeply copying all activities.
-    pub fn copy(&self) -> Tour {
+    /// Creates a copy of existing tour deeply copying all activities and jobs.
+    pub fn deep_copy(&self) -> Tour {
         Tour {
             activities: self
                 .activities
@@ -166,7 +167,7 @@ impl Tour {
                     })
                 })
                 .collect(),
-            jobs: Default::default(),
+            jobs: self.jobs.iter().cloned().collect(),
             is_closed: self.is_closed,
         }
     }
