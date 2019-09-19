@@ -179,7 +179,7 @@ where
         init,
         |out, (items, index)| {
             let (prev, next) = match items {
-                [prev, next] => (prev.clone(), next.clone()),
+                [prev, next] => (prev, next),
                 _ => panic!("Unexpected route leg configuration."),
             };
             // analyze service details
@@ -199,13 +199,10 @@ where
                         return SingleContext::fail(violation, in2);
                     }
 
-                    let total_costs =
-                        extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
+                    let costs = extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
 
-                    if total_costs < in2.cost.unwrap_or(std::f64::MAX) {
-                        let place =
-                            Place { location: target.place.location, duration: detail.duration, time: time.clone() };
-                        SingleContext::success(activity_ctx.index, total_costs, place)
+                    if costs < in2.cost.unwrap_or(std::f64::MAX) {
+                        SingleContext::success(activity_ctx.index, costs, target.place.clone())
                     } else {
                         SingleContext::skip(in2)
                     }

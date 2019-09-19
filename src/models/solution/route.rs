@@ -5,6 +5,7 @@ use std::borrow::Borrow;
 use std::sync::{Arc, RwLock};
 
 /// Specifies activity place.
+#[derive(Clone, Debug)]
 pub struct Place {
     /// Location where activity is performed.
     pub location: Location,
