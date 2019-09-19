@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::states::*;
-use crate::models::common::{Cost, TimeWindow, NO_COST};
+use crate::models::common::{Cost, TimeWindow};
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place, Route, TourActivity};
 use crate::models::Problem;
@@ -202,12 +202,10 @@ where
                     let total_costs =
                         extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
 
-                    if total_costs < in2.cost.unwrap_or(NO_COST) {
-                        SingleContext::success(
-                            activity_ctx.index,
-                            total_costs,
-                            Place { location: target.place.location, duration: detail.duration, time: time.clone() },
-                        )
+                    if total_costs < in2.cost.unwrap_or(std::f64::MAX) {
+                        let place =
+                            Place { location: target.place.location, duration: detail.duration, time: time.clone() };
+                        SingleContext::success(activity_ctx.index, total_costs, place)
                     } else {
                         SingleContext::skip(in2)
                     }

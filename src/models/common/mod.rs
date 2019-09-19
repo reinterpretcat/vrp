@@ -1,7 +1,6 @@
 mod costs;
 pub use self::costs::Cost;
 pub use self::costs::ObjectiveCost;
-pub use self::costs::NO_COST;
 
 mod primitives;
 pub use self::primitives::Distance;
