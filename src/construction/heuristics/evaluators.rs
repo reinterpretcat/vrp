@@ -62,12 +62,14 @@ impl InsertionEvaluator {
         route_ctx: &RouteContext,
         progress: &InsertionProgress,
     ) -> InsertionResult {
+        let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
         let mut activity = Box::new(Activity::new_with_job(job.clone()));
         let result = analyze_insertion_in_route(
             ctx,
             route_ctx,
             single,
             &mut activity,
+            route_costs,
             SingleContext::new(progress.cost, 0),
             |ctx| match &ctx.violation {
                 Some(violation) if violation.stopped => Result::Err(ctx),
@@ -78,8 +80,7 @@ impl InsertionEvaluator {
         if result.is_success() {
             activity.place = result.place;
             let activities = vec![(activity, result.index)];
-            let costs = result.cost.unwrap() + ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
-            InsertionResult::make_success(costs, job.clone(), activities, route_ctx.clone())
+            InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
         } else {
             InsertionResult::make_failure_with_code(result.violation.unwrap().code)
         }
@@ -119,6 +120,7 @@ impl InsertionEvaluator {
                             &shadow.ctx,
                             service,
                             &mut activity,
+                            0.0,
                             SingleContext::new(None, in1.next_index),
                             |ctx| match &ctx.violation {
                                 Some(violation) if violation.stopped => Result::Err(ctx),
@@ -166,6 +168,7 @@ fn analyze_insertion_in_route<'a, F>(
     route_ctx: &RouteContext,
     single: &Single,
     target: &mut Box<Activity>,
+    extra_costs: Cost,
     init: SingleContext,
     eval_pred: F,
 ) -> SingleContext
@@ -196,7 +199,8 @@ where
                         return SingleContext::fail(violation, in2);
                     }
 
-                    let total_costs = ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
+                    let total_costs =
+                        extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
 
                     if total_costs < in2.cost.unwrap_or(NO_COST) {
                         SingleContext::success(
