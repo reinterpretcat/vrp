@@ -8,6 +8,8 @@ use crate::models::common::{Cost, TimeWindow, NO_COST};
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place, Route, TourActivity};
 use crate::models::Problem;
+use std::ops::Deref;
+use crate::utils::compare_shared;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
@@ -35,8 +37,8 @@ impl InsertionEvaluator {
 
                 let progress = InsertionProgress {
                     cost: match acc.borrow() {
-                        InsertionResult::Success(success) => success.cost,
-                        _ => NO_COST,
+                        InsertionResult::Success(success) => Some(success.cost),
+                        _ => None,
                     },
                     completeness: ctx.progress.completeness,
                     total: ctx.progress.total,
@@ -61,58 +63,27 @@ impl InsertionEvaluator {
         progress: &InsertionProgress,
     ) -> InsertionResult {
         let mut activity = Box::new(Activity::new_with_job(job.clone()));
-        let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
-
-        // 1. analyze route legs
-        let result = unwrap_from_result(route_ctx.route.read().unwrap().tour.legs().try_fold(
+        let result = analyze_insertion_in_route(
+            ctx,
+            route_ctx,
+            single,
+            &mut activity,
+            ctx.problem.constraint.evaluate_soft_route(route_ctx, job),
             SingleContext::new(progress.cost),
-            |out, (items, index)| {
-                let (prev, next) = match items {
-                    [prev, next] => (prev.clone(), next.clone()),
-                    _ => panic!("Unexpected route leg configuration."),
-                };
-
-                // 2. analyze service details
-                single.places.iter().try_fold(out, |in1, detail| {
-                    // TODO check whether tw is empty
-                    // 3. analyze detail time windows
-                    detail.times.iter().try_fold(in1, |in2, time| {
-                        activity.place = Place {
-                            location: detail.location.unwrap_or(prev.place.location),
-                            duration: detail.duration,
-                            time: time.clone(),
-                        };
-
-                        let activity_ctx = ActivityContext { index, prev, target: &activity, next: Some(next) };
-
-                        if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx)
-                        {
-                            return SingleContext::fail(violation, in2);
-                        }
-
-                        let total_costs = ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
-
-                        if total_costs < in2.cost {
-                            SingleContext::success(
-                                activity_ctx.index,
-                                total_costs,
-                                Place {
-                                    location: activity.place.location,
-                                    duration: detail.duration,
-                                    time: time.clone(),
-                                },
-                            )
-                        } else {
-                            SingleContext::skip(in2)
-                        }
-                    })
-                })
+            |ctx| match &ctx.violation {
+                Some(violation) if violation.stopped => Result::Err(ctx),
+                _ => Result::Ok(ctx),
             },
-        ));
+        );
 
         if result.is_success() {
             activity.place = result.place;
-            InsertionResult::make_success(result.cost, job.clone(), vec![(activity, result.index)], route_ctx.clone())
+            InsertionResult::make_success(
+                result.cost.unwrap(),
+                job.clone(),
+                vec![(activity, result.index)],
+                route_ctx.clone(),
+            )
         } else {
             InsertionResult::make_failure_with_code(result.violation.unwrap().code)
         }
@@ -122,13 +93,128 @@ impl InsertionEvaluator {
         job: &Arc<Job>,
         multi: &Multi,
         ctx: &InsertionContext,
-        route_context: &RouteContext,
+        route_ctx: &RouteContext,
         progress: &InsertionProgress,
     ) -> InsertionResult {
-        //get_job_permutations(multi).iter().try_fold(|acc, services| {});
+        // 1. analyze permutations
+        let result = unwrap_from_result(get_job_permutations(multi).iter().try_fold(
+            MultiContext::new(),
+            |acc_res, services| {
+                let mut shadow = ShadowContext::new(&ctx.problem, &route_ctx);
+                let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(MultiContext::new(), |out, _| {
+                    {
+                        let route = route_ctx.route.read().unwrap();
+                        if out.violation.as_ref().map_or(false, |v| v.stopped)
+                            || (out.start_index > route.tour.activity_count())
+                        {
+                            return Result::Err(out);
+                        }
+                    }
+                    shadow.restore(job);
 
-        unimplemented!()
+                    // 2. analyze inner jobs
+                    let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
+                        if in1.violation.is_some() {
+                            return Result::Err(in1);
+                        }
+                        //let route = shadow.ctx.route.read().unwrap();
+                        let mut activity = Box::new(Activity::new_with_job(Arc::new(Job::Single(service.clone()))));
+
+                        // 3. analyze legs
+                        let srv_res = analyze_insertion_in_route(
+                            ctx,
+                            route_ctx,
+                            service,
+                            &mut activity,
+                            0.0,
+                            SingleContext::new(None),
+                            |ctx| match &ctx.violation {
+                                Some(violation) if violation.stopped => Result::Err(ctx),
+                                _ => {
+                                    if !(ctx.is_success() && compare_shared(multi.jobs.first().unwrap(), service))
+                                    {
+                                        Result::Err(ctx)
+                                    } else {
+                                        Result::Ok(ctx)
+                                    }
+                                }
+                            },
+                        );
+
+                        if srv_res.is_success() {
+                            activity.place = srv_res.place;
+                            let activity = shadow.insert(activity, srv_res.index);
+                            let activities = concat_activities(in1.activities, (activity, srv_res.index));
+                            return MultiContext::success(in1.cost.unwrap() + srv_res.cost.unwrap(), activities);
+                        }
+
+                        MultiContext::fail(srv_res, in1)
+                    }));
+
+                    MultiContext::promote(sq_res, out)
+                }));
+
+                MultiContext::promote(perm_res, acc_res)
+            },
+        ));
+
+        if result.is_success() {
+            InsertionResult::make_success(result.cost.unwrap(), job.clone(), result.activities, route_ctx.clone())
+        } else {
+            InsertionResult::make_failure_with_code(result.violation.unwrap().code)
+        }
     }
+}
+
+#[inline(always)]
+fn analyze_insertion_in_route<'a, F>(
+    ctx: &InsertionContext,
+    route_ctx: &RouteContext,
+    single: &Single,
+    target: &mut Box<Activity>,
+    extra_costs: Cost,
+    init: SingleContext,
+    eval_pred: F,
+) -> SingleContext
+where
+    F: Fn(SingleContext) -> Result<SingleContext, SingleContext>,
+{
+    unwrap_from_result(route_ctx.route.read().unwrap().tour.legs().try_fold(init, |out, (items, index)| {
+        let (prev, next) = match items {
+            [prev, next] => (prev.clone(), next.clone()),
+            _ => panic!("Unexpected route leg configuration."),
+        };
+        // analyze service details
+        single.places.iter().try_fold(out, |in1, detail| {
+            // TODO check whether tw is empty
+            // analyze detail time windows
+            detail.times.iter().try_fold(in1, |in2, time| {
+                target.place = Place {
+                    location: detail.location.unwrap_or(prev.place.location),
+                    duration: detail.duration,
+                    time: time.clone(),
+                };
+
+                let activity_ctx = ActivityContext { index, prev, target: &target, next: Some(next) };
+
+                if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
+                    return SingleContext::fail(violation, in2);
+                }
+
+                let total_costs = extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
+
+                if total_costs < in2.cost.unwrap_or(NO_COST) {
+                    SingleContext::success(
+                        activity_ctx.index,
+                        total_costs,
+                        Place { location: target.place.location, duration: detail.duration, time: time.clone() },
+                    )
+                } else {
+                    SingleContext::skip(in2)
+                }
+            })
+        })
+    }))
 }
 
 /// Stores information needed for single insertion.
@@ -138,14 +224,14 @@ struct SingleContext {
     /// Insertion index.
     pub index: usize,
     /// Best cost.
-    pub cost: Cost,
+    pub cost: Option<Cost>,
     /// Activity place.
     pub place: Place,
 }
 
 impl SingleContext {
     /// Creates a new empty context with given cost.
-    fn new(cost: Cost) -> Self {
+    fn new(cost: Option<Cost>) -> Self {
         Self {
             violation: None,
             index: 0,
@@ -165,7 +251,7 @@ impl SingleContext {
     }
 
     fn success(index: usize, cost: Cost, place: Place) -> Result<Self, Self> {
-        Result::Ok(Self { violation: None, index, cost, place })
+        Result::Ok(Self { violation: None, index, cost: Some(cost), place })
     }
 
     fn skip(other: SingleContext) -> Result<Self, Self> {
@@ -173,7 +259,7 @@ impl SingleContext {
     }
 
     fn is_success(&self) -> bool {
-        self.cost < NO_COST
+        self.cost.is_some()
     }
 }
 
@@ -198,7 +284,7 @@ impl MultiContext {
     }
 
     /// Promotes insertion context by best price.
-    fn promote(left: Self, right: Self) -> Self {
+    fn promote(left: Self, right: Self) -> Result<Self, Self> {
         let index = left.start_index.max(right.start_index) + 1;
         let best = match (left.cost, right.cost) {
             (Some(left_cost), Some(right_cost)) => {
@@ -212,38 +298,38 @@ impl MultiContext {
             _ => right,
         };
 
-        Self {
+        Result::Ok(Self {
             violation: best.violation,
             start_index: index,
             next_index: index,
             cost: best.cost,
             activities: best.activities,
-        }
+        })
     }
 
     /// Creates failed insertion context within reason code.
-    fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> Self {
+    fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> Result<Self, Self> {
         let violation = &err_ctx.violation.unwrap();
         let is_stopped = violation.stopped && other_ctx.activities.is_empty();
 
-        Self {
+        Result::Err(Self {
             violation: Some(ActivityConstraintViolation { code: violation.code, stopped: is_stopped }),
             start_index: other_ctx.start_index,
             next_index: other_ctx.start_index,
             cost: None,
             activities: vec![],
-        }
+        })
     }
 
     /// Creates successful insertion context.
-    fn success(cost: Cost, activities: Vec<(TourActivity, usize)>) -> Self {
-        Self {
+    fn success(cost: Cost, activities: Vec<(TourActivity, usize)>) -> Result<Self, Self> {
+        Result::Ok(Self {
             violation: None,
             start_index: activities.first().unwrap().1,
             next_index: activities.last().unwrap().1 + 1,
             cost: None,
             activities,
-        }
+        })
     }
 
     /// Creates next insertion context from existing one.
@@ -281,19 +367,22 @@ impl ShadowContext {
         }
     }
 
-    fn insert(&mut self, activity: TourActivity, index: usize) {
+    fn insert(&mut self, activity: TourActivity, index: usize) -> TourActivity {
         if !self.is_mutated {
             self.ctx = self.ctx.deep_copy();
             self.is_mutated = true;
         }
-
         {
             let mut route = self.ctx.route.write().unwrap();
             route.tour.insert_at(activity, index + 1);
         }
 
-        self.problem.constraint.accept_route_state(&mut self.ctx);
-        self.is_dirty = true;
+        {
+            self.problem.constraint.accept_route_state(&mut self.ctx);
+            self.is_dirty = true;
+        }
+
+        Box::new(self.ctx.route.read().unwrap().tour.get(index + 1).unwrap().deep_copy())
     }
 
     fn restore(&mut self, job: &Arc<Job>) {
@@ -320,4 +409,14 @@ fn get_job_permutations(multi: &Multi) -> Vec<Vec<Arc<Single>>> {
     // TODO redesign to avoid memory allocations?
     // TODO read dimens and use alternative permutations
     vec![multi.jobs.clone()]
+}
+
+fn concat_activities(
+    activities: Vec<(Box<Activity>, usize)>,
+    activity: (Box<Activity>, usize),
+) -> Vec<(Box<Activity>, usize)> {
+    let mut activities = activities;
+    activities.push((activity.0, activity.1));
+
+    activities
 }

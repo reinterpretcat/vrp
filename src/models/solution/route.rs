@@ -47,6 +47,18 @@ impl Activity {
         }
     }
 
+    pub fn deep_copy(&self) -> Self {
+        Self {
+            place: Place {
+                location: self.place.location,
+                duration: self.place.duration,
+                time: self.place.time.clone(),
+            },
+            schedule: self.schedule.clone(),
+            job: self.job.clone(),
+        }
+    }
+
     pub fn has_same_job(&self, job: &Arc<Job>) -> bool {
         match self.retrieve_job() {
             Some(j) => j == *job,

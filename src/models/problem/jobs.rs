@@ -12,8 +12,8 @@ use std::sync::Arc;
 
 /// Represents a job variant.
 pub enum Job {
-    Single(Single),
-    Multi(Multi),
+    Single(Arc<Single>),
+    Multi(Arc<Multi>),
 }
 
 /// Represents a job place details where and/or when work has to be performed.

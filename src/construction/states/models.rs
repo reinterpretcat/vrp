@@ -40,7 +40,7 @@ pub struct InsertionFailure {
 /// Provides the way to get some meta information about insertion progress.
 pub struct InsertionProgress {
     /// Specifies best known cost depending on context.
-    pub cost: Cost,
+    pub cost: Option<Cost>,
 
     /// Specifies solution completeness.
     pub completeness: f64,

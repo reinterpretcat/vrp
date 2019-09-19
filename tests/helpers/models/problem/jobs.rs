@@ -25,7 +25,7 @@ pub fn test_single_with_id(id: &str) -> Single {
 }
 
 pub fn test_single_job() -> Job {
-    Job::Single(test_single())
+    Job::Single(Arc::new(test_single()))
 }
 
 pub fn test_place_with_location(location: Option<Location>) -> Place {
@@ -33,27 +33,27 @@ pub fn test_place_with_location(location: Option<Location>) -> Place {
 }
 
 pub fn test_single_job_with_location(location: Option<Location>) -> Job {
-    Job::Single(Single { places: vec![test_place_with_location(location)], dimens: Default::default() })
+    Job::Single(Arc::new(Single { places: vec![test_place_with_location(location)], dimens: Default::default() }))
 }
 
 pub fn test_single_job_with_locations(locations: Vec<Option<Location>>) -> Job {
-    Job::Single(Single {
+    Job::Single(Arc::new(Single {
         places: locations.into_iter().map(|location| test_place_with_location(location)).collect(),
         dimens: Default::default(),
-    })
+    }))
 }
 
 pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Job {
-    Job::Multi(Multi {
+    Job::Multi(Arc::new(Multi {
         jobs: locations
             .into_iter()
             .map(|locs| match test_single_job_with_locations(locs) {
-                Job::Single(single) => Arc::new(single),
+                Job::Single(single) => single.clone(),
                 _ => panic!("Unexpected job type!"),
             })
             .collect(),
         dimens: Default::default(),
-    })
+    }))
 }
 
 pub fn get_job_id(job: &Job) -> &String {
@@ -114,7 +114,7 @@ impl SingleBuilder {
     }
 
     pub fn build_as_job_ref(&mut self) -> Arc<Job> {
-        Arc::new(Job::Single(self.build()))
+        Arc::new(Job::Single(Arc::new(self.build())))
     }
 }
 
@@ -151,6 +151,6 @@ impl MultiBuilder {
     }
 
     pub fn build_as_job_ref(&mut self) -> Arc<Job> {
-        Arc::new(Job::Multi(self.build()))
+        Arc::new(Job::Multi(Arc::new(self.build())))
     }
 }
