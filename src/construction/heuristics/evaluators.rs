@@ -68,8 +68,7 @@ impl InsertionEvaluator {
             route_ctx,
             single,
             &mut activity,
-            ctx.problem.constraint.evaluate_soft_route(route_ctx, job),
-            SingleContext::new(progress.cost),
+            SingleContext::new(progress.cost, 0),
             |ctx| match &ctx.violation {
                 Some(violation) if violation.stopped => Result::Err(ctx),
                 _ => Result::Ok(ctx),
@@ -79,7 +78,8 @@ impl InsertionEvaluator {
         if result.is_success() {
             activity.place = result.place;
             let activities = vec![(activity, result.index)];
-            InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
+            let costs = result.cost.unwrap() + ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
+            InsertionResult::make_success(costs, job.clone(), activities, route_ctx.clone())
         } else {
             InsertionResult::make_failure_with_code(result.violation.unwrap().code)
         }
@@ -98,58 +98,55 @@ impl InsertionEvaluator {
             MultiContext::new(progress.cost),
             |acc_res, services| {
                 let mut shadow = ShadowContext::new(&ctx.problem, &route_ctx);
-                let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(
-                    MultiContext::new(Some(route_costs)),
-                    |out, _| {
-                        {
-                            let route = route_ctx.route.read().unwrap();
-                            if out.violation.as_ref().map_or(false, |v| v.stopped)
-                                || (out.start_index > route.tour.activity_count())
-                            {
-                                return Result::Err(out);
-                            }
+                let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(MultiContext::new(None), |out, _| {
+                    {
+                        let route = route_ctx.route.read().unwrap();
+                        if out.is_failure(route.tour.activity_count()) {
+                            return Result::Err(out);
                         }
-                        shadow.restore(job);
+                    }
+                    shadow.restore(job);
 
-                        // 2. analyze inner jobs
-                        let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
-                            if in1.violation.is_some() {
-                                return Result::Err(in1);
-                            }
-                            let mut activity = Box::new(Activity::new_with_job(Arc::new(Job::Single(service.clone()))));
-                            // 3. analyze legs
-                            let srv_res = analyze_insertion_in_route(
-                                ctx,
-                                route_ctx,
-                                service,
-                                &mut activity,
-                                0.0,
-                                SingleContext::new(None),
-                                |ctx| match &ctx.violation {
-                                    Some(violation) if violation.stopped => Result::Err(ctx),
-                                    _ => {
-                                        if !(ctx.is_success() && compare_shared(multi.jobs.first().unwrap(), service)) {
-                                            Result::Err(ctx)
-                                        } else {
-                                            Result::Ok(ctx)
-                                        }
+                    // 2. analyze inner jobs
+                    let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
+                        if in1.violation.is_some() {
+                            return Result::Err(in1);
+                        }
+                        let mut activity = Box::new(Activity::new_with_job(Arc::new(Job::Single(service.clone()))));
+                        // 3. analyze legs
+                        let srv_res = analyze_insertion_in_route(
+                            ctx,
+                            &shadow.ctx,
+                            service,
+                            &mut activity,
+                            SingleContext::new(None, in1.next_index),
+                            |ctx| match &ctx.violation {
+                                Some(violation) if violation.stopped => Result::Err(ctx),
+                                _ => {
+                                    if !(ctx.is_success() && compare_shared(multi.jobs.first().unwrap(), service)) {
+                                        Result::Err(ctx)
+                                    } else {
+                                        Result::Ok(ctx)
                                     }
-                                },
+                                }
+                            },
+                        );
+
+                        if srv_res.is_success() {
+                            activity.place = srv_res.place;
+                            let activity = shadow.insert(activity, srv_res.index);
+                            let activities = concat_activities(in1.activities, (activity, srv_res.index));
+                            return MultiContext::success(
+                                in1.cost.unwrap_or(route_costs) + srv_res.cost.unwrap(),
+                                activities,
                             );
+                        }
 
-                            if srv_res.is_success() {
-                                activity.place = srv_res.place;
-                                let activity = shadow.insert(activity, srv_res.index);
-                                let activities = concat_activities(in1.activities, (activity, srv_res.index));
-                                return MultiContext::success(in1.cost.unwrap() + srv_res.cost.unwrap(), activities);
-                            }
+                        MultiContext::fail(srv_res, in1)
+                    }));
 
-                            MultiContext::fail(srv_res, in1)
-                        }));
-
-                        MultiContext::promote(sq_res, out)
-                    },
-                ));
+                    MultiContext::promote(sq_res, out)
+                }));
 
                 MultiContext::promote(perm_res, acc_res)
             },
@@ -169,49 +166,51 @@ fn analyze_insertion_in_route<'a, F>(
     route_ctx: &RouteContext,
     single: &Single,
     target: &mut Box<Activity>,
-    extra_costs: Cost,
     init: SingleContext,
     eval_pred: F,
 ) -> SingleContext
 where
     F: Fn(SingleContext) -> Result<SingleContext, SingleContext>,
 {
-    unwrap_from_result(route_ctx.route.read().unwrap().tour.legs().try_fold(init, |out, (items, index)| {
-        let (prev, next) = match items {
-            [prev, next] => (prev.clone(), next.clone()),
-            _ => panic!("Unexpected route leg configuration."),
-        };
-        // analyze service details
-        single.places.iter().try_fold(out, |in1, detail| {
-            // TODO check whether tw is empty
-            // analyze detail time windows
-            detail.times.iter().try_fold(in1, |in2, time| {
-                target.place = Place {
-                    location: detail.location.unwrap_or(prev.place.location),
-                    duration: detail.duration,
-                    time: time.clone(),
-                };
+    unwrap_from_result(route_ctx.route.read().unwrap().tour.legs().skip(init.index).try_fold(
+        init,
+        |out, (items, index)| {
+            let (prev, next) = match items {
+                [prev, next] => (prev.clone(), next.clone()),
+                _ => panic!("Unexpected route leg configuration."),
+            };
+            // analyze service details
+            single.places.iter().try_fold(out, |in1, detail| {
+                // TODO check whether tw is empty
+                // analyze detail time windows
+                detail.times.iter().try_fold(in1, |in2, time| {
+                    target.place = Place {
+                        location: detail.location.unwrap_or(prev.place.location),
+                        duration: detail.duration,
+                        time: time.clone(),
+                    };
 
-                let activity_ctx = ActivityContext { index, prev, target: &target, next: Some(next) };
+                    let activity_ctx = ActivityContext { index, prev, target: &target, next: Some(next) };
 
-                if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
-                    return SingleContext::fail(violation, in2);
-                }
+                    if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
+                        return SingleContext::fail(violation, in2);
+                    }
 
-                let total_costs = extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
+                    let total_costs = ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
 
-                if total_costs < in2.cost.unwrap_or(NO_COST) {
-                    SingleContext::success(
-                        activity_ctx.index,
-                        total_costs,
-                        Place { location: target.place.location, duration: detail.duration, time: time.clone() },
-                    )
-                } else {
-                    SingleContext::skip(in2)
-                }
+                    if total_costs < in2.cost.unwrap_or(NO_COST) {
+                        SingleContext::success(
+                            activity_ctx.index,
+                            total_costs,
+                            Place { location: target.place.location, duration: detail.duration, time: time.clone() },
+                        )
+                    } else {
+                        SingleContext::skip(in2)
+                    }
+                })
             })
-        })
-    }))
+        },
+    ))
 }
 
 /// Stores information needed for single insertion.
@@ -228,10 +227,10 @@ struct SingleContext {
 
 impl SingleContext {
     /// Creates a new empty context with given cost.
-    fn new(cost: Option<Cost>) -> Self {
+    fn new(cost: Option<Cost>, index: usize) -> Self {
         Self {
             violation: None,
-            index: 0,
+            index,
             cost,
             place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: 0.0 } },
         }
@@ -324,7 +323,7 @@ impl MultiContext {
             violation: None,
             start_index: activities.first().unwrap().1,
             next_index: activities.last().unwrap().1 + 1,
-            cost: None,
+            cost: Some(cost),
             activities,
         })
     }
@@ -343,6 +342,11 @@ impl MultiContext {
     /// Checks whether insertion is found.
     fn is_success(&self) -> bool {
         self.violation.is_none() & self.cost.is_some()
+    }
+
+    /// Checks whether insertion is failed.
+    fn is_failure(&self, index: usize) -> bool {
+        self.violation.as_ref().map_or(false, |v| v.stopped) || (self.start_index > index)
     }
 }
 

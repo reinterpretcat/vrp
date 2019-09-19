@@ -257,6 +257,7 @@ mod multi {
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
+            assert_eq!(success.cost, cost);
             assert_activities(success, vec![(0, 3), (1, 7)]);
         } else {
             assert!(false);
