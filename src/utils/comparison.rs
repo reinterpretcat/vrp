@@ -11,7 +11,7 @@ pub fn compare_floats(a: &f64, b: &f64) -> Ordering {
 }
 
 pub fn compare_shared<T: ?Sized>(left: &Arc<T>, right: &Arc<T>) -> bool {
-    let left : *const T = left.as_ref();
-    let right : *const T = right.as_ref();
+    let left: *const T = left.as_ref();
+    let right: *const T = right.as_ref();
     left == right
 }

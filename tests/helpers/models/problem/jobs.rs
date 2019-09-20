@@ -133,7 +133,10 @@ pub struct MultiBuilder {
 
 impl MultiBuilder {
     pub fn new() -> Self {
-        Self { multi: test_multi() }
+        let mut multi = Multi { jobs: vec![], dimens: Default::default() };
+        multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
+
+        Self { multi }
     }
 
     pub fn id(&mut self, id: &str) -> &mut Self {
