@@ -1,8 +1,9 @@
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
-use crate::models::problem::{Job, Single};
+use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Actor, Tour};
+use crate::utils::compare_shared;
 use std::borrow::Borrow;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, Weak};
 
 /// Specifies activity place.
 #[derive(Clone, Debug)]
@@ -62,25 +63,21 @@ impl Activity {
 
     pub fn has_same_job(&self, job: &Arc<Job>) -> bool {
         match self.retrieve_job() {
-            Some(j) => j == *job,
+            Some(j) => match (j.as_ref(), job.as_ref()) {
+                (Job::Multi(lhs), Job::Multi(rhs)) => compare_shared(lhs, rhs),
+                (Job::Single(lhs), Job::Single(rhs)) => compare_shared(lhs, rhs),
+                _ => false,
+            },
             _ => false,
         }
     }
 
     pub fn retrieve_job(&self) -> Option<Arc<Job>> {
         match self.job.borrow() {
-            Some(job) => {
-                let job_ref = match job.borrow() {
-                    Job::Single(single) => &single.dimens,
-                    Job::Multi(multi) => &multi.dimens,
-                }
-                .get(&"rf".to_string());
-
-                match job_ref {
-                    Some(value) => value.downcast_ref::<Arc<Job>>().map(|o| (*o).clone()),
-                    _ => Some(job.clone()),
-                }
-            }
+            Some(job) => Some(match job.borrow() {
+                Job::Single(single) => Multi::roots(single).map_or_else(|| job.clone(), |m| Arc::new(Job::Multi(m))),
+                Job::Multi(multi) => job.clone(),
+            }),
             _ => None,
         }
     }

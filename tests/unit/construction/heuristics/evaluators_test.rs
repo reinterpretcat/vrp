@@ -239,25 +239,60 @@ mod multi {
     }
 
     #[test]
-    fn can_insert_job_with_location_into_empty_tour_impl() {
-        let s1_location: Option<Location> = Some(3);
-        let s2_location: Option<Location> = Some(7);
-        let cost: Cost = 28.0;
-
+    fn can_insert_job_with_location_into_empty_tour() {
         let registry = Registry::new(&Fleet::new(
             vec![test_driver_with_costs(empty_costs())],
             vec![VehicleBuilder::new().id("v1").build()],
         ));
         let job = MultiBuilder::new()
-            .job(SingleBuilder::new().id("s1").location(s1_location).build())
-            .job(SingleBuilder::new().id("s2").location(s2_location).build())
-            .build_as_job_ref();
+            .job(SingleBuilder::new().id("s1").location(Some(3)).build())
+            .job(SingleBuilder::new().id("s2").location(Some(7)).build())
+            .build();
         let ctx = create_test_insertion_context(registry);
 
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
-            assert_eq!(success.cost, cost);
+            assert_eq!(success.cost, 28.0);
+            assert_activities(success, vec![(0, 3), (1, 7)]);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn can_insert_job_with_location_into_tour_with_one_activity_impl() {
+        // s 3 [5] 7 e
+        let s1_location: Option<Location> = Some(3);
+        let s2_location: Option<Location> = Some(7);
+        let cost: Cost = 8.0;
+        let registry = Registry::new(&Fleet::new(
+            vec![test_driver_with_costs(empty_costs())],
+            vec![VehicleBuilder::new().id("v1").build()],
+        ));
+        let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
+        route_ctx.route.write().unwrap().tour.insert_at(
+            Box::new(
+                ActivityBuilder::new()
+                    .place(Place { location: 5, duration: 0.0, time: DEFAULT_JOB_TIME_WINDOW.clone() })
+                    .schedule(Schedule { arrival: 5.0, departure: 5.0 })
+                    .build(),
+            ),
+            1,
+        );
+        let mut routes: HashSet<RouteContext> = HashSet::new();
+        routes.insert(route_ctx);
+        let mut constraint = create_constraint_pipeline_with_timing();
+        let ctx = create_insertion_context(registry, constraint, routes);
+        let job = MultiBuilder::new()
+            .job(SingleBuilder::new().id("s1").location(s1_location).build())
+            .job(SingleBuilder::new().id("s2").location(s2_location).build())
+            .build();
+
+        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+
+        if let InsertionResult::Success(success) = result {
+            assert_eq!(success.activities.len(), 2);
             assert_activities(success, vec![(0, 3), (1, 7)]);
         } else {
             assert!(false);

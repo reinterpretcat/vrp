@@ -4,11 +4,13 @@ mod jobs_test;
 
 use crate::models::common::{Dimensions, Distance, Duration, Location, Profile, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, TransportCost};
+use std::cell::UnsafeCell;
 use std::cmp::Ordering;
 use std::cmp::Ordering::Less;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
+use std::ops::Deref;
+use std::sync::{Arc, Weak};
 
 /// Represents a job variant.
 pub enum Job {
@@ -42,6 +44,31 @@ pub struct Multi {
     pub jobs: Vec<Arc<Single>>,
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
+}
+
+impl Multi {
+    pub fn bind(multi: Self) -> Arc<Self> {
+        // NOTE: layout must be identical
+        struct SingleConstruct {
+            pub places: UnsafeCell<Vec<Place>>,
+            pub dimens: UnsafeCell<Dimensions>,
+        }
+
+        let multi = Arc::new(multi);
+
+        multi.jobs.iter().for_each(|job| {
+            let weak_multi = Arc::downgrade(&multi);
+            let job: Arc<SingleConstruct> = unsafe { std::mem::transmute(job.clone()) };
+            let dimens = unsafe { &mut *job.dimens.get() };
+            dimens.insert("rf".to_owned(), Box::new(weak_multi));
+        });
+
+        multi
+    }
+
+    pub fn roots(single: &Single) -> Option<Arc<Multi>> {
+        single.dimens.get("rf").map(|v| v.downcast_ref::<Weak<Multi>>()).and_then(|w| w).and_then(|w| w.upgrade())
+    }
 }
 
 type JobIndex = HashMap<Arc<Job>, (Vec<(Arc<Job>, Distance)>, Distance)>;

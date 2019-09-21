@@ -1,6 +1,7 @@
 use crate::models::common::{Duration, Location, Size, TimeWindow};
 use crate::models::problem::{Job, Multi, Place, Single};
 use std::any::Any;
+use std::ops::Deref;
 use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;
@@ -149,11 +150,9 @@ impl MultiBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Multi {
-        std::mem::replace(&mut self.multi, test_multi())
-    }
-
-    pub fn build_as_job_ref(&mut self) -> Arc<Job> {
-        Arc::new(Job::Multi(Arc::new(self.build())))
+    pub fn build(&mut self) -> Arc<Job> {
+        let multi = std::mem::replace(&mut self.multi, test_multi());
+        let multi = Multi::bind(multi);
+        Arc::new(Job::Multi(multi))
     }
 }
