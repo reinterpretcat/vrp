@@ -1,5 +1,4 @@
 use super::*;
-use crate::helpers::models::problem::test_multi_job_with_locations;
 
 #[test]
 fn can_generate_permutations() {

@@ -2,9 +2,7 @@ use crate::helpers::models::problem::test_single_job;
 use crate::helpers::models::solution::{
     test_tour_activity_with_default_job, test_tour_activity_with_job, test_tour_activity_without_job,
 };
-use crate::models::problem::Job;
 use crate::models::solution::{Activity, Tour, TourActivity};
-use std::borrow::Borrow;
 use std::ops::Deref;
 use std::sync::Arc;
 

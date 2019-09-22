@@ -1,9 +1,9 @@
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
-use crate::models::problem::{Job, Multi, Single};
+use crate::models::problem::{Job, Multi};
 use crate::models::solution::{Actor, Tour};
 use crate::utils::compare_shared;
 use std::borrow::Borrow;
-use std::sync::{Arc, RwLock, Weak};
+use std::sync::Arc;
 
 /// Specifies activity place.
 #[derive(Clone, Debug)]

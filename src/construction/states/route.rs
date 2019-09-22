@@ -2,15 +2,12 @@
 #[path = "../../../tests/unit/construction/states/route_test.rs"]
 mod route_test;
 
-use crate::models::common::Cost;
 use crate::models::solution::{Activity, TourActivity};
 use std::any::Any;
-use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
-use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::rc::Rc;
-use std::sync::Arc;
 
 /// Provides the way to associate arbitrary data within route and activity.
 pub struct RouteState {

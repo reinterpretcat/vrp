@@ -1,7 +1,7 @@
 use crate::helpers::models::problem::*;
 use crate::models::common::{Location, Schedule};
-use crate::models::problem::{Job, Single};
-use crate::models::solution::{Activity, Actor, Place, Route, Tour, TourActivity};
+use crate::models::problem::Job;
+use crate::models::solution::{Activity, Place};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };

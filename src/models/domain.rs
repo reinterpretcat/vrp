@@ -17,7 +17,7 @@ pub struct Problem {
     /// Specifies constraints pipeline.
     pub constraint: Arc<ConstraintPipeline>,
     /// Specifies objective function.
-    pub objective: Arc<ObjectiveFunction>,
+    pub objective: Arc<dyn ObjectiveFunction>,
     /// Specifies activity costs.
     pub activity: Arc<dyn ActivityCost>,
     /// Specifies transport costs.

@@ -3,13 +3,10 @@
 mod tour_test;
 
 use std::collections::HashSet;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
-use crate::models::problem::{Job, Single};
+use crate::models::problem::Job;
 use crate::models::solution::{Activity, Place};
-use std::borrow::Borrow;
-use std::io::empty;
-use std::iter::FromIterator;
 use std::slice::{Iter, IterMut};
 
 pub type TourActivity = Box<Activity>;

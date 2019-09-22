@@ -1,9 +1,9 @@
-use crate::construction::constraints::{ConstraintPipeline, TimingConstraintModule};
+use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::evaluators::InsertionEvaluator;
 use crate::construction::states::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::construction::states::test_insertion_progress;
-use crate::helpers::models::domain::{create_empty_problem, create_empty_problem_with_constraint};
+use crate::helpers::models::domain::create_empty_problem_with_constraint;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeWindow, Timestamp};
@@ -221,9 +221,6 @@ mod single {
 
 mod multi {
     use super::*;
-    use crate::models::common::Timestamp;
-    use crate::models::problem::Multi;
-
     type InsertionData = (usize, Location);
 
     fn assert_activities(success: InsertionSuccess, expected: Vec<InsertionData>) {
@@ -289,6 +286,7 @@ mod multi {
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
+            assert_eq!(success.cost, cost);
             assert_eq!(success.activities.len(), 2);
             assert_activities(success, expected);
         } else {
@@ -302,7 +300,6 @@ mod multi {
         let s1: Location = 3;
         let s2: Location = 7;
         let s3: Location = 11;
-        let cost: Cost = 8.0;
         let expected: Vec<(usize, Location)> = vec![(0, s1), (2, s2), (3, s3)];
         let registry = Registry::new(&Fleet::new(
             vec![test_driver_with_costs(empty_costs())],
@@ -329,10 +326,14 @@ mod multi {
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
+            assert_eq!(success.cost, 8.0);
             assert_eq!(success.activities.len(), 3);
             assert_activities(success, expected);
         } else {
             assert!(false);
         }
     }
+
+    #[test]
+    fn can_insert_job_with_two_singles_into_tour_with_two_activities() {}
 }

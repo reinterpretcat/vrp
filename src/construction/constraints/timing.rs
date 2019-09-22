@@ -4,13 +4,12 @@ mod timing_test;
 
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use crate::models::common::{Cost, Location, Timestamp};
-use crate::models::problem::{ActivityCost, Job, TransportCost};
-use crate::models::solution::{Activity, Actor, Route, TourActivity};
-use std::cmp::max;
-use std::ops::{Deref, DerefMut};
+use crate::models::common::{Cost, Timestamp};
+use crate::models::problem::{ActivityCost, TransportCost};
+use crate::models::solution::{Activity, Actor};
+use std::ops::Deref;
 use std::slice::Iter;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 pub const LATEST_ARRIVAL_KEY: i32 = 1;
 pub const WAITING_KEY: i32 = 2;

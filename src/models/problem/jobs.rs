@@ -5,11 +5,9 @@ mod jobs_test;
 use crate::models::common::{Dimensions, Distance, Duration, Location, Profile, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, TransportCost};
 use std::cell::UnsafeCell;
-use std::cmp::Ordering;
 use std::cmp::Ordering::Less;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
 /// Represents a job variant.

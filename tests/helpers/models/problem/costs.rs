@@ -1,6 +1,5 @@
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::{ActivityCost, Driver, TransportCost, Vehicle};
-use crate::models::solution::{Activity, Actor};
+use crate::models::problem::{ActivityCost, TransportCost};
 
 pub struct TestTransportCost {}
 

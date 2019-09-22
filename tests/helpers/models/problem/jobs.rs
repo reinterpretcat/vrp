@@ -1,7 +1,5 @@
 use crate::models::common::{Duration, Location, Size, TimeWindow};
 use crate::models::problem::{Job, Multi, Place, Single};
-use std::any::Any;
-use std::ops::Deref;
 use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;

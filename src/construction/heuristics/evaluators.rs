@@ -1,15 +1,13 @@
 use std::borrow::Borrow;
-use std::slice::Iter;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::states::*;
 use crate::models::common::{Cost, TimeWindow};
 use crate::models::problem::{Job, Multi, Single};
-use crate::models::solution::{Activity, Place, Route, TourActivity};
+use crate::models::solution::{Activity, Place, TourActivity};
 use crate::models::Problem;
 use crate::utils::compare_shared;
-use std::ops::Deref;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]

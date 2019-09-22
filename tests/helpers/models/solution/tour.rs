@@ -3,8 +3,8 @@ use crate::helpers::models::solution::{
 };
 use crate::models::common::Location;
 use crate::models::problem::Job;
-use crate::models::solution::{Activity, TourActivity};
-use std::sync::{Arc, RwLock};
+use crate::models::solution::TourActivity;
+use std::sync::Arc;
 
 pub fn test_tour_activity_with_location(location: Location) -> TourActivity {
     Box::new(test_activity_with_location(location))

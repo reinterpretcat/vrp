@@ -1,9 +1,8 @@
-use super::*;
 use crate::construction::states::route::RouteState;
 use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour, TourActivity};
-use crate::models::{Problem, Solution};
+use crate::models::Problem;
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};

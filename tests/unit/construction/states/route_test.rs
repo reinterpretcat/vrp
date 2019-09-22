@@ -1,7 +1,6 @@
 use crate::construction::states::route::RouteState;
 use crate::helpers::models::solution::test_activity;
-use crate::models::solution::{Activity, TourActivity};
-use std::sync::{Arc, RwLock};
+use crate::models::solution::TourActivity;
 
 fn new_tour_activity_ref() -> TourActivity {
     Box::new(test_activity())

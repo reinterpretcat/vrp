@@ -1,5 +1,4 @@
-use crate::construction::constraints::timing::TimingConstraintModule;
-use crate::construction::constraints::{ActivityConstraintViolation, ConstraintPipeline, LATEST_ARRIVAL_KEY};
+use crate::construction::constraints::{ActivityConstraintViolation, LATEST_ARRIVAL_KEY};
 use crate::construction::states::{
     create_end_activity, create_start_activity, ActivityContext, RouteContext, RouteState,
 };
@@ -11,7 +10,6 @@ use crate::models::problem::{Fleet, VehicleDetail};
 use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
-use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 fn create_detail(
@@ -69,10 +67,10 @@ fn can_properly_handle_fleet_with_4_vehicles_impl(vehicle: &str, activity: usize
     let fleet = Fleet::new(
         vec![test_driver()],
         vec![
-            VehicleBuilder::new().id("v1").details(vec![create_detail((Some(0), None), (Some((0.0, 100.0))))]).build(),
-            VehicleBuilder::new().id("v2").details(vec![create_detail((Some(0), None), (Some((0.0, 60.0))))]).build(),
-            VehicleBuilder::new().id("v3").details(vec![create_detail((Some(40), None), (Some((0.0, 100.0))))]).build(),
-            VehicleBuilder::new().id("v4").details(vec![create_detail((Some(40), None), (Some((0.0, 100.0))))]).build(),
+            VehicleBuilder::new().id("v1").details(vec![create_detail((Some(0), None), Some((0.0, 100.0)))]).build(),
+            VehicleBuilder::new().id("v2").details(vec![create_detail((Some(0), None), Some((0.0, 60.0)))]).build(),
+            VehicleBuilder::new().id("v3").details(vec![create_detail((Some(40), None), Some((0.0, 100.0)))]).build(),
+            VehicleBuilder::new().id("v4").details(vec![create_detail((Some(40), None), Some((0.0, 100.0)))]).build(),
         ],
     );
     let mut ctx = RouteContext {
@@ -121,30 +119,15 @@ fn can_properly_handle_fleet_with_6_vehicles_impl(
     let fleet = Fleet::new(
         vec![test_driver()],
         vec![
-            VehicleBuilder::new()
-                .id("v1")
-                .details(vec![create_detail((Some(0), Some(0)), (Some((0.0, 100.0))))])
-                .build(),
-            VehicleBuilder::new()
-                .id("v2")
-                .details(vec![create_detail((Some(0), Some(0)), (Some((0.0, 60.0))))])
-                .build(),
-            VehicleBuilder::new()
-                .id("v3")
-                .details(vec![create_detail((Some(0), Some(0)), (Some((0.0, 50.0))))])
-                .build(),
-            VehicleBuilder::new()
-                .id("v4")
-                .details(vec![create_detail((Some(0), Some(0)), (Some((0.0, 10.0))))])
-                .build(),
+            VehicleBuilder::new().id("v1").details(vec![create_detail((Some(0), Some(0)), Some((0.0, 100.0)))]).build(),
+            VehicleBuilder::new().id("v2").details(vec![create_detail((Some(0), Some(0)), Some((0.0, 60.0)))]).build(),
+            VehicleBuilder::new().id("v3").details(vec![create_detail((Some(0), Some(0)), Some((0.0, 50.0)))]).build(),
+            VehicleBuilder::new().id("v4").details(vec![create_detail((Some(0), Some(0)), Some((0.0, 10.0)))]).build(),
             VehicleBuilder::new()
                 .id("v5")
-                .details(vec![create_detail((Some(0), Some(0)), (Some((60.0, 100.0))))])
+                .details(vec![create_detail((Some(0), Some(0)), Some((60.0, 100.0)))])
                 .build(),
-            VehicleBuilder::new()
-                .id("v6")
-                .details(vec![create_detail((Some(0), Some(40)), (Some((0.0, 40.0))))])
-                .build(),
+            VehicleBuilder::new().id("v6").details(vec![create_detail((Some(0), Some(40)), Some((0.0, 40.0)))]).build(),
         ],
     );
     let mut route_ctx = RouteContext {

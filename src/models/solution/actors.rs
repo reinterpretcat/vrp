@@ -4,7 +4,6 @@ mod actor_test;
 
 use crate::models::common::{Location, TimeWindow};
 use crate::models::problem::{Driver, Fleet, Vehicle};
-use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
