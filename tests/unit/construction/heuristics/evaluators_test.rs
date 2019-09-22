@@ -260,12 +260,21 @@ mod multi {
         }
     }
 
-    #[test]
-    fn can_insert_job_with_location_into_tour_with_one_activity_impl() {
-        // s 3 [5] 7 e
-        let s1_location: Option<Location> = Some(3);
-        let s2_location: Option<Location> = Some(7);
-        let cost: Cost = 8.0;
+    parameterized_test! {can_insert_job_with_location_into_tour_with_one_activity, (s1_location, s2_location, expected, cost), {
+        can_insert_job_with_location_into_tour_with_one_activity_impl(s1_location, s2_location, expected, cost);
+    }}
+
+    can_insert_job_with_location_into_tour_with_one_activity! {
+        case1: (Some(3), Some(7), vec![(0, 3), (1, 7)], 8.0), // s 3  7 [5] e
+        case2: (Some(7), Some(3), vec![(0, 7), (2, 3)], 8.0), // s 7 [5] 3  e
+    }
+
+    fn can_insert_job_with_location_into_tour_with_one_activity_impl(
+        s1_location: Option<Location>,
+        s2_location: Option<Location>,
+        expected: Vec<(usize, Location)>,
+        cost: Cost,
+    ) {
         let registry = Registry::new(&Fleet::new(
             vec![test_driver_with_costs(empty_costs())],
             vec![VehicleBuilder::new().id("v1").build()],
@@ -293,7 +302,7 @@ mod multi {
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 2);
-            assert_activities(success, vec![(0, 3), (1, 7)]);
+            assert_activities(success, expected);
         } else {
             assert!(false);
         }
