@@ -6,9 +6,9 @@ use crate::helpers::construction::states::test_insertion_progress;
 use crate::helpers::models::domain::{create_empty_problem, create_empty_problem_with_constraint};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::ActivityBuilder;
-use crate::models::common::{Cost, Location, Schedule, TimeWindow};
+use crate::models::common::{Cost, Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, Job, Single, VehicleDetail};
-use crate::models::solution::{Place, Registry};
+use crate::models::solution::{Place, Registry, TourActivity};
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -42,6 +42,15 @@ fn create_test_insertion_context(registry: Registry) -> InsertionContext {
     routes.insert(route_ctx);
     let mut constraint = create_constraint_pipeline_with_timing();
     create_insertion_context(registry, constraint, routes)
+}
+
+fn create_tour_activity_at(loc_and_time: usize) -> TourActivity {
+    Box::new(
+        ActivityBuilder::new()
+            .place(Place { location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_WINDOW.clone() })
+            .schedule(Schedule { arrival: loc_and_time as Timestamp, departure: loc_and_time as Timestamp })
+            .build(),
+    )
 }
 
 mod single {
@@ -118,24 +127,8 @@ mod single {
             .write()
             .unwrap()
             .tour
-            .insert_at(
-                Box::new(
-                    ActivityBuilder::new()
-                        .place(Place { location: 5, duration: 0.0, time: DEFAULT_JOB_TIME_WINDOW.clone() })
-                        .schedule(Schedule { arrival: 5.0, departure: 5.0 })
-                        .build(),
-                ),
-                1,
-            )
-            .insert_at(
-                Box::new(
-                    ActivityBuilder::new()
-                        .place(Place { location: 10, duration: 0.0, time: DEFAULT_JOB_TIME_WINDOW.clone() })
-                        .schedule(Schedule { arrival: 10.0, departure: 10.0 })
-                        .build(),
-                ),
-                2,
-            );
+            .insert_at(create_tour_activity_at(5), 1)
+            .insert_at(create_tour_activity_at(10), 2);
         let mut routes: HashSet<RouteContext> = HashSet::new();
         routes.insert(route_ctx);
         let mut constraint = create_constraint_pipeline_with_timing();
@@ -228,9 +221,12 @@ mod single {
 
 mod multi {
     use super::*;
+    use crate::models::common::Timestamp;
     use crate::models::problem::Multi;
 
-    fn assert_activities(success: InsertionSuccess, expected: Vec<(usize, Location)>) {
+    type InsertionData = (usize, Location);
+
+    fn assert_activities(success: InsertionSuccess, expected: Vec<InsertionData>) {
         assert_eq!(success.activities.len(), expected.len());
         success.activities.iter().zip(expected.iter()).for_each(|((activity, position), (index, location))| {
             assert_eq!(&activity.place.location, location);
@@ -260,19 +256,19 @@ mod multi {
         }
     }
 
-    parameterized_test! {can_insert_job_with_location_into_tour_with_one_activity, (s1_location, s2_location, expected, cost), {
-        can_insert_job_with_location_into_tour_with_one_activity_impl(s1_location, s2_location, expected, cost);
+    parameterized_test! {can_insert_job_with_two_singles_into_tour_with_one_activity, (s1_location, s2_location, expected, cost), {
+        can_insert_job_with_two_singles_into_tour_with_one_activity_impl(s1_location, s2_location, expected, cost);
     }}
 
-    can_insert_job_with_location_into_tour_with_one_activity! {
+    can_insert_job_with_two_singles_into_tour_with_one_activity! {
         case1: (Some(3), Some(7), vec![(0, 3), (1, 7)], 8.0), // s 3  7 [5] e
         case2: (Some(7), Some(3), vec![(0, 7), (2, 3)], 8.0), // s 7 [5] 3  e
     }
 
-    fn can_insert_job_with_location_into_tour_with_one_activity_impl(
+    fn can_insert_job_with_two_singles_into_tour_with_one_activity_impl(
         s1_location: Option<Location>,
         s2_location: Option<Location>,
-        expected: Vec<(usize, Location)>,
+        expected: Vec<InsertionData>,
         cost: Cost,
     ) {
         let registry = Registry::new(&Fleet::new(
@@ -280,15 +276,7 @@ mod multi {
             vec![VehicleBuilder::new().id("v1").build()],
         ));
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
-        route_ctx.route.write().unwrap().tour.insert_at(
-            Box::new(
-                ActivityBuilder::new()
-                    .place(Place { location: 5, duration: 0.0, time: DEFAULT_JOB_TIME_WINDOW.clone() })
-                    .schedule(Schedule { arrival: 5.0, departure: 5.0 })
-                    .build(),
-            ),
-            1,
-        );
+        route_ctx.route.write().unwrap().tour.insert_at(create_tour_activity_at(5), 1);
         let mut routes: HashSet<RouteContext> = HashSet::new();
         routes.insert(route_ctx);
         let mut constraint = create_constraint_pipeline_with_timing();
@@ -302,6 +290,46 @@ mod multi {
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 2);
+            assert_activities(success, expected);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn can_insert_job_with_three_singles_into_tour_with_two_activities() {
+        // s 3 [5] 7 11 [9] e
+        let s1: Location = 3;
+        let s2: Location = 7;
+        let s3: Location = 11;
+        let cost: Cost = 8.0;
+        let expected: Vec<(usize, Location)> = vec![(0, s1), (2, s2), (3, s3)];
+        let registry = Registry::new(&Fleet::new(
+            vec![test_driver_with_costs(empty_costs())],
+            vec![VehicleBuilder::new().id("v1").build()],
+        ));
+        let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
+        route_ctx
+            .route
+            .write()
+            .unwrap()
+            .tour
+            .insert_at(create_tour_activity_at(5), 1)
+            .insert_at(create_tour_activity_at(9), 2);
+        let mut routes: HashSet<RouteContext> = HashSet::new();
+        routes.insert(route_ctx);
+        let mut constraint = create_constraint_pipeline_with_timing();
+        let ctx = create_insertion_context(registry, constraint, routes);
+        let job = MultiBuilder::new()
+            .job(SingleBuilder::new().id("s1").location(Some(s1)).build())
+            .job(SingleBuilder::new().id("s2").location(Some(s2)).build())
+            .job(SingleBuilder::new().id("s3").location(Some(s3)).build())
+            .build();
+
+        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+
+        if let InsertionResult::Success(success) = result {
+            assert_eq!(success.activities.len(), 3);
             assert_activities(success, expected);
         } else {
             assert!(false);
