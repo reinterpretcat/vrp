@@ -221,6 +221,7 @@ mod single {
 
 mod multi {
     use super::*;
+
     type InsertionData = (usize, Location);
 
     fn assert_activities(success: InsertionSuccess, expected: Vec<InsertionData>) {
@@ -253,19 +254,22 @@ mod multi {
         }
     }
 
-    parameterized_test! {can_insert_job_with_two_singles_into_tour_with_one_activity, (s1_location, s2_location, expected, cost), {
-        can_insert_job_with_two_singles_into_tour_with_one_activity_impl(s1_location, s2_location, expected, cost);
+    parameterized_test! {can_insert_job_with_singles_into_tour_with_activities, (existing, expected, cost), {
+        can_insert_job_with_singles_into_tour_with_activities_impl(existing, expected, cost);
     }}
 
-    can_insert_job_with_two_singles_into_tour_with_one_activity! {
-        case1: (Some(3), Some(7), vec![(0, 3), (1, 7)], 8.0), // s 3  7 [5] e
-        case2: (Some(7), Some(3), vec![(0, 7), (2, 3)], 8.0), // s 7 [5] 3  e
+    can_insert_job_with_singles_into_tour_with_activities! {
+        case01: (vec![(1, 5)], vec![(0, 3), (1, 7)], 8.0),                   // s 3  7 [5] e
+        case02: (vec![(1, 5)], vec![(0, 7), (2, 3)], 8.0),                   // s 7 [5] 3  e
+        case03: (vec![(1, 5), (2, 9)], vec![(0, 3), (2, 7), (3, 11)], 8.0),  // s 3 [5] 7 11 [9] e
+        case04: (vec![(1, 3), (2, 7)], vec![(0, 1), (2, 9)], 8.0),           // s 1 [3] 9 [7] e,
+        case05: (vec![(1, 7), (2, 3)], vec![(0, 9), (3, 1)], 8.0),           // s 9 [7] [3] 1  e
+        case06: (vec![(1, 7), (2, 3)], vec![(0, 9), (2, 5)], 8.0),           // s 9 [7]  5 [3] e
     }
 
-    fn can_insert_job_with_two_singles_into_tour_with_one_activity_impl(
-        s1_location: Option<Location>,
-        s2_location: Option<Location>,
-        expected: Vec<InsertionData>,
+    fn can_insert_job_with_singles_into_tour_with_activities_impl(
+        existing: Vec<(usize, Location)>,
+        expected: Vec<(usize, Location)>,
         cost: Cost,
     ) {
         let registry = Registry::new(&Fleet::new(
@@ -273,67 +277,30 @@ mod multi {
             vec![VehicleBuilder::new().id("v1").build()],
         ));
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
-        route_ctx.route.write().unwrap().tour.insert_at(create_tour_activity_at(5), 1);
+        {
+            let mut route = route_ctx.route.write().unwrap();
+            existing.iter().for_each(|&(index, loc)| {
+                route.tour.insert_at(create_tour_activity_at(loc), index);
+            });
+        }
         let mut routes: HashSet<RouteContext> = HashSet::new();
         routes.insert(route_ctx);
         let mut constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
-        let job = MultiBuilder::new()
-            .job(SingleBuilder::new().id("s1").location(s1_location).build())
-            .job(SingleBuilder::new().id("s2").location(s2_location).build())
-            .build();
+        let mut job = MultiBuilder::new();
+        expected.iter().zip(0usize..).for_each(|((_, loc), index)| {
+            job.job(SingleBuilder::new().id(&index.to_string()).location(Some(*loc)).build());
+        });
+        let job = job.build();
 
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, cost);
-            assert_eq!(success.activities.len(), 2);
+            assert_eq!(success.activities.len(), expected.len());
             assert_activities(success, expected);
         } else {
             assert!(false);
         }
     }
-
-    #[test]
-    fn can_insert_job_with_three_singles_into_tour_with_two_activities() {
-        // s 3 [5] 7 11 [9] e
-        let s1: Location = 3;
-        let s2: Location = 7;
-        let s3: Location = 11;
-        let expected: Vec<(usize, Location)> = vec![(0, s1), (2, s2), (3, s3)];
-        let registry = Registry::new(&Fleet::new(
-            vec![test_driver_with_costs(empty_costs())],
-            vec![VehicleBuilder::new().id("v1").build()],
-        ));
-        let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
-        route_ctx
-            .route
-            .write()
-            .unwrap()
-            .tour
-            .insert_at(create_tour_activity_at(5), 1)
-            .insert_at(create_tour_activity_at(9), 2);
-        let mut routes: HashSet<RouteContext> = HashSet::new();
-        routes.insert(route_ctx);
-        let mut constraint = create_constraint_pipeline_with_timing();
-        let ctx = create_insertion_context(registry, constraint, routes);
-        let job = MultiBuilder::new()
-            .job(SingleBuilder::new().id("s1").location(Some(s1)).build())
-            .job(SingleBuilder::new().id("s2").location(Some(s2)).build())
-            .job(SingleBuilder::new().id("s3").location(Some(s3)).build())
-            .build();
-
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
-
-        if let InsertionResult::Success(success) = result {
-            assert_eq!(success.cost, 8.0);
-            assert_eq!(success.activities.len(), 3);
-            assert_activities(success, expected);
-        } else {
-            assert!(false);
-        }
-    }
-
-    #[test]
-    fn can_insert_job_with_two_singles_into_tour_with_two_activities() {}
 }
