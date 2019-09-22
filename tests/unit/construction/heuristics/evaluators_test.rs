@@ -36,6 +36,13 @@ fn create_insertion_context(
     }
 }
 
+fn create_registry() -> Registry {
+    Registry::new(&Fleet::new(
+        vec![test_driver_with_costs(empty_costs())],
+        vec![VehicleBuilder::new().id("v1").build()],
+    ))
+}
+
 fn create_test_insertion_context(registry: Registry) -> InsertionContext {
     let route_ctx = RouteContext::new(registry.next().next().unwrap());
     let mut routes: HashSet<RouteContext> = HashSet::new();
@@ -66,11 +73,7 @@ mod single {
     }
 
     fn can_insert_job_with_location_into_empty_tour_impl(job: Arc<Job>) {
-        let registry = Registry::new(&Fleet::new(
-            vec![test_driver_with_costs(empty_costs())],
-            vec![VehicleBuilder::new().id("v1").build()],
-        ));
-        let ctx = create_test_insertion_context(registry);
+        let ctx = create_test_insertion_context(create_registry());
 
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
@@ -117,10 +120,7 @@ mod single {
         location: Location,
         index: usize,
     ) {
-        let registry = Registry::new(&Fleet::new(
-            vec![test_driver_with_costs(empty_costs())],
-            vec![VehicleBuilder::new().id("v1").build()],
-        ));
+        let registry = create_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         route_ctx
             .route
@@ -202,12 +202,8 @@ mod single {
 
     #[test]
     fn can_detect_and_return_insertion_violation() {
-        let registry = Registry::new(&Fleet::new(
-            vec![test_driver_with_costs(empty_costs())],
-            vec![VehicleBuilder::new().id("v1").build()],
-        ));
         let job = Arc::new(test_single_job_with_location(Some(1111)));
-        let ctx = create_test_insertion_context(registry);
+        let ctx = create_test_insertion_context(create_registry());
 
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
@@ -234,15 +230,11 @@ mod multi {
 
     #[test]
     fn can_insert_job_with_location_into_empty_tour() {
-        let registry = Registry::new(&Fleet::new(
-            vec![test_driver_with_costs(empty_costs())],
-            vec![VehicleBuilder::new().id("v1").build()],
-        ));
         let job = MultiBuilder::new()
             .job(SingleBuilder::new().id("s1").location(Some(3)).build())
             .job(SingleBuilder::new().id("s2").location(Some(7)).build())
             .build();
-        let ctx = create_test_insertion_context(registry);
+        let ctx = create_test_insertion_context(create_registry());
 
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
@@ -253,6 +245,9 @@ mod multi {
             assert!(false);
         }
     }
+
+    #[test]
+    fn can_handle_route_constraint_violation() {}
 
     parameterized_test! {can_insert_job_with_singles_into_tour_with_activities, (existing, expected, cost), {
         can_insert_job_with_singles_into_tour_with_activities_impl(existing, expected, cost);
@@ -272,10 +267,7 @@ mod multi {
         expected: Vec<(usize, Location)>,
         cost: Cost,
     ) {
-        let registry = Registry::new(&Fleet::new(
-            vec![test_driver_with_costs(empty_costs())],
-            vec![VehicleBuilder::new().id("v1").build()],
-        ));
+        let registry = create_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         {
             let mut route = route_ctx.route.write().unwrap();
