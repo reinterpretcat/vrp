@@ -36,7 +36,7 @@ fn create_insertion_context(
     }
 }
 
-fn create_registry() -> Registry {
+fn create_test_registry() -> Registry {
     Registry::new(&Fleet::new(
         vec![test_driver_with_costs(empty_costs())],
         vec![VehicleBuilder::new().id("v1").build()],
@@ -73,7 +73,7 @@ mod single {
     }
 
     fn can_insert_job_with_location_into_empty_tour_impl(job: Arc<Job>) {
-        let ctx = create_test_insertion_context(create_registry());
+        let ctx = create_test_insertion_context(create_test_registry());
 
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
@@ -87,12 +87,7 @@ mod single {
     }
 
     parameterized_test! {can_insert_job_with_location_into_tour_with_two_activities_and_variations, (places, location, index), {
-        let job = Arc::new(Job::Single(
-            Arc::new(Single {
-                places,
-                dimens: Default::default()
-            }
-        )));
+        let job = Arc::new(Job::Single(Arc::new(Single { places, dimens: Default::default() })));
         can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(job, location, index);
     }}
 
@@ -120,7 +115,7 @@ mod single {
         location: Location,
         index: usize,
     ) {
-        let registry = create_registry();
+        let registry = create_test_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         route_ctx
             .route
@@ -203,7 +198,7 @@ mod single {
     #[test]
     fn can_detect_and_return_insertion_violation() {
         let job = Arc::new(test_single_job_with_location(Some(1111)));
-        let ctx = create_test_insertion_context(create_registry());
+        let ctx = create_test_insertion_context(create_test_registry());
 
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
@@ -234,7 +229,7 @@ mod multi {
             .job(SingleBuilder::new().id("s1").location(Some(3)).build())
             .job(SingleBuilder::new().id("s2").location(Some(7)).build())
             .build();
-        let ctx = create_test_insertion_context(create_registry());
+        let ctx = create_test_insertion_context(create_test_registry());
 
         let result = InsertionEvaluator::new().evaluate(&job, &ctx);
 
@@ -267,7 +262,7 @@ mod multi {
         expected: Vec<(usize, Location)>,
         cost: Cost,
     ) {
-        let registry = create_registry();
+        let registry = create_test_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         {
             let mut route = route_ctx.route.write().unwrap();
