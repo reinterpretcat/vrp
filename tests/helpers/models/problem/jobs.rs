@@ -43,16 +43,16 @@ pub fn test_single_job_with_locations(locations: Vec<Option<Location>>) -> Job {
 }
 
 pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Job {
-    Job::Multi(Arc::new(Multi {
-        jobs: locations
+    Job::Multi(Arc::new(Multi::new(
+        locations
             .into_iter()
             .map(|locs| match test_single_job_with_locations(locs) {
                 Job::Single(single) => single.clone(),
                 _ => panic!("Unexpected job type!"),
             })
             .collect(),
-        dimens: Default::default(),
-    }))
+        Default::default(),
+    )))
 }
 
 pub fn get_job_id(job: &Job) -> &String {
@@ -118,10 +118,10 @@ impl SingleBuilder {
 }
 
 fn test_multi() -> Multi {
-    let mut multi = Multi {
-        jobs: vec![Arc::new(test_single_with_id("single1")), Arc::new(test_single_with_id("single2"))],
-        dimens: Default::default(),
-    };
+    let mut multi = Multi::new(
+        vec![Arc::new(test_single_with_id("single1")), Arc::new(test_single_with_id("single2"))],
+        Default::default(),
+    );
     multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
     multi
 }
@@ -132,7 +132,7 @@ pub struct MultiBuilder {
 
 impl MultiBuilder {
     pub fn new() -> Self {
-        let mut multi = Multi { jobs: vec![], dimens: Default::default() };
+        let mut multi = Multi::new(vec![], Default::default());
         multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
 
         Self { multi }

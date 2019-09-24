@@ -8,6 +8,7 @@ use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place, TourActivity};
 use crate::models::Problem;
 use crate::utils::compare_shared;
+use std::ops::Deref;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
@@ -93,7 +94,7 @@ impl InsertionEvaluator {
     ) -> InsertionResult {
         let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
         // 1. analyze permutations
-        let result = unwrap_from_result(get_job_permutations(multi).iter().try_fold(
+        let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
             MultiContext::new(progress.cost),
             |acc_res, services| {
                 let mut shadow = ShadowContext::new(&ctx.problem, &route_ctx);
@@ -419,12 +420,6 @@ fn unwrap_from_result<T>(result: Result<T, T>) -> T {
         Ok(result) => result,
         Err(result) => result,
     }
-}
-
-fn get_job_permutations(multi: &Multi) -> Vec<Vec<Arc<Single>>> {
-    // TODO redesign to avoid memory allocations?
-    // TODO read dimens and use alternative permutations
-    vec![multi.jobs.clone()]
 }
 
 fn concat_activities(

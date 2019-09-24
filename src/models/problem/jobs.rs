@@ -42,9 +42,22 @@ pub struct Multi {
     pub jobs: Vec<Arc<Single>>,
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
+    /// Permutation generator.
+    generator: Box<dyn Fn(&Multi) -> Vec<Vec<usize>>>,
 }
 
 impl Multi {
+    pub fn new(jobs: Vec<Arc<Single>>, dimens: Dimensions) -> Self {
+        Self { jobs, dimens, generator: Box::new(|m| vec![(0..m.jobs.len()).collect()]) }
+    }
+
+    pub fn permutations(&self) -> Vec<Vec<Arc<Single>>> {
+        (self.generator)(self)
+            .iter()
+            .map(|perm| perm.iter().map(|&i| self.jobs.get(i).unwrap().clone()).collect())
+            .collect()
+    }
+
     pub fn bind(multi: Self) -> Arc<Self> {
         // NOTE: layout must be identical
         struct SingleConstruct {
