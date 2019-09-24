@@ -266,6 +266,7 @@ struct MultiContext {
     pub next_index: usize,
     /// Cost accumulator.
     pub cost: Option<Cost>,
+    // TODO make optional
     /// Activities with their indices.
     pub activities: Vec<(TourActivity, usize)>,
 }
@@ -288,16 +289,28 @@ impl MultiContext {
                 }
             }
             (Some(_), None) => left,
-            _ => right,
+            _ => {
+                if left.violation.is_some() {
+                    left
+                } else {
+                    right
+                }
+            }
         };
 
-        Result::Ok(Self {
+        let result = Self {
             violation: best.violation,
             start_index: index,
             next_index: index,
             cost: best.cost,
             activities: best.activities,
-        })
+        };
+
+        if result.violation.as_ref().map_or_else(|| false, |v| v.stopped) {
+            Result::Err(result)
+        } else {
+            Result::Ok(result)
+        }
     }
 
     /// Creates failed insertion context within reason code.

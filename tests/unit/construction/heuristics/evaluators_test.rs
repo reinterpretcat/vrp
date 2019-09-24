@@ -242,7 +242,23 @@ mod multi {
     }
 
     #[test]
-    fn can_handle_route_constraint_violation() {}
+    fn can_handle_activity_constraint_violation() {
+        let singles: Vec<(usize, Location)> = vec![(0, 3), (1, 1111)];
+        let mut job = MultiBuilder::new();
+        singles.iter().zip(0usize..).for_each(|((_, loc), index)| {
+            job.job(SingleBuilder::new().id(&index.to_string()).location(Some(*loc)).build());
+        });
+        let job = job.build();
+        let ctx = create_test_insertion_context(create_test_registry());
+
+        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+
+        if let InsertionResult::Failure(failure) = result {
+            assert_eq!(failure.constraint, 1);
+        } else {
+            assert!(false);
+        }
+    }
 
     parameterized_test! {can_insert_job_with_singles_into_tour_with_activities, (existing, expected, cost), {
         can_insert_job_with_singles_into_tour_with_activities_impl(existing, expected, cost);
