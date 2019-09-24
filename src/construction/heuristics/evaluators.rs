@@ -153,9 +153,14 @@ impl InsertionEvaluator {
         ));
 
         if result.is_success() {
-            InsertionResult::make_success(result.cost.unwrap(), job.clone(), result.activities, route_ctx.clone())
+            let activities = result.activities.unwrap();
+            InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
         } else {
-            InsertionResult::make_failure_with_code(result.violation.unwrap().code)
+            InsertionResult::make_failure_with_code(if let Some(violation) = result.violation {
+                violation.code
+            } else {
+                0
+            })
         }
     }
 }
@@ -266,15 +271,14 @@ struct MultiContext {
     pub next_index: usize,
     /// Cost accumulator.
     pub cost: Option<Cost>,
-    // TODO make optional
     /// Activities with their indices.
-    pub activities: Vec<(TourActivity, usize)>,
+    pub activities: Option<Vec<(TourActivity, usize)>>,
 }
 
 impl MultiContext {
     /// Creates new empty insertion context.
     fn new(cost: Option<Cost>) -> Self {
-        Self { violation: None, start_index: 0, next_index: 0, cost, activities: vec![] }
+        Self { violation: None, start_index: 0, next_index: 0, cost, activities: None }
     }
 
     /// Promotes insertion context by best price.
@@ -289,6 +293,7 @@ impl MultiContext {
                 }
             }
             (Some(_), None) => left,
+            (None, Some(_)) => right,
             _ => {
                 if left.violation.is_some() {
                     left
@@ -316,14 +321,14 @@ impl MultiContext {
     /// Creates failed insertion context within reason code.
     fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> Result<Self, Self> {
         let violation = &err_ctx.violation.unwrap();
-        let is_stopped = violation.stopped && other_ctx.activities.is_empty();
+        let is_stopped = violation.stopped && other_ctx.activities.is_none();
 
         Result::Err(Self {
             violation: Some(ActivityConstraintViolation { code: violation.code, stopped: is_stopped }),
             start_index: other_ctx.start_index,
             next_index: other_ctx.start_index,
             cost: None,
-            activities: vec![],
+            activities: None,
         })
     }
 
@@ -334,7 +339,7 @@ impl MultiContext {
             start_index: activities.first().unwrap().1,
             next_index: activities.last().unwrap().1 + 1,
             cost: Some(cost),
-            activities,
+            activities: Some(activities),
         })
     }
 
@@ -345,13 +350,13 @@ impl MultiContext {
             start_index: self.start_index,
             next_index: self.start_index,
             cost: None,
-            activities: vec![],
+            activities: None,
         }
     }
 
     /// Checks whether insertion is found.
     fn is_success(&self) -> bool {
-        self.violation.is_none() & self.cost.is_some()
+        self.violation.is_none() && self.cost.is_some() && self.activities.is_some()
     }
 
     /// Checks whether insertion is failed.
@@ -423,10 +428,10 @@ fn get_job_permutations(multi: &Multi) -> Vec<Vec<Arc<Single>>> {
 }
 
 fn concat_activities(
-    activities: Vec<(Box<Activity>, usize)>,
+    activities: Option<Vec<(Box<Activity>, usize)>>,
     activity: (Box<Activity>, usize),
 ) -> Vec<(Box<Activity>, usize)> {
-    let mut activities = activities;
+    let mut activities = activities.unwrap_or_else(|| vec![]);
     activities.push((activity.0, activity.1));
 
     activities
