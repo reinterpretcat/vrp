@@ -138,6 +138,13 @@ impl MultiBuilder {
         Self { multi }
     }
 
+    pub fn new_with_permutations(permutations: Vec<Vec<usize>>) -> Self {
+        let mut multi = Multi::new_with_generator(vec![], Default::default(), Box::new(move |m| permutations.clone()));
+        multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
+
+        Self { multi }
+    }
+
     pub fn id(&mut self, id: &str) -> &mut Self {
         self.multi.dimens.insert("id".to_string(), Box::new(id.to_string()));
         self

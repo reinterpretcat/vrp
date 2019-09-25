@@ -312,4 +312,23 @@ mod multi {
             assert!(false);
         }
     }
+
+    #[test]
+    fn can_choose_cheaper_permutation_from_two() {
+        let ctx = create_test_insertion_context(create_test_registry());
+        let job = MultiBuilder::new_with_permutations(vec![vec![0, 1, 2], vec![1, 0, 2], vec![2, 1, 0]])
+            .job(SingleBuilder::new().id("s1").location(Some(10)).build())
+            .job(SingleBuilder::new().id("s2").location(Some(5)).build())
+            .job(SingleBuilder::new().id("s3").location(Some(15)).build())
+            .build();
+
+        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+
+        if let InsertionResult::Success(success) = result {
+            assert_eq!(success.cost, 60.0);
+            assert_activities(success, vec![(0, 5), (1, 10), (2, 15)]);
+        } else {
+            assert!(false);
+        }
+    }
 }

@@ -51,6 +51,14 @@ impl Multi {
         Self { jobs, dimens, generator: Box::new(|m| vec![(0..m.jobs.len()).collect()]) }
     }
 
+    pub fn new_with_generator(
+        jobs: Vec<Arc<Single>>,
+        dimens: Dimensions,
+        generator: Box<dyn Fn(&Multi) -> Vec<Vec<usize>>>,
+    ) -> Self {
+        Self { jobs, dimens, generator }
+    }
+
     pub fn permutations(&self) -> Vec<Vec<Arc<Single>>> {
         (self.generator)(self)
             .iter()
