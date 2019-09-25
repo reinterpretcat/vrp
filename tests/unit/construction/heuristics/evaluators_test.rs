@@ -241,9 +241,15 @@ mod multi {
         }
     }
 
-    #[test]
-    fn can_handle_activity_constraint_violation() {
-        let singles: Vec<(usize, Location)> = vec![(0, 3), (1, 1111)];
+    parameterized_test! {can_handle_activity_constraint_violation, activities, {
+        can_handle_activity_constraint_violation_impl(activities);
+    }}
+
+    can_handle_activity_constraint_violation! {
+        case1: vec![(0, 3), (1, 1111)],
+        case2: vec![(0, 1111), (1, 3)],
+    }
+    fn can_handle_activity_constraint_violation_impl(singles: Vec<InsertionData>) {
         let mut job = MultiBuilder::new();
         singles.iter().zip(0usize..).for_each(|((_, loc), index)| {
             job.job(SingleBuilder::new().id(&index.to_string()).location(Some(*loc)).build());
@@ -274,8 +280,8 @@ mod multi {
     }
 
     fn can_insert_job_with_singles_into_tour_with_activities_impl(
-        existing: Vec<(usize, Location)>,
-        expected: Vec<(usize, Location)>,
+        existing: Vec<InsertionData>,
+        expected: Vec<InsertionData>,
         cost: Cost,
     ) {
         let registry = create_test_registry();
