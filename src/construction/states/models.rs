@@ -82,7 +82,7 @@ pub struct InsertionContext {
     pub problem: Arc<Problem>,
 
     /// Solution context.
-    pub solution: Arc<SolutionContext>,
+    pub solution: SolutionContext,
 
     /// Random generator.
     pub random: Arc<String>,
@@ -104,7 +104,7 @@ pub struct SolutionContext {
     pub routes: HashSet<RouteContext>,
 
     /// Keeps track of used resources.
-    pub registry: Arc<Registry>,
+    pub registry: Registry,
 }
 
 impl InsertionResult {

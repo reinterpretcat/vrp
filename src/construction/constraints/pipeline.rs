@@ -67,10 +67,10 @@ impl Eq for ActivityConstraintViolation {}
 
 /// A variant for constraint types.
 pub enum ConstraintVariant {
-    HardRoute(Arc<dyn HardRouteConstraint>),
-    HardActivity(Arc<dyn HardActivityConstraint>),
-    SoftRoute(Arc<dyn SoftRouteConstraint>),
-    SoftActivity(Arc<dyn SoftActivityConstraint>),
+    HardRoute(Arc<dyn HardRouteConstraint + Send + Sync>),
+    HardActivity(Arc<dyn HardActivityConstraint + Send + Sync>),
+    SoftRoute(Arc<dyn SoftRouteConstraint + Send + Sync>),
+    SoftActivity(Arc<dyn SoftActivityConstraint + Send + Sync>),
 }
 
 /// Represents constraint module which can be added to constraint pipeline.
@@ -90,12 +90,12 @@ pub trait ConstraintModule {
 
 /// Provides the way to work with multiple constraints.
 pub struct ConstraintPipeline {
-    modules: Vec<Box<dyn ConstraintModule>>,
+    modules: Vec<Box<dyn ConstraintModule + Send + Sync>>,
     state_keys: HashSet<i32>,
-    hard_route_constraints: Vec<Arc<dyn HardRouteConstraint>>,
-    hard_activity_constraints: Vec<Arc<dyn HardActivityConstraint>>,
-    soft_route_constraints: Vec<Arc<dyn SoftRouteConstraint>>,
-    soft_activity_constraints: Vec<Arc<dyn SoftActivityConstraint>>,
+    hard_route_constraints: Vec<Arc<dyn HardRouteConstraint + Send + Sync>>,
+    hard_activity_constraints: Vec<Arc<dyn HardActivityConstraint + Send + Sync>>,
+    soft_route_constraints: Vec<Arc<dyn SoftRouteConstraint + Send + Sync>>,
+    soft_activity_constraints: Vec<Arc<dyn SoftActivityConstraint + Send + Sync>>,
 }
 
 impl ConstraintPipeline {
@@ -121,7 +121,7 @@ impl ConstraintPipeline {
     }
 
     /// Adds constraint module.
-    pub fn add_module(&mut self, module: Box<dyn ConstraintModule>) -> &mut Self {
+    pub fn add_module(&mut self, module: Box<dyn ConstraintModule + Send + Sync>) -> &mut Self {
         module.state_keys().for_each(|key| {
             if let Some(duplicate) = self.state_keys.get(key) {
                 panic!("Attempt to register constraint with key duplication: {}", duplicate)

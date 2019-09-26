@@ -1,5 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::construction::heuristics::evaluators::InsertionEvaluator;
+use crate::construction::heuristics::evaluators::evaluate_job_insertion;
 use crate::construction::states::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::construction::states::test_insertion_progress;
@@ -25,13 +25,13 @@ fn create_insertion_context(
     InsertionContext {
         progress: test_insertion_progress(),
         problem: create_empty_problem_with_constraint(constraint),
-        solution: Arc::new(SolutionContext {
+        solution: SolutionContext {
             required: vec![],
             ignored: vec![],
             unassigned: Default::default(),
             routes,
-            registry: Arc::new(registry),
-        }),
+            registry,
+        },
         random: Arc::new("".to_string()),
     }
 }
@@ -75,7 +75,7 @@ mod single {
     fn can_insert_job_with_location_into_empty_tour_impl(job: Arc<Job>) {
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -129,7 +129,7 @@ mod single {
         let mut constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
 
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -181,7 +181,7 @@ mod single {
         let job = Arc::new(test_single_job_with_location(Some(job_location)));
         let ctx = create_test_insertion_context(registry);
 
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -200,7 +200,7 @@ mod single {
         let job = Arc::new(test_single_job_with_location(Some(1111)));
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx);
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
@@ -231,7 +231,7 @@ mod multi {
             .build();
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, 28.0);
@@ -257,7 +257,7 @@ mod multi {
         let job = job.build();
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx);
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
@@ -302,7 +302,7 @@ mod multi {
         });
         let job = job.build();
 
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, cost);
@@ -322,7 +322,7 @@ mod multi {
             .job(SingleBuilder::new().id("s3").location(Some(15)).build())
             .build();
 
-        let result = InsertionEvaluator::new().evaluate(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, 60.0);

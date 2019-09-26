@@ -21,8 +21,8 @@ pub struct TimingConstraintModule {
     code: i32,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
-    activity: Arc<dyn ActivityCost>,
-    transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
 impl ConstraintModule for TimingConstraintModule {
@@ -49,7 +49,11 @@ impl ConstraintModule for TimingConstraintModule {
 }
 
 impl TimingConstraintModule {
-    pub fn new(activity: Arc<dyn ActivityCost>, transport: Arc<dyn TransportCost>, code: i32) -> Self {
+    pub fn new(
+        activity: Arc<dyn ActivityCost + Send + Sync>,
+        transport: Arc<dyn TransportCost + Send + Sync>,
+        code: i32,
+    ) -> Self {
         Self {
             code,
             state_keys: vec![LATEST_ARRIVAL_KEY, WAITING_KEY],
@@ -150,8 +154,8 @@ impl TimingConstraintModule {
 
 struct TimeHardActivityConstraint {
     code: i32,
-    activity: Arc<dyn ActivityCost>,
-    transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
 impl TimeHardActivityConstraint {
@@ -261,8 +265,8 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
 }
 
 struct TimeSoftActivityConstraint {
-    activity: Arc<dyn ActivityCost>,
-    transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
 impl TimeSoftActivityConstraint {

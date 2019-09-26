@@ -17,13 +17,13 @@ pub struct Problem {
     /// Specifies constraints pipeline.
     pub constraint: Arc<ConstraintPipeline>,
     /// Specifies objective function.
-    pub objective: Arc<dyn ObjectiveFunction>,
+    pub objective: Arc<dyn ObjectiveFunction + Send + Sync>,
     /// Specifies activity costs.
-    pub activity: Arc<dyn ActivityCost>,
+    pub activity: Arc<dyn ActivityCost + Send + Sync>,
     /// Specifies transport costs.
-    pub transport: Arc<dyn TransportCost>,
+    pub transport: Arc<dyn TransportCost + Send + Sync>,
     /// Specifies index for storing extra parameters of arbitrary type.
-    pub extras: Arc<HashMap<String, Box<dyn Any>>>,
+    pub extras: Arc<HashMap<String, Box<dyn Any + Send + Sync>>>,
 }
 
 /// Represents a VRP solution.
@@ -38,7 +38,7 @@ pub struct Solution {
     pub unassigned: HashMap<Arc<Job>, i32>,
 
     /// Specifies index for storing extra data of arbitrary type.
-    pub extras: HashMap<String, Box<dyn Any>>,
+    pub extras: HashMap<String, Box<dyn Any + Send + Sync>>,
 }
 
 /// Specifies jobs locked to specific actors.

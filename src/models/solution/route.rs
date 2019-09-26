@@ -76,7 +76,7 @@ impl Activity {
         match self.job.borrow() {
             Some(job) => Some(match job.borrow() {
                 Job::Single(single) => Multi::roots(single).map_or_else(|| job.clone(), |m| Arc::new(Job::Multi(m))),
-                Job::Multi(multi) => job.clone(),
+                Job::Multi(_) => job.clone(),
             }),
             _ => None,
         }

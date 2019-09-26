@@ -8,161 +8,147 @@ use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place, TourActivity};
 use crate::models::Problem;
 use crate::utils::compare_shared;
-use std::ops::Deref;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
 mod evaluators_test;
 
-/// Provides the way to evaluate insertion cost.
-pub struct InsertionEvaluator {}
-
-impl InsertionEvaluator {
-    pub fn new() -> Self {
-        InsertionEvaluator {}
-    }
-
-    /// Evaluates possibility to preform insertion from given insertion context.
-    pub fn evaluate(&self, job: &Arc<Job>, ctx: &InsertionContext) -> InsertionResult {
-        ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next().map(|a| RouteContext::new(a))).fold(
-            InsertionResult::make_failure(),
-            |acc, route_ctx| {
-                if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
-                    return InsertionResult::choose_best_result(
-                        acc,
-                        InsertionResult::make_failure_with_code(violation.code),
-                    );
-                }
-
-                let progress = InsertionProgress {
-                    cost: match acc.borrow() {
-                        InsertionResult::Success(success) => Some(success.cost),
-                        _ => None,
-                    },
-                    completeness: ctx.progress.completeness,
-                    total: ctx.progress.total,
-                };
-
-                InsertionResult::choose_best_result(
+/// Evaluates possibility to preform insertion from given insertion context.
+pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext) -> InsertionResult {
+    ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next().map(|a| RouteContext::new(a))).fold(
+        InsertionResult::make_failure(),
+        |acc, route_ctx| {
+            if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
+                return InsertionResult::choose_best_result(
                     acc,
-                    match job.borrow() {
-                        Job::Single(single) => Self::evaluate_single(job, single, ctx, &route_ctx, &progress),
-                        Job::Multi(multi) => Self::evaluate_multi(job, multi, ctx, &route_ctx, &progress),
-                    },
-                )
-            },
-        )
+                    InsertionResult::make_failure_with_code(violation.code),
+                );
+            }
+
+            let progress = InsertionProgress {
+                cost: match acc.borrow() {
+                    InsertionResult::Success(success) => Some(success.cost),
+                    _ => None,
+                },
+                completeness: ctx.progress.completeness,
+                total: ctx.progress.total,
+            };
+
+            InsertionResult::choose_best_result(
+                acc,
+                match job.borrow() {
+                    Job::Single(single) => evaluate_single(job, single, ctx, &route_ctx, &progress),
+                    Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, &progress),
+                },
+            )
+        },
+    )
+}
+
+fn evaluate_single(
+    job: &Arc<Job>,
+    single: &Single,
+    ctx: &InsertionContext,
+    route_ctx: &RouteContext,
+    progress: &InsertionProgress,
+) -> InsertionResult {
+    let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
+    let mut activity = Box::new(Activity::new_with_job(job.clone()));
+    let result = analyze_insertion_in_route(
+        ctx,
+        route_ctx,
+        single,
+        &mut activity,
+        route_costs,
+        SingleContext::new(progress.cost, 0),
+        |ctx| match &ctx.violation {
+            Some(violation) if violation.stopped => Result::Err(ctx),
+            _ => Result::Ok(ctx),
+        },
+    );
+
+    if result.is_success() {
+        activity.place = result.place;
+        let activities = vec![(activity, result.index)];
+        InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
+    } else {
+        InsertionResult::make_failure_with_code(result.violation.unwrap().code)
     }
+}
 
-    fn evaluate_single(
-        job: &Arc<Job>,
-        single: &Single,
-        ctx: &InsertionContext,
-        route_ctx: &RouteContext,
-        progress: &InsertionProgress,
-    ) -> InsertionResult {
-        let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
-        let mut activity = Box::new(Activity::new_with_job(job.clone()));
-        let result = analyze_insertion_in_route(
-            ctx,
-            route_ctx,
-            single,
-            &mut activity,
-            route_costs,
-            SingleContext::new(progress.cost, 0),
-            |ctx| match &ctx.violation {
-                Some(violation) if violation.stopped => Result::Err(ctx),
-                _ => Result::Ok(ctx),
-            },
-        );
-
-        if result.is_success() {
-            activity.place = result.place;
-            let activities = vec![(activity, result.index)];
-            InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
-        } else {
-            InsertionResult::make_failure_with_code(result.violation.unwrap().code)
-        }
-    }
-
-    fn evaluate_multi(
-        job: &Arc<Job>,
-        multi: &Multi,
-        ctx: &InsertionContext,
-        route_ctx: &RouteContext,
-        progress: &InsertionProgress,
-    ) -> InsertionResult {
-        let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
-        // 1. analyze permutations
-        let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
-            MultiContext::new(progress.cost),
-            |acc_res, services| {
-                let mut shadow = ShadowContext::new(&ctx.problem, &route_ctx);
-                let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(MultiContext::new(None), |out, _| {
-                    {
-                        let route = route_ctx.route.read().unwrap();
-                        if out.is_failure(route.tour.activity_count()) {
-                            return Result::Err(out);
-                        }
+fn evaluate_multi(
+    job: &Arc<Job>,
+    multi: &Multi,
+    ctx: &InsertionContext,
+    route_ctx: &RouteContext,
+    progress: &InsertionProgress,
+) -> InsertionResult {
+    let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
+    // 1. analyze permutations
+    let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
+        MultiContext::new(progress.cost),
+        |acc_res, services| {
+            let mut shadow = ShadowContext::new(&ctx.problem, &route_ctx);
+            let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(MultiContext::new(None), |out, _| {
+                {
+                    let route = route_ctx.route.read().unwrap();
+                    if out.is_failure(route.tour.activity_count()) {
+                        return Result::Err(out);
                     }
-                    shadow.restore(job);
+                }
+                shadow.restore(job);
 
-                    // 2. analyze inner jobs
-                    let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
-                        if in1.violation.is_some() {
-                            return Result::Err(in1);
-                        }
-                        let mut activity = Box::new(Activity::new_with_job(Arc::new(Job::Single(service.clone()))));
-                        // 3. analyze legs
-                        let srv_res = analyze_insertion_in_route(
-                            ctx,
-                            &shadow.ctx,
-                            service,
-                            &mut activity,
-                            0.0,
-                            SingleContext::new(None, in1.next_index),
-                            |ctx| match &ctx.violation {
-                                Some(violation) if violation.stopped => Result::Err(ctx),
-                                _ => {
-                                    if !(ctx.is_success() && compare_shared(multi.jobs.first().unwrap(), service)) {
-                                        Result::Err(ctx)
-                                    } else {
-                                        Result::Ok(ctx)
-                                    }
+                // 2. analyze inner jobs
+                let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
+                    if in1.violation.is_some() {
+                        return Result::Err(in1);
+                    }
+                    let mut activity = Box::new(Activity::new_with_job(Arc::new(Job::Single(service.clone()))));
+                    // 3. analyze legs
+                    let srv_res = analyze_insertion_in_route(
+                        ctx,
+                        &shadow.ctx,
+                        service,
+                        &mut activity,
+                        0.0,
+                        SingleContext::new(None, in1.next_index),
+                        |ctx| match &ctx.violation {
+                            Some(violation) if violation.stopped => Result::Err(ctx),
+                            _ => {
+                                if !(ctx.is_success() && compare_shared(multi.jobs.first().unwrap(), service)) {
+                                    Result::Err(ctx)
+                                } else {
+                                    Result::Ok(ctx)
                                 }
-                            },
+                            }
+                        },
+                    );
+
+                    if srv_res.is_success() {
+                        activity.place = srv_res.place;
+                        let activity = shadow.insert(activity, srv_res.index);
+                        let activities = concat_activities(in1.activities, (activity, srv_res.index));
+                        return MultiContext::success(
+                            in1.cost.unwrap_or(route_costs) + srv_res.cost.unwrap(),
+                            activities,
                         );
+                    }
 
-                        if srv_res.is_success() {
-                            activity.place = srv_res.place;
-                            let activity = shadow.insert(activity, srv_res.index);
-                            let activities = concat_activities(in1.activities, (activity, srv_res.index));
-                            return MultiContext::success(
-                                in1.cost.unwrap_or(route_costs) + srv_res.cost.unwrap(),
-                                activities,
-                            );
-                        }
-
-                        MultiContext::fail(srv_res, in1)
-                    }));
-
-                    MultiContext::promote(sq_res, out)
+                    MultiContext::fail(srv_res, in1)
                 }));
 
-                MultiContext::promote(perm_res, acc_res)
-            },
-        ));
+                MultiContext::promote(sq_res, out)
+            }));
 
-        if result.is_success() {
-            let activities = result.activities.unwrap();
-            InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
-        } else {
-            InsertionResult::make_failure_with_code(if let Some(violation) = result.violation {
-                violation.code
-            } else {
-                0
-            })
-        }
+            MultiContext::promote(perm_res, acc_res)
+        },
+    ));
+
+    if result.is_success() {
+        let activities = result.activities.unwrap();
+        InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
+    } else {
+        InsertionResult::make_failure_with_code(if let Some(violation) = result.violation { violation.code } else { 0 })
     }
 }
 

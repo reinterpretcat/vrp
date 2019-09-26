@@ -43,7 +43,7 @@ pub struct Multi {
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
     /// Permutation generator.
-    generator: Box<dyn Fn(&Multi) -> Vec<Vec<usize>>>,
+    generator: Box<dyn Fn(&Multi) -> Vec<Vec<usize>> + Send + Sync>,
 }
 
 impl Multi {
@@ -54,7 +54,7 @@ impl Multi {
     pub fn new_with_generator(
         jobs: Vec<Arc<Single>>,
         dimens: Dimensions,
-        generator: Box<dyn Fn(&Multi) -> Vec<Vec<usize>>>,
+        generator: Box<dyn Fn(&Multi) -> Vec<Vec<usize>> + Send + Sync>,
     ) -> Self {
         Self { jobs, dimens, generator }
     }

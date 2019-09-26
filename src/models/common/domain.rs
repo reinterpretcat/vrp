@@ -46,7 +46,7 @@ impl Eq for Schedule {}
 /// * unit of measure, e.g. volume, mass, size, etc.
 /// * set of skills
 /// * tag.
-pub type Dimensions = HashMap<String, Box<dyn Any>>;
+pub type Dimensions = HashMap<String, Box<dyn Any + Send + Sync>>;
 
 /// Specifies size of requested work.
 pub trait Size {}

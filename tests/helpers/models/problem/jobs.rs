@@ -80,7 +80,7 @@ impl SingleBuilder {
         self
     }
 
-    pub fn demand(&mut self, demand: impl Size + 'static) -> &mut Self {
+    pub fn demand(&mut self, demand: impl Size + Send + Sync + 'static) -> &mut Self {
         self.single.dimens.insert("dmd".to_string(), Box::new(demand));
         self
     }
