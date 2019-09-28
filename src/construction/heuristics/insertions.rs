@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 /// Selects jobs to be inserted.
 pub trait JobSelector {
-    fn select(&self, ctx: &InsertionContext) -> Iter<Arc<Job>>;
+    fn select<'a>(&'a self, ctx: &'a InsertionContext) -> Iter<Arc<Job>>;
 }
 
 /// Selects insertion result to be promoted from two.
@@ -76,4 +76,26 @@ impl InsertionHeuristic {
         // TODO update progress
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
     }
+}
+
+/// Returns a list of all jobs to be inserted.
+pub struct AllJobSelector {}
+
+impl JobSelector for AllJobSelector {
+    fn select<'a>(&'a self, ctx: &'a InsertionContext) -> Iter<Arc<Job>> {
+        ctx.solution.required.par_iter()
+    }
+}
+
+/// Selects best result.
+pub struct BestResultSelector {}
+
+impl ResultSelector for BestResultSelector {
+    fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+        InsertionResult::choose_best_result(left, right)
+    }
+}
+
+pub fn create_cheapest_insertion_heuristic() -> InsertionHeuristic {
+    InsertionHeuristic::new(Box::new(AllJobSelector {}), Box::new(BestResultSelector {}))
 }
