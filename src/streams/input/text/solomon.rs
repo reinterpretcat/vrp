@@ -2,10 +2,16 @@
 #[path = "../../../../tests/unit/streams/input/text/solomon_tests.rs"]
 mod solomon_tests;
 
+use crate::construction::constraints::{ConstraintPipeline, TimingConstraintModule};
 use crate::models::common::{Dimensions, Location, TimeWindow};
-use crate::models::problem::{Costs, Driver, Fleet, Job, Jobs, Place, Single, TransportCost, Vehicle};
+use crate::models::problem::{
+    ActivityCost, Costs, Driver, Fleet, Job, Jobs, MatrixTransportCost, Place, SimpleActivityCost, Single,
+    TransportCost, Vehicle, VehicleDetail,
+};
 use crate::models::Problem;
+use crate::objectives::PenalizeUnassigned;
 use crate::utils::TryCollect;
+use std::borrow::Borrow;
 use std::fs::read;
 use std::io::prelude::*;
 use std::io::{BufReader, Error};
@@ -28,8 +34,7 @@ struct VehicleLine {
 
 struct JobLine {
     id: usize,
-    x: usize,
-    y: usize,
+    location: (usize, usize),
     demand: usize,
     start: usize,
     end: usize,
@@ -39,9 +44,21 @@ struct JobLine {
 impl<R: Read> SolomonReader<R> {
     pub fn read_problem(&mut self) -> Result<Problem, String> {
         let fleet = self.read_fleet()?;
-        let jobs = self.read_jobs(&fleet);
+        let jobs = self.read_jobs(&fleet)?;
+        let transport = Arc::new(self.matrix.create_transport());
+        let activity = Arc::new(SimpleActivityCost::new());
+        let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
 
-        unimplemented!()
+        Ok(Problem {
+            fleet: Arc::new(fleet),
+            jobs: Arc::new(jobs),
+            locks: vec![],
+            constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
+            objective: Arc::new(PenalizeUnassigned::new()),
+            activity,
+            transport,
+            extras: Arc::new(Default::default()),
+        })
     }
 
     fn read_fleet(&mut self) -> Result<Fleet, String> {
@@ -49,6 +66,8 @@ impl<R: Read> SolomonReader<R> {
         let vehicle = self.read_vehicle()?;
         self.skip_lines(4)?;
         let depot = self.read_customer()?;
+        let location = Some(self.matrix.location(depot.location));
+        let time = Some(TimeWindow { start: depot.start as f64, end: depot.end as f64 });
 
         Ok(Fleet::new(
             vec![Driver {
@@ -73,7 +92,7 @@ impl<R: Read> SolomonReader<R> {
                         per_service_time: 0.0,
                     },
                     dimens: create_dimens_with_id(["v".to_string(), i.to_string()].concat()),
-                    details: vec![],
+                    details: vec![VehicleDetail { start: location, end: location, time: time.clone() }],
                 })
                 .collect(),
         ))
@@ -87,7 +106,7 @@ impl<R: Read> SolomonReader<R> {
                 Ok(customer) => {
                     jobs.push(Arc::new(Job::Single(Arc::new(Single {
                         places: vec![Place {
-                            location: Some(self.matrix.location((customer.x, customer.y))),
+                            location: Some(self.matrix.location(customer.location)),
                             duration: customer.service as f64,
                             times: vec![TimeWindow { start: customer.start as f64, end: customer.end as f64 }],
                         }],
@@ -128,7 +147,7 @@ impl<R: Read> SolomonReader<R> {
             .map(|line| line.parse::<usize>().unwrap())
             .try_collect()
             .ok_or("Cannot read depot line".to_string())?;
-        Ok(JobLine { id, x, y, demand, start, end, service })
+        Ok(JobLine { id, location: (x, y), demand, start, end, service })
     }
 
     fn skip_lines(&mut self, count: usize) -> Result<(), String> {
@@ -151,6 +170,13 @@ fn create_dimens_with_id(id: String) -> Dimensions {
     dimens
 }
 
+fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
+    let mut constraint = ConstraintPipeline::new();
+    constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
+
+    unimplemented!("Add demand constraint module")
+}
+
 struct Matrix {
     locations: Vec<(usize, usize)>,
 }
@@ -161,6 +187,22 @@ impl Matrix {
     }
 
     fn location(&mut self, location: (usize, usize)) -> Location {
-        0
+        unimplemented!()
+    }
+
+    fn create_transport(&self) -> MatrixTransportCost {
+        let matrix_data = self
+            .locations
+            .iter()
+            .flat_map(|&(x1, y1)| {
+                self.locations.iter().map(move |&(x2, y2)| {
+                    let x = x1 as f64 - x2 as f64;
+                    let y = y1 as f64 - y2 as f64;
+                    (x * x + y * y).sqrt()
+                })
+            })
+            .collect::<Vec<f64>>();
+
+        MatrixTransportCost::new(vec![matrix_data.clone()], vec![matrix_data])
     }
 }

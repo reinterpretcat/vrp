@@ -20,6 +20,17 @@ pub trait ActivityCost {
     }
 }
 
+/// Default activity costs.
+pub struct SimpleActivityCost {}
+
+impl SimpleActivityCost {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl ActivityCost for SimpleActivityCost {}
+
 /// Provides the way to get routing information for specific locations.
 pub trait TransportCost {
     /// Returns transport cost between two locations.
@@ -47,14 +58,14 @@ pub struct MatrixTransportCost {
 }
 
 impl MatrixTransportCost {
-    fn new(durations: Vec<Vec<Duration>>, distances: Vec<Vec<Distance>>) -> MatrixTransportCost {
+    pub fn new(durations: Vec<Vec<Duration>>, distances: Vec<Vec<Distance>>) -> Self {
         let size = (durations.first().unwrap().len() as f64).sqrt() as usize;
 
         assert_eq!(distances.len(), durations.len());
         assert!(distances.iter().all(|d| (d.len() as f64).sqrt() as usize == size));
         assert!(durations.iter().all(|d| (d.len() as f64).sqrt() as usize == size));
 
-        MatrixTransportCost { durations, distances, size }
+        Self { durations, distances, size }
     }
 }
 

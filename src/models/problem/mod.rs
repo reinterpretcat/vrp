@@ -1,5 +1,7 @@
 mod costs;
 pub use self::costs::ActivityCost;
+pub use self::costs::MatrixTransportCost;
+pub use self::costs::SimpleActivityCost;
 pub use self::costs::TransportCost;
 
 mod jobs;
