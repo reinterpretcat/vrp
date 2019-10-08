@@ -4,10 +4,7 @@ mod solomon_tests;
 
 use crate::construction::constraints::{ConstraintPipeline, TimingConstraintModule};
 use crate::models::common::{Dimensions, Location, TimeWindow};
-use crate::models::problem::{
-    ActivityCost, Costs, Driver, Fleet, Job, Jobs, MatrixTransportCost, Place, SimpleActivityCost, Single,
-    TransportCost, Vehicle, VehicleDetail,
-};
+use crate::models::problem::*;
 use crate::models::Problem;
 use crate::objectives::PenalizeUnassigned;
 use crate::utils::TryCollect;
@@ -187,7 +184,14 @@ impl Matrix {
     }
 
     fn location(&mut self, location: (usize, usize)) -> Location {
-        unimplemented!()
+        match self.locations.iter()
+            .position(|l| l.0 == location.0 && l.1 == location.1) {
+            Some(position) => position,
+            _ => {
+                self.locations.push(location);
+                self.locations.len() - 1
+            }
+        }
     }
 
     fn create_transport(&self) -> MatrixTransportCost {
