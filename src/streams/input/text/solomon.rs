@@ -2,7 +2,7 @@
 #[path = "../../../../tests/unit/streams/input/text/solomon_tests.rs"]
 mod solomon_tests;
 
-use crate::construction::constraints::{ConstraintPipeline, TimingConstraintModule};
+use crate::construction::constraints::{ConstraintPipeline, SizingConstraintModule, TimingConstraintModule};
 use crate::models::common::{Dimensions, Location, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
@@ -170,8 +170,9 @@ fn create_dimens_with_id(id: String) -> Dimensions {
 fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::new();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
+    constraint.add_module(Box::new(SizingConstraintModule::new(2)));
 
-    unimplemented!("Add demand constraint module")
+    constraint
 }
 
 struct Matrix {
@@ -184,8 +185,7 @@ impl Matrix {
     }
 
     fn location(&mut self, location: (usize, usize)) -> Location {
-        match self.locations.iter()
-            .position(|l| l.0 == location.0 && l.1 == location.1) {
+        match self.locations.iter().position(|l| l.0 == location.0 && l.1 == location.1) {
             Some(position) => position,
             _ => {
                 self.locations.push(location);
