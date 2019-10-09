@@ -1,6 +1,17 @@
+use std::fs::File;
+use std::path::PathBuf;
+
 pub mod construction;
 pub mod models;
 pub mod objectives;
+
+pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
+    let mut path = std::env::current_dir()?;
+    path.push("tests");
+    path.push(resource_path);
+
+    File::open(path)
+}
 
 // See https://stackoverflow.com/questions/34662713/how-can-i-create-parameterized-tests-in-rust
 macro_rules! with_dollar_sign {
