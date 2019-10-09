@@ -14,3 +14,4 @@ pub use self::timing::TimingConstraintModule;
 
 mod capacity;
 pub use self::capacity::CapacityConstraintModule;
+pub use self::capacity::CapacityDimension;

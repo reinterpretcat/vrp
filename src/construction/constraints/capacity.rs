@@ -1,5 +1,6 @@
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
+use crate::models::common::Dimensions;
 use crate::models::problem::Job;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
@@ -59,6 +60,26 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Se
 
     fn get_constraints(&self) -> Iter<ConstraintVariant> {
         self.constraints.iter()
+    }
+}
+
+pub trait CapacityDimension<Capacity: Add + Sub + PartialOrd + Send + Sync + 'static> {
+    fn set_capacity(&mut self, demand: Capacity) -> &mut Self;
+    fn get_capacity(&self) -> Option<&Capacity>;
+}
+
+const CAPACITY_DIMENSION_KEY: &str = "cpc";
+
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Send + Sync + 'static>
+    CapacityDimension<Capacity> for Dimensions
+{
+    fn set_capacity(&mut self, demand: Capacity) -> &mut Self {
+        self.insert(CAPACITY_DIMENSION_KEY.to_string(), Box::new(demand));
+        self
+    }
+
+    fn get_capacity(&self) -> Option<&Capacity> {
+        self.get(CAPACITY_DIMENSION_KEY).and_then(|any| any.downcast_ref::<Capacity>())
     }
 }
 
