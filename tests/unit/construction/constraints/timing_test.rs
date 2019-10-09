@@ -1,4 +1,4 @@
-use crate::construction::constraints::{ActivityConstraintViolation, LATEST_ARRIVAL_KEY};
+use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::states::{
     create_end_activity, create_start_activity, ActivityContext, RouteContext, RouteState,
 };
@@ -83,7 +83,7 @@ fn can_properly_handle_fleet_with_4_vehicles_impl(vehicle: &str, activity: usize
         .state
         .read()
         .unwrap()
-        .get_activity_state::<Timestamp>(LATEST_ARRIVAL_KEY, ctx.route.read().unwrap().tour.get(activity).unwrap())
+        .get_activity_state::<Timestamp>(1, ctx.route.read().unwrap().tour.get(activity).unwrap())
         .unwrap()
         .clone();
 

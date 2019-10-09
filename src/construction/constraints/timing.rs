@@ -11,8 +11,8 @@ use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
-pub const LATEST_ARRIVAL_KEY: i32 = 1;
-pub const WAITING_KEY: i32 = 2;
+const LATEST_ARRIVAL_KEY: i32 = 1;
+const WAITING_KEY: i32 = 2;
 const OP_START_MSG: &str = "Optional start is not yet implemented.";
 
 /// Checks whether vehicle can serve activity taking into account their time windows.

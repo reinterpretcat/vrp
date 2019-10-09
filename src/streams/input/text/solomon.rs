@@ -2,7 +2,7 @@
 #[path = "../../../../tests/unit/streams/input/text/solomon_tests.rs"]
 mod solomon_tests;
 
-use crate::construction::constraints::{ConstraintPipeline, SizingConstraintModule, TimingConstraintModule};
+use crate::construction::constraints::{ConstraintPipeline, DemandConstraintModule, TimingConstraintModule};
 use crate::models::common::{Dimensions, Location, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
@@ -88,6 +88,7 @@ impl<R: Read> SolomonReader<R> {
                         per_waiting_time: 0.0,
                         per_service_time: 0.0,
                     },
+                    // TODO assign demand
                     dimens: create_dimens_with_id(["v".to_string(), i.to_string()].concat()),
                     details: vec![VehicleDetail { start: location, end: location, time: time.clone() }],
                 })
@@ -97,7 +98,6 @@ impl<R: Read> SolomonReader<R> {
 
     fn read_jobs(&mut self, fleet: &Fleet) -> Result<Vec<Arc<Job>>, String> {
         let mut jobs: Vec<Arc<Job>> = Default::default();
-        let mut i: usize = 1;
         loop {
             match self.read_customer() {
                 Ok(customer) => {
@@ -107,9 +107,9 @@ impl<R: Read> SolomonReader<R> {
                             duration: customer.service as f64,
                             times: vec![TimeWindow { start: customer.start as f64, end: customer.end as f64 }],
                         }],
-                        dimens: create_dimens_with_id(["c".to_string(), i.to_string()].concat()),
+                        // TODO assign demand
+                        dimens: create_dimens_with_id(["c".to_string(), customer.id.to_string()].concat()),
                     }))));
-                    i = i + 1;
                 }
                 Err(error) => {
                     if self.buffer.is_empty() {
@@ -170,7 +170,7 @@ fn create_dimens_with_id(id: String) -> Dimensions {
 fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::new();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
-    constraint.add_module(Box::new(SizingConstraintModule::new(2)));
+    constraint.add_module(Box::new(DemandConstraintModule::<usize>::new(2)));
 
     constraint
 }
