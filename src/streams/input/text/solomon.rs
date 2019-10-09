@@ -2,7 +2,7 @@
 #[path = "../../../../tests/unit/streams/input/text/solomon_tests.rs"]
 mod solomon_tests;
 
-use crate::construction::constraints::{ConstraintPipeline, DemandConstraintModule, TimingConstraintModule};
+use crate::construction::constraints::*;
 use crate::models::common::{Dimensions, Location, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
@@ -170,7 +170,7 @@ fn create_dimens_with_id(id: String) -> Dimensions {
 fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::new();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
-    constraint.add_module(Box::new(DemandConstraintModule::<usize>::new(2)));
+    constraint.add_module(Box::new(CapacityConstraintModule::<usize>::new(2)));
 
     constraint
 }

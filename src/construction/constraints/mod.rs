@@ -12,5 +12,5 @@ pub use self::pipeline::SoftRouteConstraint;
 mod timing;
 pub use self::timing::TimingConstraintModule;
 
-mod demand;
-pub use self::demand::DemandConstraintModule;
+mod capacity;
+pub use self::capacity::CapacityConstraintModule;
