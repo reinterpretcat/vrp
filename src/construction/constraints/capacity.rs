@@ -193,7 +193,24 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        unimplemented!()
+        let route = &route_ctx.route.read().unwrap();
+        let state = &route_ctx.state.read().unwrap();
+        let demand = activity_ctx.target.job.as_ref().and_then(|job| match job.as_ref() {
+            Job::Single(job) => job.dimens.get_demand(),
+            _ => None,
+        });
+
+        if can_handle_demand::<Capacity>(
+            &route.tour,
+            state,
+            activity_ctx.prev,
+            route.actor.vehicle.dimens.get_capacity(),
+            demand,
+        ) {
+            None
+        } else {
+            Some(ActivityConstraintViolation { code: self.code, stopped: false })
+        }
     }
 }
 
