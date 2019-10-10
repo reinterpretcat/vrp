@@ -48,5 +48,18 @@ impl Eq for Schedule {}
 /// * tag.
 pub type Dimensions = HashMap<String, Box<dyn Any + Send + Sync>>;
 
-/// Specifies size of requested work.
-pub trait Size {}
+pub trait IdDimension {
+    fn set_id(&mut self, id: &str) -> &mut Self;
+    fn get_id(&self) -> Option<&String>;
+}
+
+impl IdDimension for Dimensions {
+    fn set_id(&mut self, id: &str) -> &mut Self {
+        self.insert("id".to_string(), Box::new(id.to_string()));
+        self
+    }
+
+    fn get_id(&self) -> Option<&String> {
+        self.get("id").and_then(|any| any.downcast_ref::<String>())
+    }
+}

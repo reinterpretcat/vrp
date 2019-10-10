@@ -1,6 +1,6 @@
 use crate::construction::constraints::Demand;
 use crate::construction::constraints::DemandDimension;
-use crate::models::common::{Duration, Location, Size, TimeWindow};
+use crate::models::common::{Duration, IdDimension, Location, TimeWindow};
 use crate::models::problem::{Job, Multi, Place, Single};
 use std::sync::Arc;
 
@@ -21,7 +21,7 @@ pub fn test_single_with_id(id: &str) -> Single {
         }],
         dimens: Default::default(),
     };
-    single.dimens.insert("id".to_string(), Box::new(id.to_string()));
+    single.dimens.set_id(id);
     single
 }
 
@@ -130,7 +130,7 @@ fn test_multi() -> Multi {
         vec![Arc::new(test_single_with_id("single1")), Arc::new(test_single_with_id("single2"))],
         Default::default(),
     );
-    multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
+    multi.dimens.set_id("multi");
     multi
 }
 
@@ -141,20 +141,20 @@ pub struct MultiBuilder {
 impl MultiBuilder {
     pub fn new() -> Self {
         let mut multi = Multi::new(vec![], Default::default());
-        multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
+        multi.dimens.set_id("multi");
 
         Self { multi }
     }
 
     pub fn new_with_permutations(permutations: Vec<Vec<usize>>) -> Self {
         let mut multi = Multi::new_with_generator(vec![], Default::default(), Box::new(move |m| permutations.clone()));
-        multi.dimens.insert("id".to_string(), Box::new("multi".to_string()));
+        multi.dimens.set_id("multi");
 
         Self { multi }
     }
 
     pub fn id(&mut self, id: &str) -> &mut Self {
-        self.multi.dimens.insert("id".to_string(), Box::new(id.to_string()));
+        self.multi.dimens.set_id(id);
         self
     }
 

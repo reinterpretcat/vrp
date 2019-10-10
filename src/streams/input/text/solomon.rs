@@ -3,7 +3,7 @@
 mod solomon_tests;
 
 use crate::construction::constraints::*;
-use crate::models::common::{Dimensions, Location, TimeWindow};
+use crate::models::common::{Dimensions, IdDimension, Location, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
 use crate::objectives::PenalizeUnassigned;
@@ -75,7 +75,7 @@ impl<R: Read> SolomonReader<R> {
                     per_waiting_time: 0.0,
                     per_service_time: 0.0,
                 },
-                dimens: create_dimens_with_id("driver".to_string()),
+                dimens: create_dimens_with_id("driver"),
                 details: Default::default(),
             }],
             (0..vehicle.number)
@@ -89,7 +89,7 @@ impl<R: Read> SolomonReader<R> {
                         per_service_time: 0.0,
                     },
                     // TODO assign demand
-                    dimens: create_dimens_with_id(["v".to_string(), i.to_string()].concat()),
+                    dimens: create_dimens_with_id(["v".to_string(), i.to_string()].concat().as_str()),
                     details: vec![VehicleDetail { start: location, end: location, time: time.clone() }],
                 })
                 .collect(),
@@ -108,7 +108,7 @@ impl<R: Read> SolomonReader<R> {
                             times: vec![TimeWindow { start: customer.start as f64, end: customer.end as f64 }],
                         }],
                         // TODO assign demand
-                        dimens: create_dimens_with_id(["c".to_string(), customer.id.to_string()].concat()),
+                        dimens: create_dimens_with_id(["c".to_string(), customer.id.to_string()].concat().as_str()),
                     }))));
                 }
                 Err(error) => {
@@ -161,9 +161,9 @@ impl<R: Read> SolomonReader<R> {
     }
 }
 
-fn create_dimens_with_id(id: String) -> Dimensions {
+fn create_dimens_with_id(id: &str) -> Dimensions {
     let mut dimens = Dimensions::new();
-    dimens.insert("id".to_string(), Box::new(id));
+    dimens.set_id(id);
     dimens
 }
 

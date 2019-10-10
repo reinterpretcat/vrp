@@ -1,6 +1,6 @@
 use crate::construction::constraints::CapacityDimension;
 use crate::helpers::models::common::DEFAULT_PROFILE;
-use crate::models::common::{Dimensions, Location, Profile, TimeWindow};
+use crate::models::common::{Dimensions, IdDimension, Location, Profile, TimeWindow};
 use crate::models::problem::{Costs, Driver, Fleet, Vehicle, VehicleDetail};
 use crate::models::solution::{Actor, Detail};
 use std::sync::Arc;
@@ -35,7 +35,7 @@ pub fn test_vehicle(profile: i32) -> Vehicle {
 }
 
 pub fn get_vehicle_id(vehicle: &Vehicle) -> &String {
-    vehicle.dimens.get(&"id".to_string()).unwrap().downcast_ref::<String>().unwrap()
+    vehicle.dimens.get_id().unwrap()
 }
 
 pub fn get_test_actor_from_fleet(fleet: &Fleet, vehicle_id: &str) -> Arc<Actor> {
@@ -62,7 +62,7 @@ impl VehicleBuilder {
     }
 
     pub fn id(&mut self, id: &str) -> &mut VehicleBuilder {
-        self.vehicle.dimens.insert("id".to_string(), Box::new(id.to_string()));
+        self.vehicle.dimens.set_id(id);
         self
     }
 
