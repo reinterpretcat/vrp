@@ -1,8 +1,8 @@
 use crate::construction::constraints::*;
-use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
+use crate::construction::states::{ActivityContext, RouteContext, RouteState, SolutionContext};
 use crate::models::common::Dimensions;
 use crate::models::problem::Job;
-use crate::models::solution::TourActivity;
+use crate::models::solution::{Tour, TourActivity};
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::slice::Iter;
@@ -158,7 +158,25 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     HardRouteConstraint for CapacityHardRouteConstraint<Capacity>
 {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
-        unimplemented!()
+        match job.as_ref() {
+            Job::Single(job) => {
+                let route = &ctx.route.read().unwrap();
+                let state = &ctx.state.read().unwrap();
+                if can_handle_demand::<Capacity>(
+                    &route.tour,
+                    state,
+                    route.tour.start().unwrap_or_else(|| unimplemented!("Optional start is not yet implemented.")),
+                    route.actor.vehicle.dimens.get_capacity(),
+                    job.dimens.get_demand(),
+                ) {
+                    None
+                } else {
+                    Some(RouteConstraintViolation { code: self.code })
+                }
+            }
+            // TODO we can check at least static pickups/deliveries
+            _ => None,
+        }
     }
 }
 
@@ -188,4 +206,43 @@ fn get_demand<
         Job::Single(job) => job.dimens.get_demand(),
         _ => None,
     })
+}
+
+fn can_handle_demand<
+    Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
+>(
+    tour: &Tour,
+    state: &RouteState,
+    pivot: &TourActivity,
+    capacity: Option<&Capacity>,
+    demand: Option<&Demand<Capacity>>,
+) -> bool {
+    if let Some(demand) = demand {
+        if let Some(&capacity) = capacity {
+            // cannot handle more static deliveries
+            if demand.delivery.0 > Capacity::default() {
+                let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+                if past + demand.delivery.0 > capacity {
+                    return false;
+                }
+            }
+
+            // cannot handle more static pickups
+            if demand.pickup.0 > Capacity::default() {
+                // NOTE this minus delivery demand works for symmetric dynamic pickup/delivery will it work for arbitrary cases?
+                let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+                if future + demand.pickup.0 - demand.delivery.1 > capacity {
+                    return false;
+                }
+            }
+
+            // can load more at current
+            let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+            return current + demand.change() <= capacity;
+        } else {
+            return false;
+        }
+    } else {
+        return true;
+    }
 }
