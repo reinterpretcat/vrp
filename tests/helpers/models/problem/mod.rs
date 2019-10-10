@@ -20,6 +20,7 @@ pub use self::fleet::DEFAULT_VEHICLE_COSTS;
 
 mod jobs;
 pub use self::jobs::get_job_id;
+pub use self::jobs::get_job_simple_demand;
 pub use self::jobs::test_multi_job_with_locations;
 pub use self::jobs::test_place_with_location;
 pub use self::jobs::test_single;

@@ -68,9 +68,16 @@ pub fn get_job_id(job: &Job) -> &String {
         Job::Single(single) => &single.dimens,
         Job::Multi(multi) => &multi.dimens,
     }
-    .get(&"id".to_string())
+    .get_id()
     .unwrap()
-    .downcast_ref::<String>()
+}
+
+pub fn get_job_simple_demand(job: &Job) -> &Demand<i32> {
+    match job {
+        Job::Single(single) => &single.dimens,
+        Job::Multi(multi) => &multi.dimens,
+    }
+    .get_demand()
     .unwrap()
 }
 

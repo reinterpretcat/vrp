@@ -105,7 +105,7 @@ impl<R: Read> SolomonReader<R> {
             match self.read_customer() {
                 Ok(customer) => {
                     let mut dimens = create_dimens_with_id("c", customer.id);
-                    dimens.set_demand(Demand::<i32> { pickup: (0, 0), delivery: (customer.id as i32, 0) });
+                    dimens.set_demand(Demand::<i32> { pickup: (0, 0), delivery: (customer.demand as i32, 0) });
                     jobs.push(Arc::new(Job::Single(Arc::new(Single {
                         places: vec![Place {
                             location: Some(self.matrix.location(customer.location)),
