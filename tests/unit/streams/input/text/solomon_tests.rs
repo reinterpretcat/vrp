@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::BufReader;
 
 #[test]
-fn can_read_solomon_format() -> std::io::Result<()> {
+fn can_read_solomon_format() {
     let file = get_test_resource("data/solomon/C101.25.txt").unwrap();
     let mut reader = BufReader::new(file);
 
-    let problem = parse_solomon_format(reader);
+    let problem = parse_solomon_format(reader).unwrap();
 
-    Ok(())
+    // TODO
 }

@@ -75,22 +75,25 @@ impl<R: Read> SolomonReader<R> {
                     per_waiting_time: 0.0,
                     per_service_time: 0.0,
                 },
-                dimens: create_dimens_with_id("driver"),
+                dimens: create_dimens_with_id("driver", 0),
                 details: Default::default(),
             }],
             (0..vehicle.number)
-                .map(|i| Vehicle {
-                    profile: 0,
-                    costs: Costs {
-                        fixed: 0.0,
-                        per_distance: 1.0,
-                        per_driving_time: 0.0,
-                        per_waiting_time: 0.0,
-                        per_service_time: 0.0,
-                    },
-                    // TODO assign demand
-                    dimens: create_dimens_with_id(["v".to_string(), i.to_string()].concat().as_str()),
-                    details: vec![VehicleDetail { start: location, end: location, time: time.clone() }],
+                .map(|i| {
+                    let mut dimens = create_dimens_with_id("v", i);
+                    dimens.set_capacity(vehicle.capacity as i32);
+                    Vehicle {
+                        profile: 0,
+                        costs: Costs {
+                            fixed: 0.0,
+                            per_distance: 1.0,
+                            per_driving_time: 0.0,
+                            per_waiting_time: 0.0,
+                            per_service_time: 0.0,
+                        },
+                        dimens,
+                        details: vec![VehicleDetail { start: location, end: location, time: time.clone() }],
+                    }
                 })
                 .collect(),
         ))
@@ -101,14 +104,15 @@ impl<R: Read> SolomonReader<R> {
         loop {
             match self.read_customer() {
                 Ok(customer) => {
+                    let mut dimens = create_dimens_with_id("c", customer.id);
+                    dimens.set_demand(Demand::<i32> { pickup: (0, 0), delivery: (customer.id as i32, 0) });
                     jobs.push(Arc::new(Job::Single(Arc::new(Single {
                         places: vec![Place {
                             location: Some(self.matrix.location(customer.location)),
                             duration: customer.service as f64,
                             times: vec![TimeWindow { start: customer.start as f64, end: customer.end as f64 }],
                         }],
-                        // TODO assign demand
-                        dimens: create_dimens_with_id(["c".to_string(), customer.id.to_string()].concat().as_str()),
+                        dimens,
                     }))));
                 }
                 Err(error) => {
@@ -161,9 +165,9 @@ impl<R: Read> SolomonReader<R> {
     }
 }
 
-fn create_dimens_with_id(id: &str) -> Dimensions {
+fn create_dimens_with_id(prefix: &str, id: usize) -> Dimensions {
     let mut dimens = Dimensions::new();
-    dimens.set_id(id);
+    dimens.set_id([prefix.to_string(), id.to_string()].concat().as_str());
     dimens
 }
 
