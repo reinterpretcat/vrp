@@ -16,16 +16,15 @@ const MAX_PAST_CAPACITY_KEY: i32 = 13;
 // TODO consider to use TODO trait aliases once they are stabilized (or macro?).
 
 /// Represents job demand, both static and dynamic.
-pub struct Demand<Capacity: Add + Sub + PartialOrd + Copy + Default + Send + Sync + 'static> {
+pub struct Demand<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     /// Keeps static and dynamic pickup amount.
     pub pickup: (Capacity, Capacity),
     /// Keeps static and dynamic delivery amount.
     pub delivery: (Capacity, Capacity),
 }
 
-impl<
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
-    > Demand<Capacity>
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    Demand<Capacity>
 {
     /// Returns capacity change as difference between pickup and delivery.
     fn change(&self) -> Capacity {
@@ -33,9 +32,8 @@ impl<
     }
 }
 
-impl<
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
-    > Default for Demand<Capacity>
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Default
+    for Demand<Capacity>
 {
     fn default() -> Self {
         Self { pickup: (Default::default(), Default::default()), delivery: (Default::default(), Default::default()) }
@@ -44,16 +42,15 @@ impl<
 
 /// Checks whether vehicle can handle activity's demand.
 /// Capacity can be interpreted as vehicle capacity change after visiting specific activity.
-pub struct CapacityConstraintModule<Capacity: Add + Sub + PartialOrd + Copy + Default + Send + Sync + 'static> {
+pub struct CapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     code: i32,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
     phantom: PhantomData<Capacity>,
 }
 
-impl<
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
-    > CapacityConstraintModule<Capacity>
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    CapacityConstraintModule<Capacity>
 {
     pub fn new(code: i32) -> Self {
         Self {
@@ -74,17 +71,32 @@ impl<
     }
 }
 
-impl<
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
-    > ConstraintModule for CapacityConstraintModule<Capacity>
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    ConstraintModule for CapacityConstraintModule<Capacity>
 {
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        let start =
-            ctx.route.read().unwrap().tour.all_activities().fold(Capacity::default(), |total, a| {
-                total + get_demand(a).map_or(Capacity::default(), |d| d.delivery.0)
-            });
+        let tour = &ctx.route.read().unwrap().tour;
+        let mut state = ctx.state.write().unwrap();
 
-        unimplemented!()
+        let start = tour
+            .all_activities()
+            .fold(Capacity::default(), |total, a| total + get_demand(a).map_or(Capacity::default(), |d| d.delivery.0));
+
+        let end = tour.all_activities().fold((start, start), |acc, a| {
+            let current = acc.0 + get_demand(a).unwrap_or(&Demand::<Capacity>::default()).change();
+            let max = std::cmp::max(acc.1, current);
+
+            state.put_activity_state(CURRENT_CAPACITY_KEY, a, current);
+            state.put_activity_state(MAX_PAST_CAPACITY_KEY, a, max);
+
+            (current, max)
+        });
+
+        tour.all_activities().rev().fold(end.0, |acc, a| {
+            let max = std::cmp::max(acc, *state.get_activity_state(CURRENT_CAPACITY_KEY, a).unwrap());
+            state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, a, max);
+            max
+        });
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {}
@@ -101,19 +113,18 @@ impl<
 const CAPACITY_DIMENSION_KEY: &str = "cpc";
 const DEMAND_DIMENSION_KEY: &str = "dmd";
 
-pub trait CapacityDimension<Capacity: Add + Sub + PartialOrd + Copy + Default + Send + Sync + 'static> {
+pub trait CapacityDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     fn set_capacity(&mut self, demand: Capacity) -> &mut Self;
     fn get_capacity(&self) -> Option<&Capacity>;
 }
 
-pub trait DemandDimension<Capacity: Add + Sub + PartialOrd + Copy + Default + Send + Sync + 'static> {
+pub trait DemandDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     fn set_demand(&mut self, demand: Demand<Capacity>) -> &mut Self;
     fn get_demand(&self) -> Option<&Demand<Capacity>>;
 }
 
-impl<
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
-    > CapacityDimension<Capacity> for Dimensions
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    CapacityDimension<Capacity> for Dimensions
 {
     fn set_capacity(&mut self, demand: Capacity) -> &mut Self {
         self.insert(CAPACITY_DIMENSION_KEY.to_string(), Box::new(demand));
@@ -125,9 +136,8 @@ impl<
     }
 }
 
-impl<
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
-    > DemandDimension<Capacity> for Dimensions
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    DemandDimension<Capacity> for Dimensions
 {
     fn set_demand(&mut self, demand: Demand<Capacity>) -> &mut Self {
         self.insert(DEMAND_DIMENSION_KEY.to_string(), Box::new(demand));
@@ -139,28 +149,26 @@ impl<
     }
 }
 
-struct CapacityHardRouteConstraint<Capacity: Add + Sub + PartialOrd + Copy + Default + Send + Sync + 'static> {
+struct CapacityHardRouteConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     code: i32,
     phantom: PhantomData<Capacity>,
 }
 
-impl<
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
-    > HardRouteConstraint for CapacityHardRouteConstraint<Capacity>
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    HardRouteConstraint for CapacityHardRouteConstraint<Capacity>
 {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         unimplemented!()
     }
 }
 
-struct CapacityHardActivityConstraint<Capacity: Add + Sub + PartialOrd + Copy + Default + Send + Sync + 'static> {
+struct CapacityHardActivityConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     code: i32,
     phantom: PhantomData<Capacity>,
 }
 
-impl<
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
-    > HardActivityConstraint for CapacityHardActivityConstraint<Capacity>
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    HardActivityConstraint for CapacityHardActivityConstraint<Capacity>
 {
     fn evaluate_activity(
         &self,
@@ -172,7 +180,7 @@ impl<
 }
 
 fn get_demand<
-    Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + PartialOrd + Copy + Default + Send + Sync + 'static,
+    Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
 >(
     activity: &TourActivity,
 ) -> Option<&Demand<Capacity>> {
