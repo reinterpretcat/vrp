@@ -1,8 +1,8 @@
 use crate::construction::constraints::capacity::CURRENT_CAPACITY_KEY;
-use crate::construction::constraints::Demand;
+use crate::construction::constraints::{Demand, RouteConstraintViolation};
 use crate::construction::states::{RouteContext, RouteState};
 use crate::helpers::construction::constraints::*;
-use crate::helpers::models::problem::{test_driver, VehicleBuilder};
+use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::TimeWindow;
 use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
@@ -69,4 +69,27 @@ fn can_calculate_current_capacity_state_values_impl(
     assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, &state, tour.get(1)), exp_s1);
     assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, &state, tour.get(2)), exp_s2);
     assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, &state, tour.get(3)), exp_s3);
+}
+
+parameterized_test! {can_evaluate_demand_on_route, (size, expected), {
+    can_evaluate_demand_on_route_impl(size, expected);
+}}
+
+can_evaluate_demand_on_route! {
+    case01: (11, Some(RouteConstraintViolation { code: 2})),
+    case02: (10, None),
+    case03: (9, None),
+}
+
+fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraintViolation>) {
+    let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
+    let mut ctx = RouteContext {
+        route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
+        state: Arc::new(RwLock::new(RouteState::new())),
+    };
+    let job = Arc::new(test_single_job_with_simple_demand(create_demand(size)));
+
+    let result = create_constraint_pipeline_with_simple_capacity().evaluate_hard_route(&ctx, &job);
+
+    assert_eq_option!(result, expected);
 }
