@@ -98,39 +98,49 @@ fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraint
     assert_eq_option!(result, expected);
 }
 
-parameterized_test! {can_evaluate_demand_on_activity, (s1, s2, s3, expected), {
-    can_evaluate_demand_on_activity_impl(s1, s2, s3, expected);
+parameterized_test! {can_evaluate_demand_on_activity, (sizes, neighbours, size, expected), {
+    can_evaluate_demand_on_activity_impl(sizes, neighbours, size, expected);
 }}
 
 can_evaluate_demand_on_activity! {
-    case01: (1, 1, 1, None),
-    case02: (1, 10, 1, create_activity_violation()),
-    case03: (-5, -1, -5, create_activity_violation()),
-    case04: (5, 1, 5, create_activity_violation()),
-    case05: (-5, 1, 5, None),
-    case06: (5, 1, -5, create_activity_violation()),
-    case07: (4, -1, -5, None),
+    case01: (vec![1, 1], (1, 2), 1, None),
+    case02: (vec![1, 1], (1, 2),10, create_activity_violation()),
+    case03: (vec![-5, -5], (1, 2),-1, create_activity_violation()),
+    case04: (vec![5, 5], (1, 2),1, create_activity_violation()),
+    case05: (vec![-5, 5], (1, 2),1, None),
+    case06: (vec![5, -5], (1, 2), 1, create_activity_violation()),
+    case07: (vec![4, -5], (1, 2),-1, None),
+    case08: (vec![-3, -5, -2], (0, 1),-1, create_activity_violation()),
+    case09: (vec![-3, -5, -2], (0, 2), -1, create_activity_violation()),
+    case10: (vec![-3, -5, -2], (1, 3), -1, create_activity_violation()),
+    case11: (vec![-3, -5, -2], (3, 4), -1, create_activity_violation()),
 }
 
-fn can_evaluate_demand_on_activity_impl(s1: i32, s2: i32, s3: i32, expected: Option<ActivityConstraintViolation>) {
+fn can_evaluate_demand_on_activity_impl(
+    sizes: Vec<i32>,
+    neighbours: (usize, usize),
+    size: i32,
+    expected: Option<ActivityConstraintViolation>,
+) {
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
     let mut route_ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route_with_activities(
             &fleet,
             "v1",
-            vec![
-                test_tour_activity_with_simple_demand(create_demand(s1)),
-                test_tour_activity_with_simple_demand(create_demand(s3)),
-            ],
+            sizes.into_iter().map(|size| test_tour_activity_with_simple_demand(create_demand(size))).collect(),
         ))),
         state: Arc::new(RwLock::new(RouteState::new())),
     };
     let pipeline = create_constraint_pipeline_with_simple_capacity();
     pipeline.accept_route_state(&mut route_ctx);
     let route = route_ctx.route.read().unwrap();
-    let target = test_tour_activity_with_simple_demand(create_demand(s2));
-    let activity_ctx =
-        ActivityContext { index: 0, prev: route.tour.get(1).unwrap(), target: &target, next: route.tour.get(2) };
+    let target = test_tour_activity_with_simple_demand(create_demand(size));
+    let activity_ctx = ActivityContext {
+        index: 0,
+        prev: route.tour.get(neighbours.0).unwrap(),
+        target: &target,
+        next: route.tour.get(neighbours.1),
+    };
 
     let result = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx);
 
