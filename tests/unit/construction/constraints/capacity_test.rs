@@ -1,6 +1,6 @@
 use crate::construction::constraints::capacity::CURRENT_CAPACITY_KEY;
-use crate::construction::constraints::{Demand, RouteConstraintViolation};
-use crate::construction::states::{RouteContext, RouteState};
+use crate::construction::constraints::{ActivityConstraintViolation, Demand, RouteConstraintViolation};
+use crate::construction::states::{ActivityContext, RouteContext, RouteState};
 use crate::helpers::construction::constraints::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
@@ -20,6 +20,10 @@ fn create_demand(size: i32) -> Demand<i32> {
     } else {
         Demand::<i32> { pickup: (0, 0), delivery: (-size, 0) }
     }
+}
+
+fn create_activity_violation() -> Option<ActivityConstraintViolation> {
+    Some(ActivityConstraintViolation { code: 2, stopped: false })
 }
 
 fn get_simple_capacity_state(key: i32, state: &RouteState, activity: Option<&TourActivity>) -> i32 {
@@ -90,6 +94,45 @@ fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraint
     let job = Arc::new(test_single_job_with_simple_demand(create_demand(size)));
 
     let result = create_constraint_pipeline_with_simple_capacity().evaluate_hard_route(&ctx, &job);
+
+    assert_eq_option!(result, expected);
+}
+
+parameterized_test! {can_evaluate_demand_on_activity, (s1, s2, s3, expected), {
+    can_evaluate_demand_on_activity_impl(s1, s2, s3, expected);
+}}
+
+can_evaluate_demand_on_activity! {
+    case01: (1, 1, 1, None),
+    case02: (1, 10, 1, create_activity_violation()),
+    case03: (-5, -1, -5, create_activity_violation()),
+    case04: (5, 1, 5, create_activity_violation()),
+    case05: (-5, 1, 5, None),
+    case06: (5, 1, -5, create_activity_violation()),
+    case07: (4, -1, -5, None),
+}
+
+fn can_evaluate_demand_on_activity_impl(s1: i32, s2: i32, s3: i32, expected: Option<ActivityConstraintViolation>) {
+    let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
+    let mut route_ctx = RouteContext {
+        route: Arc::new(RwLock::new(create_route_with_activities(
+            &fleet,
+            "v1",
+            vec![
+                test_tour_activity_with_simple_demand(create_demand(s1)),
+                test_tour_activity_with_simple_demand(create_demand(s3)),
+            ],
+        ))),
+        state: Arc::new(RwLock::new(RouteState::new())),
+    };
+    let pipeline = create_constraint_pipeline_with_simple_capacity();
+    pipeline.accept_route_state(&mut route_ctx);
+    let route = route_ctx.route.read().unwrap();
+    let target = test_tour_activity_with_simple_demand(create_demand(s2));
+    let activity_ctx =
+        ActivityContext { index: 0, prev: route.tour.get(1).unwrap(), target: &target, next: route.tour.get(2) };
+
+    let result = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx);
 
     assert_eq_option!(result, expected);
 }
