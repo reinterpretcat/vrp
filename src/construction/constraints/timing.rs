@@ -249,7 +249,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             return self.stop();
         }
 
-        if next.is_some() {
+        if next.is_none() {
             return self.success();
         }
 

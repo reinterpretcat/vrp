@@ -65,7 +65,7 @@ impl InsertionHeuristic {
                 {
                     let mut route = success.context.route.write().unwrap();
                     success.activities.into_iter().for_each(|(a, index)| {
-                        route.tour.insert_at(a, index);
+                        route.tour.insert_at(a, index + 1);
                     });
                 }
 
