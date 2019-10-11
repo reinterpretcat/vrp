@@ -4,6 +4,7 @@ use std::path::PathBuf;
 pub mod construction;
 pub mod models;
 pub mod objectives;
+pub mod streams;
 
 pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
     let mut path = std::env::current_dir()?;

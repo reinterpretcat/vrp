@@ -7,15 +7,32 @@ use crate::models::common::{Dimensions, IdDimension, Location, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
 use crate::objectives::PenalizeUnassigned;
+use crate::streams::input::text::StringReader;
 use crate::utils::TryCollect;
 use std::borrow::Borrow;
-use std::fs::read;
+use std::fs::{read, File};
 use std::io::prelude::*;
 use std::io::{BufReader, Error};
 use std::sync::Arc;
 
 pub fn parse_solomon_format<R: Read>(mut reader: BufReader<R>) -> Result<Problem, String> {
     SolomonReader { buffer: String::new(), reader, matrix: Matrix::new() }.read_problem()
+}
+
+pub trait SolomonProblem {
+    fn parse_solomon(&self) -> Result<Problem, String>;
+}
+
+impl SolomonProblem for File {
+    fn parse_solomon(&self) -> Result<Problem, String> {
+        parse_solomon_format(BufReader::new(self))
+    }
+}
+
+impl SolomonProblem for String {
+    fn parse_solomon(&self) -> Result<Problem, String> {
+        parse_solomon_format(BufReader::new(StringReader::new(self.as_str())))
+    }
 }
 
 struct SolomonReader<R: Read> {
@@ -147,7 +164,7 @@ impl<R: Read> SolomonReader<R> {
             .split_whitespace()
             .map(|line| line.parse::<usize>().unwrap())
             .try_collect()
-            .ok_or("Cannot read depot line".to_string())?;
+            .ok_or("Cannot read customer line".to_string())?;
         Ok(JobLine { id, location: (x, y), demand, start, end, service })
     }
 
