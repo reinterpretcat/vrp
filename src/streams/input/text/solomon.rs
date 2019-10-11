@@ -68,7 +68,7 @@ impl<R: Read> SolomonReader<R> {
             jobs: Arc::new(jobs),
             locks: vec![],
             constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
-            objective: Arc::new(PenalizeUnassigned::new()),
+            objective: Arc::new(PenalizeUnassigned::new(0.0)),
             activity,
             transport,
             extras: Arc::new(Default::default()),
