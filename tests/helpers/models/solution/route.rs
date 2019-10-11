@@ -1,7 +1,8 @@
+use crate::construction::states::{create_end_activity, create_start_activity};
 use crate::helpers::models::problem::*;
 use crate::models::common::{Location, Schedule};
-use crate::models::problem::Job;
-use crate::models::solution::{Activity, Place};
+use crate::models::problem::{Fleet, Job};
+use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
@@ -33,6 +34,19 @@ pub fn test_activity_without_job() -> Activity {
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: None,
     }
+}
+
+pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<TourActivity>) -> Route {
+    let actor = get_test_actor_from_fleet(fleet, vehicle);
+    let mut tour = Tour::new();
+    tour.set_start(create_start_activity(&actor));
+    create_end_activity(&actor).map(|end| tour.set_end(end));
+
+    activities.into_iter().enumerate().for_each(|(index, a)| {
+        tour.insert_at(a, index + 1);
+    });
+
+    Route { actor, tour }
 }
 
 pub struct ActivityBuilder {

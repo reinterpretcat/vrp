@@ -1,10 +1,8 @@
 use crate::construction::constraints::ActivityConstraintViolation;
-use crate::construction::states::{
-    create_end_activity, create_start_activity, ActivityContext, RouteContext, RouteState,
-};
+use crate::construction::states::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::{test_tour_activity_with_location, ActivityBuilder, DEFAULT_ACTIVITY_SCHEDULE};
+use crate::helpers::models::solution::*;
 use crate::models::common::{Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, VehicleDetail};
 use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
@@ -29,19 +27,6 @@ fn create_route(fleet: &Fleet, vehicle: &str) -> Route {
             test_tour_activity_with_location(30),
         ],
     )
-}
-
-fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<TourActivity>) -> Route {
-    let actor = get_test_actor_from_fleet(fleet, vehicle);
-    let mut tour = Tour::new();
-    tour.set_start(create_start_activity(&actor));
-    create_end_activity(&actor).map(|end| tour.set_end(end));
-
-    activities.into_iter().enumerate().for_each(|(index, a)| {
-        tour.insert_at(a, index + 1);
-    });
-
-    Route { actor, tour }
 }
 
 parameterized_test! {can_properly_handle_fleet_with_4_vehicles, (vehicle, activity, time), {

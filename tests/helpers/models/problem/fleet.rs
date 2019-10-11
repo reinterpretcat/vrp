@@ -1,3 +1,4 @@
+use crate::construction::constraints::CapacityDimension;
 use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::models::common::{Dimensions, Location, Profile, TimeWindow};
 use crate::models::problem::{Costs, Driver, Fleet, Vehicle, VehicleDetail};
@@ -70,6 +71,11 @@ impl VehicleBuilder {
         self
     }
 
+    pub fn capacity(&mut self, capacity: i32) -> &mut VehicleBuilder {
+        self.vehicle.dimens.set_capacity(capacity);
+        self
+    }
+
     pub fn costs(&mut self, costs: Costs) -> &mut VehicleBuilder {
         self.vehicle.costs = costs;
         self
@@ -77,11 +83,6 @@ impl VehicleBuilder {
 
     pub fn details(&mut self, details: Vec<VehicleDetail>) -> &mut VehicleBuilder {
         self.vehicle.details = details;
-        self
-    }
-
-    pub fn dimens(&mut self, dimens: Dimensions) -> &mut VehicleBuilder {
-        self.vehicle.dimens = dimens;
         self
     }
 

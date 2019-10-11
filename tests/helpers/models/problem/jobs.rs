@@ -1,3 +1,5 @@
+use crate::construction::constraints::Demand;
+use crate::construction::constraints::DemandDimension;
 use crate::models::common::{Duration, Location, Size, TimeWindow};
 use crate::models::problem::{Job, Multi, Place, Single};
 use std::sync::Arc;
@@ -25,6 +27,12 @@ pub fn test_single_with_id(id: &str) -> Single {
 
 pub fn test_single_job() -> Job {
     Job::Single(Arc::new(test_single()))
+}
+
+pub fn test_single_job_with_simple_demand(demand: Demand<i32>) -> Job {
+    let mut job = test_single();
+    job.dimens.set_demand(demand);
+    Job::Single(Arc::new(job))
 }
 
 pub fn test_place_with_location(location: Option<Location>) -> Place {

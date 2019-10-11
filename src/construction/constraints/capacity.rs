@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/constraints/capacity_test.rs"]
+mod capacity_test;
+
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, RouteState, SolutionContext};
 use crate::models::common::Dimensions;

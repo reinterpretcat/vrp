@@ -170,7 +170,7 @@ fn create_dimens_with_id(id: String) -> Dimensions {
 fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::new();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
-    constraint.add_module(Box::new(CapacityConstraintModule::<usize>::new(2)));
+    constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
 
     constraint
 }
