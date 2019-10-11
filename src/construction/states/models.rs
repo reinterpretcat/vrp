@@ -2,7 +2,7 @@ use crate::construction::states::route::RouteState;
 use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour, TourActivity};
-use crate::models::Problem;
+use crate::models::{Extras, Problem, Solution};
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
@@ -124,6 +124,21 @@ pub struct SolutionContext {
 
     /// Keeps track of used resources.
     pub registry: Registry,
+}
+
+impl SolutionContext {
+    pub fn into_solution(self, extras: Extras) -> Solution {
+        Solution {
+            registry: self.registry,
+            routes: self
+                .routes
+                .into_iter()
+                .map(|rc| Arc::try_unwrap(rc.route).unwrap_or_else(|_| panic!()).into_inner().unwrap())
+                .collect(),
+            unassigned: self.unassigned,
+            extras,
+        }
+    }
 }
 
 impl InsertionResult {

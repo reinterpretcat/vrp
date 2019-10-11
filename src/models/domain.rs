@@ -6,6 +6,8 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+pub type Extras = Arc<HashMap<String, Box<dyn Any + Send + Sync>>>;
+
 /// Defines VRP problem.
 pub struct Problem {
     /// Specifies used fleet.
@@ -23,7 +25,7 @@ pub struct Problem {
     /// Specifies transport costs.
     pub transport: Arc<dyn TransportCost + Send + Sync>,
     /// Specifies index for storing extra parameters of arbitrary type.
-    pub extras: Arc<HashMap<String, Box<dyn Any + Send + Sync>>>,
+    pub extras: Arc<Extras>,
 }
 
 /// Represents a VRP solution.
@@ -38,7 +40,7 @@ pub struct Solution {
     pub unassigned: HashMap<Arc<Job>, i32>,
 
     /// Specifies index for storing extra data of arbitrary type.
-    pub extras: HashMap<String, Box<dyn Any + Send + Sync>>,
+    pub extras: Extras,
 }
 
 /// Specifies jobs locked to specific actors.
