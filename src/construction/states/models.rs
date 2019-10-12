@@ -89,12 +89,12 @@ pub struct InsertionContext {
 }
 
 impl InsertionContext {
-    pub fn new(problem: Problem) -> Self {
+    pub fn new(problem: Arc<Problem>) -> Self {
         let registry = Registry::new(problem.fleet.as_ref());
         let required: Vec<Arc<Job>> = problem.jobs.all().collect();
         Self {
             progress: InsertionProgress { cost: None, completeness: 0.0, total: 0 },
-            problem: Arc::new(problem),
+            problem,
             solution: SolutionContext {
                 required,
                 ignored: Default::default(),
