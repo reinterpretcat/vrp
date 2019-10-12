@@ -15,7 +15,7 @@ use std::io::prelude::*;
 use std::io::{BufReader, Error};
 use std::sync::Arc;
 
-pub fn parse_solomon_format<R: Read>(mut reader: BufReader<R>) -> Result<Problem, String> {
+pub fn read_solomon_format<R: Read>(mut reader: BufReader<R>) -> Result<Problem, String> {
     SolomonReader { buffer: String::new(), reader, matrix: Matrix::new() }.read_problem()
 }
 
@@ -25,13 +25,13 @@ pub trait SolomonProblem {
 
 impl SolomonProblem for File {
     fn parse_solomon(&self) -> Result<Problem, String> {
-        parse_solomon_format(BufReader::new(self))
+        read_solomon_format(BufReader::new(self))
     }
 }
 
 impl SolomonProblem for String {
     fn parse_solomon(&self) -> Result<Problem, String> {
-        parse_solomon_format(BufReader::new(StringReader::new(self.as_str())))
+        read_solomon_format(BufReader::new(StringReader::new(self.as_str())))
     }
 }
 
