@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/heuristics/insertions_test.rs"]
+mod insertions_test;
+
 extern crate rayon;
 
 use self::rayon::slice::Iter;
@@ -54,10 +58,12 @@ impl InsertionHeuristic {
             InsertionResult::Success(mut success) => {
                 let job = success.job;
                 {
-                    let mut route = success.context.route.write().unwrap();
+                    let route = success.context.route.read().unwrap();
                     ctx.solution.registry.use_actor(&route.actor);
                     ctx.solution.routes.insert(success.context.clone());
-
+                }
+                {
+                    let mut route = success.context.route.write().unwrap();
                     success.activities.into_iter().for_each(|(a, index)| {
                         route.tour.insert_at(a, index);
                     });

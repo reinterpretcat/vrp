@@ -88,6 +88,25 @@ pub struct InsertionContext {
     pub random: Arc<String>,
 }
 
+impl InsertionContext {
+    pub fn new(problem: Problem) -> Self {
+        let registry = Registry::new(problem.fleet.as_ref());
+        let required: Vec<Arc<Job>> = problem.jobs.all().collect();
+        Self {
+            progress: InsertionProgress { cost: None, completeness: 0.0, total: 0 },
+            problem: Arc::new(problem),
+            solution: SolutionContext {
+                required,
+                ignored: Default::default(),
+                unassigned: Default::default(),
+                routes: Default::default(),
+                registry,
+            },
+            random: Arc::new("".to_string()),
+        }
+    }
+}
+
 /// Contains information regarding insertion solution.
 pub struct SolutionContext {
     /// List of jobs which require permanent assignment.

@@ -2,7 +2,7 @@ use crate::construction::constraints::CapacityDimension;
 use crate::construction::constraints::Demand;
 use crate::helpers::get_test_resource;
 use crate::helpers::models::problem::{get_job_id, get_job_simple_demand};
-use crate::helpers::streams::input::SolomonBuilder;
+use crate::helpers::streams::input::{create_c101_25_problem, SolomonBuilder};
 use crate::models::common::TimeWindow;
 use crate::models::problem::Job;
 use crate::models::Problem;
@@ -67,7 +67,7 @@ fn can_read_solomon_built_from_builder() {
 
 #[test]
 fn can_read_solomon_format_from_test_file() {
-    let problem = get_test_resource("data/solomon/C101.25.txt").unwrap().parse_solomon().unwrap();
+    let problem = create_c101_25_problem();
 
     assert_eq!(
         get_job_ids(&problem),

@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
+mod evaluators_test;
+
 use std::borrow::Borrow;
 use std::sync::Arc;
 
@@ -8,10 +12,6 @@ use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place, TourActivity};
 use crate::models::Problem;
 use crate::utils::compare_shared;
-
-#[cfg(test)]
-#[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
-mod evaluators_test;
 
 /// Evaluates possibility to preform insertion from given insertion context.
 pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext) -> InsertionResult {
