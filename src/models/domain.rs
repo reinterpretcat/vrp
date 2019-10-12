@@ -29,10 +29,10 @@ pub struct Problem {
 /// Represents a VRP solution.
 pub struct Solution {
     /// Actor's registry.
-    pub registry: Arc<Registry>,
+    pub registry: Registry,
 
     /// List of assigned routes.
-    pub routes: Vec<Arc<Route>>,
+    pub routes: Vec<Route>,
 
     /// Map of unassigned jobs within reason code.
     pub unassigned: HashMap<Arc<Job>, i32>,
