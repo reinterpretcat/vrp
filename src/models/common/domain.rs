@@ -33,6 +33,12 @@ pub struct Schedule {
     pub departure: Timestamp,
 }
 
+impl Schedule {
+    pub fn new(arrival: Timestamp, departure: Timestamp) -> Self {
+        Self { arrival, departure }
+    }
+}
+
 impl PartialEq<Schedule> for Schedule {
     fn eq(&self, other: &Schedule) -> bool {
         compare_floats(&self.arrival, &other.arrival) == Ordering::Equal

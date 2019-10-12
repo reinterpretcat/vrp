@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/objectives/penalize_unassigned_test.rs"]
+mod penalize_unassigned_test;
+
 use crate::models::common::{Cost, ObjectiveCost};
 use crate::models::{Problem, Solution};
 use crate::objectives::ObjectiveFunction;
@@ -18,7 +22,7 @@ impl ObjectiveFunction for PenalizeUnassigned {
             let start = r.tour.start().unwrap();
             let initial = problem.activity.cost(&r.actor.vehicle, &r.actor.driver, start, start.schedule.arrival);
             let initial = initial + r.actor.vehicle.costs.fixed + r.actor.driver.costs.fixed;
-            r.tour.legs().fold(initial, |acc, (items, _)| {
+            acc + r.tour.legs().fold(initial, |acc, (items, _)| {
                 let (from, to) = match items {
                     [from, to] => (from, to),
                     _ => panic!("Unexpected route leg configuration."),
