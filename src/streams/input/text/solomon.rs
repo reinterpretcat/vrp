@@ -2,16 +2,12 @@
 #[path = "../../../../tests/unit/streams/input/text/solomon_test.rs"]
 mod solomon_test;
 
-#[path = "./matrix_factory.rs"]
-mod matrix_factory;
-use self::matrix_factory::MatrixFactory;
-
 use crate::construction::constraints::*;
 use crate::models::common::{Dimensions, IdDimension, Location, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
 use crate::streams::input::text::StringReader;
-use crate::utils::TryCollect;
+use crate::utils::{MatrixFactory, TryCollect};
 use std::borrow::Borrow;
 use std::fs::{read, File};
 use std::io::prelude::*;
@@ -82,7 +78,7 @@ impl<R: Read> SolomonReader<R> {
         let vehicle = self.read_vehicle()?;
         self.skip_lines(4)?;
         let depot = self.read_customer()?;
-        let location = Some(self.matrix.location(depot.location));
+        let location = Some(self.matrix.collect(depot.location));
         let time = Some(TimeWindow { start: depot.start as f64, end: depot.end as f64 });
 
         Ok(Fleet::new(
@@ -127,7 +123,7 @@ impl<R: Read> SolomonReader<R> {
                     dimens.set_demand(Demand::<i32> { pickup: (0, 0), delivery: (customer.demand as i32, 0) });
                     jobs.push(Arc::new(Job::Single(Arc::new(Single {
                         places: vec![Place {
-                            location: Some(self.matrix.location(customer.location)),
+                            location: Some(self.matrix.collect(customer.location)),
                             duration: customer.service as f64,
                             times: vec![TimeWindow { start: customer.start as f64, end: customer.end as f64 }],
                         }],

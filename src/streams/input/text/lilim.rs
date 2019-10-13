@@ -2,12 +2,9 @@
 #[path = "../../../../tests/unit/streams/input/text/solomon_test.rs"]
 mod solomon_test;
 
-#[path = "./matrix_factory.rs"]
-mod matrix_factory;
-use self::matrix_factory::MatrixFactory;
-
 use crate::models::Problem;
 use crate::streams::input::text::StringReader;
+use crate::utils::MatrixFactory;
 use std::fs::File;
 use std::io::{BufReader, Read};
 

@@ -7,6 +7,9 @@ mod permutations;
 pub use self::permutations::get_permutations;
 pub use self::permutations::Permutations;
 
+mod routing;
+pub use self::routing::MatrixFactory;
+
 // See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector
 pub trait TryCollect<T> {
     fn try_collect(&mut self) -> Option<T>;

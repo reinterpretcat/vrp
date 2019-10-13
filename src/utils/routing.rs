@@ -10,7 +10,7 @@ impl MatrixFactory {
         Self { locations: vec![] }
     }
 
-    pub fn location(&mut self, location: (usize, usize)) -> Location {
+    pub fn collect(&mut self, location: (usize, usize)) -> Location {
         match self.locations.iter().position(|l| l.0 == location.0 && l.1 == location.1) {
             Some(position) => position,
             _ => {
