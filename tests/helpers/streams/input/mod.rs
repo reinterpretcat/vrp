@@ -12,3 +12,7 @@ pub fn create_c101_25_problem() -> Problem {
 pub fn create_c101_100_problem() -> Problem {
     get_test_resource("data/solomon/C101.100.txt").unwrap().parse_solomon().unwrap()
 }
+
+pub fn create_lc101_problem() -> Problem {
+    get_test_resource("data/lilim/LC101.txt").unwrap().parse_solomon().unwrap()
+}

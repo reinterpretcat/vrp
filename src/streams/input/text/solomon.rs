@@ -2,6 +2,10 @@
 #[path = "../../../../tests/unit/streams/input/text/solomon_test.rs"]
 mod solomon_test;
 
+#[path = "./helpers.rs"]
+mod helpers;
+use self::helpers::*;
+
 use crate::construction::constraints::*;
 use crate::models::common::{Dimensions, IdDimension, Location, TimeWindow};
 use crate::models::problem::*;
@@ -78,39 +82,11 @@ impl<R: Read> SolomonReader<R> {
         let vehicle = self.read_vehicle()?;
         self.skip_lines(4)?;
         let depot = self.read_customer()?;
-        let location = Some(self.matrix.collect(depot.location));
-        let time = Some(TimeWindow { start: depot.start as f64, end: depot.end as f64 });
-
-        Ok(Fleet::new(
-            vec![Driver {
-                costs: Costs {
-                    fixed: 0.0,
-                    per_distance: 0.0,
-                    per_driving_time: 0.0,
-                    per_waiting_time: 0.0,
-                    per_service_time: 0.0,
-                },
-                dimens: create_dimens_with_id("driver", 0),
-                details: Default::default(),
-            }],
-            (0..vehicle.number)
-                .map(|i| {
-                    let mut dimens = create_dimens_with_id("v", i);
-                    dimens.set_capacity(vehicle.capacity as i32);
-                    Vehicle {
-                        profile: 0,
-                        costs: Costs {
-                            fixed: 0.0,
-                            per_distance: 1.0,
-                            per_driving_time: 0.0,
-                            per_waiting_time: 0.0,
-                            per_service_time: 0.0,
-                        },
-                        dimens,
-                        details: vec![VehicleDetail { start: location, end: location, time: time.clone() }],
-                    }
-                })
-                .collect(),
+        Ok(create_fleet_with_distance_costs(
+            vehicle.number,
+            vehicle.capacity,
+            self.matrix.collect(depot.location),
+            TimeWindow { start: depot.start as f64, end: depot.end as f64 },
         ))
     }
 
@@ -178,18 +154,4 @@ impl<R: Read> SolomonReader<R> {
         self.buffer.clear();
         self.reader.read_line(&mut self.buffer).map_err(|err| err.to_string())
     }
-}
-
-fn create_dimens_with_id(prefix: &str, id: usize) -> Dimensions {
-    let mut dimens = Dimensions::new();
-    dimens.set_id([prefix.to_string(), id.to_string()].concat().as_str());
-    dimens
-}
-
-fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::new();
-    constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
-    constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
-
-    constraint
 }
