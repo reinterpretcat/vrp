@@ -2,15 +2,11 @@
 #[path = "../../../../tests/unit/streams/input/text/solomon_test.rs"]
 mod solomon_test;
 
-#[path = "./helpers.rs"]
-mod helpers;
-use self::helpers::*;
-
 use crate::construction::constraints::*;
 use crate::models::common::{Dimensions, IdDimension, Location, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
-use crate::streams::input::text::StringReader;
+use crate::streams::input::text::*;
 use crate::utils::{MatrixFactory, TryCollect};
 use std::borrow::Borrow;
 use std::fs::{read, File};

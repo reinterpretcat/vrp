@@ -2,14 +2,10 @@
 #[path = "../../../../tests/unit/streams/input/text/lilim_test.rs"]
 mod lilim_test;
 
-#[path = "./helpers.rs"]
-mod helpers;
-use self::helpers::*;
-
 use crate::models::common::TimeWindow;
 use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
 use crate::models::Problem;
-use crate::streams::input::text::StringReader;
+use crate::streams::input::text::*;
 use crate::utils::{MatrixFactory, TryCollect};
 use std::fs::File;
 use std::io::prelude::*;
