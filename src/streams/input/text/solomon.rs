@@ -49,8 +49,7 @@ struct JobLine {
     id: usize,
     location: (usize, usize),
     demand: usize,
-    start: usize,
-    end: usize,
+    tw: TimeWindow,
     service: usize,
 }
 
@@ -82,7 +81,7 @@ impl<R: Read> SolomonReader<R> {
             vehicle.number,
             vehicle.capacity,
             self.matrix.collect(depot.location),
-            TimeWindow { start: depot.start as f64, end: depot.end as f64 },
+            depot.tw.clone(),
         ))
     }
 
@@ -97,7 +96,7 @@ impl<R: Read> SolomonReader<R> {
                         places: vec![Place {
                             location: Some(self.matrix.collect(customer.location)),
                             duration: customer.service as f64,
-                            times: vec![TimeWindow { start: customer.start as f64, end: customer.end as f64 }],
+                            times: vec![customer.tw.clone()],
                         }],
                         dimens,
                     }))));
@@ -135,7 +134,7 @@ impl<R: Read> SolomonReader<R> {
             .map(|line| line.parse::<usize>().unwrap())
             .try_collect()
             .ok_or("Cannot read customer line".to_string())?;
-        Ok(JobLine { id, location: (x, y), demand, start, end, service })
+        Ok(JobLine { id, location: (x, y), demand, tw: TimeWindow::new(start as f64, end as f64), service })
     }
 
     fn skip_lines(&mut self, count: usize) -> Result<(), String> {

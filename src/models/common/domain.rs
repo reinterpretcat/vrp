@@ -17,6 +17,12 @@ pub struct TimeWindow {
     pub end: Timestamp,
 }
 
+impl TimeWindow {
+    pub fn new(start: Timestamp, end: Timestamp) -> Self {
+        Self { start, end }
+    }
+}
+
 impl PartialEq<TimeWindow> for TimeWindow {
     fn eq(&self, other: &TimeWindow) -> bool {
         compare_floats(&self.start, &other.start) == Ordering::Equal
