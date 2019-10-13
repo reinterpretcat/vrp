@@ -18,8 +18,6 @@ pub struct Problem {
     pub locks: Vec<Arc<Lock>>,
     /// Specifies constraints pipeline.
     pub constraint: Arc<ConstraintPipeline>,
-    /// Specifies objective function.
-    pub objective: Arc<dyn ObjectiveFunction + Send + Sync>,
     /// Specifies activity costs.
     pub activity: Arc<dyn ActivityCost + Send + Sync>,
     /// Specifies transport costs.

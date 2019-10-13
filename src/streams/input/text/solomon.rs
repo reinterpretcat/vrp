@@ -6,7 +6,6 @@ use crate::construction::constraints::*;
 use crate::models::common::{Dimensions, IdDimension, Location, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
-use crate::objectives::PenalizeUnassigned;
 use crate::streams::input::text::StringReader;
 use crate::utils::TryCollect;
 use std::borrow::Borrow;
@@ -68,7 +67,6 @@ impl<R: Read> SolomonReader<R> {
             jobs: Arc::new(jobs),
             locks: vec![],
             constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
-            objective: Arc::new(PenalizeUnassigned::new(0.0)),
             activity,
             transport,
             extras: Arc::new(Default::default()),

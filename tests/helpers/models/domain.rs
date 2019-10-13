@@ -1,6 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::helpers::models::problem::{TestActivityCost, TestTransportCost};
-use crate::helpers::objectives::TestObjectiveFunction;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::{Problem, Solution};
@@ -16,7 +15,6 @@ pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> A
         jobs,
         locks: vec![],
         constraint: Arc::new(constraint),
-        objective: Arc::new(TestObjectiveFunction::new()),
         activity: Arc::new(TestActivityCost::new()),
         transport,
         extras: Arc::new(Default::default()),
