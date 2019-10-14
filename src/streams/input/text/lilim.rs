@@ -42,7 +42,7 @@ struct VehicleLine {
 
 struct JobLine {
     id: usize,
-    location: (usize, usize),
+    location: (i32, i32),
     demand: usize,
     tw: TimeWindow,
     service: usize,
@@ -142,10 +142,17 @@ impl<R: Read> LilimReader<R> {
         let (id, x, y, demand, start, end, service, _, relation) = self
             .buffer
             .split_whitespace()
-            .map(|line| line.parse::<usize>().unwrap())
+            .map(|line| line.parse::<i32>().unwrap())
             .try_collect()
             .ok_or("Cannot read customer line".to_string())?;
-        Ok(JobLine { id, location: (x, y), demand, tw: TimeWindow::new(start as f64, end as f64), service, relation })
+        Ok(JobLine {
+            id: id as usize,
+            location: (x, y),
+            demand: demand as usize,
+            tw: TimeWindow::new(start as f64, end as f64),
+            service: service as usize,
+            relation: relation as usize,
+        })
     }
 
     fn read_line(&mut self) -> Result<usize, String> {
