@@ -1,6 +1,10 @@
 use crate::construction::states::*;
+use crate::models::problem::Job;
+use crate::models::solution::Route;
 use crate::models::Solution;
 use crate::refinement::RefinementContext;
+use crate::utils::DefaultRandom;
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
 /// Specifies ruin strategy.
@@ -35,13 +39,9 @@ fn create_insertion_context(refinement_ctx: &RefinementContext, solution: &Solut
         },
         problem: refinement_ctx.problem.clone(),
         solution: SolutionContext { required: jobs, ignored: vec![], unassigned: Default::default(), routes, registry },
-        random: Arc::new("".to_string()),
+        random: Arc::new(DefaultRandom::new()),
     }
 }
 
 mod adjusted_string_removal;
-
 pub use self::adjusted_string_removal::AdjustedStringRemoval;
-use crate::models::problem::Job;
-use crate::models::solution::Route;
-use std::collections::HashSet;

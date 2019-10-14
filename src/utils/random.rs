@@ -19,3 +19,13 @@ pub trait Random {
         self.uniform_int(0, 2) > 0
     }
 }
+
+pub struct DefaultRandom {}
+
+impl Random for DefaultRandom {}
+
+impl DefaultRandom {
+    pub fn new() -> Self {
+        Self {}
+    }
+}

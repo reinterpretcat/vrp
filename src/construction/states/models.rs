@@ -3,6 +3,7 @@ use crate::models::common::{Cost, Schedule, TimeWindow};
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour, TourActivity};
 use crate::models::{Extras, Problem, Solution};
+use crate::utils::{DefaultRandom, Random};
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
@@ -85,7 +86,7 @@ pub struct InsertionContext {
     pub solution: SolutionContext,
 
     /// Random generator.
-    pub random: Arc<String>,
+    pub random: Arc<dyn Random + Send + Sync>,
 }
 
 impl InsertionContext {
@@ -102,7 +103,7 @@ impl InsertionContext {
                 routes: Default::default(),
                 registry,
             },
-            random: Arc::new("".to_string()),
+            random: Arc::new(DefaultRandom::new()),
         }
     }
 }

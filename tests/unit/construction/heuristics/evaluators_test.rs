@@ -9,7 +9,7 @@ use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, Job, Single, VehicleDetail};
 use crate::models::solution::{Place, Registry, TourActivity};
-use crate::utils::compare_floats;
+use crate::utils::{compare_floats, DefaultRandom};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::ops::Deref;
@@ -32,7 +32,7 @@ fn create_insertion_context(
             routes,
             registry,
         },
-        random: Arc::new("".to_string()),
+        random: Arc::new(DefaultRandom::new()),
     }
 }
 

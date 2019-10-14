@@ -7,6 +7,7 @@ use crate::models::solution::Route;
 use crate::models::Solution;
 use crate::refinement::ruin::{create_insertion_context, RuinStrategy};
 use crate::refinement::RefinementContext;
+use crate::utils::Random;
 
 /// "Adjusted string removal" strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) by Jan Christiaens, Greet Vanden Berghe.
@@ -45,7 +46,7 @@ impl RuinStrategy for AdjustedStringRemoval {
 }
 
 /// Selects random job from existing solution
-fn select_random_job<'a>(routes: &'a Vec<Route>) -> Option<(&'a Route, &Arc<Job>)> {
+fn select_random_job<'a>(routes: &'a Vec<Route>, random: &impl Random) -> Option<(&'a Route, &'a Arc<Job>)> {
     if routes.is_empty() {
         return None;
     }
