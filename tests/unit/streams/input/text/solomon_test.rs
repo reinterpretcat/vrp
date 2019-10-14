@@ -1,46 +1,11 @@
-use crate::construction::constraints::CapacityDimension;
 use crate::construction::constraints::Demand;
 use crate::helpers::get_test_resource;
-use crate::helpers::models::problem::{get_job_id, get_job_simple_demand};
+use crate::helpers::models::problem::*;
 use crate::helpers::streams::input::{create_c101_25_problem, SolomonBuilder};
 use crate::models::common::TimeWindow;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::streams::input::text::solomon::SolomonProblem;
-
-fn get_job_ids(problem: &Problem) -> Vec<String> {
-    problem.jobs.all().map(|j| get_job_id(j.as_ref()).to_owned()).collect()
-}
-
-fn get_job_demands(problem: &Problem) -> Vec<i32> {
-    problem.jobs.all().map(|j| get_job_simple_demand(j.as_ref()).delivery.0).collect()
-}
-
-fn get_vehicle_capacity(problem: &Problem) -> i32 {
-    *problem.fleet.vehicles.iter().next().unwrap().dimens.get_capacity().unwrap()
-}
-
-fn get_job_time_windows(problem: &Problem) -> Vec<(f64, f64)> {
-    problem
-        .jobs
-        .all()
-        .map(|j| match j.as_ref() {
-            Job::Single(j) => j.places.first().unwrap().times.first().map(|tw| (tw.start, tw.end)).unwrap(),
-            _ => panic!(),
-        })
-        .collect()
-}
-
-fn get_job_durations(problem: &Problem) -> Vec<f64> {
-    problem
-        .jobs
-        .all()
-        .map(|j| match j.as_ref() {
-            Job::Single(j) => j.places.first().unwrap().duration,
-            _ => panic!(),
-        })
-        .collect()
-}
 
 #[test]
 fn can_read_solomon_built_from_builder() {

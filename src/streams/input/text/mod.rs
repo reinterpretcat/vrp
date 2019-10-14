@@ -27,3 +27,6 @@ impl<'a> Read for StringReader<'a> {
 
 mod solomon;
 pub use self::solomon::SolomonProblem;
+
+mod lilim;
+pub use self::lilim::LilimProblem;

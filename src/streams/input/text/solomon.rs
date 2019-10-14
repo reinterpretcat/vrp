@@ -1,6 +1,10 @@
 #[cfg(test)]
-#[path = "../../../../tests/unit/streams/input/text/solomon_tests.rs"]
-mod solomon_tests;
+#[path = "../../../../tests/unit/streams/input/text/solomon_test.rs"]
+mod solomon_test;
+
+#[path = "./matrix_factory.rs"]
+mod matrix_factory;
+use self::matrix_factory::MatrixFactory;
 
 use crate::construction::constraints::*;
 use crate::models::common::{Dimensions, IdDimension, Location, TimeWindow};
@@ -15,7 +19,7 @@ use std::io::{BufReader, Error};
 use std::sync::Arc;
 
 pub fn read_solomon_format<R: Read>(mut reader: BufReader<R>) -> Result<Problem, String> {
-    SolomonReader { buffer: String::new(), reader, matrix: Matrix::new() }.read_problem()
+    SolomonReader { buffer: String::new(), reader, matrix: MatrixFactory::new() }.read_problem()
 }
 
 pub trait SolomonProblem {
@@ -37,7 +41,7 @@ impl SolomonProblem for String {
 struct SolomonReader<R: Read> {
     buffer: String,
     reader: BufReader<R>,
-    matrix: Matrix,
+    matrix: MatrixFactory,
 }
 
 struct VehicleLine {
@@ -192,40 +196,4 @@ fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTra
     constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
 
     constraint
-}
-
-struct Matrix {
-    locations: Vec<(usize, usize)>,
-}
-
-impl Matrix {
-    fn new() -> Matrix {
-        Matrix { locations: vec![] }
-    }
-
-    fn location(&mut self, location: (usize, usize)) -> Location {
-        match self.locations.iter().position(|l| l.0 == location.0 && l.1 == location.1) {
-            Some(position) => position,
-            _ => {
-                self.locations.push(location);
-                self.locations.len() - 1
-            }
-        }
-    }
-
-    fn create_transport(&self) -> MatrixTransportCost {
-        let matrix_data = self
-            .locations
-            .iter()
-            .flat_map(|&(x1, y1)| {
-                self.locations.iter().map(move |&(x2, y2)| {
-                    let x = x1 as f64 - x2 as f64;
-                    let y = y1 as f64 - y2 as f64;
-                    (x * x + y * y).sqrt()
-                })
-            })
-            .collect::<Vec<f64>>();
-
-        MatrixTransportCost::new(vec![matrix_data.clone()], vec![matrix_data])
-    }
 }

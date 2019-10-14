@@ -1,7 +1,7 @@
-use crate::construction::constraints::Demand;
-use crate::construction::constraints::DemandDimension;
+use crate::construction::constraints::{CapacityDimension, Demand, DemandDimension};
 use crate::models::common::{Duration, IdDimension, Location, TimeWindow};
 use crate::models::problem::{Job, Multi, Place, Single};
+use crate::models::Problem;
 use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;
@@ -175,4 +175,38 @@ impl MultiBuilder {
         let multi = Multi::bind(multi);
         Arc::new(Job::Multi(multi))
     }
+}
+
+pub fn get_job_ids(problem: &Problem) -> Vec<String> {
+    problem.jobs.all().map(|j| get_job_id(j.as_ref()).to_owned()).collect()
+}
+
+pub fn get_job_demands(problem: &Problem) -> Vec<i32> {
+    problem.jobs.all().map(|j| get_job_simple_demand(j.as_ref()).delivery.0).collect()
+}
+
+pub fn get_vehicle_capacity(problem: &Problem) -> i32 {
+    *problem.fleet.vehicles.iter().next().unwrap().dimens.get_capacity().unwrap()
+}
+
+pub fn get_job_time_windows(problem: &Problem) -> Vec<(f64, f64)> {
+    problem
+        .jobs
+        .all()
+        .map(|j| match j.as_ref() {
+            Job::Single(j) => j.places.first().unwrap().times.first().map(|tw| (tw.start, tw.end)).unwrap(),
+            _ => panic!(),
+        })
+        .collect()
+}
+
+pub fn get_job_durations(problem: &Problem) -> Vec<f64> {
+    problem
+        .jobs
+        .all()
+        .map(|j| match j.as_ref() {
+            Job::Single(j) => j.places.first().unwrap().duration,
+            _ => panic!(),
+        })
+        .collect()
 }
