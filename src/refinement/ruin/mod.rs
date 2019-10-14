@@ -8,6 +8,7 @@ pub trait RuinStrategy {
     fn ruin_solution(ctx: &RefinementContext, solution: &Solution) -> InsertionContext;
 }
 
+/// Creates insertion context from existing solution.
 fn create_insertion_context(refinement_ctx: &RefinementContext, solution: &Solution) -> InsertionContext {
     let jobs: Vec<Arc<Job>> = solution.unassigned.iter().map(|(job, _)| job.clone()).collect();
     let mut registry = solution.registry.deep_copy();
@@ -42,4 +43,5 @@ mod adjusted_string_removal;
 
 pub use self::adjusted_string_removal::AdjustedStringRemoval;
 use crate::models::problem::Job;
+use crate::models::solution::Route;
 use std::collections::HashSet;

@@ -5,7 +5,7 @@ use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
 use crate::models::solution::Route;
 use crate::models::Solution;
-use crate::refinement::ruin::RuinStrategy;
+use crate::refinement::ruin::{create_insertion_context, RuinStrategy};
 use crate::refinement::RefinementContext;
 
 /// "Adjusted string removal" strategy based on "Slack Induction by String Removals for
@@ -35,10 +35,22 @@ impl Default for AdjustedStringRemoval {
 }
 
 impl RuinStrategy for AdjustedStringRemoval {
-    fn ruin_solution(ctx: &RefinementContext, solution: &Solution) -> InsertionContext {
+    fn ruin_solution(refinement_ctx: &RefinementContext, solution: &Solution) -> InsertionContext {
         let jobs: HashSet<Arc<Job>> = HashSet::new();
-        //let routes: HashSet<Box<Route>> = HashSet::new();
+        let routes: HashSet<Box<Route>> = HashSet::new();
+        let insertion_cxt = create_insertion_context(refinement_ctx, solution);
 
         unimplemented!()
     }
+}
+
+/// Selects random job from existing solution
+fn select_random_job<'a>(routes: &'a Vec<Route>) -> Option<(&'a Route, &Arc<Job>)> {
+    if routes.is_empty() {
+        return None;
+    }
+
+    //let route_index =
+
+    unimplemented!()
 }
