@@ -52,3 +52,17 @@ fn can_solve_solomon_problem_with_cheapest_insertion_heuristic_impl(
     assert_eq!(result.actual.round(), cost.round());
     assert_eq!(result.penalty, 0.0);
 }
+
+#[test]
+fn can_solve_lilim_problem_with_cheapest_insertion_heuristic() {
+    let problem = Arc::new(create_lc101_problem());
+    let heuristic = create_cheapest_insertion_heuristic();
+
+    let result = heuristic.process(InsertionContext::new(problem.clone()));
+
+    let solution = result.solution.into_solution(Extras::default());
+    assert_eq!(get_customer_ids_from_routes_sorted(&solution), vec![vec![""]]);
+    let result = PenalizeUnassigned::new(1000.).estimate(&problem, &solution);
+    assert_eq!(result.actual.round(), 828.937f64.round());
+    assert_eq!(result.penalty, 0.0);
+}
