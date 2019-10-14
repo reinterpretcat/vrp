@@ -209,8 +209,9 @@ impl RouteContext {
 
         // copy route states
         orig_state.all_keys().for_each(|key| {
-            let value = orig_state.get_route_state_raw(key).unwrap();
-            new_state.put_route_state_raw(key, value.clone());
+            if let Some(value) = orig_state.get_route_state_raw(key) {
+                new_state.put_route_state_raw(key, value.clone());
+            }
         });
 
         RouteContext { route: Arc::new(RwLock::new(new_route)), state: Arc::new(RwLock::new(new_state)) }

@@ -39,9 +39,9 @@ pub fn get_customer_ids_from_routes(solution: &Solution) -> Vec<Vec<String>> {
             r.tour
                 .all_activities()
                 .filter(|a| a.job.is_some())
-                .map(|a| a.job.as_ref().unwrap().as_ref())
+                .map(|a| a.retrieve_job().unwrap())
                 .map(|job| {
-                    match job {
+                    match job.as_ref() {
                         Job::Single(job) => &job.dimens,
                         Job::Multi(job) => &job.dimens,
                     }

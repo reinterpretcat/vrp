@@ -99,7 +99,7 @@ impl<R: Read> TextReader for LilimReader<R> {
             let pickup = customers.get(&relation.pickup).unwrap();
             let delivery = customers.get(&relation.delivery).unwrap();
 
-            jobs.push(Arc::new(Job::Multi(Arc::new(Multi::new(
+            jobs.push(Arc::new(Job::Multi(Multi::bind(Multi::new(
                 vec![self.create_single_job(pickup), self.create_single_job(delivery)],
                 create_dimens_with_id("mlt", index),
             )))));
