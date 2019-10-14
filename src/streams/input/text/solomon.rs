@@ -34,12 +34,6 @@ impl SolomonProblem for String {
     }
 }
 
-struct SolomonReader<R: Read> {
-    buffer: String,
-    reader: BufReader<R>,
-    matrix: MatrixFactory,
-}
-
 struct VehicleLine {
     number: usize,
     capacity: usize,
@@ -53,25 +47,13 @@ struct JobLine {
     service: usize,
 }
 
-impl<R: Read> SolomonReader<R> {
-    pub fn read_problem(&mut self) -> Result<Problem, String> {
-        let fleet = self.read_fleet()?;
-        let jobs = self.read_jobs(&fleet)?;
-        let transport = Arc::new(self.matrix.create_transport());
-        let activity = Arc::new(SimpleActivityCost::new());
-        let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
+struct SolomonReader<R: Read> {
+    buffer: String,
+    reader: BufReader<R>,
+    matrix: MatrixFactory,
+}
 
-        Ok(Problem {
-            fleet: Arc::new(fleet),
-            jobs: Arc::new(jobs),
-            locks: vec![],
-            constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
-            activity,
-            transport,
-            extras: Arc::new(Default::default()),
-        })
-    }
-
+impl<R: Read> TextReader for SolomonReader<R> {
     fn read_fleet(&mut self) -> Result<Fleet, String> {
         self.skip_lines(4)?;
         let vehicle = self.read_vehicle()?;
@@ -114,6 +96,12 @@ impl<R: Read> SolomonReader<R> {
         Ok(jobs)
     }
 
+    fn create_transport(&self) -> MatrixTransportCost {
+        self.matrix.create_transport()
+    }
+}
+
+impl<R: Read> SolomonReader<R> {
     fn read_vehicle(&mut self) -> Result<VehicleLine, String> {
         self.read_line()?;
         let (number, capacity) = self

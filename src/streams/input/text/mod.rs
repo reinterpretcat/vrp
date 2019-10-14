@@ -28,6 +28,32 @@ impl<'a> Read for StringReader<'a> {
     }
 }
 
+trait TextReader {
+    fn read_problem(&mut self) -> Result<Problem, String> {
+        let fleet = self.read_fleet()?;
+        let jobs = self.read_jobs(&fleet)?;
+        let transport = Arc::new(self.create_transport());
+        let activity = Arc::new(SimpleActivityCost::new());
+        let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
+
+        Ok(Problem {
+            fleet: Arc::new(fleet),
+            jobs: Arc::new(jobs),
+            locks: vec![],
+            constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
+            activity,
+            transport,
+            extras: Arc::new(Default::default()),
+        })
+    }
+
+    fn read_fleet(&mut self) -> Result<Fleet, String>;
+
+    fn read_jobs(&mut self, fleet: &Fleet) -> Result<Vec<Arc<Job>>, String>;
+
+    fn create_transport(&self) -> MatrixTransportCost;
+}
+
 fn create_fleet_with_distance_costs(number: usize, capacity: usize, location: Location, time: TimeWindow) -> Fleet {
     Fleet::new(
         vec![Driver {
@@ -85,3 +111,4 @@ pub use self::solomon::SolomonProblem;
 
 mod lilim;
 pub use self::lilim::LilimProblem;
+use crate::models::Problem;

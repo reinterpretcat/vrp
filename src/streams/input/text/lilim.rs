@@ -43,7 +43,7 @@ struct VehicleLine {
 struct JobLine {
     id: usize,
     location: (i32, i32),
-    demand: usize,
+    demand: i32,
     tw: TimeWindow,
     service: usize,
     relation: usize,
@@ -60,17 +60,7 @@ struct LilimReader<R: Read> {
     matrix: MatrixFactory,
 }
 
-impl<R: Read> LilimReader<R> {
-    pub fn read_problem(&mut self) -> Result<Problem, String> {
-        let fleet = self.read_fleet()?;
-        let jobs = self.read_jobs(&fleet)?;
-        let transport = Arc::new(self.matrix.create_transport());
-        let activity = Arc::new(SimpleActivityCost::new());
-        let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
-
-        unimplemented!()
-    }
-
+impl<R: Read> TextReader for LilimReader<R> {
     fn read_fleet(&mut self) -> Result<Fleet, String> {
         let vehicle = self.read_vehicle()?;
         let depot = self.read_customer()?;
@@ -108,21 +98,38 @@ impl<R: Read> LilimReader<R> {
         relations.iter().zip(0..).for_each(|(relation, index)| {
             let pickup = customers.get(&relation.pickup).unwrap();
             let delivery = customers.get(&relation.delivery).unwrap();
-            let seq_id = "mlt".to_string() + index.to_string().as_str();
 
-            let singles: Vec<Arc<Single>> = vec![Arc::new(Single {
-                places: vec![Place {
-                    location: Some(self.matrix.collect(pickup.location)),
-                    duration: pickup.service as f64,
-                    times: vec![pickup.tw.clone()],
-                }],
-                dimens: Default::default(),
-            })];
-
-            jobs.push(Arc::new(Job::Multi(Arc::new(Multi::new(singles, Default::default())))));
+            jobs.push(Arc::new(Job::Multi(Arc::new(Multi::new(
+                vec![self.create_single_job(pickup), self.create_single_job(delivery)],
+                create_dimens_with_id("mlt", index),
+            )))));
         });
 
         Ok(jobs)
+    }
+
+    fn create_transport(&self) -> MatrixTransportCost {
+        self.matrix.create_transport()
+    }
+}
+
+impl<R: Read> LilimReader<R> {
+    fn create_single_job(&mut self, customer: &JobLine) -> Arc<Single> {
+        let mut dimens = create_dimens_with_id("c", customer.id);
+        dimens.set_demand(if customer.demand > 0 {
+            Demand::<i32> { pickup: (0, customer.demand as i32), delivery: (0, 0) }
+        } else {
+            Demand::<i32> { pickup: (0, 0), delivery: (0, customer.demand as i32) }
+        });
+
+        Arc::new(Single {
+            places: vec![Place {
+                location: Some(self.matrix.collect(customer.location)),
+                duration: customer.service as f64,
+                times: vec![customer.tw.clone()],
+            }],
+            dimens: Default::default(),
+        })
     }
 
     fn read_vehicle(&mut self) -> Result<VehicleLine, String> {
@@ -148,7 +155,7 @@ impl<R: Read> LilimReader<R> {
         Ok(JobLine {
             id: id as usize,
             location: (x, y),
-            demand: demand as usize,
+            demand,
             tw: TimeWindow::new(start as f64, end as f64),
             service: service as usize,
             relation: relation as usize,
