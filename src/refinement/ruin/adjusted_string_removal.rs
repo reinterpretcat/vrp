@@ -45,13 +45,55 @@ impl RuinStrategy for AdjustedStringRemoval {
     }
 }
 
-/// Selects random job from existing solution
-fn select_random_job<'a>(routes: &'a Vec<Route>, random: &impl Random) -> Option<(&'a Route, &'a Arc<Job>)> {
+/// Selects seed job from existing solution
+fn select_seed_job<'a>(routes: &'a Vec<Route>, random: &impl Random) -> Option<(&'a Route, Arc<Job>)> {
     if routes.is_empty() {
         return None;
     }
 
-    //let route_index =
+    let route_index = random.uniform_int(0, routes.len() as i32) as usize;
+    let mut ri = route_index;
 
-    unimplemented!()
+    loop {
+        let route = routes.get(ri).unwrap();
+
+        if route.tour.has_jobs() {
+            let job = select_random_job(route, random);
+            if let Some(job) = job {
+                return Some((route, job));
+            }
+        }
+
+        ri = (ri + 1) % routes.len();
+        if ri == route_index {
+            break;
+        }
+    }
+
+    None
+}
+
+fn select_random_job(route: &Route, random: &impl Random) -> Option<Arc<Job>> {
+    let size = route.tour.activity_count();
+    if size == 0 {
+        return None;
+    }
+    let size = size + 1;
+
+    let activity_index = random.uniform_int(1, size as i32) as usize;
+    let mut ai = activity_index;
+
+    loop {
+        let job = route.tour.get(ai).and_then(|a| a.retrieve_job());
+        if job.is_some() {
+            return job;
+        }
+
+        ai = (ai + 1) % size;
+        if ai == activity_index {
+            break;
+        }
+    }
+
+    None
 }
