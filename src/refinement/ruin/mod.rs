@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock};
 
 /// Specifies ruin strategy.
 pub trait RuinStrategy {
-    fn ruin_solution(ctx: &RefinementContext, solution: &Solution) -> InsertionContext;
+    fn ruin_solution(&self, ctx: &RefinementContext, solution: &Solution) -> InsertionContext;
 }
 
 /// Creates insertion context from existing solution.

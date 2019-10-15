@@ -9,6 +9,7 @@ use crate::refinement::ruin::{create_insertion_context, RuinStrategy};
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
 use std::iter::{empty, once};
+use std::ops::Deref;
 
 /// "Adjusted string removal" strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) by Jan Christiaens, Greet Vanden Berghe.
@@ -28,6 +29,20 @@ impl AdjustedStringRemoval {
     fn new(lmax: usize, cavg: usize, alpha: f64) -> Self {
         Self { lmax, cavg, alpha }
     }
+
+    /// Calculates initial parameters from paper using 5,6,7 equations.
+    fn calculate_limits(&self, solution: &Solution, random: &Arc<dyn Random + Send + Sync>) -> (usize, usize) {
+        // Equation 5: max removed string cardinality for each tour
+        let lsmax = calculate_average_tour_cardinality(solution).min(self.lmax as f64);
+
+        // Equation 6: max number of strings
+        let ksmax = 4. * (self.cavg as f64) / (1. + lsmax) - 1.;
+
+        // Equation 7: number of string to be removed
+        let ks = random.uniform_real(1., ksmax + 1.).floor() as usize;
+
+        (lsmax as usize, ks)
+    }
 }
 
 impl Default for AdjustedStringRemoval {
@@ -37,19 +52,38 @@ impl Default for AdjustedStringRemoval {
 }
 
 impl RuinStrategy for AdjustedStringRemoval {
-    fn ruin_solution(refinement_ctx: &RefinementContext, solution: &Solution) -> InsertionContext {
+    fn ruin_solution(&self, refinement_ctx: &RefinementContext, solution: &Solution) -> InsertionContext {
         let jobs: HashSet<Arc<Job>> = HashSet::new();
         let routes: HashSet<Box<Route>> = HashSet::new();
         let insertion_cxt = create_insertion_context(refinement_ctx, solution);
+        let (lsmax, ks) = self.calculate_limits(solution, &insertion_cxt.random);
 
         select_string(&refinement_ctx.problem, solution, &insertion_cxt.random)
             .filter(|job| !jobs.contains(job) && !solution.unassigned.contains_key(job))
             .for_each(|job| {
-                // TODO
+                insertion_cxt
+                    .solution
+                    .routes
+                    .iter()
+                    .filter(|rc| {
+                        let route = rc.route.read().unwrap();
+                        !routes.contains(route.deref()) && route.tour.index(&job).is_none()
+                    })
+                    .for_each(|rc| {
+                        // Equations 8, 9: calculate cardinality of the string removed from the tour
+                        let ltmax = rc.route.read().unwrap().tour.job_count().min(lsmax);
+                        let lt = insertion_cxt.random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
+                    });
             });
 
         unimplemented!()
     }
+}
+
+/// Calculates average tour cardinality rounded to nearest integral value.
+fn calculate_average_tour_cardinality(solution: &Solution) -> f64 {
+    (solution.routes.iter().fold(0., |acc, route| acc + route.tour.job_count() as f64) / solution.routes.len() as f64)
+        .round()
 }
 
 /// Returns randomly selected job within all its neighbours.
