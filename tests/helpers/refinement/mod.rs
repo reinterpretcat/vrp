@@ -1,8 +1,5 @@
 use crate::helpers::construction::constraints::create_constraint_pipeline;
-use crate::helpers::models::problem::{
-    empty_costs, test_driver_with_costs, test_single_job_with_id_and_location, test_vehicle_with_id, TestActivityCost,
-    TestTransportCost,
-};
+use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};
 use crate::models::problem::{Fleet, Job, Jobs, MatrixTransportCost, Vehicle};
 use crate::models::solution::{Actor, Registry, Route};
@@ -22,7 +19,6 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
     let fleet = Arc::new(Fleet::new(drivers, vehicles));
     let registry = Registry::new(&fleet);
 
-    //let actors: Vec<Arc<Actor>> = registry.all().collect();
     let mut routes: Vec<Route> = Default::default();
     let mut jobs: Vec<Arc<Job>> = Default::default();
 
@@ -58,5 +54,23 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
 }
 
 fn generate_matrix(rows: usize, cols: usize, scale: f64) -> Vec<Vec<f64>> {
-    unimplemented!()
+    let rows = rows as i32;
+    let cols = cols as i32;
+
+    let size = cols * rows;
+    let mut data: Vec<Vec<f64>> = vec![];
+    data.resize_with((size * size) as usize, Default::default);
+
+    (0..size).for_each(|i| {
+        let (left1, right1) = (i / rows, i % rows);
+        (i + 1..size).for_each(|j| {
+            let (left2, right2) = (j / rows, j % rows);
+            let value = (((left1 - left2) * (left1 - left2) + (right1 - right2) * (right1 - right2)) as f64).sqrt();
+
+            data[(i * size) as usize][j as usize] = value;
+            data[(i * size) as usize][(j + (j - i) * (size - 1)) as usize] = value;
+        });
+    });
+
+    data
 }
