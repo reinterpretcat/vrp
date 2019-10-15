@@ -91,6 +91,11 @@ impl Registry {
     pub fn next<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
         self.available.iter().flat_map(|(_, set)| set.into_iter().take(1).cloned())
     }
+
+    /// Creates a copy of registry
+    pub fn deep_copy(&self) -> Registry {
+        Self { available: self.available.clone(), all: self.all.clone() }
+    }
 }
 
 impl PartialEq for Detail {

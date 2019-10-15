@@ -37,6 +37,7 @@ impl Default for AdjustedStringRemoval {
 impl RuinStrategy for AdjustedStringRemoval {
     fn ruin_solution(ctx: &RefinementContext, solution: &Solution) -> InsertionContext {
         let jobs: HashSet<Arc<Job>> = HashSet::new();
+        //let routes: HashSet<Box<Route>> = HashSet::new();
 
         unimplemented!()
     }

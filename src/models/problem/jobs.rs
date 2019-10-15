@@ -131,6 +131,11 @@ impl Jobs {
     pub fn rank(&self, profile: Profile, job: &Arc<Job>) -> Distance {
         self.index.get(&profile).unwrap().get(job).unwrap().1
     }
+
+    /// Returns amount of jobs
+    pub fn size(&self) -> usize {
+        self.jobs.len()
+    }
 }
 
 impl PartialEq<Job> for Job {

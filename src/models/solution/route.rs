@@ -40,6 +40,12 @@ pub struct Route {
     pub tour: Tour,
 }
 
+impl Route {
+    pub fn deep_copy(&self) -> Self {
+        Self { actor: self.actor.clone(), tour: self.tour.deep_copy() }
+    }
+}
+
 impl Activity {
     pub fn new_with_job(job: Arc<Job>) -> Self {
         Activity {
