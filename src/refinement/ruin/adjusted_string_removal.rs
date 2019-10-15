@@ -4,10 +4,11 @@ use std::sync::{Arc, RwLock};
 use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
 use crate::models::solution::Route;
-use crate::models::Solution;
+use crate::models::{Problem, Solution};
 use crate::refinement::ruin::{create_insertion_context, RuinStrategy};
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
+use std::iter::{empty, once};
 
 /// "Adjusted string removal" strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) by Jan Christiaens, Greet Vanden Berghe.
@@ -41,12 +42,41 @@ impl RuinStrategy for AdjustedStringRemoval {
         let routes: HashSet<Box<Route>> = HashSet::new();
         let insertion_cxt = create_insertion_context(refinement_ctx, solution);
 
+        select_string(&refinement_ctx.problem, solution, &insertion_cxt.random)
+            .filter(|job| !jobs.contains(job) && !solution.unassigned.contains_key(job))
+            .for_each(|job| {
+                // TODO
+            });
+
         unimplemented!()
     }
 }
 
+/// Returns randomly selected job within all its neighbours.
+fn select_string<'a>(
+    problem: &'a Problem,
+    solution: &'a Solution,
+    random: &Arc<dyn Random + Send + Sync>,
+) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+    let seed = select_seed_job(&solution.routes, random);
+
+    if let Some((route, job)) = seed {
+        return Box::new(once(job.clone()).chain(problem.jobs.neighbors(
+            route.actor.vehicle.profile,
+            &job,
+            Default::default(),
+            std::f64::MAX,
+        )));
+    }
+
+    Box::new(empty())
+}
+
 /// Selects seed job from existing solution
-fn select_seed_job<'a>(routes: &'a Vec<Route>, random: &impl Random) -> Option<(&'a Route, Arc<Job>)> {
+fn select_seed_job<'a>(
+    routes: &'a Vec<Route>,
+    random: &Arc<dyn Random + Send + Sync>,
+) -> Option<(&'a Route, Arc<Job>)> {
     if routes.is_empty() {
         return None;
     }
@@ -73,7 +103,7 @@ fn select_seed_job<'a>(routes: &'a Vec<Route>, random: &impl Random) -> Option<(
     None
 }
 
-fn select_random_job(route: &Route, random: &impl Random) -> Option<Arc<Job>> {
+fn select_random_job(route: &Route, random: &Arc<dyn Random + Send + Sync>) -> Option<Arc<Job>> {
     let size = route.tour.activity_count();
     if size == 0 {
         return None;
@@ -85,6 +115,7 @@ fn select_random_job(route: &Route, random: &impl Random) -> Option<Arc<Job>> {
 
     loop {
         let job = route.tour.get(ai).and_then(|a| a.retrieve_job());
+
         if job.is_some() {
             return job;
         }
