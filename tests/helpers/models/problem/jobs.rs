@@ -43,6 +43,12 @@ pub fn test_single_job_with_location(location: Option<Location>) -> Job {
     Job::Single(Arc::new(Single { places: vec![test_place_with_location(location)], dimens: Default::default() }))
 }
 
+pub fn test_single_job_with_id_and_location(id: &str, location: Option<Location>) -> Job {
+    let mut single = Single { places: vec![test_place_with_location(location)], dimens: Default::default() };
+    single.dimens.set_id(id);
+    Job::Single(Arc::new(single))
+}
+
 pub fn test_single_job_with_locations(locations: Vec<Option<Location>>) -> Job {
     Job::Single(Arc::new(Single {
         places: locations.into_iter().map(|location| test_place_with_location(location)).collect(),

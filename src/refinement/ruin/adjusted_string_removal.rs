@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/refinement/ruin/adjusted_string_removal_test.rs"]
+mod adjusted_string_removal_test;
+
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
