@@ -3,11 +3,12 @@ use std::sync::{Arc, RwLock};
 
 use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
-use crate::models::solution::Route;
+use crate::models::solution::{Actor, Route, Tour};
 use crate::models::{Problem, Solution};
 use crate::refinement::ruin::{create_insertion_context, RuinStrategy};
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
+use std::borrow::Borrow;
 use std::iter::{empty, once};
 use std::ops::Deref;
 
@@ -53,13 +54,14 @@ impl Default for AdjustedStringRemoval {
 
 impl RuinStrategy for AdjustedStringRemoval {
     fn ruin_solution(&self, refinement_ctx: &RefinementContext, solution: &Solution) -> InsertionContext {
-        let jobs: HashSet<Arc<Job>> = HashSet::new();
-        let routes: HashSet<Box<Route>> = HashSet::new();
-        let insertion_cxt = create_insertion_context(refinement_ctx, solution);
+        let mut jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::new());
+        let mut actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
+        let mut insertion_cxt = create_insertion_context(refinement_ctx, solution);
+
         let (lsmax, ks) = self.calculate_limits(solution, &insertion_cxt.random);
 
-        select_string(&refinement_ctx.problem, solution, &insertion_cxt.random)
-            .filter(|job| !jobs.contains(job) && !solution.unassigned.contains_key(job))
+        select_seed_jobs(&refinement_ctx.problem, solution, &insertion_cxt.random)
+            .filter(|job| !jobs.read().unwrap().contains(job) && !solution.unassigned.contains_key(job))
             .for_each(|job| {
                 insertion_cxt
                     .solution
@@ -67,18 +69,38 @@ impl RuinStrategy for AdjustedStringRemoval {
                     .iter()
                     .filter(|rc| {
                         let route = rc.route.read().unwrap();
-                        !routes.contains(route.deref()) && route.tour.index(&job).is_none()
+                        !actors.read().unwrap().contains(&route.actor) && route.tour.index(&job).is_none()
                     })
                     .for_each(|rc| {
+                        let mut tour = &mut rc.route.write().unwrap().tour;
+
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = rc.route.read().unwrap().tour.job_count().min(lsmax);
+                        let ltmax = tour.job_count().min(lsmax);
                         let lt = insertion_cxt.random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
+
+                        if let Some(index) = tour.index(&job) {
+                            actors.write().unwrap().insert(rc.route.read().unwrap().actor.clone());
+                            select_string((tour, index), lt, self.alpha, &insertion_cxt.random)
+                                .filter(|job| !refinement_ctx.locked.contains(job))
+                                .collect::<Vec<Arc<Job>>>()
+                                .iter()
+                                .for_each(|job| {
+                                    tour.remove(&job);
+                                    jobs.write().unwrap().insert(job.clone());
+                                });
+                        }
                     });
             });
 
-        unimplemented!()
+        jobs.write().unwrap().iter().for_each(|job| insertion_cxt.solution.required.push(job.clone()));
+
+        insertion_cxt.remove_empty_routes();
+
+        insertion_cxt
     }
 }
+
+type JobIter<'a> = Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(solution: &Solution) -> f64 {
@@ -86,12 +108,69 @@ fn calculate_average_tour_cardinality(solution: &Solution) -> f64 {
         .round()
 }
 
-/// Returns randomly selected job within all its neighbours.
+/// Selects string for selected job.
 fn select_string<'a>(
+    seed_tour: (&'a Tour, usize),
+    cardinality: usize,
+    alpha: f64,
+    random: &Arc<dyn Random + Send + Sync>,
+) -> JobIter<'a> {
+    if random.is_head_not_tails() {
+        sequential_string(seed_tour, cardinality, random)
+    } else {
+        preserved_string(seed_tour, cardinality, alpha, random)
+    }
+}
+
+/// Selects sequential string.
+fn sequential_string<'a>(
+    seed_tour: (&'a Tour, usize),
+    cardinality: usize,
+    random: &Arc<dyn Random + Send + Sync>,
+) -> JobIter<'a> {
+    let (begin, end) = lower_bounds(cardinality, seed_tour.0.job_count(), seed_tour.1);
+    let start = random.uniform_int(begin as i32, end as i32) as usize;
+
+    Box::new(
+        (start..(start + cardinality)).rev().filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())),
+    )
+}
+
+/// Selects string with preserved jobs.
+fn preserved_string<'a>(
+    seed_tour: (&'a Tour, usize),
+    cardinality: usize,
+    alpha: f64,
+    random: &Arc<dyn Random + Send + Sync>,
+) -> JobIter<'a> {
+    let index = seed_tour.1;
+    let split = preserved_cardinality(cardinality, seed_tour.0.job_count(), alpha, random);
+    let mut total = cardinality + split;
+
+    let (begin, end) = lower_bounds(total, seed_tour.0.job_count(), index);
+    let start_total = random.uniform_int(begin as i32, end as i32) as usize;
+
+    let split_start = random.uniform_int(start_total as i32, (start_total + cardinality) as i32) as usize;
+    let split_end = split_start + split;
+
+    // NOTE if selected job is in split range we should remove it anyway,
+    // this line makes sure that string cardinality is kept as requested.
+    total -= if index >= split_start && index < split_end { 1 } else { 0 };
+
+    Box::new(
+        (start_total..(start_total + cardinality))
+            .rev()
+            .filter(move |&i| i < split_start || i >= split_end || i == index)
+            .filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())),
+    )
+}
+
+/// Returns randomly selected job within all its neighbours.
+fn select_seed_jobs<'a>(
     problem: &'a Problem,
     solution: &'a Solution,
     random: &Arc<dyn Random + Send + Sync>,
-) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+) -> JobIter<'a> {
     let seed = select_seed_job(&solution.routes, random);
 
     if let Some((route, job)) = seed {
@@ -161,4 +240,35 @@ fn select_random_job(route: &Route, random: &Arc<dyn Random + Send + Sync>) -> O
     }
 
     None
+}
+
+/// Returns range of possible lower bounds.
+fn lower_bounds(string_crd: usize, tour_crd: usize, index: usize) -> (usize, usize) {
+    let start = (index - string_crd + 1).max(1);
+    let end = (tour_crd - string_crd + 1).min(start + string_crd);
+
+    (start, end)
+}
+
+/// Calculates preserved substring cardinality.
+fn preserved_cardinality(
+    string_crd: usize,
+    tour_crd: usize,
+    alpha: f64,
+    random: &Arc<dyn Random + Send + Sync>,
+) -> usize {
+    // TODO
+    if string_crd == tour_crd {
+        return 0;
+    }
+
+    let mut preserved_crd = 1usize;
+    while string_crd + preserved_crd < tour_crd {
+        if random.uniform_real(0.0, 1.0) < alpha {
+            break;
+        } else {
+            preserved_crd = preserved_crd + 1
+        }
+    }
+    preserved_crd
 }

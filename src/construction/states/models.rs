@@ -106,6 +106,20 @@ impl InsertionContext {
             random: Arc::new(DefaultRandom::new()),
         }
     }
+
+    /// Removes empty routes from solution context.
+    pub fn remove_empty_routes(&mut self) {
+        let mut registry = &mut self.solution.registry;
+        self.solution.routes.retain(|rc| {
+            let route = rc.route.read().unwrap();
+            if route.tour.has_jobs() {
+                true
+            } else {
+                registry.free_actor(&route.actor);
+                false
+            }
+        });
+    }
 }
 
 /// Contains information regarding insertion solution.
