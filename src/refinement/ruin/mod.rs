@@ -9,11 +9,12 @@ use std::sync::{Arc, RwLock};
 
 /// Specifies ruin strategy.
 pub trait RuinStrategy {
-    fn ruin_solution(&self, ctx: &RefinementContext, solution: &Solution) -> InsertionContext;
+    fn ruin_solution(&self, ctx: &RefinementContext) -> Result<InsertionContext, String>;
 }
 
 /// Creates insertion context from existing solution.
-fn create_insertion_context(refinement_ctx: &RefinementContext, solution: &Solution) -> InsertionContext {
+fn create_insertion_context(refinement_ctx: &RefinementContext) -> Result<InsertionContext, String> {
+    let (solution, cost) = refinement_ctx.population.first().ok_or("Empty population")?;
     let jobs: Vec<Arc<Job>> = solution.unassigned.iter().map(|(job, _)| job.clone()).collect();
     let mut registry = solution.registry.deep_copy();
     let mut routes: HashSet<RouteContext> = HashSet::new();
@@ -31,17 +32,18 @@ fn create_insertion_context(refinement_ctx: &RefinementContext, solution: &Solut
         }
     });
 
-    InsertionContext {
+    Ok(InsertionContext {
         progress: InsertionProgress {
-            cost: None,
+            cost: Some(cost.total()),
             completeness: 1. - (solution.unassigned.len() as f64 / refinement_ctx.problem.jobs.size() as f64),
             total: refinement_ctx.problem.jobs.size(),
         },
         problem: refinement_ctx.problem.clone(),
         solution: SolutionContext { required: jobs, ignored: vec![], unassigned: Default::default(), routes, registry },
         random: refinement_ctx.random.clone(),
-    }
+    })
 }
 
 mod adjusted_string_removal;
+
 pub use self::adjusted_string_removal::AdjustedStringRemoval;

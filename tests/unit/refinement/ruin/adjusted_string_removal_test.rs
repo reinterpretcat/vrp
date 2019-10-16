@@ -25,16 +25,15 @@ use std::sync::Arc;
 fn can_ruin_solution_with_one_route() {
     let fake_random = FakeRandom::new(vec![0, 3, 1, 2], vec![1., 5.]);
     let (problem, solution) = generate_matrix_routes(10, 1);
-    let solution = Arc::new(solution);
     let refinement_ctx = RefinementContext {
         problem: Arc::new(problem),
         locked: Default::default(),
-        population: vec![(solution.clone(), ObjectiveCost::new(0., 0.))],
+        population: vec![(Arc::new(solution), ObjectiveCost::new(0., 0.))],
         random: Arc::new(FakeRandom::new(vec![0, 3, 1, 2], vec![1., 5.])),
         generation: 0,
     };
 
-    let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(&refinement_ctx, &solution);
+    let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(&refinement_ctx).unwrap();
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), vec!["c1", "c2", "c3", "c4", "c5"]);
 }
