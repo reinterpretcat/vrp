@@ -58,12 +58,13 @@ impl Default for AdjustedStringRemoval {
 
 impl RuinStrategy for AdjustedStringRemoval {
     fn ruin_solution(&self, refinement_ctx: &RefinementContext) -> Result<InsertionContext, String> {
-        let (solution, _) = refinement_ctx.population.first().ok_or("Empty population")?;
+        let individuum = refinement_ctx.individuum()?;
         let mut jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::new());
         let mut actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
-        let mut insertion_cxt = create_insertion_context(refinement_ctx)?;
+        let mut insertion_cxt = create_insertion_context(&refinement_ctx.problem, individuum, &refinement_ctx.random);
+        let solution = individuum.0.as_ref();
 
-        let (lsmax, ks) = self.calculate_limits(&solution, &insertion_cxt.random);
+        let (lsmax, ks) = self.calculate_limits(solution, &insertion_cxt.random);
 
         select_seed_jobs(&refinement_ctx.problem, solution, &insertion_cxt.random)
             .filter(|job| !jobs.read().unwrap().contains(job) && !solution.unassigned.contains_key(job))
