@@ -34,7 +34,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         });
     });
 
-    let matrix = generate_matrix(rows, cols, 1000.);
+    let matrix = vec![generate_matrix(rows, cols, 1000.)];
     let transport = Arc::new(MatrixTransportCost::new(matrix.clone(), matrix));
     let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
 
@@ -53,22 +53,23 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
     (problem, solution)
 }
 
-fn generate_matrix(rows: usize, cols: usize, scale: f64) -> Vec<Vec<f64>> {
-    let rows = rows as i32;
-    let cols = cols as i32;
-
+fn generate_matrix(rows: usize, cols: usize, scale: f64) -> Vec<f64> {
     let size = cols * rows;
-    let mut data: Vec<Vec<f64>> = vec![];
-    data.resize_with((size * size) as usize, Default::default);
+    let mut data = vec![0.; size * size];
 
     (0..size).for_each(|i| {
         let (left1, right1) = (i / rows, i % rows);
-        (i + 1..size).for_each(|j| {
+        ((i + 1)..size).for_each(|j| {
             let (left2, right2) = (j / rows, j % rows);
-            let value = (((left1 - left2) * (left1 - left2) + (right1 - right2) * (right1 - right2)) as f64).sqrt();
+            let left_delta = left1 as f64 - left2 as f64;
+            let right_delta = right1 as f64 - right2 as f64;
 
-            data[(i * size) as usize][j as usize] = value;
-            data[(i * size) as usize][(j + (j - i) * (size - 1)) as usize] = value;
+            let value = (left_delta * left_delta + right_delta * right_delta).sqrt();
+
+            let sym_j = (j as i32 + (j as i32 - i as i32) * (size as i32 - 1)) as usize;
+
+            data[i * size + j] = value;
+            data[i * size + sym_j] = value;
         });
     });
 
