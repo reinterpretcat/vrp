@@ -61,13 +61,22 @@ fn can_ruin_solution_with_matrix_routes_impl(
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }
 
-#[test]
-fn can_ruin_solution_with_multi_jobs() {
-    let ints = vec![0, 3, 1, 2];
-    let reals = vec![1., 3.];
-    let expected_remove_ids = vec!["mlt2", "mlt3"];
-    let expected_route_ids = vec![vec!["mlt1", "mlt1", "mlt0", "mlt0"]];
+parameterized_test! {can_ruin_solution_with_multi_jobs, (ints, reals, expected_remove_ids, expected_route_ids), {
+    can_ruin_solution_with_multi_jobs_impl(ints, reals, expected_remove_ids, expected_route_ids);
+}}
 
+can_ruin_solution_with_multi_jobs! {
+    case_01_sequential: (vec![0, 3, 1, 2], vec![1., 3.], vec!["mlt2", "mlt3"], vec![vec!["mlt1", "mlt1", "mlt0", "mlt0"]]),
+    case_02_preserved: (vec![0, 2, 2, 3, 4], vec![1., 2., 1., 0.005], vec!["mlt1", "mlt2"], vec![vec!["mlt3", "mlt3", "mlt0", "mlt0"]]),
+    case_03_preserved: (vec![0, 2, 2, 1, 2], vec![1., 2., 0.001, 0.001], vec!["mlt2", "mlt3"], vec![vec!["mlt1", "mlt1", "mlt0", "mlt0"]]),
+}
+
+fn can_ruin_solution_with_multi_jobs_impl(
+    ints: Vec<i32>,
+    reals: Vec<f64>,
+    expected_remove_ids: Vec<&str>,
+    expected_route_ids: Vec<Vec<&str>>,
+) {
     let problem = Arc::new(
         LilimBuilder::new()
             .set_vehicle((1, 200))
@@ -96,7 +105,6 @@ fn can_ruin_solution_with_multi_jobs() {
 
     let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(&refinement_ctx).unwrap();
 
-    //
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_remove_ids);
     assert_eq!(
         get_customer_ids_from_routes_sorted(&insertion_ctx.solution.into_solution(Default::default())),
