@@ -31,8 +31,10 @@ pub fn get_customer_ids_from_routes_sorted(solution: &Solution) -> Vec<Vec<Strin
     result
 }
 
-pub fn get_customer_ids_from_jobs(jobs: &Vec<Arc<Job>>) -> Vec<String> {
-    jobs.iter().map(|job| get_customer_id(&job)).collect::<Vec<String>>()
+pub fn get_sorted_customer_ids_from_jobs(jobs: &Vec<Arc<Job>>) -> Vec<String> {
+    let mut ids = jobs.iter().map(|job| get_customer_id(&job)).collect::<Vec<String>>();
+    ids.sort();
+    ids
 }
 
 pub fn get_customer_ids_from_routes(solution: &Solution) -> Vec<Vec<String>> {

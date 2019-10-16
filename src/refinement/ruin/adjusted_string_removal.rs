@@ -73,23 +73,23 @@ impl RuinStrategy for AdjustedStringRemoval {
                     .iter()
                     .filter(|rc| {
                         let route = rc.route.read().unwrap();
-                        !actors.read().unwrap().contains(&route.actor) && route.tour.index(&job).is_none()
+                        !actors.read().unwrap().contains(&route.actor) || route.tour.index(&job).is_none()
                     })
                     .for_each(|rc| {
-                        let mut tour = &mut rc.route.write().unwrap().tour;
+                        let mut route = rc.route.write().unwrap();
 
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = tour.job_count().min(lsmax);
+                        let ltmax = route.tour.job_count().min(lsmax);
                         let lt = insertion_cxt.random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
-                        if let Some(index) = tour.index(&job) {
-                            actors.write().unwrap().insert(rc.route.read().unwrap().actor.clone());
-                            select_string((tour, index), lt, self.alpha, &insertion_cxt.random)
+                        if let Some(index) = route.tour.index(&job) {
+                            actors.write().unwrap().insert(route.actor.clone());
+                            select_string((&route.tour, index), lt, self.alpha, &insertion_cxt.random)
                                 .filter(|job| !refinement_ctx.locked.contains(job))
                                 .collect::<Vec<Arc<Job>>>()
                                 .iter()
                                 .for_each(|job| {
-                                    tour.remove(&job);
+                                    route.tour.remove(&job);
                                     jobs.write().unwrap().insert(job.clone());
                                 });
                         }
@@ -248,10 +248,14 @@ fn select_random_job(route: &Route, random: &Arc<dyn Random + Send + Sync>) -> O
 
 /// Returns range of possible lower bounds.
 fn lower_bounds(string_crd: usize, tour_crd: usize, index: usize) -> (usize, usize) {
+    let string_crd = string_crd as i32;
+    let tour_crd = tour_crd as i32;
+    let index = index as i32;
+
     let start = (index - string_crd + 1).max(1);
     let end = (tour_crd - string_crd + 1).min(start + string_crd);
 
-    (start, end)
+    (start as usize, end as usize)
 }
 
 /// Calculates preserved substring cardinality.

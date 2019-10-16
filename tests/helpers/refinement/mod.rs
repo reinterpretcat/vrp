@@ -27,7 +27,10 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         (0..rows).for_each(|j| {
             let index = i * rows + j;
 
-            let single = Arc::new(test_single_job_with_id_and_location(index.to_string().as_str(), Some(index)));
+            let single = Arc::new(test_single_job_with_id_and_location(
+                ["c".to_string(), index.to_string()].concat().as_str(),
+                Some(index),
+            ));
             let mut route = routes.get_mut(i).unwrap();
             jobs.push(single.clone());
             route.tour.insert_last(test_tour_activity_with_job(single));

@@ -13,7 +13,7 @@ double distribution values:
     dbl 3. alpha param
 */
 
-use crate::helpers::models::domain::get_customer_ids_from_jobs;
+use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
 use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::ObjectiveCost;
@@ -36,5 +36,5 @@ fn can_ruin_solution_with_one_route() {
 
     let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(&refinement_ctx, &solution);
 
-    assert_eq!(get_customer_ids_from_jobs(&insertion_ctx.solution.required), vec!["c1", "c2", "c3", "c4", "c5"]);
+    assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), vec!["c1", "c2", "c3", "c4", "c5"]);
 }
