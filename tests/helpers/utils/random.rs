@@ -16,12 +16,16 @@ impl<T> FakeDistribution<T> {
     }
 }
 
-struct FakeRandom {
+pub struct FakeRandom {
     ints: FakeDistribution<i32>,
     reals: FakeDistribution<f64>,
 }
 
 impl FakeRandom {
+    pub fn new(ints: Vec<i32>, reals: Vec<f64>) -> Self {
+        Self { ints: FakeDistribution::new(ints), reals: FakeDistribution::new(reals) }
+    }
+
     unsafe fn const_cast(&self) -> &mut Self {
         let const_ptr = self as *const Self;
         let mut_ptr = const_ptr as *mut Self;

@@ -31,6 +31,10 @@ pub fn get_customer_ids_from_routes_sorted(solution: &Solution) -> Vec<Vec<Strin
     result
 }
 
+pub fn get_customer_ids_from_jobs(jobs: &Vec<Arc<Job>>) -> Vec<String> {
+    jobs.iter().map(|job| get_customer_id(&job)).collect::<Vec<String>>()
+}
+
 pub fn get_customer_ids_from_routes(solution: &Solution) -> Vec<Vec<String>> {
     solution
         .routes
@@ -40,16 +44,18 @@ pub fn get_customer_ids_from_routes(solution: &Solution) -> Vec<Vec<String>> {
                 .all_activities()
                 .filter(|a| a.job.is_some())
                 .map(|a| a.retrieve_job().unwrap())
-                .map(|job| {
-                    match job.as_ref() {
-                        Job::Single(job) => &job.dimens,
-                        Job::Multi(job) => &job.dimens,
-                    }
-                    .get_id()
-                    .unwrap()
-                    .clone()
-                })
+                .map(|job| get_customer_id(&job))
                 .collect::<Vec<String>>()
         })
         .collect()
+}
+
+fn get_customer_id(job: &Arc<Job>) -> String {
+    match job.as_ref() {
+        Job::Single(job) => &job.dimens,
+        Job::Multi(job) => &job.dimens,
+    }
+    .get_id()
+    .unwrap()
+    .clone()
 }

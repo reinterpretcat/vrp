@@ -39,7 +39,7 @@ fn create_insertion_context(refinement_ctx: &RefinementContext, solution: &Solut
         },
         problem: refinement_ctx.problem.clone(),
         solution: SolutionContext { required: jobs, ignored: vec![], unassigned: Default::default(), routes, registry },
-        random: Arc::new(DefaultRandom::new()),
+        random: refinement_ctx.random.clone(),
     }
 }
 

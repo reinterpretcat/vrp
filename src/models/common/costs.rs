@@ -12,6 +12,10 @@ pub struct ObjectiveCost {
 }
 
 impl ObjectiveCost {
+    pub fn new(actual: Cost, penalty: Cost) -> Self {
+        Self { actual, penalty }
+    }
+
     /// Returns total cost.
     pub fn total(&self) -> Cost {
         self.actual + self.penalty
