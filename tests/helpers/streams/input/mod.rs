@@ -1,6 +1,9 @@
 mod solomon;
 pub use self::solomon::SolomonBuilder;
 
+mod lilim;
+pub use self::lilim::LilimBuilder;
+
 use crate::helpers::get_test_resource;
 use crate::models::Problem;
 use crate::streams::input::text::{LilimProblem, SolomonProblem};

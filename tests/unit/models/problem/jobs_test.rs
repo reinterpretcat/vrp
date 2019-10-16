@@ -16,7 +16,7 @@ fn all_returns_all_jobs() {
 }
 
 parameterized_test! {calculates_proper_distance_between_single_jobs, (left, right, expected), {
-    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, &TestTransportCost{}, &left, &right), expected);
+    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, &TestTransportCost::new(), &left, &right), expected);
 }}
 
 calculates_proper_distance_between_single_jobs! {
@@ -28,7 +28,7 @@ calculates_proper_distance_between_single_jobs! {
 }
 
 parameterized_test! {calculates_proper_distance_between_multi_jobs, (left, right, expected), {
-    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, &TestTransportCost{}, &left, &right), expected);
+    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, &TestTransportCost::new(), &left, &right), expected);
 }}
 
 calculates_proper_distance_between_multi_jobs! {
@@ -134,4 +134,20 @@ returns_proper_job_ranks! {
     case6: (1, 3, 20.0),
     case7: (2, 3, 9.0),
     case8: (3, 3, 1.0),
+}
+
+#[test]
+fn can_use_multi_job_bind_and_roots() {
+    let fleet = Fleet::new(Default::default(), vec![test_vehicle(0)]);
+    let job = Arc::new(test_multi_job_with_locations(vec![vec![Some(0)], vec![Some(1)]]));
+    let jobs = vec![job.clone()];
+    let jobs = Jobs::new(&fleet, jobs, &TestTransportCost::new());
+
+    let job = if let Job::Multi(multi) = job.as_ref() {
+        Arc::new(Job::Multi(Multi::roots(&multi.jobs.first().unwrap()).unwrap()))
+    } else {
+        panic!()
+    };
+
+    assert_eq!(jobs.neighbors(0, &job, 0.0, 100.0).collect::<Vec<Arc<Job>>>().len(), 0);
 }

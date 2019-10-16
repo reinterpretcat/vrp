@@ -57,7 +57,7 @@ pub fn test_single_job_with_locations(locations: Vec<Option<Location>>) -> Job {
 }
 
 pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Job {
-    Job::Multi(Arc::new(Multi::new(
+    Job::Multi(Multi::bind(Multi::new(
         locations
             .into_iter()
             .map(|locs| match test_single_job_with_locations(locs) {

@@ -140,7 +140,12 @@ impl Jobs {
 
 impl PartialEq<Job> for Job {
     fn eq(&self, other: &Job) -> bool {
-        &*self as *const Job == &*other as *const Job
+        match (&self, other) {
+            (Job::Single(_), Job::Multi(_)) => false,
+            (Job::Multi(_), Job::Single(_)) => false,
+            (Job::Single(lhs), Job::Single(rhs)) => lhs.as_ref() as *const Single == rhs.as_ref() as *const Single,
+            (Job::Multi(lhs), Job::Multi(rhs)) => lhs.as_ref() as *const Multi == rhs.as_ref() as *const Multi,
+        }
     }
 }
 
@@ -148,8 +153,16 @@ impl Eq for Job {}
 
 impl Hash for Job {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let address = &*self as *const Job;
-        address.hash(state);
+        match self {
+            Job::Single(single) => {
+                let address = single.as_ref() as *const Single;
+                address.hash(state);
+            }
+            Job::Multi(multi) => {
+                let address = multi.as_ref() as *const Multi;
+                address.hash(state);
+            }
+        }
     }
 }
 
