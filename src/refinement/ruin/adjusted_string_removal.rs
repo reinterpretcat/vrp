@@ -163,9 +163,12 @@ fn preserved_string<'a>(
     total -= if index >= split_start && index < split_end { 1 } else { 0 };
 
     Box::new(
-        (start_total..(start_total + cardinality))
+        (start_total..(start_total + total))
             .rev()
-            .filter(move |&i| i < split_start || i >= split_end || i == index)
+            .filter(move |&i| {
+                let ggg = i < split_start || i >= split_end || i == index;
+                ggg
+            })
             .filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())),
     )
 }

@@ -21,19 +21,33 @@ use crate::refinement::ruin::{AdjustedStringRemoval, RuinStrategy};
 use crate::refinement::RefinementContext;
 use std::sync::Arc;
 
-#[test]
-fn can_ruin_solution_with_one_route() {
-    let fake_random = FakeRandom::new(vec![0, 3, 1, 2], vec![1., 5.]);
-    let (problem, solution) = generate_matrix_routes(10, 1);
+parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, reals, expected_ids), {
+    can_ruin_solution_with_matrix_routes_impl(matrix, ints, reals, expected_ids);
+}}
+
+can_ruin_solution_with_matrix_routes! {
+    case_01_sequential: ((10, 1), vec![0, 3, 1, 2], vec![1., 5.], vec!["c1", "c2", "c3", "c4", "c5"]),
+    case_02_preserved: ((10, 1), vec![0, 2, 2, 1, 4], vec![1., 5., 0.5, 0.005], vec!["c0", "c1", "c2", "c5", "c6"]),
+    case_03_preserved: ((10, 1), vec![0, 2, 2, 1, 4], vec![1., 5., 0.5, 0.5, 0.005], vec!["c0", "c1", "c2", "c6", "c7"]),
+    case_04_preserved: ((10, 1), vec![0, 2, 2, 3, 4], vec![1., 5., 0.5, 0.5, 0.005], vec!["c2", "c6", "c7", "c8", "c9"]),
+}
+
+fn can_ruin_solution_with_matrix_routes_impl(
+    matrix: (usize, usize),
+    ints: Vec<i32>,
+    reals: Vec<f64>,
+    expected_ids: Vec<&str>,
+) {
+    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1);
     let refinement_ctx = RefinementContext {
         problem: Arc::new(problem),
         locked: Default::default(),
         population: vec![(Arc::new(solution), ObjectiveCost::new(0., 0.))],
-        random: Arc::new(FakeRandom::new(vec![0, 3, 1, 2], vec![1., 5.])),
+        random: Arc::new(FakeRandom::new(ints, reals)),
         generation: 0,
     };
 
     let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(&refinement_ctx).unwrap();
 
-    assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), vec!["c1", "c2", "c3", "c4", "c5"]);
+    assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }
