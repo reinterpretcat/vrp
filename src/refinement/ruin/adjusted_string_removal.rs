@@ -67,6 +67,7 @@ impl RuinStrategy for AdjustedStringRemoval {
 
         select_seed_jobs(&refinement_ctx.problem, solution, &insertion_cxt.random)
             .filter(|job| !jobs.read().unwrap().contains(job) && !solution.unassigned.contains_key(job))
+            .take_while(|_| actors.read().unwrap().len() != ks)
             .for_each(|job| {
                 insertion_cxt
                     .solution
@@ -74,7 +75,7 @@ impl RuinStrategy for AdjustedStringRemoval {
                     .iter()
                     .filter(|rc| {
                         let route = rc.route.read().unwrap();
-                        !actors.read().unwrap().contains(&route.actor) || route.tour.index(&job).is_none()
+                        !actors.read().unwrap().contains(&route.actor) && route.tour.index(&job).is_some()
                     })
                     .for_each(|rc| {
                         let mut route = rc.route.write().unwrap();

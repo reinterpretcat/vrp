@@ -30,6 +30,11 @@ can_ruin_solution_with_matrix_routes! {
     case_02_preserved: ((10, 1), vec![0, 2, 2, 1, 4], vec![1., 5., 0.5, 0.005], vec!["c0", "c1", "c2", "c5", "c6"]),
     case_03_preserved: ((10, 1), vec![0, 2, 2, 1, 4], vec![1., 5., 0.5, 0.5, 0.005], vec!["c0", "c1", "c2", "c6", "c7"]),
     case_04_preserved: ((10, 1), vec![0, 2, 2, 3, 4], vec![1., 5., 0.5, 0.5, 0.005], vec!["c2", "c6", "c7", "c8", "c9"]),
+    case_05_sequential: ((5, 3), vec![1, 2, 1, 2], vec![1., 3.], vec!["c6", "c7", "c8"]),
+    case_06_sequential: ((5, 3), vec![0, 2, 1, 2, 1, 3, 2], vec![2., 3., 2.], vec!["c1", "c2", "c3", "c7", "c8"]),
+    case_07_sequential: ((5, 3), vec![1, 1, 1, 2, 1, 2, 1, 2, 1, 2], vec![3., 3., 3., 3.], vec!["c1", "c11", "c12", "c13", "c2", "c3", "c6", "c7", "c8"]),
+    case_08_preserved: ((5, 3), vec![1, 1, 2, 1, 3], vec![1., 3., 0.5], vec!["c5", "c6", "c9"]),
+    case_09_preserved: ((5, 3), vec![1, 3, 2, 1, 3], vec![1., 3., 0.5], vec!["c5", "c6", "c7"]),
 }
 
 fn can_ruin_solution_with_matrix_routes_impl(
