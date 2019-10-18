@@ -20,3 +20,4 @@ pub struct RefinementContext {
 pub mod acceptance;
 pub mod recreate;
 pub mod ruin;
+pub mod termination;
