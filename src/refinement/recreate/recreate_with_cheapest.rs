@@ -41,7 +41,7 @@ impl Default for RecreateWithCheapest {
 }
 
 impl Recreate for RecreateWithCheapest {
-    fn run(&self, mut insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::new(Box::new(AllJobSelector {}), Box::new(BestResultSelector {})).process(insertion_ctx)
     }
 }
