@@ -1,10 +1,11 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::construction::states::InsertionContext;
+use crate::construction::states::{InsertionContext, InsertionProgress, SolutionContext};
 use crate::helpers::models::problem::{test_driver, test_vehicle, TestActivityCost, TestTransportCost};
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
+use crate::utils::DefaultRandom;
 use std::borrow::Borrow;
 use std::sync::Arc;
 
@@ -34,6 +35,22 @@ pub fn create_empty_solution() -> Arc<Solution> {
         unassigned: Default::default(),
         extras: Arc::new(Default::default()),
     })
+}
+
+pub fn create_empty_insertion_context() -> InsertionContext {
+    InsertionContext {
+        progress: InsertionProgress { cost: None, completeness: 0.0, total: 0 },
+        problem: create_empty_problem(),
+        solution: SolutionContext {
+            required: vec![],
+            ignored: vec![],
+            unassigned: Default::default(),
+            routes: vec![],
+            registry: Registry::new(&Fleet::new(vec![test_driver()], vec![test_vehicle(0)])),
+        },
+        locked: Arc::new(Default::default()),
+        random: Arc::new(DefaultRandom::new()),
+    }
 }
 
 pub fn get_customer_ids_from_routes_sorted(insertion_ctx: &InsertionContext) -> Vec<Vec<String>> {

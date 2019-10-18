@@ -53,8 +53,8 @@ impl Solver {
         loop {
             insertion_ctx = self.recreate.run(insertion_ctx);
 
-            // let cost = self.objective.estimate(&insertion_ctx);
-            //let insertion_ctx = self.acceptance.is_accepted(refinement_ctx, ())
+            let cost = self.objective.estimate(&insertion_ctx);
+            let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost));
 
             if true {
                 break;
