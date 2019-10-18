@@ -13,13 +13,13 @@ double distribution values:
     dbl 3. alpha param
 */
 
-use crate::construction::heuristics::create_cheapest_insertion_heuristic;
 use crate::construction::states::InsertionContext;
 use crate::helpers::models::domain::{get_customer_ids_from_routes_sorted, get_sorted_customer_ids_from_jobs};
-use crate::helpers::refinement::generate_matrix_routes;
+use crate::helpers::refinement::{create_with_cheapest, generate_matrix_routes};
 use crate::helpers::streams::input::LilimBuilder;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::ObjectiveCost;
+use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
 use crate::refinement::ruin::{AdjustedStringRemoval, Ruin};
 use crate::streams::input::text::LilimProblem;
 use std::sync::Arc;
@@ -90,8 +90,7 @@ fn can_ruin_solution_with_multi_jobs_impl(
             .parse_lilim()
             .unwrap(),
     );
-    let heuristic = create_cheapest_insertion_heuristic();
-    let mut insertion_ctx = heuristic.process(InsertionContext::new(problem, Arc::new(FakeRandom::new(ints, reals))));
+    let mut insertion_ctx = create_with_cheapest(problem, Arc::new(FakeRandom::new(ints, reals)));
 
     let insertion_ctx = AdjustedStringRemoval::default().run(insertion_ctx);
 

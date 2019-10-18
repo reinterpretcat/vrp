@@ -1,9 +1,10 @@
-use crate::construction::heuristics::insertions::create_cheapest_insertion_heuristic;
 use crate::construction::states::InsertionContext;
 use crate::helpers::models::domain::get_customer_ids_from_routes_sorted;
+use crate::helpers::refinement::create_with_cheapest;
 use crate::helpers::streams::input::*;
 use crate::models::{Extras, Problem};
 use crate::objectives::{ObjectiveFunction, PenalizeUnassigned};
+use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
 use crate::utils::DefaultRandom;
 use std::io::BufWriter;
 use std::sync::Arc;
@@ -58,9 +59,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     expected: Vec<Vec<&str>>,
     cost: f64,
 ) {
-    let heuristic = create_cheapest_insertion_heuristic();
-
-    let result = heuristic.process(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new())));
+    let result = create_with_cheapest(problem.clone(), Arc::new(DefaultRandom::new()));
 
     let solution = result.solution.into_solution(Extras::default());
     assert_eq!(get_customer_ids_from_routes_sorted(&solution), expected);
