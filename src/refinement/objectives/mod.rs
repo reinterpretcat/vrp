@@ -2,7 +2,7 @@ use crate::models::common::ObjectiveCost;
 use crate::models::{Problem, Solution};
 
 /// Encapsulates objective function behaviour.
-pub trait ObjectiveFunction {
+pub trait Objective {
     /// Estimates solution cost for given problem.
     fn estimate(&self, problem: &Problem, solution: &Solution) -> ObjectiveCost;
 }

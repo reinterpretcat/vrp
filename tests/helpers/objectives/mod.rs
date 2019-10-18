@@ -1,16 +1,16 @@
 use crate::models::common::ObjectiveCost;
 use crate::models::{Problem, Solution};
-use crate::refinement::objectives::ObjectiveFunction;
+use crate::refinement::objectives::Objective;
 
-pub struct TestObjectiveFunction {}
+pub struct TestObjective {}
 
-impl ObjectiveFunction for TestObjectiveFunction {
+impl Objective for TestObjective {
     fn estimate(&self, problem: &Problem, solution: &Solution) -> ObjectiveCost {
         unimplemented!()
     }
 }
 
-impl TestObjectiveFunction {
+impl TestObjective {
     pub fn new() -> Self {
         Self {}
     }

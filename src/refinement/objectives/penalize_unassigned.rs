@@ -4,7 +4,7 @@ mod penalize_unassigned_test;
 
 use crate::models::common::{Cost, ObjectiveCost};
 use crate::models::{Problem, Solution};
-use crate::refinement::objectives::ObjectiveFunction;
+use crate::refinement::objectives::Objective;
 
 pub struct PenalizeUnassigned {
     penalty: Cost,
@@ -16,7 +16,7 @@ impl PenalizeUnassigned {
     }
 }
 
-impl ObjectiveFunction for PenalizeUnassigned {
+impl Objective for PenalizeUnassigned {
     fn estimate(&self, problem: &Problem, solution: &Solution) -> ObjectiveCost {
         let actual = solution.routes.iter().fold(Cost::default(), |acc, r| {
             let start = r.tour.start().unwrap();

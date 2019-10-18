@@ -5,7 +5,7 @@ use crate::models::common::Schedule;
 use crate::models::problem::{Fleet, Jobs, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem, Solution};
-use crate::refinement::objectives::{ObjectiveFunction, PenalizeUnassigned};
+use crate::refinement::objectives::{Objective, PenalizeUnassigned};
 use std::collections::HashMap;
 use std::sync::Arc;
 
