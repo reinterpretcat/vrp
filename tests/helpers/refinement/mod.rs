@@ -16,7 +16,7 @@ pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send
 }
 
 pub fn create_refinement_context(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> RefinementContext {
-    RefinementContext { problem, locked: Arc::new(Default::default()), population: vec![], random, generation: 0 }
+    RefinementContext { problem, population: vec![], generation: 0 }
 }
 
 /// Generates problem and solution which has routes distributed uniformly, e.g.:
