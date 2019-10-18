@@ -2,7 +2,7 @@ use crate::helpers::models::domain::{create_empty_problem, create_empty_solution
 use crate::helpers::refinement::create_refinement_context;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::termination::max_generation::MaxGeneration;
-use crate::refinement::termination::TerminationCriteria;
+use crate::refinement::termination::Termination;
 use crate::utils::DefaultRandom;
 use std::sync::Arc;
 parameterized_test! {can_detect_termination, (generation, limit, expected), {

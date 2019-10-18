@@ -3,7 +3,7 @@ use crate::models::Solution;
 use crate::refinement::RefinementContext;
 use std::sync::Arc;
 
-pub trait TerminationCriteria {
+pub trait Termination {
     fn is_termination(
         &self,
         refinement_ctx: &RefinementContext,
@@ -12,3 +12,4 @@ pub trait TerminationCriteria {
 }
 
 mod max_generation;
+pub use self::max_generation::MaxGeneration;

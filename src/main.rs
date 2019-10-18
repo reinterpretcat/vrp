@@ -10,4 +10,7 @@ mod refinement;
 mod streams;
 mod utils;
 
+mod solver;
+pub use self::solver::Solver;
+
 fn main() {}

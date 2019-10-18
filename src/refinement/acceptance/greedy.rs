@@ -17,6 +17,12 @@ impl Greedy {
     }
 }
 
+impl Default for Greedy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Acceptance for Greedy {
     fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (Arc<Solution>, ObjectiveCost)) -> bool {
         match refinement_ctx.population.first() {

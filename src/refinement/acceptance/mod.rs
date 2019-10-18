@@ -8,3 +8,4 @@ pub trait Acceptance {
 }
 
 mod greedy;
+pub use self::greedy::Greedy;
