@@ -17,7 +17,14 @@ pub struct RefinementContext {
     pub generation: usize,
 }
 
+impl RefinementContext {
+    pub fn new(problem: Arc<Problem>) -> Self {
+        Self { problem, population: vec![], generation: 0 }
+    }
+}
+
 pub mod acceptance;
+pub mod objectives;
 pub mod recreate;
 pub mod ruin;
 pub mod termination;

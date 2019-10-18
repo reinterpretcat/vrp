@@ -1,10 +1,10 @@
 #[cfg(test)]
-#[path = "../../tests/unit/objectives/penalize_unassigned_test.rs"]
+#[path = "../../../tests/unit/refinement/objectives/penalize_unassigned_test.rs"]
 mod penalize_unassigned_test;
 
 use crate::models::common::{Cost, ObjectiveCost};
 use crate::models::{Problem, Solution};
-use crate::objectives::ObjectiveFunction;
+use crate::refinement::objectives::ObjectiveFunction;
 
 pub struct PenalizeUnassigned {
     penalty: Cost,

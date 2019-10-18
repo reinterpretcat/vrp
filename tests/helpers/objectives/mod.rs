@@ -1,6 +1,6 @@
 use crate::models::common::ObjectiveCost;
 use crate::models::{Problem, Solution};
-use crate::objectives::ObjectiveFunction;
+use crate::refinement::objectives::ObjectiveFunction;
 
 pub struct TestObjectiveFunction {}
 

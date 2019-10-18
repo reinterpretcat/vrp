@@ -3,7 +3,7 @@ use crate::helpers::models::domain::get_customer_ids_from_routes_sorted;
 use crate::helpers::refinement::create_with_cheapest;
 use crate::helpers::streams::input::*;
 use crate::models::{Extras, Problem};
-use crate::objectives::{ObjectiveFunction, PenalizeUnassigned};
+use crate::refinement::objectives::{ObjectiveFunction, PenalizeUnassigned};
 use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
 use crate::utils::DefaultRandom;
 use std::io::BufWriter;
