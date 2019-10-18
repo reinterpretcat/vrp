@@ -38,7 +38,7 @@ pub struct Solution {
     pub unassigned: HashMap<Arc<Job>, i32>,
 
     /// Specifies index for storing extra data of arbitrary type.
-    pub extras: Extras,
+    pub extras: Arc<Extras>,
 }
 
 /// Specifies lock details.

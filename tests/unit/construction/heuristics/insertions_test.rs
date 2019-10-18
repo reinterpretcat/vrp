@@ -61,7 +61,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
 ) {
     let result = create_with_cheapest(problem.clone(), Arc::new(DefaultRandom::new()));
 
-    let solution = result.solution.into_solution(Extras::default());
+    let solution = result.solution.into_solution(Arc::new(Extras::default()));
     assert_eq!(get_customer_ids_from_routes_sorted(&solution), expected);
     let result = PenalizeUnassigned::new(1000.).estimate(&problem, &solution);
     assert_eq!(result.actual.round(), cost.round());

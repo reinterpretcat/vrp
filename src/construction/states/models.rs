@@ -193,7 +193,7 @@ pub struct SolutionContext {
 }
 
 impl SolutionContext {
-    pub fn into_solution(self, extras: Extras) -> Solution {
+    pub fn into_solution(self, extras: Arc<Extras>) -> Solution {
         Solution {
             registry: self.registry,
             routes: self
