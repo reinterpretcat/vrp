@@ -58,8 +58,5 @@ fn can_remove_parts_routes_from_context() {
         get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required),
         vec!["c1", "c2", "c4", "c5", "c6", "c7"]
     );
-    assert_eq!(
-        get_customer_ids_from_routes_sorted(&insertion_ctx.solution.into_solution(Default::default())),
-        vec![vec!["c0", "c3"]]
-    );
+    assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), vec![vec!["c0", "c3"]]);
 }

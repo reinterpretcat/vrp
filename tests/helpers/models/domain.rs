@@ -1,4 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
+use crate::construction::states::InsertionContext;
 use crate::helpers::models::problem::{test_driver, test_vehicle, TestActivityCost, TestTransportCost};
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
@@ -35,8 +36,8 @@ pub fn create_empty_solution() -> Arc<Solution> {
     })
 }
 
-pub fn get_customer_ids_from_routes_sorted(solution: &Solution) -> Vec<Vec<String>> {
-    let mut result = get_customer_ids_from_routes(solution);
+pub fn get_customer_ids_from_routes_sorted(insertion_ctx: &InsertionContext) -> Vec<Vec<String>> {
+    let mut result = get_customer_ids_from_routes(insertion_ctx);
     result.sort();
     result
 }
@@ -47,12 +48,16 @@ pub fn get_sorted_customer_ids_from_jobs(jobs: &Vec<Arc<Job>>) -> Vec<String> {
     ids
 }
 
-pub fn get_customer_ids_from_routes(solution: &Solution) -> Vec<Vec<String>> {
-    solution
+pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec<String>> {
+    insertion_ctx
+        .solution
         .routes
         .iter()
-        .map(|r| {
-            r.tour
+        .map(|rc| {
+            rc.route
+                .read()
+                .unwrap()
+                .tour
                 .all_activities()
                 .filter(|a| a.job.is_some())
                 .map(|a| a.retrieve_job().unwrap())

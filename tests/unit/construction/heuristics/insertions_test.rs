@@ -59,11 +59,10 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     expected: Vec<Vec<&str>>,
     cost: f64,
 ) {
-    let result = create_with_cheapest(problem.clone(), Arc::new(DefaultRandom::new()));
+    let insertion_ctx = create_with_cheapest(problem.clone(), Arc::new(DefaultRandom::new()));
 
-    let solution = result.solution.into_solution(Arc::new(Extras::default()));
-    assert_eq!(get_customer_ids_from_routes_sorted(&solution), expected);
-    let result = PenalizeUnassigned::new(1000.).estimate(&problem, &solution);
-    assert_eq!(result.actual.round(), cost.round());
-    assert_eq!(result.penalty, 0.0);
+    let result_cost = PenalizeUnassigned::new(1000.).estimate(&insertion_ctx);
+    assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
+    assert_eq!(result_cost.actual.round(), cost.round());
+    assert_eq!(result_cost.penalty, 0.0);
 }

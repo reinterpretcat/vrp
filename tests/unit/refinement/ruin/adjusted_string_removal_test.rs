@@ -95,8 +95,5 @@ fn can_ruin_solution_with_multi_jobs_impl(
     let insertion_ctx = AdjustedStringRemoval::default().run(insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_remove_ids);
-    assert_eq!(
-        get_customer_ids_from_routes_sorted(&insertion_ctx.solution.into_solution(Default::default())),
-        expected_route_ids
-    );
+    assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected_route_ids);
 }
