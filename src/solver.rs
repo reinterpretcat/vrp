@@ -54,7 +54,9 @@ impl Solver {
             insertion_ctx = self.recreate.run(insertion_ctx);
 
             let cost = self.objective.estimate(&insertion_ctx);
-            let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost));
+            let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost.clone()));
+
+            let is_terminated = self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost, is_accepted));
 
             if true {
                 break;

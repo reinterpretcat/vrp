@@ -6,6 +6,7 @@ mod costs_test;
 pub type Cost = f64;
 
 /// Represents actual cost and penalty.
+#[derive(Clone)]
 pub struct ObjectiveCost {
     pub actual: Cost,
     pub penalty: Cost,
