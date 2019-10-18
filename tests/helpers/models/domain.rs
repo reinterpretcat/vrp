@@ -1,7 +1,8 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::helpers::models::problem::{TestActivityCost, TestTransportCost};
+use crate::helpers::models::problem::{test_driver, test_vehicle, TestActivityCost, TestTransportCost};
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
+use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
 use std::borrow::Borrow;
 use std::sync::Arc;
@@ -23,6 +24,15 @@ pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> A
 
 pub fn create_empty_problem() -> Arc<Problem> {
     create_empty_problem_with_constraint(ConstraintPipeline::new())
+}
+
+pub fn create_empty_solution() -> Arc<Solution> {
+    Arc::new(Solution {
+        registry: Registry::new(&Fleet::new(vec![test_driver()], vec![test_vehicle(0)])),
+        routes: vec![],
+        unassigned: Default::default(),
+        extras: Arc::new(Default::default()),
+    })
 }
 
 pub fn get_customer_ids_from_routes_sorted(solution: &Solution) -> Vec<Vec<String>> {

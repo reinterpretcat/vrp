@@ -23,12 +23,6 @@ pub struct RefinementContext {
     pub generation: usize,
 }
 
-impl RefinementContext {
-    /// Returns first individuum from population.
-    pub fn individuum(&self) -> Result<&(Arc<Solution>, ObjectiveCost), String> {
-        self.population.first().ok_or_else(|| "Empty population".to_string())
-    }
-}
-
+pub mod acceptance;
 pub mod recreate;
 pub mod ruin;

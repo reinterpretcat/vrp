@@ -6,12 +6,17 @@ use crate::models::problem::{Fleet, Job, Jobs, MatrixTransportCost, Vehicle};
 use crate::models::solution::{Actor, Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
+use crate::refinement::RefinementContext;
 use crate::utils::Random;
 use std::sync::Arc;
 
 /// Creates initial solution using cheapest insertion
 pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> InsertionContext {
     RecreateWithCheapest::new().run(InsertionContext::new(problem, random))
+}
+
+pub fn create_refinement_context(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> RefinementContext {
+    RefinementContext { problem, locked: Arc::new(Default::default()), population: vec![], random, generation: 0 }
 }
 
 /// Generates problem and solution which has routes distributed uniformly, e.g.:
