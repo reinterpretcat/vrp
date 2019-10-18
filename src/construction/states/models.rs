@@ -193,15 +193,11 @@ pub struct SolutionContext {
 }
 
 impl SolutionContext {
-    pub fn into_solution(self, extras: Arc<Extras>) -> Solution {
+    pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
         Solution {
-            registry: self.registry,
-            routes: self
-                .routes
-                .into_iter()
-                .map(|rc| Arc::try_unwrap(rc.route).unwrap_or_else(|_| panic!()).into_inner().unwrap())
-                .collect(),
-            unassigned: self.unassigned,
+            registry: self.registry.deep_copy(),
+            routes: self.routes.iter().map(|rc| rc.route.read().unwrap().deep_copy()).collect(),
+            unassigned: self.unassigned.clone(),
             extras,
         }
     }

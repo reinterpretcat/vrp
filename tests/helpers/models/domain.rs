@@ -28,13 +28,13 @@ pub fn create_empty_problem() -> Arc<Problem> {
     create_empty_problem_with_constraint(ConstraintPipeline::new())
 }
 
-pub fn create_empty_solution() -> Arc<Solution> {
-    Arc::new(Solution {
+pub fn create_empty_solution() -> Solution {
+    Solution {
         registry: Registry::new(&Fleet::new(vec![test_driver()], vec![test_vehicle(0)])),
         routes: vec![],
         unassigned: Default::default(),
         extras: Arc::new(Default::default()),
-    })
+    }
 }
 
 pub fn create_empty_insertion_context() -> InsertionContext {

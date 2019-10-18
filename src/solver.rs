@@ -7,6 +7,7 @@ use crate::refinement::ruin::{CompositeRuin, Ruin};
 use crate::refinement::termination::{MaxGeneration, Termination};
 use crate::refinement::RefinementContext;
 use crate::utils::DefaultRandom;
+use std::cmp::Ordering::Less;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -51,28 +52,44 @@ impl Solver {
         let mut insertion_ctx = InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new()));
 
         loop {
+            let now = Instant::now();
+
+            insertion_ctx = self.ruin.run(insertion_ctx);
             insertion_ctx = self.recreate.run(insertion_ctx);
 
             let cost = self.objective.estimate(&insertion_ctx);
             let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost.clone()));
+            let is_terminated =
+                self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
 
-            let is_terminated = self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost, is_accepted));
+            if is_accepted {
+                refinement_ctx
+                    .population
+                    .push((insertion_ctx.solution.to_solution(problem.extras.clone()), cost.clone()));
+                refinement_ctx.population.sort_by(|(_, a), (_, b)| a.total().partial_cmp(&b.total()).unwrap_or(Less))
+            }
 
-            if true {
+            if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
+                self.logger.deref()(
+                    format!(
+                        "iteration {} took {}s, cost: ({},{}), accepted: {}",
+                        refinement_ctx.generation,
+                        now.elapsed().as_secs(),
+                        cost.actual,
+                        cost.penalty,
+                        is_accepted
+                    )
+                    .as_str(),
+                );
+            }
+
+            if is_terminated {
                 break;
             }
+
+            refinement_ctx.generation = refinement_ctx.generation + 1;
         }
 
-        insertion_ctx.solution.into_solution(problem.extras.clone())
+        insertion_ctx.solution.to_solution(problem.extras.clone())
     }
-
-    //    fn run_measure_log<T>(&self, func: impl FnOnce() -> T, msg: &str) -> T {
-    //        let now = Instant::now();
-    //        let result = func();
-    //        let elapsed = now.elapsed();
-    //
-    //        self.logger.deref()(format!("{} took {}s", msg, elapsed.as_secs()).as_str());
-    //
-    //        result
-    //    }
 }
