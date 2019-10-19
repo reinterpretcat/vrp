@@ -29,4 +29,5 @@ pub mod acceptance;
 pub mod objectives;
 pub mod recreate;
 pub mod ruin;
+pub mod selection;
 pub mod termination;

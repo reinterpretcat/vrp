@@ -5,6 +5,7 @@ use crate::refinement::acceptance::{Acceptance, Greedy};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
 use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
 use crate::refinement::ruin::{CompositeRuin, Ruin};
+use crate::refinement::selection::{SelectBest, Selection};
 use crate::refinement::termination::{MaxGeneration, Termination};
 use crate::refinement::RefinementContext;
 use crate::utils::DefaultRandom;
@@ -16,6 +17,7 @@ use std::time::{Duration, Instant};
 pub struct Solver {
     recreate: Box<dyn Recreate>,
     ruin: Box<dyn Ruin>,
+    selection: Box<dyn Selection>,
     objective: Box<dyn Objective>,
     acceptance: Box<dyn Acceptance>,
     termination: Box<dyn Termination>,
@@ -27,6 +29,7 @@ impl Default for Solver {
         Solver::new(
             Box::new(RecreateWithCheapest::default()),
             Box::new(CompositeRuin::default()),
+            Box::new(SelectBest::default()),
             Box::new(PenalizeUnassigned::default()),
             Box::new(Greedy::default()),
             Box::new(MaxGeneration::default()),
@@ -39,12 +42,13 @@ impl Solver {
     pub fn new(
         recreate: Box<dyn Recreate>,
         ruin: Box<dyn Ruin>,
+        selection: Box<dyn Selection>,
         objective: Box<dyn Objective>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
         logger: Box<dyn Fn(&str) -> ()>,
     ) -> Self {
-        Self { recreate, ruin, objective, acceptance, termination, logger }
+        Self { recreate, ruin, selection, objective, acceptance, termination, logger }
     }
 
     pub fn solve(&self, problem: Problem) -> Option<(Solution, ObjectiveCost, usize)> {
@@ -64,13 +68,13 @@ impl Solver {
                 self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
 
             if is_accepted {
-                refinement_ctx.population.push((insertion_ctx.deep_copy(), cost.clone(), refinement_ctx.generation));
+                refinement_ctx.population.push((insertion_ctx, cost.clone(), refinement_ctx.generation));
                 refinement_ctx
                     .population
                     .sort_by(|(_, a, _), (_, b, _)| a.total().partial_cmp(&b.total()).unwrap_or(Less))
-            } else {
-                insertion_ctx = refinement_ctx.population.first().unwrap().0.deep_copy();
             }
+
+            insertion_ctx = self.selection.select(&refinement_ctx);
 
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
                 self.logger.deref()(
@@ -93,14 +97,19 @@ impl Solver {
             refinement_ctx.generation = refinement_ctx.generation + 1;
         }
 
+        self.get_result(refinement_ctx)
+    }
+
+    fn get_result(&self, refinement_ctx: RefinementContext) -> Option<(Solution, ObjectiveCost, usize)> {
         if refinement_ctx.population.is_empty() {
             None
         } else {
+            let mut refinement_ctx = refinement_ctx;
             let (ctx, cost, generation) = refinement_ctx.population.remove(0);
             self.logger.deref()(
                 format!("Best solution within cost {} discovered at {} generation", cost.total(), generation).as_str(),
             );
-            Some((ctx.solution.to_solution(problem.extras.clone()), cost, generation))
+            Some((ctx.solution.to_solution(refinement_ctx.problem.extras.clone()), cost, generation))
         }
     }
 }
