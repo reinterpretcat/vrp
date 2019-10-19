@@ -64,14 +64,12 @@ impl Solver {
                 self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
 
             if is_accepted {
-                refinement_ctx.population.push((
-                    insertion_ctx.solution.to_solution(problem.extras.clone()),
-                    cost.clone(),
-                    refinement_ctx.generation,
-                ));
+                refinement_ctx.population.push((insertion_ctx.deep_copy(), cost.clone(), refinement_ctx.generation));
                 refinement_ctx
                     .population
                     .sort_by(|(_, a, _), (_, b, _)| a.total().partial_cmp(&b.total()).unwrap_or(Less))
+            } else {
+                insertion_ctx = refinement_ctx.population.first().unwrap().0.deep_copy();
             }
 
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
@@ -98,12 +96,11 @@ impl Solver {
         if refinement_ctx.population.is_empty() {
             None
         } else {
-            let solution = refinement_ctx.population.remove(0);
+            let (ctx, cost, generation) = refinement_ctx.population.remove(0);
             self.logger.deref()(
-                format!("Best solution within cost {} discovered at {} generation", solution.1.total(), solution.2)
-                    .as_str(),
+                format!("Best solution within cost {} discovered at {} generation", cost.total(), generation).as_str(),
             );
-            Some(solution)
+            Some((ctx.solution.to_solution(problem.extras.clone()), cost, generation))
         }
     }
 }

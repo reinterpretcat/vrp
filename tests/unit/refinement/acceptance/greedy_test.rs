@@ -1,4 +1,4 @@
-use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_problem, create_empty_solution};
+use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_problem};
 use crate::helpers::refinement::create_refinement_context;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::acceptance::greedy::Greedy;
@@ -20,7 +20,7 @@ can_identify_cheapest_solution! {
 
 fn can_identify_cheapest_solution_impl(new_cost: ObjectiveCost, old_cost: ObjectiveCost, expected: bool) {
     let mut refinement_ctx = create_refinement_context(create_empty_problem(), Arc::new(DefaultRandom::new()));
-    refinement_ctx.population.push((create_empty_solution(), old_cost, 0));
+    refinement_ctx.population.push((create_empty_insertion_context(), old_cost, 0));
 
     let result = Greedy::new().is_accepted(&refinement_ctx, (&create_empty_insertion_context(), new_cost));
 

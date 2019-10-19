@@ -38,6 +38,7 @@ pub struct InsertionFailure {
 }
 
 /// Provides the way to get some meta information about insertion progress.
+#[derive(Clone)]
 pub struct InsertionProgress {
     /// Specifies best known cost depending on context.
     pub cost: Option<Cost>,
@@ -166,6 +167,16 @@ impl InsertionContext {
         });
     }
 
+    pub fn deep_copy(&self) -> Self {
+        InsertionContext {
+            progress: self.progress.clone(),
+            problem: self.problem.clone(),
+            solution: self.solution.deep_copy(),
+            locked: self.locked.clone(),
+            random: self.random.clone(),
+        }
+    }
+
     fn get_locked_jobs(problem: &Problem) -> Arc<HashSet<Arc<Job>>> {
         Arc::new(problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
             acc.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
@@ -199,6 +210,16 @@ impl SolutionContext {
             routes: self.routes.iter().map(|rc| rc.route.read().unwrap().deep_copy()).collect(),
             unassigned: self.unassigned.clone(),
             extras,
+        }
+    }
+
+    pub fn deep_copy(&self) -> Self {
+        Self {
+            required: self.required.clone(),
+            ignored: self.ignored.clone(),
+            unassigned: self.unassigned.clone(),
+            routes: self.routes.iter().map(|rc| rc.deep_copy()).collect(),
+            registry: self.registry.deep_copy(),
         }
     }
 }

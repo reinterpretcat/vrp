@@ -1,6 +1,7 @@
+use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::models::problem::Job;
-use crate::models::{Problem, Solution};
+use crate::models::Problem;
 use crate::utils::Random;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -12,7 +13,7 @@ pub struct RefinementContext {
 
     /// Specifies sorted collection discovered and accepted solutions
     /// with their cost and generation at which it is discovered.
-    pub population: Vec<(Solution, ObjectiveCost, usize)>,
+    pub population: Vec<(InsertionContext, ObjectiveCost, usize)>,
 
     /// Specifies refinement generation (or iteration).
     pub generation: usize,
