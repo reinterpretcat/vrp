@@ -10,8 +10,9 @@ pub struct RefinementContext {
     /// Original problem.
     pub problem: Arc<Problem>,
 
-    /// Specifies sorted collection discovered and accepted solutions with their cost.
-    pub population: Vec<(Solution, ObjectiveCost)>,
+    /// Specifies sorted collection discovered and accepted solutions
+    /// with their cost and generation at which it is discovered.
+    pub population: Vec<(Solution, ObjectiveCost, usize)>,
 
     /// Specifies refinement generation (or iteration).
     pub generation: usize,

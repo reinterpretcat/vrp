@@ -76,12 +76,15 @@ fn main() {
             }
         };
 
-    match writers.get(problem_format) {
-        Some(writer) => writer.0(solution).unwrap(),
-        _ => {
-            // TODO
-            eprintln!("Don't know how to write solution in '{}' format", problem_format);
-            process::exit(1);
-        }
-    }
+    match solution {
+        Some(solution) => match writers.get(problem_format) {
+            Some(writer) => writer.0(solution.0).unwrap(),
+            _ => {
+                // TODO
+                eprintln!("Don't know how to write solution in '{}' format", problem_format);
+                process::exit(1);
+            }
+        },
+        None => println!("Cannot find any solution"),
+    };
 }

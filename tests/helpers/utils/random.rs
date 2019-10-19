@@ -35,10 +35,12 @@ impl FakeRandom {
 
 impl Random for FakeRandom {
     fn uniform_int(&self, min: i32, max: i32) -> i32 {
+        assert!(min <= max);
         unsafe { self.const_cast().ints.next() }
     }
 
     fn uniform_real(&self, min: f64, max: f64) -> f64 {
+        assert!(min < max);
         unsafe { self.const_cast().reals.next() }
     }
 }

@@ -68,12 +68,12 @@ impl Ruin for RandomRouteRemoval {
         let max = (insertion_ctx.solution.routes.len() as f64 * self.threshold).max(self.rmin).round() as usize;
         let affected = insertion_ctx
             .random
-            .uniform_int(self.rmin as i32, self.rmax as i32 + 1)
+            .uniform_int(self.rmin as i32, self.rmax as i32)
             .min(insertion_ctx.solution.routes.len().min(max) as i32) as usize;
 
         (0..affected).for_each(|index| {
             let mut solution = &mut insertion_ctx.solution;
-            let route_index = insertion_ctx.random.uniform_int(0, solution.routes.len() as i32) as usize;
+            let route_index = insertion_ctx.random.uniform_int(0, (solution.routes.len() - 1) as i32) as usize;
             let mut route_ctx = &mut solution.routes.iter().skip(route_index).next().unwrap().clone();
 
             if insertion_ctx.locked.is_empty() {

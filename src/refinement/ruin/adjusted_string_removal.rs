@@ -156,7 +156,7 @@ fn preserved_string<'a>(
     let (begin, end) = lower_bounds(total, seed_tour.0.job_count(), index);
     let start_total = random.uniform_int(begin as i32, end as i32) as usize;
 
-    let split_start = random.uniform_int(start_total as i32, (start_total + cardinality) as i32) as usize;
+    let split_start = random.uniform_int(start_total as i32, (start_total + cardinality - 1) as i32) as usize;
     let split_end = split_start + split;
 
     // NOTE if selected job is in split range we should remove it anyway,
@@ -200,7 +200,7 @@ fn select_seed_job<'a>(
         return None;
     }
 
-    let route_index = random.uniform_int(0, routes.len() as i32) as usize;
+    let route_index = random.uniform_int(0, (routes.len() - 1) as i32) as usize;
     let mut ri = route_index;
 
     loop {
@@ -228,7 +228,6 @@ fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) 
     if size == 0 {
         return None;
     }
-    let size = size + 1;
 
     let activity_index = random.uniform_int(1, size as i32) as usize;
     let mut ai = activity_index;
