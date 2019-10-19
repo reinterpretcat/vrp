@@ -20,18 +20,19 @@ use crate::models::{Problem, Solution};
 use crate::streams::input::text::{LilimProblem, SolomonProblem};
 use crate::streams::output::text::write_solomon_solution;
 use std::collections::HashMap;
+use std::fs::File;
 use std::io::{stdout, BufWriter, Error};
 use std::ops::Deref;
 use std::process;
 
-struct InputReader(Box<dyn Fn(String) -> Result<Problem, String>>);
+struct InputReader(Box<dyn Fn(File) -> Result<Problem, String>>);
 
 struct OutputWriter(Box<dyn Fn(Solution) -> Result<(), Error>>);
 
 fn main() {
     let readers: HashMap<&str, InputReader> = vec![
-        ("solomon", InputReader(Box::new(|path: String| path.parse_solomon()))),
-        ("lilim", InputReader(Box::new(|path: String| path.parse_lilim()))),
+        ("solomon", InputReader(Box::new(|file: File| file.parse_solomon()))),
+        ("lilim", InputReader(Box::new(|file: File| file.parse_lilim()))),
     ]
     .into_iter()
     .collect();
@@ -61,15 +62,19 @@ fn main() {
 
     let problem_path = matches.value_of("PROBLEM").unwrap();
     let problem_format = matches.value_of("FORMAT").unwrap();
-    let input_reader = readers.get(problem_format).unwrap();
+    let input_file = File::open(problem_path).unwrap_or_else(|err| {
+        eprintln!("Cannot open file '{}': '{}'", problem_path, err.to_string());
+        process::exit(1);
+    });
 
-    let solution = match input_reader.0(problem_path.to_string()) {
-        Ok(problem) => Solver::default().solve(problem),
-        Err(error) => {
-            eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
-            process::exit(1);
-        }
-    };
+    let solution =
+        match readers.get(problem_format).ok_or_else(|| "Unknown format".to_string()).and_then(|r| r.0(input_file)) {
+            Ok(problem) => Solver::default().solve(problem),
+            Err(error) => {
+                eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
+                process::exit(1);
+            }
+        };
 
     match writers.get(problem_format) {
         Some(writer) => writer.0(solution).unwrap(),
