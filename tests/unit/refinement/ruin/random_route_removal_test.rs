@@ -21,7 +21,7 @@ fn can_remove_whole_routes_from_context() {
         Arc::new(FakeRandom::new(ints, vec![])),
     );
 
-    let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2).ruin_solution(insertion_ctx);
+    let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2).run(insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.required.len(), 8);
 }
@@ -52,7 +52,7 @@ fn can_remove_parts_routes_from_context() {
         Arc::new(FakeRandom::new(ints, vec![])),
     );
 
-    let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2).ruin_solution(insertion_ctx);
+    let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2).run(insertion_ctx);
 
     assert_eq!(
         get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required),

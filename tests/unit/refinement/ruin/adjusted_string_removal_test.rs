@@ -53,7 +53,7 @@ fn can_ruin_solution_with_matrix_routes_impl(
         Arc::new(FakeRandom::new(ints, reals)),
     );
 
-    let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(insertion_ctx);
+    let insertion_ctx = AdjustedStringRemoval::default().run(insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }
@@ -93,7 +93,7 @@ fn can_ruin_solution_with_multi_jobs_impl(
     let heuristic = create_cheapest_insertion_heuristic();
     let mut insertion_ctx = heuristic.process(InsertionContext::new(problem, Arc::new(FakeRandom::new(ints, reals))));
 
-    let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(insertion_ctx);
+    let insertion_ctx = AdjustedStringRemoval::default().run(insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_remove_ids);
     assert_eq!(
