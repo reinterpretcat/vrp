@@ -22,7 +22,7 @@ pub trait Random {
 
     /// Flips a coin and returns true if it is "heads", false otherwise.
     fn is_head_not_tails(&self) -> bool {
-        self.uniform_int(1, 3) == 1
+        self.uniform_int(1, 2) == 1
     }
 }
 
