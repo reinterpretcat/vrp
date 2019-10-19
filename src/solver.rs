@@ -100,16 +100,19 @@ impl Solver {
             refinement_ctx.generation = refinement_ctx.generation + 1;
         }
 
+        self.log_result(&refinement_ctx, refinement_time);
+        self.get_result(refinement_ctx)
+    }
+
+    fn log_result(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
         self.logger.deref()(
             format!(
                 "solving took {}ms, generations: {}",
                 refinement_time.elapsed().as_millis(),
                 refinement_ctx.generation,
             )
-            .as_str(),
+                .as_str(),
         );
-
-        self.get_result(refinement_ctx)
     }
 
     fn get_result(&self, refinement_ctx: RefinementContext) -> Option<(Solution, ObjectiveCost, usize)> {
