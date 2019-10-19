@@ -81,7 +81,7 @@ impl Ruin for AdjustedStringRemoval {
                         let mut route = rc.route.write().unwrap();
 
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = route.tour.job_count().min(lsmax);
+                        let ltmax = route.tour.activity_count().min(lsmax);
                         let lt = insertion_ctx.random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
                         if let Some(index) = route.tour.index(&job) {
@@ -110,7 +110,7 @@ type JobIter<'a> = Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(routes: &Vec<RouteContext>) -> f64 {
-    (routes.iter().fold(0., |acc, rc| acc + rc.route.read().unwrap().tour.job_count() as f64) / routes.len() as f64)
+    (routes.iter().fold(0., |acc, rc| acc + rc.route.read().unwrap().tour.activity_count() as f64) / routes.len() as f64)
         .round()
 }
 
@@ -134,7 +134,7 @@ fn sequential_string<'a>(
     cardinality: usize,
     random: &Arc<dyn Random + Send + Sync>,
 ) -> JobIter<'a> {
-    let (begin, end) = lower_bounds(cardinality, seed_tour.0.job_count(), seed_tour.1);
+    let (begin, end) = lower_bounds(cardinality, seed_tour.0.activity_count(), seed_tour.1);
     let start = random.uniform_int(begin as i32, end as i32) as usize;
 
     Box::new(
@@ -149,11 +149,13 @@ fn preserved_string<'a>(
     alpha: f64,
     random: &Arc<dyn Random + Send + Sync>,
 ) -> JobIter<'a> {
+    let size = seed_tour.0.activity_count();
     let index = seed_tour.1;
-    let split = preserved_cardinality(cardinality, seed_tour.0.job_count(), alpha, random);
+
+    let split = preserved_cardinality(cardinality, size, alpha, random);
     let mut total = cardinality + split;
 
-    let (begin, end) = lower_bounds(total, seed_tour.0.job_count(), index);
+    let (begin, end) = lower_bounds(total, size, index);
     let start_total = random.uniform_int(begin as i32, end as i32) as usize;
 
     let split_start = random.uniform_int(start_total as i32, (start_total + cardinality - 1) as i32) as usize;

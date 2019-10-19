@@ -6,7 +6,9 @@ use self::rand::Rng;
 pub trait Random {
     /// Produces integral random value, uniformly distributed on the closed interval [min, max]
     fn uniform_int(&self, min: i32, max: i32) -> i32 {
-        assert!(min <= max);
+        if min == max { return min; }
+
+        assert!(min < max);
         rand::thread_rng().gen_range(min, max + 1)
     }
 
