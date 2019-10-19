@@ -59,6 +59,7 @@ impl Solver {
         loop {
             let now = Instant::now();
 
+            refinement_ctx.generation = refinement_ctx.generation + 1;
             insertion_ctx = self.ruin.run(insertion_ctx);
             insertion_ctx = self.recreate.run(insertion_ctx);
 
@@ -93,8 +94,6 @@ impl Solver {
             if is_terminated {
                 break;
             }
-
-            refinement_ctx.generation = refinement_ctx.generation + 1;
         }
 
         self.get_result(refinement_ctx)
