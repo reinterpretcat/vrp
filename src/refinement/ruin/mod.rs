@@ -2,7 +2,7 @@ use crate::construction::states::InsertionContext;
 
 /// Specifies ruin strategy.
 pub trait Ruin {
-    fn run(&self, mut insertion_ctx: InsertionContext) -> InsertionContext;
+    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
 mod adjusted_string_removal;
@@ -28,7 +28,7 @@ impl Default for CompositeRuin {
 }
 
 impl Ruin for CompositeRuin {
-    fn run(&self, mut insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
         let random = insertion_ctx.random.clone();
         self.ruins
             .iter()
