@@ -52,7 +52,7 @@ pub fn get_customer_ids_from_routes(solution: &Solution) -> Vec<Vec<String>> {
         .collect()
 }
 
-fn get_customer_id(job: &Arc<Job>) -> String {
+pub fn get_customer_id(job: &Arc<Job>) -> String {
     match job.as_ref() {
         Job::Single(job) => &job.dimens,
         Job::Multi(job) => &job.dimens,
