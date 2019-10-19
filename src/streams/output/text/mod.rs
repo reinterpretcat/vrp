@@ -20,9 +20,9 @@ pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) 
             .tour
             .all_activities()
             .filter(|a| a.job.is_some())
-            .map(|a| a.job.as_ref().unwrap().as_ref())
+            .map(|a| a.retrieve_job().unwrap().clone())
             .map(|job| {
-                match job {
+                match job.as_ref() {
                     Job::Single(job) => &job.dimens,
                     Job::Multi(job) => &job.dimens,
                 }
