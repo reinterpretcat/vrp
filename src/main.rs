@@ -16,19 +16,32 @@ mod utils;
 mod solver;
 
 pub use self::solver::Solver;
-use crate::models::Problem;
+use crate::models::{Problem, Solution};
 use crate::streams::input::text::{LilimProblem, SolomonProblem};
+use crate::streams::output::text::write_solomon_solution;
 use std::collections::HashMap;
+use std::io::{stdout, BufWriter, Error};
 use std::ops::Deref;
 use std::process;
 
-struct FormatParser(Box<dyn Fn(String) -> Result<Problem, String>>);
+struct InputReader(Box<dyn Fn(String) -> Result<Problem, String>>);
+
+struct OutputWriter(Box<dyn Fn(Solution) -> Result<(), Error>>);
 
 fn main() {
-    let formats: HashMap<&str, FormatParser> = vec![
-        ("solomon", FormatParser(Box::new(|path: String| path.parse_solomon()))),
-        ("lilim", FormatParser(Box::new(|path: String| path.parse_lilim()))),
+    let readers: HashMap<&str, InputReader> = vec![
+        ("solomon", InputReader(Box::new(|path: String| path.parse_solomon()))),
+        ("lilim", InputReader(Box::new(|path: String| path.parse_lilim()))),
     ]
+    .into_iter()
+    .collect();
+
+    let writers: HashMap<&str, OutputWriter> = vec![(
+        "solomon",
+        OutputWriter(Box::new(|solution: Solution| {
+            write_solomon_solution(BufWriter::new(Box::new(stdout())), &solution)
+        })),
+    )]
     .into_iter()
     .collect();
 
@@ -41,19 +54,28 @@ fn main() {
             Arg::with_name("FORMAT")
                 .help("Specifies the problem type")
                 .required(true)
-                .possible_values(formats.keys().map(|s| s.deref()).collect::<Vec<&str>>().as_slice())
+                .possible_values(readers.keys().map(|s| s.deref()).collect::<Vec<&str>>().as_slice())
                 .index(2),
         )
         .get_matches();
 
     let problem_path = matches.value_of("PROBLEM").unwrap();
     let problem_format = matches.value_of("FORMAT").unwrap();
-    let format_parser = formats.get(problem_format).unwrap();
+    let input_reader = readers.get(problem_format).unwrap();
 
-    match format_parser.0(problem_path.to_string()) {
-        Ok(problem) => unimplemented!(),
+    let solution = match input_reader.0(problem_path.to_string()) {
+        Ok(problem) => Solver::default().solve(problem),
         Err(error) => {
             eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
+            process::exit(1);
+        }
+    };
+
+    match writers.get(problem_format) {
+        Some(writer) => writer.0(solution).unwrap(),
+        _ => {
+            // TODO
+            eprintln!("Don't know how to write solution in '{}' format", problem_format);
             process::exit(1);
         }
     }

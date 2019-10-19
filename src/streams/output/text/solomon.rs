@@ -6,7 +6,9 @@ use crate::models::Solution;
 use std::io::{BufWriter, Error, ErrorKind, Write};
 use std::ops::Deref;
 
-pub fn write_solomon_solution<W: Write>(writer: &mut BufWriter<W>, solution: &Solution) -> Result<(), Error> {
+pub fn write_solomon_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
+    let mut writer = writer;
+
     if !solution.unassigned.is_empty() {
         return Err(Error::new(ErrorKind::Other, "Cannot write solomon solution with unassigned jobs."));
     }
