@@ -56,10 +56,10 @@ impl Solver {
         let mut refinement_ctx = RefinementContext::new(problem.clone());
         let mut insertion_ctx = InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new()));
 
+        let refinement_time = Instant::now();
         loop {
-            let now = Instant::now();
+            let generation_time = Instant::now();
 
-            refinement_ctx.generation = refinement_ctx.generation + 1;
             insertion_ctx = self.ruin.run(insertion_ctx);
             insertion_ctx = self.recreate.run(insertion_ctx);
 
@@ -67,6 +67,7 @@ impl Solver {
             let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost.clone()));
             let is_terminated =
                 self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
+            let routes = insertion_ctx.solution.routes.len();
 
             if is_accepted {
                 refinement_ctx.population.push((insertion_ctx, cost.clone(), refinement_ctx.generation));
@@ -80,11 +81,12 @@ impl Solver {
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
                 self.logger.deref()(
                     format!(
-                        "iteration {} took {}ms, cost: ({},{}), accepted: {}",
+                        "generation {} took {}ms, cost: ({},{}) routes: {}, accepted: {}",
                         refinement_ctx.generation,
-                        now.elapsed().as_millis(),
+                        generation_time.elapsed().as_millis(),
                         cost.actual,
                         cost.penalty,
+                        routes,
                         is_accepted
                     )
                     .as_str(),
@@ -94,7 +96,18 @@ impl Solver {
             if is_terminated {
                 break;
             }
+
+            refinement_ctx.generation = refinement_ctx.generation + 1;
         }
+
+        self.logger.deref()(
+            format!(
+                "solving took {}ms, generations: {}",
+                refinement_time.elapsed().as_millis(),
+                refinement_ctx.generation,
+            )
+            .as_str(),
+        );
 
         self.get_result(refinement_ctx)
     }
