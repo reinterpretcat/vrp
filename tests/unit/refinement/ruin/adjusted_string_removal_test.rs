@@ -20,8 +20,7 @@ use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::streams::input::LilimBuilder;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::ObjectiveCost;
-use crate::refinement::ruin::{AdjustedStringRemoval, RuinStrategy};
-use crate::refinement::RefinementContext;
+use crate::refinement::ruin::{AdjustedStringRemoval, Ruin};
 use crate::streams::input::text::LilimProblem;
 use std::sync::Arc;
 
@@ -48,15 +47,13 @@ fn can_ruin_solution_with_matrix_routes_impl(
     expected_ids: Vec<&str>,
 ) {
     let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1);
-    let refinement_ctx = RefinementContext {
-        problem: Arc::new(problem),
-        locked: Default::default(),
-        population: vec![(Arc::new(solution), ObjectiveCost::new(0., 0.))],
-        random: Arc::new(FakeRandom::new(ints, reals)),
-        generation: 0,
-    };
+    let mut insertion_ctx = InsertionContext::new_from_solution(
+        Arc::new(problem),
+        (Arc::new(solution), None),
+        Arc::new(FakeRandom::new(ints, reals)),
+    );
 
-    let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(&refinement_ctx).unwrap();
+    let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }
@@ -94,16 +91,9 @@ fn can_ruin_solution_with_multi_jobs_impl(
             .unwrap(),
     );
     let heuristic = create_cheapest_insertion_heuristic();
-    let solution = heuristic.process(InsertionContext::new(problem.clone())).solution.into_solution(Default::default());
-    let refinement_ctx = RefinementContext {
-        problem,
-        locked: Default::default(),
-        population: vec![(Arc::new(solution), ObjectiveCost::new(0.0, 0.0))],
-        random: Arc::new(FakeRandom::new(ints, reals)),
-        generation: 0,
-    };
+    let mut insertion_ctx = heuristic.process(InsertionContext::new(problem, Arc::new(FakeRandom::new(ints, reals))));
 
-    let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(&refinement_ctx).unwrap();
+    let insertion_ctx = AdjustedStringRemoval::default().ruin_solution(insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_remove_ids);
     assert_eq!(

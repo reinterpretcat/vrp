@@ -41,5 +41,12 @@ pub struct Solution {
     pub extras: Extras,
 }
 
+/// Specifies lock details.
+pub struct LockDetail {
+    pub jobs: Vec<Arc<Job>>,
+}
+
 /// Specifies jobs locked to specific actors.
-pub struct Lock {}
+pub struct Lock {
+    pub details: Vec<LockDetail>,
+}

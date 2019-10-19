@@ -60,7 +60,9 @@ impl InsertionHeuristic {
                 {
                     let route = success.context.route.read().unwrap();
                     ctx.solution.registry.use_actor(&route.actor);
-                    ctx.solution.routes.insert(success.context.clone());
+                    if !ctx.solution.routes.contains(&success.context) {
+                        ctx.solution.routes.push(success.context.clone());
+                    }
                 }
                 {
                     let mut route = success.context.route.write().unwrap();

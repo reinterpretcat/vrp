@@ -11,7 +11,7 @@ pub struct RefinementContext {
     pub problem: Arc<Problem>,
 
     /// Specifies jobs which should not be affected.
-    pub locked: HashSet<Arc<Job>>,
+    pub locked: Arc<HashSet<Arc<Job>>>,
 
     /// Specifies sorted collection discovered and accepted solutions with their cost.
     pub population: Vec<(Arc<Solution>, ObjectiveCost)>,

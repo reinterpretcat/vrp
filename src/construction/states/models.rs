@@ -85,25 +85,70 @@ pub struct InsertionContext {
     /// Solution context.
     pub solution: SolutionContext,
 
+    /// Specifies jobs which should not be affected.
+    pub locked: Arc<HashSet<Arc<Job>>>,
+
     /// Random generator.
     pub random: Arc<dyn Random + Send + Sync>,
 }
 
 impl InsertionContext {
-    pub fn new(problem: Arc<Problem>) -> Self {
-        let registry = Registry::new(problem.fleet.as_ref());
-        let required: Vec<Arc<Job>> = problem.jobs.all().collect();
-        Self {
-            progress: InsertionProgress { cost: None, completeness: 0.0, total: 0 },
-            problem,
+    /// Creates insertion context from existing solution.
+    pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> Self {
+        InsertionContext {
+            progress: InsertionProgress { cost: None, completeness: 0., total: problem.jobs.size() },
+            problem: problem.clone(),
             solution: SolutionContext {
-                required,
-                ignored: Default::default(),
+                required: problem.jobs.all().collect(),
+                ignored: vec![],
                 unassigned: Default::default(),
                 routes: Default::default(),
+                registry: Registry::new(&problem.fleet),
+            },
+            locked: Self::get_locked_jobs(&problem),
+            random: random.clone(),
+        }
+    }
+
+    /// Creates insertion context from existing solution.
+    pub fn new_from_solution(
+        problem: Arc<Problem>,
+        solution: (Arc<Solution>, Option<Cost>),
+        random: Arc<dyn Random + Send + Sync>,
+    ) -> Self {
+        let jobs: Vec<Arc<Job>> = solution.0.unassigned.iter().map(|(job, _)| job.clone()).collect();
+        let mut registry = solution.0.registry.deep_copy();
+        let mut routes: Vec<RouteContext> = Vec::new();
+
+        solution.0.routes.iter().for_each(|route| {
+            if route.tour.has_jobs() {
+                let mut route_ctx = RouteContext {
+                    route: Arc::new(RwLock::new(route.deep_copy())),
+                    state: Arc::new(RwLock::new(RouteState::new())),
+                };
+                problem.constraint.accept_route_state(&mut route_ctx);
+                routes.push(route_ctx);
+            } else {
+                registry.free_actor(&route.actor);
+            }
+        });
+
+        InsertionContext {
+            progress: InsertionProgress {
+                cost: solution.1,
+                completeness: 1. - (solution.0.unassigned.len() as f64 / problem.jobs.size() as f64),
+                total: problem.jobs.size(),
+            },
+            problem: problem.clone(),
+            solution: SolutionContext {
+                required: jobs,
+                ignored: vec![],
+                unassigned: Default::default(),
+                routes,
                 registry,
             },
-            random: Arc::new(DefaultRandom::new()),
+            locked: Self::get_locked_jobs(&problem),
+            random: random.clone(),
         }
     }
 
@@ -120,6 +165,13 @@ impl InsertionContext {
             }
         });
     }
+
+    fn get_locked_jobs(problem: &Problem) -> Arc<HashSet<Arc<Job>>> {
+        Arc::new(problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
+            acc.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
+            acc
+        }))
+    }
 }
 
 /// Contains information regarding insertion solution.
@@ -133,9 +185,8 @@ pub struct SolutionContext {
     /// Map of jobs which cannot be assigned and within reason code.
     pub unassigned: HashMap<Arc<Job>, i32>,
 
-    // TODO implement proper hash function for RouteContext
     /// Set of routes within their state.
-    pub routes: HashSet<RouteContext>,
+    pub routes: Vec<RouteContext>,
 
     /// Keeps track of used resources.
     pub registry: Registry,
@@ -253,13 +304,6 @@ pub fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
             job: None,
         })
     })
-}
-
-impl Hash for RouteContext {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let ptr = self.route.read().unwrap().deref() as *const Route;
-        ptr.hash(state);
-    }
 }
 
 impl PartialEq<RouteContext> for RouteContext {

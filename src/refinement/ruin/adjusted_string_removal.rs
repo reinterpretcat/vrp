@@ -5,11 +5,11 @@ mod adjusted_string_removal_test;
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
-use crate::construction::states::InsertionContext;
+use crate::construction::states::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
 use crate::models::solution::{Actor, Route, Tour};
 use crate::models::{Problem, Solution};
-use crate::refinement::ruin::{create_insertion_context, RuinStrategy};
+use crate::refinement::ruin::Ruin;
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
 use std::borrow::Borrow;
@@ -36,9 +36,9 @@ impl AdjustedStringRemoval {
     }
 
     /// Calculates initial parameters from paper using 5,6,7 equations.
-    fn calculate_limits(&self, solution: &Solution, random: &Arc<dyn Random + Send + Sync>) -> (usize, usize) {
+    fn calculate_limits(&self, routes: &Vec<RouteContext>, random: &Arc<dyn Random + Send + Sync>) -> (usize, usize) {
         // Equation 5: max removed string cardinality for each tour
-        let lsmax = calculate_average_tour_cardinality(solution).min(self.lmax as f64);
+        let lsmax = calculate_average_tour_cardinality(routes).min(self.lmax as f64);
 
         // Equation 6: max number of strings
         let ksmax = 4. * (self.cavg as f64) / (1. + lsmax) - 1.;
@@ -56,21 +56,19 @@ impl Default for AdjustedStringRemoval {
     }
 }
 
-impl RuinStrategy for AdjustedStringRemoval {
-    fn ruin_solution(&self, refinement_ctx: &RefinementContext) -> Result<InsertionContext, String> {
-        let individuum = refinement_ctx.individuum()?;
+impl Ruin for AdjustedStringRemoval {
+    fn ruin_solution(&self, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let mut jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::new());
         let mut actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
-        let mut insertion_cxt = create_insertion_context(&refinement_ctx.problem, individuum, &refinement_ctx.random);
-        let solution = individuum.0.as_ref();
+        let routes: Vec<RouteContext> = insertion_ctx.solution.routes.iter().cloned().collect();
 
-        let (lsmax, ks) = self.calculate_limits(solution, &insertion_cxt.random);
+        let (lsmax, ks) = self.calculate_limits(&routes, &insertion_ctx.random);
 
-        select_seed_jobs(&refinement_ctx.problem, solution, &insertion_cxt.random)
-            .filter(|job| !jobs.read().unwrap().contains(job) && !solution.unassigned.contains_key(job))
+        select_seed_jobs(&insertion_ctx.problem, &routes, &insertion_ctx.random)
+            .filter(|job| !jobs.read().unwrap().contains(job) && !insertion_ctx.solution.unassigned.contains_key(job))
             .take_while(|_| actors.read().unwrap().len() != ks)
             .for_each(|job| {
-                insertion_cxt
+                insertion_ctx
                     .solution
                     .routes
                     .iter()
@@ -83,12 +81,12 @@ impl RuinStrategy for AdjustedStringRemoval {
 
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
                         let ltmax = route.tour.job_count().min(lsmax);
-                        let lt = insertion_cxt.random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
+                        let lt = insertion_ctx.random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
                         if let Some(index) = route.tour.index(&job) {
                             actors.write().unwrap().insert(route.actor.clone());
-                            select_string((&route.tour, index), lt, self.alpha, &insertion_cxt.random)
-                                .filter(|job| !refinement_ctx.locked.contains(job))
+                            select_string((&route.tour, index), lt, self.alpha, &insertion_ctx.random)
+                                .filter(|job| !insertion_ctx.locked.contains(job))
                                 .collect::<Vec<Arc<Job>>>()
                                 .iter()
                                 .for_each(|job| {
@@ -99,19 +97,19 @@ impl RuinStrategy for AdjustedStringRemoval {
                     });
             });
 
-        jobs.write().unwrap().iter().for_each(|job| insertion_cxt.solution.required.push(job.clone()));
+        jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
 
-        insertion_cxt.remove_empty_routes();
+        insertion_ctx.remove_empty_routes();
 
-        Ok(insertion_cxt)
+        insertion_ctx
     }
 }
 
 type JobIter<'a> = Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
-fn calculate_average_tour_cardinality(solution: &Solution) -> f64 {
-    (solution.routes.iter().fold(0., |acc, route| acc + route.tour.job_count() as f64) / solution.routes.len() as f64)
+fn calculate_average_tour_cardinality(routes: &Vec<RouteContext>) -> f64 {
+    (routes.iter().fold(0., |acc, rc| acc + rc.route.read().unwrap().tour.job_count() as f64) / routes.len() as f64)
         .round()
 }
 
@@ -167,10 +165,7 @@ fn preserved_string<'a>(
     Box::new(
         (start_total..(start_total + total))
             .rev()
-            .filter(move |&i| {
-                let ggg = i < split_start || i >= split_end || i == index;
-                ggg
-            })
+            .filter(move |&i| i < split_start || i >= split_end || i == index)
             .filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())),
     )
 }
@@ -178,14 +173,14 @@ fn preserved_string<'a>(
 /// Returns randomly selected job within all its neighbours.
 fn select_seed_jobs<'a>(
     problem: &'a Problem,
-    solution: &'a Solution,
+    routes: &'a Vec<RouteContext>,
     random: &Arc<dyn Random + Send + Sync>,
 ) -> JobIter<'a> {
-    let seed = select_seed_job(&solution.routes, random);
+    let seed = select_seed_job(routes, random);
 
-    if let Some((route, job)) = seed {
+    if let Some((rc, job)) = seed {
         return Box::new(once(job.clone()).chain(problem.jobs.neighbors(
-            route.actor.vehicle.profile,
+            rc.route.read().unwrap().actor.vehicle.profile,
             &job,
             Default::default(),
             std::f64::MAX,
@@ -197,9 +192,9 @@ fn select_seed_jobs<'a>(
 
 /// Selects seed job from existing solution
 fn select_seed_job<'a>(
-    routes: &'a Vec<Route>,
+    routes: &'a Vec<RouteContext>,
     random: &Arc<dyn Random + Send + Sync>,
-) -> Option<(&'a Route, Arc<Job>)> {
+) -> Option<(&'a RouteContext, Arc<Job>)> {
     if routes.is_empty() {
         return None;
     }
@@ -208,12 +203,12 @@ fn select_seed_job<'a>(
     let mut ri = route_index;
 
     loop {
-        let route = routes.get(ri).unwrap();
+        let rc = routes.get(ri).unwrap();
 
-        if route.tour.has_jobs() {
-            let job = select_random_job(route, random);
+        if rc.route.read().unwrap().tour.has_jobs() {
+            let job = select_random_job(rc, random);
             if let Some(job) = job {
-                return Some((route, job));
+                return Some((rc, job));
             }
         }
 
@@ -226,7 +221,8 @@ fn select_seed_job<'a>(
     None
 }
 
-fn select_random_job(route: &Route, random: &Arc<dyn Random + Send + Sync>) -> Option<Arc<Job>> {
+fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) -> Option<Arc<Job>> {
+    let route = rc.route.read().unwrap();
     let size = route.tour.activity_count();
     if size == 0 {
         return None;

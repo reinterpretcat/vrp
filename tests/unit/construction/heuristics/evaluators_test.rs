@@ -20,7 +20,7 @@ type JobPlace = crate::models::problem::Place;
 fn create_insertion_context(
     registry: Registry,
     constraint: ConstraintPipeline,
-    routes: HashSet<RouteContext>,
+    routes: Vec<RouteContext>,
 ) -> InsertionContext {
     InsertionContext {
         progress: test_insertion_progress(),
@@ -32,6 +32,7 @@ fn create_insertion_context(
             routes,
             registry,
         },
+        locked: Arc::new(Default::default()),
         random: Arc::new(DefaultRandom::new()),
     }
 }
@@ -44,9 +45,7 @@ fn create_test_registry() -> Registry {
 }
 
 fn create_test_insertion_context(registry: Registry) -> InsertionContext {
-    let route_ctx = RouteContext::new(registry.next().next().unwrap());
-    let mut routes: HashSet<RouteContext> = HashSet::new();
-    routes.insert(route_ctx);
+    let mut routes: Vec<RouteContext> = vec![RouteContext::new(registry.next().next().unwrap())];
     let mut constraint = create_constraint_pipeline_with_timing();
     create_insertion_context(registry, constraint, routes)
 }
@@ -124,8 +123,7 @@ mod single {
             .tour
             .insert_at(create_tour_activity_at(5), 1)
             .insert_at(create_tour_activity_at(10), 2);
-        let mut routes: HashSet<RouteContext> = HashSet::new();
-        routes.insert(route_ctx);
+        let mut routes = vec![route_ctx];
         let mut constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
 
@@ -292,8 +290,7 @@ mod multi {
                 route.tour.insert_at(create_tour_activity_at(loc), index);
             });
         }
-        let mut routes: HashSet<RouteContext> = HashSet::new();
-        routes.insert(route_ctx);
+        let mut routes = vec![route_ctx];
         let mut constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
         let mut job = MultiBuilder::new();
