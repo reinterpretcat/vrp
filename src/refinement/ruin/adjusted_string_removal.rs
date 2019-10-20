@@ -232,7 +232,6 @@ fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) 
         return None;
     }
 
-    let size = (size - 1).max(1);
     let activity_index = random.uniform_int(1, size as i32) as usize;
     let mut ai = activity_index;
 
@@ -243,7 +242,7 @@ fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) 
             return job;
         }
 
-        ai = (ai + 1) % size;
+        ai = (ai + 1) % (size + 1);
         if ai == activity_index {
             break;
         }
@@ -271,7 +270,6 @@ fn preserved_cardinality(
     alpha: f64,
     random: &Arc<dyn Random + Send + Sync>,
 ) -> usize {
-    // TODO
     if string_crd == tour_crd {
         return 0;
     }
