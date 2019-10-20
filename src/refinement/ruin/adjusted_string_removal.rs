@@ -66,7 +66,7 @@ impl Ruin for AdjustedStringRemoval {
         let (lsmax, ks) = self.calculate_limits(&routes, &insertion_ctx.random);
 
         select_seed_jobs(&insertion_ctx.problem, &routes, &insertion_ctx.random)
-            .filter(|job| !jobs.read().unwrap().contains(job) && !insertion_ctx.solution.unassigned.contains_key(job))
+            .filter(|job| !jobs.read().unwrap().contains(job))
             .take_while(|_| actors.read().unwrap().len() != ks)
             .for_each(|job| {
                 insertion_ctx
