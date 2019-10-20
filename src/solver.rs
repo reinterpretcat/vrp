@@ -136,7 +136,7 @@ impl Solver {
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
                 self.logger.deref()(
                     format!(
-                        "generation {} took {}ms, cost: ({},{}) routes: {}, accepted: {}",
+                        "generation {} took {}ms, cost: ({:.2},{:.2}) routes: {}, accepted: {}",
                         refinement_ctx.generation,
                         generation_time.elapsed().as_millis(),
                         cost.actual,
