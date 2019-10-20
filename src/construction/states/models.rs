@@ -153,17 +153,13 @@ impl InsertionContext {
         }
     }
 
-    /// Removes empty routes from solution context.
-    pub fn remove_empty_routes(&mut self) {
-        let mut registry = &mut self.solution.registry;
-        self.solution.routes.retain(|rc| {
-            let route = rc.route.read().unwrap();
-            if route.tour.has_jobs() {
-                true
-            } else {
-                registry.free_actor(&route.actor);
-                false
-            }
+    /// Restores valid context state.
+    pub fn restore(&mut self) {
+        self.remove_empty_routes();
+
+        let constraint = self.problem.constraint.clone();
+        self.solution.routes.iter_mut().for_each(|route_ctx| {
+            constraint.accept_route_state(route_ctx);
         });
     }
 
@@ -175,6 +171,20 @@ impl InsertionContext {
             locked: self.locked.clone(),
             random: self.random.clone(),
         }
+    }
+
+    /// Removes empty routes from solution context.
+    fn remove_empty_routes(&mut self) {
+        let mut registry = &mut self.solution.registry;
+        self.solution.routes.retain(|rc| {
+            let route = rc.route.read().unwrap();
+            if route.tour.has_jobs() {
+                true
+            } else {
+                registry.free_actor(&route.actor);
+                false
+            }
+        });
     }
 
     fn get_locked_jobs(problem: &Problem) -> Arc<HashSet<Arc<Job>>> {

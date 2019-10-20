@@ -50,8 +50,6 @@ impl RandomRouteRemoval {
                 });
                 solution.required.extend(jobs);
             }
-
-            insertion_ctx.problem.constraint.accept_route_state(route_ctx);
         }
     }
 }

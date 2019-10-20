@@ -100,8 +100,6 @@ impl Ruin for AdjustedStringRemoval {
 
         jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
 
-        insertion_ctx.remove_empty_routes();
-
         insertion_ctx
     }
 }
@@ -154,7 +152,7 @@ fn preserved_string<'a>(
     let index = seed_tour.1;
 
     let split = preserved_cardinality(cardinality, size, alpha, random);
-    let mut total = cardinality + split;
+    let total = cardinality + split;
 
     let (begin, end) = lower_bounds(total, size, index);
     let start_total = random.uniform_int(begin as i32, end as i32) as usize;
@@ -164,7 +162,7 @@ fn preserved_string<'a>(
 
     // NOTE if selected job is in split range we should remove it anyway,
     // this line makes sure that string cardinality is kept as requested.
-    total -= if index >= split_start && index < split_end { 1 } else { 0 };
+    let total = total - if index >= split_start && index < split_end { 1 } else { 0 };
 
     Box::new(
         (start_total..(start_total + total))

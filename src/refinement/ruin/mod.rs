@@ -6,9 +6,11 @@ pub trait Ruin {
 }
 
 mod adjusted_string_removal;
+
 pub use self::adjusted_string_removal::AdjustedStringRemoval;
 
 mod random_route_removal;
+
 pub use self::random_route_removal::RandomRouteRemoval;
 
 /// Provides the way to run multiple ruin methods.
@@ -29,12 +31,19 @@ impl Default for CompositeRuin {
 
 impl Ruin for CompositeRuin {
     fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
-        if insertion_ctx.solution.routes.is_empty() { return insertion_ctx; }
+        if insertion_ctx.solution.routes.is_empty() {
+            return insertion_ctx;
+        }
 
         let random = insertion_ctx.random.clone();
-        self.ruins
+
+        let mut insertion_ctx = self.ruins
             .iter()
             .filter(|(_, probability)| *probability > random.uniform_real(0., 1.))
-            .fold(insertion_ctx, |mut ctx, (ruin, _)| ruin.run(ctx))
+            .fold(insertion_ctx, |mut ctx, (ruin, _)| ruin.run(ctx));
+
+        insertion_ctx.restore();
+
+        insertion_ctx
     }
 }
