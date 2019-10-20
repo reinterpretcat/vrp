@@ -123,7 +123,7 @@ impl Jobs {
             .unwrap()
             .0
             .iter()
-            .filter(move |(_, d)| *d > 0.0 && *d < max_distance)
+            .filter(move |(_, distance)| *distance > 0. && *distance < max_distance)
             .map(|(j, _)| j.clone())
     }
 

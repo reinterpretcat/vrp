@@ -70,10 +70,13 @@ impl Solver {
             let routes = insertion_ctx.solution.routes.len();
 
             if is_accepted {
+                // TODO process population and accepted solution differently to make sure
+                // reasonable population size and individuums order.
                 refinement_ctx.population.push((insertion_ctx, cost.clone(), refinement_ctx.generation));
                 refinement_ctx
                     .population
-                    .sort_by(|(_, a, _), (_, b, _)| a.total().partial_cmp(&b.total()).unwrap_or(Less))
+                    .sort_by(|(_, a, _), (_, b, _)| a.total().partial_cmp(&b.total()).unwrap_or(Less));
+                refinement_ctx.population.truncate(4);
             }
 
             insertion_ctx = self.selection.select(&refinement_ctx);
@@ -111,7 +114,7 @@ impl Solver {
                 refinement_time.elapsed().as_millis(),
                 refinement_ctx.generation,
             )
-                .as_str(),
+            .as_str(),
         );
     }
 
