@@ -89,10 +89,10 @@ impl Ruin for AdjustedStringRemoval {
                             select_string((&route.tour, index), lt, self.alpha, &insertion_ctx.random)
                                 .filter(|job| !insertion_ctx.locked.contains(job))
                                 .collect::<Vec<Arc<Job>>>()
-                                .iter()
+                                .into_iter()
                                 .for_each(|job| {
                                     route.tour.remove(&job);
-                                    jobs.write().unwrap().insert(job.clone());
+                                    jobs.write().unwrap().insert(job);
                                 });
                         }
                     });
