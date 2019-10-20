@@ -61,7 +61,7 @@ impl Ruin for AdjustedStringRemoval {
         let mut insertion_ctx = insertion_ctx;
         let mut jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::new());
         let mut actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
-        let routes: Vec<RouteContext> = insertion_ctx.solution.routes.iter().cloned().collect();
+        let routes: Vec<RouteContext> = insertion_ctx.solution.routes.clone();
 
         let (lsmax, ks) = self.calculate_limits(&routes, &insertion_ctx.random);
 
@@ -232,6 +232,7 @@ fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) 
         return None;
     }
 
+    let size = (size - 1).max(1);
     let activity_index = random.uniform_int(1, size as i32) as usize;
     let mut ai = activity_index;
 
