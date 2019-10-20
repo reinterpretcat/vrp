@@ -29,6 +29,8 @@ impl Default for CompositeRuin {
 
 impl Ruin for CompositeRuin {
     fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+        if insertion_ctx.solution.routes.is_empty() { return insertion_ctx; }
+
         let random = insertion_ctx.random.clone();
         self.ruins
             .iter()
