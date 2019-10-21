@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 /// Selects jobs to be inserted.
 pub trait JobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Iter<Arc<Job>>;
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 }
 
 /// Selects insertion result to be promoted from two.
@@ -41,7 +41,7 @@ impl InsertionHeuristic {
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
         while !ctx.solution.required.is_empty() {
-            let jobs = self.job_selector.select(&mut ctx).cloned().collect::<Vec<Arc<Job>>>();
+            let jobs = self.job_selector.select(&mut ctx).collect::<Vec<Arc<Job>>>();
             let result = jobs
                 .par_iter()
                 .map(|job| evaluate_job_insertion(&job, &ctx))

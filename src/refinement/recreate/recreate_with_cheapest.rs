@@ -1,9 +1,7 @@
-extern crate rayon;
-
-use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
+use crate::construction::heuristics::{InsertionHeuristic, JobSelector};
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
-use crate::refinement::recreate::Recreate;
+use crate::refinement::recreate::{BestResultSelector, Recreate};
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -11,17 +9,8 @@ use std::sync::Arc;
 struct AllJobSelector {}
 
 impl JobSelector for AllJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Iter<Arc<Job>> {
-        ctx.solution.required.iter()
-    }
-}
-
-/// Selects best result.
-struct BestResultSelector {}
-
-impl ResultSelector for BestResultSelector {
-    fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
-        InsertionResult::choose_best_result(left, right)
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+        Box::new(ctx.solution.required.iter().cloned())
     }
 }
 
