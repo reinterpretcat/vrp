@@ -8,7 +8,7 @@ use rand::prelude::*;
 use std::slice::Iter;
 use std::sync::Arc;
 
-/// Returns a list of all jobs to be inserted.
+/// Returns a sub set of randomly selected jobs.
 struct GapsJobSelector {
     min_jobs: usize,
 }
@@ -19,7 +19,7 @@ impl JobSelector for GapsJobSelector {
         ctx.solution.required.shuffle(&mut rand::thread_rng());
 
         // TODO improve formula
-        let max_jobs = min_jobs.max(ctx.solution.required.len());
+        let max_jobs = self.min_jobs.max(ctx.solution.required.len());
         let take_jobs = ctx.random.uniform_int(self.min_jobs as i32, max_jobs as i32) as usize;
 
         Box::new(ctx.solution.required.iter().take(take_jobs).cloned())
