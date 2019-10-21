@@ -37,7 +37,8 @@ impl Ruin for CompositeRuin {
 
         let random = insertion_ctx.random.clone();
 
-        let mut insertion_ctx = self.ruins
+        let mut insertion_ctx = self
+            .ruins
             .iter()
             .filter(|(_, probability)| *probability > random.uniform_real(0., 1.))
             .fold(insertion_ctx, |mut ctx, (ruin, _)| ruin.run(ctx));

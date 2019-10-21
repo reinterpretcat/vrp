@@ -14,6 +14,44 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+/// Provides configurable way to build solver.
+pub struct SolverBuilder {
+    solver: Solver,
+    population_size: Option<usize>,
+    max_generations: Option<usize>,
+}
+
+impl SolverBuilder {
+    pub fn new() -> Self {
+        Self { solver: Solver::default(), population_size: None, max_generations: None }
+    }
+
+    pub fn with_population_size(&mut self, limit: usize) -> &mut Self {
+        self.population_size = Some(limit);
+        self
+    }
+
+    pub fn with_max_generations(&mut self, limit: usize) -> &mut Self {
+        self.max_generations = Some(limit);
+        self
+    }
+
+    pub fn build(&mut self) -> Solver {
+        // TODO support more parameters
+
+        if let Some(limit) = self.max_generations {
+            self.solver.termination = Box::new(MaxGeneration::new(limit));
+        }
+
+        if let Some(limit) = self.population_size {
+            self.solver.population_size = limit;
+        }
+
+        std::mem::replace(&mut self.solver, Solver::default())
+    }
+}
+
+/// A custom implementation of ruin and recreate metaheuristic.
 pub struct Solver {
     recreate: Box<dyn Recreate>,
     ruin: Box<dyn Ruin>,
@@ -22,6 +60,7 @@ pub struct Solver {
     acceptance: Box<dyn Acceptance>,
     termination: Box<dyn Termination>,
     logger: Box<dyn Fn(&str) -> ()>,
+    population_size: usize,
 }
 
 impl Default for Solver {
@@ -33,6 +72,7 @@ impl Default for Solver {
             Box::new(PenalizeUnassigned::default()),
             Box::new(Greedy::default()),
             Box::new(MaxGeneration::default()),
+            1,
             Box::new(|msg| println!("{}", msg)),
         )
     }
@@ -46,9 +86,10 @@ impl Solver {
         objective: Box<dyn Objective>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
+        population_size: usize,
         logger: Box<dyn Fn(&str) -> ()>,
     ) -> Self {
-        Self { recreate, ruin, selection, objective, acceptance, termination, logger }
+        Self { recreate, ruin, selection, objective, acceptance, termination, population_size, logger }
     }
 
     pub fn solve(&self, problem: Problem) -> Option<(Solution, ObjectiveCost, usize)> {
@@ -70,13 +111,11 @@ impl Solver {
             let routes = insertion_ctx.solution.routes.len();
 
             if is_accepted {
-                // TODO process population and accepted solution differently to make sure
-                // reasonable population size and individuums order.
                 refinement_ctx.population.push((insertion_ctx, cost.clone(), refinement_ctx.generation));
                 refinement_ctx
                     .population
                     .sort_by(|(_, a, _), (_, b, _)| a.total().partial_cmp(&b.total()).unwrap_or(Less));
-                refinement_ctx.population.truncate(4);
+                refinement_ctx.population.truncate(self.population_size);
             }
 
             insertion_ctx = self.selection.select(&refinement_ctx);

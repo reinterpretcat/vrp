@@ -18,6 +18,7 @@ use crate::streams::input::text::{LilimProblem, SolomonProblem};
 use crate::streams::output::text::{write_lilim_solution, write_solomon_solution};
 
 pub use self::solver::Solver;
+use crate::solver::SolverBuilder;
 
 mod construction;
 mod models;
@@ -55,7 +56,7 @@ fn main() {
     .into_iter()
     .collect();
 
-    let matches = App::new("VRP Solver")
+    let matches = App::new("Vehicle Routing Problem Solver")
         .version("0.1")
         .author("Ilya Builuk <ilya.builuk@gmail.com>")
         .about("Solves variations of Vehicle Routing Problem")
@@ -67,10 +68,23 @@ fn main() {
                 .possible_values(formats.keys().map(|s| s.deref()).collect::<Vec<&str>>().as_slice())
                 .index(2),
         )
+        .arg(
+            Arg::with_name("max-generations")
+                .help("Specifies maximum amount of generations")
+                .short("g")
+                .long("max-generations")
+                .required(false)
+                .default_value("2000")
+                .takes_value(true),
+        )
         .get_matches();
 
     let problem_path = matches.value_of("PROBLEM").unwrap();
     let problem_format = matches.value_of("FORMAT").unwrap();
+    let max_generations = matches.value_of("max-generations").unwrap().parse::<usize>().unwrap_or_else(|err| {
+        eprintln!("Cannot get max-generations: '{}'", err.to_string());
+        process::exit(1);
+    });
     let input_file = File::open(problem_path).unwrap_or_else(|err| {
         eprintln!("Cannot open file '{}': '{}'", problem_path, err.to_string());
         process::exit(1);
@@ -79,7 +93,7 @@ fn main() {
     match formats.get(problem_format) {
         Some((reader, writer)) => {
             let solution = match reader.0(input_file) {
-                Ok(problem) => Solver::default().solve(problem),
+                Ok(problem) => SolverBuilder::new().with_max_generations(max_generations).build().solve(problem),
                 Err(error) => {
                     eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
                     process::exit(1);
