@@ -23,29 +23,23 @@ pub trait ResultSelector {
 }
 
 /// Implements abstract insertion heuristic.
-pub struct InsertionHeuristic {
-    job_selector: Box<dyn JobSelector + Send + Sync>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
-}
+pub struct InsertionHeuristic {}
 
 impl InsertionHeuristic {
-    pub fn new(
-        job_selector: Box<dyn JobSelector + Send + Sync>,
-        result_selector: Box<dyn ResultSelector + Send + Sync>,
-    ) -> Self {
-        Self { job_selector, result_selector }
-    }
-
-    pub fn process(&self, ctx: InsertionContext) -> InsertionContext {
+    pub fn process(
+        job_selector: &Box<dyn JobSelector + Send + Sync>,
+        result_selector: &Box<dyn ResultSelector + Send + Sync>,
+        ctx: InsertionContext,
+    ) -> InsertionContext {
         let mut ctx = ctx;
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
         while !ctx.solution.required.is_empty() {
-            let jobs = self.job_selector.select(&mut ctx).collect::<Vec<Arc<Job>>>();
+            let jobs = job_selector.select(&mut ctx).collect::<Vec<Arc<Job>>>();
             let result = jobs
                 .par_iter()
                 .map(|job| evaluate_job_insertion(&job, &ctx))
-                .reduce(|| InsertionResult::make_failure(), |a, b| self.result_selector.select(&ctx, a, b));
+                .reduce(|| InsertionResult::make_failure(), |a, b| result_selector.select(&ctx, a, b));
 
             Self::insert(result, &mut ctx);
         }

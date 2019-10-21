@@ -5,12 +5,12 @@ mod recreate_with_blinks_test;
 extern crate rand;
 
 use crate::construction::constraints::{CapacityDimension, Demand, DemandDimension};
-use crate::construction::heuristics::JobSelector;
+use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
 use crate::construction::states::InsertionContext;
 use crate::models::common::Distance;
 use crate::models::problem::Job;
 use crate::models::Problem;
-use crate::refinement::recreate::Recreate;
+use crate::refinement::recreate::{BestResultSelector, Recreate};
 use crate::utils::compare_floats;
 use rand::prelude::*;
 use std::cmp::Ordering;
@@ -115,13 +115,46 @@ impl JobSelector for RankedJobSelector {
 }
 
 pub struct RecreateWithBlinks<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+    job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    weights: Vec<usize>,
     phantom: PhantomData<Capacity>,
+}
+
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    RecreateWithBlinks<Capacity>
+{
+    pub fn new(selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>) -> Self {
+        let weights = selectors.iter().map(|(_, weight)| *weight).collect();
+        Self {
+            job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
+            result_selector: Box::new(BestResultSelector::default()),
+            weights,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Default
+    for RecreateWithBlinks<Capacity>
+{
+    fn default() -> Self {
+        Self::new(vec![
+            (Box::new(RandomJobSelector::new()), 10),
+            (Box::new(DemandJobSelector::<Capacity>::new(false)), 10),
+            (Box::new(DemandJobSelector::<Capacity>::new(true)), 1),
+            (Box::new(RankedJobSelector::new(true)), 5),
+            (Box::new(RankedJobSelector::new(false)), 1),
+        ])
+    }
 }
 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Recreate
     for RecreateWithBlinks<Capacity>
 {
     fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
-        unimplemented!()
+        let index = insertion_ctx.random.weighted(self.weights.iter());
+        let job_selector = self.job_selectors.get(index).unwrap();
+        InsertionHeuristic::process(&job_selector, &self.result_selector, insertion_ctx)
     }
 }

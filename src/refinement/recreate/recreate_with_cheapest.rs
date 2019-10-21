@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{InsertionHeuristic, JobSelector};
+use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::refinement::recreate::{BestResultSelector, Recreate};
@@ -14,22 +14,19 @@ impl JobSelector for AllJobSelector {
     }
 }
 
-pub struct RecreateWithCheapest {}
-
-impl RecreateWithCheapest {
-    pub fn new() -> Self {
-        Self {}
-    }
+pub struct RecreateWithCheapest {
+    job_selector: Box<dyn JobSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
 }
 
 impl Default for RecreateWithCheapest {
     fn default() -> Self {
-        Self::new()
+        Self { job_selector: Box::new(AllJobSelector {}), result_selector: Box::new(BestResultSelector::default()) }
     }
 }
 
 impl Recreate for RecreateWithCheapest {
     fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::new(Box::new(AllJobSelector {}), Box::new(BestResultSelector {})).process(insertion_ctx)
+        InsertionHeuristic::process(&self.job_selector, &self.result_selector, insertion_ctx)
     }
 }

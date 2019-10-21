@@ -1,6 +1,6 @@
 extern crate rand;
 
-use crate::construction::heuristics::{InsertionHeuristic, JobSelector};
+use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::refinement::recreate::{BestResultSelector, Recreate};
@@ -27,12 +27,16 @@ impl JobSelector for GapsJobSelector {
 }
 
 pub struct RecreateWithGaps {
-    min_jobs: usize,
+    job_selector: Box<dyn JobSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
 }
 
 impl RecreateWithGaps {
     pub fn new(min_jobs: usize) -> Self {
-        Self { min_jobs }
+        Self {
+            job_selector: Box::new(GapsJobSelector { min_jobs }),
+            result_selector: Box::new(BestResultSelector::default()),
+        }
     }
 }
 
@@ -44,7 +48,6 @@ impl Default for RecreateWithGaps {
 
 impl Recreate for RecreateWithGaps {
     fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::new(Box::new(GapsJobSelector { min_jobs: self.min_jobs }), Box::new(BestResultSelector {}))
-            .process(insertion_ctx)
+        InsertionHeuristic::process(&self.job_selector, &self.result_selector, insertion_ctx)
     }
 }

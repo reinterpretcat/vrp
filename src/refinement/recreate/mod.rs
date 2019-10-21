@@ -9,6 +9,12 @@ pub trait Recreate {
 /// Selects best result.
 struct BestResultSelector {}
 
+impl Default for BestResultSelector {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 impl ResultSelector for BestResultSelector {
     fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
         InsertionResult::choose_best_result(left, right)
