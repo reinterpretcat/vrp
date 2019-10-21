@@ -28,6 +28,7 @@ pub use self::recreate_with_cheapest::RecreateWithCheapest;
 mod recreate_with_gaps;
 
 pub use self::recreate_with_gaps::RecreateWithGaps;
+use crate::refinement::recreate::recreate_with_blinks::RecreateWithBlinks;
 
 mod recreate_with_blinks;
 
@@ -39,7 +40,11 @@ pub struct CompositeRecreate {
 
 impl Default for CompositeRecreate {
     fn default() -> Self {
-        Self::new(vec![(Box::new(RecreateWithCheapest::default()), 1000), (Box::new(RecreateWithGaps::default()), 1)])
+        Self::new(vec![
+            (Box::new(RecreateWithBlinks::<i32>::default()), 100),
+            (Box::new(RecreateWithCheapest::default()), 10),
+            (Box::new(RecreateWithGaps::default()), 1)
+        ])
     }
 }
 

@@ -6,11 +6,11 @@ extern crate rand;
 
 use crate::construction::constraints::{CapacityDimension, Demand, DemandDimension};
 use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
-use crate::construction::states::InsertionContext;
+use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::common::Distance;
 use crate::models::problem::Job;
 use crate::models::Problem;
-use crate::refinement::recreate::{BestResultSelector, Recreate};
+use crate::refinement::recreate::Recreate;
 use crate::utils::compare_floats;
 use rand::prelude::*;
 use std::cmp::Ordering;
@@ -114,6 +114,29 @@ impl JobSelector for RankedJobSelector {
     }
 }
 
+/// Selects best result.
+struct BlinkResultSelector {
+    ratio: f64
+}
+
+impl Default for BlinkResultSelector {
+    fn default() -> Self {
+        Self {
+            ratio: 0.01
+        }
+    }
+}
+
+impl ResultSelector for BlinkResultSelector {
+    fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+        let is_blink = ctx.random.uniform_real(0., 1.) < self.ratio;
+        match (&left, is_blink) {
+            (InsertionResult::Success(_), true) => left,
+            _ => InsertionResult::choose_best_result(left, right)
+        }
+    }
+}
+
 pub struct RecreateWithBlinks<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
@@ -128,7 +151,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
-            result_selector: Box::new(BestResultSelector::default()),
+            result_selector: Box::new(BlinkResultSelector::default()),
             weights,
             phantom: PhantomData,
         }
