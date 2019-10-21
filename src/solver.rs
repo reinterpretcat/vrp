@@ -103,16 +103,18 @@ impl Solver {
             refinement_ctx.generation = refinement_ctx.generation + 1;
         }
 
-        self.log_result(&refinement_ctx, refinement_time);
+        self.log_speed(&refinement_ctx, refinement_time);
         self.get_result(refinement_ctx)
     }
 
-    fn log_result(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
+    fn log_speed(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
+        let elapsed = refinement_time.elapsed();
         self.logger.deref()(
             format!(
-                "solving took {}ms, generations: {}",
-                refinement_time.elapsed().as_millis(),
+                "Solving took {} ms, total generations: {}, speed: {:.2} generations/sec",
+                elapsed.as_millis(),
                 refinement_ctx.generation,
+                refinement_ctx.generation as f64 / elapsed.as_secs_f64()
             )
             .as_str(),
         );
