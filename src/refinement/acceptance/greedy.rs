@@ -6,6 +6,7 @@ use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::acceptance::Acceptance;
 use crate::refinement::RefinementContext;
+use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// Greedy acceptance which accepts only better solutions.
@@ -29,12 +30,11 @@ impl Acceptance for Greedy {
     fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (&InsertionContext, ObjectiveCost)) -> bool {
         match refinement_ctx.population.first() {
             Some(best) => {
-                let minimize_routes_check = if self.is_minimize_routes {
-                    solution.0.solution.routes.len() <= best.0.solution.routes.len()
-                } else {
-                    false
-                };
-                minimize_routes_check || solution.1.total() < best.1.total()
+                match (solution.0.solution.routes.len().cmp(&best.0.solution.routes.len()), self.is_minimize_routes) {
+                    (Ordering::Less, true) => true,
+                    (Ordering::Greater, true) => false,
+                    _ => solution.1.total() < best.1.total(),
+                }
             }
             None => true,
         }

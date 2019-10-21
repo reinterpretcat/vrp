@@ -121,12 +121,11 @@ impl Solver {
             let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost.clone()));
             let is_terminated =
                 self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
-            let routes = insertion_ctx.solution.routes.len();
 
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
                 self.logger.deref()(
                     format!(
-                        "generation {} took {}ms, cost: ({:.2},{:.2}), improvements: {:.3}% routes: {}, accepted: {}",
+                        "generation {} took {}ms, cost: ({:.2},{:.2}): {:.3}%, routes: {}, accepted: {}",
                         refinement_ctx.generation,
                         generation_time.elapsed().as_millis(),
                         cost.actual,
@@ -134,9 +133,9 @@ impl Solver {
                         refinement_ctx
                             .population
                             .first()
-                            .and_then(|(_, c, _)| Some((c.total() - cost.total()) / c.total() * 100.))
+                            .and_then(|(_, c, _)| Some((cost.total() - c.total()) / c.total() * 100.))
                             .unwrap_or(100.),
-                        routes,
+                        insertion_ctx.solution.routes.len(),
                         is_accepted
                     )
                     .as_str(),
