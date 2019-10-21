@@ -7,8 +7,11 @@ extern crate rand;
 use crate::construction::constraints::{CapacityDimension, Demand, DemandDimension};
 use crate::construction::heuristics::JobSelector;
 use crate::construction::states::InsertionContext;
+use crate::models::common::Distance;
 use crate::models::problem::Job;
+use crate::models::Problem;
 use crate::refinement::recreate::Recreate;
+use crate::utils::compare_floats;
 use rand::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -61,6 +64,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
 struct RandomJobSelector {}
 
+impl RandomJobSelector {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 impl JobSelector for RandomJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
         ctx.solution.required.shuffle(&mut rand::thread_rng());
@@ -69,7 +78,41 @@ impl JobSelector for RandomJobSelector {
     }
 }
 
-struct RankedJobSelector {}
+struct RankedJobSelector {
+    asc_order: bool,
+}
+
+impl RankedJobSelector {
+    pub fn new(asc_order: bool) -> Self {
+        Self { asc_order }
+    }
+
+    pub fn rank_job(problem: &Arc<Problem>, job: &Arc<Job>) -> Distance {
+        problem
+            .fleet
+            .profiles
+            .iter()
+            .map(|profile| problem.jobs.rank(*profile, job))
+            .min_by(|a, b| compare_floats(a, b))
+            .unwrap_or(Distance::default())
+    }
+}
+
+impl JobSelector for RankedJobSelector {
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+        let problem = &ctx.problem;
+
+        ctx.solution.required.sort_by(|a, b| {
+            Self::rank_job(problem, a).partial_cmp(&Self::rank_job(problem, b)).unwrap_or(Ordering::Less)
+        });
+
+        if self.asc_order {
+            ctx.solution.required.reverse();
+        }
+
+        Box::new(ctx.solution.required.iter().cloned())
+    }
+}
 
 pub struct RecreateWithBlinks<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     phantom: PhantomData<Capacity>,
