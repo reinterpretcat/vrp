@@ -22,7 +22,7 @@ fn can_identify_cheapest_solution_impl(new_cost: ObjectiveCost, old_cost: Object
     let mut refinement_ctx = create_refinement_context(create_empty_problem(), Arc::new(DefaultRandom::new()));
     refinement_ctx.population.push((create_empty_insertion_context(), old_cost, 0));
 
-    let result = Greedy::new().is_accepted(&refinement_ctx, (&create_empty_insertion_context(), new_cost));
+    let result = Greedy::default().is_accepted(&refinement_ctx, (&create_empty_insertion_context(), new_cost));
 
     assert_eq!(result, expected);
 }

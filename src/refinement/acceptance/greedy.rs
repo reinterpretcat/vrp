@@ -9,24 +9,33 @@ use crate::refinement::RefinementContext;
 use std::sync::Arc;
 
 /// Greedy acceptance which accepts only better solutions.
-pub struct Greedy {}
+pub struct Greedy {
+    is_minimize_routes: bool,
+}
 
 impl Greedy {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(is_minimize_routes: bool) -> Self {
+        Self { is_minimize_routes }
     }
 }
 
 impl Default for Greedy {
     fn default() -> Self {
-        Self::new()
+        Self::new(true)
     }
 }
 
 impl Acceptance for Greedy {
     fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (&InsertionContext, ObjectiveCost)) -> bool {
         match refinement_ctx.population.first() {
-            Some(best) => solution.1.total() < best.1.total(),
+            Some(best) => {
+                let minimize_routes_check = if self.is_minimize_routes {
+                    solution.0.solution.routes.len() <= best.0.solution.routes.len()
+                } else {
+                    true
+                };
+                minimize_routes_check && solution.1.total() < best.1.total()
+            }
             None => true,
         }
     }

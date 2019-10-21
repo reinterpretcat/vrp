@@ -11,7 +11,7 @@ use std::io::{stdout, BufWriter, Error};
 use std::ops::Deref;
 use std::process;
 
-use clap::{App, Arg};
+use clap::{App, Arg, ArgMatches};
 
 use crate::models::{Problem, Solution};
 use crate::streams::input::text::{LilimProblem, SolomonProblem};
@@ -32,8 +32,8 @@ struct InputReader(Box<dyn Fn(File) -> Result<Problem, String>>);
 
 struct OutputWriter(Box<dyn Fn(Solution) -> Result<(), Error>>);
 
-fn main() {
-    let formats: HashMap<&str, (InputReader, OutputWriter)> = vec![
+fn get_formats<'a>() -> HashMap<&'a str, (InputReader, OutputWriter)> {
+    vec![
         (
             "solomon",
             (
@@ -54,9 +54,11 @@ fn main() {
         ),
     ]
     .into_iter()
-    .collect();
+    .collect()
+}
 
-    let matches = App::new("Vehicle Routing Problem Solver")
+fn get_matches(formats: Vec<&str>) -> ArgMatches {
+    App::new("Vehicle Routing Problem Solver")
         .version("0.1")
         .author("Ilya Builuk <ilya.builuk@gmail.com>")
         .about("Solves variations of Vehicle Routing Problem")
@@ -65,7 +67,7 @@ fn main() {
             Arg::with_name("FORMAT")
                 .help("Specifies the problem type")
                 .required(true)
-                .possible_values(formats.keys().map(|s| s.deref()).collect::<Vec<&str>>().as_slice())
+                .possible_values(formats.as_slice())
                 .index(2),
         )
         .arg(
@@ -77,23 +79,48 @@ fn main() {
                 .default_value("2000")
                 .takes_value(true),
         )
-        .get_matches();
+        .arg(
+            Arg::with_name("minimize-routes")
+                .help("Prefer less routes over total cost")
+                .short("r")
+                .long("minimize-routes")
+                .required(false)
+                .default_value("true")
+                .takes_value(true),
+        )
+        .get_matches()
+}
 
+fn main() {
+    let formats = get_formats();
+    let matches = get_matches(formats.keys().map(|s| s.deref()).collect::<Vec<&str>>());
+
+    // required
     let problem_path = matches.value_of("PROBLEM").unwrap();
     let problem_format = matches.value_of("FORMAT").unwrap();
+    let input_file = File::open(problem_path).unwrap_or_else(|err| {
+        eprintln!("Cannot open file '{}': '{}'", problem_path, err.to_string());
+        process::exit(1);
+    });
+
+    // optional
     let max_generations = matches.value_of("max-generations").unwrap().parse::<usize>().unwrap_or_else(|err| {
         eprintln!("Cannot get max-generations: '{}'", err.to_string());
         process::exit(1);
     });
-    let input_file = File::open(problem_path).unwrap_or_else(|err| {
-        eprintln!("Cannot open file '{}': '{}'", problem_path, err.to_string());
+    let minimize_routes = matches.value_of("minimize-routes").unwrap().parse::<bool>().unwrap_or_else(|err| {
+        eprintln!("Cannot get minimize-routes: '{}'", err.to_string());
         process::exit(1);
     });
 
     match formats.get(problem_format) {
         Some((reader, writer)) => {
             let solution = match reader.0(input_file) {
-                Ok(problem) => SolverBuilder::new().with_max_generations(max_generations).build().solve(problem),
+                Ok(problem) => SolverBuilder::new()
+                    .with_minimize_routes(minimize_routes)
+                    .with_max_generations(max_generations)
+                    .build()
+                    .solve(problem),
                 Err(error) => {
                     eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
                     process::exit(1);

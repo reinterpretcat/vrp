@@ -18,16 +18,22 @@ use std::time::{Duration, Instant};
 pub struct SolverBuilder {
     solver: Solver,
     population_size: Option<usize>,
+    minimize_routes: Option<bool>,
     max_generations: Option<usize>,
 }
 
 impl SolverBuilder {
     pub fn new() -> Self {
-        Self { solver: Solver::default(), population_size: None, max_generations: None }
+        Self { solver: Solver::default(), population_size: None, minimize_routes: None, max_generations: None }
     }
 
     pub fn with_population_size(&mut self, limit: usize) -> &mut Self {
         self.population_size = Some(limit);
+        self
+    }
+
+    pub fn with_minimize_routes(&mut self, value: bool) -> &mut Self {
+        self.minimize_routes = Some(value);
         self
     }
 
@@ -40,11 +46,18 @@ impl SolverBuilder {
         // TODO support more parameters
 
         if let Some(limit) = self.max_generations {
+            self.solver.logger.deref()(format!("configured to use generation limit: {}", limit).as_str());
             self.solver.termination = Box::new(MaxGeneration::new(limit));
         }
 
         if let Some(limit) = self.population_size {
+            self.solver.logger.deref()(format!("configured to use population size: {}", limit).as_str());
             self.solver.population_size = limit;
+        }
+
+        if let Some(value) = self.minimize_routes {
+            self.solver.logger.deref()(format!("configured to use minimize routes: {}", value).as_str());
+            self.solver.acceptance = Box::new(Greedy::new(value));
         }
 
         std::mem::replace(&mut self.solver, Solver::default())
