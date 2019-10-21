@@ -2,9 +2,9 @@ use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::evaluators::evaluate_job_insertion;
 use crate::construction::states::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
-use crate::helpers::construction::states::test_insertion_progress;
-use crate::helpers::models::domain::create_empty_problem_with_constraint;
+use crate::helpers::construction::states::{create_insertion_context, create_test_insertion_context};
 use crate::helpers::models::problem::*;
+use crate::helpers::models::solution::create_test_registry;
 use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, Job, Single, VehicleDetail};
@@ -16,39 +16,6 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 type JobPlace = crate::models::problem::Place;
-
-fn create_insertion_context(
-    registry: Registry,
-    constraint: ConstraintPipeline,
-    routes: Vec<RouteContext>,
-) -> InsertionContext {
-    InsertionContext {
-        progress: test_insertion_progress(),
-        problem: create_empty_problem_with_constraint(constraint),
-        solution: SolutionContext {
-            required: vec![],
-            ignored: vec![],
-            unassigned: Default::default(),
-            routes,
-            registry,
-        },
-        locked: Arc::new(Default::default()),
-        random: Arc::new(DefaultRandom::new()),
-    }
-}
-
-fn create_test_registry() -> Registry {
-    Registry::new(&Fleet::new(
-        vec![test_driver_with_costs(empty_costs())],
-        vec![VehicleBuilder::new().id("v1").build()],
-    ))
-}
-
-fn create_test_insertion_context(registry: Registry) -> InsertionContext {
-    let mut routes: Vec<RouteContext> = vec![RouteContext::new(registry.next().next().unwrap())];
-    let mut constraint = create_constraint_pipeline_with_timing();
-    create_insertion_context(registry, constraint, routes)
-}
 
 fn create_tour_activity_at(loc_and_time: usize) -> TourActivity {
     Box::new(

@@ -14,14 +14,6 @@ fn create_test_vehicle(capacity: i32) -> Vehicle {
     VehicleBuilder::new().id("v1").capacity(capacity).build()
 }
 
-fn create_demand(size: i32) -> Demand<i32> {
-    if size > 0 {
-        Demand::<i32> { pickup: (size, 0), delivery: (0, 0) }
-    } else {
-        Demand::<i32> { pickup: (0, 0), delivery: (-size, 0) }
-    }
-}
-
 fn create_activity_violation() -> Option<ActivityConstraintViolation> {
     Some(ActivityConstraintViolation { code: 2, stopped: false })
 }
@@ -56,9 +48,9 @@ fn can_calculate_current_capacity_state_values_impl(
             &fleet,
             "v1",
             vec![
-                test_tour_activity_with_simple_demand(create_demand(s1)),
-                test_tour_activity_with_simple_demand(create_demand(s2)),
-                test_tour_activity_with_simple_demand(create_demand(s3)),
+                test_tour_activity_with_simple_demand(create_simple_demand(s1)),
+                test_tour_activity_with_simple_demand(create_simple_demand(s2)),
+                test_tour_activity_with_simple_demand(create_simple_demand(s3)),
             ],
         ))),
         state: Arc::new(RwLock::new(RouteState::new())),
@@ -91,7 +83,7 @@ fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraint
         route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
         state: Arc::new(RwLock::new(RouteState::new())),
     };
-    let job = Arc::new(test_single_job_with_simple_demand(create_demand(size)));
+    let job = Arc::new(test_single_job_with_simple_demand(create_simple_demand(size)));
 
     let result = create_constraint_pipeline_with_simple_capacity().evaluate_hard_route(&ctx, &job);
 
@@ -127,14 +119,14 @@ fn can_evaluate_demand_on_activity_impl(
         route: Arc::new(RwLock::new(create_route_with_activities(
             &fleet,
             "v1",
-            sizes.into_iter().map(|size| test_tour_activity_with_simple_demand(create_demand(size))).collect(),
+            sizes.into_iter().map(|size| test_tour_activity_with_simple_demand(create_simple_demand(size))).collect(),
         ))),
         state: Arc::new(RwLock::new(RouteState::new())),
     };
     let pipeline = create_constraint_pipeline_with_simple_capacity();
     pipeline.accept_route_state(&mut route_ctx);
     let route = route_ctx.route.read().unwrap();
-    let target = test_tour_activity_with_simple_demand(create_demand(size));
+    let target = test_tour_activity_with_simple_demand(create_simple_demand(size));
     let activity_ctx = ActivityContext {
         index: 0,
         prev: route.tour.get(neighbours.0).unwrap(),

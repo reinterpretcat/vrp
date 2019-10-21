@@ -1,5 +1,6 @@
 use crate::construction::heuristics::ResultSelector;
 use crate::construction::states::{InsertionContext, InsertionResult};
+use std::slice::Iter;
 
 pub trait Recreate {
     fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext;
@@ -21,7 +22,8 @@ pub use self::recreate_with_cheapest::RecreateWithCheapest;
 mod recreate_with_gaps;
 
 pub use self::recreate_with_gaps::RecreateWithGaps;
-use std::slice::Iter;
+
+mod recreate_with_blinks;
 
 /// Provides the way to run one of multiple recreate methods.
 pub struct CompositeRecreate {

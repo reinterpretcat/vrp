@@ -31,7 +31,7 @@ pub trait Random {
     /// and selects the smallest sampled value.
     fn weighted(&self, weights: Iter<usize>) -> usize {
         weights
-            .zip((0usize..))
+            .zip(0usize..)
             .map(|(&weight, index)| (-self.uniform_real(0., 1.).ln() / weight as f64, index))
             .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
             .unwrap()
