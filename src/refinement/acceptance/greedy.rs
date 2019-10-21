@@ -32,9 +32,9 @@ impl Acceptance for Greedy {
                 let minimize_routes_check = if self.is_minimize_routes {
                     solution.0.solution.routes.len() <= best.0.solution.routes.len()
                 } else {
-                    true
+                    false
                 };
-                minimize_routes_check && solution.1.total() < best.1.total()
+                minimize_routes_check || solution.1.total() < best.1.total()
             }
             None => true,
         }
