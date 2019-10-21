@@ -123,6 +123,26 @@ impl Solver {
                 self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
             let routes = insertion_ctx.solution.routes.len();
 
+            if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
+                self.logger.deref()(
+                    format!(
+                        "generation {} took {}ms, cost: ({:.2},{:.2}), improvements: {:.3}% routes: {}, accepted: {}",
+                        refinement_ctx.generation,
+                        generation_time.elapsed().as_millis(),
+                        cost.actual,
+                        cost.penalty,
+                        refinement_ctx
+                            .population
+                            .first()
+                            .and_then(|(_, c, _)| Some((c.total() - cost.total()) / c.total() * 100.))
+                            .unwrap_or(100.),
+                        routes,
+                        is_accepted
+                    )
+                    .as_str(),
+                );
+            }
+
             if is_accepted {
                 refinement_ctx.population.push((insertion_ctx, cost.clone(), refinement_ctx.generation));
                 refinement_ctx
@@ -132,21 +152,6 @@ impl Solver {
             }
 
             insertion_ctx = self.selection.select(&refinement_ctx);
-
-            if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
-                self.logger.deref()(
-                    format!(
-                        "generation {} took {}ms, cost: ({:.2},{:.2}) routes: {}, accepted: {}",
-                        refinement_ctx.generation,
-                        generation_time.elapsed().as_millis(),
-                        cost.actual,
-                        cost.penalty,
-                        routes,
-                        is_accepted
-                    )
-                    .as_str(),
-                );
-            }
 
             if is_terminated {
                 break;
