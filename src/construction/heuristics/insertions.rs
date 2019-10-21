@@ -4,17 +4,17 @@ mod insertions_test;
 
 extern crate rayon;
 
-use self::rayon::slice::Iter;
+use self::rayon::prelude::*;
 use crate::construction::heuristics::evaluators::evaluate_job_insertion;
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::utils::compare_shared;
-use rayon::prelude::*;
+use std::slice::Iter;
 use std::sync::Arc;
 
 /// Selects jobs to be inserted.
 pub trait JobSelector {
-    fn select<'a>(&'a self, ctx: &'a InsertionContext) -> Iter<Arc<Job>>;
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Iter<Arc<Job>>;
 }
 
 /// Selects insertion result to be promoted from two.
@@ -41,9 +41,9 @@ impl InsertionHeuristic {
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
         while !ctx.solution.required.is_empty() {
-            let result = self
-                .job_selector
-                .select(&ctx)
+            let jobs = self.job_selector.select(&mut ctx).cloned().collect::<Vec<Arc<Job>>>();
+            let result = jobs
+                .par_iter()
                 .map(|job| evaluate_job_insertion(&job, &ctx))
                 .reduce(|| InsertionResult::make_failure(), |a, b| self.result_selector.select(&ctx, a, b));
 

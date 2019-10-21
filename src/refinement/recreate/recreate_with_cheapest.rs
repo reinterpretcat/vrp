@@ -1,19 +1,18 @@
 extern crate rayon;
 
-use self::rayon::slice::Iter;
 use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::refinement::recreate::Recreate;
-use rayon::prelude::*;
+use std::slice::Iter;
 use std::sync::Arc;
 
 /// Returns a list of all jobs to be inserted.
 struct AllJobSelector {}
 
 impl JobSelector for AllJobSelector {
-    fn select<'a>(&'a self, ctx: &'a InsertionContext) -> Iter<Arc<Job>> {
-        ctx.solution.required.par_iter()
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Iter<Arc<Job>> {
+        ctx.solution.required.iter()
     }
 }
 
