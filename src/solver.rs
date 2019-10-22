@@ -34,11 +34,6 @@ impl SolverBuilder {
         }
     }
 
-    pub fn with_population_size(&mut self, limit: usize) -> &mut Self {
-        self.population_size = Some(limit);
-        self
-    }
-
     pub fn with_minimize_routes(&mut self, value: bool) -> &mut Self {
         self.minimize_routes = Some(value);
         self
@@ -58,33 +53,41 @@ impl SolverBuilder {
         // TODO support more parameters
 
         if let Some(limit) = self.max_generations {
-            self.solver.logger.deref()(format!("configured to use generation limit: {}", limit).as_str());
+            self.solver.logger.deref()(format!("configured to use generation limit: {}", limit));
             self.solver.termination = Box::new(MaxGeneration::new(limit));
         }
 
-        if let Some(limit) = self.population_size {
-            self.solver.logger.deref()(format!("configured to use population size: {}", limit).as_str());
-            self.solver.population_size = limit;
-        }
-
         if let Some(value) = self.minimize_routes {
-            self.solver.logger.deref()(format!("configured to use minimize routes: {}", value).as_str());
+            self.solver.logger.deref()(format!("configured to use minimize routes: {}", value));
             self.solver.acceptance = Box::new(Greedy::new(value));
-            self.solver.minimize_routes = value;
+            self.solver.settings.minimize_routes = value;
         }
 
         if let Some((problem, solution)) = &self.init_solution {
-            self.solver.logger.deref()(
-                format!("configured to use initial solution with {} routes", solution.routes.len()).as_str(),
-            );
+            self.solver.logger.deref()(format!(
+                "configured to use initial solution with {} routes",
+                solution.routes.len()
+            ));
             let insertion_ctx = InsertionContext::new_from_solution(
                 problem.clone(),
                 (solution.clone(), None),
                 Arc::new(DefaultRandom::new()),
             );
-            self.solver.init_insertion_ctx = Some(insertion_ctx);
+            self.solver.settings.init_insertion_ctx = Some(insertion_ctx);
         }
         std::mem::replace(&mut self.solver, Solver::default())
+    }
+}
+
+struct SolverSettings {
+    minimize_routes: bool,
+    population_size: usize,
+    init_insertion_ctx: Option<InsertionContext>,
+}
+
+impl Default for SolverSettings {
+    fn default() -> Self {
+        Self { minimize_routes: false, population_size: 1, init_insertion_ctx: None }
     }
 }
 
@@ -96,12 +99,8 @@ pub struct Solver {
     objective: Box<dyn Objective>,
     acceptance: Box<dyn Acceptance>,
     termination: Box<dyn Termination>,
-
-    minimize_routes: bool,
-    population_size: usize,
-    init_insertion_ctx: Option<InsertionContext>,
-
-    logger: Box<dyn Fn(&str) -> ()>,
+    settings: SolverSettings,
+    logger: Box<dyn Fn(String) -> ()>,
 }
 
 impl Default for Solver {
@@ -113,9 +112,6 @@ impl Default for Solver {
             Box::new(PenalizeUnassigned::default()),
             Box::new(Greedy::default()),
             Box::new(MaxGeneration::default()),
-            false,
-            1,
-            None,
             Box::new(|msg| println!("{}", msg)),
         )
     }
@@ -129,12 +125,7 @@ impl Solver {
         objective: Box<dyn Objective>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
-
-        minimize_routes: bool,
-        population_size: usize,
-        init_insertion_ctx: Option<InsertionContext>,
-
-        logger: Box<dyn Fn(&str) -> ()>,
+        logger: Box<dyn Fn(String) -> ()>,
     ) -> Self {
         Self {
             recreate,
@@ -143,16 +134,14 @@ impl Solver {
             objective,
             acceptance,
             termination,
-            minimize_routes,
-            population_size,
+            settings: SolverSettings::default(),
             logger,
-            init_insertion_ctx,
         }
     }
 
     pub fn solve(&self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
         let mut refinement_ctx = RefinementContext::new(problem.clone());
-        let mut insertion_ctx = match &self.init_insertion_ctx {
+        let mut insertion_ctx = match &self.settings.init_insertion_ctx {
             Some(ctx) => ctx.deep_copy(),
             None => InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new())),
         };
@@ -170,35 +159,11 @@ impl Solver {
                 self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
 
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
-                self.logger.deref()(
-                    format!(
-                        "generation {} took {}ms, cost: ({:.2},{:.2}): {:.3}%, routes: {}, accepted: {}",
-                        refinement_ctx.generation,
-                        generation_time.elapsed().as_millis(),
-                        cost.actual,
-                        cost.penalty,
-                        refinement_ctx
-                            .population
-                            .first()
-                            .and_then(|(_, c, _)| Some((cost.total() - c.total()) / c.total() * 100.))
-                            .unwrap_or(100.),
-                        insertion_ctx.solution.routes.len(),
-                        is_accepted
-                    )
-                    .as_str(),
-                );
+                self.log_generation(&refinement_ctx, generation_time, (&insertion_ctx, &cost), is_accepted);
             }
 
             if is_accepted {
-                refinement_ctx.population.push((insertion_ctx, cost.clone(), refinement_ctx.generation));
-                refinement_ctx.population.sort_by(|(a_ctx, a_cost, _), (b_ctx, b_cost, _)| {
-                    match (a_ctx.solution.routes.len().cmp(&b_ctx.solution.routes.len()), self.minimize_routes) {
-                        (Less, true) => Less,
-                        (Greater, true) => Greater,
-                        _ => compare_floats(&a_cost.total(), &b_cost.total()),
-                    }
-                });
-                refinement_ctx.population.truncate(self.population_size);
+                self.add_solution(&mut refinement_ctx, (insertion_ctx, cost));
             }
 
             insertion_ctx = self.selection.select(&refinement_ctx);
@@ -214,17 +179,50 @@ impl Solver {
         self.get_result(refinement_ctx)
     }
 
+    fn add_solution(&self, refinement_ctx: &mut RefinementContext, solution: (InsertionContext, ObjectiveCost)) {
+        refinement_ctx.population.push((solution.0, solution.1, refinement_ctx.generation));
+        refinement_ctx.population.sort_by(|(a_ctx, a_cost, _), (b_ctx, b_cost, _)| {
+            match (a_ctx.solution.routes.len().cmp(&b_ctx.solution.routes.len()), self.settings.minimize_routes) {
+                (Less, true) => Less,
+                (Greater, true) => Greater,
+                _ => compare_floats(&a_cost.total(), &b_cost.total()),
+            }
+        });
+        refinement_ctx.population.truncate(self.settings.population_size);
+    }
+
+    fn log_generation(
+        &self,
+        refinement_ctx: &RefinementContext,
+        generation_time: Instant,
+        solution: (&InsertionContext, &ObjectiveCost),
+        is_accepted: bool,
+    ) {
+        let (insertion_ctx, cost) = solution;
+        self.logger.deref()(format!(
+            "generation {} took {}ms, cost: ({:.2},{:.2}): {:.3}%, routes: {}, accepted: {}",
+            refinement_ctx.generation,
+            generation_time.elapsed().as_millis(),
+            cost.actual,
+            cost.penalty,
+            refinement_ctx
+                .population
+                .first()
+                .and_then(|(_, c, _)| Some((cost.total() - c.total()) / c.total() * 100.))
+                .unwrap_or(100.),
+            insertion_ctx.solution.routes.len(),
+            is_accepted
+        ));
+    }
+
     fn log_speed(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
         let elapsed = refinement_time.elapsed();
-        self.logger.deref()(
-            format!(
-                "Solving took {} ms, total generations: {}, speed: {:.2} generations/sec",
-                elapsed.as_millis(),
-                refinement_ctx.generation,
-                refinement_ctx.generation as f64 / elapsed.as_secs_f64()
-            )
-            .as_str(),
-        );
+        self.logger.deref()(format!(
+            "Solving took {} ms, total generations: {}, speed: {:.2} generations/sec",
+            elapsed.as_millis(),
+            refinement_ctx.generation,
+            refinement_ctx.generation as f64 / elapsed.as_secs_f64()
+        ));
     }
 
     fn get_result(&self, refinement_ctx: RefinementContext) -> Option<(Solution, ObjectiveCost, usize)> {
@@ -233,9 +231,11 @@ impl Solver {
         } else {
             let mut refinement_ctx = refinement_ctx;
             let (ctx, cost, generation) = refinement_ctx.population.remove(0);
-            self.logger.deref()(
-                format!("Best solution within cost {} discovered at {} generation", cost.total(), generation).as_str(),
-            );
+            self.logger.deref()(format!(
+                "Best solution within cost {} discovered at {} generation",
+                cost.total(),
+                generation
+            ));
             Some((ctx.solution.to_solution(refinement_ctx.problem.extras.clone()), cost, generation))
         }
     }
