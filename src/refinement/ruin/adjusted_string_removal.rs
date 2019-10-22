@@ -59,8 +59,8 @@ impl Default for AdjustedStringRemoval {
 impl Ruin for AdjustedStringRemoval {
     fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
-        let mut jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::new());
-        let mut actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
+        let jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::new());
+        let actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
         let routes: Vec<RouteContext> = insertion_ctx.solution.routes.clone();
 
         let (lsmax, ks) = self.calculate_limits(&routes, &insertion_ctx.random);

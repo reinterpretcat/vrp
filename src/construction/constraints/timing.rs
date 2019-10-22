@@ -18,7 +18,6 @@ const OP_START_MSG: &str = "Optional start is not yet implemented.";
 /// Checks whether vehicle can serve activity taking into account their time windows.
 /// TODO add extra check that job's and actor's TWs have intersection (hard route constraint).
 pub struct TimingConstraintModule {
-    code: i32,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
@@ -55,7 +54,6 @@ impl TimingConstraintModule {
         code: i32,
     ) -> Self {
         Self {
-            code,
             state_keys: vec![LATEST_ARRIVAL_KEY, WAITING_KEY],
             constraints: vec![
                 ConstraintVariant::HardActivity(Arc::new(TimeHardActivityConstraint {

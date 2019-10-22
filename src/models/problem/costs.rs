@@ -15,7 +15,7 @@ pub trait ActivityCost {
     }
 
     /// Returns operation time spent to perform activity.
-    fn duration(&self, vehicle: &Vehicle, driver: &Driver, activity: &Activity, arrival: Timestamp) -> Cost {
+    fn duration(&self, _vehicle: &Vehicle, _driver: &Driver, activity: &Activity, _arrival: Timestamp) -> Cost {
         activity.place.duration
     }
 }
@@ -70,11 +70,11 @@ impl MatrixTransportCost {
 }
 
 impl TransportCost for MatrixTransportCost {
-    fn duration(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Duration {
+    fn duration(&self, profile: Profile, from: Location, to: Location, _: Timestamp) -> Duration {
         self.durations.get(profile as usize).unwrap().get(from * self.size + to).unwrap().clone()
     }
 
-    fn distance(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Distance {
+    fn distance(&self, profile: Profile, from: Location, to: Location, _: Timestamp) -> Distance {
         self.distances.get(profile as usize).unwrap().get(from * self.size + to).unwrap().clone()
     }
 }

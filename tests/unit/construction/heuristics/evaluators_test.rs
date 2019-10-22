@@ -82,7 +82,7 @@ mod single {
         index: usize,
     ) {
         let registry = create_test_registry();
-        let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
+        let route_ctx = RouteContext::new(registry.next().next().unwrap());
         route_ctx
             .route
             .write()
@@ -90,8 +90,8 @@ mod single {
             .tour
             .insert_at(create_tour_activity_at(5), 1)
             .insert_at(create_tour_activity_at(10), 2);
-        let mut routes = vec![route_ctx];
-        let mut constraint = create_constraint_pipeline_with_timing();
+        let routes = vec![route_ctx];
+        let constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
 
         let result = evaluate_job_insertion(&job, &ctx);
@@ -250,15 +250,15 @@ mod multi {
         cost: Cost,
     ) {
         let registry = create_test_registry();
-        let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
+        let route_ctx = RouteContext::new(registry.next().next().unwrap());
         {
             let mut route = route_ctx.route.write().unwrap();
             existing.iter().for_each(|&(index, loc)| {
                 route.tour.insert_at(create_tour_activity_at(loc), index);
             });
         }
-        let mut routes = vec![route_ctx];
-        let mut constraint = create_constraint_pipeline_with_timing();
+        let routes = vec![route_ctx];
+        let constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
         let mut job = MultiBuilder::new();
         expected.iter().zip(0usize..).for_each(|((_, loc), index)| {

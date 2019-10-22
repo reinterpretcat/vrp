@@ -113,7 +113,7 @@ impl Jobs {
         &'a self,
         profile: Profile,
         job: &Arc<Job>,
-        time: Timestamp,
+        _: Timestamp,
         max_distance: Distance,
     ) -> impl Iterator<Item = Arc<Job>> + 'a {
         self.index

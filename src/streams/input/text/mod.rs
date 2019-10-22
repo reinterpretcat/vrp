@@ -40,7 +40,7 @@ impl<'a> Read for StringReader<'a> {
 trait TextReader {
     fn read_problem(&mut self) -> Result<Problem, String> {
         let fleet = self.read_fleet()?;
-        let jobs = self.read_jobs(&fleet)?;
+        let jobs = self.read_jobs()?;
         let transport = Arc::new(self.create_transport());
         let activity = Arc::new(SimpleActivityCost::new());
         let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
@@ -58,7 +58,7 @@ trait TextReader {
 
     fn read_fleet(&mut self) -> Result<Fleet, String>;
 
-    fn read_jobs(&mut self, fleet: &Fleet) -> Result<Vec<Arc<Job>>, String>;
+    fn read_jobs(&mut self) -> Result<Vec<Arc<Job>>, String>;
 
     fn create_transport(&self) -> MatrixTransportCost;
 }

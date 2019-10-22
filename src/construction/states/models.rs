@@ -175,7 +175,7 @@ impl InsertionContext {
 
     /// Removes empty routes from solution context.
     fn remove_empty_routes(&mut self) {
-        let mut registry = &mut self.solution.registry;
+        let registry = &mut self.solution.registry;
         self.solution.routes.retain(|rc| {
             let route = rc.route.read().unwrap();
             if route.tour.has_jobs() {

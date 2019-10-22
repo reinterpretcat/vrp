@@ -41,7 +41,7 @@ impl Ruin for CompositeRuin {
             .ruins
             .iter()
             .filter(|(_, probability)| *probability > random.uniform_real(0., 1.))
-            .fold(insertion_ctx, |mut ctx, (ruin, _)| ruin.run(ctx));
+            .fold(insertion_ctx, |ctx, (ruin, _)| ruin.run(ctx));
 
         insertion_ctx.restore();
 

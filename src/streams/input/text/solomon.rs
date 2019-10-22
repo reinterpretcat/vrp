@@ -14,7 +14,7 @@ use std::io::prelude::*;
 use std::io::{BufReader, Error};
 use std::sync::Arc;
 
-pub fn read_solomon_format<R: Read>(mut reader: BufReader<R>) -> Result<Problem, String> {
+pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
     SolomonReader { buffer: String::new(), reader, matrix: MatrixFactory::new() }.read_problem()
 }
 
@@ -67,7 +67,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
         ))
     }
 
-    fn read_jobs(&mut self, fleet: &Fleet) -> Result<Vec<Arc<Job>>, String> {
+    fn read_jobs(&mut self) -> Result<Vec<Arc<Job>>, String> {
         let mut jobs: Vec<Arc<Job>> = Default::default();
         loop {
             match self.read_customer() {
@@ -132,7 +132,7 @@ impl<R: Read> SolomonReader<R> {
     }
 
     fn skip_lines(&mut self, count: usize) -> Result<(), String> {
-        for i in 0..count {
+        for _ in 0..count {
             read_line(&mut self.reader, &mut self.buffer).map_err(|_| "Cannot skip lines")?;
         }
 

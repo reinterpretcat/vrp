@@ -69,7 +69,7 @@ impl InsertionHeuristic {
                 ctx.problem.constraint.accept_route_state(&mut success.context);
             }
             InsertionResult::Failure(failure) => {
-                let mut unassigned = &mut ctx.solution.unassigned;
+                let unassigned = &mut ctx.solution.unassigned;
                 ctx.solution.required.drain(..).for_each(|j| {
                     unassigned.insert(j.clone(), failure.constraint);
                 });

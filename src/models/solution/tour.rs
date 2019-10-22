@@ -23,8 +23,6 @@ pub struct Tour {
     is_closed: bool,
 }
 
-pub struct Statistic {}
-
 impl Tour {
     pub fn new() -> Tour {
         Tour { activities: Default::default(), jobs: Default::default(), is_closed: false }

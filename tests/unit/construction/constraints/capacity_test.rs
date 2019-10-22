@@ -79,7 +79,7 @@ can_evaluate_demand_on_route! {
 
 fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraintViolation>) {
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
-    let mut ctx = RouteContext {
+    let ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
         state: Arc::new(RwLock::new(RouteState::new())),
     };

@@ -16,7 +16,7 @@ impl Default for BestResultSelector {
 }
 
 impl ResultSelector for BestResultSelector {
-    fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+    fn select(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
         InsertionResult::choose_best_result(left, right)
     }
 }

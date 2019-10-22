@@ -17,7 +17,6 @@ use std::time::{Duration, Instant};
 /// Provides configurable way to build solver.
 pub struct SolverBuilder {
     solver: Solver,
-    population_size: Option<usize>,
     minimize_routes: Option<bool>,
     max_generations: Option<usize>,
     init_solution: Option<(Arc<Problem>, Arc<Solution>)>,
@@ -25,13 +24,7 @@ pub struct SolverBuilder {
 
 impl SolverBuilder {
     pub fn new() -> Self {
-        Self {
-            solver: Solver::default(),
-            population_size: None,
-            minimize_routes: None,
-            max_generations: None,
-            init_solution: None,
-        }
+        Self { solver: Solver::default(), minimize_routes: None, max_generations: None, init_solution: None }
     }
 
     pub fn with_minimize_routes(&mut self, value: bool) -> &mut Self {

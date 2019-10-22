@@ -14,7 +14,7 @@ use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 
-pub fn read_lilim_format<R: Read>(mut reader: BufReader<R>) -> Result<Problem, String> {
+pub fn read_lilim_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
     LilimReader { buffer: String::new(), reader, matrix: MatrixFactory::new() }.read_problem()
 }
 
@@ -73,7 +73,7 @@ impl<R: Read> TextReader for LilimReader<R> {
         ))
     }
 
-    fn read_jobs(&mut self, fleet: &Fleet) -> Result<Vec<Arc<Job>>, String> {
+    fn read_jobs(&mut self) -> Result<Vec<Arc<Job>>, String> {
         let mut customers: HashMap<usize, JobLine> = Default::default();
         let mut relations: Vec<Relation> = Default::default();
         loop {

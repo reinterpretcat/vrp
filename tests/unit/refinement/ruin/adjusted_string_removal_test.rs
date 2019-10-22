@@ -47,7 +47,7 @@ fn can_ruin_solution_with_matrix_routes_impl(
     expected_ids: Vec<&str>,
 ) {
     let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1);
-    let mut insertion_ctx = InsertionContext::new_from_solution(
+    let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (Arc::new(solution), None),
         Arc::new(FakeRandom::new(ints, reals)),
@@ -90,7 +90,7 @@ fn can_ruin_solution_with_multi_jobs_impl(
             .parse_lilim()
             .unwrap(),
     );
-    let mut insertion_ctx = create_with_cheapest(problem, Arc::new(FakeRandom::new(ints, reals)));
+    let insertion_ctx = create_with_cheapest(problem, Arc::new(FakeRandom::new(ints, reals)));
 
     let insertion_ctx = AdjustedStringRemoval::default().run(insertion_ctx);
 

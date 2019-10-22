@@ -34,7 +34,7 @@ impl RandomRouteRemoval {
 
     fn remove_part_route(&self, insertion_ctx: &mut InsertionContext, route_ctx: &mut RouteContext) {
         let locked = insertion_ctx.locked.clone();
-        let mut solution = &mut insertion_ctx.solution;
+        let solution = &mut insertion_ctx.solution;
 
         let can_remove_full_route = route_ctx.route.read().unwrap().tour.jobs().all(|job| !locked.contains(&job));
 
@@ -69,10 +69,10 @@ impl Ruin for RandomRouteRemoval {
             .uniform_int(self.rmin as i32, self.rmax as i32)
             .min(insertion_ctx.solution.routes.len().min(max) as i32) as usize;
 
-        (0..affected).for_each(|index| {
+        (0..affected).for_each(|_| {
             let mut solution = &mut insertion_ctx.solution;
             let route_index = insertion_ctx.random.uniform_int(0, (solution.routes.len() - 1) as i32) as usize;
-            let mut route_ctx = &mut solution.routes.iter().skip(route_index).next().unwrap().clone();
+            let route_ctx = &mut solution.routes.iter().skip(route_index).next().unwrap().clone();
 
             if insertion_ctx.locked.is_empty() {
                 self.remove_whole_route(&mut solution, route_ctx);

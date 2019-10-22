@@ -53,7 +53,7 @@ fn can_provide_next_actors_from_registry() {
             VehicleBuilder::new().id("v3").details(vec![test_vehicle_detail()]).build(),
         ],
     );
-    let mut registry = Registry::new(&fleet);
+    let registry = Registry::new(&fleet);
 
     let mut actors: Vec<Arc<Actor>> = registry.next().collect();
     actors.sort_by(|a, b| a.detail.start.partial_cmp(&b.detail.start).unwrap_or(Less));

@@ -71,7 +71,7 @@ pub struct Fleet {
 impl Fleet {
     /// Creates a new fleet.
     pub fn new(drivers: Vec<Driver>, vehicles: Vec<Vehicle>) -> Fleet {
-        let mut profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile.clone()).collect();
+        let profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile.clone()).collect();
         let mut profiles: Vec<Profile> = profiles.into_iter().map(|p| p).collect();
         profiles.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Less));
 

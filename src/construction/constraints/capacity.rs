@@ -47,7 +47,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 /// Checks whether vehicle can handle activity's demand.
 /// Capacity can be interpreted as vehicle capacity change after visiting specific activity.
 pub struct CapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    code: i32,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
     phantom: PhantomData<Capacity>,
@@ -58,7 +57,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 {
     pub fn new(code: i32) -> Self {
         Self {
-            code,
             state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(CapacityHardRouteConstraint::<Capacity> {

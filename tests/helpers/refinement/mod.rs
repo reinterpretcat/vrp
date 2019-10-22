@@ -44,7 +44,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
                 ["c".to_string(), index.to_string()].concat().as_str(),
                 Some(index),
             ));
-            let mut route = routes.get_mut(i).unwrap();
+            let route = routes.get_mut(i).unwrap();
             jobs.push(single.clone());
             route.tour.insert_last(test_tour_activity_with_job(single));
         });

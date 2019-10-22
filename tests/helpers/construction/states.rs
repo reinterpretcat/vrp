@@ -31,7 +31,7 @@ pub fn create_insertion_context(
 }
 
 pub fn create_test_insertion_context(registry: Registry) -> InsertionContext {
-    let mut routes: Vec<RouteContext> = vec![RouteContext::new(registry.next().next().unwrap())];
-    let mut constraint = create_constraint_pipeline_with_timing();
+    let routes: Vec<RouteContext> = vec![RouteContext::new(registry.next().next().unwrap())];
+    let constraint = create_constraint_pipeline_with_timing();
     create_insertion_context(registry, constraint, routes)
 }

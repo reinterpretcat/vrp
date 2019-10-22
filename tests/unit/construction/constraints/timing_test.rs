@@ -176,7 +176,7 @@ fn can_update_activity_schedule() {
 #[test]
 fn can_calculate_soft_activity_cost_for_empty_tour() {
     let fleet = Fleet::new(vec![test_driver_with_costs(empty_costs())], vec![VehicleBuilder::new().id("v1").build()]);
-    let mut route_ctx = RouteContext {
+    let route_ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
         state: Arc::new(RwLock::new(RouteState::new())),
     };
@@ -197,7 +197,7 @@ fn can_calculate_soft_activity_cost_for_empty_tour() {
 #[test]
 fn can_calculate_soft_activity_cost_for_non_empty_tour() {
     let fleet = Fleet::new(vec![test_driver_with_costs(empty_costs())], vec![VehicleBuilder::new().id("v1").build()]);
-    let mut route_ctx = RouteContext {
+    let route_ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route_with_activities(
             &fleet,
             "v1",
