@@ -61,10 +61,6 @@ fn evaluate_single(
         &mut activity,
         route_costs,
         SingleContext::new(progress.cost, 0),
-        |ctx| match &ctx.violation {
-            Some(violation) if violation.stopped => Result::Err(ctx),
-            _ => Result::Ok(ctx),
-        },
     );
 
     if result.is_success() {
@@ -112,16 +108,6 @@ fn evaluate_multi(
                         &mut activity,
                         0.0,
                         SingleContext::new(None, in1.next_index),
-                        |ctx| match &ctx.violation {
-                            Some(violation) if violation.stopped => Result::Err(ctx),
-                            _ => {
-                                if !(ctx.is_success() && compare_shared(multi.jobs.first().unwrap(), service)) {
-                                    Result::Err(ctx)
-                                } else {
-                                    Result::Ok(ctx)
-                                }
-                            }
-                        },
                     );
 
                     if srv_res.is_success() {
@@ -160,11 +146,7 @@ fn analyze_insertion_in_route<'a, F>(
     target: &mut Box<Activity>,
     extra_costs: Cost,
     init: SingleContext,
-    eval_pred: F,
-) -> SingleContext
-where
-    F: Fn(SingleContext) -> Result<SingleContext, SingleContext>,
-{
+) -> SingleContext {
     unwrap_from_result(route_ctx.route.read().unwrap().tour.legs().skip(init.index).try_fold(
         init,
         |out, (items, index)| {
