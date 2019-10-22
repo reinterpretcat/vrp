@@ -8,8 +8,8 @@ use crate::refinement::ruin::{CompositeRuin, Ruin};
 use crate::refinement::selection::{SelectBest, Selection};
 use crate::refinement::termination::{MaxGeneration, Termination};
 use crate::refinement::RefinementContext;
-use crate::utils::DefaultRandom;
-use std::cmp::Ordering::Less;
+use crate::utils::{compare_floats, DefaultRandom};
+use std::cmp::Ordering::{Equal, Greater, Less};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -58,6 +58,7 @@ impl SolverBuilder {
         if let Some(value) = self.minimize_routes {
             self.solver.logger.deref()(format!("configured to use minimize routes: {}", value).as_str());
             self.solver.acceptance = Box::new(Greedy::new(value));
+            self.solver.minimize_routes = value;
         }
 
         std::mem::replace(&mut self.solver, Solver::default())
@@ -73,6 +74,7 @@ pub struct Solver {
     acceptance: Box<dyn Acceptance>,
     termination: Box<dyn Termination>,
     logger: Box<dyn Fn(&str) -> ()>,
+    minimize_routes: bool,
     population_size: usize,
 }
 
@@ -85,6 +87,7 @@ impl Default for Solver {
             Box::new(PenalizeUnassigned::default()),
             Box::new(Greedy::default()),
             Box::new(MaxGeneration::default()),
+            false,
             1,
             Box::new(|msg| println!("{}", msg)),
         )
@@ -99,10 +102,11 @@ impl Solver {
         objective: Box<dyn Objective>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
+        minimize_routes: bool,
         population_size: usize,
         logger: Box<dyn Fn(&str) -> ()>,
     ) -> Self {
-        Self { recreate, ruin, selection, objective, acceptance, termination, population_size, logger }
+        Self { recreate, ruin, selection, objective, acceptance, termination, minimize_routes, population_size, logger }
     }
 
     pub fn solve(&self, problem: Problem) -> Option<(Solution, ObjectiveCost, usize)> {
@@ -144,9 +148,13 @@ impl Solver {
 
             if is_accepted {
                 refinement_ctx.population.push((insertion_ctx, cost.clone(), refinement_ctx.generation));
-                refinement_ctx
-                    .population
-                    .sort_by(|(_, a, _), (_, b, _)| a.total().partial_cmp(&b.total()).unwrap_or(Less));
+                refinement_ctx.population.sort_by(|(a_ctx, a_cost, _), (b_ctx, b_cost, _)| {
+                    match (a_ctx.solution.routes.len().cmp(&b_ctx.solution.routes.len()), self.minimize_routes) {
+                        (Less, true) => Less,
+                        (Greater, true) => Greater,
+                        _ => compare_floats(&a_cost.total(), &b_cost.total()),
+                    }
+                });
                 refinement_ctx.population.truncate(self.population_size);
             }
 
