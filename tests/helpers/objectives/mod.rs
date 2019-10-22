@@ -5,7 +5,7 @@ use crate::refinement::objectives::Objective;
 pub struct TestObjective {}
 
 impl Objective for TestObjective {
-    fn estimate(&self, insertion_ctx: &InsertionContext) -> ObjectiveCost {
+    fn estimate(&self, _insertion_ctx: &InsertionContext) -> ObjectiveCost {
         unimplemented!()
     }
 }

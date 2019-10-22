@@ -5,7 +5,7 @@ use crate::helpers::models::solution::*;
 use crate::models::common::Schedule;
 use crate::models::problem::{Fleet, Jobs, SimpleActivityCost};
 use crate::models::solution::Registry;
-use crate::models::{Extras, Problem, Solution};
+use crate::models::{Extras, Problem};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
 use crate::utils::DefaultRandom;
 use std::collections::HashMap;

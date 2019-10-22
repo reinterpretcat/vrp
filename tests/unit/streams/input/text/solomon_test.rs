@@ -1,10 +1,5 @@
-use crate::construction::constraints::Demand;
-use crate::helpers::get_test_resource;
 use crate::helpers::models::problem::*;
 use crate::helpers::streams::input::{create_c101_25_problem, SolomonBuilder};
-use crate::models::common::TimeWindow;
-use crate::models::problem::Job;
-use crate::models::Problem;
 use crate::streams::input::text::solomon::SolomonProblem;
 
 #[test]

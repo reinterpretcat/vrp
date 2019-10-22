@@ -7,7 +7,6 @@ use crate::models::common::ObjectiveCost;
 use crate::refinement::acceptance::Acceptance;
 use crate::refinement::RefinementContext;
 use std::cmp::Ordering;
-use std::sync::Arc;
 
 /// Greedy acceptance which accepts only better solutions.
 pub struct Greedy {

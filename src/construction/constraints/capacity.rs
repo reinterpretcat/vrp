@@ -6,7 +6,7 @@ use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, RouteState, SolutionContext};
 use crate::models::common::Dimensions;
 use crate::models::problem::Job;
-use crate::models::solution::{Tour, TourActivity};
+use crate::models::solution::TourActivity;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::slice::Iter;
@@ -101,7 +101,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         });
     }
 
-    fn accept_solution_state(&self, ctx: &mut SolutionContext) {}
+    fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
 
     fn state_keys(&self) -> Iter<i32> {
         self.state_keys.iter()
@@ -165,7 +165,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 let route = &ctx.route.read().unwrap();
                 let state = &ctx.state.read().unwrap();
                 if can_handle_demand::<Capacity>(
-                    &route.tour,
                     state,
                     route.tour.start().unwrap_or_else(|| unimplemented!("Optional start is not yet implemented.")),
                     route.actor.vehicle.dimens.get_capacity(),
@@ -202,13 +201,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             _ => None,
         });
 
-        if can_handle_demand::<Capacity>(
-            &route.tour,
-            state,
-            activity_ctx.prev,
-            route.actor.vehicle.dimens.get_capacity(),
-            demand,
-        ) {
+        if can_handle_demand::<Capacity>(state, activity_ctx.prev, route.actor.vehicle.dimens.get_capacity(), demand) {
             None
         } else {
             Some(ActivityConstraintViolation { code: self.code, stopped: false })
@@ -230,7 +223,6 @@ fn get_demand<
 fn can_handle_demand<
     Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
 >(
-    tour: &Tour,
     state: &RouteState,
     pivot: &TourActivity,
     capacity: Option<&Capacity>,

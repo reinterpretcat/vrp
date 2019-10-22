@@ -9,10 +9,10 @@ use crate::refinement::selection::{SelectBest, Selection};
 use crate::refinement::termination::{MaxGeneration, Termination};
 use crate::refinement::RefinementContext;
 use crate::utils::{compare_floats, DefaultRandom};
-use std::cmp::Ordering::{Equal, Greater, Less};
+use std::cmp::Ordering::{Greater, Less};
 use std::ops::Deref;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 /// Provides configurable way to build solver.
 pub struct SolverBuilder {

@@ -1,13 +1,11 @@
 use crate::construction::constraints::capacity::CURRENT_CAPACITY_KEY;
-use crate::construction::constraints::{ActivityConstraintViolation, Demand, RouteConstraintViolation};
+use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
 use crate::construction::states::{ActivityContext, RouteContext, RouteState};
 use crate::helpers::construction::constraints::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::common::TimeWindow;
-use crate::models::problem::{Fleet, Vehicle, VehicleDetail};
-use crate::models::solution::{Activity, TourActivity};
-use std::ops::Deref;
+use crate::models::problem::{Fleet, Vehicle};
+use crate::models::solution::TourActivity;
 use std::sync::{Arc, RwLock};
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {

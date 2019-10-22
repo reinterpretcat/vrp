@@ -1,9 +1,6 @@
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
-use crate::models::problem::Job;
 use crate::models::Problem;
-use crate::utils::Random;
-use std::collections::HashSet;
 use std::sync::Arc;
 
 /// Contains information needed to perform refinement.

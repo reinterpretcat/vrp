@@ -11,11 +11,11 @@ struct TestConstraintModule {
 }
 
 impl ConstraintModule for TestConstraintModule {
-    fn accept_route_state(&self, ctx: &mut RouteContext) {
+    fn accept_route_state(&self, _ctx: &mut RouteContext) {
         unimplemented!()
     }
 
-    fn accept_solution_state(&self, ctx: &mut SolutionContext) {
+    fn accept_solution_state(&self, _ctx: &mut SolutionContext) {
         unimplemented!()
     }
 
@@ -39,15 +39,15 @@ struct TestSoftActivityConstraint {
 impl HardActivityConstraint for TestHardActivityConstraint {
     fn evaluate_activity(
         &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
+        _route_ctx: &RouteContext,
+        _activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
         self.violation.clone()
     }
 }
 
 impl SoftActivityConstraint for TestSoftActivityConstraint {
-    fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Cost {
+    fn estimate_activity(&self, _route_ctx: &RouteContext, _activity_ctx: &ActivityContext) -> Cost {
         self.cost
     }
 }

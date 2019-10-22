@@ -1,12 +1,11 @@
 use crate::construction::states::route::RouteState;
-use crate::models::common::{Cost, Schedule, TimeWindow};
+use crate::models::common::{Cost, Schedule};
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, Actor, Place, Registry, Route, Tour, TourActivity};
 use crate::models::{Extras, Problem, Solution};
-use crate::utils::{DefaultRandom, Random};
+use crate::utils::Random;
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 

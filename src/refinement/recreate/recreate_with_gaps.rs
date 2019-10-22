@@ -1,11 +1,10 @@
 extern crate rand;
 
 use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
-use crate::construction::states::{InsertionContext, InsertionResult};
+use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
 use crate::refinement::recreate::{BestResultSelector, Recreate};
 use rand::prelude::*;
-use std::slice::Iter;
 use std::sync::Arc;
 
 /// Returns a sub set of randomly selected jobs.

@@ -5,8 +5,6 @@ mod random_route_removal_test;
 use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::refinement::ruin::Ruin;
-use crate::refinement::RefinementContext;
-use std::collections::HashSet;
 use std::sync::Arc;
 
 /// Removes random route from solution.

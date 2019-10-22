@@ -1,7 +1,3 @@
-use crate::models::Problem;
-use std::fs::File;
-use std::io::BufReader;
-
 pub type Customer = (usize, usize, usize, usize, usize, usize, usize);
 
 pub struct SolomonBuilder {

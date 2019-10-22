@@ -1,6 +1,5 @@
 use crate::construction::heuristics::ResultSelector;
 use crate::construction::states::{InsertionContext, InsertionResult};
-use std::slice::Iter;
 
 pub trait Recreate {
     fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext;

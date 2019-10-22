@@ -1,4 +1,3 @@
-use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::evaluators::evaluate_job_insertion;
 use crate::construction::states::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
@@ -9,9 +8,8 @@ use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, Job, Single, VehicleDetail};
 use crate::models::solution::{Place, Registry, TourActivity};
-use crate::utils::{compare_floats, DefaultRandom};
+use crate::utils::compare_floats;
 use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::ops::Deref;
 use std::sync::Arc;
 

@@ -6,7 +6,6 @@ use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::termination::Termination;
 use crate::refinement::RefinementContext;
-use std::sync::Arc;
 
 /// Stops when maximum amount of generations is exceeded.
 pub struct MaxGeneration {

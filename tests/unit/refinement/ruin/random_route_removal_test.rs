@@ -2,7 +2,6 @@ use crate::construction::states::InsertionContext;
 use crate::helpers::models::domain::*;
 use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;
-use crate::models::common::ObjectiveCost;
 use crate::models::{Lock, LockDetail, Problem};
 use crate::refinement::ruin::random_route_removal::RandomRouteRemoval;
 use crate::refinement::ruin::Ruin;

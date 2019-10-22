@@ -1,8 +1,7 @@
 use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
-use crate::construction::states::{InsertionContext, InsertionResult};
+use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
 use crate::refinement::recreate::{BestResultSelector, Recreate};
-use std::slice::Iter;
 use std::sync::Arc;
 
 /// Returns a list of all jobs to be inserted.

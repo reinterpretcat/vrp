@@ -7,14 +7,11 @@ use std::sync::{Arc, RwLock};
 
 use crate::construction::states::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
-use crate::models::solution::{Actor, Route, Tour};
-use crate::models::{Problem, Solution};
+use crate::models::solution::{Actor, Tour};
+use crate::models::Problem;
 use crate::refinement::ruin::Ruin;
-use crate::refinement::RefinementContext;
 use crate::utils::Random;
-use std::borrow::Borrow;
 use std::iter::{empty, once};
-use std::ops::Deref;
 
 /// "Adjusted string removal" strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) by Jan Christiaens, Greet Vanden Berghe.

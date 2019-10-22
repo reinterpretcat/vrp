@@ -1,12 +1,9 @@
-use crate::construction::states::InsertionContext;
 use crate::helpers::models::domain::get_customer_ids_from_routes_sorted;
 use crate::helpers::refinement::create_with_cheapest;
 use crate::helpers::streams::input::*;
-use crate::models::{Extras, Problem};
+use crate::models::Problem;
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
-use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
 use crate::utils::DefaultRandom;
-use std::io::BufWriter;
 use std::sync::Arc;
 
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {

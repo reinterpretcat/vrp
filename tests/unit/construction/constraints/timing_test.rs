@@ -5,7 +5,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Location, Schedule, TimeWindow, Timestamp};
 use crate::models::problem::{Fleet, VehicleDetail};
-use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
+use crate::models::solution::{Activity, Place, Route};
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
 use std::sync::{Arc, RwLock};

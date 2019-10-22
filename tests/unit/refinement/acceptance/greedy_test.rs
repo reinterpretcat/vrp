@@ -3,9 +3,6 @@ use crate::helpers::refinement::create_refinement_context;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::acceptance::greedy::Greedy;
 use crate::refinement::acceptance::Acceptance;
-use crate::refinement::RefinementContext;
-use crate::utils::DefaultRandom;
-use std::sync::Arc;
 
 parameterized_test! {can_identify_cheapest_solution, (new_cost, old_cost, expected), {
     can_identify_cheapest_solution_impl(ObjectiveCost::new(new_cost.0, new_cost.1), ObjectiveCost::new(old_cost.0, old_cost.1), expected);
@@ -19,7 +16,7 @@ can_identify_cheapest_solution! {
 }
 
 fn can_identify_cheapest_solution_impl(new_cost: ObjectiveCost, old_cost: ObjectiveCost, expected: bool) {
-    let mut refinement_ctx = create_refinement_context(create_empty_problem(), Arc::new(DefaultRandom::new()));
+    let mut refinement_ctx = create_refinement_context(create_empty_problem());
     refinement_ctx.population.push((create_empty_insertion_context(), old_cost, 0));
 
     let result = Greedy::default().is_accepted(&refinement_ctx, (&create_empty_insertion_context(), new_cost));

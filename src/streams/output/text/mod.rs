@@ -1,10 +1,7 @@
-use crate::construction::states::SolutionContext;
 use crate::models::common::IdDimension;
 use crate::models::problem::Job;
-use crate::models::solution::Route;
 use crate::models::Solution;
 use std::io::{BufWriter, Error, ErrorKind, Write};
-use std::ops::Deref;
 
 pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
     let mut writer = writer;

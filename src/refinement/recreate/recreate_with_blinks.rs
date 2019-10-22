@@ -4,7 +4,7 @@ mod recreate_with_blinks_test;
 
 extern crate rand;
 
-use crate::construction::constraints::{CapacityDimension, Demand, DemandDimension};
+use crate::construction::constraints::{Demand, DemandDimension};
 use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::common::Distance;

@@ -3,15 +3,13 @@
 mod solomon_test;
 
 use crate::construction::constraints::*;
-use crate::models::common::{Dimensions, IdDimension, Location, TimeWindow};
+use crate::models::common::TimeWindow;
 use crate::models::problem::*;
 use crate::models::Problem;
 use crate::streams::input::text::*;
 use crate::utils::{MatrixFactory, TryCollect};
-use std::borrow::Borrow;
-use std::fs::{read, File};
-use std::io::prelude::*;
-use std::io::{BufReader, Error};
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::sync::Arc;
 
 pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {

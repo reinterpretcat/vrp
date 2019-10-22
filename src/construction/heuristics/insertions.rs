@@ -9,7 +9,6 @@ use crate::construction::heuristics::evaluators::evaluate_job_insertion;
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::utils::compare_shared;
-use std::slice::Iter;
 use std::sync::Arc;
 
 /// Selects jobs to be inserted.

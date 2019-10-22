@@ -4,7 +4,6 @@ mod penalize_unassigned_test;
 
 use crate::construction::states::InsertionContext;
 use crate::models::common::{Cost, ObjectiveCost};
-use crate::models::{Problem, Solution};
 use crate::refinement::objectives::Objective;
 
 pub struct PenalizeUnassigned {

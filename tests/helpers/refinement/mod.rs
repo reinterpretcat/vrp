@@ -3,7 +3,7 @@ use crate::helpers::construction::constraints::create_constraint_pipeline;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};
 use crate::models::problem::{Fleet, Job, Jobs, MatrixTransportCost, Vehicle};
-use crate::models::solution::{Actor, Registry, Route};
+use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
 use crate::refinement::RefinementContext;
@@ -15,7 +15,7 @@ pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send
     RecreateWithCheapest::default().run(InsertionContext::new(problem, random))
 }
 
-pub fn create_refinement_context(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> RefinementContext {
+pub fn create_refinement_context(problem: Arc<Problem>) -> RefinementContext {
     RefinementContext { problem, population: vec![], generation: 0 }
 }
 
@@ -50,7 +50,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         });
     });
 
-    let matrix = vec![generate_matrix(rows, cols, 1000.)];
+    let matrix = vec![generate_matrix(rows, cols)];
     let transport = Arc::new(MatrixTransportCost::new(matrix.clone(), matrix));
     let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
 
@@ -69,7 +69,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
     (problem, solution)
 }
 
-fn generate_matrix(rows: usize, cols: usize, scale: f64) -> Vec<f64> {
+fn generate_matrix(rows: usize, cols: usize) -> Vec<f64> {
     let size = cols * rows;
     let mut data = vec![0.; size * size];
 

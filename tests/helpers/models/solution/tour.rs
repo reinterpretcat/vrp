@@ -1,10 +1,9 @@
-use crate::construction::constraints::{Demand, DemandDimension};
-use crate::helpers::models::problem::{test_single_job, test_single_job_with_simple_demand};
+use crate::construction::constraints::Demand;
+use crate::helpers::models::problem::test_single_job_with_simple_demand;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Duration, Location, Schedule};
 use crate::models::problem::Job;
 use crate::models::solution::TourActivity;
-use std::borrow::BorrowMut;
 use std::sync::Arc;
 
 pub fn test_tour_activity_with_location(location: Location) -> TourActivity {

@@ -51,7 +51,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
             "lilim",
             (
                 ProblemReader(Box::new(|file: File| file.parse_lilim())),
-                InitSolutionReader(Box::new(|file, problem| None)),
+                InitSolutionReader(Box::new(|_file, _problem| None)),
                 SolutionWriter(Box::new(|solution: Solution| {
                     write_lilim_solution(BufWriter::new(Box::new(stdout())), &solution)
                 })),

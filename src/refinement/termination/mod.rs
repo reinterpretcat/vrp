@@ -1,7 +1,6 @@
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::RefinementContext;
-use std::sync::Arc;
 
 pub trait Termination {
     fn is_termination(

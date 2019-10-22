@@ -160,7 +160,7 @@ impl MultiBuilder {
     }
 
     pub fn new_with_permutations(permutations: Vec<Vec<usize>>) -> Self {
-        let mut multi = Multi::new_with_generator(vec![], Default::default(), Box::new(move |m| permutations.clone()));
+        let mut multi = Multi::new_with_generator(vec![], Default::default(), Box::new(move |_| permutations.clone()));
         multi.dimens.set_id("multi");
 
         Self { multi }

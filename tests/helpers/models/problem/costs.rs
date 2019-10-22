@@ -6,11 +6,11 @@ pub struct TestTransportCost {}
 pub struct TestActivityCost {}
 
 impl TransportCost for TestTransportCost {
-    fn duration(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Duration {
+    fn duration(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
         subtract(from, to)
     }
 
-    fn distance(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Distance {
+    fn distance(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
         subtract(from, to)
     }
 }
@@ -32,11 +32,11 @@ impl ProfileAwareTransportCost {
 }
 
 impl TransportCost for ProfileAwareTransportCost {
-    fn duration(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Duration {
+    fn duration(&self, profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
         (self.func)(profile, subtract(from, to))
     }
 
-    fn distance(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Distance {
+    fn distance(&self, profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
         (self.func)(profile, subtract(from, to))
     }
 }
