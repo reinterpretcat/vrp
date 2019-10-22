@@ -139,7 +139,7 @@ fn evaluate_multi(
 }
 
 #[inline(always)]
-fn analyze_insertion_in_route<'a, F>(
+fn analyze_insertion_in_route<'a>(
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
     single: &Single,
