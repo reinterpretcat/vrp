@@ -7,18 +7,19 @@ extern crate clap;
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{stdout, BufWriter, Error};
+use std::io::{stdout, BufReader, BufWriter, Error};
 use std::ops::Deref;
 use std::process;
 
 use clap::{App, Arg, ArgMatches};
 
 use crate::models::{Problem, Solution};
-use crate::streams::input::text::{LilimProblem, SolomonProblem};
+use crate::streams::input::text::{read_init_solution, LilimProblem, SolomonProblem};
 use crate::streams::output::text::{write_lilim_solution, write_solomon_solution};
 
 pub use self::solver::Solver;
 use crate::solver::SolverBuilder;
+use std::sync::Arc;
 
 mod construction;
 mod models;
@@ -28,17 +29,20 @@ mod utils;
 
 mod solver;
 
-struct InputReader(Box<dyn Fn(File) -> Result<Problem, String>>);
+struct ProblemReader(Box<dyn Fn(File) -> Result<Problem, String>>);
 
-struct OutputWriter(Box<dyn Fn(Solution) -> Result<(), Error>>);
+struct InitSolutionReader(Box<dyn Fn(File, Arc<Problem>) -> Option<Solution>>);
 
-fn get_formats<'a>() -> HashMap<&'a str, (InputReader, OutputWriter)> {
+struct SolutionWriter(Box<dyn Fn(Solution) -> Result<(), Error>>);
+
+fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter)> {
     vec![
         (
             "solomon",
             (
-                InputReader(Box::new(|file: File| file.parse_solomon())),
-                OutputWriter(Box::new(|solution: Solution| {
+                ProblemReader(Box::new(|file: File| file.parse_solomon())),
+                InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
+                SolutionWriter(Box::new(|solution: Solution| {
                     write_solomon_solution(BufWriter::new(Box::new(stdout())), &solution)
                 })),
             ),
@@ -46,8 +50,9 @@ fn get_formats<'a>() -> HashMap<&'a str, (InputReader, OutputWriter)> {
         (
             "lilim",
             (
-                InputReader(Box::new(|file: File| file.parse_lilim())),
-                OutputWriter(Box::new(|solution: Solution| {
+                ProblemReader(Box::new(|file: File| file.parse_lilim())),
+                InitSolutionReader(Box::new(|file, problem| None)),
+                SolutionWriter(Box::new(|solution: Solution| {
                     write_lilim_solution(BufWriter::new(Box::new(stdout())), &solution)
                 })),
             ),
@@ -88,6 +93,14 @@ fn get_matches(formats: Vec<&str>) -> ArgMatches {
                 .default_value("true")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("init-solution")
+                .help("Specifies path to file with initial solution")
+                .short("s")
+                .long("init-solution")
+                .required(false)
+                .takes_value(true),
+        )
         .get_matches()
 }
 
@@ -99,7 +112,7 @@ fn main() {
     let problem_path = matches.value_of("PROBLEM").unwrap();
     let problem_format = matches.value_of("FORMAT").unwrap();
     let input_file = File::open(problem_path).unwrap_or_else(|err| {
-        eprintln!("Cannot open file '{}': '{}'", problem_path, err.to_string());
+        eprintln!("Cannot open problem file '{}': '{}'", problem_path, err.to_string());
         process::exit(1);
     });
 
@@ -112,15 +125,26 @@ fn main() {
         eprintln!("Cannot get minimize-routes: '{}'", err.to_string());
         process::exit(1);
     });
+    let init_solution = matches.value_of("init-solution").and_then(|path| {
+        Some(File::open(path).unwrap_or_else(|err| {
+            eprintln!("Cannot open init solution file '{}': '{}'", problem_path, err.to_string());
+            process::exit(1);
+        }))
+    });
 
     match formats.get(problem_format) {
-        Some((reader, writer)) => {
-            let solution = match reader.0(input_file) {
-                Ok(problem) => SolverBuilder::new()
-                    .with_minimize_routes(minimize_routes)
-                    .with_max_generations(max_generations)
-                    .build()
-                    .solve(problem),
+        Some((problemReader, initReader, solutionWriter)) => {
+            let solution = match problemReader.0(input_file) {
+                Ok(problem) => {
+                    let problem = Arc::new(problem);
+                    let solution = init_solution.and_then(|file| initReader.0(file, problem.clone()));
+                    SolverBuilder::new()
+                        .with_init_solution(solution.and_then(|s| Some((problem.clone(), Arc::new(s)))))
+                        .with_minimize_routes(minimize_routes)
+                        .with_max_generations(max_generations)
+                        .build()
+                        .solve(problem)
+                }
                 Err(error) => {
                     eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
                     process::exit(1);
@@ -128,7 +152,7 @@ fn main() {
             };
 
             match solution {
-                Some(solution) => writer.0(solution.0).unwrap(),
+                Some(solution) => solutionWriter.0(solution.0).unwrap(),
                 None => println!("Cannot find any solution"),
             };
         }

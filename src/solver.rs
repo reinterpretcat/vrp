@@ -20,11 +20,18 @@ pub struct SolverBuilder {
     population_size: Option<usize>,
     minimize_routes: Option<bool>,
     max_generations: Option<usize>,
+    init_solution: Option<(Arc<Problem>, Arc<Solution>)>,
 }
 
 impl SolverBuilder {
     pub fn new() -> Self {
-        Self { solver: Solver::default(), population_size: None, minimize_routes: None, max_generations: None }
+        Self {
+            solver: Solver::default(),
+            population_size: None,
+            minimize_routes: None,
+            max_generations: None,
+            init_solution: None,
+        }
     }
 
     pub fn with_population_size(&mut self, limit: usize) -> &mut Self {
@@ -39,6 +46,11 @@ impl SolverBuilder {
 
     pub fn with_max_generations(&mut self, limit: usize) -> &mut Self {
         self.max_generations = Some(limit);
+        self
+    }
+
+    pub fn with_init_solution(&mut self, solution: Option<(Arc<Problem>, Arc<Solution>)>) -> &mut Self {
+        self.init_solution = solution;
         self
     }
 
@@ -61,6 +73,17 @@ impl SolverBuilder {
             self.solver.minimize_routes = value;
         }
 
+        if let Some((problem, solution)) = &self.init_solution {
+            self.solver.logger.deref()(
+                format!("configured to use initial solution with {} routes", solution.routes.len()).as_str(),
+            );
+            let insertion_ctx = InsertionContext::new_from_solution(
+                problem.clone(),
+                (solution.clone(), None),
+                Arc::new(DefaultRandom::new()),
+            );
+            self.solver.init_insertion_ctx = Some(insertion_ctx);
+        }
         std::mem::replace(&mut self.solver, Solver::default())
     }
 }
@@ -73,9 +96,12 @@ pub struct Solver {
     objective: Box<dyn Objective>,
     acceptance: Box<dyn Acceptance>,
     termination: Box<dyn Termination>,
-    logger: Box<dyn Fn(&str) -> ()>,
+
     minimize_routes: bool,
     population_size: usize,
+    init_insertion_ctx: Option<InsertionContext>,
+
+    logger: Box<dyn Fn(&str) -> ()>,
 }
 
 impl Default for Solver {
@@ -89,6 +115,7 @@ impl Default for Solver {
             Box::new(MaxGeneration::default()),
             false,
             1,
+            None,
             Box::new(|msg| println!("{}", msg)),
         )
     }
@@ -102,17 +129,33 @@ impl Solver {
         objective: Box<dyn Objective>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
+
         minimize_routes: bool,
         population_size: usize,
+        init_insertion_ctx: Option<InsertionContext>,
+
         logger: Box<dyn Fn(&str) -> ()>,
     ) -> Self {
-        Self { recreate, ruin, selection, objective, acceptance, termination, minimize_routes, population_size, logger }
+        Self {
+            recreate,
+            ruin,
+            selection,
+            objective,
+            acceptance,
+            termination,
+            minimize_routes,
+            population_size,
+            logger,
+            init_insertion_ctx,
+        }
     }
 
-    pub fn solve(&self, problem: Problem) -> Option<(Solution, ObjectiveCost, usize)> {
-        let problem = Arc::new(problem);
+    pub fn solve(&self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
         let mut refinement_ctx = RefinementContext::new(problem.clone());
-        let mut insertion_ctx = InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new()));
+        let mut insertion_ctx = match &self.init_insertion_ctx {
+            Some(ctx) => ctx.deep_copy(),
+            None => InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new())),
+        };
 
         let refinement_time = Instant::now();
         loop {
