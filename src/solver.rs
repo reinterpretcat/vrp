@@ -3,7 +3,7 @@ use crate::models::common::ObjectiveCost;
 use crate::models::{Problem, Solution};
 use crate::refinement::acceptance::{Acceptance, Greedy};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
-use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
+use crate::refinement::recreate::{Recreate, CompositeRecreate};
 use crate::refinement::ruin::{CompositeRuin, Ruin};
 use crate::refinement::selection::{SelectBest, Selection};
 use crate::refinement::termination::{MaxGeneration, Termination};
@@ -79,7 +79,7 @@ pub struct Solver {
 impl Default for Solver {
     fn default() -> Self {
         Solver::new(
-            Box::new(RecreateWithCheapest::default()),
+            Box::new(CompositeRecreate::default()),
             Box::new(CompositeRuin::default()),
             Box::new(SelectBest::default()),
             Box::new(PenalizeUnassigned::default()),

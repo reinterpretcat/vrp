@@ -19,3 +19,30 @@ pub use self::recreate_with_cheapest::RecreateWithCheapest;
 
 mod recreate_with_gaps;
 pub use self::recreate_with_gaps::RecreateWithGaps;
+use std::slice::Iter;
+
+/// Provides the way to run one of multiple recreate methods.
+pub struct CompositeRecreate {
+    recreates: Vec<Box<dyn Recreate>>,
+    weights: Vec<usize>,
+}
+
+impl Default for CompositeRecreate {
+    fn default() -> Self {
+        Self { recreates: vec![Box::new(RecreateWithCheapest::default())], weights: vec![1] }
+    }
+}
+
+impl CompositeRecreate {
+    fn new(recreates: Vec<(Box<dyn Recreate>, usize)>) -> Self {
+        let weights = recreates.iter().map(|(_, weight)| *weight).collect();
+        Self { recreates: recreates.into_iter().map(|(recreate, _)| recreate).collect(), weights }
+    }
+}
+
+impl Recreate for CompositeRecreate {
+    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+        let index = insertion_ctx.random.weighted(self.weights.iter());
+        self.recreates.get(index).unwrap().run(insertion_ctx)
+    }
+}
