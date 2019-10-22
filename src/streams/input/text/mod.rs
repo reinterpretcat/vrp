@@ -1,7 +1,16 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/streams/input/text/mod_test.rs"]
+mod mod_test;
+
 use crate::construction::constraints::*;
+use crate::construction::states::{create_end_activity, create_start_activity};
 use crate::models::common::*;
 use crate::models::problem::*;
-use std::io::Read;
+use crate::models::solution::{Activity, Registry, Route, Tour};
+use crate::models::{Problem, Solution};
+use std::collections::HashMap;
+use std::io::prelude::*;
+use std::io::{BufReader, Read};
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -106,9 +115,75 @@ fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTra
     constraint
 }
 
+pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Problem>) -> Result<Solution, String> {
+    let mut buffer = String::new();
+
+    let mut solution = Solution {
+        registry: Registry::new(&problem.fleet),
+        routes: vec![],
+        unassigned: Default::default(),
+        extras: problem.extras.clone(),
+    };
+
+    loop {
+        match read_line(&mut reader, &mut buffer) {
+            Ok(read) if read > 0 => {
+                let route: Vec<_> = buffer.split(":").collect();
+                assert_eq!(route.len(), 2);
+                let id_map =
+                    problem.jobs.all().fold(HashMap::<String, (Arc<Job>, Arc<Single>)>::new(), |mut acc, job| {
+                        let single = match job.as_ref() {
+                            Job::Single(single) => single.clone(),
+                            _ => panic!("Unexpected job type!"),
+                        };
+                        acc.insert(single.dimens.get_id().unwrap().to_string(), (job.clone(), single));
+                        acc
+                    });
+
+                let actor = solution.registry.next().next().unwrap();
+                let mut tour = Tour::new();
+                tour.set_start(create_start_activity(&actor));
+                create_end_activity(&actor).map(|end| tour.set_end(end));
+
+                route.last().unwrap().split_whitespace().for_each(|id| {
+                    let (job, single) = id_map.get(id).unwrap();
+                    let place = single.places.first().unwrap();
+                    tour.insert_last(Box::new(Activity {
+                        place: crate::models::solution::Place {
+                            location: place.location.unwrap(),
+                            duration: place.duration,
+                            time: place.times.first().unwrap().clone(),
+                        },
+                        schedule: Schedule::new(0.0, 0.0),
+                        job: Some(job.clone()),
+                    }));
+                });
+
+                solution.routes.push(Route { actor, tour });
+            }
+            Ok(_) => break,
+            Err(error) => {
+                if buffer.is_empty() {
+                    break;
+                } else {
+                    Err(error)?;
+                }
+            }
+        }
+    }
+
+    Ok(solution)
+}
+
+fn read_line<R: Read>(reader: &mut BufReader<R>, mut buffer: &mut String) -> Result<usize, String> {
+    buffer.clear();
+    reader.read_line(&mut buffer).map_err(|err| err.to_string())
+}
+
 mod solomon;
+
 pub use self::solomon::SolomonProblem;
 
 mod lilim;
+
 pub use self::lilim::LilimProblem;
-use crate::models::Problem;

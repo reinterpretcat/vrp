@@ -20,7 +20,7 @@ fn can_read_solomon_built_from_builder() {
         .parse_solomon()
         .unwrap();
 
-    assert_eq!(get_job_ids(&problem), vec!["c1", "c2", "c3"]);
+    assert_eq!(get_job_ids(&problem), vec!["1", "2", "3"]);
     assert_eq!(get_job_demands(&problem), vec![1, 2, 1]);
     assert_eq!(get_vehicle_capacity(&problem), 10);
     assert_eq!(get_job_time_windows(&problem), vec![(5., 1000.), (0., 1002.), (0., 1000.)]);
@@ -34,10 +34,7 @@ fn can_read_solomon_built_from_builder() {
 fn can_read_solomon_format_from_test_file() {
     let problem = create_c101_25_problem();
 
-    assert_eq!(
-        get_job_ids(&problem),
-        (1..26).map(|i| ["c".to_string(), i.to_string()].concat()).collect::<Vec<String>>()
-    );
+    assert_eq!(get_job_ids(&problem), (1..26).map(|i| i.to_string()).collect::<Vec<String>>());
     assert_eq!(
         get_job_demands(&problem),
         vec![10, 30, 10, 10, 10, 20, 20, 20, 10, 10, 10, 20, 30, 10, 40, 40, 20, 20, 10, 10, 20, 20, 10, 10, 40]

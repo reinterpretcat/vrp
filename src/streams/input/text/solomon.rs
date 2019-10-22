@@ -72,7 +72,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
         loop {
             match self.read_customer() {
                 Ok(customer) => {
-                    let mut dimens = create_dimens_with_id("c", customer.id);
+                    let mut dimens = create_dimens_with_id("", customer.id);
                     dimens.set_demand(Demand::<i32> { pickup: (0, 0), delivery: (customer.demand as i32, 0) });
                     jobs.push(Arc::new(Job::Single(Arc::new(Single {
                         places: vec![Place {
@@ -103,7 +103,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
 
 impl<R: Read> SolomonReader<R> {
     fn read_vehicle(&mut self) -> Result<VehicleLine, String> {
-        self.read_line()?;
+        read_line(&mut self.reader, &mut self.buffer)?;
         let (number, capacity) = self
             .buffer
             .split_whitespace()
@@ -115,7 +115,7 @@ impl<R: Read> SolomonReader<R> {
     }
 
     fn read_customer(&mut self) -> Result<JobLine, String> {
-        self.read_line()?;
+        read_line(&mut self.reader, &mut self.buffer)?;
         let (id, x, y, demand, start, end, service) = self
             .buffer
             .split_whitespace()
@@ -133,14 +133,9 @@ impl<R: Read> SolomonReader<R> {
 
     fn skip_lines(&mut self, count: usize) -> Result<(), String> {
         for i in 0..count {
-            self.read_line().map_err(|_| "Cannot skip lines")?;
+            read_line(&mut self.reader, &mut self.buffer).map_err(|_| "Cannot skip lines")?;
         }
 
         Ok(())
-    }
-
-    fn read_line(&mut self) -> Result<usize, String> {
-        self.buffer.clear();
-        self.reader.read_line(&mut self.buffer).map_err(|err| err.to_string())
     }
 }

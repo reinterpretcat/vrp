@@ -133,7 +133,7 @@ impl<R: Read> LilimReader<R> {
     }
 
     fn read_vehicle(&mut self) -> Result<VehicleLine, String> {
-        self.read_line()?;
+        read_line(&mut self.reader, &mut self.buffer)?;
         let (number, capacity, _ignored) = self
             .buffer
             .split_whitespace()
@@ -145,7 +145,7 @@ impl<R: Read> LilimReader<R> {
     }
 
     fn read_customer(&mut self) -> Result<JobLine, String> {
-        self.read_line()?;
+        read_line(&mut self.reader, &mut self.buffer)?;
         let (id, x, y, demand, start, end, service, _, relation) = self
             .buffer
             .split_whitespace()
@@ -160,10 +160,5 @@ impl<R: Read> LilimReader<R> {
             service: service as usize,
             relation: relation as usize,
         })
-    }
-
-    fn read_line(&mut self) -> Result<usize, String> {
-        self.buffer.clear();
-        self.reader.read_line(&mut self.buffer).map_err(|err| err.to_string())
     }
 }
