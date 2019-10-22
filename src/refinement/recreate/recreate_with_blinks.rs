@@ -116,14 +116,12 @@ impl JobSelector for RankedJobSelector {
 
 /// Selects best result.
 struct BlinkResultSelector {
-    ratio: f64
+    ratio: f64,
 }
 
 impl Default for BlinkResultSelector {
     fn default() -> Self {
-        Self {
-            ratio: 0.01
-        }
+        Self { ratio: 0.01 }
     }
 }
 
@@ -132,7 +130,7 @@ impl ResultSelector for BlinkResultSelector {
         let is_blink = ctx.random.uniform_real(0., 1.) < self.ratio;
         match (&left, is_blink) {
             (InsertionResult::Success(_), true) => left,
-            _ => InsertionResult::choose_best_result(left, right)
+            _ => InsertionResult::choose_best_result(left, right),
         }
     }
 }

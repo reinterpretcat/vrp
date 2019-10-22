@@ -43,7 +43,7 @@ impl Default for CompositeRecreate {
         Self::new(vec![
             (Box::new(RecreateWithBlinks::<i32>::default()), 100),
             (Box::new(RecreateWithCheapest::default()), 10),
-            (Box::new(RecreateWithGaps::default()), 1)
+            (Box::new(RecreateWithGaps::default()), 1),
         ])
     }
 }
