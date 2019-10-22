@@ -3,7 +3,7 @@ use crate::models::common::ObjectiveCost;
 use crate::models::{Problem, Solution};
 use crate::refinement::acceptance::{Acceptance, Greedy};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
-use crate::refinement::recreate::{Recreate, CompositeRecreate};
+use crate::refinement::recreate::{CompositeRecreate, Recreate};
 use crate::refinement::ruin::{CompositeRuin, Ruin};
 use crate::refinement::selection::{SelectBest, Selection};
 use crate::refinement::termination::{MaxGeneration, Termination};

@@ -15,9 +15,11 @@ impl ResultSelector for BestResultSelector {
 }
 
 mod recreate_with_cheapest;
+
 pub use self::recreate_with_cheapest::RecreateWithCheapest;
 
 mod recreate_with_gaps;
+
 pub use self::recreate_with_gaps::RecreateWithGaps;
 use std::slice::Iter;
 
@@ -29,7 +31,7 @@ pub struct CompositeRecreate {
 
 impl Default for CompositeRecreate {
     fn default() -> Self {
-        Self { recreates: vec![Box::new(RecreateWithCheapest::default())], weights: vec![1] }
+        Self::new(vec![(Box::new(RecreateWithCheapest::default()), 1000), (Box::new(RecreateWithGaps::default()), 1)])
     }
 }
 
