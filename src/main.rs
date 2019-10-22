@@ -133,11 +133,11 @@ fn main() {
     });
 
     match formats.get(problem_format) {
-        Some((problemReader, initReader, solutionWriter)) => {
-            let solution = match problemReader.0(input_file) {
+        Some((problem_reader, init_reader, solution_writer)) => {
+            let solution = match problem_reader.0(input_file) {
                 Ok(problem) => {
                     let problem = Arc::new(problem);
-                    let solution = init_solution.and_then(|file| initReader.0(file, problem.clone()));
+                    let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
                     SolverBuilder::new()
                         .with_init_solution(solution.and_then(|s| Some((problem.clone(), Arc::new(s)))))
                         .with_minimize_routes(minimize_routes)
@@ -152,7 +152,7 @@ fn main() {
             };
 
             match solution {
-                Some(solution) => solutionWriter.0(solution.0).unwrap(),
+                Some(solution) => solution_writer.0(solution.0).unwrap(),
                 None => println!("Cannot find any solution"),
             };
         }
