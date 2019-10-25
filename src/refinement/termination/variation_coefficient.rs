@@ -35,6 +35,12 @@ impl Termination for VariationCoefficient {
     }
 }
 
+impl Default for VariationCoefficient {
+    fn default() -> Self {
+        Self::new(200, 0.05)
+    }
+}
+
 impl VariationCoefficient {
     pub fn new(capacity: usize, threshold: f64) -> Self {
         let costs = vec![0.; capacity];

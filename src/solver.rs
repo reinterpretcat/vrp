@@ -6,7 +6,7 @@ use crate::refinement::objectives::{Objective, PenalizeUnassigned};
 use crate::refinement::recreate::{CompositeRecreate, Recreate};
 use crate::refinement::ruin::{CompositeRuin, Ruin};
 use crate::refinement::selection::{SelectBest, Selection};
-use crate::refinement::termination::{MaxGeneration, Termination};
+use crate::refinement::termination::{CompositeTermination, MaxGeneration, Termination};
 use crate::refinement::RefinementContext;
 use crate::utils::{compare_floats, DefaultRandom};
 use std::cmp::Ordering::{Greater, Less};
@@ -104,7 +104,7 @@ impl Default for Solver {
             Box::new(SelectBest::default()),
             Box::new(PenalizeUnassigned::default()),
             Box::new(Greedy::default()),
-            Box::new(MaxGeneration::default()),
+            Box::new(CompositeTermination::default()),
             Box::new(|msg| println!("{}", msg)),
         )
     }

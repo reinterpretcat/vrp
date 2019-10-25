@@ -48,7 +48,7 @@ impl Default for CompositeRecreate {
 }
 
 impl CompositeRecreate {
-    fn new(recreates: Vec<(Box<dyn Recreate>, usize)>) -> Self {
+    pub fn new(recreates: Vec<(Box<dyn Recreate>, usize)>) -> Self {
         let weights = recreates.iter().map(|(_, weight)| *weight).collect();
         Self { recreates: recreates.into_iter().map(|(recreate, _)| recreate).collect(), weights }
     }
