@@ -6,7 +6,7 @@ use crate::refinement::objectives::{Objective, PenalizeUnassigned};
 use crate::refinement::recreate::{CompositeRecreate, Recreate};
 use crate::refinement::ruin::{CompositeRuin, Ruin};
 use crate::refinement::selection::{SelectBest, Selection};
-use crate::refinement::termination::{CompositeTermination, MaxGeneration, Termination};
+use crate::refinement::termination::{CompositeTermination, MaxGeneration, Termination, VariationCoefficient};
 use crate::refinement::RefinementContext;
 use crate::utils::{compare_floats, DefaultRandom};
 use std::cmp::Ordering::{Greater, Less};
@@ -47,7 +47,11 @@ impl SolverBuilder {
 
         if let Some(limit) = self.max_generations {
             self.solver.logger.deref()(format!("configured to use generation limit: {}", limit));
-            self.solver.termination = Box::new(MaxGeneration::new(limit));
+            self.solver.termination = Box::new(CompositeTermination::new(vec![
+                Box::new(MaxGeneration::new(limit)),
+                // TODO allow to configure variation as well
+                Box::new(VariationCoefficient::new(limit, 0.02)),
+            ]));
         }
 
         if let Some(value) = self.minimize_routes {
