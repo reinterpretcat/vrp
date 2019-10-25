@@ -19,12 +19,19 @@ pub struct SolverBuilder {
     solver: Solver,
     minimize_routes: Option<bool>,
     max_generations: Option<usize>,
+    variation_coefficient: Option<(usize, f64)>,
     init_solution: Option<(Arc<Problem>, Arc<Solution>)>,
 }
 
 impl SolverBuilder {
     pub fn new() -> Self {
-        Self { solver: Solver::default(), minimize_routes: None, max_generations: None, init_solution: None }
+        Self {
+            solver: Solver::default(),
+            minimize_routes: None,
+            max_generations: None,
+            variation_coefficient: None,
+            init_solution: None,
+        }
     }
 
     pub fn with_minimize_routes(&mut self, value: bool) -> &mut Self {
@@ -37,22 +44,42 @@ impl SolverBuilder {
         self
     }
 
+    pub fn with_variation_coefficient(&mut self, params: Vec<f64>) -> &mut Self {
+        let sample =
+            params.get(0).and_then(|s| Some(s.round() as usize)).unwrap_or_else(|| panic!("Cannot get sample size"));
+        let threshold = *params.get(1).unwrap_or_else(|| panic!("Cannot get threshold"));
+        self.variation_coefficient = Some((sample, threshold));
+        self
+    }
+
     pub fn with_init_solution(&mut self, solution: Option<(Arc<Problem>, Arc<Solution>)>) -> &mut Self {
         self.init_solution = solution;
         self
     }
 
     pub fn build(&mut self) -> Solver {
-        // TODO support more parameters
-
-        if let Some(limit) = self.max_generations {
-            self.solver.logger.deref()(format!("configured to use generation limit: {}", limit));
-            self.solver.termination = Box::new(CompositeTermination::new(vec![
-                Box::new(MaxGeneration::new(limit)),
-                // TODO allow to configure variation as well
-                Box::new(VariationCoefficient::new(limit, 0.02)),
-            ]));
-        }
+        self.solver.termination =
+            Box::new(CompositeTermination::new(match (self.max_generations, self.variation_coefficient) {
+                (Some(limit), Some((sample, threshold))) => {
+                    self.solver.logger.deref()(format!(
+                        "configured to use max-generations {} and variation ({}, {}) limits",
+                        limit, sample, threshold
+                    ));
+                    vec![Box::new(MaxGeneration::new(limit)), Box::new(VariationCoefficient::new(sample, threshold))]
+                }
+                (None, Some((sample, threshold))) => {
+                    self.solver.logger.deref()(format!(
+                        "configured to use variation ({}, {}) limit",
+                        sample, threshold
+                    ));
+                    vec![Box::new(MaxGeneration::default()), Box::new(VariationCoefficient::new(sample, threshold))]
+                }
+                (Some(limit), None) => {
+                    self.solver.logger.deref()(format!("configured to use generation {} limit", limit));
+                    vec![Box::new(MaxGeneration::new(limit)), Box::new(VariationCoefficient::default())]
+                }
+                _ => vec![Box::new(MaxGeneration::default()), Box::new(VariationCoefficient::default())],
+            }));
 
         if let Some(value) = self.minimize_routes {
             self.solver.logger.deref()(format!("configured to use minimize routes: {}", value));

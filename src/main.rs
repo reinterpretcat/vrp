@@ -85,6 +85,15 @@ fn get_matches(formats: Vec<&str>) -> ArgMatches {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("variation-coefficient")
+                .help("Specifies variation-coefficient termination criteria in form \"sample_size,threshold\"")
+                .short("v")
+                .long("variation-coefficient")
+                .required(false)
+                .default_value("200,0.01")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("minimize-routes")
                 .help("Prefer less routes over total cost")
                 .short("r")
@@ -121,6 +130,17 @@ fn main() {
         eprintln!("Cannot get max-generations: '{}'", err.to_string());
         process::exit(1);
     });
+    let variation_coefficient = matches
+        .value_of("variation-coefficient")
+        .unwrap()
+        .split(",")
+        .map(|line| {
+            line.parse::<f64>().unwrap_or_else(|err| {
+                eprintln!("Cannot get variation-coefficient: '{}'", err.to_string());
+                process::exit(1);
+            })
+        })
+        .collect();
     let minimize_routes = matches.value_of("minimize-routes").unwrap().parse::<bool>().unwrap_or_else(|err| {
         eprintln!("Cannot get minimize-routes: '{}'", err.to_string());
         process::exit(1);
@@ -142,6 +162,7 @@ fn main() {
                         .with_init_solution(solution.and_then(|s| Some((problem.clone(), Arc::new(s)))))
                         .with_minimize_routes(minimize_routes)
                         .with_max_generations(max_generations)
+                        .with_variation_coefficient(variation_coefficient)
                         .build()
                         .solve(problem)
                 }
