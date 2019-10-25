@@ -25,7 +25,11 @@ impl Default for MaxGeneration {
 }
 
 impl Termination for MaxGeneration {
-    fn is_termination(&self, refinement_ctx: &RefinementContext, _: (&InsertionContext, ObjectiveCost, bool)) -> bool {
+    fn is_termination(
+        &mut self,
+        refinement_ctx: &RefinementContext,
+        _: (&InsertionContext, ObjectiveCost, bool),
+    ) -> bool {
         refinement_ctx.generation > self.limit
     }
 }

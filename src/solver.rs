@@ -132,7 +132,7 @@ impl Solver {
         }
     }
 
-    pub fn solve(&self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
+    pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
         let mut refinement_ctx = RefinementContext::new(problem.clone());
         let mut insertion_ctx = match &self.settings.init_insertion_ctx {
             Some(ctx) => ctx.deep_copy(),
