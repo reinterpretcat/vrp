@@ -20,3 +20,5 @@ pub use self::capacity::DemandDimension;
 
 mod traveling;
 pub use self::traveling::TravelModule;
+
+mod locking;

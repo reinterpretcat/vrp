@@ -1,6 +1,6 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::models::problem::{ActivityCost, Fleet, Job, Jobs, TransportCost};
-use crate::models::solution::{Registry, Route};
+use crate::models::solution::{Actor, Registry, Route};
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -40,12 +40,40 @@ pub struct Solution {
     pub extras: Arc<Extras>,
 }
 
+/// Specifies how jobs should be ordered in tour.
+pub enum LockOrder {
+    /// Jobs can be reshuffled in any order.
+    Any,
+    /// Jobs cannot be reshuffled, but new job can be inserted in between.
+    Sequence,
+    /// Jobs cannot be reshuffled and no jobs can be inserted in between.
+    Strict,
+}
+
+/// Specifies how other jobs can be inserted in tour.
+#[derive(Clone)]
+pub enum LockPosition {
+    /// No specific position.
+    Any,
+    /// First job follows departure.
+    Departure,
+    /// Last job is before arrival.
+    Arrival,
+    /// First and last jobs should be between departure and arrival.
+    Fixed,
+}
+
 /// Specifies lock details.
 pub struct LockDetail {
+    pub order: LockOrder,
+    pub position: LockPosition,
     pub jobs: Vec<Arc<Job>>,
 }
 
 /// Specifies jobs locked to specific actors.
 pub struct Lock {
+    /// Specifies condition when locked jobs can be assigned to specific actor
+    pub condition: Arc<dyn Fn(&Arc<Actor>) -> bool + Sync + Send>,
+    /// Specifies lock details.
     pub details: Vec<LockDetail>,
 }
