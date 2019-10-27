@@ -17,3 +17,6 @@ pub use self::capacity::CapacityConstraintModule;
 pub use self::capacity::CapacityDimension;
 pub use self::capacity::Demand;
 pub use self::capacity::DemandDimension;
+
+mod traveling;
+pub use self::traveling::TravelModule;

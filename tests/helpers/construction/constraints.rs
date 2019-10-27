@@ -1,4 +1,4 @@
-use crate::construction::constraints::{CapacityConstraintModule, ConstraintPipeline, Demand, TimingConstraintModule};
+use crate::construction::constraints::*;
 use crate::helpers::models::problem::{TestActivityCost, TestTransportCost};
 use std::sync::Arc;
 
@@ -10,29 +10,28 @@ pub fn create_simple_demand(size: i32) -> Demand<i32> {
     }
 }
 
-pub fn create_constraint_pipeline_with_timing() -> ConstraintPipeline {
+pub fn create_constraint_pipeline_with_module(module: Box<dyn ConstraintModule + Send + Sync>) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::new();
-    constraint.add_module(Box::new(TimingConstraintModule::new(
+    constraint.add_module(module);
+    constraint
+}
+
+pub fn create_constraint_pipeline_with_timing() -> ConstraintPipeline {
+    create_constraint_pipeline_with_module(Box::new(TimingConstraintModule::new(
         Arc::new(TestActivityCost::new()),
         Arc::new(TestTransportCost::new()),
         1,
-    )));
-    constraint
+    )))
 }
 
 pub fn create_constraint_pipeline_with_simple_capacity() -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::new();
-    constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
-    constraint
+    create_constraint_pipeline_with_module(Box::new(CapacityConstraintModule::<i32>::new(2)))
 }
 
 pub fn create_constraint_pipeline() -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::new();
-    constraint.add_module(Box::new(TimingConstraintModule::new(
+    create_constraint_pipeline_with_module(Box::new(TimingConstraintModule::new(
         Arc::new(TestActivityCost::new()),
         Arc::new(TestTransportCost::new()),
         1,
-    )));
-    constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
-    constraint
+    )))
 }
