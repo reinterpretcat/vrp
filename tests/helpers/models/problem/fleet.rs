@@ -49,17 +49,7 @@ pub fn get_vehicle_id(vehicle: &Vehicle) -> &String {
 }
 
 pub fn get_test_actor_from_fleet(fleet: &Fleet, vehicle_id: &str) -> Arc<Actor> {
-    let vehicle = fleet.vehicles.iter().find(|v| get_vehicle_id(v) == vehicle_id).unwrap();
-    let detail = vehicle.details.iter().next().unwrap();
-    Arc::new(Actor {
-        vehicle: vehicle.clone(),
-        driver: fleet.drivers.iter().next().unwrap().clone(),
-        detail: ActorDetail {
-            start: detail.start,
-            end: detail.end,
-            time: detail.time.as_ref().unwrap_or(&DEFAULT_ACTOR_TIME_WINDOW).clone(),
-        },
-    })
+    fleet.actors.iter().filter(|actor| get_vehicle_id(&actor.vehicle) == vehicle_id).next().unwrap().clone()
 }
 
 pub struct VehicleBuilder {

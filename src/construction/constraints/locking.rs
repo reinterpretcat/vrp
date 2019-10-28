@@ -105,21 +105,8 @@ impl HardActivityConstraint for LockingHardActivityConstraint {
     ) -> Option<ActivityConstraintViolation> {
         let actor = &route_ctx.route.read().unwrap().actor;
         if let Some(rules) = self.rules.get(actor) {
-            if !rules.iter().all(|rule| match rule.position {
-                LockPosition::Any => {
-                    // TODO incorrect
-                    let has_prev = activity_ctx.prev.retrieve_job().map_or(false, |job| rule.index.first == job);
-                    let has_next =
-                        activity_ctx.next.and_then(|n| n.retrieve_job()).map_or(false, |job| rule.index.last == job);
-
-                    has_prev && has_next
-                }
-                LockPosition::Departure => activity_ctx.prev.retrieve_job().is_none(),
-                LockPosition::Arrival => activity_ctx.next.map_or(false, |n| n.retrieve_job().is_none()),
-                LockPosition::Fixed => {
-                    activity_ctx.prev.retrieve_job().is_none()
-                        && activity_ctx.next.map_or(false, |n| n.retrieve_job().is_none())
-                }
+            if !rules.iter().all(|rule| {
+                rule.can_insert(&activity_ctx.prev.retrieve_job(), &activity_ctx.next.and_then(|n| n.retrieve_job()))
             }) {
                 return Some(ActivityConstraintViolation { code: self.code, stopped: false });
             }
@@ -143,4 +130,32 @@ struct Rule {
     position: LockPosition,
     /// Stores jobs.
     index: JobIndex,
+}
+
+impl Rule {
+    fn contains(&self, job: &Arc<Job>) -> bool {
+        self.index.jobs.contains(job)
+    }
+
+    /// Checks whether new job can be inserted between given according to rule's jobs.
+    pub fn can_insert(&self, prev: &Option<Arc<Job>>, next: &Option<Arc<Job>>) -> bool {
+        match self.position {
+            LockPosition::Any => self.can_insert_after(&prev, &next) || self.can_insert_before(&prev, &next),
+            LockPosition::Departure => self.can_insert_after(&prev, &next),
+            LockPosition::Arrival => self.can_insert_before(&prev, &next),
+            LockPosition::Fixed => false,
+        }
+    }
+
+    /// Checks whether new job can be inserted between given after rule's jobs.
+    fn can_insert_after(&self, prev: &Option<Arc<Job>>, next: &Option<Arc<Job>>) -> bool {
+        prev.as_ref().map_or(false, |p| !self.contains(p) || p.clone() == self.index.last)
+            && next.as_ref().map_or(true, |n| !self.contains(n))
+    }
+
+    /// Checks whether new job can be inserted between given before rule's jobs.
+    fn can_insert_before(&self, prev: &Option<Arc<Job>>, next: &Option<Arc<Job>>) -> bool {
+        next.as_ref().map_or(false, |n| !self.contains(n) || n.clone() == self.index.first)
+            && prev.as_ref().map_or(true, |p| !self.contains(p))
+    }
 }
