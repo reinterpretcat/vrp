@@ -1,6 +1,10 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/constraints/locking_test.rs"]
+mod locking_test;
+
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use crate::models::problem::{Actor, Job};
+use crate::models::problem::{Actor, Fleet, Job};
 use crate::models::{Lock, LockOrder, LockPosition};
 use std::collections::{HashMap, HashSet};
 use std::slice::Iter;
@@ -31,7 +35,7 @@ impl ConstraintModule for LockingModule {
 }
 
 impl LockingModule {
-    pub fn new(code: i32, locks: Vec<Arc<Lock>>) -> Self {
+    pub fn new(fleet: &Fleet, locks: Vec<Arc<Lock>>, code: i32) -> Self {
         let mut rules = vec![];
         let mut conditions = HashMap::new();
         locks.iter().for_each(|lock| {
@@ -41,7 +45,7 @@ impl LockingModule {
                 match detail.order {
                     LockOrder::Strict => {
                         assert!(!detail.jobs.is_empty());
-                        rules.push(Rule {
+                        rules.push(Arc::new(Rule {
                             condition: condition.clone(),
                             position: detail.position.clone(),
                             index: JobIndex {
@@ -49,7 +53,7 @@ impl LockingModule {
                                 last: detail.jobs.last().unwrap().clone(),
                                 jobs: detail.jobs.iter().cloned().collect(),
                             },
-                        })
+                        }));
                     }
                     _ => {}
                 }
@@ -60,11 +64,16 @@ impl LockingModule {
             });
         });
 
+        let mut actor_rules = HashMap::new();
+        fleet.actors.iter().for_each(|actor| {
+            actor_rules.insert(actor.clone(), rules.iter().filter(|rule| (rule.condition)(actor)).cloned().collect());
+        });
+
         Self {
             state_keys: vec![],
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(LockingHardRouteConstraint { code, conditions })),
-                ConstraintVariant::HardActivity(Arc::new(LockingHardActivityConstraint { code, rules })),
+                ConstraintVariant::HardActivity(Arc::new(LockingHardActivityConstraint { code, rules: actor_rules })),
             ],
         }
     }
@@ -89,7 +98,7 @@ impl HardRouteConstraint for LockingHardRouteConstraint {
 
 struct LockingHardActivityConstraint {
     code: i32,
-    rules: Vec<Rule>,
+    rules: HashMap<Arc<Actor>, Vec<Arc<Rule>>>,
 }
 
 impl HardActivityConstraint for LockingHardActivityConstraint {
@@ -98,8 +107,28 @@ impl HardActivityConstraint for LockingHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        // TODO move actors to problem domain inside fleet?
-        unimplemented!()
+        let actor = &route_ctx.route.read().unwrap().actor;
+        if let Some(rules) = self.rules.get(actor) {
+            if !rules.iter().all(|rule| match rule.position {
+                LockPosition::Any => {
+                    let has_prev = activity_ctx.prev.retrieve_job().map_or(false, |job| rule.index.first == job);
+                    let has_next =
+                        activity_ctx.next.and_then(|n| n.retrieve_job()).map_or(false, |job| rule.index.last == job);
+
+                    has_prev && has_next
+                }
+                LockPosition::Departure => activity_ctx.prev.retrieve_job().is_none(),
+                LockPosition::Arrival => activity_ctx.next.map_or(false, |n| n.retrieve_job().is_none()),
+                LockPosition::Fixed => {
+                    activity_ctx.prev.retrieve_job().is_none()
+                        && activity_ctx.next.map_or(false, |n| n.retrieve_job().is_none())
+                }
+            }) {
+                return Some(ActivityConstraintViolation { code: self.code, stopped: false });
+            }
+        }
+
+        None
     }
 }
 

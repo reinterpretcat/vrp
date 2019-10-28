@@ -91,7 +91,7 @@ pub struct Fleet {
     pub drivers: Vec<Arc<Driver>>,
     pub vehicles: Vec<Arc<Vehicle>>,
     pub profiles: Vec<Profile>,
-    pub all: Vec<Arc<Actor>>,
+    pub actors: Vec<Arc<Actor>>,
 }
 
 impl Fleet {
@@ -108,10 +108,10 @@ impl Fleet {
         let drivers: Vec<Arc<Driver>> = drivers.into_iter().map(|d| Arc::new(d)).collect();
         let vehicles: Vec<Arc<Vehicle>> = vehicles.into_iter().map(|v| Arc::new(v)).collect();
 
-        let mut all: Vec<Arc<Actor>> = Default::default();
+        let mut actors: Vec<Arc<Actor>> = Default::default();
         vehicles.iter().for_each(|vehicle| {
             vehicle.details.iter().for_each(|detail| {
-                all.push(Arc::new(Actor {
+                actors.push(Arc::new(Actor {
                     vehicle: vehicle.clone(),
                     driver: drivers.first().unwrap().clone(),
                     detail: ActorDetail {
@@ -123,6 +123,6 @@ impl Fleet {
             });
         });
 
-        Fleet { drivers, vehicles, all, profiles }
+        Fleet { drivers, vehicles, actors, profiles }
     }
 }

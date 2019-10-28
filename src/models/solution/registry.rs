@@ -16,11 +16,11 @@ pub struct Registry {
 impl Registry {
     pub fn new(fleet: &Fleet) -> Registry {
         Registry {
-            available: fleet.all.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
+            available: fleet.actors.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
                 acc.entry(actor.detail.clone()).or_insert(HashSet::new()).insert(actor.clone());
                 acc
             }),
-            all: fleet.all.iter().cloned().collect(),
+            all: fleet.actors.iter().cloned().collect(),
         }
     }
 
