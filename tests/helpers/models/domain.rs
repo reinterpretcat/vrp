@@ -1,6 +1,6 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::states::{InsertionContext, InsertionProgress, SolutionContext};
-use crate::helpers::models::problem::{test_driver, test_vehicle, TestActivityCost, TestTransportCost, test_fleet};
+use crate::helpers::models::problem::*;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::solution::Registry;

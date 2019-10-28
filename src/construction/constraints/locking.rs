@@ -17,13 +17,9 @@ pub struct LockingModule {
 }
 
 impl ConstraintModule for LockingModule {
-    fn accept_route_state(&self, ctx: &mut RouteContext) {
-        unimplemented!()
-    }
+    fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
-    fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        unimplemented!()
-    }
+    fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
 
     fn state_keys(&self) -> Iter<i32> {
         self.state_keys.iter()
@@ -111,6 +107,7 @@ impl HardActivityConstraint for LockingHardActivityConstraint {
         if let Some(rules) = self.rules.get(actor) {
             if !rules.iter().all(|rule| match rule.position {
                 LockPosition::Any => {
+                    // TODO incorrect
                     let has_prev = activity_ctx.prev.retrieve_job().map_or(false, |job| rule.index.first == job);
                     let has_next =
                         activity_ctx.next.and_then(|n| n.retrieve_job()).map_or(false, |job| rule.index.last == job);

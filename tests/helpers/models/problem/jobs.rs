@@ -39,6 +39,13 @@ pub fn test_place_with_location(location: Option<Location>) -> Place {
     Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_WINDOW] }
 }
 
+pub fn test_single_job_with_id(id: &str) -> Job {
+    let mut single =
+        Single { places: vec![test_place_with_location(Some(DEFAULT_JOB_LOCATION))], dimens: Default::default() };
+    single.dimens.set_id(id);
+    Job::Single(Arc::new(single))
+}
+
 pub fn test_single_job_with_location(location: Option<Location>) -> Job {
     Job::Single(Arc::new(Single { places: vec![test_place_with_location(location)], dimens: Default::default() }))
 }

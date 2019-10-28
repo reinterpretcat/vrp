@@ -77,3 +77,15 @@ pub struct Lock {
     /// Specifies lock details.
     pub details: Vec<LockDetail>,
 }
+
+impl LockDetail {
+    pub fn new(order: LockOrder, position: LockPosition, jobs: Vec<Arc<Job>>) -> Self {
+        Self { order, position, jobs }
+    }
+}
+
+impl Lock {
+    pub fn new(condition: Arc<dyn Fn(&Arc<Actor>) -> bool + Sync + Send>, details: Vec<LockDetail>) -> Self {
+        Self { condition, details }
+    }
+}
