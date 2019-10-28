@@ -3,10 +3,8 @@ pub use self::route::Activity;
 pub use self::route::Place;
 pub use self::route::Route;
 
-mod actors;
-pub use self::actors::Actor;
-pub use self::actors::Detail;
-pub use self::actors::Registry;
+mod registry;
+pub use self::registry::Registry;
 
 mod tour;
 pub use self::tour::Tour;

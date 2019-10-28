@@ -1,7 +1,6 @@
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use crate::models::problem::Job;
-use crate::models::solution::Actor;
+use crate::models::problem::{Actor, Job};
 use crate::models::{Lock, LockOrder, LockPosition};
 use std::collections::{HashMap, HashSet};
 use std::slice::Iter;

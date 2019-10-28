@@ -1,8 +1,8 @@
 use crate::construction::states::{create_end_activity, create_start_activity};
 use crate::helpers::models::problem::*;
 use crate::models::common::{Duration, Location, Schedule};
-use crate::models::problem::{Fleet, Job};
-use crate::models::solution::{Activity, Actor, Place, Route, Tour, TourActivity};
+use crate::models::problem::{Actor, Fleet, Job};
+use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };

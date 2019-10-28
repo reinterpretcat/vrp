@@ -1,8 +1,7 @@
 use crate::construction::constraints::CapacityDimension;
 use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::models::common::{Dimensions, IdDimension, Location, Profile, TimeWindow};
-use crate::models::problem::{Costs, Driver, Fleet, Vehicle, VehicleDetail};
-use crate::models::solution::{Actor, Detail};
+use crate::models::problem::*;
 use std::sync::Arc;
 
 pub const DEFAULT_ACTOR_LOCATION: Location = 0;
@@ -51,7 +50,7 @@ pub fn get_test_actor_from_fleet(fleet: &Fleet, vehicle_id: &str) -> Arc<Actor> 
     Arc::new(Actor {
         vehicle: vehicle.clone(),
         driver: fleet.drivers.iter().next().unwrap().clone(),
-        detail: Detail {
+        detail: ActorDetail {
             start: detail.start,
             end: detail.end,
             time: detail.time.as_ref().unwrap_or(&DEFAULT_ACTOR_TIME_WINDOW).clone(),

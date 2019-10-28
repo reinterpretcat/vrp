@@ -1,7 +1,7 @@
 use crate::helpers::models::problem::{test_driver, test_vehicle_detail, VehicleBuilder};
 use crate::models::common::TimeWindow;
-use crate::models::problem::{Fleet, VehicleDetail};
-use crate::models::solution::{Actor, Registry};
+use crate::models::problem::{Actor, Fleet, VehicleDetail};
+use crate::models::solution::Registry;
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
 

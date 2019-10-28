@@ -1,6 +1,6 @@
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
-use crate::models::problem::{Job, Multi};
-use crate::models::solution::{Actor, Tour};
+use crate::models::problem::{Actor, Job, Multi};
+use crate::models::solution::Tour;
 use crate::utils::compare_shared;
 use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};

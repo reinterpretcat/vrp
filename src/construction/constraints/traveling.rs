@@ -5,8 +5,7 @@ mod traveling_test;
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::TransportCost;
-use crate::models::solution::Actor;
+use crate::models::problem::{Actor, TransportCost};
 use std::slice::Iter;
 use std::sync::Arc;
 

@@ -61,24 +61,68 @@ pub struct Vehicle {
     pub details: Vec<VehicleDetail>,
 }
 
+/// Represents actor detail.
+#[derive(Clone)]
+pub struct ActorDetail {
+    /// Location where actor starts.
+    pub start: Option<Location>,
+
+    /// Location where actor ends.
+    pub end: Option<Location>,
+
+    /// Time windows when actor can work.
+    pub time: TimeWindow,
+}
+
+/// Represents an actor.
+pub struct Actor {
+    /// A vehicle associated within actor.
+    pub vehicle: Arc<Vehicle>,
+
+    /// A driver associated within actor.
+    pub driver: Arc<Driver>,
+
+    /// Specifies actor detail.
+    pub detail: ActorDetail,
+}
+
 /// Represents available resources to serve jobs.
 pub struct Fleet {
     pub drivers: Vec<Arc<Driver>>,
     pub vehicles: Vec<Arc<Vehicle>>,
     pub profiles: Vec<Profile>,
+    pub all: Vec<Arc<Actor>>,
 }
 
 impl Fleet {
     /// Creates a new fleet.
     pub fn new(drivers: Vec<Driver>, vehicles: Vec<Vehicle>) -> Fleet {
+        // TODO we should also consider multiple drivers to support smart vehicle-driver assignment.
+        assert_eq!(drivers.len(), 1);
+        assert!(vehicles.len() > 0);
+
         let profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile.clone()).collect();
         let mut profiles: Vec<Profile> = profiles.into_iter().map(|p| p).collect();
         profiles.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Less));
 
-        Fleet {
-            drivers: drivers.into_iter().map(|d| Arc::new(d)).collect(),
-            vehicles: vehicles.into_iter().map(|v| Arc::new(v)).collect(),
-            profiles,
-        }
+        let drivers: Vec<Arc<Driver>> = drivers.into_iter().map(|d| Arc::new(d)).collect();
+        let vehicles: Vec<Arc<Vehicle>> = vehicles.into_iter().map(|v| Arc::new(v)).collect();
+
+        let mut all: Vec<Arc<Actor>> = Default::default();
+        vehicles.iter().for_each(|vehicle| {
+            vehicle.details.iter().for_each(|detail| {
+                all.push(Arc::new(Actor {
+                    vehicle: vehicle.clone(),
+                    driver: drivers.first().unwrap().clone(),
+                    detail: ActorDetail {
+                        start: detail.start,
+                        end: detail.end,
+                        time: detail.time.clone().unwrap_or(TimeWindow { start: 0.0, end: std::f64::MAX }),
+                    },
+                }));
+            });
+        });
+
+        Fleet { drivers, vehicles, all, profiles }
     }
 }

@@ -1,6 +1,6 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::models::problem::{ActivityCost, Fleet, Job, Jobs, TransportCost};
-use crate::models::solution::{Actor, Registry, Route};
+use crate::models::problem::{ActivityCost, Actor, Fleet, Job, Jobs, TransportCost};
+use crate::models::solution::{Registry, Route};
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -6,8 +6,8 @@ use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
 use crate::construction::states::{InsertionContext, RouteContext};
-use crate::models::problem::Job;
-use crate::models::solution::{Actor, Tour};
+use crate::models::problem::{Actor, Job};
+use crate::models::solution::Tour;
 use crate::models::Problem;
 use crate::refinement::ruin::Ruin;
 use crate::utils::Random;

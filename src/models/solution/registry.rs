@@ -2,69 +2,26 @@
 #[path = "../../../tests/unit/models/solution/actor_test.rs"]
 mod actor_test;
 
-use crate::models::common::{Location, TimeWindow};
-use crate::models::problem::{Driver, Fleet, Vehicle};
+use crate::models::problem::{Actor, ActorDetail, Fleet};
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-/// Represents actor detail.
-#[derive(Clone)]
-pub struct Detail {
-    /// Location where actor starts.
-    pub start: Option<Location>,
-
-    /// Location where actor ends.
-    pub end: Option<Location>,
-
-    /// Time windows when actor can work.
-    pub time: TimeWindow,
-}
-
-/// Represents an actor.
-pub struct Actor {
-    /// A vehicle associated within actor.
-    pub vehicle: Arc<Vehicle>,
-
-    /// A driver associated within actor.
-    pub driver: Arc<Driver>,
-
-    /// Specifies actor detail.
-    pub detail: Detail,
-}
-
 /// Specifies an entity responsible for providing actors and keeping track of their usage.
 pub struct Registry {
-    available: HashMap<Detail, HashSet<Arc<Actor>>>,
+    available: HashMap<ActorDetail, HashSet<Arc<Actor>>>,
     all: Vec<Arc<Actor>>,
 }
 
 impl Registry {
     pub fn new(fleet: &Fleet) -> Registry {
-        // TODO we should also consider multiple drivers to support smart vehicle-driver assignment.
-        assert_eq!(fleet.drivers.len(), 1);
-        assert!(fleet.vehicles.len() > 0);
-
-        let mut available: HashMap<Detail, HashSet<Arc<Actor>>> = Default::default();
-        let mut all: Vec<Arc<Actor>> = Default::default();
-
-        for (_, vehicle) in fleet.vehicles.iter().enumerate() {
-            for (_, detail) in vehicle.details.iter().enumerate() {
-                let actor = Arc::new(Actor {
-                    vehicle: vehicle.clone(),
-                    driver: fleet.drivers.first().unwrap().clone(),
-                    detail: Detail {
-                        start: detail.start,
-                        end: detail.end,
-                        time: detail.time.clone().unwrap_or(TimeWindow { start: 0.0, end: std::f64::MAX }),
-                    },
-                });
-                available.entry(actor.detail.clone()).or_insert(HashSet::new()).insert(actor.clone());
-                all.push(actor);
-            }
+        Registry {
+            available: fleet.all.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
+                acc.entry(actor.detail.clone()).or_insert(HashSet::new()).insert(actor.clone());
+                acc
+            }),
+            all: fleet.all.iter().cloned().collect(),
         }
-
-        Registry { available, all }
     }
 
     /// Removes actor from the list of available actors.
@@ -98,7 +55,7 @@ impl Registry {
     }
 }
 
-impl PartialEq for Detail {
+impl PartialEq for ActorDetail {
     fn eq(&self, other: &Self) -> bool {
         other.start == self.start
             && other.end == self.end
@@ -107,9 +64,9 @@ impl PartialEq for Detail {
     }
 }
 
-impl Eq for Detail {}
+impl Eq for ActorDetail {}
 
-impl Hash for Detail {
+impl Hash for ActorDetail {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.start.hash(state);
         self.end.hash(state);
