@@ -1,6 +1,6 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::states::{InsertionContext, InsertionProgress, SolutionContext};
-use crate::helpers::models::problem::{test_driver, test_vehicle, TestActivityCost, TestTransportCost};
+use crate::helpers::models::problem::{test_driver, test_vehicle, TestActivityCost, TestTransportCost, test_fleet};
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
 use crate::models::solution::Registry;
@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> Arc<Problem> {
     let transport = Arc::new(TestTransportCost::new());
-    let fleet = Arc::new(Fleet::new(vec![], vec![]));
+    let fleet = Arc::new(test_fleet());
     let jobs = Arc::new(Jobs::new(fleet.borrow(), vec![], transport.as_ref()));
     Arc::new(Problem {
         fleet,

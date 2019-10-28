@@ -9,10 +9,9 @@ fn create_profile_aware_transport_cost() -> ProfileAwareTransportCost {
 
 #[test]
 fn all_returns_all_jobs() {
-    let fleet = Fleet::new(Default::default(), Default::default());
     let jobs = vec![Arc::new(test_single_job()), Arc::new(test_single_job())];
 
-    assert_eq!(Jobs::new(&fleet, jobs, &TestTransportCost::new()).all().count(), 2)
+    assert_eq!(Jobs::new(&test_fleet(), jobs, &TestTransportCost::new()).all().count(), 2)
 }
 
 parameterized_test! {calculates_proper_distance_between_single_jobs, (left, right, expected), {
@@ -138,10 +137,9 @@ returns_proper_job_ranks! {
 
 #[test]
 fn can_use_multi_job_bind_and_roots() {
-    let fleet = Fleet::new(Default::default(), vec![test_vehicle(0)]);
     let job = Arc::new(test_multi_job_with_locations(vec![vec![Some(0)], vec![Some(1)]]));
     let jobs = vec![job.clone()];
-    let jobs = Jobs::new(&fleet, jobs, &TestTransportCost::new());
+    let jobs = Jobs::new(&test_fleet(), jobs, &TestTransportCost::new());
 
     let job = if let Job::Multi(multi) = job.as_ref() {
         Arc::new(Job::Multi(Multi::roots(&multi.jobs.first().unwrap()).unwrap()))

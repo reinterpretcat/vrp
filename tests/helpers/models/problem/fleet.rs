@@ -33,6 +33,10 @@ pub fn test_vehicle(profile: i32) -> Vehicle {
     Vehicle { profile, costs: test_costs(), dimens: Default::default(), details: vec![test_vehicle_detail()] }
 }
 
+pub fn test_fleet() -> Fleet {
+    Fleet::new(vec![test_driver()], vec![test_vehicle(0)])
+}
+
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
     let mut dimens = Dimensions::new();
     dimens.set_id(id);
