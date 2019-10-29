@@ -1,5 +1,5 @@
-use crate::construction::constraints::locking::LockingModule;
-use crate::construction::constraints::ActivityConstraintViolation;
+use crate::construction::constraints::locking::StrictLockingModule;
+use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
 use crate::construction::states::{ActivityContext, RouteContext, RouteState};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
 use crate::helpers::models::problem::*;
@@ -8,7 +8,7 @@ use crate::models::problem::{Fleet, Job};
 use crate::models::solution::TourActivity;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
 use std::sync::{Arc, RwLock};
-/*
+
 parameterized_test! {can_lock_jobs_to_actor, (used, locked, expected), {
     can_lock_jobs_to_actor_impl(used.to_string(), locked.to_string(), expected);
 }}
@@ -29,13 +29,12 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Ro
         route: Arc::new(RwLock::new(create_route_with_activities(&fleet, used.as_str(), vec![]))),
         state: Arc::new(RwLock::new(RouteState::new())),
     };
-    let pipeline = create_constraint_pipeline_with_module(Box::new(LockingModule::new(&fleet, locks, 1)));
+    let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, locks, 1)));
 
     let result = pipeline.evaluate_hard_route(&route_ctx, &job);
 
     assert_eq_option!(result, expected);
 }
-*/
 
 fn stop() -> Option<ActivityConstraintViolation> {
     Some(ActivityConstraintViolation { code: 1, stopped: false })
@@ -55,7 +54,6 @@ parameterized_test! {can_lock_jobs_to_position_in_tour, (position, activities_fu
 }}
 
 can_lock_jobs_to_position_in_tour! {
-/*
     case01_departure: (
         LockPosition::Departure,
         |s1: Arc<Job>, _: Arc<Job>| (test_tour_activity_without_job(), test_tour_activity_with_job(s1)),
@@ -105,7 +103,7 @@ can_lock_jobs_to_position_in_tour! {
         LockPosition::Arrival,
         |s1: Arc<Job>, _: Arc<Job>| (test_tour_activity_without_job(), test_tour_activity_with_job(s1)),
         None),
-*/
+
   case13_any: (
         LockPosition::Any,
         |s1: Arc<Job>, s2: Arc<Job>| (test_tour_activity_with_job(s1), test_tour_activity_with_job(s2)),
@@ -159,7 +157,7 @@ fn can_lock_jobs_to_position_in_tour_impl(
     let fleet = Fleet::new(vec![test_driver()], vec![test_vehicle_with_id("v1")]);
     let locks =
         vec![Arc::new(Lock::new(Arc::new(|_| true), vec![LockDetail::new(LockOrder::Strict, lock_position, jobs)]))];
-    let pipeline = create_constraint_pipeline_with_module(Box::new(LockingModule::new(&fleet, locks, 1)));
+    let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, locks, 1)));
 
     let result = pipeline.evaluate_hard_activity(
         &RouteContext {

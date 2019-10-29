@@ -11,12 +11,12 @@ use std::slice::Iter;
 use std::sync::Arc;
 
 /// Allows to lock specific actors within specific jobs using different rules.
-pub struct LockingModule {
+pub struct StrictLockingModule {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
 }
 
-impl ConstraintModule for LockingModule {
+impl ConstraintModule for StrictLockingModule {
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
@@ -30,7 +30,7 @@ impl ConstraintModule for LockingModule {
     }
 }
 
-impl LockingModule {
+impl StrictLockingModule {
     pub fn new(fleet: &Fleet, locks: Vec<Arc<Lock>>, code: i32) -> Self {
         let mut rules = vec![];
         let mut conditions = HashMap::new();
@@ -68,19 +68,22 @@ impl LockingModule {
         Self {
             state_keys: vec![],
             constraints: vec![
-                ConstraintVariant::HardRoute(Arc::new(LockingHardRouteConstraint { code, conditions })),
-                ConstraintVariant::HardActivity(Arc::new(LockingHardActivityConstraint { code, rules: actor_rules })),
+                ConstraintVariant::HardRoute(Arc::new(StrictLockingHardRouteConstraint { code, conditions })),
+                ConstraintVariant::HardActivity(Arc::new(StrictLockingHardActivityConstraint {
+                    code,
+                    rules: actor_rules,
+                })),
             ],
         }
     }
 }
 
-struct LockingHardRouteConstraint {
+struct StrictLockingHardRouteConstraint {
     code: i32,
     conditions: HashMap<Arc<Job>, Arc<dyn Fn(&Arc<Actor>) -> bool + Sync + Send>>,
 }
 
-impl HardRouteConstraint for LockingHardRouteConstraint {
+impl HardRouteConstraint for StrictLockingHardRouteConstraint {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         if let Some(condition) = self.conditions.get(job) {
             if !(condition)(&ctx.route.read().unwrap().actor) {
@@ -92,12 +95,12 @@ impl HardRouteConstraint for LockingHardRouteConstraint {
     }
 }
 
-struct LockingHardActivityConstraint {
+struct StrictLockingHardActivityConstraint {
     code: i32,
     rules: HashMap<Arc<Actor>, Vec<Arc<Rule>>>,
 }
 
-impl HardActivityConstraint for LockingHardActivityConstraint {
+impl HardActivityConstraint for StrictLockingHardActivityConstraint {
     fn evaluate_activity(
         &self,
         route_ctx: &RouteContext,
