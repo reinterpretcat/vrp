@@ -1,4 +1,3 @@
-
 mod parser {
     extern crate serde_json;
     use serde::Deserialize;

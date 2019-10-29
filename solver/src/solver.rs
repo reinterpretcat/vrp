@@ -1,18 +1,18 @@
-use crate::construction::states::InsertionContext;
-use crate::models::common::ObjectiveCost;
-use crate::models::{Problem, Solution};
-use crate::refinement::acceptance::{Acceptance, Greedy};
-use crate::refinement::objectives::{Objective, PenalizeUnassigned};
-use crate::refinement::recreate::{CompositeRecreate, Recreate};
-use crate::refinement::ruin::{CompositeRuin, Ruin};
-use crate::refinement::selection::{SelectBest, Selection};
-use crate::refinement::termination::{CompositeTermination, MaxGeneration, Termination, VariationCoefficient};
-use crate::refinement::RefinementContext;
-use crate::utils::{compare_floats, DefaultRandom};
 use std::cmp::Ordering::{Greater, Less};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Instant;
+use vrp_core::construction::states::InsertionContext;
+use vrp_core::models::common::ObjectiveCost;
+use vrp_core::models::{Problem, Solution};
+use vrp_core::refinement::acceptance::{Acceptance, Greedy};
+use vrp_core::refinement::objectives::{Objective, PenalizeUnassigned};
+use vrp_core::refinement::recreate::{CompositeRecreate, Recreate};
+use vrp_core::refinement::ruin::{CompositeRuin, Ruin};
+use vrp_core::refinement::selection::{SelectBest, Selection};
+use vrp_core::refinement::termination::{CompositeTermination, MaxGeneration, Termination, VariationCoefficient};
+use vrp_core::refinement::RefinementContext;
+use vrp_core::utils::{compare_floats, DefaultRandom};
 
 /// Provides configurable way to build solver.
 pub struct SolverBuilder {

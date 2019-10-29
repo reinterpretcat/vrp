@@ -1,0 +1,9 @@
+[package]
+name = "vrp_solver"
+version = "0.1.0"
+authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+vrp_core = { path = "../core" }
+clap = "2.33.0"

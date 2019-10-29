@@ -1,8 +1,3 @@
-#[cfg(test)]
-#[path = "../tests/helpers/mod.rs"]
-#[macro_use]
-pub mod helpers;
-
 extern crate clap;
 
 use std::collections::HashMap;
@@ -13,21 +8,14 @@ use std::process;
 
 use clap::{App, Arg, ArgMatches};
 
-use crate::models::{Problem, Solution};
-use crate::streams::input::text::{read_init_solution, LilimProblem, SolomonProblem};
-use crate::streams::output::text::{write_lilim_solution, write_solomon_solution};
+use vrp_core::models::{Problem, Solution};
+use vrp_core::streams::input::text::{read_init_solution, LilimProblem, SolomonProblem};
+use vrp_core::streams::output::text::{write_lilim_solution, write_solomon_solution};
 
+mod solver;
 pub use self::solver::Solver;
 use crate::solver::SolverBuilder;
 use std::sync::Arc;
-
-mod construction;
-mod models;
-mod refinement;
-mod streams;
-mod utils;
-
-mod solver;
 
 struct ProblemReader(Box<dyn Fn(File) -> Result<Problem, String>>);
 
