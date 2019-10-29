@@ -22,3 +22,6 @@ mod traveling;
 pub use self::traveling::TravelModule;
 
 mod locking;
+pub use self::locking::StrictLockingModule;
+
+mod conditional;
