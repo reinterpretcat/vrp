@@ -9,7 +9,7 @@ use std::sync::Arc;
 #[test]
 pub fn can_read_init_solution() {
     let problem = Arc::new(create_c101_100_problem());
-    let file = get_test_resource("data/solomon/C101.100.best.txt").unwrap();
+    let file = get_test_resource("../data/solomon/C101.100.best.txt").unwrap();
 
     let result = read_init_solution(BufReader::new(file), problem.clone());
 
