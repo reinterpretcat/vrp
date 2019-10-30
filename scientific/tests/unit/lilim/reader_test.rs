@@ -1,5 +1,4 @@
-use crate::helpers::models::problem::{get_job_ids, get_vehicle_capacity};
-use crate::helpers::streams::input::create_lc101_problem;
+use crate::helpers::{create_lc101_problem, get_job_ids, get_vehicle_capacity};
 
 #[test]
 fn can_read_lilim_format_from_test_file() {

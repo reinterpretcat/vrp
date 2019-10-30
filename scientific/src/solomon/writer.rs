@@ -1,5 +1,5 @@
-use crate::models::Solution;
-use crate::streams::output::text::write_text_solution;
+use crate::common::write_text_solution;
+use core::models::Solution;
 use std::io::{BufWriter, Error, Write};
 
 pub fn write_solomon_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {

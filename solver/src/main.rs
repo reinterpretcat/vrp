@@ -7,14 +7,14 @@ use std::ops::Deref;
 use std::process;
 
 use clap::{App, Arg, ArgMatches};
-
-use vrp_core::models::{Problem, Solution};
-use vrp_core::streams::input::text::{read_init_solution, LilimProblem, SolomonProblem};
-use vrp_core::streams::output::text::{write_lilim_solution, write_solomon_solution};
+use core::models::{Problem, Solution};
 
 mod solver;
 pub use self::solver::Solver;
 use crate::solver::SolverBuilder;
+use scientific::common::read_init_solution;
+use scientific::lilim::{write_lilim_solution, LilimProblem};
+use scientific::solomon::{write_solomon_solution, SolomonProblem};
 use std::sync::Arc;
 
 struct ProblemReader(Box<dyn Fn(File) -> Result<Problem, String>>);

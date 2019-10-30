@@ -1,9 +1,8 @@
-use crate::construction::states::InsertionContext;
-use crate::helpers::get_test_resource;
-use crate::helpers::streams::input::create_c101_100_problem;
-use crate::refinement::objectives::{Objective, PenalizeUnassigned};
-use crate::streams::input::text::read_init_solution;
-use crate::utils::DefaultRandom;
+use crate::common::text_reader::read_init_solution;
+use crate::helpers::{create_c101_100_problem, get_test_resource};
+use core::construction::states::InsertionContext;
+use core::refinement::objectives::{Objective, PenalizeUnassigned};
+use core::utils::DefaultRandom;
 use std::io::BufReader;
 use std::sync::Arc;
 

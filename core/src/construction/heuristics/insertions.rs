@@ -1,7 +1,3 @@
-#[cfg(test)]
-#[path = "../../../tests/unit/construction/heuristics/insertions_test.rs"]
-mod insertions_test;
-
 extern crate rayon;
 
 use self::rayon::prelude::*;

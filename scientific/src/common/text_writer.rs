@@ -1,6 +1,6 @@
-use crate::models::common::IdDimension;
-use crate::models::problem::Job;
-use crate::models::Solution;
+use core::models::common::IdDimension;
+use core::models::problem::Job;
+use core::models::Solution;
 use std::io::{BufWriter, Error, ErrorKind, Write};
 
 pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
@@ -34,9 +34,3 @@ pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) 
 
     Ok(())
 }
-
-mod solomon;
-pub use self::solomon::write_solomon_solution;
-
-mod lilim;
-pub use self::lilim::write_lilim_solution;

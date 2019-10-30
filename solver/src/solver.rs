@@ -1,18 +1,18 @@
+use core::construction::states::InsertionContext;
+use core::models::common::ObjectiveCost;
+use core::models::{Problem, Solution};
+use core::refinement::acceptance::{Acceptance, Greedy};
+use core::refinement::objectives::{Objective, PenalizeUnassigned};
+use core::refinement::recreate::{CompositeRecreate, Recreate};
+use core::refinement::ruin::{CompositeRuin, Ruin};
+use core::refinement::selection::{SelectBest, Selection};
+use core::refinement::termination::{CompositeTermination, MaxGeneration, Termination, VariationCoefficient};
+use core::refinement::RefinementContext;
+use core::utils::{compare_floats, DefaultRandom};
 use std::cmp::Ordering::{Greater, Less};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Instant;
-use vrp_core::construction::states::InsertionContext;
-use vrp_core::models::common::ObjectiveCost;
-use vrp_core::models::{Problem, Solution};
-use vrp_core::refinement::acceptance::{Acceptance, Greedy};
-use vrp_core::refinement::objectives::{Objective, PenalizeUnassigned};
-use vrp_core::refinement::recreate::{CompositeRecreate, Recreate};
-use vrp_core::refinement::ruin::{CompositeRuin, Ruin};
-use vrp_core::refinement::selection::{SelectBest, Selection};
-use vrp_core::refinement::termination::{CompositeTermination, MaxGeneration, Termination, VariationCoefficient};
-use vrp_core::refinement::RefinementContext;
-use vrp_core::utils::{compare_floats, DefaultRandom};
 
 /// Provides configurable way to build solver.
 pub struct SolverBuilder {

@@ -1,13 +1,13 @@
 #[cfg(test)]
-#[path = "../../../../tests/unit/streams/input/text/lilim_test.rs"]
-mod lilim_test;
+#[path = "../../tests/unit/lilim/reader_test.rs"]
+mod reader_test;
 
-use crate::construction::constraints::Demand;
-use crate::models::common::TimeWindow;
-use crate::models::problem::*;
-use crate::models::Problem;
-use crate::streams::input::text::*;
-use crate::utils::{MatrixFactory, TryCollect};
+use crate::common::*;
+use core::construction::constraints::{Demand, DemandDimension};
+use core::models::common::TimeWindow;
+use core::models::problem::*;
+use core::models::Problem;
+use core::utils::{MatrixFactory, TryCollect};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read};

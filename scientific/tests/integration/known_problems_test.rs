@@ -1,9 +1,9 @@
-use crate::helpers::models::domain::get_customer_ids_from_routes_sorted;
-use crate::helpers::refinement::create_with_cheapest;
-use crate::helpers::streams::input::*;
-use crate::models::Problem;
-use crate::refinement::objectives::{Objective, PenalizeUnassigned};
-use crate::utils::DefaultRandom;
+use crate::helpers::*;
+use core::construction::states::InsertionContext;
+use core::models::Problem;
+use core::refinement::objectives::{Objective, PenalizeUnassigned};
+use core::refinement::recreate::{Recreate, RecreateWithCheapest};
+use core::utils::DefaultRandom;
 use std::sync::Arc;
 
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {
@@ -56,7 +56,8 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     expected: Vec<Vec<&str>>,
     cost: f64,
 ) {
-    let insertion_ctx = create_with_cheapest(problem.clone(), Arc::new(DefaultRandom::new()));
+    let insertion_ctx =
+        RecreateWithCheapest::default().run(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new())));
 
     let result_cost = PenalizeUnassigned::new(1000.).estimate(&insertion_ctx);
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);

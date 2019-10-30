@@ -16,10 +16,8 @@ double distribution values:
 use crate::construction::states::InsertionContext;
 use crate::helpers::models::domain::{get_customer_ids_from_routes_sorted, get_sorted_customer_ids_from_jobs};
 use crate::helpers::refinement::{create_with_cheapest, generate_matrix_routes};
-use crate::helpers::streams::input::LilimBuilder;
 use crate::helpers::utils::random::FakeRandom;
 use crate::refinement::ruin::{AdjustedStringRemoval, Ruin};
-use crate::streams::input::text::LilimProblem;
 use std::sync::Arc;
 
 parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, reals, expected_ids), {
@@ -72,26 +70,28 @@ fn can_ruin_solution_with_multi_jobs_impl(
     expected_remove_ids: Vec<&str>,
     expected_route_ids: Vec<Vec<&str>>,
 ) {
-    let problem = Arc::new(
-        LilimBuilder::new()
-            .set_vehicle((1, 200))
-            .add_customer((0, 0, 0, 0, 0, 1000, 0, 0, 0))
-            .add_customer((1, 1, 0, -1, 0, 1000, 0, 2, 0))
-            .add_customer((2, 2, 0, 1, 0, 1000, 0, 0, 1))
-            .add_customer((3, 3, 0, -1, 0, 1000, 0, 4, 0))
-            .add_customer((4, 4, 0, 1, 0, 1000, 0, 0, 3))
-            .add_customer((5, 5, 0, -1, 0, 1000, 0, 6, 0))
-            .add_customer((6, 6, 0, 1, 0, 1000, 0, 0, 5))
-            .add_customer((7, 7, 0, -1, 0, 1000, 0, 8, 0))
-            .add_customer((8, 8, 0, 1, 0, 1000, 0, 0, 7))
-            .build()
-            .parse_lilim()
-            .unwrap(),
-    );
-    let insertion_ctx = create_with_cheapest(problem, Arc::new(FakeRandom::new(ints, reals)));
+    //    let problem = Arc::new(
+    //        LilimBuilder::new()
+    //            .set_vehicle((1, 200))
+    //            .add_customer((0, 0, 0, 0, 0, 1000, 0, 0, 0))
+    //            .add_customer((1, 1, 0, -1, 0, 1000, 0, 2, 0))
+    //            .add_customer((2, 2, 0, 1, 0, 1000, 0, 0, 1))
+    //            .add_customer((3, 3, 0, -1, 0, 1000, 0, 4, 0))
+    //            .add_customer((4, 4, 0, 1, 0, 1000, 0, 0, 3))
+    //            .add_customer((5, 5, 0, -1, 0, 1000, 0, 6, 0))
+    //            .add_customer((6, 6, 0, 1, 0, 1000, 0, 0, 5))
+    //            .add_customer((7, 7, 0, -1, 0, 1000, 0, 8, 0))
+    //            .add_customer((8, 8, 0, 1, 0, 1000, 0, 0, 7))
+    //            .build()
+    //            .parse_lilim()
+    //            .unwrap(),
+    //    );
+    //    let insertion_ctx = create_with_cheapest(problem, Arc::new(FakeRandom::new(ints, reals)));
+    //
+    //    let insertion_ctx = AdjustedStringRemoval::default().run(insertion_ctx);
+    //
+    //    assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_remove_ids);
+    //    assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected_route_ids);
 
-    let insertion_ctx = AdjustedStringRemoval::default().run(insertion_ctx);
-
-    assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_remove_ids);
-    assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected_route_ids);
+    unimplemented!()
 }

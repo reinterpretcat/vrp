@@ -1,13 +1,13 @@
 #[cfg(test)]
-#[path = "../../../../tests/unit/streams/input/text/solomon_test.rs"]
-mod solomon_test;
+#[path = "../../tests/unit/solomon/reader_test.rs"]
+mod reader_test;
 
-use crate::construction::constraints::*;
-use crate::models::common::TimeWindow;
-use crate::models::problem::*;
-use crate::models::Problem;
-use crate::streams::input::text::*;
-use crate::utils::{MatrixFactory, TryCollect};
+use crate::common::*;
+use core::construction::constraints::*;
+use core::models::common::TimeWindow;
+use core::models::problem::*;
+use core::models::Problem;
+use core::utils::{MatrixFactory, TryCollect};
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Arc;

@@ -1,13 +1,13 @@
 #[cfg(test)]
-#[path = "../../../../tests/unit/streams/input/text/mod_test.rs"]
-mod mod_test;
+#[path = "../../tests/unit/common/text_reader_test.rs"]
+mod text_reader_test;
 
-use crate::construction::constraints::*;
-use crate::construction::states::{create_end_activity, create_start_activity};
-use crate::models::common::*;
-use crate::models::problem::*;
-use crate::models::solution::{Activity, Registry, Route, Tour};
-use crate::models::{Problem, Solution};
+use core::construction::constraints::*;
+use core::construction::states::{create_end_activity, create_start_activity};
+use core::models::common::*;
+use core::models::problem::*;
+use core::models::solution::{Activity, Registry, Route, Tour};
+use core::models::{Problem, Solution};
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
@@ -37,7 +37,7 @@ impl<'a> Read for StringReader<'a> {
     }
 }
 
-trait TextReader {
+pub trait TextReader {
     fn read_problem(&mut self) -> Result<Problem, String> {
         let fleet = self.read_fleet()?;
         let jobs = self.read_jobs()?;
@@ -63,7 +63,7 @@ trait TextReader {
     fn create_transport(&self) -> MatrixTransportCost;
 }
 
-fn create_fleet_with_distance_costs(number: usize, capacity: usize, location: Location, time: TimeWindow) -> Fleet {
+pub fn create_fleet_with_distance_costs(number: usize, capacity: usize, location: Location, time: TimeWindow) -> Fleet {
     Fleet::new(
         vec![Driver {
             costs: Costs {
@@ -101,13 +101,13 @@ fn create_fleet_with_distance_costs(number: usize, capacity: usize, location: Lo
     )
 }
 
-fn create_dimens_with_id(prefix: &str, id: usize) -> Dimensions {
+pub fn create_dimens_with_id(prefix: &str, id: usize) -> Dimensions {
     let mut dimens = Dimensions::new();
     dimens.set_id([prefix.to_string(), id.to_string()].concat().as_str());
     dimens
 }
 
-fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
+pub fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::new();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
     constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
@@ -149,7 +149,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                     let (job, single) = id_map.get(id).unwrap();
                     let place = single.places.first().unwrap();
                     tour.insert_last(Box::new(Activity {
-                        place: crate::models::solution::Place {
+                        place: core::models::solution::Place {
                             location: place.location.unwrap(),
                             duration: place.duration,
                             time: place.times.first().unwrap().clone(),
@@ -175,15 +175,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
     Ok(solution)
 }
 
-fn read_line<R: Read>(reader: &mut BufReader<R>, mut buffer: &mut String) -> Result<usize, String> {
+pub fn read_line<R: Read>(reader: &mut BufReader<R>, mut buffer: &mut String) -> Result<usize, String> {
     buffer.clear();
     reader.read_line(&mut buffer).map_err(|err| err.to_string())
 }
-
-mod solomon;
-
-pub use self::solomon::SolomonProblem;
-
-mod lilim;
-
-pub use self::lilim::LilimProblem;

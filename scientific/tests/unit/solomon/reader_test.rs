@@ -1,6 +1,5 @@
-use crate::helpers::models::problem::*;
-use crate::helpers::streams::input::{create_c101_25_problem, SolomonBuilder};
-use crate::streams::input::text::solomon::SolomonProblem;
+use crate::helpers::*;
+use crate::solomon::SolomonProblem;
 
 #[test]
 fn can_read_solomon_built_from_builder() {
