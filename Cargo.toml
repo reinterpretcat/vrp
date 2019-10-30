@@ -2,6 +2,7 @@
 
 members = [
     "core",
+    "here",
     "solver",
     "scientific"
 ]

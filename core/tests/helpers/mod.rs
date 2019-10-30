@@ -1,5 +1,3 @@
-use std::fs::File;
-
 pub mod construction;
 pub mod models;
 pub mod objectives;

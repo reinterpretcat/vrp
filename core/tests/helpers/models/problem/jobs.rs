@@ -1,7 +1,6 @@
-use crate::construction::constraints::{CapacityDimension, Demand, DemandDimension};
+use crate::construction::constraints::{Demand, DemandDimension};
 use crate::models::common::{Duration, IdDimension, Location, TimeWindow};
 use crate::models::problem::{Job, Multi, Place, Single};
-use crate::models::Problem;
 use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;

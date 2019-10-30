@@ -14,8 +14,8 @@ double distribution values:
 */
 
 use crate::construction::states::InsertionContext;
-use crate::helpers::models::domain::{get_customer_ids_from_routes_sorted, get_sorted_customer_ids_from_jobs};
-use crate::helpers::refinement::{create_with_cheapest, generate_matrix_routes};
+use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
+use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;
 use crate::refinement::ruin::{AdjustedStringRemoval, Ruin};
 use std::sync::Arc;
@@ -65,10 +65,10 @@ can_ruin_solution_with_multi_jobs! {
 }
 
 fn can_ruin_solution_with_multi_jobs_impl(
-    ints: Vec<i32>,
-    reals: Vec<f64>,
-    expected_remove_ids: Vec<&str>,
-    expected_route_ids: Vec<Vec<&str>>,
+    _ints: Vec<i32>,
+    _reals: Vec<f64>,
+    _expected_remove_ids: Vec<&str>,
+    _expected_route_ids: Vec<Vec<&str>>,
 ) {
     //    let problem = Arc::new(
     //        LilimBuilder::new()
