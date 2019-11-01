@@ -60,8 +60,8 @@ pub struct MultiJobPlace {
 
 #[derive(Deserialize)]
 pub struct MultiJobPlaces {
-    pickups: Vec<MultiJobPlace>,
-    deliveries: Vec<MultiJobPlace>,
+    pub pickups: Vec<MultiJobPlace>,
+    pub deliveries: Vec<MultiJobPlace>,
 }
 
 #[derive(Deserialize)]

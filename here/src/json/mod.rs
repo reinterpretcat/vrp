@@ -1,2 +1,4 @@
-mod mapper;
-pub use self::mapper::HereProblem;
+mod coord_index;
+
+mod reader;
+pub use self::reader::HereProblem;
