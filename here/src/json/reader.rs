@@ -1,24 +1,19 @@
+use crate::json::coord_index::CoordIndex;
 use chrono::DateTime;
+use core::construction::constraints::CapacityDimension;
 use core::models::common::*;
 use core::models::problem::{Costs, Driver, Fleet, MatrixTransportCost, Vehicle, VehicleDetail};
 use core::models::Problem;
+use std::collections::HashMap;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
+use std::slice::Iter;
+use std::sync::Arc;
 
 #[path = "./deserializer.rs"]
 mod deserializer;
-
 use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
-
 type ApiProblem = self::deserializer::Problem;
-
-#[path = "./utils.rs"]
-mod utils;
-
-use self::utils::*;
-use crate::json::coord_index::CoordIndex;
-use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Reads specific problem definition from various sources.
 pub trait HereProblem {
@@ -149,9 +144,14 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
 
         let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
 
-        (0..vehicle.amount).for_each(|number| {
+        (1..vehicle.amount).for_each(|number| {
             let mut dimens: Dimensions = Default::default();
+            dimens.insert("type_id".to_owned(), Box::new(vehicle.id.clone()));
             dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
+            dimens.set_capacity(*vehicle.capacity.first().unwrap());
+            if let Some(skills) = &vehicle.skills {
+                dimens.insert("skills".to_owned(), Box::new(skills.clone()));
+            }
 
             vehicles.push(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() });
         });
@@ -185,3 +185,30 @@ fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
         acc
     })
 }
+
+// region utils
+
+struct StringReader<'a> {
+    iter: Iter<'a, u8>,
+}
+
+impl<'a> StringReader<'a> {
+    pub fn new(data: &'a str) -> Self {
+        Self { iter: data.as_bytes().iter() }
+    }
+}
+
+impl<'a> Read for StringReader<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        for i in 0..buf.len() {
+            if let Some(x) = self.iter.next() {
+                buf[i] = *x;
+            } else {
+                return Ok(i);
+            }
+        }
+        Ok(buf.len())
+    }
+}
+
+// endregion
