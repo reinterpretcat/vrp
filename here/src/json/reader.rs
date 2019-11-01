@@ -2,8 +2,8 @@ use crate::json::coord_index::CoordIndex;
 use chrono::DateTime;
 use core::construction::constraints::CapacityDimension;
 use core::models::common::*;
-use core::models::problem::{Costs, Driver, Fleet, MatrixTransportCost, Vehicle, VehicleDetail};
-use core::models::Problem;
+use core::models::problem::*;
+use core::models::{Lock, Problem};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -14,6 +14,7 @@ use std::sync::Arc;
 mod deserializer;
 use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
 type ApiProblem = self::deserializer::Problem;
+type JobIndex = HashMap<String, Arc<Job>>;
 
 /// Reads specific problem definition from various sources.
 pub trait HereProblem {
@@ -50,6 +51,11 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     let coord_index = create_coord_index(&api_problem);
     let transport_costs = create_transport_costs(&matrices);
     let fleet = read_fleet(&api_problem, &coord_index);
+
+    let mut job_index = Default::default();
+    let jobs = read_jobs(&api_problem, &coord_index, &fleet, &transport_costs, &mut job_index);
+    let locks = read_locks(&api_problem, &jobs, &job_index);
+    let limits = read_limits(&api_problem);
 
     unimplemented!()
 }
@@ -170,6 +176,41 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
     };
 
     Fleet::new(vec![fake_driver], vehicles)
+}
+
+fn read_jobs(
+    api_problem: &ApiProblem,
+    coord_index: &CoordIndex,
+    fleet: &Fleet,
+    transport: &impl TransportCost,
+    job_index: &mut JobIndex,
+) -> Jobs {
+    let mut jobs = read_required_jobs(api_problem, coord_index, job_index);
+    jobs.extend(read_conditional_jobs(api_problem, coord_index, job_index));
+
+    Jobs::new(fleet, jobs, transport)
+}
+
+fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_index: &mut JobIndex) -> Vec<Arc<Job>> {
+    unimplemented!()
+}
+
+fn read_conditional_jobs(
+    api_problem: &ApiProblem,
+    coord_index: &CoordIndex,
+    job_index: &mut JobIndex,
+) -> Vec<Arc<Job>> {
+    unimplemented!()
+}
+
+fn read_locks(api_problem: &ApiProblem, jobs: &Jobs, job_index: &JobIndex) -> Option<Vec<Lock>> {
+    unimplemented!()
+}
+
+fn read_limits(
+    api_problem: &ApiProblem,
+) -> Option<Arc<dyn Fn(&Arc<Actor>) -> (Option<Distance>, Option<Duration>) + Send + Sync>> {
+    unimplemented!()
 }
 
 fn parse_time(time: &String) -> Timestamp {
