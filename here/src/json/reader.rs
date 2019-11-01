@@ -1,16 +1,24 @@
+use chrono::DateTime;
+use core::models::common::*;
+use core::models::problem::{Costs, Driver, Fleet, MatrixTransportCost, Vehicle, VehicleDetail};
 use core::models::Problem;
 use std::fs::File;
 use std::io::BufReader;
 
 #[path = "./deserializer.rs"]
 mod deserializer;
-use self::deserializer::*;
+
+use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
+
 type ApiProblem = self::deserializer::Problem;
 
 #[path = "./utils.rs"]
 mod utils;
+
 use self::utils::*;
 use crate::json::coord_index::CoordIndex;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Reads specific problem definition from various sources.
 pub trait HereProblem {
@@ -44,6 +52,10 @@ impl HereProblem for (String, Vec<String>) {
 }
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
+    let coord_index = create_coord_index(&api_problem);
+    let transport_costs = create_transport_costs(&matrices);
+    let fleet = read_fleet(&api_problem, &coord_index);
+
     unimplemented!()
 }
 
@@ -86,4 +98,90 @@ fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
     });
 
     index
+}
+
+fn create_transport_costs(matrices: &Vec<Matrix>) -> MatrixTransportCost {
+    let mut durations: Vec<Vec<Duration>> = Default::default();
+    let mut distances: Vec<Vec<Distance>> = Default::default();
+
+    (0..).zip(matrices.iter()).for_each(|(index, matrix)| {
+        // TODO process error codes
+        durations.push(matrix.travel_times.iter().map(|d| *d as f64).collect());
+        distances.push(matrix.distances.iter().map(|d| *d as f64).collect());
+    });
+
+    MatrixTransportCost::new(durations, distances)
+}
+
+fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
+    let profiles = get_profile_map(api_problem);
+    let mut vehicles: Vec<Vehicle> = Default::default();
+
+    api_problem.fleet.types.iter().for_each(|vehicle| {
+        // TODO support multi-dimensional capacity
+        assert_eq!(vehicle.capacity.len(), 1);
+
+        let start = {
+            let location = *coord_index.get_by_vec(&vehicle.places.start.location).unwrap();
+            let time = parse_time(&vehicle.places.start.time);
+            (location, time)
+        };
+
+        let end = vehicle.places.end.as_ref().map_or(None, |end| {
+            let location = *coord_index.get_by_vec(&end.location).unwrap();
+            let time = parse_time(&end.time);
+            Some((location, time))
+        });
+
+        let details = vec![VehicleDetail {
+            start: Some(start.0),
+            end: end.map_or(None, |end| Some(end.0)),
+            time: Some(TimeWindow::new(start.1, end.map_or(std::f64::MAX, |end| end.1))),
+        }];
+
+        let costs = Costs {
+            fixed: vehicle.costs.fixed.unwrap_or(0.),
+            per_distance: vehicle.costs.distance,
+            per_driving_time: vehicle.costs.time,
+            per_waiting_time: vehicle.costs.time,
+            per_service_time: vehicle.costs.time,
+        };
+
+        let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
+
+        (0..vehicle.amount).for_each(|number| {
+            let mut dimens: Dimensions = Default::default();
+            dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
+
+            vehicles.push(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() });
+        });
+    });
+
+    let fake_driver = Driver {
+        costs: Costs {
+            fixed: 0.0,
+            per_distance: 0.0,
+            per_driving_time: 0.0,
+            per_waiting_time: 0.0,
+            per_service_time: 0.0,
+        },
+        dimens: Default::default(),
+        details: vec![],
+    };
+
+    Fleet::new(vec![fake_driver], vehicles)
+}
+
+fn parse_time(time: &String) -> Timestamp {
+    let time = DateTime::parse_from_rfc3339(time).unwrap();
+    time.timestamp() as Timestamp
+}
+
+fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
+    api_problem.fleet.types.iter().fold(Default::default(), |mut acc, vehicle| {
+        if !acc.get(&vehicle.profile).is_none() {
+            acc.insert(vehicle.profile.clone(), acc.len());
+        }
+        acc
+    })
 }

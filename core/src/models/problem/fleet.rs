@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 /// Represents operating costs for driver and vehicle.
+#[derive(Clone, Debug)]
 pub struct Costs {
     /// A fixed cost to use an actor.
     pub fixed: f64,
@@ -41,6 +42,7 @@ pub struct Driver {
 }
 
 /// Represents a vehicle detail.
+#[derive(Clone, Debug)]
 pub struct VehicleDetail {
     /// Location where vehicle starts.
     pub start: Option<Location>,

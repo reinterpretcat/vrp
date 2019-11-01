@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone)]
-struct Location {
+pub struct Location {
     pub latitude: f64,
     pub longitude: f64,
 }
