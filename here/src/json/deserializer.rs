@@ -102,9 +102,11 @@ struct VehiclePlace {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct VehiclePlaces {
     pub start: VehiclePlace,
     pub end: Option<VehiclePlace>,
+    pub max_tours: Option<i32>,
 }
 
 #[derive(Deserialize)]
