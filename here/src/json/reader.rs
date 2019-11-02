@@ -1,6 +1,6 @@
 use crate::json::coord_index::CoordIndex;
 use chrono::DateTime;
-use core::construction::constraints::CapacityDimension;
+use core::construction::constraints::{CapacityDimension, Demand, DemandDimension};
 use core::models::common::*;
 use core::models::problem::*;
 use core::models::{Lock, Problem};
@@ -12,7 +12,10 @@ use std::sync::Arc;
 
 #[path = "./deserializer.rs"]
 mod deserializer;
+
 use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
+use crate::json::reader::deserializer::JobPlace;
+
 type ApiProblem = self::deserializer::Problem;
 type JobIndex = HashMap<String, Arc<Job>>;
 
@@ -123,13 +126,13 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
         assert_eq!(vehicle.capacity.len(), 1);
 
         let start = {
-            let location = *coord_index.get_by_vec(&vehicle.places.start.location).unwrap();
+            let location = coord_index.get_by_vec(&vehicle.places.start.location).unwrap();
             let time = parse_time(&vehicle.places.start.time);
             (location, time)
         };
 
         let end = vehicle.places.end.as_ref().map_or(None, |end| {
-            let location = *coord_index.get_by_vec(&end.location).unwrap();
+            let location = coord_index.get_by_vec(&end.location).unwrap();
             let time = parse_time(&end.time);
             Some((location, time))
         });
@@ -155,9 +158,7 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
             dimens.insert("type_id".to_owned(), Box::new(vehicle.id.clone()));
             dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
             dimens.set_capacity(*vehicle.capacity.first().unwrap());
-            if let Some(skills) = &vehicle.skills {
-                dimens.insert("skills".to_owned(), Box::new(skills.clone()));
-            }
+            add_skills(&mut dimens, &vehicle.skills);
 
             vehicles.push(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() });
         });
@@ -192,6 +193,74 @@ fn read_jobs(
 }
 
 fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_index: &mut JobIndex) -> Vec<Arc<Job>> {
+    api_problem.plan.jobs.iter().for_each(|job| match job {
+        JobVariant::Single(job) => {
+            let demand = *job.demand.first().unwrap();
+            let pickup = job.places.pickup.as_ref().map(|pickup| {
+                get_single(
+                    &pickup.location,
+                    pickup.duration,
+                    Demand { pickup: (demand, 0), delivery: (0, 0) },
+                    &pickup.times,
+                    &pickup.tag,
+                    &coord_index,
+                )
+            });
+            let delivery = job.places.delivery.as_ref().map(|delivery| {
+                get_single(
+                    &delivery.location,
+                    delivery.duration,
+                    Demand { pickup: (0, 0), delivery: (demand, 0) },
+                    &delivery.times,
+                    &delivery.tag,
+                    &coord_index,
+                )
+            });
+
+            let problem_job = match (pickup, delivery) {
+                (Some(pickup), Some(delivery)) => {
+                    get_multi_job(&job.id, &job.skills, vec![Arc::new(pickup), Arc::new(delivery)])
+                }
+                (Some(pickup), None) => get_single_job(&job.id, pickup, &job.skills),
+                (None, Some(delivery)) => get_single_job(&job.id, delivery, &job.skills),
+                (None, None) => panic!("Single job should contain pickup and/or delivery."),
+            };
+
+            job_index.insert(job.id.clone(), problem_job);
+        }
+        JobVariant::Multi(job) => {
+            let mut singles = job
+                .places
+                .pickups
+                .iter()
+                .map(|pickup| {
+                    let demand = *pickup.demand.first().unwrap();
+                    Arc::new(get_single(
+                        &pickup.location,
+                        pickup.duration,
+                        Demand { pickup: (0, demand), delivery: (0, 0) },
+                        &pickup.times,
+                        &pickup.tag,
+                        &coord_index,
+                    ))
+                })
+                .collect::<Vec<Arc<Single>>>();
+            singles.extend(job.places.deliveries.iter().map(|delivery| {
+                let demand = *delivery.demand.first().unwrap();
+                Arc::new(get_single(
+                    &delivery.location,
+                    delivery.duration,
+                    Demand { pickup: (0, 0), delivery: (0, demand) },
+                    &delivery.times,
+                    &delivery.tag,
+                    &coord_index,
+                ))
+            }));
+
+            job_index.insert(job.id.clone(), get_multi_job(&job.id, &job.skills, singles));
+        }
+    });
+
     unimplemented!()
 }
 
@@ -218,6 +287,11 @@ fn parse_time(time: &String) -> Timestamp {
     time.timestamp() as Timestamp
 }
 
+fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
+    assert_eq!(tw.len(), 2);
+    TimeWindow::new(parse_time(tw.first().unwrap()), parse_time(tw.last().unwrap()))
+}
+
 fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.types.iter().fold(Default::default(), |mut acc, vehicle| {
         if !acc.get(&vehicle.profile).is_none() {
@@ -226,6 +300,62 @@ fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
         acc
     })
 }
+
+// region helpers
+
+fn get_single(
+    location: &Vec<f64>,
+    duration: Duration,
+    demand: Demand<i32>,
+    times: &Option<Vec<Vec<String>>>,
+    tag: &Option<String>,
+    coord_index: &CoordIndex,
+) -> Single {
+    let mut dimens: Dimensions = Default::default();
+    dimens.set_demand(demand);
+    add_tag(&mut dimens, tag);
+
+    Single {
+        places: vec![Place {
+            location: coord_index.get_by_vec(location),
+            duration,
+            times: times
+                .as_ref()
+                .map_or(vec![TimeWindow::max()], |tws| tws.iter().map(|tw| parse_time_window(tw)).collect()),
+        }],
+        dimens,
+    }
+}
+
+fn get_single_job(id: &String, single: Single, skills: &Option<Vec<String>>) -> Arc<Job> {
+    let mut single = single;
+    single.dimens.set_id(id.as_str());
+    add_skills(&mut single.dimens, skills);
+
+    Arc::new(Job::Single(Arc::new(single)))
+}
+
+fn get_multi_job(id: &String, skills: &Option<Vec<String>>, singles: Vec<Arc<Single>>) -> Arc<Job> {
+    let mut dimens: Dimensions = Default::default();
+    dimens.set_id(id.as_str());
+    add_skills(&mut dimens, skills);
+    let multi = Multi::new(singles, dimens);
+    Arc::new(Job::Multi(Multi::bind(multi)))
+}
+
+fn add_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
+    if let Some(skills) = skills {
+        dimens.insert("skills".to_owned(), Box::new(skills.clone()));
+    }
+}
+
+fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
+    if let Some(tag) = tag {
+        dimens.insert("tag".to_string(), Box::new(tag.clone()));
+    }
+}
+
+// endregion
 
 // region utils
 

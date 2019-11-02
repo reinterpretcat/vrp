@@ -37,13 +37,13 @@ impl CoordIndex {
         }
     }
 
-    pub fn get_by_vec(&self, location: &Vec<f64>) -> Option<&usize> {
+    pub fn get_by_vec(&self, location: &Vec<f64>) -> Option<usize> {
         assert_eq!(location.len(), 2);
-        self.direct_index.get(&Location::new(*location.first().unwrap(), *location.last().unwrap()))
+        self.direct_index.get(&Location::new(*location.first().unwrap(), *location.last().unwrap())).cloned()
     }
 
-    pub fn get_by_loc(&self, location: &Location) -> Option<&usize> {
-        self.direct_index.get(location)
+    pub fn get_by_loc(&self, location: &Location) -> Option<usize> {
+        self.direct_index.get(location).cloned()
     }
 }
 

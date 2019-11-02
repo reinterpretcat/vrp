@@ -21,6 +21,9 @@ impl TimeWindow {
     pub fn new(start: Timestamp, end: Timestamp) -> Self {
         Self { start, end }
     }
+    pub fn max() -> Self {
+        Self { start: 0., end: std::f64::MAX }
+    }
 }
 
 impl PartialEq<TimeWindow> for TimeWindow {
