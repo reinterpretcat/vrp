@@ -1,0 +1,98 @@
+{
+  "id": "Minimal problem with 2 jobs, 1 vehicle, 4 locations",
+  "plan": {
+    "jobs": [
+      {
+        "id": "single_job",
+        "places": {
+          "delivery": {
+            "location": [
+              52.5622847,
+              13.4023099
+            ],
+            "times": [["2019-07-04T10:00:00Z", "2019-07-04T16:00:00Z"]],
+            "duration": 240
+          }
+        },
+        "demand": [
+          1
+        ]
+      },
+      {
+        "id": "multi_job",
+        "places": {
+          "pickups": [
+            {
+              "location": [
+                52.5622847,
+                13.4023099
+              ],
+              "duration": 240,
+              "demand": [
+                1
+              ],
+              "tag": "p1"
+            },
+            {
+              "location": [
+                52.5330881,
+                13.3973059
+              ],
+              "duration": 240,
+              "demand": [
+                1
+              ],
+              "tag": "p2"
+            }
+          ],
+          "deliveries": [
+            {
+              "location": [
+                52.5252832,
+                13.4188422
+              ],
+              "duration": 240,
+              "demand": [
+                2
+              ],
+              "tag": "d1"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "fleet": {
+    "types": [
+      {
+        "id": "vehicle",
+        "profile": "car",
+        "costs": {
+          "distance": 0.0002,
+          "time": 0.004806,
+          "fixed": 22
+        },
+        "places": {
+          "start": {
+            "time": "2019-07-04T09:00:00Z",
+            "location": [
+              52.4664257,
+              13.2812488
+            ]
+          },
+          "end": {
+            "time": "2019-07-04T18:00:00Z",
+            "location": [
+              52.4664257,
+              13.2812488
+            ]
+          }
+        },
+        "capacity": [
+          10
+        ],
+        "amount": 1
+      }
+    ]
+  }
+}
