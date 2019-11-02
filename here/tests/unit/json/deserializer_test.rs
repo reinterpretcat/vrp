@@ -61,3 +61,15 @@ fn can_deserialize_problem() {
 
     // validate vehicle
 }
+
+#[test]
+fn can_deserialize_matrix() {
+    let file = get_test_resource("../data/small/minimal.matrix.json").unwrap();
+
+    let matrix = deserialize_matrix(BufReader::new(file)).unwrap();
+
+    assert_eq!(matrix.num_origins, 4);
+    assert_eq!(matrix.num_destinations, 4);
+    assert_eq!(matrix.distances.len(), 16);
+    assert_eq!(matrix.travel_times.len(), 16);
+}
