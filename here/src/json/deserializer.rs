@@ -72,6 +72,7 @@ struct MultiJob {
 }
 
 #[derive(Deserialize)]
+#[serde(untagged)]
 enum JobVariant {
     Single(Job),
     Multi(MultiJob),
