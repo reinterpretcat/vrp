@@ -12,7 +12,7 @@ use std::io::{BufReader, Read};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-enum RelationType {
+pub enum RelationType {
     Tour,
     Flexible,
     Sequence,
@@ -20,7 +20,7 @@ enum RelationType {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Relation {
+pub struct Relation {
     #[serde(rename(deserialize = "type"))]
     pub type_field: RelationType,
     pub jobs: Vec<String>,
@@ -28,7 +28,7 @@ struct Relation {
 }
 
 #[derive(Deserialize)]
-struct JobPlace {
+pub struct JobPlace {
     pub times: Option<Vec<Vec<String>>>,
     pub location: Vec<f64>,
     pub duration: f64,
@@ -36,13 +36,13 @@ struct JobPlace {
 }
 
 #[derive(Deserialize)]
-struct JobPlaces {
+pub struct JobPlaces {
     pub pickup: Option<JobPlace>,
     pub delivery: Option<JobPlace>,
 }
 
 #[derive(Deserialize)]
-struct Job {
+pub struct Job {
     pub id: String,
     pub places: JobPlaces,
     pub demand: Vec<i32>,
@@ -50,7 +50,7 @@ struct Job {
 }
 
 #[derive(Deserialize)]
-struct MultiJobPlace {
+pub struct MultiJobPlace {
     pub times: Option<Vec<Vec<String>>>,
     pub location: Vec<f64>,
     pub duration: f64,
@@ -59,13 +59,13 @@ struct MultiJobPlace {
 }
 
 #[derive(Deserialize)]
-struct MultiJobPlaces {
+pub struct MultiJobPlaces {
     pickups: Vec<MultiJobPlace>,
     deliveries: Vec<MultiJobPlace>,
 }
 
 #[derive(Deserialize)]
-struct MultiJob {
+pub struct MultiJob {
     pub id: String,
     pub places: MultiJobPlaces,
     pub skills: Option<Vec<String>>,
@@ -73,13 +73,13 @@ struct MultiJob {
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum JobVariant {
+pub enum JobVariant {
     Single(Job),
     Multi(MultiJob),
 }
 
 #[derive(Deserialize)]
-struct Plan {
+pub struct Plan {
     pub jobs: Vec<JobVariant>,
     pub relations: Option<Vec<Relation>>,
 }
@@ -89,21 +89,21 @@ struct Plan {
 // region Fleet
 
 #[derive(Deserialize)]
-struct VehicleCosts {
+pub struct VehicleCosts {
     pub fixed: Option<f64>,
     pub distance: f64,
     pub time: f64,
 }
 
 #[derive(Deserialize)]
-struct VehiclePlace {
+pub struct VehiclePlace {
     pub time: String,
     pub location: Vec<f64>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct VehiclePlaces {
+pub struct VehiclePlaces {
     pub start: VehiclePlace,
     pub end: Option<VehiclePlace>,
     pub max_tours: Option<i32>,
@@ -111,20 +111,20 @@ struct VehiclePlaces {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct VehicleLimits {
+pub struct VehicleLimits {
     pub max_distance: Option<f64>,
     pub shift_time: Option<f64>,
 }
 
 #[derive(Deserialize)]
-struct VehicleBreak {
+pub struct VehicleBreak {
     pub times: Vec<Vec<String>>,
     pub duration: f64,
     pub location: Option<Vec<f64>>,
 }
 
 #[derive(Deserialize)]
-struct VehicleType {
+pub struct VehicleType {
     pub id: String,
     pub profile: String,
     pub costs: VehicleCosts,
@@ -139,7 +139,7 @@ struct VehicleType {
 }
 
 #[derive(Deserialize)]
-struct Fleet {
+pub struct Fleet {
     pub types: Vec<VehicleType>,
 }
 
@@ -148,7 +148,7 @@ struct Fleet {
 // region Common
 
 #[derive(Deserialize)]
-struct Problem {
+pub struct Problem {
     pub id: String,
     pub plan: Plan,
     pub fleet: Fleet,
@@ -156,7 +156,7 @@ struct Problem {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Matrix {
+pub struct Matrix {
     pub num_origins: i32,
     pub num_destinations: i32,
     pub travel_times: Vec<i64>,
@@ -166,10 +166,10 @@ struct Matrix {
 
 // endregion
 
-fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Error> {
+pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Error> {
     serde_json::from_reader(reader)
 }
 
-fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Error> {
+pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Error> {
     serde_json::from_reader(reader)
 }
