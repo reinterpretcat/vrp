@@ -3,7 +3,7 @@ use chrono::DateTime;
 use core::construction::constraints::{CapacityDimension, Demand, DemandDimension};
 use core::models::common::*;
 use core::models::problem::*;
-use core::models::{Lock, Problem};
+use core::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[path = "./deserializer.rs"]
 mod deserializer;
 
-use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
+use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
 use crate::json::reader::deserializer::{JobPlace, VehicleBreak};
 
 type ApiProblem = self::deserializer::Problem;
@@ -298,7 +298,52 @@ fn read_conditional_jobs(
 }
 
 fn read_locks(api_problem: &ApiProblem, jobs: &Jobs, job_index: &JobIndex) -> Option<Vec<Lock>> {
-    unimplemented!()
+    if api_problem.plan.relations.as_ref().map_or(true, |r| r.is_empty()) {
+        return None;
+    }
+
+    let relations = api_problem.plan.relations.as_ref().unwrap().iter().fold(HashMap::new(), |mut acc, r| {
+        acc.entry(r.vehicle_id.clone()).or_insert(vec![]).push(r.clone());
+        acc
+    });
+
+    let locks = relations.into_iter().fold(vec![], |mut acc, (vehicle_id, rels)| {
+        let details = rels.iter().fold(vec![], |mut acc, rel| {
+            let order = match rel.type_field {
+                RelationType::Tour => LockOrder::Any,
+                RelationType::Flexible => LockOrder::Sequence,
+                RelationType::Sequence => LockOrder::Strict,
+            };
+
+            let position = match (rel.jobs.first().map(|s| s.as_str()), rel.jobs.last().map(|s| s.as_str())) {
+                (Some("departure"), Some("arrival")) => LockPosition::Fixed,
+                (Some("departure"), _) => LockPosition::Departure,
+                (_, Some("arrival")) => LockPosition::Arrival,
+                _ => LockPosition::Any,
+            };
+
+            let jobs = rel
+                .jobs
+                .iter()
+                .filter(|job| job.as_str() != "departure" && job.as_str() != "arrival")
+                .map(|job| {
+                    if job.as_str() == "break" {
+                        job_index.get(format!("{}_break", vehicle_id).as_str()).unwrap().clone()
+                    } else {
+                        job_index.get(job).unwrap().clone()
+                    }
+                })
+                .collect();
+
+            acc.push(LockDetail::new(order, position, jobs));
+
+            acc
+        });
+
+        acc
+    });
+
+    Some(locks)
 }
 
 fn read_limits(

@@ -10,7 +10,7 @@ use std::io::{BufReader, Read};
 
 // region Plan
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum RelationType {
     Tour,
@@ -18,13 +18,13 @@ pub enum RelationType {
     Sequence,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Relation {
     #[serde(rename(deserialize = "type"))]
     pub type_field: RelationType,
     pub jobs: Vec<String>,
-    pub vehicle_id: Vec<String>,
+    pub vehicle_id: String,
 }
 
 #[derive(Deserialize)]
