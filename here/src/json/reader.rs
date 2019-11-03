@@ -349,7 +349,26 @@ fn read_locks(api_problem: &ApiProblem, jobs: &Jobs, job_index: &JobIndex) -> Op
 fn read_limits(
     api_problem: &ApiProblem,
 ) -> Option<Arc<dyn Fn(&Arc<Actor>) -> (Option<Distance>, Option<Duration>) + Send + Sync>> {
-    unimplemented!()
+    let limits = api_problem.fleet.types.iter().filter(|vehicle| vehicle.limits.is_some()).fold(
+        HashMap::new(),
+        |mut acc, vehicle| {
+            let limits = vehicle.limits.as_ref().unwrap().clone();
+            acc.insert(vehicle.id.clone(), (limits.max_distance, limits.shift_time));
+            acc
+        },
+    );
+
+    if limits.is_empty() {
+        None
+    } else {
+        Some(Arc::new(move |actor: &Arc<Actor>| {
+            if let Some(limits) = limits.get(actor.vehicle.dimens.get_id().unwrap()) {
+                (limits.0, limits.1)
+            } else {
+                (None, None)
+            }
+        }))
+    }
 }
 
 fn parse_time(time: &String) -> Timestamp {

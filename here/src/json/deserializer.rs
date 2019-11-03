@@ -109,7 +109,7 @@ pub struct VehiclePlaces {
     pub max_tours: Option<i32>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleLimits {
     pub max_distance: Option<f64>,
