@@ -14,7 +14,7 @@ use std::sync::Arc;
 mod deserializer;
 
 use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
-use crate::json::reader::deserializer::JobPlace;
+use crate::json::reader::deserializer::{JobPlace, VehicleBreak};
 
 type ApiProblem = self::deserializer::Problem;
 type JobIndex = HashMap<String, Arc<Job>>;
@@ -193,11 +193,12 @@ fn read_jobs(
 }
 
 fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_index: &mut JobIndex) -> Vec<Arc<Job>> {
+    let mut jobs = vec![];
     api_problem.plan.jobs.iter().for_each(|job| match job {
         JobVariant::Single(job) => {
             let demand = *job.demand.first().unwrap();
             let pickup = job.places.pickup.as_ref().map(|pickup| {
-                get_single(
+                get_single_with_extras(
                     &pickup.location,
                     pickup.duration,
                     Demand { pickup: (demand, 0), delivery: (0, 0) },
@@ -207,7 +208,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 )
             });
             let delivery = job.places.delivery.as_ref().map(|delivery| {
-                get_single(
+                get_single_with_extras(
                     &delivery.location,
                     delivery.duration,
                     Demand { pickup: (0, 0), delivery: (demand, 0) },
@@ -226,7 +227,8 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 (None, None) => panic!("Single job should contain pickup and/or delivery."),
             };
 
-            job_index.insert(job.id.clone(), problem_job);
+            job_index.insert(job.id.clone(), problem_job.clone());
+            jobs.push(problem_job);
         }
         JobVariant::Multi(job) => {
             let mut singles = job
@@ -235,7 +237,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 .iter()
                 .map(|pickup| {
                     let demand = *pickup.demand.first().unwrap();
-                    Arc::new(get_single(
+                    Arc::new(get_single_with_extras(
                         &pickup.location,
                         pickup.duration,
                         Demand { pickup: (0, demand), delivery: (0, 0) },
@@ -247,7 +249,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 .collect::<Vec<Arc<Single>>>();
             singles.extend(job.places.deliveries.iter().map(|delivery| {
                 let demand = *delivery.demand.first().unwrap();
-                Arc::new(get_single(
+                Arc::new(get_single_with_extras(
                     &delivery.location,
                     delivery.duration,
                     Demand { pickup: (0, 0), delivery: (0, demand) },
@@ -257,11 +259,13 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 ))
             }));
 
-            job_index.insert(job.id.clone(), get_multi_job(&job.id, &job.skills, singles));
+            let problem_job = get_multi_job(&job.id, &job.skills, singles);
+            job_index.insert(job.id.clone(), problem_job.clone());
+            jobs.push(problem_job)
         }
     });
 
-    unimplemented!()
+    jobs
 }
 
 fn read_conditional_jobs(
@@ -269,7 +273,28 @@ fn read_conditional_jobs(
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
 ) -> Vec<Arc<Job>> {
-    unimplemented!()
+    let mut jobs = vec![];
+    api_problem.fleet.types.iter().filter(|v| v.vehicle_break.is_some()).for_each(|vehicle| {
+        let place: &VehicleBreak = vehicle.vehicle_break.as_ref().unwrap();
+        (1..vehicle.amount + 1).for_each(|index| {
+            let id = format!("{}_{}", vehicle.id, index);
+            let mut single = get_single(
+                place.location.as_ref().and_then(|l| Some(l)),
+                place.duration,
+                &Some(place.times.clone()),
+                coord_index,
+            );
+            single.dimens.set_id("break");
+            single.dimens.insert("type".to_string(), Box::new("break".to_string()));
+            single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
+
+            let job = Arc::new(Job::Single(Arc::new(single)));
+            job_index.insert(id, job.clone());
+            jobs.push(job);
+        });
+    });
+
+    jobs
 }
 
 fn read_locks(api_problem: &ApiProblem, jobs: &Jobs, job_index: &JobIndex) -> Option<Vec<Lock>> {
@@ -304,6 +329,24 @@ fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
 // region helpers
 
 fn get_single(
+    location: Option<&Vec<f64>>,
+    duration: Duration,
+    times: &Option<Vec<Vec<String>>>,
+    coord_index: &CoordIndex,
+) -> Single {
+    Single {
+        places: vec![Place {
+            location: location.as_ref().and_then(|l| coord_index.get_by_vec(l)),
+            duration,
+            times: times
+                .as_ref()
+                .map_or(vec![TimeWindow::max()], |tws| tws.iter().map(|tw| parse_time_window(tw)).collect()),
+        }],
+        dimens: Default::default(),
+    }
+}
+
+fn get_single_with_extras(
     location: &Vec<f64>,
     duration: Duration,
     demand: Demand<i32>,
@@ -311,20 +354,11 @@ fn get_single(
     tag: &Option<String>,
     coord_index: &CoordIndex,
 ) -> Single {
-    let mut dimens: Dimensions = Default::default();
-    dimens.set_demand(demand);
-    add_tag(&mut dimens, tag);
+    let mut single = get_single(Some(location), duration, times, coord_index);
+    single.dimens.set_demand(demand);
+    add_tag(&mut single.dimens, tag);
 
-    Single {
-        places: vec![Place {
-            location: coord_index.get_by_vec(location),
-            duration,
-            times: times
-                .as_ref()
-                .map_or(vec![TimeWindow::max()], |tws| tws.iter().map(|tw| parse_time_window(tw)).collect()),
-        }],
-        dimens,
-    }
+    single
 }
 
 fn get_single_job(id: &String, single: Single, skills: &Option<Vec<String>>) -> Arc<Job> {
