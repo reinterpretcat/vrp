@@ -12,12 +12,12 @@ use std::sync::Arc;
 const MAX_DISTANCE_KEY: i32 = 21;
 const MAX_DURATION_KEY: i32 = 22;
 
-type LimitFunc = Arc<dyn Fn(&Arc<Actor>) -> (Option<Distance>, Option<Duration>) + Send + Sync>;
+pub type TravelLimitFunc = Arc<dyn Fn(&Actor) -> (Option<Distance>, Option<Duration>) + Send + Sync>;
 
 /// Allows to limit actor's traveling distance and time.
 /// NOTE should be used after Timing module.
 pub struct TravelModule {
-    limit_func: LimitFunc,
+    limit_func: TravelLimitFunc,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
     transport: Arc<dyn TransportCost + Send + Sync>,
@@ -25,7 +25,7 @@ pub struct TravelModule {
 
 impl TravelModule {
     pub fn new(
-        limit_func: LimitFunc,
+        limit_func: TravelLimitFunc,
         transport: Arc<dyn TransportCost + Send + Sync>,
         distance_code: i32,
         duration_code: i32,
@@ -81,7 +81,7 @@ impl ConstraintModule for TravelModule {
 }
 
 struct TravelHardActivityConstraint {
-    limit_func: LimitFunc,
+    limit_func: TravelLimitFunc,
     distance_code: i32,
     duration_code: i32,
     duration_func: Box<dyn Fn(Profile, Location, Location, Timestamp) -> f64 + Send + Sync>,
@@ -114,7 +114,7 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
 
 impl TravelHardActivityConstraint {
     fn new(
-        limit_func: LimitFunc,
+        limit_func: TravelLimitFunc,
         distance_code: i32,
         duration_code: i32,
         transport: Arc<dyn TransportCost + Send + Sync>,

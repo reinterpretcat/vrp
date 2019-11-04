@@ -19,6 +19,7 @@ pub use self::capacity::Demand;
 pub use self::capacity::DemandDimension;
 
 mod traveling;
+pub use self::traveling::TravelLimitFunc;
 pub use self::traveling::TravelModule;
 
 mod locking;

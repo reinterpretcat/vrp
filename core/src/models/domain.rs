@@ -5,7 +5,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub type Extras = Arc<HashMap<String, Box<dyn Any + Send + Sync>>>;
+pub type Extras = HashMap<String, Box<dyn Any + Send + Sync>>;
 
 /// Defines VRP problem.
 pub struct Problem {
@@ -73,7 +73,7 @@ pub struct LockDetail {
 /// Specifies jobs locked to specific actors.
 pub struct Lock {
     /// Specifies condition when locked jobs can be assigned to specific actor
-    pub condition: Arc<dyn Fn(&Arc<Actor>) -> bool + Sync + Send>,
+    pub condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
     /// Specifies lock details.
     pub details: Vec<LockDetail>,
 }
@@ -85,7 +85,7 @@ impl LockDetail {
 }
 
 impl Lock {
-    pub fn new(condition: Arc<dyn Fn(&Arc<Actor>) -> bool + Sync + Send>, details: Vec<LockDetail>) -> Self {
+    pub fn new(condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>, details: Vec<LockDetail>) -> Self {
         Self { condition, details }
     }
 }

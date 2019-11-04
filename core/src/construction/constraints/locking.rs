@@ -80,7 +80,7 @@ impl StrictLockingModule {
 
 struct StrictLockingHardRouteConstraint {
     code: i32,
-    conditions: HashMap<Arc<Job>, Arc<dyn Fn(&Arc<Actor>) -> bool + Sync + Send>>,
+    conditions: HashMap<Arc<Job>, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>,
 }
 
 impl HardRouteConstraint for StrictLockingHardRouteConstraint {
@@ -128,7 +128,7 @@ struct JobIndex {
 /// Represents a rule created from lock model.
 struct Rule {
     /// Specifies condition when locked jobs can be assigned to specific actor.
-    condition: Arc<dyn Fn(&Arc<Actor>) -> bool + Sync + Send>,
+    condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
     /// Specifies lock position.
     position: LockPosition,
     /// Stores jobs.

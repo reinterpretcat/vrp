@@ -1,9 +1,12 @@
 use crate::json::coord_index::CoordIndex;
 use chrono::DateTime;
-use core::construction::constraints::{CapacityDimension, Demand, DemandDimension};
+use core::construction::constraints::{
+    CapacityConstraintModule, CapacityDimension, ConstraintPipeline, Demand, DemandDimension, StrictLockingModule,
+    TimingConstraintModule, TravelLimitFunc, TravelModule,
+};
 use core::models::common::*;
 use core::models::problem::*;
-use core::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
+use core::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -14,7 +17,7 @@ use std::sync::Arc;
 mod deserializer;
 
 use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
-use crate::json::reader::deserializer::{JobPlace, VehicleBreak};
+use crate::json::reader::deserializer::VehicleBreak;
 
 type ApiProblem = self::deserializer::Problem;
 type JobIndex = HashMap<String, Arc<Job>>;
@@ -52,15 +55,33 @@ impl HereProblem for (String, Vec<String>) {
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
     let coord_index = create_coord_index(&api_problem);
-    let transport_costs = create_transport_costs(&matrices);
+    let transport = Arc::new(create_transport_costs(&matrices));
+    let activity = Arc::new(SimpleActivityCost::new());
     let fleet = read_fleet(&api_problem, &coord_index);
 
     let mut job_index = Default::default();
-    let jobs = read_jobs(&api_problem, &coord_index, &fleet, &transport_costs, &mut job_index);
-    let locks = read_locks(&api_problem, &jobs, &job_index);
+    let jobs = read_jobs(&api_problem, &coord_index, &fleet, transport.as_ref(), &mut job_index);
+    let locks = read_locks(&api_problem, &job_index);
     let limits = read_limits(&api_problem);
 
-    unimplemented!()
+    let constraint = create_constraint_pipeline(
+        &fleet,
+        activity.clone(),
+        transport.clone(),
+        locks.iter().cloned().collect(),
+        limits,
+    );
+    let extras = create_extras(coord_index);
+
+    Ok(Problem {
+        fleet: Arc::new(fleet),
+        jobs: Arc::new(jobs),
+        locks,
+        constraint: Arc::new(constraint),
+        activity,
+        transport,
+        extras: Arc::new(extras),
+    })
 }
 
 fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
@@ -108,7 +129,7 @@ fn create_transport_costs(matrices: &Vec<Matrix>) -> MatrixTransportCost {
     let mut durations: Vec<Vec<Duration>> = Default::default();
     let mut distances: Vec<Vec<Distance>> = Default::default();
 
-    (0..).zip(matrices.iter()).for_each(|(index, matrix)| {
+    matrices.iter().for_each(|matrix| {
         // TODO process error codes
         durations.push(matrix.travel_times.iter().map(|d| *d as f64).collect());
         distances.push(matrix.distances.iter().map(|d| *d as f64).collect());
@@ -177,6 +198,35 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
     };
 
     Fleet::new(vec![fake_driver], vehicles)
+}
+
+fn create_constraint_pipeline(
+    fleet: &Fleet,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+    locks: Vec<Arc<Lock>>,
+    limit_func: Option<TravelLimitFunc>,
+) -> ConstraintPipeline {
+    let mut constraint = ConstraintPipeline::new();
+    constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
+    constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
+
+    if !locks.is_empty() {
+        constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks, 3)));
+    }
+
+    if let Some(limit_func) = limit_func {
+        constraint.add_module(Box::new(TravelModule::new(limit_func.clone(), transport.clone(), 5, 6)));
+    }
+
+    constraint
+}
+
+fn create_extras(coord_index: CoordIndex) -> Extras {
+    let mut extras = Extras::default();
+    extras.insert("coord_index".to_owned(), Box::new(coord_index));
+
+    extras
 }
 
 fn read_jobs(
@@ -297,9 +347,9 @@ fn read_conditional_jobs(
     jobs
 }
 
-fn read_locks(api_problem: &ApiProblem, jobs: &Jobs, job_index: &JobIndex) -> Option<Vec<Lock>> {
+fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {
     if api_problem.plan.relations.as_ref().map_or(true, |r| r.is_empty()) {
-        return None;
+        return vec![];
     }
 
     let relations = api_problem.plan.relations.as_ref().unwrap().iter().fold(HashMap::new(), |mut acc, r| {
@@ -308,6 +358,8 @@ fn read_locks(api_problem: &ApiProblem, jobs: &Jobs, job_index: &JobIndex) -> Op
     });
 
     let locks = relations.into_iter().fold(vec![], |mut acc, (vehicle_id, rels)| {
+        let vehicle_id_copy = vehicle_id.clone();
+        let condition = Arc::new(move |a: &Actor| *a.vehicle.dimens.get_id().unwrap() == vehicle_id_copy);
         let details = rels.iter().fold(vec![], |mut acc, rel| {
             let order = match rel.type_field {
                 RelationType::Tour => LockOrder::Any,
@@ -340,15 +392,15 @@ fn read_locks(api_problem: &ApiProblem, jobs: &Jobs, job_index: &JobIndex) -> Op
             acc
         });
 
+        acc.push(Arc::new(Lock::new(condition, details)));
+
         acc
     });
 
-    Some(locks)
+    locks
 }
 
-fn read_limits(
-    api_problem: &ApiProblem,
-) -> Option<Arc<dyn Fn(&Arc<Actor>) -> (Option<Distance>, Option<Duration>) + Send + Sync>> {
+fn read_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
     let limits = api_problem.fleet.types.iter().filter(|vehicle| vehicle.limits.is_some()).fold(
         HashMap::new(),
         |mut acc, vehicle| {
@@ -361,7 +413,7 @@ fn read_limits(
     if limits.is_empty() {
         None
     } else {
-        Some(Arc::new(move |actor: &Arc<Actor>| {
+        Some(Arc::new(move |actor: &Actor| {
             if let Some(limits) = limits.get(actor.vehicle.dimens.get_id().unwrap()) {
                 (limits.0, limits.1)
             } else {
