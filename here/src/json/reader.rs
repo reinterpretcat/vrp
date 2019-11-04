@@ -1,9 +1,10 @@
+#[cfg(test)]
+#[path = "../../tests/unit/json/reader_test.rs"]
+mod reader_test;
+
 use crate::json::coord_index::CoordIndex;
 use chrono::DateTime;
-use core::construction::constraints::{
-    CapacityConstraintModule, CapacityDimension, ConstraintPipeline, Demand, DemandDimension, StrictLockingModule,
-    TimingConstraintModule, TravelLimitFunc, TravelModule,
-};
+use core::construction::constraints::*;
 use core::models::common::*;
 use core::models::problem::*;
 use core::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
@@ -24,11 +25,12 @@ type JobIndex = HashMap<String, Arc<Job>>;
 
 /// Reads specific problem definition from various sources.
 pub trait HereProblem {
-    fn parse_here(&self) -> Result<Problem, String>;
+    fn read_here(&self) -> Result<Problem, String>;
 }
 
 impl HereProblem for (File, Vec<File>) {
-    fn parse_here(&self) -> Result<Problem, String> {
+    fn read_here(&self) -> Result<Problem, String> {
+        // TODO consume files and close them?
         let problem = deserialize_problem(BufReader::new(&self.0)).map_err(|err| err.to_string())?;
 
         let matrices = self.1.iter().fold(vec![], |mut acc, matrix| {
@@ -41,7 +43,7 @@ impl HereProblem for (File, Vec<File>) {
 }
 
 impl HereProblem for (String, Vec<String>) {
-    fn parse_here(&self) -> Result<Problem, String> {
+    fn read_here(&self) -> Result<Problem, String> {
         let problem = deserialize_problem(BufReader::new(StringReader::new(&self.0))).map_err(|err| err.to_string())?;
 
         let matrices = self.1.iter().fold(vec![], |mut acc, matrix| {
@@ -174,7 +176,7 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
 
         let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
 
-        (1..vehicle.amount).for_each(|number| {
+        (1..vehicle.amount + 1).for_each(|number| {
             let mut dimens: Dimensions = Default::default();
             dimens.insert("type_id".to_owned(), Box::new(vehicle.id.clone()));
             dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
@@ -435,9 +437,7 @@ fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
 
 fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.types.iter().fold(Default::default(), |mut acc, vehicle| {
-        if !acc.get(&vehicle.profile).is_none() {
-            acc.insert(vehicle.profile.clone(), acc.len());
-        }
+        acc.insert(vehicle.profile.clone(), acc.len());
         acc
     })
 }
