@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../tests/unit/json/reader_test.rs"]
+#[path = "../../../tests/unit/json/problem/reader_test.rs"]
 mod reader_test;
 
 use crate::json::coord_index::CoordIndex;
@@ -10,15 +10,13 @@ use core::models::problem::*;
 use core::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Read};
-use std::slice::Iter;
+use std::io::BufReader;
 use std::sync::Arc;
 
 #[path = "./deserializer.rs"]
 mod deserializer;
-
-use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
-use crate::json::reader::deserializer::VehicleBreak;
+use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType, VehicleBreak};
+use super::StringReader;
 
 type ApiProblem = self::deserializer::Problem;
 type JobIndex = HashMap<String, Arc<Job>>;
@@ -502,33 +500,6 @@ fn add_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
 fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
     if let Some(tag) = tag {
         dimens.insert("tag".to_string(), Box::new(tag.clone()));
-    }
-}
-
-// endregion
-
-// region utils
-
-struct StringReader<'a> {
-    iter: Iter<'a, u8>,
-}
-
-impl<'a> StringReader<'a> {
-    pub fn new(data: &'a str) -> Self {
-        Self { iter: data.as_bytes().iter() }
-    }
-}
-
-impl<'a> Read for StringReader<'a> {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        for i in 0..buf.len() {
-            if let Some(x) = self.iter.next() {
-                buf[i] = *x;
-            } else {
-                return Ok(i);
-            }
-        }
-        Ok(buf.len())
     }
 }
 

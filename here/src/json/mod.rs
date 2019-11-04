@@ -1,4 +1,4 @@
 mod coord_index;
 
-mod reader;
-pub use self::reader::HereProblem;
+mod problem;
+pub use self::problem::HereProblem;
