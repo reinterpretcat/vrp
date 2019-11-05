@@ -2,7 +2,9 @@
 #[path = "../../../tests/unit/json/problem/reader_test.rs"]
 mod reader_test;
 
+use super::StringReader;
 use crate::json::coord_index::CoordIndex;
+use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
 use chrono::DateTime;
 use core::construction::constraints::*;
 use core::models::common::*;
@@ -13,12 +15,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;
 
-#[path = "./deserializer.rs"]
-mod deserializer;
-use self::deserializer::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType, VehicleBreak};
-use super::StringReader;
-
-type ApiProblem = self::deserializer::Problem;
+type ApiProblem = crate::json::problem::Problem;
 type JobIndex = HashMap<String, Arc<Job>>;
 
 /// Reads specific problem definition from various sources.
@@ -325,7 +322,7 @@ fn read_conditional_jobs(
 ) -> Vec<Arc<Job>> {
     let mut jobs = vec![];
     api_problem.fleet.types.iter().filter(|v| v.vehicle_break.is_some()).for_each(|vehicle| {
-        let place: &VehicleBreak = vehicle.vehicle_break.as_ref().unwrap();
+        let place = vehicle.vehicle_break.as_ref().unwrap();
         (1..vehicle.amount + 1).for_each(|index| {
             let id = format!("{}_{}", vehicle.id, index);
             let mut single = get_single(

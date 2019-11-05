@@ -24,5 +24,8 @@ impl<'a> Read for StringReader<'a> {
     }
 }
 
+mod deserializer;
+pub use self::deserializer::*;
+
 mod reader;
 pub use self::reader::HereProblem;
