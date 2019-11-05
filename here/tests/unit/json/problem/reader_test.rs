@@ -1,6 +1,60 @@
 use crate::helpers::get_test_resource;
 use crate::json::problem::*;
 use crate::json::HereProblem;
+use core::construction::constraints::{Demand, DemandDimension};
+use core::models::common::{Dimensions, IdDimension, TimeWindow};
+use core::models::problem::{Jobs, Multi, Place, Single};
+use std::sync::Arc;
+
+fn get_job(index: usize, jobs: &Jobs) -> Arc<core::models::problem::Job> {
+    jobs.all().collect::<Vec<_>>().get(index).unwrap().clone()
+}
+
+fn get_single_job(index: usize, jobs: &Jobs) -> Arc<Single> {
+    match get_job(index, jobs).as_ref() {
+        core::models::problem::Job::Single(job) => job.clone(),
+        _ => panic!("Wrong type"),
+    }
+}
+
+fn get_multi_job(index: usize, jobs: &Jobs) -> Arc<Multi> {
+    match get_job(index, jobs).as_ref() {
+        core::models::problem::Job::Multi(job) => job.clone(),
+        _ => panic!("Wrong type"),
+    }
+}
+
+fn get_single_place(single: &Single) -> &Place {
+    single.places.first().unwrap()
+}
+
+fn assert_time_window(tw: &TimeWindow, expected: &(f64, f64)) {
+    assert_eq!(tw.start, expected.0);
+    assert_eq!(tw.end, expected.1);
+}
+
+fn assert_time_windows(tws: &Vec<TimeWindow>, expected: Vec<(f64, f64)>) {
+    assert_eq!(tws.len(), expected.len());
+    (0..tws.len()).for_each(|index| {
+        assert_time_window(tws.get(index).unwrap(), expected.get(index).unwrap());
+    });
+}
+
+fn assert_demand(demand: &Demand<i32>, expected: &Demand<i32>) {
+    assert_eq!(demand.pickup.0, expected.pickup.0);
+    assert_eq!(demand.pickup.1, expected.pickup.1);
+    assert_eq!(demand.delivery.0, expected.delivery.0);
+    assert_eq!(demand.delivery.1, expected.delivery.1);
+}
+
+fn assert_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
+    let skills = dimens.get("skills").and_then(|any| any.downcast_ref::<Vec<String>>());
+    if let Some(expected) = expected {
+        assert_eq!(skills.unwrap().clone(), expected);
+    } else {
+        assert!(skills.is_none());
+    }
+}
 
 #[test]
 fn can_read_minimal_problem() {
@@ -13,22 +67,10 @@ fn can_read_minimal_problem() {
     assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 2);
     assert!(problem.locks.is_empty());
 
-    let tw = problem
-        .fleet
-        .vehicles
-        .first()
-        .as_ref()
-        .unwrap()
-        .details
-        .first()
-        .as_ref()
-        .unwrap()
-        .time
-        .as_ref()
-        .unwrap()
-        .clone();
-    assert_eq!(tw.start, 1562230800.);
-    assert_eq!(tw.end, 1562263200.);
+    assert_time_window(
+        problem.fleet.vehicles.first().as_ref().unwrap().details.first().as_ref().unwrap().time.as_ref().unwrap(),
+        &(1562230800., 1562263200.),
+    );
 }
 
 #[test]
@@ -138,5 +180,66 @@ fn can_read_complex_problem() {
     let problem = (problem, vec![matrix]).read_here().unwrap();
 
     assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 3 + 2);
-    // TODO
+
+    // delivery
+    let job = get_single_job(0, problem.jobs.as_ref());
+    let place = get_single_place(job.as_ref());
+    assert_eq!(job.dimens.get_id().unwrap(), "delivery_job");
+    assert_eq!(place.duration, 100.);
+    assert_eq!(place.location.unwrap(), 0);
+    assert_demand(job.dimens.get_demand().unwrap(), &Demand::<i32> { pickup: (0, 0), delivery: (1, 0) });
+    assert_time_windows(&place.times, vec![(0., 100.), (110., 120.)]);
+    assert_skills(&job.dimens, Some(vec!["unique".to_string()]));
+
+    // shipment
+    let job = get_multi_job(1, problem.jobs.as_ref());
+    assert_eq!(job.dimens.get_id().unwrap(), "shipment_job");
+    assert_skills(&job.dimens, None);
+
+    let pickup = job.jobs.first().unwrap().clone();
+    let place = get_single_place(pickup.as_ref());
+    assert_eq!(place.duration, 110.);
+    assert_eq!(place.location.unwrap(), 1);
+    assert_demand(pickup.dimens.get_demand().unwrap(), &Demand::<i32> { pickup: (0, 2), delivery: (0, 0) });
+    assert_time_windows(&place.times, vec![(10., 30.)]);
+
+    let delivery = job.jobs.last().unwrap().clone();
+    let place = get_single_place(delivery.as_ref());
+    assert_eq!(place.duration, 120.);
+    assert_eq!(place.location.unwrap(), 0);
+    assert_demand(delivery.dimens.get_demand().unwrap(), &Demand::<i32> { pickup: (0, 0), delivery: (0, 2) });
+    assert_time_windows(&place.times, vec![(50., 60.)]);
+
+    // pickup
+    let job = get_single_job(2, problem.jobs.as_ref());
+    let place = get_single_place(job.as_ref());
+    assert_eq!(job.dimens.get_id().unwrap(), "pickup_job");
+    assert_eq!(place.duration, 90.);
+    assert_eq!(place.location.unwrap(), 2);
+    assert_demand(job.dimens.get_demand().unwrap(), &Demand::<i32> { pickup: (3, 0), delivery: (0, 0) });
+    assert_time_windows(&place.times, vec![(10., 70.)]);
+    assert_skills(&job.dimens, Some(vec!["unique2".to_string()]));
+
+    // fleet
+    assert_eq!(problem.fleet.profiles.len(), 1);
+    assert_eq!(problem.fleet.drivers.len(), 1);
+    assert_eq!(problem.fleet.vehicles.len(), 2);
+
+    (1..3).for_each(|index| {
+        let vehicle = problem.fleet.vehicles.get(index - 1).unwrap();
+        assert_eq!(*vehicle.dimens.get_id().unwrap(), format!("my_vehicle_{}", index));
+        assert_eq!(vehicle.profile, 0);
+        assert_eq!(vehicle.costs.fixed, 100.0);
+        assert_eq!(vehicle.costs.per_distance, 1.0);
+        assert_eq!(vehicle.costs.per_driving_time, 2.0);
+        assert_eq!(vehicle.costs.per_waiting_time, 2.0);
+        assert_eq!(vehicle.costs.per_service_time, 2.0);
+
+        assert_eq!(vehicle.details.len(), 1);
+        let detail = vehicle.details.first().unwrap();
+        assert_eq!(detail.start.unwrap(), 3);
+        assert_eq!(detail.end.unwrap(), 3);
+        assert_time_window(detail.time.as_ref().unwrap(), &(0., 100.));
+        assert_skills(&vehicle.dimens, Some(vec!["unique1".to_string(), "unique2".to_string()]));
+    });
 }

@@ -250,11 +250,14 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
     api_problem.plan.jobs.iter().for_each(|job| match job {
         JobVariant::Single(job) => {
             let demand = *job.demand.first().unwrap();
+            let is_shipment = job.places.pickup.is_some() && job.places.delivery.is_some();
+            let demand = if is_shipment { (0, demand) } else { (demand, 0) };
+
             let pickup = job.places.pickup.as_ref().map(|pickup| {
                 get_single_with_extras(
                     &pickup.location,
                     pickup.duration,
-                    Demand { pickup: (demand, 0), delivery: (0, 0) },
+                    Demand { pickup: demand.clone(), delivery: (0, 0) },
                     &pickup.times,
                     &pickup.tag,
                     &coord_index,
@@ -264,7 +267,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 get_single_with_extras(
                     &delivery.location,
                     delivery.duration,
-                    Demand { pickup: (0, 0), delivery: (demand, 0) },
+                    Demand { pickup: (0, 0), delivery: demand },
                     &delivery.times,
                     &delivery.tag,
                     &coord_index,
