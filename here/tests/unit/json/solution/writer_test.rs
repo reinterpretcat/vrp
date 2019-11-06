@@ -1,4 +1,4 @@
-use crate::helpers::{create_stop_with_activity, solve_with_cheapest};
+use crate::helpers::{create_delivery_job, create_stop_with_activity, solve_with_cheapest};
 use crate::json::problem::*;
 use crate::json::solution::writer::create_solution;
 use crate::json::solution::*;
@@ -9,23 +9,7 @@ fn can_create_solution() {
     let problem = Problem {
         id: "my_problem".to_string(),
         plan: Plan {
-            jobs: vec![JobVariant::Single(Job {
-                id: "delivery_job".to_string(),
-                places: JobPlaces {
-                    pickup: Option::None,
-                    delivery: Some(JobPlace {
-                        times: Some(vec![
-                            vec!["1970-01-01T00:00:00Z".to_string(), "1970-01-01T00:01:40Z".to_string()],
-                            vec!["1970-01-01T00:01:50Z".to_string(), "1970-01-01T00:02:00Z".to_string()],
-                        ]),
-                        location: vec![52.48325, 13.4436],
-                        duration: 100.0,
-                        tag: Some("my_delivery".to_string()),
-                    }),
-                },
-                demand: vec![1],
-                skills: Some(vec!["unique".to_string()]),
-            })],
+            jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
             relations: Option::None,
         },
         fleet: Fleet {

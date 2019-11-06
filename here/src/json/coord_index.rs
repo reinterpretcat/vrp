@@ -11,6 +11,10 @@ impl Location {
     pub fn new(latitude: f64, longitude: f64) -> Self {
         Self { latitude, longitude }
     }
+
+    pub fn as_vec(&self) -> Vec<f64> {
+        vec![self.latitude, self.longitude]
+    }
 }
 
 /// Represents coordinate index.
@@ -40,6 +44,10 @@ impl CoordIndex {
     pub fn get_by_vec(&self, location: &Vec<f64>) -> Option<usize> {
         assert_eq!(location.len(), 2);
         self.direct_index.get(&Location::new(*location.first().unwrap(), *location.last().unwrap())).cloned()
+    }
+
+    pub fn get_by_idx(&self, index: &usize) -> Option<Location> {
+        self.reverse_index.get(index).cloned()
     }
 }
 

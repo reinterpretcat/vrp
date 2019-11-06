@@ -74,7 +74,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         locks.iter().cloned().collect(),
         limits,
     );
-    let extras = create_extras(coord_index);
+    let extras = create_extras(&api_problem.id, coord_index);
 
     Ok(Problem {
         fleet: Arc::new(fleet),
@@ -225,9 +225,10 @@ fn create_constraint_pipeline(
     constraint
 }
 
-fn create_extras(coord_index: CoordIndex) -> Extras {
+fn create_extras(problem_id: &String, coord_index: CoordIndex) -> Extras {
     let mut extras = Extras::default();
     extras.insert("coord_index".to_owned(), Box::new(coord_index));
+    extras.insert("problem_id".to_string(), Box::new(problem_id.clone()));
 
     extras
 }

@@ -16,6 +16,22 @@ pub enum Job {
     Multi(Arc<Multi>),
 }
 
+impl Job {
+    pub fn as_single(&self) -> Arc<Single> {
+        match &self {
+            Job::Single(job) => job.clone(),
+            _ => panic!("Unexpected job type: multi"),
+        }
+    }
+
+    pub fn as_multi(&self) -> Arc<Multi> {
+        match &self {
+            Job::Multi(job) => job.clone(),
+            _ => panic!("Unexpected job type: single"),
+        }
+    }
+}
+
 /// Represents a job place details where and/or when work has to be performed.
 pub struct Place {
     /// Location where work has to be performed.

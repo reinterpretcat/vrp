@@ -2,7 +2,7 @@ use serde::Serialize;
 use serde_json::Error;
 use std::io::{BufWriter, Write};
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct Timing {
     pub driving: i32,
     pub serving: i32,
@@ -11,7 +11,7 @@ pub struct Timing {
     pub break_time: i32,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct Statistic {
     pub cost: f64,
     pub distance: i32,

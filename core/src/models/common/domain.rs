@@ -63,6 +63,16 @@ impl Eq for Schedule {}
 /// * tag.
 pub type Dimensions = HashMap<String, Box<dyn Any + Send + Sync>>;
 
+pub trait ValueDimension {
+    fn get_value<T: 'static>(&self, key: &str) -> Option<&T>;
+}
+
+impl ValueDimension for Dimensions {
+    fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
+        self.get(key).and_then(|any| any.downcast_ref::<T>())
+    }
+}
+
 pub trait IdDimension {
     fn set_id(&mut self, id: &str) -> &mut Self;
     fn get_id(&self) -> Option<&String>;
@@ -75,6 +85,6 @@ impl IdDimension for Dimensions {
     }
 
     fn get_id(&self) -> Option<&String> {
-        self.get("id").and_then(|any| any.downcast_ref::<String>())
+        self.get_value::<String>("id")
     }
 }

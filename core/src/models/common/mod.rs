@@ -14,3 +14,4 @@ pub use self::domain::Location;
 pub use self::domain::Profile;
 pub use self::domain::Schedule;
 pub use self::domain::TimeWindow;
+pub use self::domain::ValueDimension;

@@ -11,5 +11,8 @@ pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
 mod solver;
 pub use self::solver::*;
 
+pub mod problem;
+pub use self::problem::*;
+
 pub mod solution;
 pub use self::solution::*;
