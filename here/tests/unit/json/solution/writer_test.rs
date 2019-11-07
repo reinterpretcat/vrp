@@ -1,7 +1,6 @@
 use crate::helpers::{create_delivery_job, create_stop_with_activity, solve_with_heuristic};
 use crate::json::problem::*;
 use crate::json::solution::*;
-use std::sync::Arc;
 
 #[test]
 fn can_create_solution() {
@@ -36,8 +35,7 @@ fn can_create_solution() {
         distances: vec![0, 5, 5, 5, 0, 10, 5, 10, 0],
         error_codes: Option::None,
     };
-    let problem = Arc::new((problem, vec![matrix]).read_here().unwrap());
-    let solution = solve_with_heuristic(problem.clone());
+    let solution = solve_with_heuristic(problem, vec![matrix]);
 
     assert_eq!(
         solution,
