@@ -9,9 +9,7 @@ use std::process;
 use clap::{App, Arg, ArgMatches};
 use core::models::{Problem, Solution};
 
-mod solver;
-pub use self::solver::Solver;
-use crate::solver::SolverBuilder;
+use core::solver::SolverBuilder;
 use scientific::common::read_init_solution;
 use scientific::lilim::{write_lilim_solution, LilimProblem};
 use scientific::solomon::{write_solomon_solution, SolomonProblem};

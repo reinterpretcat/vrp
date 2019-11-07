@@ -1,14 +1,14 @@
-use core::construction::states::InsertionContext;
-use core::models::common::ObjectiveCost;
-use core::models::{Problem, Solution};
-use core::refinement::acceptance::{Acceptance, Greedy};
-use core::refinement::objectives::{Objective, PenalizeUnassigned};
-use core::refinement::recreate::{CompositeRecreate, Recreate};
-use core::refinement::ruin::{CompositeRuin, Ruin};
-use core::refinement::selection::{SelectBest, Selection};
-use core::refinement::termination::{CompositeTermination, MaxGeneration, Termination, VariationCoefficient};
-use core::refinement::RefinementContext;
-use core::utils::{compare_floats, DefaultRandom};
+use crate::construction::states::InsertionContext;
+use crate::models::common::ObjectiveCost;
+use crate::models::{Problem, Solution};
+use crate::refinement::acceptance::{Acceptance, Greedy};
+use crate::refinement::objectives::{Objective, PenalizeUnassigned};
+use crate::refinement::recreate::{CompositeRecreate, Recreate};
+use crate::refinement::ruin::{CompositeRuin, Ruin};
+use crate::refinement::selection::{SelectBest, Selection};
+use crate::refinement::termination::*;
+use crate::refinement::RefinementContext;
+use crate::utils::{compare_floats, DefaultRandom};
 use std::cmp::Ordering::{Greater, Less};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -21,6 +21,18 @@ pub struct SolverBuilder {
     max_generations: Option<usize>,
     variation_coefficient: Option<(usize, f64)>,
     init_solution: Option<(Arc<Problem>, Arc<Solution>)>,
+}
+
+/// A basic implementation of ruin and recreate metaheuristic.
+pub struct Solver {
+    recreate: Box<dyn Recreate>,
+    ruin: Box<dyn Ruin>,
+    selection: Box<dyn Selection>,
+    objective: Box<dyn Objective>,
+    acceptance: Box<dyn Acceptance>,
+    termination: Box<dyn Termination>,
+    settings: SolverSettings,
+    logger: Box<dyn Fn(String) -> ()>,
 }
 
 impl SolverBuilder {
@@ -113,18 +125,6 @@ impl Default for SolverSettings {
     fn default() -> Self {
         Self { minimize_routes: false, population_size: 1, init_insertion_ctx: None }
     }
-}
-
-/// A custom implementation of ruin and recreate metaheuristic.
-pub struct Solver {
-    recreate: Box<dyn Recreate>,
-    ruin: Box<dyn Ruin>,
-    selection: Box<dyn Selection>,
-    objective: Box<dyn Objective>,
-    acceptance: Box<dyn Acceptance>,
-    termination: Box<dyn Termination>,
-    settings: SolverSettings,
-    logger: Box<dyn Fn(String) -> ()>,
 }
 
 impl Default for Solver {
