@@ -7,3 +7,6 @@ pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
 
     File::open(path)
 }
+
+mod solver;
+pub use self::solver::*;

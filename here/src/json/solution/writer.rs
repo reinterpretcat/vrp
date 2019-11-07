@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/json/solution/writer_test.rs"]
+mod writer_test;
+
 use crate::json::solution::serialize_solution;
 use crate::json::solution::serializer::Timing;
 use core::models::common::{Cost, Distance, Duration, Location, Timestamp};

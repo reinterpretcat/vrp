@@ -1,7 +1,5 @@
 mod coord_index;
 
-mod problem;
-pub use self::problem::HereProblem;
+pub mod problem;
 
-mod solution;
-pub use self::solution::HereSolution;
+pub mod solution;

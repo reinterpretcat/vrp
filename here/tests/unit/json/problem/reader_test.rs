@@ -1,6 +1,5 @@
 use crate::helpers::get_test_resource;
 use crate::json::problem::*;
-use crate::json::HereProblem;
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::{Dimensions, IdDimension, TimeWindow};
 use core::models::problem::{Jobs, Multi, Place, Single};

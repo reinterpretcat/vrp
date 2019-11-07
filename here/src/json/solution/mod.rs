@@ -1,5 +1,5 @@
 mod serializer;
-pub use self::serializer::serialize_solution;
+pub use self::serializer::*;
 
 mod writer;
 pub use self::writer::HereSolution;
