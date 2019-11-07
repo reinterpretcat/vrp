@@ -16,13 +16,10 @@ fn can_create_solution() {
             types: vec![VehicleType {
                 id: "my_vehicle".to_string(),
                 profile: "car".to_string(),
-                costs: VehicleCosts { fixed: Some(1.), distance: 1., time: 1. },
+                costs: VehicleCosts { fixed: Some(10.), distance: 1., time: 1. },
                 places: VehiclePlaces {
-                    start: VehiclePlace { time: "1970-01-01T00:00:00Z".to_string(), location: vec![52.4862, 13.45148] },
-                    end: Some(VehiclePlace {
-                        time: "1970-01-01T00:01:40Z".to_string(),
-                        location: vec![52.4862, 13.45148],
-                    }),
+                    start: VehiclePlace { time: "1970-01-01T00:00:00Z".to_string(), location: vec![0., 0.] },
+                    end: Some(VehiclePlace { time: "1970-01-01T00:01:40Z".to_string(), location: vec![0., 0.] }),
                     max_tours: None,
                 },
                 capacity: vec![10],
@@ -63,7 +60,7 @@ fn can_create_solution() {
                         "departure",
                         "departure",
                         (0., 0.),
-                        0,
+                        2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z")
                     ),
                     create_stop_with_activity(
