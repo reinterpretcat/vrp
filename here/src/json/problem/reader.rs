@@ -353,7 +353,7 @@ fn read_conditional_jobs(
             single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
 
             let job = Arc::new(Job::Single(Arc::new(single)));
-            job_index.insert(id, job.clone());
+            job_index.insert(format!("{}_break", id), job.clone());
             jobs.push(job);
         });
     });
