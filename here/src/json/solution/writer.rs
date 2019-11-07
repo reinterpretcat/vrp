@@ -42,7 +42,7 @@ impl Leg {
     }
 }
 
-fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
+pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
     let coord_index = solution
         .extras
         .get("coord_index")
