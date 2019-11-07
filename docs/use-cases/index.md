@@ -1,0 +1,1 @@
+TODO describe in this section which variations of VRP can be solved + examples

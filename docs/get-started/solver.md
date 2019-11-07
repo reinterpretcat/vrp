@@ -1,0 +1,1 @@
+TODO: describe how to use solver from cli 
