@@ -1,0 +1,6 @@
+ [Get Started](get-started/index.md)
+  * [Scientific formats](get-started/scientific.md)
+  * [HERE format](get-started/here.md)
+  * [Need Help?](get-started/need-help.md)
+* [Architecture](arch/index.md)
+* [Use Cases](use-cases/index.md)
