@@ -4,14 +4,15 @@ mod writer_test;
 
 use crate::json::coord_index::CoordIndex;
 use crate::json::solution::serializer::Timing;
-use crate::json::solution::{serialize_solution, Activity, Extras, Interval, Statistic, Stop, Tour, UnassignedJob};
-use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
+use crate::json::solution::{
+    serialize_solution, Activity, Extras, Interval, Statistic, Stop, Tour, UnassignedJob, UnassignedJobReason,
+};
+use chrono::{SecondsFormat, TimeZone, Utc};
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::*;
 use core::models::solution::{Route, TourActivity};
 use core::models::{Problem, Solution};
 use std::io::{BufWriter, Write};
-use std::ops::Deref;
 
 type ApiSolution = crate::json::solution::serializer::Solution;
 type ApiSchedule = crate::json::solution::serializer::Schedule;
@@ -59,9 +60,9 @@ fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
 
     let statistic = tours.iter().fold(Statistic::default(), |acc, tour| acc + tour.statistic.clone());
 
-    let unassigned = create_unassigned(problem, solution);
+    let unassigned = create_unassigned(solution);
 
-    let extras = create_extras(problem, solution);
+    let extras = create_extras(solution);
 
     ApiSolution { problem_id, statistic, tours, unassigned, extras }
 }
@@ -76,7 +77,6 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
     });
 
     let vehicle = &route.actor.vehicle;
-    let detail = vehicle.details.first().unwrap();
     let start = route.tour.start().unwrap();
 
     let mut tour = Tour {
@@ -131,7 +131,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 });
             }
 
-            let demand = calculate_load(acc.load, act);
+            let load = calculate_load(acc.load, act);
 
             let last = tour.stops.len() - 1;
             let mut last = tour.stops.get_mut(last).unwrap();
@@ -207,10 +207,29 @@ fn calculate_load(current: i32, act: &TourActivity) -> i32 {
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
 }
 
-fn create_unassigned(problem: &Problem, solution: &Solution) -> Vec<UnassignedJob> {
-    unimplemented!()
+fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
+    solution.unassigned.iter().fold(vec![], |mut acc, unassigned| {
+        let reason = match unassigned.1 {
+            1 => (2, "cannot be visited within time window"),
+            2 => (3, "does not fit into any vehicle due to capacity"),
+            5 => (101, "cannot be assigned due to max distance constraint of vehicle"),
+            6 => (102, "cannot be assigned due to shift time constraint of vehicle"),
+            10 => (1, "cannot serve required skill"),
+            11 => (100, "location unreachable"),
+            _ => (0, "unknown"),
+        };
+        acc.push(UnassignedJob {
+            job_id: unassigned.0.as_single().dimens.get_id().unwrap().clone(),
+            reasons: vec![UnassignedJobReason { code: reason.0, description: reason.1.to_string() }],
+        });
+        acc
+    })
 }
 
-fn create_extras(problem: &Problem, solution: &Solution) -> Extras {
-    unimplemented!()
+fn create_extras(solution: &Solution) -> Extras {
+    if solution.extras.get("iterations").is_some() {
+        unimplemented!()
+    }
+
+    Extras { performance: vec![] }
 }
