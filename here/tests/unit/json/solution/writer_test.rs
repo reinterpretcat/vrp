@@ -1,4 +1,4 @@
-use crate::helpers::solve_with_cheapest;
+use crate::helpers::{create_stop_with_activity, solve_with_cheapest};
 use crate::json::problem::*;
 use crate::json::solution::writer::create_solution;
 use crate::json::solution::*;
@@ -75,66 +75,34 @@ fn can_create_solution() {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
                 stops: vec![
-                    Stop {
-                        location: vec![0., 0.],
-                        time: Schedule {
-                            arrival: "1970-01-01T00:00:00Z".to_string(),
-                            departure: "1970-01-01T00:00:00Z".to_string()
-                        },
-                        load: vec![2],
-                        activities: vec![Activity {
-                            job_id: "departure".to_string(),
-                            activity_type: "departure".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None
-                        }]
-                    },
-                    Stop {
-                        location: vec![10., 0.],
-                        time: Schedule {
-                            arrival: "1970-01-01T00:00:10Z".to_string(),
-                            departure: "1970-01-01T00:00:10Z".to_string()
-                        },
-                        load: vec![1],
-                        activities: vec![Activity {
-                            job_id: "job2".to_string(),
-                            activity_type: "delivery".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None
-                        }]
-                    },
-                    Stop {
-                        location: vec![5., 0.],
-                        time: Schedule {
-                            arrival: "1970-01-01T00:00:16Z".to_string(),
-                            departure: "1970-01-01T00:00:17Z".to_string()
-                        },
-                        load: vec![0],
-                        activities: vec![Activity {
-                            job_id: "job1".to_string(),
-                            activity_type: "delivery".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None
-                        }]
-                    },
-                    Stop {
-                        location: vec![0., 0.],
-                        time: Schedule {
-                            arrival: "1970-01-01T00:00:22Z".to_string(),
-                            departure: "1970-01-01T00:00:22Z".to_string()
-                        },
-                        load: vec![0],
-                        activities: vec![Activity {
-                            job_id: "arrival".to_string(),
-                            activity_type: "arrival".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None
-                        }]
-                    }
+                    create_stop_with_activity(
+                        "departure",
+                        "departure",
+                        (0., 0.),
+                        0,
+                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z")
+                    ),
+                    create_stop_with_activity(
+                        "job2",
+                        "delivery",
+                        (10., 0.),
+                        1,
+                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z")
+                    ),
+                    create_stop_with_activity(
+                        "job1",
+                        "delivery",
+                        (5., 0.),
+                        0,
+                        ("1970-01-01T00:00:16Z", "1970-01-01T00:00:17Z")
+                    ),
+                    create_stop_with_activity(
+                        "arrival",
+                        "arrival",
+                        (0., 0.),
+                        0,
+                        ("1970-01-01T00:00:22Z", "1970-01-01T00:00:22Z")
+                    )
                 ],
                 statistic: Statistic {
                     cost: 52.,
