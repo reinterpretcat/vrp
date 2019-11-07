@@ -10,19 +10,7 @@ fn can_create_solution() {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
             relations: Option::None,
         },
-        fleet: Fleet {
-            types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
-                places: create_default_vehicle_places(),
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
-                limits: None,
-                vehicle_break: None,
-            }],
-        },
+        fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
     };
     let matrix = Matrix {
         num_origins: 3,

@@ -449,7 +449,9 @@ fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
 
 fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.types.iter().fold(Default::default(), |mut acc, vehicle| {
-        acc.insert(vehicle.profile.clone(), acc.len());
+        if acc.get(&vehicle.profile) == None {
+            acc.insert(vehicle.profile.clone(), acc.len());
+        }
         acc
     })
 }

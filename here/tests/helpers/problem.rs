@@ -1,5 +1,7 @@
 use crate::helpers::format_time;
-use crate::json::problem::{Job, JobPlace, JobPlaces, JobVariant, VehicleCosts, VehiclePlace, VehiclePlaces};
+use crate::json::problem::{
+    Job, JobPlace, JobPlaces, JobVariant, VehicleCosts, VehiclePlace, VehiclePlaces, VehicleType,
+};
 
 pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
     JobVariant::Single(Job {
@@ -37,4 +39,18 @@ pub fn create_default_vehicle_places_with_locations(start: (f64, f64), end: (f64
 
 pub fn create_default_vehicle_costs() -> VehicleCosts {
     VehicleCosts { fixed: Some(10.), distance: 1., time: 1. }
+}
+
+pub fn create_default_vehicle(id: &str) -> VehicleType {
+    VehicleType {
+        id: id.to_string(),
+        profile: "car".to_string(),
+        costs: create_default_vehicle_costs(),
+        places: create_default_vehicle_places(),
+        capacity: vec![10],
+        amount: 1,
+        skills: None,
+        limits: None,
+        vehicle_break: None,
+    }
 }
