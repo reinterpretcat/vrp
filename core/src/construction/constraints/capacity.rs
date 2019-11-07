@@ -44,6 +44,14 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Clone
+    for Demand<Capacity>
+{
+    fn clone(&self) -> Self {
+        Self { pickup: self.pickup.clone(), delivery: self.delivery.clone() }
+    }
+}
+
 /// Checks whether vehicle can handle activity's demand.
 /// Capacity can be interpreted as vehicle capacity change after visiting specific activity.
 pub struct CapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {

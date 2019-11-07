@@ -261,6 +261,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                     Demand { pickup: demand.clone(), delivery: (0, 0) },
                     &pickup.times,
                     &pickup.tag,
+                    "pickup",
                     &coord_index,
                 )
             });
@@ -271,6 +272,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                     Demand { pickup: (0, 0), delivery: demand },
                     &delivery.times,
                     &delivery.tag,
+                    "delivery",
                     &coord_index,
                 )
             });
@@ -300,6 +302,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                         Demand { pickup: (0, demand), delivery: (0, 0) },
                         &pickup.times,
                         &pickup.tag,
+                        "pickup",
                         &coord_index,
                     ))
                 })
@@ -312,6 +315,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                     Demand { pickup: (0, 0), delivery: (0, demand) },
                     &delivery.times,
                     &delivery.tag,
+                    "delivery",
                     &coord_index,
                 ))
             }));
@@ -473,10 +477,12 @@ fn get_single_with_extras(
     demand: Demand<i32>,
     times: &Option<Vec<Vec<String>>>,
     tag: &Option<String>,
+    activity_type: &str,
     coord_index: &CoordIndex,
 ) -> Single {
     let mut single = get_single(Some(location), duration, times, coord_index);
     single.dimens.set_demand(demand);
+    single.dimens.insert("type".to_string(), Box::new(activity_type.to_string()));
     add_tag(&mut single.dimens, tag);
 
     single
