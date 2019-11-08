@@ -95,7 +95,7 @@ pub struct InsertionContext {
 impl InsertionContext {
     /// Creates insertion context from existing solution.
     pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> Self {
-        InsertionContext {
+        let mut ctx = InsertionContext {
             progress: InsertionProgress { cost: None, completeness: 0., total: problem.jobs.size() },
             problem: problem.clone(),
             solution: SolutionContext {
@@ -107,7 +107,11 @@ impl InsertionContext {
             },
             locked: Self::get_locked_jobs(&problem),
             random: random.clone(),
-        }
+        };
+
+        problem.constraint.accept_solution_state(&mut ctx.solution);
+
+        ctx
     }
 
     /// Creates insertion context from existing solution.
