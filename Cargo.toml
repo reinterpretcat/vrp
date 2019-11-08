@@ -3,6 +3,6 @@
 members = [
     "core",
     "here",
-    "solver",
+    "cli",
     "scientific"
 ]
