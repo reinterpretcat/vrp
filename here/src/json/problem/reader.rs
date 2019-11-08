@@ -3,6 +3,7 @@
 mod reader_test;
 
 use super::StringReader;
+use crate::constraints::BreakModule;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
 use chrono::DateTime;
@@ -213,6 +214,7 @@ fn create_constraint_pipeline(
     let mut constraint = ConstraintPipeline::new();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
     constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
+    constraint.add_module(Box::new(BreakModule::new(4)));
 
     if !locks.is_empty() {
         constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks, 3)));

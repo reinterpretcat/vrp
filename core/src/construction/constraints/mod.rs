@@ -26,3 +26,4 @@ mod locking;
 pub use self::locking::StrictLockingModule;
 
 mod conditional;
+pub use self::conditional::ConditionalJobModule;

@@ -7,4 +7,5 @@ pub mod helpers;
 #[path = "../tests/features/mod.rs"]
 pub mod features;
 
+mod constraints;
 mod json;

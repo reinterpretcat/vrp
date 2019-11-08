@@ -12,13 +12,13 @@ use std::sync::Arc;
 /// Allows to promote jobs between required and ignored collection using some condition.
 /// Useful to model some optional/conditional activities, e.g. breaks, refueling, etc.
 pub struct ConditionalJobModule {
-    condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool>,
+    condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
 }
 
 impl ConditionalJobModule {
-    pub fn new(condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool>) -> Self {
+    pub fn new(condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>) -> Self {
         Self { condition, state_keys: vec![], constraints: vec![] }
     }
 }
