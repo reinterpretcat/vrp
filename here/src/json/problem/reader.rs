@@ -341,7 +341,11 @@ fn read_conditional_jobs(
         let place = vehicle.vehicle_break.as_ref().unwrap();
         (1..vehicle.amount + 1).for_each(|index| {
             let id = format!("{}_{}", vehicle.id, index);
-            let times = if place.times.is_empty() { None } else { Some(place.times.clone()) };
+            let times = if place.times.is_empty() {
+                panic!("Break without any time window does not make sense!")
+            } else {
+                Some(place.times.clone())
+            };
             let mut single =
                 get_single(place.location.as_ref().and_then(|l| Some(l)), place.duration, &times, coord_index);
             single.dimens.set_id("break");

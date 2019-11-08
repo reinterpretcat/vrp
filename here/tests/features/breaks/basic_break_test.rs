@@ -20,7 +20,11 @@ fn can_assign_break_between_jobs() {
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: Some(VehicleBreak { times: vec![], duration: 2.0, location: Some(vec![6., 0.]) }),
+                vehicle_break: Some(VehicleBreak {
+                    times: vec![vec![format_time(5), format_time(10)]],
+                    duration: 2.0,
+                    location: Some(vec![6., 0.]),
+                }),
             }],
         },
     };
@@ -55,25 +59,25 @@ fn can_assign_break_between_jobs() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z")
                     ),
                     create_stop_with_activity(
-                        "job2",
+                        "job1",
                         "delivery",
-                        (10., 0.),
+                        (5., 0.),
                         1,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z")
+                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z")
                     ),
                     create_stop_with_activity(
                         "break",
                         "break",
                         (6., 0.),
                         1,
-                        ("1970-01-01T00:00:15Z", "1970-01-01T00:00:17Z")
+                        ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z")
                     ),
                     create_stop_with_activity(
-                        "job1",
+                        "job2",
                         "delivery",
-                        (5., 0.),
+                        (10., 0.),
                         0,
-                        ("1970-01-01T00:00:18Z", "1970-01-01T00:00:19Z")
+                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z")
                     ),
                     create_stop_with_activity(
                         "arrival",

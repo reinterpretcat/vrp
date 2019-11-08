@@ -9,7 +9,7 @@ pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
     File::open(path)
 }
 
-fn format_time(time: i32) -> String {
+pub fn format_time(time: i32) -> String {
     Utc.timestamp(time as i64, 0).to_rfc3339_opts(SecondsFormat::Secs, true)
 }
 
