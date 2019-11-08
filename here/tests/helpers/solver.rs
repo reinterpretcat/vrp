@@ -2,7 +2,7 @@ use crate::json::problem::{HereProblem, Matrix, Problem};
 use crate::json::solution::{create_solution, Solution};
 use core::construction::states::InsertionContext;
 use core::refinement::recreate::{Recreate, RecreateWithCheapest};
-use core::solver::Solver;
+use core::solver::{Solver, SolverBuilder};
 use core::utils::DefaultRandom;
 use std::sync::Arc;
 
@@ -17,6 +17,6 @@ pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution
 
 pub fn solve_with_metaheuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
     let problem = Arc::new((problem, matrices).read_here().unwrap());
-    let solution = Solver::default().solve(problem.clone()).unwrap().0;
+    let solution = SolverBuilder::new().with_max_generations(10).build().solve(problem.clone()).unwrap().0;
     create_solution(problem.as_ref(), &solution)
 }

@@ -35,7 +35,7 @@ fn can_assign_break_between_jobs() {
         distances: vec![0, 5, 5, 1, 5, 0, 10, 4, 5, 10, 0, 6, 1, 4, 6, 0],
         error_codes: Option::None,
     };
-    let solution = solve_with_heuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, vec![matrix]);
 
     assert_eq!(
         solution,
