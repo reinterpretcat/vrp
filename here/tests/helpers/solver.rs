@@ -2,7 +2,7 @@ use crate::json::problem::{HereProblem, Matrix, Problem};
 use crate::json::solution::{create_solution, Solution};
 use core::construction::states::InsertionContext;
 use core::refinement::recreate::{Recreate, RecreateWithCheapest};
-use core::solver::{Solver, SolverBuilder};
+use core::solver::SolverBuilder;
 use core::utils::DefaultRandom;
 use std::sync::Arc;
 

@@ -24,9 +24,13 @@ fn create_job_place(location: Vec<f64>) -> JobPlace {
 }
 
 pub fn create_default_vehicle_places() -> VehiclePlaces {
+    create_default_vehicle_places_with_locations((0., 0.), (0., 0.))
+}
+
+pub fn create_default_vehicle_places_with_locations(start: (f64, f64), end: (f64, f64)) -> VehiclePlaces {
     VehiclePlaces {
-        start: VehiclePlace { time: format_time(0), location: vec![0., 0.] },
-        end: Some(VehiclePlace { time: format_time(100).to_string(), location: vec![0., 0.] }),
+        start: VehiclePlace { time: format_time(0), location: vec![start.0, start.1] },
+        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![end.0, end.1] }),
         max_tours: None,
     }
 }
