@@ -155,7 +155,6 @@ fn analyze_insertion_in_route<'a>(
             };
             // analyze service details
             single.places.iter().try_fold(out, |in1, detail| {
-                // TODO check whether tw is empty
                 // analyze detail time windows
                 detail.times.iter().try_fold(in1, |in2, time| {
                     target.place = Place {
@@ -184,6 +183,7 @@ fn analyze_insertion_in_route<'a>(
 }
 
 /// Stores information needed for single insertion.
+#[derive(Debug)]
 struct SingleContext {
     /// Constraint violation.
     pub violation: Option<ActivityConstraintViolation>,

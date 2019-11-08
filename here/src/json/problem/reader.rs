@@ -341,12 +341,9 @@ fn read_conditional_jobs(
         let place = vehicle.vehicle_break.as_ref().unwrap();
         (1..vehicle.amount + 1).for_each(|index| {
             let id = format!("{}_{}", vehicle.id, index);
-            let mut single = get_single(
-                place.location.as_ref().and_then(|l| Some(l)),
-                place.duration,
-                &Some(place.times.clone()),
-                coord_index,
-            );
+            let times = if place.times.is_empty() { None } else { Some(place.times.clone()) };
+            let mut single =
+                get_single(place.location.as_ref().and_then(|l| Some(l)), place.duration, &times, coord_index);
             single.dimens.set_id("break");
             single.dimens.insert("type".to_string(), Box::new("break".to_string()));
             single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
