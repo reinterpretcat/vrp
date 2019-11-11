@@ -1,8 +1,8 @@
 use crate::construction::states::route::RouteState;
 use crate::models::common::{Cost, Schedule};
-use crate::models::problem::{Actor, Job};
+use crate::models::problem::{Actor, Job, Single};
 use crate::models::solution::{Activity, Place, Registry, Route, Tour, TourActivity};
-use crate::models::{Extras, Problem, Solution};
+use crate::models::{Extras, LockOrder, Problem, Solution};
 use crate::utils::Random;
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
@@ -92,20 +92,97 @@ pub struct InsertionContext {
     pub random: Arc<dyn Random + Send + Sync>,
 }
 
+const OP_START_MSG: &str = "Optional start is not yet implemented.";
+
 impl InsertionContext {
     /// Creates insertion context from existing solution.
     pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> Self {
+        let mut locked: HashSet<Arc<Job>> = Default::default();
+        let mut reserved: HashSet<Arc<Job>> = Default::default();
+        let mut unassigned: HashMap<Arc<Job>, i32> = Default::default();
+        let mut routes: Vec<RouteContext> = Default::default();
+        let mut registry = Registry::new(&problem.fleet);
+
+        let mut sequence_job_usage: HashMap<Arc<Job>, usize> = Default::default();
+
+        problem.locks.iter().for_each(|lock| {
+            let actor = registry.available().filter(|a| lock.condition.deref()(a.as_ref())).next();
+
+            if let Some(actor) = actor {
+                registry.use_actor(&actor);
+                let mut route_ctx = RouteContext::new(actor);
+                let start =
+                    route_ctx.route.read().unwrap().tour.start().unwrap_or_else(|| panic!(OP_START_MSG)).place.location;
+
+                let create_activity = |job: Arc<Job>, single: Arc<Single>, previous_location: usize| {
+                    assert_eq!(single.places.len(), 1);
+                    assert_eq!(single.places.first().unwrap().times.len(), 1);
+
+                    let place = single.places.first().unwrap();
+                    let time = single.places.first().unwrap().times.first().unwrap();
+
+                    Activity {
+                        place: Place {
+                            location: place.location.unwrap_or(previous_location),
+                            duration: place.duration,
+                            time: time.clone(),
+                        },
+                        schedule: Schedule { arrival: 0.0, departure: 0.0 },
+                        job: Some(job),
+                    }
+                };
+
+                lock.details.iter().fold(start, |acc, detail| {
+                    match detail.order {
+                        LockOrder::Any => reserved.extend(detail.jobs.iter().cloned()),
+                        _ => locked.extend(detail.jobs.iter().cloned()),
+                    }
+
+                    detail.jobs.iter().fold(acc, |acc, job| {
+                        let activity = match job.as_ref() {
+                            Job::Single(single) => create_activity(job.clone(), single.clone(), acc),
+                            Job::Multi(multi) => {
+                                let idx = sequence_job_usage.get(job).cloned().unwrap_or(0);
+                                sequence_job_usage.insert(job.clone(), idx + 1);
+                                create_activity(job.clone(), multi.jobs.get(idx).unwrap().clone(), acc)
+                            }
+                        };
+                        let last_location = activity.place.location;
+                        route_ctx.route.write().unwrap().tour.insert_last(Box::new(activity));
+
+                        last_location
+                    })
+                });
+
+                problem.constraint.accept_route_state(&mut route_ctx);
+
+                routes.push(route_ctx);
+            } else {
+                lock.details.iter().for_each(|detail| {
+                    detail.jobs.iter().for_each(|job| {
+                        // TODO what reason code to use?
+                        unassigned.insert(job.clone(), 0);
+                    });
+                });
+            }
+        });
+
+        // NOTE all services from sequence should be used in init route or none of them
+        sequence_job_usage.iter().for_each(|(job, usage)| {
+            assert_eq!(job.as_multi().jobs.len(), *usage);
+        });
+
+        let required = problem
+            .jobs
+            .all()
+            .filter(|job| locked.get(job).is_none() && reserved.get(job).is_none() && unassigned.get(job).is_none())
+            .collect();
+
         let mut ctx = InsertionContext {
             progress: InsertionProgress { cost: None, completeness: 0., total: problem.jobs.size() },
             problem: problem.clone(),
-            solution: SolutionContext {
-                required: problem.jobs.all().collect(),
-                ignored: vec![],
-                unassigned: Default::default(),
-                routes: Default::default(),
-                registry: Registry::new(&problem.fleet),
-            },
-            locked: Self::get_locked_jobs(&problem),
+            solution: SolutionContext { required, ignored: vec![], unassigned, routes, registry },
+            locked: Arc::new(locked),
             random: random.clone(),
         };
 
@@ -120,7 +197,16 @@ impl InsertionContext {
         solution: (Arc<Solution>, Option<Cost>),
         random: Arc<dyn Random + Send + Sync>,
     ) -> Self {
+        let completeness = 1. - (solution.0.unassigned.len() as f64 / problem.jobs.size() as f64);
+        let cost = solution.1.clone();
+
         let jobs: Vec<Arc<Job>> = solution.0.unassigned.iter().map(|(job, _)| job.clone()).collect();
+        let unassigned = Default::default();
+        let locked = problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
+            acc.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
+            acc
+        });
+
         let mut registry = solution.0.registry.deep_copy();
         let mut routes: Vec<RouteContext> = Vec::new();
 
@@ -138,21 +224,11 @@ impl InsertionContext {
         });
 
         InsertionContext {
-            progress: InsertionProgress {
-                cost: solution.1,
-                completeness: 1. - (solution.0.unassigned.len() as f64 / problem.jobs.size() as f64),
-                total: problem.jobs.size(),
-            },
+            progress: InsertionProgress { cost, completeness, total: problem.jobs.size() },
             problem: problem.clone(),
-            solution: SolutionContext {
-                required: jobs,
-                ignored: vec![],
-                unassigned: Default::default(),
-                routes,
-                registry,
-            },
-            locked: Self::get_locked_jobs(&problem),
-            random: random.clone(),
+            solution: SolutionContext { required: jobs, ignored: vec![], unassigned, routes, registry },
+            locked: Arc::new(locked),
+            random,
         }
     }
 
@@ -188,13 +264,6 @@ impl InsertionContext {
                 false
             }
         });
-    }
-
-    fn get_locked_jobs(problem: &Problem) -> Arc<HashSet<Arc<Job>>> {
-        Arc::new(problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
-            acc.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
-            acc
-        }))
     }
 }
 
@@ -317,7 +386,7 @@ impl RouteContext {
 pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
     Box::new(Activity {
         place: Place {
-            location: actor.detail.start.unwrap_or_else(|| unimplemented!("Optional start is not yet implemented")),
+            location: actor.detail.start.unwrap_or_else(|| unimplemented!("{}", OP_START_MSG)),
             duration: 0.0,
             time: actor.detail.time.clone(),
         },
