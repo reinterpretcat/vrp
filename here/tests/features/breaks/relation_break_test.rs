@@ -2,10 +2,16 @@ use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
 
-#[test]
-fn can_use_break_between_two_jobs_in_relation() {
-    let relation_type = RelationType::Flexible;
+parameterized_test! {can_use_break_between_two_jobs_in_relation, relation_type, {
+    can_use_break_between_two_jobs_in_relation_impl(relation_type);
+}}
 
+can_use_break_between_two_jobs_in_relation! {
+    case_01: RelationType::Flexible,
+    case_02: RelationType::Sequence,
+}
+
+fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType) {
     let problem = Problem {
         id: "my_problem".to_string(),
         plan: Plan {

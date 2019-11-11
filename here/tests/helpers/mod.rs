@@ -1,3 +1,8 @@
+#[cfg(test)]
+#[path = "../../../core/tests/helpers/macros.rs"]
+#[macro_use]
+pub mod macros;
+
 use chrono::{SecondsFormat, TimeZone, Utc};
 use std::fs::File;
 
