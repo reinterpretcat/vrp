@@ -39,7 +39,7 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
 }
 
 parameterized_test! {can_use_break_between_two_jobs_in_relation, relation_type, {
-    can_use_break_between_two_jobs_in_relation_impl(relation_type, vec!["job1".to_string(), "break".to_string(), "job2".to_string()]);
+    can_use_break_between_two_jobs_in_relation_impl(relation_type, to_strings(vec!["job1", "break", "job2"]));
 }}
 
 can_use_break_between_two_jobs_in_relation! {
@@ -114,7 +114,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
 }
 
 parameterized_test! {can_use_break_last_in_relation, relation_type, {
-    can_use_break_last_in_relation_impl(relation_type, vec!["job1".to_string(), "job2".to_string(), "break".to_string()]);
+    can_use_break_last_in_relation_impl(relation_type, to_strings(vec!["job1", "job2", "break"]));
 }}
 
 can_use_break_last_in_relation! {

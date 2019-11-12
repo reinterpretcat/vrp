@@ -54,3 +54,7 @@ pub fn create_default_vehicle(id: &str) -> VehicleType {
         vehicle_break: None,
     }
 }
+
+pub fn to_strings(data: Vec<&str>) -> Vec<String> {
+    data.iter().map(|item| item.to_string()).collect()
+}

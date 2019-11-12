@@ -4,6 +4,7 @@ use core::construction::states::InsertionContext;
 use core::refinement::recreate::{Recreate, RecreateWithCheapest};
 use core::solver::SolverBuilder;
 use core::utils::DefaultRandom;
+use std::cmp::Ordering::Less;
 use std::sync::Arc;
 
 pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
@@ -12,11 +13,17 @@ pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution
         .run(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new())))
         .solution
         .to_solution(problem.extras.clone());
-    create_solution(problem.as_ref(), &solution)
+    sort_by_vehicle_tours(create_solution(problem.as_ref(), &solution))
 }
 
 pub fn solve_with_metaheuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
     let problem = Arc::new((problem, matrices).read_here().unwrap());
     let solution = SolverBuilder::new().with_max_generations(10).build().solve(problem.clone()).unwrap().0;
-    create_solution(problem.as_ref(), &solution)
+    sort_by_vehicle_tours(create_solution(problem.as_ref(), &solution))
+}
+
+fn sort_by_vehicle_tours(solution: Solution) -> Solution {
+    let mut solution = solution;
+    solution.tours.sort_by(|a, b| a.vehicle_id.partial_cmp(&b.vehicle_id).unwrap_or(Less));
+    solution
 }
