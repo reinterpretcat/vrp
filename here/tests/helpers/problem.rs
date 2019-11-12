@@ -29,6 +29,10 @@ pub fn create_default_vehicle_places() -> VehiclePlaces {
     create_default_vehicle_places_with_locations((0., 0.), (0., 0.))
 }
 
+pub fn create_default_open_vehicle_places() -> VehiclePlaces {
+    VehiclePlaces { start: VehiclePlace { time: format_time(0), location: vec![0., 0.] }, end: None, max_tours: None }
+}
+
 pub fn create_default_vehicle_places_with_locations(start: (f64, f64), end: (f64, f64)) -> VehiclePlaces {
     VehiclePlaces {
         start: VehiclePlace { time: format_time(0), location: vec![start.0, start.1] },
