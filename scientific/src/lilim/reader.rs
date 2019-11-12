@@ -87,7 +87,7 @@ impl<R: Read> TextReader for LilimReader<R> {
                     if self.buffer.is_empty() {
                         break;
                     } else {
-                        Err(error)?;
+                        return Err(error);
                     }
                 }
             }
@@ -138,7 +138,7 @@ impl<R: Read> LilimReader<R> {
             .split_whitespace()
             .map(|line| line.parse::<usize>().unwrap())
             .try_collect()
-            .ok_or("Cannot parse vehicle number or/and capacity".to_string())?;
+            .ok_or_else(|| "Cannot parse vehicle number or/and capacity".to_string())?;
 
         Ok(VehicleLine { number, capacity, _ignored })
     }
@@ -150,7 +150,7 @@ impl<R: Read> LilimReader<R> {
             .split_whitespace()
             .map(|line| line.parse::<i32>().unwrap())
             .try_collect()
-            .ok_or("Cannot read customer line".to_string())?;
+            .ok_or_else(|| "Cannot read customer line".to_string())?;
         Ok(JobLine {
             id: id as usize,
             location: (x, y),

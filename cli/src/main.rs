@@ -119,7 +119,7 @@ fn main() {
     let variation_coefficient = matches
         .value_of("variation-coefficient")
         .unwrap()
-        .split(",")
+        .split(',')
         .map(|line| {
             line.parse::<f64>().unwrap_or_else(|err| {
                 eprintln!("Cannot get variation-coefficient: '{}'", err.to_string());
@@ -131,11 +131,11 @@ fn main() {
         eprintln!("Cannot get minimize-routes: '{}'", err.to_string());
         process::exit(1);
     });
-    let init_solution = matches.value_of("init-solution").and_then(|path| {
-        Some(File::open(path).unwrap_or_else(|err| {
+    let init_solution = matches.value_of("init-solution").map(|path| {
+        File::open(path).unwrap_or_else(|err| {
             eprintln!("Cannot open init solution file '{}': '{}'", problem_path, err.to_string());
             process::exit(1);
-        }))
+        })
     });
 
     match formats.get(problem_format) {
@@ -145,7 +145,7 @@ fn main() {
                     let problem = Arc::new(problem);
                     let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
                     SolverBuilder::new()
-                        .with_init_solution(solution.and_then(|s| Some((problem.clone(), Arc::new(s)))))
+                        .with_init_solution(solution.map(|s| (problem.clone(), Arc::new(s))))
                         .with_minimize_routes(minimize_routes)
                         .with_max_generations(max_generations)
                         .with_variation_coefficient(variation_coefficient)

@@ -10,7 +10,7 @@ pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) 
         return Err(Error::new(ErrorKind::Other, "Cannot write text solution with unassigned jobs."));
     }
 
-    writer.write("Solution\n".as_bytes())?;
+    writer.write_all("Solution\n".as_bytes())?;
 
     solution.routes.iter().zip(1..).for_each(|(r, i)| {
         let customers = r
@@ -29,7 +29,7 @@ pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) 
             })
             .collect::<Vec<String>>()
             .join(" ");
-        writer.write(format!("Route {}: {}\n", i, customers).as_bytes()).unwrap();
+        writer.write_all(format!("Route {}: {}\n", i, customers).as_bytes()).unwrap();
     });
 
     Ok(())

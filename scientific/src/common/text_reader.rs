@@ -26,9 +26,9 @@ impl<'a> StringReader<'a> {
 
 impl<'a> Read for StringReader<'a> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        for i in 0..buf.len() {
+        for (i, item) in buf.iter_mut().enumerate() {
             if let Some(x) = self.iter.next() {
-                buf[i] = *x;
+                *item = *x;
             } else {
                 return Ok(i);
             }
@@ -128,7 +128,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
     loop {
         match read_line(&mut reader, &mut buffer) {
             Ok(read) if read > 0 => {
-                let route: Vec<_> = buffer.split(":").collect();
+                let route: Vec<_> = buffer.split(':').collect();
                 assert_eq!(route.len(), 2);
                 let id_map =
                     problem.jobs.all().fold(HashMap::<String, (Arc<Job>, Arc<Single>)>::new(), |mut acc, job| {
@@ -166,7 +166,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                 if buffer.is_empty() {
                     break;
                 } else {
-                    Err(error)?;
+                    return Err(error);
                 }
             }
         }
