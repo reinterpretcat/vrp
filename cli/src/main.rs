@@ -144,7 +144,7 @@ fn main() {
                 Ok(problem) => {
                     let problem = Arc::new(problem);
                     let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
-                    SolverBuilder::new()
+                    SolverBuilder::default()
                         .with_init_solution(solution.map(|s| (problem.clone(), Arc::new(s))))
                         .with_minimize_routes(minimize_routes)
                         .with_max_generations(max_generations)

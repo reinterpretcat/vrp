@@ -60,7 +60,7 @@ fn can_properly_handle_fleet_with_4_vehicles_impl(vehicle: &str, activity: usize
     );
     let mut ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route(&fleet, vehicle))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
 
     create_constraint_pipeline_with_timing().accept_route_state(&mut ctx);
@@ -117,7 +117,7 @@ fn can_properly_handle_fleet_with_6_vehicles_impl(
     );
     let mut route_ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route(&fleet, vehicle))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
     let pipeline = create_constraint_pipeline_with_timing();
     pipeline.accept_route_state(&mut route_ctx);
@@ -163,7 +163,7 @@ fn can_update_activity_schedule() {
                 ),
             ],
         ))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
 
     create_constraint_pipeline_with_timing().accept_route_state(&mut route_ctx);
@@ -178,7 +178,7 @@ fn can_calculate_soft_activity_cost_for_empty_tour() {
     let fleet = Fleet::new(vec![test_driver_with_costs(empty_costs())], vec![VehicleBuilder::new().id("v1").build()]);
     let route_ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
     let route = route_ctx.route.read().unwrap();
     let target = Box::new(Activity {
@@ -191,7 +191,7 @@ fn can_calculate_soft_activity_cost_for_empty_tour() {
 
     let result = create_constraint_pipeline_with_timing().evaluate_soft_activity(&route_ctx, &activity_ctx);
 
-    assert_eq!(compare_floats(&result, &21.0), Ordering::Equal);
+    assert_eq!(compare_floats(result, 21.0), Ordering::Equal);
 }
 
 #[test]
@@ -215,7 +215,7 @@ fn can_calculate_soft_activity_cost_for_non_empty_tour() {
                 ),
             ],
         ))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
     let route = route_ctx.route.read().unwrap();
     let target = Box::new(Activity {
@@ -228,5 +228,5 @@ fn can_calculate_soft_activity_cost_for_non_empty_tour() {
 
     let result = create_constraint_pipeline_with_timing().evaluate_soft_activity(&route_ctx, &activity_ctx);
 
-    assert_eq!(compare_floats(&result, &30.0), Ordering::Equal);
+    assert_eq!(compare_floats(result, 30.0), Ordering::Equal);
 }

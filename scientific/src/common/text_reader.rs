@@ -42,7 +42,7 @@ pub trait TextReader {
         let fleet = self.read_fleet()?;
         let jobs = self.read_jobs()?;
         let transport = Arc::new(self.create_transport());
-        let activity = Arc::new(SimpleActivityCost::new());
+        let activity = Arc::new(SimpleActivityCost::default());
         let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
 
         Ok(Problem {
@@ -108,7 +108,7 @@ pub fn create_dimens_with_id(prefix: &str, id: usize) -> Dimensions {
 }
 
 pub fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::new();
+    let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
     constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
 

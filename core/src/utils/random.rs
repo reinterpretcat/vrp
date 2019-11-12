@@ -43,8 +43,8 @@ pub struct DefaultRandom {}
 
 impl Random for DefaultRandom {}
 
-impl DefaultRandom {
-    pub fn new() -> Self {
+impl Default for DefaultRandom {
+    fn default() -> Self {
         Self {}
     }
 }

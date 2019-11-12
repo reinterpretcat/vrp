@@ -95,7 +95,7 @@ impl TimingConstraintModule {
         // update latest arrival and waiting states of non-terminate (jobs) activities
         let init = (
             actor.detail.time.end,
-            actor.detail.end.unwrap_or(actor.detail.start.unwrap_or_else(|| panic!(OP_START_MSG))),
+            actor.detail.end.unwrap_or_else(|| actor.detail.start.unwrap_or_else(|| panic!(OP_START_MSG))),
             0f64,
         );
 

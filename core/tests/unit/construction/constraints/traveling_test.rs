@@ -30,7 +30,7 @@ fn can_check_traveling_limits_impl(
     expected: Option<ActivityConstraintViolation>,
 ) {
     let fleet = Fleet::new(vec![test_driver()], vec![test_vehicle_with_id("v1")]);
-    let mut state = RouteState::new();
+    let mut state = RouteState::default();
     state.put_route_state(MAX_DISTANCE_KEY, 50.);
     state.put_route_state(MAX_DURATION_KEY, 50.);
     let route_ctx = RouteContext {

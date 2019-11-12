@@ -16,8 +16,8 @@ pub struct SolverBuilder {
     init_solution: Option<(Arc<Problem>, Arc<Solution>)>,
 }
 
-impl SolverBuilder {
-    pub fn new() -> Self {
+impl Default for SolverBuilder {
+    fn default() -> Self {
         Self {
             solver: Solver::default(),
             minimize_routes: None,
@@ -26,7 +26,9 @@ impl SolverBuilder {
             init_solution: None,
         }
     }
+}
 
+impl SolverBuilder {
     pub fn with_minimize_routes(&mut self, value: bool) -> &mut Self {
         self.minimize_routes = Some(value);
         self
@@ -38,8 +40,7 @@ impl SolverBuilder {
     }
 
     pub fn with_variation_coefficient(&mut self, params: Vec<f64>) -> &mut Self {
-        let sample =
-            params.get(0).and_then(|s| Some(s.round() as usize)).unwrap_or_else(|| panic!("Cannot get sample size"));
+        let sample = params.get(0).map(|s| s.round() as usize).unwrap_or_else(|| panic!("Cannot get sample size"));
         let threshold = *params.get(1).unwrap_or_else(|| panic!("Cannot get threshold"));
         self.variation_coefficient = Some((sample, threshold));
         self
@@ -88,7 +89,7 @@ impl SolverBuilder {
             let insertion_ctx = InsertionContext::new_from_solution(
                 problem.clone(),
                 (solution.clone(), None),
-                Arc::new(DefaultRandom::new()),
+                Arc::new(DefaultRandom::default()),
             );
             self.solver.settings.init_insertion_ctx = Some(insertion_ctx);
         }

@@ -39,7 +39,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             Job::Single(job) => job.dimens.get_demand(),
             Job::Multi(job) => job.jobs.first().and_then(|s| s.dimens.get_demand()),
         }
-        .and_then(|d| Some(Self::get_capacity(d)))
+        .map(|d| Self::get_capacity(d))
     }
 }
 
@@ -93,8 +93,8 @@ impl RankedJobSelector {
             .profiles
             .iter()
             .map(|profile| problem.jobs.rank(*profile, job))
-            .min_by(|a, b| compare_floats(a, b))
-            .unwrap_or(Distance::default())
+            .min_by(|a, b| compare_floats(*a, *b))
+            .unwrap_or_default()
     }
 }
 

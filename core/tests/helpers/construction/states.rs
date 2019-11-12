@@ -26,7 +26,7 @@ pub fn create_insertion_context(
             registry,
         },
         locked: Arc::new(Default::default()),
-        random: Arc::new(DefaultRandom::new()),
+        random: Arc::new(DefaultRandom::default()),
     }
 }
 

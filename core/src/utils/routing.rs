@@ -5,11 +5,13 @@ pub struct MatrixFactory {
     locations: Vec<(i32, i32)>,
 }
 
-impl MatrixFactory {
-    pub fn new() -> Self {
+impl Default for MatrixFactory {
+    fn default() -> Self {
         Self { locations: vec![] }
     }
+}
 
+impl MatrixFactory {
     pub fn collect(&mut self, location: (i32, i32)) -> Location {
         match self.locations.iter().position(|l| l.0 == location.0 && l.1 == location.1) {
             Some(position) => position,

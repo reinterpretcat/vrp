@@ -14,7 +14,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 
 pub fn read_lilim_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
-    LilimReader { buffer: String::new(), reader, matrix: MatrixFactory::new() }.read_problem()
+    LilimReader { buffer: String::new(), reader, matrix: MatrixFactory::default() }.read_problem()
 }
 
 pub trait LilimProblem {

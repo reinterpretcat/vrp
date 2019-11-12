@@ -106,7 +106,7 @@ impl InsertionContext {
         let mut sequence_job_usage: HashMap<Arc<Job>, usize> = Default::default();
 
         problem.locks.iter().for_each(|lock| {
-            let actor = registry.available().filter(|a| lock.condition.deref()(a.as_ref())).next();
+            let actor = registry.available().find(|a| lock.condition.deref()(a.as_ref()));
 
             if let Some(actor) = actor {
                 registry.use_actor(&actor);
@@ -198,7 +198,7 @@ impl InsertionContext {
         random: Arc<dyn Random + Send + Sync>,
     ) -> Self {
         let completeness = 1. - (solution.0.unassigned.len() as f64 / problem.jobs.size() as f64);
-        let cost = solution.1.clone();
+        let cost = solution.1;
 
         let jobs: Vec<Arc<Job>> = solution.0.unassigned.iter().map(|(job, _)| job.clone()).collect();
         let unassigned = Default::default();
@@ -214,7 +214,7 @@ impl InsertionContext {
             if route.tour.has_jobs() {
                 let mut route_ctx = RouteContext {
                     route: Arc::new(RwLock::new(route.deep_copy())),
-                    state: Arc::new(RwLock::new(RouteState::new())),
+                    state: Arc::new(RwLock::new(RouteState::default())),
                 };
                 problem.constraint.accept_route_state(&mut route_ctx);
                 routes.push(route_ctx);
@@ -351,7 +351,7 @@ impl RouteContext {
 
         RouteContext {
             route: Arc::new(RwLock::new(Route { actor, tour })),
-            state: Arc::new(RwLock::new(RouteState::new())),
+            state: Arc::new(RwLock::new(RouteState::default())),
         }
     }
 

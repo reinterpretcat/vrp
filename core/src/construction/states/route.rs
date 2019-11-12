@@ -18,12 +18,13 @@ pub struct RouteState {
     keys: HashSet<i32>,
 }
 
-impl RouteState {
-    /// Creates a new RouteState.
-    pub fn new() -> RouteState {
+impl Default for RouteState {
+    fn default() -> RouteState {
         RouteState::new_with_sizes((2, 4))
     }
+}
 
+impl RouteState {
     /// Creates a new RouteState using giving capacities.
     pub fn new_with_sizes(sizes: (usize, usize)) -> RouteState {
         RouteState {

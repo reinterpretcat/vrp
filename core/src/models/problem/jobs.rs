@@ -247,7 +247,7 @@ fn get_distance_between_jobs(profile: Profile, transport: &impl TransportCost, l
 
     outer
         .iter()
-        .flat_map(|o| inner.iter().map(move |i| (o.clone(), i.clone())))
+        .flat_map(|o| inner.iter().map(move |i| (*o, *i)))
         .map(|pair| match pair {
             (Some(from), Some(to)) => transport.distance(profile, from, to, DEFAULT_DEPARTURE),
             _ => DEFAULT_DISTANCE,

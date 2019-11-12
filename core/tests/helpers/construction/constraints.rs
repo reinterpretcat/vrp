@@ -11,7 +11,7 @@ pub fn create_simple_demand(size: i32) -> Demand<i32> {
 }
 
 pub fn create_constraint_pipeline_with_module(module: Box<dyn ConstraintModule + Send + Sync>) -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::new();
+    let mut constraint = ConstraintPipeline::default();
     constraint.add_module(module);
     constraint
 }

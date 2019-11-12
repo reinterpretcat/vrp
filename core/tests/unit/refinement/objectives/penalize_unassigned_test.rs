@@ -28,7 +28,7 @@ fn can_calculate_cost_with_penalty_properly() {
                 test_tour_activity_with_location_and_duration(15, 5.),
             ],
         ))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
     let route2 = RouteContext {
         route: Arc::new(RwLock::new(create_route_with_start_end_activities(
@@ -38,9 +38,9 @@ fn can_calculate_cost_with_penalty_properly() {
             test_tour_activity_with_schedule(Schedule::new(11., 11.)),
             vec![test_tour_activity_with_location_and_duration(5, 1.)],
         ))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
-    let activity = Arc::new(SimpleActivityCost::new());
+    let activity = Arc::new(SimpleActivityCost::default());
     let transport = Arc::new(TestTransportCost::new());
     let constraint = Arc::new(create_constraint_pipeline_with_timing());
     let mut unassigned = HashMap::new();
@@ -64,7 +64,7 @@ fn can_calculate_cost_with_penalty_properly() {
             registry: Registry::new(&fleet),
         },
         locked: Arc::new(Default::default()),
-        random: Arc::new(DefaultRandom::new()),
+        random: Arc::new(DefaultRandom::default()),
     };
 
     // vehicle or driver

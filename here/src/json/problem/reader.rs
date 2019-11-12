@@ -60,7 +60,7 @@ impl HereProblem for (ApiProblem, Vec<Matrix>) {
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
     let coord_index = create_coord_index(&api_problem);
     let transport = Arc::new(create_transport_costs(&matrices));
-    let activity = Arc::new(SimpleActivityCost::new());
+    let activity = Arc::new(SimpleActivityCost::default());
     let fleet = read_fleet(&api_problem, &coord_index);
 
     let mut job_index = Default::default();
@@ -211,7 +211,7 @@ fn create_constraint_pipeline(
     locks: Vec<Arc<Lock>>,
     limit_func: Option<TravelLimitFunc>,
 ) -> ConstraintPipeline {
-    let mut constraint = ConstraintPipeline::new();
+    let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
     constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
     constraint.add_module(Box::new(BreakModule::new(4)));

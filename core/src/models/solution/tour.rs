@@ -153,8 +153,8 @@ impl Tour {
                 .map(|a| {
                     Box::new(Activity {
                         place: Place {
-                            location: a.place.location.clone(),
-                            duration: a.place.duration.clone(),
+                            location: a.place.location,
+                            duration: a.place.duration,
                             time: a.place.time.clone(),
                         },
                         schedule: a.schedule.clone(),

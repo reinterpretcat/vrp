@@ -48,7 +48,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     for Demand<Capacity>
 {
     fn clone(&self) -> Self {
-        Self { pickup: self.pickup.clone(), delivery: self.delivery.clone() }
+        Self { pickup: self.pickup, delivery: self.delivery }
     }
 }
 
@@ -257,11 +257,12 @@ fn can_handle_demand<
 
             // can load more at current
             let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
-            return current + demand.change() <= capacity;
+
+            current + demand.change() <= capacity
         } else {
-            return false;
+            false
         }
     } else {
-        return true;
+        true
     }
 }

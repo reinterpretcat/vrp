@@ -10,7 +10,7 @@ use std::sync::Arc;
 pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
     let problem = Arc::new((problem, matrices).read_here().unwrap());
     let solution = RecreateWithCheapest::default()
-        .run(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new())))
+        .run(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
         .solution
         .to_solution(problem.extras.clone());
     sort_by_vehicle_tours(create_solution(problem.as_ref(), &solution))
@@ -18,7 +18,7 @@ pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution
 
 pub fn solve_with_metaheuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
     let problem = Arc::new((problem, matrices).read_here().unwrap());
-    let solution = SolverBuilder::new().with_max_generations(10).build().solve(problem.clone()).unwrap().0;
+    let solution = SolverBuilder::default().with_max_generations(10).build().solve(problem.clone()).unwrap().0;
     sort_by_vehicle_tours(create_solution(problem.as_ref(), &solution))
 }
 

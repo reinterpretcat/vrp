@@ -34,7 +34,7 @@ impl InsertionHeuristic {
             let result = jobs
                 .par_iter()
                 .map(|job| evaluate_job_insertion(&job, &ctx))
-                .reduce(|| InsertionResult::make_failure(), |a, b| result_selector.select(&ctx, a, b));
+                .reduce(InsertionResult::make_failure, |a, b| result_selector.select(&ctx, a, b));
 
             Self::insert(result, &mut ctx);
         }

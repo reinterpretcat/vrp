@@ -18,7 +18,11 @@ pub fn can_read_init_solution() {
     assert_eq!(solution.routes.len(), 10);
     assert_eq!(
         PenalizeUnassigned::default()
-            .estimate(&InsertionContext::new_from_solution(problem, (solution, None), Arc::new(DefaultRandom::new())))
+            .estimate(&InsertionContext::new_from_solution(
+                problem,
+                (solution, None),
+                Arc::new(DefaultRandom::default())
+            ))
             .total()
             .round(),
         828.936f64.round()

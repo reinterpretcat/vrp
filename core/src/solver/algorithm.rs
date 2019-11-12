@@ -72,7 +72,7 @@ impl Solver {
         let mut refinement_ctx = RefinementContext::new(problem.clone());
         let mut insertion_ctx = match &self.settings.init_insertion_ctx {
             Some(ctx) => ctx.deep_copy(),
-            None => InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new())),
+            None => InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
         };
 
         let refinement_time = Instant::now();
@@ -101,7 +101,7 @@ impl Solver {
                 break;
             }
 
-            refinement_ctx.generation = refinement_ctx.generation + 1;
+            refinement_ctx.generation += 1;
         }
 
         self.log_speed(&refinement_ctx, refinement_time);
@@ -114,7 +114,7 @@ impl Solver {
             match (a_ctx.solution.routes.len().cmp(&b_ctx.solution.routes.len()), self.settings.minimize_routes) {
                 (Less, true) => Less,
                 (Greater, true) => Greater,
-                _ => compare_floats(&a_cost.total(), &b_cost.total()),
+                _ => compare_floats(a_cost.total(), b_cost.total()),
             }
         });
         refinement_ctx.population.truncate(self.settings.population_size);
@@ -137,7 +137,7 @@ impl Solver {
             refinement_ctx
                 .population
                 .first()
-                .and_then(|(_, c, _)| Some((cost.total() - c.total()) / c.total() * 100.))
+                .map(|(_, c, _)| (cost.total() - c.total()) / c.total() * 100.)
                 .unwrap_or(100.),
             insertion_ctx.solution.routes.len(),
             is_accepted

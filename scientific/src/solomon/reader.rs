@@ -13,7 +13,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 
 pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
-    SolomonReader { buffer: String::new(), reader, matrix: MatrixFactory::new() }.read_problem()
+    SolomonReader { buffer: String::new(), reader, matrix: MatrixFactory::default() }.read_problem()
 }
 
 pub trait SolomonProblem {

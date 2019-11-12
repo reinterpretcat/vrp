@@ -17,10 +17,10 @@ impl Registry {
     pub fn new(fleet: &Fleet) -> Registry {
         Registry {
             available: fleet.actors.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
-                acc.entry(actor.detail.clone()).or_insert(HashSet::new()).insert(actor.clone());
+                acc.entry(actor.detail.clone()).or_insert_with(HashSet::new).insert(actor.clone());
                 acc
             }),
-            all: fleet.actors.iter().cloned().collect(),
+            all: fleet.actors.to_vec(),
         }
     }
 
@@ -41,12 +41,12 @@ impl Registry {
 
     /// Returns list of all available actors.
     pub fn available<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
-        self.available.iter().flat_map(|(_, set)| set.into_iter().cloned())
+        self.available.iter().flat_map(|(_, set)| set.iter().cloned())
     }
 
     /// Returns next available actors from each different type.
     pub fn next<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
-        self.available.iter().flat_map(|(_, set)| set.into_iter().take(1).cloned())
+        self.available.iter().flat_map(|(_, set)| set.iter().take(1).cloned())
     }
 
     /// Creates a copy of registry

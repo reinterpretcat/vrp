@@ -51,7 +51,7 @@ fn can_calculate_current_capacity_state_values_impl(
                 test_tour_activity_with_simple_demand(create_simple_demand(s3)),
             ],
         ))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
 
     create_constraint_pipeline_with_simple_capacity().accept_route_state(&mut ctx);
@@ -79,7 +79,7 @@ fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraint
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
     let ctx = RouteContext {
         route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
     let job = Arc::new(test_single_job_with_simple_demand(create_simple_demand(size)));
 
@@ -119,7 +119,7 @@ fn can_evaluate_demand_on_activity_impl(
             "v1",
             sizes.into_iter().map(|size| test_tour_activity_with_simple_demand(create_simple_demand(size))).collect(),
         ))),
-        state: Arc::new(RwLock::new(RouteState::new())),
+        state: Arc::new(RwLock::new(RouteState::default())),
     };
     let pipeline = create_constraint_pipeline_with_simple_capacity();
     pipeline.accept_route_state(&mut route_ctx);

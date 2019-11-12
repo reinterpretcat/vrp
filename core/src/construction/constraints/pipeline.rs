@@ -98,8 +98,8 @@ pub struct ConstraintPipeline {
     soft_activity_constraints: Vec<Arc<dyn SoftActivityConstraint + Send + Sync>>,
 }
 
-impl ConstraintPipeline {
-    pub fn new() -> Self {
+impl Default for ConstraintPipeline {
+    fn default() -> Self {
         ConstraintPipeline {
             modules: vec![],
             state_keys: Default::default(),
@@ -109,7 +109,9 @@ impl ConstraintPipeline {
             soft_activity_constraints: vec![],
         }
     }
+}
 
+impl ConstraintPipeline {
     /// Accepts solution with its context.
     pub fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.modules.iter().for_each(|c| c.accept_solution_state(ctx))

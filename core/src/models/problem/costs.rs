@@ -23,8 +23,8 @@ pub trait ActivityCost {
 /// Default activity costs.
 pub struct SimpleActivityCost {}
 
-impl SimpleActivityCost {
-    pub fn new() -> Self {
+impl Default for SimpleActivityCost {
+    fn default() -> Self {
         Self {}
     }
 }
@@ -71,10 +71,10 @@ impl MatrixTransportCost {
 
 impl TransportCost for MatrixTransportCost {
     fn duration(&self, profile: Profile, from: Location, to: Location, _: Timestamp) -> Duration {
-        self.durations.get(profile as usize).unwrap().get(from * self.size + to).unwrap().clone()
+        *self.durations.get(profile as usize).unwrap().get(from * self.size + to).unwrap()
     }
 
     fn distance(&self, profile: Profile, from: Location, to: Location, _: Timestamp) -> Distance {
-        self.distances.get(profile as usize).unwrap().get(from * self.size + to).unwrap().clone()
+        *self.distances.get(profile as usize).unwrap().get(from * self.size + to).unwrap()
     }
 }

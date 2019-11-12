@@ -70,7 +70,7 @@ impl Ruin for RandomRouteRemoval {
         (0..affected).for_each(|_| {
             let mut solution = &mut insertion_ctx.solution;
             let route_index = insertion_ctx.random.uniform_int(0, (solution.routes.len() - 1) as i32) as usize;
-            let route_ctx = &mut solution.routes.iter().skip(route_index).next().unwrap().clone();
+            let route_ctx = &mut solution.routes.get(route_index).unwrap().clone();
 
             if insertion_ctx.locked.is_empty() {
                 self.remove_whole_route(&mut solution, route_ctx);

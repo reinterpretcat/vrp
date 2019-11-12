@@ -14,7 +14,7 @@ use crate::models::Problem;
 
 /// Evaluates possibility to preform insertion from given insertion context.
 pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext) -> InsertionResult {
-    ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next().map(|a| RouteContext::new(a))).fold(
+    ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next().map(RouteContext::new)).fold(
         InsertionResult::make_failure(),
         |acc, route_ctx| {
             if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
@@ -138,7 +138,7 @@ fn evaluate_multi(
 }
 
 #[inline(always)]
-fn analyze_insertion_in_route<'a>(
+fn analyze_insertion_in_route(
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
     single: &Single,

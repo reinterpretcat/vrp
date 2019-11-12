@@ -28,8 +28,8 @@ impl TimeWindow {
 
 impl PartialEq<TimeWindow> for TimeWindow {
     fn eq(&self, other: &TimeWindow) -> bool {
-        compare_floats(&self.start, &other.start) == Ordering::Equal
-            && compare_floats(&self.end, &other.end) == Ordering::Equal
+        compare_floats(self.start, other.start) == Ordering::Equal
+            && compare_floats(self.end, other.end) == Ordering::Equal
     }
 }
 
@@ -50,8 +50,8 @@ impl Schedule {
 
 impl PartialEq<Schedule> for Schedule {
     fn eq(&self, other: &Schedule) -> bool {
-        compare_floats(&self.arrival, &other.arrival) == Ordering::Equal
-            && compare_floats(&self.departure, &other.departure) == Ordering::Equal
+        compare_floats(self.arrival, other.arrival) == Ordering::Equal
+            && compare_floats(self.departure, other.departure) == Ordering::Equal
     }
 }
 

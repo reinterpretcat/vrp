@@ -57,7 +57,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     cost: f64,
 ) {
     let insertion_ctx =
-        RecreateWithCheapest::default().run(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::new())));
+        RecreateWithCheapest::default().run(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())));
 
     let result_cost = PenalizeUnassigned::new(1000.).estimate(&insertion_ctx);
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);

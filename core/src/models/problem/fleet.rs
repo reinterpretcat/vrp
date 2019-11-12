@@ -101,14 +101,14 @@ impl Fleet {
     pub fn new(drivers: Vec<Driver>, vehicles: Vec<Vehicle>) -> Fleet {
         // TODO we should also consider multiple drivers to support smart vehicle-driver assignment.
         assert_eq!(drivers.len(), 1);
-        assert!(vehicles.len() > 0);
+        assert!(!vehicles.is_empty());
 
-        let profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile.clone()).collect();
+        let profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile).collect();
         let mut profiles: Vec<Profile> = profiles.into_iter().map(|p| p).collect();
         profiles.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Less));
 
-        let drivers: Vec<Arc<Driver>> = drivers.into_iter().map(|d| Arc::new(d)).collect();
-        let vehicles: Vec<Arc<Vehicle>> = vehicles.into_iter().map(|v| Arc::new(v)).collect();
+        let drivers: Vec<Arc<Driver>> = drivers.into_iter().map(Arc::new).collect();
+        let vehicles: Vec<Arc<Vehicle>> = vehicles.into_iter().map(Arc::new).collect();
 
         let mut actors: Vec<Arc<Actor>> = Default::default();
         vehicles.iter().for_each(|vehicle| {

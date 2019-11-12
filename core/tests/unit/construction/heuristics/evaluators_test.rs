@@ -152,7 +152,7 @@ mod single {
                 get_vehicle_id(success.context.route.read().unwrap().actor.vehicle.deref()),
                 &expected_used_vehicle.to_owned()
             );
-            assert_eq!(compare_floats(&success.cost, &cost), Ordering::Equal);
+            assert_eq!(compare_floats(success.cost, cost), Ordering::Equal);
         } else {
             assert!(false);
         }

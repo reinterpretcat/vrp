@@ -33,7 +33,7 @@ impl AdjustedStringRemoval {
     }
 
     /// Calculates initial parameters from paper using 5,6,7 equations.
-    fn calculate_limits(&self, routes: &Vec<RouteContext>, random: &Arc<dyn Random + Send + Sync>) -> (usize, usize) {
+    fn calculate_limits(&self, routes: &[RouteContext], random: &Arc<dyn Random + Send + Sync>) -> (usize, usize) {
         // Equation 5: max removed string cardinality for each tour
         let lsmax = calculate_average_tour_cardinality(routes).min(self.lmax as f64);
 
@@ -104,7 +104,7 @@ impl Ruin for AdjustedStringRemoval {
 type JobIter<'a> = Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
-fn calculate_average_tour_cardinality(routes: &Vec<RouteContext>) -> f64 {
+fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {
     (routes.iter().fold(0., |acc, rc| acc + rc.route.read().unwrap().tour.activity_count() as f64)
         / routes.len() as f64)
         .round()
@@ -172,7 +172,7 @@ fn preserved_string<'a>(
 /// Returns randomly selected job within all its neighbours.
 fn select_seed_jobs<'a>(
     problem: &'a Problem,
-    routes: &'a Vec<RouteContext>,
+    routes: &[RouteContext],
     random: &Arc<dyn Random + Send + Sync>,
 ) -> JobIter<'a> {
     let seed = select_seed_job(routes, random);
@@ -191,7 +191,7 @@ fn select_seed_jobs<'a>(
 
 /// Selects seed job from existing solution
 fn select_seed_job<'a>(
-    routes: &'a Vec<RouteContext>,
+    routes: &'a [RouteContext],
     random: &Arc<dyn Random + Send + Sync>,
 ) -> Option<(&'a RouteContext, Arc<Job>)> {
     if routes.is_empty() {
@@ -274,7 +274,7 @@ fn preserved_cardinality(
         if random.uniform_real(0.0, 1.0) < alpha {
             break;
         } else {
-            preserved_crd = preserved_crd + 1
+            preserved_crd += 1
         }
     }
     preserved_crd

@@ -38,20 +38,17 @@ impl StrictLockingModule {
             let condition = lock.condition.clone();
             lock.details.iter().for_each(|detail| {
                 // NOTE create rule only for strict order
-                match detail.order {
-                    LockOrder::Strict => {
-                        assert!(!detail.jobs.is_empty());
-                        rules.push(Arc::new(Rule {
-                            condition: condition.clone(),
-                            position: detail.position.clone(),
-                            index: JobIndex {
-                                first: detail.jobs.first().unwrap().clone(),
-                                last: detail.jobs.last().unwrap().clone(),
-                                jobs: detail.jobs.iter().cloned().collect(),
-                            },
-                        }));
-                    }
-                    _ => {}
+                if let LockOrder::Strict = detail.order {
+                    assert!(!detail.jobs.is_empty());
+                    rules.push(Arc::new(Rule {
+                        condition: condition.clone(),
+                        position: detail.position.clone(),
+                        index: JobIndex {
+                            first: detail.jobs.first().unwrap().clone(),
+                            last: detail.jobs.last().unwrap().clone(),
+                            jobs: detail.jobs.iter().cloned().collect(),
+                        },
+                    }));
                 }
 
                 detail.jobs.iter().cloned().collect::<HashSet<Arc<Job>>>().into_iter().for_each(|job| {
@@ -108,9 +105,11 @@ impl HardActivityConstraint for StrictLockingHardActivityConstraint {
     ) -> Option<ActivityConstraintViolation> {
         let actor = &route_ctx.route.read().unwrap().actor;
         if let Some(rules) = self.rules.get(actor) {
-            if !rules.iter().all(|rule| {
+            let can_insert = rules.iter().all(|rule| {
                 rule.can_insert(&activity_ctx.prev.retrieve_job(), &activity_ctx.next.and_then(|n| n.retrieve_job()))
-            }) {
+            });
+
+            if !can_insert {
                 return Some(ActivityConstraintViolation { code: self.code, stopped: false });
             }
         }

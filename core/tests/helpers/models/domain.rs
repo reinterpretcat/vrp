@@ -25,7 +25,7 @@ pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> A
 }
 
 pub fn create_empty_problem() -> Arc<Problem> {
-    create_empty_problem_with_constraint(ConstraintPipeline::new())
+    create_empty_problem_with_constraint(ConstraintPipeline::default())
 }
 
 pub fn create_empty_solution() -> Solution {
@@ -49,7 +49,7 @@ pub fn create_empty_insertion_context() -> InsertionContext {
             registry: Registry::new(&Fleet::new(vec![test_driver()], vec![test_vehicle(0)])),
         },
         locked: Arc::new(Default::default()),
-        random: Arc::new(DefaultRandom::new()),
+        random: Arc::new(DefaultRandom::default()),
     }
 }
 
