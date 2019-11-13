@@ -3,7 +3,7 @@
 mod reader_test;
 
 use super::StringReader;
-use crate::constraints::BreakModule;
+use crate::constraints::{BreakModule, SkillsModule};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
 use chrono::DateTime;
@@ -11,9 +11,10 @@ use core::construction::constraints::*;
 use core::models::common::*;
 use core::models::problem::*;
 use core::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
+use std::iter::FromIterator;
 use std::sync::Arc;
 
 type ApiProblem = crate::json::problem::Problem;
@@ -215,6 +216,7 @@ fn create_constraint_pipeline(
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
     constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
     constraint.add_module(Box::new(BreakModule::new(4)));
+    constraint.add_module(Box::new(SkillsModule::new(10)));
 
     if !locks.is_empty() {
         constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks, 3)));
@@ -511,7 +513,7 @@ fn get_multi_job(id: &String, skills: &Option<Vec<String>>, singles: Vec<Arc<Sin
 
 fn add_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
     if let Some(skills) = skills {
-        dimens.insert("skills".to_owned(), Box::new(skills.clone()));
+        dimens.insert("skills".to_owned(), Box::new(HashSet::<String>::from_iter(skills.iter().cloned())));
     }
 }
 

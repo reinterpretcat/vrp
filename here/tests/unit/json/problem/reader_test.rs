@@ -3,6 +3,8 @@ use crate::json::problem::*;
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::{Dimensions, IdDimension, TimeWindow};
 use core::models::problem::{Jobs, Multi, Place, Single};
+use std::collections::HashSet;
+use std::iter::FromIterator;
 use std::sync::Arc;
 
 fn get_job(index: usize, jobs: &Jobs) -> Arc<core::models::problem::Job> {
@@ -47,8 +49,9 @@ fn assert_demand(demand: &Demand<i32>, expected: &Demand<i32>) {
 }
 
 fn assert_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
-    let skills = dimens.get("skills").and_then(|any| any.downcast_ref::<Vec<String>>());
+    let skills = dimens.get("skills").and_then(|any| any.downcast_ref::<HashSet<String>>());
     if let Some(expected) = expected {
+        let expected = HashSet::from_iter(expected.iter().cloned());
         assert_eq!(skills.unwrap().clone(), expected);
     } else {
         assert!(skills.is_none());

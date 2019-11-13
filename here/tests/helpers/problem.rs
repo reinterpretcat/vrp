@@ -24,6 +24,18 @@ pub fn create_delivery_job_with_duration(id: &str, location: Vec<f64>, duration:
     })
 }
 
+pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: Vec<String>) -> JobVariant {
+    JobVariant::Single(Job {
+        id: id.to_string(),
+        places: JobPlaces {
+            pickup: Option::None,
+            delivery: Some(JobPlace { times: None, location, duration: 1., tag: None }),
+        },
+        demand: vec![1],
+        skills: Some(skills),
+    })
+}
+
 pub fn create_delivery_job_with_times(
     id: &str,
     location: Vec<f64>,
