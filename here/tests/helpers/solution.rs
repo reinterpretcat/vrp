@@ -1,4 +1,6 @@
-use crate::json::solution::{Activity, Schedule, Stop};
+use crate::json::solution::{Activity, Schedule, Solution, Stop};
+use std::cmp::Ordering::Less;
+use std::collections::HashMap;
 
 pub fn create_stop_with_activity(
     id: &str,
@@ -19,4 +21,25 @@ pub fn create_stop_with_activity(
             job_tag: None,
         }],
     }
+}
+
+pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
+    let mut result = result;
+
+    let tour_map = expected.tours.iter().fold(HashMap::new(), |mut acc, tour| {
+        acc.insert(tour.stops.get(1).unwrap().activities.first().unwrap().job_id.clone(), tour.vehicle_id.clone());
+
+        acc
+    });
+
+    result.tours.iter_mut().for_each(|tour| {
+        let job_id = tour.stops.get(1).unwrap().activities.first().unwrap().job_id.clone();
+        if let Some(vehicle_id) = tour_map.get(&job_id) {
+            tour.vehicle_id = vehicle_id.to_string();
+        }
+    });
+
+    result.tours.sort_by(|a, b| a.vehicle_id.partial_cmp(&b.vehicle_id).unwrap_or(Less));
+
+    assert_eq!(result, expected);
 }
