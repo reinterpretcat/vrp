@@ -21,6 +21,18 @@ pub fn create_pickup_job(id: &str, location: Vec<f64>) -> JobVariant {
     })
 }
 
+pub fn create_pickup_delivery_job(id: &str, pickup_location: Vec<f64>, delivery_location: Vec<f64>) -> JobVariant {
+    JobVariant::Single(Job {
+        id: id.to_string(),
+        places: JobPlaces {
+            pickup: Some(create_job_place(pickup_location)),
+            delivery: Some(create_job_place(delivery_location)),
+        },
+        demand: vec![1],
+        skills: None,
+    })
+}
+
 fn create_job_place(location: Vec<f64>) -> JobPlace {
     JobPlace { times: None, location, duration: 1., tag: None }
 }

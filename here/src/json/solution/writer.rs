@@ -10,6 +10,7 @@ use crate::json::solution::{
 use chrono::{SecondsFormat, TimeZone, Utc};
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::*;
+use core::models::problem::Multi;
 use core::models::solution::{Route, TourActivity};
 use core::models::{Problem, Solution};
 use std::io::{BufWriter, Write};
@@ -111,7 +112,11 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
             let job_tag = act.job.as_ref().and_then(|job| job.as_single().dimens.get_value::<String>("tag").cloned());
 
             let job_id = match activity_type.as_str() {
-                "pickup" | "delivery" => act.job.as_ref().unwrap().as_single().dimens.get_id().unwrap().clone(),
+                "pickup" | "delivery" => {
+                    let single = act.job.as_ref().unwrap().as_single();
+                    let id = single.dimens.get_id().cloned();
+                    id.unwrap_or_else(|| Multi::roots(&single).unwrap().dimens.get_id().unwrap().clone())
+                }
                 _ => activity_type.clone(),
             };
 
