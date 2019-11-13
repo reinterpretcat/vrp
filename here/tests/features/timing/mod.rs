@@ -1,2 +1,3 @@
 mod basic_multiple_times;
+mod strict_leads_to_unassigned;
 mod strict_split_into_two_tours;
