@@ -114,7 +114,7 @@ impl InsertionContext {
                 let start =
                     route_ctx.route.read().unwrap().tour.start().unwrap_or_else(|| panic!(OP_START_MSG)).place.location;
 
-                let create_activity = |job: Arc<Job>, single: Arc<Single>, previous_location: usize| {
+                let create_activity = |single: Arc<Single>, previous_location: usize| {
                     assert_eq!(single.places.len(), 1);
                     assert_eq!(single.places.first().unwrap().times.len(), 1);
 
@@ -128,7 +128,7 @@ impl InsertionContext {
                             time: time.clone(),
                         },
                         schedule: Schedule { arrival: 0.0, departure: 0.0 },
-                        job: Some(job),
+                        job: Some(Arc::new(Job::Single(single))),
                     }
                 };
 
@@ -140,11 +140,11 @@ impl InsertionContext {
 
                     detail.jobs.iter().fold(acc, |acc, job| {
                         let activity = match job.as_ref() {
-                            Job::Single(single) => create_activity(job.clone(), single.clone(), acc),
+                            Job::Single(single) => create_activity(single.clone(), acc),
                             Job::Multi(multi) => {
                                 let idx = sequence_job_usage.get(job).cloned().unwrap_or(0);
                                 sequence_job_usage.insert(job.clone(), idx + 1);
-                                create_activity(job.clone(), multi.jobs.get(idx).unwrap().clone(), acc)
+                                create_activity(multi.jobs.get(idx).unwrap().clone(), acc)
                             }
                         };
                         let last_location = activity.place.location;
