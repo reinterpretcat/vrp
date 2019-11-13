@@ -87,7 +87,8 @@ impl Tour {
 
     /// Returns counted tour legs.
     pub fn legs<'a>(&'a self) -> impl Iterator<Item = (&'a [TourActivity], usize)> + 'a {
-        self.activities.windows(2).zip(0usize..)
+        let window_size = if self.activities.len() == 1 { 1 } else { 2 };
+        self.activities.windows(window_size).zip(0usize..)
     }
 
     /// Returns all jobs.

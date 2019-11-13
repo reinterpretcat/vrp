@@ -15,7 +15,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
             relations: Some(vec![Relation {
                 type_field: RelationType::Tour,
                 jobs: to_strings(vec!["job1", "job3"]),
-                vehicle_id: "my_vehicle_3".to_string(),
+                vehicle_id: "my_vehicle_1".to_string(),
             }]),
         },
         fleet: Fleet {
@@ -25,7 +25,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                 costs: create_default_vehicle_costs(),
                 places: create_default_open_vehicle_places(),
                 capacity: vec![3],
-                amount: 3,
+                amount: 1,
                 skills: None,
                 limits: None,
                 vehicle_break: None,
@@ -53,7 +53,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                 times: Timing { driving: 3, serving: 3, waiting: 0, break_time: 0 },
             },
             tours: vec![Tour {
-                vehicle_id: "my_vehicle_3".to_string(),
+                vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
                 stops: vec![
                     create_stop_with_activity(

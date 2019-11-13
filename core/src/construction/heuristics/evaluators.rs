@@ -150,7 +150,8 @@ fn analyze_insertion_in_route(
         init,
         |out, (items, index)| {
             let (prev, next) = match items {
-                [prev, next] => (prev, next),
+                [prev] => (prev, None),
+                [prev, next] => (prev, Some(next)),
                 _ => panic!("Unexpected route leg configuration."),
             };
             // analyze service details
@@ -163,7 +164,7 @@ fn analyze_insertion_in_route(
                         time: time.clone(),
                     };
 
-                    let activity_ctx = ActivityContext { index, prev, target: &target, next: Some(next) };
+                    let activity_ctx = ActivityContext { index, prev, target: &target, next };
 
                     if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
                         return SingleContext::fail(violation, in2);
