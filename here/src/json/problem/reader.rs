@@ -428,7 +428,7 @@ fn read_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
         None
     } else {
         Some(Arc::new(move |actor: &Actor| {
-            if let Some(limits) = limits.get(actor.vehicle.dimens.get_id().unwrap()) {
+            if let Some(limits) = limits.get(actor.vehicle.dimens.get_value::<String>("type_id").unwrap()) {
                 (limits.0, limits.1)
             } else {
                 (None, None)
