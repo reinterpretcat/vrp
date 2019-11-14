@@ -28,13 +28,7 @@ fn can_assign_break_between_jobs() {
             }],
         },
     };
-    let matrix = Matrix {
-        num_origins: 4,
-        num_destinations: 4,
-        travel_times: vec![0, 5, 5, 1, 5, 0, 10, 4, 5, 10, 0, 6, 1, 4, 6, 0],
-        distances: vec![0, 5, 5, 1, 5, 0, 10, 4, 5, 10, 0, 6, 1, 4, 6, 0],
-        error_codes: Option::None,
-    };
+    let matrix = create_matrix(vec![0, 5, 5, 1, 5, 0, 10, 4, 5, 10, 0, 6, 1, 4, 6, 0]);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

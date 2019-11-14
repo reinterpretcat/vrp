@@ -31,13 +31,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
             }],
         },
     };
-    let matrix = Matrix {
-        num_origins: 4,
-        num_destinations: 4,
-        travel_times: vec![0, 5, 15, 10, 5, 0, 10, 5, 15, 10, 0, 5, 10, 5, 5, 0],
-        distances: vec![0, 5, 15, 10, 5, 0, 10, 5, 15, 10, 0, 5, 10, 5, 5, 0],
-        error_codes: Option::None,
-    };
+    let matrix = create_matrix(vec![0, 5, 15, 10, 5, 0, 10, 5, 15, 10, 0, 5, 10, 5, 5, 0]);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

@@ -31,13 +31,8 @@ fn can_skip_break_when_vehicle_not_used() {
             ],
         },
     };
-    let matrix = Matrix {
-        num_origins: 5,
-        num_destinations: 5,
-        travel_times: vec![0, 5, 95, 1, 5, 5, 0, 90, 4, 10, 95, 90, 0, 94, 100, 1, 4, 94, 0, 6, 5, 10, 100, 6, 0],
-        distances: vec![0, 5, 95, 1, 5, 5, 0, 90, 4, 10, 95, 90, 0, 94, 100, 1, 4, 94, 0, 6, 5, 10, 100, 6, 0],
-        error_codes: Option::None,
-    };
+    let matrix =
+        create_matrix(vec![0, 5, 95, 1, 5, 5, 0, 90, 4, 10, 95, 90, 0, 94, 100, 1, 4, 94, 0, 6, 5, 10, 100, 6, 0]);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 
@@ -131,13 +126,7 @@ fn can_skip_break_when_jobs_completed() {
             }],
         },
     };
-    let matrix = Matrix {
-        num_origins: 5,
-        num_destinations: 5,
-        travel_times: vec![0, 1, 5, 1, 0, 6, 5, 6, 0],
-        distances: vec![0, 1, 5, 1, 0, 6, 5, 6, 0],
-        error_codes: Option::None,
-    };
+    let matrix = create_matrix(vec![0, 1, 5, 1, 0, 6, 5, 6, 0]);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

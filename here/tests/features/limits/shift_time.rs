@@ -82,17 +82,9 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
             }],
         },
     };
-    let matrix = Matrix {
-        num_origins: 2,
-        num_destinations: 2,
-        travel_times: vec![
-            0, 1, 2, 3, 4, 1, 1, 0, 1, 2, 3, 2, 2, 1, 0, 1, 2, 3, 3, 2, 1, 0, 1, 4, 4, 3, 2, 1, 0, 5, 1, 2, 3, 4, 5, 0,
-        ],
-        distances: vec![
-            0, 1, 2, 3, 4, 1, 1, 0, 1, 2, 3, 2, 2, 1, 0, 1, 2, 3, 3, 2, 1, 0, 1, 4, 4, 3, 2, 1, 0, 5, 1, 2, 3, 4, 5, 0,
-        ],
-        error_codes: Option::None,
-    };
+    let matrix = create_matrix(vec![
+        0, 1, 2, 3, 4, 1, 1, 0, 1, 2, 3, 2, 2, 1, 0, 1, 2, 3, 3, 2, 1, 0, 1, 4, 4, 3, 2, 1, 0, 5, 1, 2, 3, 4, 5, 0,
+    ]);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

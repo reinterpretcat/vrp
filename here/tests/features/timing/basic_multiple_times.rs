@@ -18,19 +18,10 @@ fn can_use_multiple_times() {
         },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
     };
-    let matrix = Matrix {
-        num_origins: 6,
-        num_destinations: 6,
-        travel_times: vec![
-            0, 10, 20, 30, 40, 10, 10, 0, 10, 20, 30, 20, 20, 10, 0, 10, 20, 30, 30, 20, 10, 0, 10, 40, 40, 30, 20, 10,
-            0, 50, 10, 20, 30, 40, 50, 0,
-        ],
-        distances: vec![
-            0, 10, 20, 30, 40, 10, 10, 0, 10, 20, 30, 20, 20, 10, 0, 10, 20, 30, 30, 20, 10, 0, 10, 40, 40, 30, 20, 10,
-            0, 50, 10, 20, 30, 40, 50, 0,
-        ],
-        error_codes: Option::None,
-    };
+    let matrix = create_matrix(vec![
+        0, 10, 20, 30, 40, 10, 10, 0, 10, 20, 30, 20, 20, 10, 0, 10, 20, 30, 30, 20, 10, 0, 10, 40, 40, 30, 20, 10, 0,
+        50, 10, 20, 30, 40, 50, 0,
+    ]);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

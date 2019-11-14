@@ -12,13 +12,8 @@ fn can_create_solution() {
         },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
     };
-    let matrix = Matrix {
-        num_origins: 3,
-        num_destinations: 3,
-        travel_times: vec![0, 5, 5, 5, 0, 10, 5, 10, 0],
-        distances: vec![0, 5, 5, 5, 0, 10, 5, 10, 0],
-        error_codes: Option::None,
-    };
+    let matrix = create_matrix(vec![0, 5, 5, 5, 0, 10, 5, 10, 0]);
+
     let solution = solve_with_heuristic(problem, vec![matrix]);
 
     assert_eq!(

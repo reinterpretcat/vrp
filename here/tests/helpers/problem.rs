@@ -1,6 +1,6 @@
 use crate::helpers::format_time;
 use crate::json::problem::{
-    Job, JobPlace, JobPlaces, JobVariant, VehicleCosts, VehiclePlace, VehiclePlaces, VehicleType,
+    Job, JobPlace, JobPlaces, JobVariant, Matrix, VehicleCosts, VehiclePlace, VehiclePlaces, VehicleType,
 };
 
 pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
@@ -102,6 +102,20 @@ pub fn create_default_vehicle(id: &str) -> VehicleType {
         skills: None,
         limits: None,
         vehicle_break: None,
+    }
+}
+
+pub fn create_matrix(data: Vec<i64>) -> Matrix {
+    let size = (data.len() as f64).sqrt() as i32;
+
+    assert_eq!((size * size) as usize, data.len());
+
+    Matrix {
+        num_origins: size,
+        num_destinations: size,
+        travel_times: data.clone(),
+        distances: data.clone(),
+        error_codes: None,
     }
 }
 

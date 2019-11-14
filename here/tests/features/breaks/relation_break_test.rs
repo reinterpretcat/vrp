@@ -27,13 +27,7 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
             }],
         },
     };
-    let matrix = Matrix {
-        num_origins: 4,
-        num_destinations: 4,
-        travel_times: vec![0, 1, 1, 2, 1, 0, 2, 1, 1, 2, 0, 3, 2, 1, 3, 0],
-        distances: vec![0, 1, 1, 2, 1, 0, 2, 1, 1, 2, 0, 3, 2, 1, 3, 0],
-        error_codes: Option::None,
-    };
+    let matrix = create_matrix(vec![0, 1, 1, 2, 1, 0, 2, 1, 1, 2, 0, 3, 2, 1, 3, 0]);
 
     solve_with_metaheuristic(problem, vec![matrix])
 }
