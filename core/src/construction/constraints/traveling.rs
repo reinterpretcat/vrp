@@ -152,6 +152,9 @@ impl TravelHardActivityConstraint {
         activity_ctx: &ActivityContext,
         max_duration: f64,
     ) -> Option<ActivityConstraintViolation> {
+        // NOTE consider extra operation time
+        let max_duration = max_duration - activity_ctx.target.place.duration;
+
         if self.check_travel(route_ctx, activity_ctx, max_duration, MAX_DURATION_KEY, &(self.duration_func)) {
             None
         } else {
