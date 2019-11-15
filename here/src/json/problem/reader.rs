@@ -3,7 +3,7 @@
 mod reader_test;
 
 use super::StringReader;
-use crate::constraints::{BreakModule, SkillsModule};
+use crate::constraints::{BreakModule, ReachableModule, SkillsModule};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
 use chrono::DateTime;
@@ -75,6 +75,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         transport.clone(),
         locks.iter().cloned().collect(),
         limits,
+        matrices.iter().any(|m| m.error_codes.is_some()),
     );
     let extras = create_extras(&api_problem.id, coord_index);
 
@@ -131,16 +132,31 @@ fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
 }
 
 fn create_transport_costs(matrices: &Vec<Matrix>) -> MatrixTransportCost {
-    let mut durations: Vec<Vec<Duration>> = Default::default();
-    let mut distances: Vec<Vec<Distance>> = Default::default();
+    let mut all_durations: Vec<Vec<Duration>> = Default::default();
+    let mut all_distances: Vec<Vec<Distance>> = Default::default();
 
     matrices.iter().for_each(|matrix| {
-        // TODO process error codes
-        durations.push(matrix.travel_times.iter().map(|d| *d as f64).collect());
-        distances.push(matrix.distances.iter().map(|d| *d as f64).collect());
+        if let Some(error_codes) = &matrix.error_codes {
+            let mut profile_durations: Vec<Duration> = Default::default();
+            let mut profile_distances: Vec<Distance> = Default::default();
+            for (i, error) in error_codes.iter().enumerate() {
+                if *error > 0 {
+                    profile_durations.push(-1.);
+                    profile_distances.push(-1.);
+                } else {
+                    profile_durations.push(*matrix.travel_times.get(i).unwrap() as f64);
+                    profile_distances.push(*matrix.distances.get(i).unwrap() as f64);
+                }
+            }
+            all_durations.push(profile_durations);
+            all_distances.push(profile_distances);
+        } else {
+            all_durations.push(matrix.travel_times.iter().map(|d| *d as f64).collect());
+            all_distances.push(matrix.distances.iter().map(|d| *d as f64).collect());
+        }
     });
 
-    MatrixTransportCost::new(durations, distances)
+    MatrixTransportCost::new(all_durations, all_distances)
 }
 
 fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
@@ -211,6 +227,7 @@ fn create_constraint_pipeline(
     transport: Arc<dyn TransportCost + Send + Sync>,
     locks: Vec<Arc<Lock>>,
     limit_func: Option<TravelLimitFunc>,
+    has_unreachable_locations: bool,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
@@ -224,6 +241,10 @@ fn create_constraint_pipeline(
 
     if let Some(limit_func) = limit_func {
         constraint.add_module(Box::new(TravelModule::new(limit_func.clone(), transport.clone(), 5, 6)));
+    }
+
+    if has_unreachable_locations {
+        constraint.add_module(Box::new(ReachableModule::new(transport.clone(), 11)));
     }
 
     constraint
