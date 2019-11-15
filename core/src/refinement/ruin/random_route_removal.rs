@@ -54,7 +54,7 @@ impl RandomRouteRemoval {
 
 impl Default for RandomRouteRemoval {
     fn default() -> Self {
-        Self::new(1, 3, 0.2)
+        Self::new(0, 3, 0.2)
     }
 }
 
