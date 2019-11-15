@@ -24,26 +24,22 @@ pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext) -> Inserti
             }
 
             let route_costs = ctx.problem.constraint.evaluate_soft_route(&route_ctx, &job);
-            if let InsertionResult::Success(success) = &acc {
-                if success.cost < route_costs {
+            let best_known_cost = match &acc {
+                InsertionResult::Success(success) => Some(success.cost),
+                _ => None,
+            };
+
+            if let Some(best_known_cost) = best_known_cost {
+                if best_known_cost < route_costs {
                     return acc;
                 }
             }
 
-            let progress = InsertionProgress {
-                cost: match &acc {
-                    InsertionResult::Success(success) => Some(success.cost),
-                    _ => None,
-                },
-                completeness: ctx.progress.completeness,
-                total: ctx.progress.total,
-            };
-
             InsertionResult::choose_best_result(
                 acc,
                 match job.as_ref() {
-                    Job::Single(single) => evaluate_single(job, single, ctx, &route_ctx, route_costs, &progress),
-                    Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, route_costs, &progress),
+                    Job::Single(single) => evaluate_single(job, single, ctx, &route_ctx, route_costs, best_known_cost),
+                    Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, route_costs, best_known_cost),
                 },
             )
         },
@@ -56,7 +52,7 @@ fn evaluate_single(
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
     route_costs: Cost,
-    progress: &InsertionProgress,
+    best_known_cost: Option<Cost>,
 ) -> InsertionResult {
     let mut activity = Box::new(Activity::new_with_job(job.clone()));
     let result = analyze_insertion_in_route(
@@ -65,7 +61,7 @@ fn evaluate_single(
         single,
         &mut activity,
         route_costs,
-        SingleContext::new(progress.cost, 0),
+        SingleContext::new(best_known_cost, 0),
     );
 
     if result.is_success() {
@@ -83,11 +79,11 @@ fn evaluate_multi(
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
     route_costs: Cost,
-    progress: &InsertionProgress,
+    best_known_cost: Option<Cost>,
 ) -> InsertionResult {
     // 1. analyze permutations
     let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
-        MultiContext::new(progress.cost),
+        MultiContext::new(best_known_cost),
         |acc_res, services| {
             let mut shadow = ShadowContext::new(&ctx.problem, &route_ctx);
             let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(MultiContext::new(None), |out, _| {
