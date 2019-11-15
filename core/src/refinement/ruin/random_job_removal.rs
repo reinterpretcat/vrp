@@ -19,7 +19,7 @@ impl RandomJobRemoval {
 
 impl Default for RandomJobRemoval {
     fn default() -> Self {
-        Self::new(1, 30, 0.2)
+        Self::new(1, 10, 0.2)
     }
 }
 
