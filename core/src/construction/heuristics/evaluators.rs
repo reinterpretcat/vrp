@@ -2,7 +2,6 @@
 #[path = "../../../tests/unit/construction/heuristics/evaluators_test.rs"]
 mod evaluators_test;
 
-use std::borrow::Borrow;
 use std::sync::Arc;
 
 use crate::construction::constraints::ActivityConstraintViolation;
@@ -24,8 +23,15 @@ pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext) -> Inserti
                 );
             }
 
+            let route_costs = ctx.problem.constraint.evaluate_soft_route(&route_ctx, &job);
+            if let InsertionResult::Success(success) = &acc {
+                if success.cost < route_costs {
+                    return acc;
+                }
+            }
+
             let progress = InsertionProgress {
-                cost: match acc.borrow() {
+                cost: match &acc {
                     InsertionResult::Success(success) => Some(success.cost),
                     _ => None,
                 },
@@ -35,9 +41,9 @@ pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext) -> Inserti
 
             InsertionResult::choose_best_result(
                 acc,
-                match job.borrow() {
-                    Job::Single(single) => evaluate_single(job, single, ctx, &route_ctx, &progress),
-                    Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, &progress),
+                match job.as_ref() {
+                    Job::Single(single) => evaluate_single(job, single, ctx, &route_ctx, route_costs, &progress),
+                    Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, route_costs, &progress),
                 },
             )
         },
@@ -49,9 +55,9 @@ fn evaluate_single(
     single: &Single,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
+    route_costs: Cost,
     progress: &InsertionProgress,
 ) -> InsertionResult {
-    let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
     let mut activity = Box::new(Activity::new_with_job(job.clone()));
     let result = analyze_insertion_in_route(
         ctx,
@@ -76,9 +82,9 @@ fn evaluate_multi(
     multi: &Multi,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
+    route_costs: Cost,
     progress: &InsertionProgress,
 ) -> InsertionResult {
-    let route_costs = ctx.problem.constraint.evaluate_soft_route(route_ctx, job);
     // 1. analyze permutations
     let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
         MultiContext::new(progress.cost),
