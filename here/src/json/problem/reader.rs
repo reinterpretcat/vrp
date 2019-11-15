@@ -3,7 +3,7 @@
 mod reader_test;
 
 use super::StringReader;
-use crate::constraints::{BreakModule, ReachableModule, SkillsModule};
+use crate::constraints::{BreakModule, ExtraCostModule, ReachableModule, SkillsModule};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
 use crate::utils::get_split_permutations;
@@ -247,6 +247,8 @@ fn create_constraint_pipeline(
     if has_unreachable_locations {
         constraint.add_module(Box::new(ReachableModule::new(transport.clone(), 11)));
     }
+
+    constraint.add_module(Box::new(ExtraCostModule::default()));
 
     constraint
 }
