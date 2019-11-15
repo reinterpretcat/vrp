@@ -1,8 +1,7 @@
 use crate::helpers::format_time;
-use crate::json::problem::{
-    Job, JobPlace, JobPlaces, JobVariant, Matrix, MultiJob, MultiJobPlace, MultiJobPlaces, VehicleCosts, VehiclePlace,
-    VehiclePlaces, VehicleType,
-};
+use crate::json::coord_index::CoordIndex;
+use crate::json::problem::*;
+use std::iter::once;
 
 pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
     JobVariant::Single(Job {
@@ -169,6 +168,45 @@ pub fn create_matrix(data: Vec<i64>) -> Matrix {
         distances: data.clone(),
         error_codes: None,
     }
+}
+
+pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
+    let mut coord_index = CoordIndex::default();
+    problem.plan.jobs.iter().for_each(|job| match &job {
+        JobVariant::Single(job) => {
+            once(&job.places.pickup).chain(once(&job.places.delivery)).for_each(|place| {
+                if let Some(place) = place {
+                    coord_index.add_from_vec(&place.location);
+                }
+            });
+        }
+        JobVariant::Multi(job) => job.places.pickups.iter().chain(job.places.deliveries.iter()).for_each(|place| {
+            coord_index.add_from_vec(&place.location);
+        }),
+    });
+    problem.fleet.types.iter().for_each(|vehicle| {
+        once(Some(vehicle.places.start.location.clone()))
+            .chain(once(vehicle.places.end.as_ref().map(|p| p.location.clone())))
+            .chain(once(vehicle.vehicle_break.as_ref().and_then(|b| b.location.clone())))
+            .for_each(|location| {
+                if let Some(location) = location {
+                    coord_index.add_from_vec(&location);
+                }
+            })
+    });
+    let unique = coord_index.unique();
+
+    let data: Vec<i64> = unique
+        .iter()
+        .cloned()
+        .flat_map(|a| {
+            unique.iter().map(move |b| {
+                ((a.latitude - b.latitude).powf(2.) + (a.longitude - b.longitude).powf(2.)).sqrt().round() as i64
+            })
+        })
+        .collect();
+
+    create_matrix(data)
 }
 
 pub fn to_strings(data: Vec<&str>) -> Vec<String> {

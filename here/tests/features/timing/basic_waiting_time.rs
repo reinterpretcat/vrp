@@ -15,7 +15,7 @@ fn can_wait_for_job_start() {
         },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
     };
-    let matrix = create_matrix(vec![0, 1, 1, 1, 0, 2, 1, 2, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 
@@ -85,7 +85,7 @@ fn can_skip_initial_waiting() {
         },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
     };
-    let matrix = create_matrix(vec![0, 1, 1, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

@@ -16,7 +16,7 @@ fn can_use_one_pickup_delivery_and_two_deliveries_with_one_vehicle() {
         },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
     };
-    let matrix = create_matrix(vec![0, 1, 2, 3, 1, 1, 0, 1, 2, 2, 2, 1, 0, 1, 3, 3, 2, 1, 0, 4, 1, 2, 3, 4, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

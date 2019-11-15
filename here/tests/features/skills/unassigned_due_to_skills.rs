@@ -12,7 +12,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
         },
         fleet: Fleet { types: vec![create_default_vehicle("vehicle_without_skill")] },
     };
-    let matrix = create_matrix(vec![0, 1, 1, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

@@ -12,7 +12,7 @@ fn can_create_solution() {
         },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
     };
-    let matrix = create_matrix(vec![0, 5, 5, 5, 0, 10, 5, 10, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_heuristic(problem, vec![matrix]);
 

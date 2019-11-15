@@ -1,4 +1,4 @@
-mod coord_index;
+pub mod coord_index;
 
 pub mod problem;
 

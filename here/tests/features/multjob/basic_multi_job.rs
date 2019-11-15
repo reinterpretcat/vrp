@@ -19,7 +19,7 @@ fn can_assign_properly_multi_and_single_job() {
         },
         fleet: Fleet { types: vec![create_vehicle_with_capacity("my_vehicle", vec![2])] },
     };
-    let matrix = create_matrix(vec![0, 1, 7, 5, 1, 1, 0, 6, 4, 2, 7, 6, 0, 2, 8, 5, 4, 2, 0, 6, 1, 2, 8, 6, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

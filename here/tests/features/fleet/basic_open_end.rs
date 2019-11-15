@@ -21,7 +21,7 @@ fn can_use_vehicle_with_open_end() {
             }],
         },
     };
-    let matrix = create_matrix(vec![0, 1, 1, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

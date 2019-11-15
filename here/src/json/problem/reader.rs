@@ -91,7 +91,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
 }
 
 fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
-    let mut index = CoordIndex::new();
+    let mut index = CoordIndex::default();
 
     // process plan
     api_problem.plan.jobs.iter().for_each(|job| match &job {

@@ -27,7 +27,7 @@ fn can_wait_for_job_start() {
             ],
         },
     };
-    let matrix = create_matrix(vec![0, 1, 9, 1, 0, 10, 9, 10, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

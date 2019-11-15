@@ -43,10 +43,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
             }],
         },
     };
-    let matrix = create_matrix(vec![
-        0, 1, 2, 3, 4, 5, 6, 1, 1, 0, 1, 2, 3, 4, 5, 2, 2, 1, 0, 1, 2, 3, 4, 3, 3, 2, 1, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0,
-        1, 2, 5, 5, 4, 3, 2, 1, 0, 1, 6, 6, 5, 4, 3, 2, 1, 0, 7, 1, 2, 3, 4, 5, 6, 7, 0,
-    ]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

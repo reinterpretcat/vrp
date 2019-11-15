@@ -82,9 +82,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
             }],
         },
     };
-    let matrix = create_matrix(vec![
-        0, 1, 2, 3, 4, 1, 1, 0, 1, 2, 3, 2, 2, 1, 0, 1, 2, 3, 3, 2, 1, 0, 1, 4, 4, 3, 2, 1, 0, 5, 1, 2, 3, 4, 5, 0,
-    ]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

@@ -9,7 +9,7 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
         plan: Plan { jobs: vec![create_pickup_delivery_job("job1", vec![1., 0.], vec![2., 0.])], relations: None },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
     };
-    let matrix = create_matrix(vec![0, 1, 1, 1, 0, 2, 1, 2, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

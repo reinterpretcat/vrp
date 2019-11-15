@@ -28,7 +28,7 @@ fn can_assign_break_between_jobs() {
             }],
         },
     };
-    let matrix = create_matrix(vec![0, 5, 5, 1, 5, 0, 10, 4, 5, 10, 0, 6, 1, 4, 6, 0]);
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 
