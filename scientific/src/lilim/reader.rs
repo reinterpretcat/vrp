@@ -3,11 +3,12 @@
 mod reader_test;
 
 use crate::common::*;
+use crate::utils::MatrixFactory;
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::TimeWindow;
 use core::models::problem::*;
 use core::models::Problem;
-use core::utils::{MatrixFactory, TryCollect};
+use core::utils::TryCollect;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read};

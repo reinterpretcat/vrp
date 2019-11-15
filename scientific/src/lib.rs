@@ -10,3 +10,4 @@ mod known_problems_test;
 pub mod common;
 pub mod lilim;
 pub mod solomon;
+mod utils;

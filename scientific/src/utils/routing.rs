@@ -1,5 +1,5 @@
-use crate::models::common::Location;
-use crate::models::problem::MatrixTransportCost;
+use core::models::common::Location;
+use core::models::problem::MatrixTransportCost;
 
 pub struct MatrixFactory {
     locations: Vec<(i32, i32)>,
