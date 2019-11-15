@@ -6,12 +6,13 @@ pub trait Ruin {
 }
 
 mod adjusted_string_removal;
-
 pub use self::adjusted_string_removal::AdjustedStringRemoval;
 
 mod random_route_removal;
-
 pub use self::random_route_removal::RandomRouteRemoval;
+
+mod random_job_removal;
+pub use self::random_job_removal::RandomJobRemoval;
 
 /// Provides the way to run multiple ruin methods.
 pub struct CompositeRuin {
@@ -23,7 +24,8 @@ impl Default for CompositeRuin {
         Self {
             ruins: vec![
                 (Box::new(AdjustedStringRemoval::default()), 1.),
-                (Box::new(RandomRouteRemoval::default()), 0.01),
+                (Box::new(RandomRouteRemoval::default()), 0.05),
+                (Box::new(RandomJobRemoval::default()), 0.1),
             ],
         }
     }
