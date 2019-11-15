@@ -1,6 +1,7 @@
 use crate::helpers::format_time;
 use crate::json::problem::{
-    Job, JobPlace, JobPlaces, JobVariant, Matrix, VehicleCosts, VehiclePlace, VehiclePlaces, VehicleType,
+    Job, JobPlace, JobPlaces, JobVariant, Matrix, MultiJob, MultiJobPlace, MultiJobPlaces, VehicleCosts, VehiclePlace,
+    VehiclePlaces, VehicleType,
 };
 
 pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
@@ -79,6 +80,41 @@ pub fn create_pickup_delivery_job(id: &str, pickup_location: Vec<f64>, delivery_
     })
 }
 
+pub fn create_multi_job(
+    id: &str,
+    pickups: Vec<((f64, f64), f64, Vec<i32>)>,
+    deliveries: Vec<((f64, f64), f64, Vec<i32>)>,
+) -> JobVariant {
+    JobVariant::Multi(MultiJob {
+        id: id.to_string(),
+        places: MultiJobPlaces {
+            pickups: pickups
+                .into_iter()
+                .enumerate()
+                .map(|(i, (location, duration, demand))| MultiJobPlace {
+                    times: Option::None,
+                    location: vec![location.0, location.1],
+                    duration,
+                    demand,
+                    tag: Some((i + 1).to_string()),
+                })
+                .collect(),
+            deliveries: deliveries
+                .into_iter()
+                .enumerate()
+                .map(|(i, (location, duration, demand))| MultiJobPlace {
+                    times: Option::None,
+                    location: vec![location.0, location.1],
+                    duration,
+                    demand,
+                    tag: Some((i + 1).to_string()),
+                })
+                .collect(),
+        },
+        skills: Option::None,
+    })
+}
+
 fn create_job_place(location: Vec<f64>) -> JobPlace {
     JobPlace { times: None, location, duration: 1., tag: None }
 }
@@ -104,12 +140,16 @@ pub fn create_default_vehicle_costs() -> VehicleCosts {
 }
 
 pub fn create_default_vehicle(id: &str) -> VehicleType {
+    create_vehicle_with_capacity(id, vec![10])
+}
+
+pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType {
     VehicleType {
         id: id.to_string(),
         profile: "car".to_string(),
         costs: create_default_vehicle_costs(),
         places: create_default_vehicle_places(),
-        capacity: vec![10],
+        capacity,
         amount: 1,
         skills: None,
         limits: None,

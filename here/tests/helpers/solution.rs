@@ -9,6 +9,28 @@ pub fn create_stop_with_activity(
     load: i32,
     time: (&str, &str),
 ) -> Stop {
+    create_stop_with_activity_impl(id, activity_type, location, load, time, None)
+}
+
+pub fn create_stop_with_activity_with_tag(
+    id: &str,
+    activity_type: &str,
+    location: (f64, f64),
+    load: i32,
+    time: (&str, &str),
+    job_tag: &str,
+) -> Stop {
+    create_stop_with_activity_impl(id, activity_type, location, load, time, Some(job_tag.to_string()))
+}
+
+fn create_stop_with_activity_impl(
+    id: &str,
+    activity_type: &str,
+    location: (f64, f64),
+    load: i32,
+    time: (&str, &str),
+    job_tag: Option<String>,
+) -> Stop {
     Stop {
         location: vec![location.0, location.1],
         time: Schedule { arrival: time.0.to_string(), departure: time.1.to_string() },
@@ -18,7 +40,7 @@ pub fn create_stop_with_activity(
             activity_type: activity_type.to_string(),
             location: None,
             time: None,
-            job_tag: None,
+            job_tag,
         }],
     }
 }
