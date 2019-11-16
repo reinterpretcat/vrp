@@ -48,27 +48,26 @@ fn main() {
 
     match formats.get(problem_format) {
         Some((problem_reader, init_reader, solution_writer)) => {
-            let solution = match problem_reader.0(problem_file, matrix_files) {
+            match problem_reader.0(problem_file, matrix_files) {
                 Ok(problem) => {
                     let problem = Arc::new(problem);
                     let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
-                    SolverBuilder::default()
+                    let solution = SolverBuilder::default()
                         .with_init_solution(solution.map(|s| (problem.clone(), Arc::new(s))))
                         .with_minimize_routes(minimize_routes)
                         .with_max_generations(max_generations)
                         .with_variation_coefficient(variation_coefficient)
                         .build()
-                        .solve(problem)
+                        .solve(problem.clone());
+                    match solution {
+                        Some(solution) => solution_writer.0(&problem, solution.0).unwrap(),
+                        None => println!("Cannot find any solution"),
+                    };
                 }
                 Err(error) => {
                     eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
                     process::exit(1);
                 }
-            };
-
-            match solution {
-                Some(solution) => solution_writer.0(solution.0).unwrap(),
-                None => println!("Cannot find any solution"),
             };
         }
         None => {

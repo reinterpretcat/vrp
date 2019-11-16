@@ -14,14 +14,14 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
         .version("0.1")
         .author("Ilya Builuk <ilya.builuk@gmail.com>")
         .about("Solves variations of Vehicle Routing Problem")
-        .arg(Arg::with_name(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(1))
         .arg(
             Arg::with_name(FORMAT_ARG_NAME)
                 .help("Specifies the problem type")
                 .required(true)
                 .possible_values(formats.as_slice())
-                .index(2),
+                .index(1),
         )
+        .arg(Arg::with_name(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
         .arg(
             Arg::with_name(GENERATIONS_ARG_NAME)
                 .help("Specifies maximum amount of generations")
