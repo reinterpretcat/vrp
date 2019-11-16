@@ -50,6 +50,7 @@ fn generate_sample_permutations(start: usize, end: usize, sample_size: usize) ->
 }
 
 pub fn get_split_permutations(size: usize, split_start_index: usize, sample_size: usize) -> Vec<Vec<usize>> {
+    // TODO make it memory efficient somehow
     assert!(size > split_start_index);
 
     let first = generate_sample_permutations(0, split_start_index - 1, sample_size);

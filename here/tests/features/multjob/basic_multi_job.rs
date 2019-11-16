@@ -149,7 +149,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                         (4., 0.),
                         2,
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                        "2"
+                        "1"
                     ),
                     create_stop_with_activity_with_tag(
                         "multi",
