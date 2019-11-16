@@ -8,5 +8,6 @@ pub mod helpers;
 pub mod features;
 
 mod constraints;
-mod json;
 mod utils;
+
+pub mod json;

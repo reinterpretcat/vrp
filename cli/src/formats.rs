@@ -1,4 +1,5 @@
 use core::models::{Problem, Solution};
+use here::json::problem::HereProblem;
 use scientific::common::read_init_solution;
 use scientific::lilim::{write_lilim_solution, LilimProblem};
 use scientific::solomon::{write_solomon_solution, SolomonProblem};
@@ -39,6 +40,17 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                 SolutionWriter(Box::new(|solution: Solution| {
                     write_lilim_solution(BufWriter::new(Box::new(stdout())), &solution)
                 })),
+            ),
+        ),
+        (
+            "here",
+            (
+                ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
+                    assert!(matrices.is_some());
+                    (problem, matrices.unwrap()).read_here()
+                })),
+                InitSolutionReader(Box::new(|_file, _problem| None)),
+                SolutionWriter(Box::new(|_solution: Solution| unimplemented!())),
             ),
         ),
     ]
