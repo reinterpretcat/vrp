@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::{stdout, BufReader, BufWriter, Error};
 use std::sync::Arc;
 
-pub struct ProblemReader(pub Box<dyn Fn(File) -> Result<Problem, String>>);
+pub struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
 
 pub struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Option<Solution>>);
 
@@ -18,7 +18,10 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
         (
             "solomon",
             (
-                ProblemReader(Box::new(|file: File| file.parse_solomon())),
+                ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
+                    assert!(matrices.is_none());
+                    problem.parse_solomon()
+                })),
                 InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
                 SolutionWriter(Box::new(|solution: Solution| {
                     write_solomon_solution(BufWriter::new(Box::new(stdout())), &solution)
@@ -28,7 +31,10 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
         (
             "lilim",
             (
-                ProblemReader(Box::new(|file: File| file.parse_lilim())),
+                ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
+                    assert!(matrices.is_none());
+                    problem.parse_lilim()
+                })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
                 SolutionWriter(Box::new(|solution: Solution| {
                     write_lilim_solution(BufWriter::new(Box::new(stdout())), &solution)

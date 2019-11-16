@@ -62,6 +62,7 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
                 .help("Specifies path to file with routing matrix")
                 .short("m")
                 .long(MATRIX_ARG_NAME)
+                .multiple(true)
                 .required(false)
                 .takes_value(true),
         )

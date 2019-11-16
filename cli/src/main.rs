@@ -9,6 +9,7 @@ use std::fs::File;
 use std::ops::Deref;
 use std::process;
 
+use clap::Values;
 use std::sync::Arc;
 
 fn main() {
@@ -18,10 +19,7 @@ fn main() {
     // required
     let problem_path = matches.value_of(PROBLEM_ARG_NAME).unwrap();
     let problem_format = matches.value_of(FORMAT_ARG_NAME).unwrap();
-    let input_file = File::open(problem_path).unwrap_or_else(|err| {
-        eprintln!("Cannot open problem file '{}': '{}'", problem_path, err.to_string());
-        process::exit(1);
-    });
+    let problem_file = open_file(problem_path, "problem");
 
     // optional
     let max_generations = matches.value_of(GENERATIONS_ARG_NAME).unwrap().parse::<usize>().unwrap_or_else(|err| {
@@ -43,16 +41,14 @@ fn main() {
         eprintln!("Cannot get minimize routes: '{}'", err.to_string());
         process::exit(1);
     });
-    let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| {
-        File::open(path).unwrap_or_else(|err| {
-            eprintln!("Cannot open init solution file '{}': '{}'", problem_path, err.to_string());
-            process::exit(1);
-        })
-    });
+    let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
+    let matrix_files = matches
+        .values_of(MATRIX_ARG_NAME)
+        .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect());
 
     match formats.get(problem_format) {
         Some((problem_reader, init_reader, solution_writer)) => {
-            let solution = match problem_reader.0(input_file) {
+            let solution = match problem_reader.0(problem_file, matrix_files) {
                 Ok(problem) => {
                     let problem = Arc::new(problem);
                     let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
@@ -80,4 +76,11 @@ fn main() {
             process::exit(1);
         }
     }
+}
+
+fn open_file(path: &str, description: &str) -> File {
+    File::open(path).unwrap_or_else(|err| {
+        eprintln!("Cannot open {} file '{}': '{}'", description, path, err.to_string());
+        process::exit(1);
+    })
 }
