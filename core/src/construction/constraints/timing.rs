@@ -308,11 +308,10 @@ impl SoftActivityConstraint for TimeSoftActivityConstraint {
         let (tp_cost_right, act_cost_right, dep_time_right) = if let Some(next) = next {
             self.analyze_route_leg(actor, target, next, dep_time_left)
         } else {
-            // TODO simplify from target to target
-            self.analyze_route_leg(actor, target, target, dep_time_left)
+            (0., 0., 0.)
         };
 
-        let new_costs = tp_cost_left + tp_cost_right + /* progress.completeness * */ (act_cost_left + act_cost_right);
+        let new_costs = tp_cost_left + tp_cost_right + act_cost_left + act_cost_right;
 
         // no jobs yet or open vrp.
         if !route.tour.has_jobs() || next.is_none() {
@@ -328,7 +327,7 @@ impl SoftActivityConstraint for TimeSoftActivityConstraint {
         let waiting_cost =
             waiting_time.min(0f64.max(dep_time_right - dep_time_old)) * actor.vehicle.costs.per_waiting_time;
 
-        let old_costs = tp_cost_old + /*progress.completeness * */ (act_cost_old + waiting_cost);
+        let old_costs = tp_cost_old + act_cost_old + waiting_cost;
 
         new_costs - old_costs
     }
