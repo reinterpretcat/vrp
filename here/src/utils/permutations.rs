@@ -1,15 +1,13 @@
 extern crate rand;
-use rand::seq::IteratorRandom;
 
-use core::models::problem::{Multi, Single};
-use std::sync::Arc;
+use rand::seq::IteratorRandom;
 
 #[cfg(test)]
 #[path = "../../tests/unit/utils/permutations_test.rs"]
 mod permutations_test;
 
-pub fn get_permutations(size: usize) -> Permutations {
-    Permutations { idxs: (0..size).collect(), swaps: vec![0; size], i: 0 }
+fn get_permutations(start: usize, end: usize) -> Permutations {
+    Permutations { idxs: (start..end + 1).collect(), swaps: vec![0; end - start + 1], i: 0 }
 }
 
 pub struct Permutations {
@@ -41,19 +39,30 @@ impl Iterator for Permutations {
     }
 }
 
-// TODO move this with modification to support multi job with pickups and deliveries
-fn get_job_permutations(multi: &Multi) -> Vec<Vec<Arc<Single>>> {
-    // TODO optionally use permutation function defined on multi job
-    // TODO configure sample size
-    // TODO avoid extra memory allocations?
-    const SAMPLE_SIZE: usize = 3;
-
+fn generate_sample_permutations(start: usize, end: usize, sample_size: usize) -> Vec<Vec<usize>> {
     let mut rng = rand::thread_rng();
-    get_permutations(multi.jobs.len())
-        .choose_multiple(&mut rng, SAMPLE_SIZE)
+
+    get_permutations(start, end)
+        .choose_multiple(&mut rng, sample_size)
         .iter()
-        .map(|permutation| {
-            permutation.iter().map(|&i| multi.jobs.get(i).unwrap().clone()).collect::<Vec<Arc<Single>>>()
+        .map(|permutation| permutation.iter().map(|i| *i).collect::<Vec<usize>>())
+        .collect()
+}
+
+pub fn get_split_permutations(size: usize, split_start_index: usize, sample_size: usize) -> Vec<Vec<usize>> {
+    assert!(size > split_start_index);
+
+    let first = generate_sample_permutations(0, split_start_index - 1, sample_size);
+    let second = generate_sample_permutations(split_start_index, size - 1, sample_size);
+
+    first
+        .iter()
+        .flat_map(|a| {
+            second
+                .iter()
+                .map(|b| a.iter().chain(b.iter()).cloned().collect::<Vec<usize>>())
+                .collect::<Vec<Vec<usize>>>()
         })
+        .take(sample_size)
         .collect()
 }

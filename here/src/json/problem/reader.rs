@@ -6,6 +6,7 @@ use super::StringReader;
 use crate::constraints::{BreakModule, ReachableModule, SkillsModule};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
+use crate::utils::get_split_permutations;
 use chrono::DateTime;
 use core::construction::constraints::*;
 use core::models::common::*;
@@ -304,7 +305,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
 
             let problem_job = match (pickup, delivery) {
                 (Some(pickup), Some(delivery)) => {
-                    get_multi_job(&job.id, &job.skills, vec![Arc::new(pickup), Arc::new(delivery)])
+                    get_multi_job(&job.id, &job.skills, vec![Arc::new(pickup), Arc::new(delivery)], 1)
                 }
                 (Some(pickup), None) => get_single_job(&job.id, pickup, &job.skills),
                 (None, Some(delivery)) => get_single_job(&job.id, delivery, &job.skills),
@@ -345,7 +346,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 ))
             }));
 
-            let problem_job = get_multi_job(&job.id, &job.skills, singles);
+            let problem_job = get_multi_job(&job.id, &job.skills, singles, job.places.pickups.len());
             job_index.insert(job.id.clone(), problem_job.clone());
             jobs.push(problem_job)
         }
@@ -524,11 +525,26 @@ fn get_single_job(id: &String, single: Single, skills: &Option<Vec<String>>) -> 
     Arc::new(Job::Single(Arc::new(single)))
 }
 
-fn get_multi_job(id: &String, skills: &Option<Vec<String>>, singles: Vec<Arc<Single>>) -> Arc<Job> {
+fn get_multi_job(
+    id: &String,
+    skills: &Option<Vec<String>>,
+    singles: Vec<Arc<Single>>,
+    deliveries_start_index: usize,
+) -> Arc<Job> {
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id.as_str());
     add_skills(&mut dimens, skills);
-    let multi = Multi::new(singles, dimens);
+    let multi = if singles.len() == 2 && deliveries_start_index == 1 {
+        Multi::new(singles, dimens)
+    } else {
+        // TODO configure sample size
+        const SAMPLE_SIZE: usize = 3;
+        Multi::new_with_generator(
+            singles,
+            dimens,
+            Box::new(move |m| get_split_permutations(m.jobs.len(), deliveries_start_index, SAMPLE_SIZE)),
+        )
+    };
     Arc::new(Job::Multi(Multi::bind(multi)))
 }
 
