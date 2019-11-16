@@ -10,7 +10,7 @@ use crate::json::solution::{
 use chrono::{SecondsFormat, TimeZone, Utc};
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::*;
-use core::models::problem::Multi;
+use core::models::problem::{Job, Multi};
 use core::models::solution::{Route, TourActivity};
 use core::models::{Problem, Solution};
 use std::io::{BufWriter, Write};
@@ -224,7 +224,13 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
             _ => (0, "unknown"),
         };
         acc.push(UnassignedJob {
-            job_id: unassigned.0.as_single().dimens.get_id().unwrap().clone(),
+            job_id: match unassigned.0.as_ref() {
+                Job::Single(job) => &job.dimens,
+                Job::Multi(job) => &job.dimens,
+            }
+            .get_id()
+            .unwrap()
+            .clone(),
             reasons: vec![UnassignedJobReason { code: reason.0, description: reason.1.to_string() }],
         });
         acc
