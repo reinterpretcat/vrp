@@ -22,7 +22,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    problem.parse_solomon()
+                    problem.read_solomon()
                 })),
                 InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
                 SolutionWriter(Box::new(|_, solution| solution.write_solomon(BufWriter::new(Box::new(stdout()))))),
@@ -33,7 +33,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    problem.parse_lilim()
+                    problem.read_lilim()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
                 SolutionWriter(Box::new(|_, solution| solution.write_lilim(BufWriter::new(Box::new(stdout()))))),

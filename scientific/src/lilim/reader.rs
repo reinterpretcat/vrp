@@ -18,17 +18,17 @@ pub fn read_lilim_format<R: Read>(reader: BufReader<R>) -> Result<Problem, Strin
 }
 
 pub trait LilimProblem {
-    fn parse_lilim(&self) -> Result<Problem, String>;
+    fn read_lilim(&self) -> Result<Problem, String>;
 }
 
 impl LilimProblem for File {
-    fn parse_lilim(&self) -> Result<Problem, String> {
+    fn read_lilim(&self) -> Result<Problem, String> {
         read_lilim_format(BufReader::new(self))
     }
 }
 
 impl LilimProblem for String {
-    fn parse_lilim(&self) -> Result<Problem, String> {
+    fn read_lilim(&self) -> Result<Problem, String> {
         read_lilim_format(BufReader::new(StringReader::new(self.as_str())))
     }
 }

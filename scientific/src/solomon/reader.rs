@@ -17,17 +17,17 @@ pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, Str
 }
 
 pub trait SolomonProblem {
-    fn parse_solomon(&self) -> Result<Problem, String>;
+    fn read_solomon(&self) -> Result<Problem, String>;
 }
 
 impl SolomonProblem for File {
-    fn parse_solomon(&self) -> Result<Problem, String> {
+    fn read_solomon(&self) -> Result<Problem, String> {
         read_solomon_format(BufReader::new(self))
     }
 }
 
 impl SolomonProblem for String {
-    fn parse_solomon(&self) -> Result<Problem, String> {
+    fn read_solomon(&self) -> Result<Problem, String> {
         read_solomon_format(BufReader::new(StringReader::new(self.as_str())))
     }
 }
