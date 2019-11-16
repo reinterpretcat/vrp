@@ -23,11 +23,13 @@ pub struct Tour {
     is_closed: bool,
 }
 
-impl Tour {
-    pub fn new() -> Tour {
+impl Default for Tour {
+    fn default() -> Self {
         Tour { activities: Default::default(), jobs: Default::default(), is_closed: false }
     }
+}
 
+impl Tour {
     /// Sets tour start.
     pub fn set_start(&mut self, activity: TourActivity) -> &mut Tour {
         assert!(activity.job.is_none());

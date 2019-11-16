@@ -345,7 +345,7 @@ impl InsertionResult {
 
 impl RouteContext {
     pub fn new(actor: Arc<Actor>) -> Self {
-        let mut tour = Tour::new();
+        let mut tour = Tour::default();
         tour.set_start(create_start_activity(&actor));
         create_end_activity(&actor).map(|end| tour.set_end(end));
 

@@ -141,7 +141,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                     });
 
                 let actor = solution.registry.next().next().unwrap();
-                let mut tour = Tour::new();
+                let mut tour = Tour::default();
                 tour.set_start(create_start_activity(&actor));
                 create_end_activity(&actor).map(|end| tour.set_end(end));
 

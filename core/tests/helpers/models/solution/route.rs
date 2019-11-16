@@ -58,7 +58,7 @@ pub fn create_route_with_start_end_activities(
     end: TourActivity,
     activities: Vec<TourActivity>,
 ) -> Route {
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
     tour.set_start(start);
     tour.set_end(end);
 
@@ -67,7 +67,7 @@ pub fn create_route_with_start_end_activities(
 
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<TourActivity>) -> Route {
     let actor = get_test_actor_from_fleet(fleet, vehicle);
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
     tour.set_start(create_start_activity(&actor));
     create_end_activity(&actor).map(|end| tour.set_end(end));
 

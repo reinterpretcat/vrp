@@ -13,7 +13,7 @@ fn get_pointer(activity: &TourActivity) -> *const Activity {
 }
 
 fn get_test_tour() -> Tour {
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
     tour.set_start(test_tour_activity_without_job());
     tour.set_end(test_tour_activity_without_job());
     tour.insert_last(test_tour_activity_with_default_job());
@@ -32,7 +32,7 @@ fn compare_legs<'a>(left: &RouteLeg, right: &RouteLeg) {
 #[test]
 fn can_set_and_get_start() {
     let activity = test_tour_activity_without_job();
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
     let pointer = get_pointer(&activity);
 
     tour.set_start(activity);
@@ -46,7 +46,7 @@ fn can_set_and_get_start() {
 #[test]
 fn can_set_and_get_end() {
     let activity = test_tour_activity_without_job();
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
     tour.set_start(test_tour_activity_without_job());
     let pointer = get_pointer(&activity);
 
@@ -129,7 +129,7 @@ fn can_get_legs() {
     let a1_ptr = get_pointer(&a1);
     let a2_ptr = get_pointer(&a2);
     // s a1 a2 e
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
     tour.set_start(start);
     tour.set_end(end);
     tour.insert_last(a1);
@@ -147,7 +147,7 @@ fn can_get_legs() {
 
 #[test]
 fn can_get_job_index() {
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
     tour.set_start(test_tour_activity_without_job());
     tour.set_end(test_tour_activity_without_job());
     let job = Arc::new(test_single_job());
@@ -165,7 +165,7 @@ fn can_get_job_index() {
 
 #[test]
 fn can_get_activity_and_job_count() {
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
 
     tour.set_start(test_tour_activity_without_job());
     assert_eq!(tour.activity_count(), 0);
@@ -188,7 +188,7 @@ fn can_get_start_and_end() {
     let a2 = test_tour_activity_with_default_job();
     let start_ptr = get_pointer(&start);
     let end_ptr = get_pointer(&end);
-    let mut tour = Tour::new();
+    let mut tour = Tour::default();
 
     tour.set_start(start);
     tour.set_end(end);
