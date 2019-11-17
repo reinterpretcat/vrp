@@ -64,16 +64,17 @@ impl Ruin for AdjustedStringRemoval {
 
         select_seed_jobs(&insertion_ctx.problem, &routes, &insertion_ctx.random)
             .filter(|job| !jobs.read().unwrap().contains(job))
-            .take_while(|_| actors.read().unwrap().len() != ks)
+            .take_while(|_| actors.read().unwrap().len() <= ks)
             .for_each(|job| {
                 insertion_ctx
                     .solution
                     .routes
                     .iter()
-                    .filter(|rc| {
+                    .find(|rc| {
                         let route = rc.route.read().unwrap();
                         !actors.read().unwrap().contains(&route.actor) && route.tour.index(&job).is_some()
                     })
+                    .iter()
                     .for_each(|rc| {
                         let mut route = rc.route.write().unwrap();
 
@@ -133,9 +134,7 @@ fn sequential_string<'a>(
     let (begin, end) = lower_bounds(cardinality, seed_tour.0.activity_count(), seed_tour.1);
     let start = random.uniform_int(begin as i32, end as i32) as usize;
 
-    Box::new(
-        (start..(start + cardinality)).rev().filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())),
-    )
+    Box::new((start..(start + cardinality)).filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())))
 }
 
 /// Selects string with preserved jobs.
@@ -252,8 +251,8 @@ fn lower_bounds(string_crd: usize, tour_crd: usize, index: usize) -> (usize, usi
     let tour_crd = tour_crd as i32;
     let index = index as i32;
 
-    let start = (index - string_crd + 1).max(1);
-    let end = (tour_crd - string_crd + 1).min(start + string_crd);
+    let start = (index - string_crd).max(1);
+    let end = (index + string_crd).min(tour_crd);
 
     (start as usize, end as usize)
 }
