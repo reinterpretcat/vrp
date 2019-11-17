@@ -1,7 +1,5 @@
 mod costs;
-pub use self::costs::ProfileAwareTransportCost;
-pub use self::costs::TestActivityCost;
-pub use self::costs::TestTransportCost;
+pub use self::costs::*;
 
 mod fleet;
 pub use self::fleet::*;

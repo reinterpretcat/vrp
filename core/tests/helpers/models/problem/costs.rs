@@ -3,15 +3,13 @@ use crate::models::problem::{ActivityCost, TransportCost};
 
 pub struct TestTransportCost {}
 
-pub struct TestActivityCost {}
-
 impl TransportCost for TestTransportCost {
     fn duration(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
-        subtract(from, to)
+        fake_routing(from, to)
     }
 
     fn distance(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
-        subtract(from, to)
+        fake_routing(from, to)
     }
 }
 
@@ -21,29 +19,11 @@ impl TestTransportCost {
     }
 }
 
-pub struct ProfileAwareTransportCost {
-    func: Box<dyn Fn(Profile, f64) -> f64>,
-}
-
-impl ProfileAwareTransportCost {
-    pub fn new(func: Box<dyn Fn(Profile, f64) -> f64>) -> ProfileAwareTransportCost {
-        ProfileAwareTransportCost { func }
-    }
-}
-
-impl TransportCost for ProfileAwareTransportCost {
-    fn duration(&self, profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
-        (self.func)(profile, subtract(from, to))
-    }
-
-    fn distance(&self, profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
-        (self.func)(profile, subtract(from, to))
-    }
-}
-
-fn subtract(from: Location, to: Location) -> f64 {
+pub fn fake_routing(from: Location, to: Location) -> f64 {
     (if to > from { to - from } else { from - to }) as f64
 }
+
+pub struct TestActivityCost {}
 
 impl ActivityCost for TestActivityCost {}
 

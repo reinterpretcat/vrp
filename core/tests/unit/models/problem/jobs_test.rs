@@ -3,6 +3,44 @@ use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::helpers::models::problem::*;
 use crate::models::problem::VehicleDetail;
 
+struct OnlyDistanceCost {}
+
+impl TransportCost for OnlyDistanceCost {
+    fn duration(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
+        0.
+    }
+
+    fn distance(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
+        fake_routing(from, to)
+    }
+}
+
+impl Default for OnlyDistanceCost {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+struct ProfileAwareTransportCost {
+    func: Box<dyn Fn(Profile, f64) -> f64>,
+}
+
+impl ProfileAwareTransportCost {
+    pub fn new(func: Box<dyn Fn(Profile, f64) -> f64>) -> ProfileAwareTransportCost {
+        ProfileAwareTransportCost { func }
+    }
+}
+
+impl TransportCost for ProfileAwareTransportCost {
+    fn duration(&self, profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
+        0.
+    }
+
+    fn distance(&self, profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
+        (self.func)(profile, fake_routing(from, to))
+    }
+}
+
 fn create_profile_aware_transport_cost() -> ProfileAwareTransportCost {
     ProfileAwareTransportCost::new(Box::new(|p, d| if p == 2 { 10.0 - d } else { d }))
 }
@@ -11,14 +49,14 @@ fn create_profile_aware_transport_cost() -> ProfileAwareTransportCost {
 fn all_returns_all_jobs() {
     let jobs = vec![Arc::new(test_single_job()), Arc::new(test_single_job())];
 
-    assert_eq!(Jobs::new(&test_fleet(), jobs, &TestTransportCost::new()).all().count(), 2)
+    assert_eq!(Jobs::new(&test_fleet(), jobs, &OnlyDistanceCost::default()).all().count(), 2)
 }
 
-parameterized_test! {calculates_proper_distance_between_single_jobs, (left, right, expected), {
-    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, &TestTransportCost::new(), &left, &right), expected);
+parameterized_test! {calculates_proper_cost_between_single_jobs, (left, right, expected), {
+    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &OnlyDistanceCost::default(), &left, &right), expected);
 }}
 
-calculates_proper_distance_between_single_jobs! {
+calculates_proper_cost_between_single_jobs! {
     case1: (test_single_job_with_location(Some(0)), test_single_job_with_location(Some(10)), 10.0),
     case2: (test_single_job_with_location(Some(0)), test_single_job_with_location(None), 0.0),
     case3: (test_single_job_with_location(None), test_single_job_with_location(None), 0.0),
@@ -26,15 +64,26 @@ calculates_proper_distance_between_single_jobs! {
     case5: (test_single_job_with_locations(vec![Some(2), Some(1)]), test_single_job_with_locations(vec![Some(10), Some(9)]), 7.0),
 }
 
-parameterized_test! {calculates_proper_distance_between_multi_jobs, (left, right, expected), {
-    assert_eq!(get_distance_between_jobs(DEFAULT_PROFILE, &TestTransportCost::new(), &left, &right), expected);
+parameterized_test! {calculates_proper_cost_between_multi_jobs, (left, right, expected), {
+    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &OnlyDistanceCost::default(), &left, &right), expected);
 }}
 
-calculates_proper_distance_between_multi_jobs! {
+calculates_proper_cost_between_multi_jobs! {
     case1: (test_multi_job_with_locations(vec![vec![Some(1)], vec![Some(2)]]), test_multi_job_with_locations(vec![vec![Some(8)], vec![Some(9)]]), 6.0),
     case2: (test_multi_job_with_locations(vec![vec![Some(1)], vec![Some(2)]]), test_multi_job_with_locations(vec![vec![None], vec![Some(9)]]), 0.0),
     case3: (test_multi_job_with_locations(vec![vec![None], vec![None]]), test_multi_job_with_locations(vec![vec![None], vec![Some(9)]]), 0.0),
     case4: (test_multi_job_with_locations(vec![vec![None], vec![None]]), test_multi_job_with_locations(vec![vec![None], vec![None]]), 0.0),
+}
+
+parameterized_test! {returns_proper_job_neighbours, (index, expected), {
+    returns_proper_job_neighbours_impl(index, expected.iter().map(|s| s.to_string()).collect());
+}}
+
+returns_proper_job_neighbours! {
+    case1: (0, vec!["s1", "s2", "s3", "s4"]),
+    case2: (1, vec!["s0", "s2", "s3", "s4"]),
+    case3: (2, vec!["s1", "s3", "s0", "s4"]),
+    case4: (3, vec!["s2", "s4", "s1", "s0"]),
 }
 
 fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
@@ -63,15 +112,19 @@ fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
     assert_eq!(result, expected);
 }
 
-parameterized_test! {returns_proper_job_neighbours, (index, expected), {
-    returns_proper_job_neighbours_impl(index, expected.iter().map(|s| s.to_string()).collect());
+parameterized_test! {returns_proper_job_ranks, (index, profile, expected), {
+    returns_proper_job_ranks_impl(index, profile, expected);
 }}
 
-returns_proper_job_neighbours! {
-    case1: (0, vec!["s1", "s2", "s3", "s4"]),
-    case2: (1, vec!["s0", "s2", "s3", "s4"]),
-    case3: (2, vec!["s1", "s3", "s0", "s4"]),
-    case4: (3, vec!["s2", "s4", "s1", "s0"]),
+returns_proper_job_ranks! {
+    case1: (0, 1, 0.0),
+    case2: (1, 1, 5.0),
+    case3: (2, 1, 6.0),
+    case4: (3, 1, 16.0),
+    case5: (0, 3, 30.0),
+    case6: (1, 3, 20.0),
+    case7: (2, 3, 9.0),
+    case8: (3, 3, 1.0),
 }
 
 fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Distance) {
@@ -120,26 +173,11 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
     assert_eq!(result, expected);
 }
 
-parameterized_test! {returns_proper_job_ranks, (index, profile, expected), {
-    returns_proper_job_ranks_impl(index, profile, expected);
-}}
-
-returns_proper_job_ranks! {
-    case1: (0, 1, 0.0),
-    case2: (1, 1, 5.0),
-    case3: (2, 1, 6.0),
-    case4: (3, 1, 16.0),
-    case5: (0, 3, 30.0),
-    case6: (1, 3, 20.0),
-    case7: (2, 3, 9.0),
-    case8: (3, 3, 1.0),
-}
-
 #[test]
 fn can_use_multi_job_bind_and_roots() {
     let job = Arc::new(test_multi_job_with_locations(vec![vec![Some(0)], vec![Some(1)]]));
     let jobs = vec![job.clone()];
-    let jobs = Jobs::new(&test_fleet(), jobs, &TestTransportCost::new());
+    let jobs = Jobs::new(&test_fleet(), jobs, &OnlyDistanceCost::default());
 
     let job = if let Job::Multi(multi) = job.as_ref() {
         Arc::new(Job::Multi(Multi::roots(&multi.jobs.first().unwrap()).unwrap()))

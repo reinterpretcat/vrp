@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/models/problem/jobs_test.rs"]
 mod jobs_test;
 
-use crate::models::common::{Dimensions, Distance, Duration, Location, Profile, TimeWindow, Timestamp};
+use crate::models::common::*;
 use crate::models::problem::{Fleet, TransportCost};
 use std::cell::UnsafeCell;
 use std::cmp::Ordering::Less;
@@ -106,7 +106,7 @@ impl Multi {
     }
 }
 
-type JobIndex = HashMap<Arc<Job>, (Vec<(Arc<Job>, Distance)>, Distance)>;
+type JobIndex = HashMap<Arc<Job>, (Vec<(Arc<Job>, Cost)>, Cost)>;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
@@ -124,13 +124,13 @@ impl Jobs {
     }
 
     /// Returns range of jobs "near" to given one.Near is defined by transport costs,
-    /// its profile and time. Value is filtered by max distance.
+    /// its profile and time. Value is filtered by max cost.
     pub fn neighbors<'a>(
         &'a self,
         profile: Profile,
         job: &Arc<Job>,
         _: Timestamp,
-        max_distance: Distance,
+        max_cost: Cost,
     ) -> impl Iterator<Item = Arc<Job>> + 'a {
         self.index
             .get(&profile)
@@ -139,12 +139,12 @@ impl Jobs {
             .unwrap()
             .0
             .iter()
-            .filter(move |(_, distance)| *distance > 0. && *distance < max_distance)
+            .filter(move |(_, cost)| *cost > 0. && *cost < max_cost)
             .map(|(j, _)| j.clone())
     }
 
-    /// Returns job rank as distance to any vehicle's start position.
-    pub fn rank(&self, profile: Profile, job: &Arc<Job>) -> Distance {
+    /// Returns job rank as relative cost from any vehicle's start position.
+    pub fn rank(&self, profile: Profile, job: &Arc<Job>) -> Cost {
         self.index.get(&profile).unwrap().get(job).unwrap().1
     }
 
@@ -182,9 +182,9 @@ impl Hash for Job {
     }
 }
 
-// TODO: we don't know actual departure and zero-distance when we create job index.
+// TODO: we don't know actual departure and zero-cost when we create job index.
 const DEFAULT_DEPARTURE: Timestamp = 0.0;
-const DEFAULT_DISTANCE: Distance = 0.0;
+const DEFAULT_COST: Cost = 0.0;
 
 /// Creates job index.
 fn create_index(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCost) -> HashMap<Profile, JobIndex> {
@@ -201,21 +201,21 @@ fn create_index(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCo
 
         // create job index
         let item = jobs.iter().cloned().fold(HashMap::new(), |mut acc, job| {
-            let mut job_distances: Vec<(Arc<Job>, Distance)> = jobs
+            let mut job_costs: Vec<(Arc<Job>, Cost)> = jobs
                 .iter()
                 .filter(|j| j.as_ref() != job.as_ref())
-                .map(|j| (j.clone(), get_distance_between_jobs(profile, transport, j, &job)))
+                .map(|j| (j.clone(), get_cost_between_jobs(profile, transport, &job, j)))
                 .collect();
-            job_distances.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
+            job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
 
-            let fleet_distances = starts
+            let fleet_costs = starts
                 .iter()
                 .cloned()
-                .map(|s| get_distance_between_job_and_location(profile, transport, &job, s))
+                .map(|s| get_cost_between_job_and_location(profile, transport, &job, s))
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
-                .unwrap_or(DEFAULT_DISTANCE);
+                .unwrap_or(DEFAULT_COST);
 
-            acc.insert(job, (job_distances, fleet_distances));
+            acc.insert(job, (job_costs, fleet_costs));
             acc
         });
 
@@ -224,24 +224,29 @@ fn create_index(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCo
     })
 }
 
-/// Returns min distance between job and location.
-fn get_distance_between_job_and_location(
+#[inline(always)]
+fn get_cost_between_locations(profile: Profile, transport: &impl TransportCost, from: Location, to: Location) -> f64 {
+    transport.distance(profile, from, to, DEFAULT_DEPARTURE) + transport.duration(profile, from, to, DEFAULT_DEPARTURE)
+}
+
+/// Returns min cost between job and location.
+fn get_cost_between_job_and_location(
     profile: Profile,
     transport: &impl TransportCost,
     lhs: &Job,
     to: Location,
-) -> Distance {
+) -> Cost {
     get_job_locations(lhs)
         .map(|from| match from {
-            Some(from) => transport.distance(profile, from, to, DEFAULT_DEPARTURE),
-            _ => DEFAULT_DISTANCE,
+            Some(from) => get_cost_between_locations(profile, transport, from, to),
+            _ => DEFAULT_COST,
         })
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
-        .unwrap_or(DEFAULT_DISTANCE)
+        .unwrap_or(DEFAULT_COST)
 }
 
-/// Returns minimal distance between jobs.
-fn get_distance_between_jobs(profile: Profile, transport: &impl TransportCost, lhs: &Job, rhs: &Job) -> Distance {
+/// Returns minimal cost between jobs.
+fn get_cost_between_jobs(profile: Profile, transport: &impl TransportCost, lhs: &Job, rhs: &Job) -> f64 {
     let outer: Vec<Option<Location>> = get_job_locations(lhs).collect();
     let inner: Vec<Option<Location>> = get_job_locations(rhs).collect();
 
@@ -249,11 +254,11 @@ fn get_distance_between_jobs(profile: Profile, transport: &impl TransportCost, l
         .iter()
         .flat_map(|o| inner.iter().map(move |i| (*o, *i)))
         .map(|pair| match pair {
-            (Some(from), Some(to)) => transport.distance(profile, from, to, DEFAULT_DEPARTURE),
-            _ => DEFAULT_DISTANCE,
+            (Some(from), Some(to)) => get_cost_between_locations(profile, transport, from, to),
+            _ => DEFAULT_COST,
         })
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
-        .unwrap_or(DEFAULT_DISTANCE)
+        .unwrap_or(DEFAULT_COST)
 }
 
 /// Returns job locations.
