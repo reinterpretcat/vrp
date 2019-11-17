@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use crate::models::problem::Job;
 use crate::models::solution::{Activity, Place};
+use std::iter::once;
 use std::slice::{Iter, IterMut};
 
 pub type TourActivity = Box<Activity>;
@@ -88,9 +89,18 @@ impl Tour {
     }
 
     /// Returns counted tour legs.
-    pub fn legs<'a>(&'a self) -> impl Iterator<Item = (&'a [TourActivity], usize)> + 'a {
-        let window_size = if self.activities.len() == 1 { 1 } else { 2 };
-        self.activities.windows(window_size).zip(0usize..)
+    pub fn legs<'a>(&'a self) -> Box<dyn Iterator<Item = (&'a [TourActivity], usize)> + 'a> {
+        let last_index = self.activities.len() - 1;
+        let window_size = if last_index == 0 { 1 } else { 2 };
+        let legs = self.activities.windows(window_size).zip(0usize..);
+
+        let is_open_tour_with_jobs = !self.is_closed && last_index > 0;
+
+        if is_open_tour_with_jobs {
+            Box::new(legs.chain(once((&self.activities[last_index..], last_index))))
+        } else {
+            Box::new(legs)
+        }
     }
 
     /// Returns all jobs.
