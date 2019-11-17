@@ -34,18 +34,20 @@ impl Objective for PenalizeUnassigned {
             let initial = initial + actor.vehicle.costs.fixed + actor.driver.costs.fixed;
 
             acc + route.tour.legs().fold(initial, |acc, (items, _)| {
-                let (from, to) = match items {
-                    [from, to] => (from, to),
+                acc + match items {
+                    [from, to] => {
+                        problem.activity.cost(&actor.vehicle, &actor.driver, to, to.schedule.arrival)
+                            + problem.transport.cost(
+                                &actor.vehicle,
+                                &actor.driver,
+                                from.place.location,
+                                to.place.location,
+                                from.schedule.departure,
+                            )
+                    }
+                    [_] => 0.0,
                     _ => panic!("Unexpected route leg configuration."),
-                };
-                acc + problem.activity.cost(&actor.vehicle, &actor.driver, to, to.schedule.arrival)
-                    + problem.transport.cost(
-                        &actor.vehicle,
-                        &actor.driver,
-                        from.place.location,
-                        to.place.location,
-                        from.schedule.departure,
-                    )
+                }
             })
         });
 
