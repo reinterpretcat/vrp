@@ -64,7 +64,7 @@ impl Ruin for AdjustedStringRemoval {
 
         select_seed_jobs(&insertion_ctx.problem, &routes, &insertion_ctx.random)
             .filter(|job| !jobs.read().unwrap().contains(job))
-            .take_while(|_| actors.read().unwrap().len() <= ks)
+            .take_while(|_| actors.read().unwrap().len() != ks)
             .for_each(|job| {
                 insertion_ctx
                     .solution
@@ -147,14 +147,14 @@ fn preserved_string<'a>(
     let size = seed_tour.0.activity_count();
     let index = seed_tour.1;
 
-    let split = preserved_cardinality(cardinality, size, alpha, random);
-    let total = cardinality + split;
+    let split_size = preserved_cardinality(cardinality, size, alpha, random);
+    let total = cardinality + split_size;
 
     let (begin, end) = lower_bounds(total, size, index);
     let start_total = random.uniform_int(begin as i32, end as i32) as usize;
 
     let split_start = random.uniform_int(start_total as i32, (start_total + cardinality - 1) as i32) as usize;
-    let split_end = split_start + split;
+    let split_end = split_start + split_size;
 
     // NOTE if selected job is in split range we should remove it anyway,
     // this line makes sure that string cardinality is kept as requested.
@@ -162,7 +162,6 @@ fn preserved_string<'a>(
 
     Box::new(
         (start_total..(start_total + total))
-            .rev()
             .filter(move |&i| i < split_start || i >= split_end || i == index)
             .filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())),
     )
@@ -252,7 +251,7 @@ fn lower_bounds(string_crd: usize, tour_crd: usize, index: usize) -> (usize, usi
     let index = index as i32;
 
     let start = (index - string_crd).max(1);
-    let end = (index + string_crd).min(tour_crd);
+    let end = (index + string_crd).min(tour_crd - string_crd).max(start);
 
     (start as usize, end as usize)
 }
