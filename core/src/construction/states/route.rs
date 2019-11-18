@@ -5,8 +5,6 @@ mod route_test;
 use crate::models::solution::{Activity, TourActivity};
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
 use std::sync::Arc;
 
 pub type RouteStateValue = Arc<dyn Any + Send + Sync>;
@@ -47,13 +45,13 @@ impl RouteState {
     /// Gets value associated with key converted to given type.
     pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: i32, activity: &TourActivity) -> Option<&T> {
         self.activity_states
-            .get(&ActivityWithKey(activity.deref() as *const Activity as usize, key))
+            .get(&(activity.as_ref() as *const Activity as usize, key))
             .and_then(|s| s.downcast_ref::<T>())
     }
 
     /// Gets value associated with key.
     pub fn get_activity_state_raw(&self, key: i32, activity: &TourActivity) -> Option<&RouteStateValue> {
-        self.activity_states.get(&ActivityWithKey(activity.deref() as *const Activity as usize, key))
+        self.activity_states.get(&(activity.as_ref() as *const Activity as usize, key))
     }
 
     /// Puts value associated with key.
@@ -70,21 +68,20 @@ impl RouteState {
 
     /// Puts value associated with key and specific activity.
     pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: i32, activity: &TourActivity, value: T) {
-        self.activity_states
-            .insert(ActivityWithKey(activity.deref() as *const Activity as usize, key), Arc::new(value));
+        self.activity_states.insert((activity.as_ref() as *const Activity as usize, key), Arc::new(value));
         self.keys.insert(key);
     }
 
     /// Puts value associated with key and specific activity.
     pub fn put_activity_state_raw(&mut self, key: i32, activity: &TourActivity, value: RouteStateValue) {
-        self.activity_states.insert(ActivityWithKey(activity.deref() as *const Activity as usize, key), value);
+        self.activity_states.insert((activity.as_ref() as *const Activity as usize, key), value);
         self.keys.insert(key);
     }
 
     /// Removes all activity states for given activity.
     pub fn remove_activity_states(&mut self, activity: &TourActivity) {
         for (_, key) in self.keys.iter().enumerate() {
-            self.activity_states.remove(&ActivityWithKey(activity.deref() as *const Activity as usize, *key));
+            self.activity_states.remove(&(activity.as_ref() as *const Activity as usize, *key));
         }
     }
 
@@ -99,19 +96,4 @@ impl RouteState {
     }
 }
 
-struct ActivityWithKey(usize, i32);
-
-impl PartialEq for ActivityWithKey {
-    fn eq(&self, other: &Self) -> bool {
-        self.1 == other.1 && self.0 == other.0
-    }
-}
-
-impl Eq for ActivityWithKey {}
-
-impl Hash for ActivityWithKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state);
-        state.write_i32(self.1)
-    }
-}
+type ActivityWithKey = (usize, i32);
