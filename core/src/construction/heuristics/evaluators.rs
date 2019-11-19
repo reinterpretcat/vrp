@@ -87,10 +87,8 @@ fn evaluate_multi(
         |acc_res, services| {
             let mut shadow = ShadowContext::new(&ctx.problem, &route_ctx);
             let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(MultiContext::new(None), |out, _| {
-                {
-                    if out.is_failure(route_ctx.route.tour.activity_count()) {
-                        return Result::Err(out);
-                    }
+                if out.is_failure(route_ctx.route.tour.activity_count()) {
+                    return Result::Err(out);
                 }
                 shadow.restore(job);
 

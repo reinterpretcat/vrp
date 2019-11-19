@@ -247,11 +247,12 @@ fn can_handle_demand<
                 }
             }
 
-            // cannot handle more static pickups
-            if demand.pickup.0 > Capacity::default() {
-                // NOTE this minus delivery demand works for symmetric dynamic pickup/delivery will it work for arbitrary cases?
+            let change = demand.change();
+
+            // cannot handle more pickups
+            if change > Capacity::default() {
                 let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
-                if future + demand.pickup.0 - demand.delivery.1 > capacity {
+                if future + change > capacity {
                     return false;
                 }
             }
@@ -259,7 +260,7 @@ fn can_handle_demand<
             // can load more at current
             let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
 
-            current + demand.change() <= capacity
+            current + change <= capacity
         } else {
             false
         }
