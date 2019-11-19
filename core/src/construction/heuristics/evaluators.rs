@@ -88,8 +88,7 @@ fn evaluate_multi(
             let mut shadow = ShadowContext::new(&ctx.problem, &route_ctx);
             let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(MultiContext::new(None), |out, _| {
                 {
-                    let route = route_ctx.route.read().unwrap();
-                    if out.is_failure(route.tour.activity_count()) {
+                    if out.is_failure(route_ctx.route.tour.activity_count()) {
                         return Result::Err(out);
                     }
                 }
@@ -148,41 +147,38 @@ fn analyze_insertion_in_route(
     extra_costs: Cost,
     init: SingleContext,
 ) -> SingleContext {
-    unwrap_from_result(route_ctx.route.read().unwrap().tour.legs().skip(init.index).try_fold(
-        init,
-        |out, (items, index)| {
-            let (prev, next) = match items {
-                [prev] => (prev, None),
-                [prev, next] => (prev, Some(next)),
-                _ => panic!("Unexpected route leg configuration."),
-            };
-            // analyze service details
-            single.places.iter().try_fold(out, |in1, detail| {
-                // analyze detail time windows
-                detail.times.iter().try_fold(in1, |in2, time| {
-                    target.place = Place {
-                        location: detail.location.unwrap_or(prev.place.location),
-                        duration: detail.duration,
-                        time: time.clone(),
-                    };
+    unwrap_from_result(route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, (items, index)| {
+        let (prev, next) = match items {
+            [prev] => (prev, None),
+            [prev, next] => (prev, Some(next)),
+            _ => panic!("Unexpected route leg configuration."),
+        };
+        // analyze service details
+        single.places.iter().try_fold(out, |in1, detail| {
+            // analyze detail time windows
+            detail.times.iter().try_fold(in1, |in2, time| {
+                target.place = Place {
+                    location: detail.location.unwrap_or(prev.place.location),
+                    duration: detail.duration,
+                    time: time.clone(),
+                };
 
-                    let activity_ctx = ActivityContext { index, prev, target: &target, next };
+                let activity_ctx = ActivityContext { index, prev, target: &target, next };
 
-                    if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
-                        return SingleContext::fail(violation, in2);
-                    }
+                if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
+                    return SingleContext::fail(violation, in2);
+                }
 
-                    let costs = extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
+                let costs = extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
 
-                    if costs < in2.cost.unwrap_or(std::f64::MAX) {
-                        SingleContext::success(activity_ctx.index, costs, target.place.clone())
-                    } else {
-                        SingleContext::skip(in2)
-                    }
-                })
+                if costs < in2.cost.unwrap_or(std::f64::MAX) {
+                    SingleContext::success(activity_ctx.index, costs, target.place.clone())
+                } else {
+                    SingleContext::skip(in2)
+                }
             })
-        },
-    ))
+        })
+    }))
 }
 
 /// Stores information needed for single insertion.
@@ -359,24 +355,19 @@ impl ShadowContext {
             self.ctx = self.ctx.deep_copy();
             self.is_mutated = true;
         }
-        {
-            let mut route = self.ctx.route.write().unwrap();
-            route.tour.insert_at(activity, index + 1);
-        }
 
-        {
-            self.problem.constraint.accept_route_state(&mut self.ctx);
-            self.is_dirty = true;
-        }
+        self.ctx.route_mut().tour.insert_at(activity, index + 1);
+        self.problem.constraint.accept_route_state(&mut self.ctx);
+        self.is_dirty = true;
 
-        Box::new(self.ctx.route.read().unwrap().tour.get(index + 1).unwrap().deep_copy())
+        Box::new(self.ctx.route.tour.get(index + 1).unwrap().deep_copy())
     }
 
     fn restore(&mut self, job: &Arc<Job>) {
         if self.is_dirty {
             {
-                let mut state = self.ctx.state.write().unwrap();
-                let mut route = self.ctx.route.write().unwrap();
+                let (route, state) = self.ctx.as_mut();
+
                 route.tour.all_activities().for_each(|a| state.remove_activity_states(a));
                 route.tour.remove(job);
             }

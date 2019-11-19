@@ -83,7 +83,7 @@ struct StrictLockingHardRouteConstraint {
 impl HardRouteConstraint for StrictLockingHardRouteConstraint {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         if let Some(condition) = self.conditions.get(job) {
-            if !(condition)(&ctx.route.read().unwrap().actor) {
+            if !(condition)(&ctx.route.actor) {
                 return Some(RouteConstraintViolation { code: self.code });
             }
         }
@@ -103,8 +103,7 @@ impl HardActivityConstraint for StrictLockingHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let actor = &route_ctx.route.read().unwrap().actor;
-        if let Some(rules) = self.rules.get(actor) {
+        if let Some(rules) = self.rules.get(&route_ctx.route.actor) {
             let can_insert = rules.iter().all(|rule| {
                 rule.can_insert(&activity_ctx.prev.retrieve_job(), &activity_ctx.next.and_then(|n| n.retrieve_job()))
             });

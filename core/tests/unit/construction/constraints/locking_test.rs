@@ -7,7 +7,7 @@ use crate::helpers::models::solution::*;
 use crate::models::problem::{Fleet, Job};
 use crate::models::solution::TourActivity;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 parameterized_test! {can_lock_jobs_to_actor, (used, locked, expected), {
     can_lock_jobs_to_actor_impl(used.to_string(), locked.to_string(), expected);
@@ -26,8 +26,8 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Ro
         vec![LockDetail::new(LockOrder::Any, LockPosition::Any, vec![job.clone()])],
     ))];
     let route_ctx = RouteContext {
-        route: Arc::new(RwLock::new(create_route_with_activities(&fleet, used.as_str(), vec![]))),
-        state: Arc::new(RwLock::new(RouteState::default())),
+        route: Arc::new(create_route_with_activities(&fleet, used.as_str(), vec![])),
+        state: Arc::new(RouteState::default()),
     };
     let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, locks, 1)));
 
@@ -161,8 +161,8 @@ fn can_lock_jobs_to_position_in_tour_impl(
 
     let result = pipeline.evaluate_hard_activity(
         &RouteContext {
-            route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
-            state: Arc::new(RwLock::new(RouteState::default())),
+            route: Arc::new(create_route_with_activities(&fleet, "v1", vec![])),
+            state: Arc::new(RouteState::default()),
         },
         &ActivityContext {
             index: 0,

@@ -6,7 +6,7 @@ use crate::models::problem::VehicleDetail;
 struct OnlyDistanceCost {}
 
 impl TransportCost for OnlyDistanceCost {
-    fn duration(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
+    fn duration(&self, _profile: Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
         0.
     }
 
@@ -32,7 +32,7 @@ impl ProfileAwareTransportCost {
 }
 
 impl TransportCost for ProfileAwareTransportCost {
-    fn duration(&self, profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
+    fn duration(&self, _profile: Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
         0.
     }
 

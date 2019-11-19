@@ -3,11 +3,11 @@ use crate::models::common::{Cost, Schedule};
 use crate::models::problem::{Actor, Job, Single};
 use crate::models::solution::{Activity, Place, Registry, Route, Tour, TourActivity};
 use crate::models::{Extras, LockOrder, Problem, Solution};
-use crate::utils::Random;
+use crate::utils::{as_mut, Random};
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// Specifies insertion result.
 pub enum InsertionResult {
@@ -68,10 +68,27 @@ pub struct ActivityContext<'a> {
 #[derive(Clone)]
 pub struct RouteContext {
     /// Used route.
-    pub route: Arc<RwLock<Route>>,
+    pub route: Arc<Route>,
 
     /// Insertion state.
-    pub state: Arc<RwLock<RouteState>>,
+    pub state: Arc<RouteState>,
+}
+
+impl RouteContext {
+    pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
+        let route: &mut Route = unsafe { as_mut(&self.route) };
+        let state: &mut RouteState = unsafe { as_mut(&self.state) };
+
+        (route, state)
+    }
+
+    pub fn route_mut(&mut self) -> &mut Route {
+        unsafe { as_mut(&self.route) }
+    }
+
+    pub fn state_mut(&mut self) -> &mut RouteState {
+        unsafe { as_mut(&self.state) }
+    }
 }
 
 /// Contains information needed to performed insertions in solution.
@@ -111,8 +128,7 @@ impl InsertionContext {
             if let Some(actor) = actor {
                 registry.use_actor(&actor);
                 let mut route_ctx = RouteContext::new(actor);
-                let start =
-                    route_ctx.route.read().unwrap().tour.start().unwrap_or_else(|| panic!(OP_START_MSG)).place.location;
+                let start = route_ctx.route.tour.start().unwrap_or_else(|| panic!(OP_START_MSG)).place.location;
 
                 let create_activity = |single: Arc<Single>, previous_location: usize| {
                     assert_eq!(single.places.len(), 1);
@@ -148,7 +164,7 @@ impl InsertionContext {
                             }
                         };
                         let last_location = activity.place.location;
-                        route_ctx.route.write().unwrap().tour.insert_last(Box::new(activity));
+                        route_ctx.route_mut().tour.insert_last(Box::new(activity));
 
                         last_location
                     })
@@ -212,10 +228,8 @@ impl InsertionContext {
 
         solution.0.routes.iter().for_each(|route| {
             if route.tour.has_jobs() {
-                let mut route_ctx = RouteContext {
-                    route: Arc::new(RwLock::new(route.deep_copy())),
-                    state: Arc::new(RwLock::new(RouteState::default())),
-                };
+                let mut route_ctx =
+                    RouteContext { route: Arc::new(route.deep_copy()), state: Arc::new(RouteState::default()) };
                 problem.constraint.accept_route_state(&mut route_ctx);
                 routes.push(route_ctx);
             } else {
@@ -256,11 +270,10 @@ impl InsertionContext {
     fn remove_empty_routes(&mut self) {
         let registry = &mut self.solution.registry;
         self.solution.routes.retain(|rc| {
-            let route = rc.route.read().unwrap();
-            if route.tour.has_jobs() {
+            if rc.route.tour.has_jobs() {
                 true
             } else {
-                registry.free_actor(&route.actor);
+                registry.free_actor(&rc.route.actor);
                 false
             }
         });
@@ -289,7 +302,7 @@ impl SolutionContext {
     pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
         Solution {
             registry: self.registry.deep_copy(),
-            routes: self.routes.iter().map(|rc| rc.route.read().unwrap().deep_copy()).collect(),
+            routes: self.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
             unassigned: self.unassigned.clone(),
             extras,
         }
@@ -349,23 +362,17 @@ impl RouteContext {
         tour.set_start(create_start_activity(&actor));
         create_end_activity(&actor).map(|end| tour.set_end(end));
 
-        RouteContext {
-            route: Arc::new(RwLock::new(Route { actor, tour })),
-            state: Arc::new(RwLock::new(RouteState::default())),
-        }
+        RouteContext { route: Arc::new(Route { actor, tour }), state: Arc::new(RouteState::default()) }
     }
 
     pub fn deep_copy(&self) -> Self {
-        let orig_route = self.route.read().unwrap();
-        let orig_state = self.state.read().unwrap();
-
-        let new_route = Route { actor: orig_route.actor.clone(), tour: orig_route.tour.deep_copy() };
-        let mut new_state = RouteState::new_with_sizes(orig_state.sizes());
+        let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };
+        let mut new_state = RouteState::new_with_sizes(self.state.sizes());
 
         // copy activity states
-        orig_route.tour.all_activities().zip(0usize..).for_each(|(a, index)| {
-            orig_state.all_keys().for_each(|key| {
-                if let Some(value) = orig_state.get_activity_state_raw(key, a) {
+        self.route.tour.all_activities().zip(0usize..).for_each(|(a, index)| {
+            self.state.all_keys().for_each(|key| {
+                if let Some(value) = self.state.get_activity_state_raw(key, a) {
                     let a = new_route.tour.get(index).unwrap();
                     new_state.put_activity_state_raw(key, a, value.clone());
                 }
@@ -373,13 +380,13 @@ impl RouteContext {
         });
 
         // copy route states
-        orig_state.all_keys().for_each(|key| {
-            if let Some(value) = orig_state.get_route_state_raw(key) {
+        self.state.all_keys().for_each(|key| {
+            if let Some(value) = self.state.get_route_state_raw(key) {
                 new_state.put_route_state_raw(key, value.clone());
             }
         });
 
-        RouteContext { route: Arc::new(RwLock::new(new_route)), state: Arc::new(RwLock::new(new_state)) }
+        RouteContext { route: Arc::new(new_route), state: Arc::new(new_state) }
     }
 }
 
@@ -407,7 +414,7 @@ pub fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
 
 impl PartialEq<RouteContext> for RouteContext {
     fn eq(&self, other: &RouteContext) -> bool {
-        self.route.read().unwrap().deref() as *const Route == other.route.read().unwrap().deref() as *const Route
+        self.route.deref() as *const Route == other.route.deref() as *const Route
     }
 }
 

@@ -25,15 +25,14 @@ impl Default for PenalizeUnassigned {
 impl Objective for PenalizeUnassigned {
     fn estimate(&self, insertion_ctx: &InsertionContext) -> ObjectiveCost {
         let actual = insertion_ctx.solution.routes.iter().fold(Cost::default(), |acc, rc| {
-            let route = rc.route.read().unwrap();
-            let actor = &route.actor;
+            let actor = &rc.route.actor;
 
-            let start = route.tour.start().unwrap();
+            let start = rc.route.tour.start().unwrap();
             let problem = &insertion_ctx.problem;
             let initial = problem.activity.cost(&actor.vehicle, &actor.driver, start, start.schedule.arrival);
             let initial = initial + actor.vehicle.costs.fixed + actor.driver.costs.fixed;
 
-            acc + route.tour.legs().fold(initial, |acc, (items, _)| {
+            acc + rc.route.tour.legs().fold(initial, |acc, (items, _)| {
                 acc + match items {
                     [from, to] => {
                         problem.activity.cost(&actor.vehicle, &actor.driver, to, to.schedule.arrival)

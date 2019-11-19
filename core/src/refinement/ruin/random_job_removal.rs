@@ -42,7 +42,7 @@ impl Ruin for RandomJobRemoval {
             let route_index =
                 insertion_ctx.random.uniform_int(0, insertion_ctx.solution.routes.len() as i32 - 1) as usize;
 
-            let mut route = insertion_ctx.solution.routes.get(route_index).unwrap().route.write().unwrap();
+            let route = insertion_ctx.solution.routes.get_mut(route_index).unwrap().route_mut();
 
             if route.tour.job_count() > 0 {
                 let job_index = insertion_ctx.random.uniform_int(0, route.tour.job_count() as i32 - 1) as usize;

@@ -23,28 +23,25 @@ impl RandomRouteRemoval {
     }
 
     fn remove_whole_route(&self, solution: &mut SolutionContext, route_ctx: &mut RouteContext) {
-        let route = route_ctx.route.read().unwrap();
-
         solution.routes.retain(|rc| rc != route_ctx);
-        solution.registry.free_actor(&route.actor);
-        solution.required.extend(route.tour.jobs());
+        solution.registry.free_actor(&route_ctx.route.actor);
+        solution.required.extend(route_ctx.route.tour.jobs());
     }
 
     fn remove_part_route(&self, insertion_ctx: &mut InsertionContext, route_ctx: &mut RouteContext) {
         let locked = insertion_ctx.locked.clone();
         let solution = &mut insertion_ctx.solution;
 
-        let can_remove_full_route = route_ctx.route.read().unwrap().tour.jobs().all(|job| !locked.contains(&job));
+        let can_remove_full_route = route_ctx.route.tour.jobs().all(|job| !locked.contains(&job));
 
         if can_remove_full_route {
             self.remove_whole_route(solution, route_ctx);
         } else {
             {
-                let mut route = route_ctx.route.write().unwrap();
-                let jobs: Vec<Arc<Job>> = route.tour.jobs().filter(|job| !locked.contains(job)).collect();
+                let jobs: Vec<Arc<Job>> = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect();
 
                 jobs.iter().for_each(|job| {
-                    route.tour.remove(job);
+                    route_ctx.route_mut().tour.remove(job);
                 });
                 solution.required.extend(jobs);
             }

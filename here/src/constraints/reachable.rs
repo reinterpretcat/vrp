@@ -50,7 +50,7 @@ impl HardActivityConstraint for ReachableHardActivityConstraint {
         let target = activity_ctx.target;
         let next = activity_ctx.next;
 
-        let profile = _route_ctx.route.read().unwrap().actor.vehicle.profile;
+        let profile = _route_ctx.route.actor.vehicle.profile;
 
         let prev_to_target =
             self.transport.distance(profile, prev.place.location, target.place.location, prev.schedule.departure);

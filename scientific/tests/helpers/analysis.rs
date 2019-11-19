@@ -31,8 +31,6 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
         .iter()
         .map(|rc| {
             rc.route
-                .read()
-                .unwrap()
                 .tour
                 .all_activities()
                 .filter(|a| a.job.is_some())

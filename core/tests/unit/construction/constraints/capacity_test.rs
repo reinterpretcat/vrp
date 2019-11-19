@@ -6,7 +6,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{Fleet, Vehicle};
 use crate::models::solution::TourActivity;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {
     VehicleBuilder::new().id("v1").capacity(capacity).build()
@@ -42,7 +42,7 @@ fn can_calculate_current_capacity_state_values_impl(
 ) {
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
     let mut ctx = RouteContext {
-        route: Arc::new(RwLock::new(create_route_with_activities(
+        route: Arc::new(create_route_with_activities(
             &fleet,
             "v1",
             vec![
@@ -50,19 +50,19 @@ fn can_calculate_current_capacity_state_values_impl(
                 test_tour_activity_with_simple_demand(create_simple_demand(s2)),
                 test_tour_activity_with_simple_demand(create_simple_demand(s3)),
             ],
-        ))),
-        state: Arc::new(RwLock::new(RouteState::default())),
+        )),
+        state: Arc::new(RouteState::default()),
     };
 
     create_constraint_pipeline_with_simple_capacity().accept_route_state(&mut ctx);
 
-    let tour = &ctx.route.read().unwrap().tour;
-    let state = ctx.state.read().unwrap();
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, &state, tour.start()), start);
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, &state, tour.end()), end);
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, &state, tour.get(1)), exp_s1);
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, &state, tour.get(2)), exp_s2);
-    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, &state, tour.get(3)), exp_s3);
+    let tour = &ctx.route.tour;
+    let state = &ctx.state;
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.start()), start);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.end()), end);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.get(1)), exp_s1);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.get(2)), exp_s2);
+    assert_eq!(get_simple_capacity_state(CURRENT_CAPACITY_KEY, state, tour.get(3)), exp_s3);
 }
 
 parameterized_test! {can_evaluate_demand_on_route, (size, expected), {
@@ -78,8 +78,8 @@ can_evaluate_demand_on_route! {
 fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraintViolation>) {
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
     let ctx = RouteContext {
-        route: Arc::new(RwLock::new(create_route_with_activities(&fleet, "v1", vec![]))),
-        state: Arc::new(RwLock::new(RouteState::default())),
+        route: Arc::new(create_route_with_activities(&fleet, "v1", vec![])),
+        state: Arc::new(RouteState::default()),
     };
     let job = Arc::new(test_single_job_with_simple_demand(create_simple_demand(size)));
 
@@ -114,22 +114,21 @@ fn can_evaluate_demand_on_activity_impl(
 ) {
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
     let mut route_ctx = RouteContext {
-        route: Arc::new(RwLock::new(create_route_with_activities(
+        route: Arc::new(create_route_with_activities(
             &fleet,
             "v1",
             sizes.into_iter().map(|size| test_tour_activity_with_simple_demand(create_simple_demand(size))).collect(),
-        ))),
-        state: Arc::new(RwLock::new(RouteState::default())),
+        )),
+        state: Arc::new(RouteState::default()),
     };
     let pipeline = create_constraint_pipeline_with_simple_capacity();
     pipeline.accept_route_state(&mut route_ctx);
-    let route = route_ctx.route.read().unwrap();
     let target = test_tour_activity_with_simple_demand(create_simple_demand(size));
     let activity_ctx = ActivityContext {
         index: 0,
-        prev: route.tour.get(neighbours.0).unwrap(),
+        prev: route_ctx.route.tour.get(neighbours.0).unwrap(),
         target: &target,
-        next: route.tour.get(neighbours.1),
+        next: route_ctx.route.tour.get(neighbours.1),
     };
 
     let result = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx);

@@ -66,10 +66,7 @@ fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
             if is_break(job) {
                 let vehicle_id = job.dimens.get_value::<String>("vehicle_id").unwrap().clone();
                 !ctx.required.is_empty()
-                    && ctx
-                        .routes
-                        .iter()
-                        .any(move |rc| *rc.route.read().unwrap().actor.vehicle.dimens.get_id().unwrap() == vehicle_id)
+                    && ctx.routes.iter().any(move |rc| *rc.route.actor.vehicle.dimens.get_id().unwrap() == vehicle_id)
             } else {
                 true
             }

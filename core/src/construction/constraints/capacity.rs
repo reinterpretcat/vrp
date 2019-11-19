@@ -85,14 +85,14 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     ConstraintModule for CapacityConstraintModule<Capacity>
 {
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        let tour = &ctx.route.read().unwrap().tour;
-        let mut state = ctx.state.write().unwrap();
+        let (route, state) = ctx.as_mut();
 
-        let start = tour
+        let start = route
+            .tour
             .all_activities()
             .fold(Capacity::default(), |total, a| total + get_demand(a).map_or(Capacity::default(), |d| d.delivery.0));
 
-        let end = tour.all_activities().fold((start, start), |acc, a| {
+        let end = route.tour.all_activities().fold((start, start), |acc, a| {
             let current = acc.0 + get_demand(a).unwrap_or(&Demand::<Capacity>::default()).change();
             let max = std::cmp::max(acc.1, current);
 
@@ -102,7 +102,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             (current, max)
         });
 
-        tour.all_activities().rev().fold(end.0, |acc, a| {
+        route.tour.all_activities().rev().fold(end.0, |acc, a| {
             let max = std::cmp::max(acc, *state.get_activity_state(CURRENT_CAPACITY_KEY, a).unwrap());
             state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, a, max);
             max
@@ -170,12 +170,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         match job.as_ref() {
             Job::Single(job) => {
-                let route = &ctx.route.read().unwrap();
-                let state = &ctx.state.read().unwrap();
                 if can_handle_demand::<Capacity>(
-                    state,
-                    route.tour.start().unwrap_or_else(|| unimplemented!("Optional start is not yet implemented.")),
-                    route.actor.vehicle.dimens.get_capacity(),
+                    &ctx.state,
+                    ctx.route.tour.start().unwrap_or_else(|| unimplemented!("Optional start is not yet implemented.")),
+                    ctx.route.actor.vehicle.dimens.get_capacity(),
                     job.dimens.get_demand(),
                 ) {
                     None
@@ -202,14 +200,17 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let route = &route_ctx.route.read().unwrap();
-        let state = &route_ctx.state.read().unwrap();
         let demand = activity_ctx.target.job.as_ref().and_then(|job| match job.as_ref() {
             Job::Single(job) => job.dimens.get_demand(),
             _ => None,
         });
 
-        if can_handle_demand::<Capacity>(state, activity_ctx.prev, route.actor.vehicle.dimens.get_capacity(), demand) {
+        if can_handle_demand::<Capacity>(
+            &route_ctx.state,
+            activity_ctx.prev,
+            route_ctx.route.actor.vehicle.dimens.get_capacity(),
+            demand,
+        ) {
             None
         } else {
             Some(ActivityConstraintViolation { code: self.code, stopped: false })

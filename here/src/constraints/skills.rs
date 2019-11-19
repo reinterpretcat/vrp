@@ -46,8 +46,7 @@ impl HardRouteConstraint for SkillsHardRouteConstraint {
         }
         .get_value::<HashSet<String>>("skills")
         {
-            if let Some(skills) = ctx.route.read().unwrap().actor.vehicle.dimens.get_value::<HashSet<String>>("skills")
-            {
+            if let Some(skills) = ctx.route.actor.vehicle.dimens.get_value::<HashSet<String>>("skills") {
                 if requirement.is_subset(skills) {
                     return None;
                 }

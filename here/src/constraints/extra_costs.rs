@@ -36,9 +36,8 @@ struct ExtraCostSoftRouteConstraint {}
 
 impl SoftRouteConstraint for ExtraCostSoftRouteConstraint {
     fn estimate_job(&self, ctx: &RouteContext, _job: &Arc<Job>) -> f64 {
-        let route = ctx.route.read().unwrap();
-        if route.tour.job_count() == 0 {
-            route.actor.vehicle.costs.fixed
+        if ctx.route.tour.job_count() == 0 {
+            ctx.route.actor.vehicle.costs.fixed
         } else {
             0.
         }

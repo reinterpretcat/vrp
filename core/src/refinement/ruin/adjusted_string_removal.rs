@@ -60,36 +60,35 @@ impl Ruin for AdjustedStringRemoval {
         let actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
         let routes: Vec<RouteContext> = insertion_ctx.solution.routes.clone();
 
-        let (lsmax, ks) = self.calculate_limits(&routes, &insertion_ctx.random);
+        let problem = insertion_ctx.problem.clone();
+        let locked = insertion_ctx.locked.clone();
+        let random = insertion_ctx.random.clone();
 
-        select_seed_jobs(&insertion_ctx.problem, &routes, &insertion_ctx.random)
+        let (lsmax, ks) = self.calculate_limits(&routes, &random);
+
+        select_seed_jobs(&problem, &routes, &random)
             .filter(|job| !jobs.read().unwrap().contains(job))
             .take_while(|_| actors.read().unwrap().len() != ks)
             .for_each(|job| {
                 insertion_ctx
                     .solution
                     .routes
-                    .iter()
-                    .find(|rc| {
-                        let route = rc.route.read().unwrap();
-                        !actors.read().unwrap().contains(&route.actor) && route.tour.index(&job).is_some()
-                    })
-                    .iter()
+                    .iter_mut()
+                    .find(|rc| !actors.read().unwrap().contains(&rc.route.actor) && rc.route.tour.index(&job).is_some())
+                    .iter_mut()
                     .for_each(|rc| {
-                        let mut route = rc.route.write().unwrap();
-
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = route.tour.activity_count().min(lsmax);
-                        let lt = insertion_ctx.random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
+                        let ltmax = rc.route.tour.activity_count().min(lsmax);
+                        let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
-                        if let Some(index) = route.tour.index(&job) {
-                            actors.write().unwrap().insert(route.actor.clone());
-                            select_string((&route.tour, index), lt, self.alpha, &insertion_ctx.random)
-                                .filter(|job| !insertion_ctx.locked.contains(job))
+                        if let Some(index) = rc.route.tour.index(&job) {
+                            actors.write().unwrap().insert(rc.route.actor.clone());
+                            select_string((&rc.route.tour, index), lt, self.alpha, &random)
+                                .filter(|job| !locked.contains(job))
                                 .collect::<Vec<Arc<Job>>>()
                                 .into_iter()
                                 .for_each(|job| {
-                                    route.tour.remove(&job);
+                                    rc.route_mut().tour.remove(&job);
                                     jobs.write().unwrap().insert(job);
                                 });
                         }
@@ -106,8 +105,7 @@ type JobIter<'a> = Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {
-    (routes.iter().map(|rc| rc.route.read().unwrap().tour.activity_count() as f64).sum::<f64>() / (routes.len() as f64))
-        .round()
+    (routes.iter().map(|rc| rc.route.tour.activity_count() as f64).sum::<f64>() / (routes.len() as f64)).round()
 }
 
 /// Selects string for selected job.
@@ -176,7 +174,7 @@ fn select_seed_jobs<'a>(
 
     if let Some((rc, job)) = seed {
         return Box::new(once(job.clone()).chain(problem.jobs.neighbors(
-            rc.route.read().unwrap().actor.vehicle.profile,
+            rc.route.actor.vehicle.profile,
             &job,
             Default::default(),
             std::f64::MAX,
@@ -201,7 +199,7 @@ fn select_seed_job<'a>(
     loop {
         let rc = routes.get(ri).unwrap();
 
-        if rc.route.read().unwrap().tour.has_jobs() {
+        if rc.route.tour.has_jobs() {
             let job = select_random_job(rc, random);
             if let Some(job) = job {
                 return Some((rc, job));
@@ -218,8 +216,7 @@ fn select_seed_job<'a>(
 }
 
 fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) -> Option<Arc<Job>> {
-    let route = rc.route.read().unwrap();
-    let size = route.tour.activity_count();
+    let size = rc.route.tour.activity_count();
     if size == 0 {
         return None;
     }
@@ -228,7 +225,7 @@ fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) 
     let mut ai = activity_index;
 
     loop {
-        let job = route.tour.get(ai).and_then(|a| a.retrieve_job());
+        let job = rc.route.tour.get(ai).and_then(|a| a.retrieve_job());
 
         if job.is_some() {
             return job;

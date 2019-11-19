@@ -46,19 +46,16 @@ impl InsertionHeuristic {
         match result {
             InsertionResult::Success(mut success) => {
                 let job = success.job;
-                {
-                    let route = success.context.route.read().unwrap();
-                    ctx.solution.registry.use_actor(&route.actor);
-                    if !ctx.solution.routes.contains(&success.context) {
-                        ctx.solution.routes.push(success.context.clone());
-                    }
+
+                ctx.solution.registry.use_actor(&success.context.route.actor);
+                if !ctx.solution.routes.contains(&success.context) {
+                    ctx.solution.routes.push(success.context.clone());
                 }
-                {
-                    let mut route = success.context.route.write().unwrap();
-                    success.activities.into_iter().for_each(|(a, index)| {
-                        route.tour.insert_at(a, index + 1);
-                    });
-                }
+
+                let route = success.context.route_mut();
+                success.activities.into_iter().for_each(|(a, index)| {
+                    route.tour.insert_at(a, index + 1);
+                });
 
                 ctx.solution.required.retain(|j| !compare_shared(j, &job));
                 ctx.problem.constraint.accept_route_state(&mut success.context);

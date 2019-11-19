@@ -34,7 +34,7 @@ impl ConstraintModule for TimingConstraintModule {
         // NOTE revise this once routing is sensible to departure time reschedule departure and
         // arrivals if arriving earlier to the first activity do it only in implicit end of algorithm
         if ctx.required.is_empty() {
-            ctx.routes.iter().for_each(|route_ctx| self.reschedule_departure(&mut route_ctx.clone()))
+            ctx.routes.iter_mut().for_each(|rc| self.reschedule_departure(rc))
         }
     }
 
@@ -73,12 +73,11 @@ impl TimingConstraintModule {
 
     fn update_route_schedules(&self, ctx: &mut RouteContext) {
         let (init, actor) = {
-            let route = ctx.route.read().unwrap();
-            let start = route.tour.start().unwrap();
-            ((start.place.location, start.schedule.departure), route.actor.clone())
+            let start = ctx.route.tour.start().unwrap();
+            ((start.place.location, start.schedule.departure), ctx.route.actor.clone())
         };
 
-        ctx.route.write().unwrap().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
+        ctx.route_mut().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
             a.schedule.arrival = dep + self.transport.duration(actor.vehicle.profile, loc, a.place.location, dep);
             a.schedule.departure = a.schedule.arrival.max(a.place.time.start)
                 + self.activity.duration(actor.vehicle.as_ref(), actor.driver.as_ref(), a.deref(), a.schedule.arrival);
@@ -88,16 +87,15 @@ impl TimingConstraintModule {
     }
 
     fn update_route_states(&self, ctx: &mut RouteContext) {
-        let route = ctx.route.read().unwrap();
-        let actor = route.actor.as_ref();
-        let mut state = ctx.state.write().unwrap();
-
         // update latest arrival and waiting states of non-terminate (jobs) activities
+        let actor = ctx.route.actor.clone();
         let init = (
             actor.detail.time.end,
             actor.detail.end.unwrap_or_else(|| actor.detail.start.unwrap_or_else(|| panic!(OP_START_MSG))),
             0f64,
         );
+
+        let (route, state) = ctx.as_mut();
 
         route.tour.all_activities().rev().fold(init, |acc, act| {
             if act.job.is_none() {
@@ -122,23 +120,19 @@ impl TimingConstraintModule {
     fn reschedule_departure(&self, ctx: &mut RouteContext) {
         if let Some((new_departure_time, earliest_departure_time)) = self.analyze_departures(ctx) {
             if new_departure_time > earliest_departure_time {
-                {
-                    let mut route = ctx.route.write().unwrap();
-                    let mut start = route.tour.get_mut(0).unwrap();
-                    start.schedule.departure = new_departure_time;
-                }
+                let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
+                start.schedule.departure = new_departure_time;
                 self.accept_route_state(ctx);
             }
         }
     }
 
     fn analyze_departures(&self, ctx: &RouteContext) -> Option<(Timestamp, Timestamp)> {
-        let route = ctx.route.read().unwrap();
-        if let Some(first) = route.tour.get(1) {
-            let start = route.tour.start().unwrap();
+        if let Some(first) = ctx.route.tour.get(1) {
+            let start = ctx.route.tour.start().unwrap();
             let earliest_departure_time = start.place.time.start;
             let start_to_first = self.transport.duration(
-                route.actor.vehicle.profile,
+                ctx.route.actor.vehicle.profile,
                 start.place.location,
                 first.place.location,
                 earliest_departure_time,
@@ -176,8 +170,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let route = route_ctx.route.read().unwrap();
-        let actor = route.actor.as_ref();
+        let actor = route_ctx.route.actor.as_ref();
 
         let prev = activity_ctx.prev;
         let target = activity_ctx.target;
@@ -193,14 +186,15 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             return self.fail();
         }
 
-        let state = route_ctx.state.read().unwrap();
-
         let (next_act_location, latest_arr_time_at_next_act) = if let Some(next) = next {
             // closed vrp
             if actor.detail.time.end < next.place.time.start {
                 return self.fail();
             }
-            (next.place.location, *state.get_activity_state(LATEST_ARRIVAL_KEY, next).unwrap_or(&next.place.time.end))
+            (
+                next.place.location,
+                *route_ctx.state.get_activity_state(LATEST_ARRIVAL_KEY, next).unwrap_or(&next.place.time.end),
+            )
         } else {
             // open vrp
             (target.place.location, target.place.time.end.min(actor.detail.time.end))
@@ -295,8 +289,7 @@ impl TimeSoftActivityConstraint {
 
 impl SoftActivityConstraint for TimeSoftActivityConstraint {
     fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> f64 {
-        let route = route_ctx.route.read().unwrap();
-        let actor = route.actor.as_ref();
+        let actor = route_ctx.route.actor.as_ref();
 
         let prev = activity_ctx.prev;
         let target = activity_ctx.target;
@@ -314,12 +307,12 @@ impl SoftActivityConstraint for TimeSoftActivityConstraint {
         let new_costs = tp_cost_left + tp_cost_right + act_cost_left + act_cost_right;
 
         // no jobs yet or open vrp.
-        if !route.tour.has_jobs() || next.is_none() {
+        if !route_ctx.route.tour.has_jobs() || next.is_none() {
             return new_costs;
         }
 
         let next = next.unwrap();
-        let waiting_time = *route_ctx.state.read().unwrap().get_activity_state(WAITING_KEY, next).unwrap_or(&0.0f64);
+        let waiting_time = *route_ctx.state.get_activity_state(WAITING_KEY, next).unwrap_or(&0.0f64);
 
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(actor, prev, next, prev.schedule.departure);

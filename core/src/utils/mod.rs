@@ -1,7 +1,9 @@
 mod comparison;
-
 pub use self::comparison::compare_floats;
 pub use self::comparison::compare_shared;
+
+mod mutability;
+pub use self::mutability::*;
 
 mod random;
 pub use self::random::DefaultRandom;

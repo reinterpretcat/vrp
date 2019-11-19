@@ -45,27 +45,24 @@ impl TravelModule {
 }
 
 impl ConstraintModule for TravelModule {
-    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
-        let route = route_ctx.route.read().unwrap();
-        let actor = &route.actor;
-        let limit = (self.limit_func)(&route_ctx.route.read().unwrap().actor);
+    fn accept_route_state(&self, ctx: &mut RouteContext) {
+        let limit = (self.limit_func)(&ctx.route.actor);
 
         if limit.0.is_some() || limit.1.is_some() {
-            let start = route.tour.start().unwrap();
+            let start = ctx.route.tour.start().unwrap();
             let init = (start.place.location, start.schedule.departure, Distance::default(), Duration::default());
 
             let (_, _, total_dist, total_dur) =
-                route.tour.all_activities().fold(init, |(loc, dep, total_dist, total_dur), a| {
-                    let total_dist =
-                        total_dist + self.transport.distance(actor.vehicle.profile, loc, a.place.location, dep);
+                ctx.route.tour.all_activities().fold(init, |(loc, dep, total_dist, total_dur), a| {
+                    let total_dist = total_dist
+                        + self.transport.distance(ctx.route.actor.vehicle.profile, loc, a.place.location, dep);
                     let total_dur = total_dur + a.schedule.departure - dep;
 
                     (a.place.location, a.schedule.departure, total_dist, total_dur)
                 });
 
-            let mut state = route_ctx.state.write().unwrap();
-            state.put_route_state(MAX_DISTANCE_KEY, total_dist);
-            state.put_route_state(MAX_DURATION_KEY, total_dur);
+            ctx.state_mut().put_route_state(MAX_DISTANCE_KEY, total_dist);
+            ctx.state_mut().put_route_state(MAX_DURATION_KEY, total_dur);
         }
     }
 
@@ -94,7 +91,7 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let limit = (self.limit_func)(&route_ctx.route.read().unwrap().actor);
+        let limit = (self.limit_func)(&route_ctx.route.actor);
 
         if let Some(max_distance) = limit.0 {
             if let Some(violation) = self.check_distance(route_ctx, activity_ctx, max_distance) {
@@ -170,11 +167,8 @@ impl TravelHardActivityConstraint {
         key: i32,
         func: &Box<dyn Fn(Profile, Location, Location, Timestamp) -> f64 + Send + Sync>,
     ) -> bool {
-        let state = route_ctx.state.read().unwrap();
-        let current = *state.get_route_state(key).unwrap_or(&0.);
-
-        let route = route_ctx.route.read().unwrap();
-        let actor = &route.actor;
+        let actor = &route_ctx.route.actor;
+        let current = *route_ctx.state.get_route_state(key).unwrap_or(&0.);
 
         let prev = activity_ctx.prev;
         let target = activity_ctx.target;

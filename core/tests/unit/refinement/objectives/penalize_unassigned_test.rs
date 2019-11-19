@@ -9,7 +9,7 @@ use crate::models::{Extras, Problem};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
 use crate::utils::DefaultRandom;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 #[test]
 fn can_calculate_cost_with_penalty_properly() {
@@ -18,7 +18,7 @@ fn can_calculate_cost_with_penalty_properly() {
         vec![VehicleBuilder::new().id("v1").build(), VehicleBuilder::new().id("v2").build()],
     ));
     let route1 = RouteContext {
-        route: Arc::new(RwLock::new(create_route_with_start_end_activities(
+        route: Arc::new(create_route_with_start_end_activities(
             &fleet,
             "v1",
             test_tour_activity_with_schedule(Schedule::new(0., 0.)),
@@ -27,18 +27,18 @@ fn can_calculate_cost_with_penalty_properly() {
                 test_tour_activity_with_location_and_duration(10, 5.),
                 test_tour_activity_with_location_and_duration(15, 5.),
             ],
-        ))),
-        state: Arc::new(RwLock::new(RouteState::default())),
+        )),
+        state: Arc::new(RouteState::default()),
     };
     let route2 = RouteContext {
-        route: Arc::new(RwLock::new(create_route_with_start_end_activities(
+        route: Arc::new(create_route_with_start_end_activities(
             &fleet,
             "v2",
             test_tour_activity_with_schedule(Schedule::new(0., 0.)),
             test_tour_activity_with_schedule(Schedule::new(11., 11.)),
             vec![test_tour_activity_with_location_and_duration(5, 1.)],
-        ))),
-        state: Arc::new(RwLock::new(RouteState::default())),
+        )),
+        state: Arc::new(RouteState::default()),
     };
     let activity = Arc::new(SimpleActivityCost::default());
     let transport = Arc::new(TestTransportCost::new());

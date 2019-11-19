@@ -6,7 +6,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Distance, Duration, Location};
 use crate::models::problem::Fleet;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 parameterized_test! {can_check_traveling_limits, (vehicle, target, location, limit, expected), {
     can_check_traveling_limits_impl(vehicle, target.to_string(), location, limit, expected);
@@ -33,10 +33,8 @@ fn can_check_traveling_limits_impl(
     let mut state = RouteState::default();
     state.put_route_state(MAX_DISTANCE_KEY, 50.);
     state.put_route_state(MAX_DURATION_KEY, 50.);
-    let route_ctx = RouteContext {
-        route: Arc::new(RwLock::new(create_route_with_activities(&fleet, vehicle, vec![]))),
-        state: Arc::new(RwLock::new(state)),
-    };
+    let route_ctx =
+        RouteContext { route: Arc::new(create_route_with_activities(&fleet, vehicle, vec![])), state: Arc::new(state) };
     let pipeline = create_constraint_pipeline_with_module(Box::new(TravelModule::new(
         Arc::new(
             move |actor| {

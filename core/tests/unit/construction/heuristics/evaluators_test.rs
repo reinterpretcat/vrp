@@ -80,14 +80,8 @@ mod single {
         index: usize,
     ) {
         let registry = create_test_registry();
-        let route_ctx = RouteContext::new(registry.next().next().unwrap());
-        route_ctx
-            .route
-            .write()
-            .unwrap()
-            .tour
-            .insert_at(create_tour_activity_at(5), 1)
-            .insert_at(create_tour_activity_at(10), 2);
+        let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
+        route_ctx.route_mut().tour.insert_at(create_tour_activity_at(5), 1).insert_at(create_tour_activity_at(10), 2);
         let routes = vec![route_ctx];
         let constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
@@ -148,10 +142,7 @@ mod single {
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
-            assert_eq!(
-                get_vehicle_id(success.context.route.read().unwrap().actor.vehicle.deref()),
-                &expected_used_vehicle.to_owned()
-            );
+            assert_eq!(get_vehicle_id(success.context.route.actor.vehicle.deref()), &expected_used_vehicle.to_owned());
             assert_eq!(compare_floats(success.cost, cost), Ordering::Equal);
         } else {
             assert!(false);
@@ -248,13 +239,10 @@ mod multi {
         cost: Cost,
     ) {
         let registry = create_test_registry();
-        let route_ctx = RouteContext::new(registry.next().next().unwrap());
-        {
-            let mut route = route_ctx.route.write().unwrap();
-            existing.iter().for_each(|&(index, loc)| {
-                route.tour.insert_at(create_tour_activity_at(loc), index);
-            });
-        }
+        let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
+        existing.iter().for_each(|&(index, loc)| {
+            route_ctx.route_mut().tour.insert_at(create_tour_activity_at(loc), index);
+        });
         let routes = vec![route_ctx];
         let constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
