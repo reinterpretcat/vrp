@@ -365,12 +365,11 @@ impl ShadowContext {
 
     fn restore(&mut self, job: &Arc<Job>) {
         if self.is_dirty {
-            {
-                let (route, state) = self.ctx.as_mut();
+            let (route, state) = self.ctx.as_mut();
 
-                route.tour.all_activities().for_each(|a| state.remove_activity_states(a));
-                route.tour.remove(job);
-            }
+            route.tour.all_activities().for_each(|a| state.remove_activity_states(a));
+            route.tour.remove(job);
+
             self.problem.constraint.accept_route_state(&mut self.ctx);
         }
     }
