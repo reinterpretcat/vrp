@@ -106,8 +106,7 @@ type JobIter<'a> = Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {
-    (routes.iter().fold(0., |acc, rc| acc + rc.route.read().unwrap().tour.activity_count() as f64)
-        / routes.len() as f64)
+    (routes.iter().map(|rc| rc.route.read().unwrap().tour.activity_count() as f64).sum::<f64>() / (routes.len() as f64))
         .round()
 }
 
