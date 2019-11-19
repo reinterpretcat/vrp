@@ -37,7 +37,7 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
                 .short("v")
                 .long(VARIATION_COEFFICIENT_ARG_NAME)
                 .required(false)
-                .default_value("200,0.01")
+                .default_value("200,0.001")
                 .takes_value(true),
         )
         .arg(
