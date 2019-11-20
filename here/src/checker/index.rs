@@ -1,45 +1,9 @@
+use crate::checker::models::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
 use chrono::DateTime;
 use std::collections::HashMap;
 use std::sync::Arc;
-
-#[derive(Clone)]
-pub struct VehicleMeta {
-    pub vehicle_id: String,
-    pub vehicle_type: Arc<VehicleType>,
-}
-
-pub struct ActivityInfo {
-    pub activity: Activity,
-    pub job_id: Option<String>,
-    pub job: Option<Arc<JobVariant>>,
-    pub schedule: (f64, f64),
-}
-
-pub struct TourInfo {
-    pub vehicle_meta: VehicleMeta,
-    pub activities: Vec<ActivityInfo>,
-    pub schedule: (f64, f64),
-}
-
-pub struct RelationInfo {
-    pub relation: Relation,
-    pub vehicle_type: Arc<VehicleType>,
-    pub jobs: Vec<Option<Arc<JobVariant>>>,
-}
-
-pub struct UnassignedInfo {
-    pub unassigned: UnassignedJob,
-    pub job: Arc<JobVariant>,
-}
-
-pub struct SolutionInfo {
-    pub jobs: HashMap<String, Arc<JobVariant>>,
-    pub tours: Vec<TourInfo>,
-    pub relations: Vec<RelationInfo>,
-    pub unassigned: Vec<UnassignedInfo>,
-}
 
 pub fn create_solution_info(problem: &Problem, solution: &Solution) -> Result<SolutionInfo, String> {
     let job_map: HashMap<String, Arc<JobVariant>> =
@@ -74,6 +38,9 @@ fn create_tour_infos(
     solution.tours.iter().try_fold::<Vec<_>, _, Result<_, String>>(Default::default(), |mut acc, tour: &Tour| {
         let mut activities: Vec<ActivityInfo> = Default::default();
 
+        let vehicle_type = vehicle_map.get(&tour.type_id).ok_or("".to_string())?;
+        let vehicle_meta = VehicleMeta { vehicle_id: tour.vehicle_id.clone(), vehicle_type: vehicle_type.clone() };
+
         tour.stops.iter().for_each(|stop| {
             let schedule = parse_interval(&stop.time.arrival, &stop.time.departure);
             stop.activities.iter().for_each(|activity| {
@@ -82,6 +49,7 @@ fn create_tour_infos(
                     activity: activity.clone(),
                     job_id: job.as_ref().map(|_| activity.job_id.clone()),
                     job,
+                    vehicle_meta: vehicle_meta.clone(),
                     schedule: activity
                         .time
                         .as_ref()
@@ -91,8 +59,6 @@ fn create_tour_infos(
             });
         });
 
-        let vehicle_type = vehicle_map.get(&tour.type_id).ok_or("".to_string())?;
-        let vehicle_meta = VehicleMeta { vehicle_id: tour.vehicle_id.clone(), vehicle_type: vehicle_type.clone() };
         let start = activities
             .first()
             .map(|a| a.schedule.1)

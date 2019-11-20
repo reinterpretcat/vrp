@@ -1,4 +1,4 @@
-use crate::checker::index::{ActivityInfo, SolutionInfo, TourInfo};
+use crate::checker::models::*;
 use std::collections::HashSet;
 
 pub fn check_jobs(solution: &SolutionInfo) -> Result<(), String> {

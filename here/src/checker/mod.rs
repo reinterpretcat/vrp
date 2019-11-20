@@ -7,6 +7,7 @@ use crate::json::solution::Solution;
 
 mod index;
 mod jobs;
+mod models;
 mod relations;
 mod vehicles;
 

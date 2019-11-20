@@ -1,4 +1,4 @@
-use crate::checker::index::SolutionInfo;
+use crate::checker::models::SolutionInfo;
 use crate::json::problem::Matrix;
 
 pub fn check_vehicles(solution: &SolutionInfo, matrices: &[Matrix]) -> Result<(), String> {
