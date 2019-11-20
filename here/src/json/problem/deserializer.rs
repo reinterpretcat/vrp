@@ -10,7 +10,7 @@ use std::io::{BufReader, Read};
 
 // region Plan
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RelationType {
     Tour,
@@ -18,7 +18,7 @@ pub enum RelationType {
     Sequence,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Relation {
     #[serde(rename(deserialize = "type"))]
@@ -27,7 +27,7 @@ pub struct Relation {
     pub vehicle_id: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct JobPlace {
     pub times: Option<Vec<Vec<String>>>,
     pub location: Vec<f64>,
@@ -35,13 +35,13 @@ pub struct JobPlace {
     pub tag: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct JobPlaces {
     pub pickup: Option<JobPlace>,
     pub delivery: Option<JobPlace>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Job {
     pub id: String,
     pub places: JobPlaces,
@@ -49,7 +49,7 @@ pub struct Job {
     pub skills: Option<Vec<String>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct MultiJobPlace {
     pub times: Option<Vec<Vec<String>>>,
     pub location: Vec<f64>,
@@ -58,27 +58,27 @@ pub struct MultiJobPlace {
     pub tag: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct MultiJobPlaces {
     pub pickups: Vec<MultiJobPlace>,
     pub deliveries: Vec<MultiJobPlace>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct MultiJob {
     pub id: String,
     pub places: MultiJobPlaces,
     pub skills: Option<Vec<String>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum JobVariant {
     Single(Job),
     Multi(MultiJob),
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Plan {
     pub jobs: Vec<JobVariant>,
     pub relations: Option<Vec<Relation>>,
@@ -88,20 +88,20 @@ pub struct Plan {
 
 // region Fleet
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct VehicleCosts {
     pub fixed: Option<f64>,
     pub distance: f64,
     pub time: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct VehiclePlace {
     pub time: String,
     pub location: Vec<f64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VehiclePlaces {
     pub start: VehiclePlace,
@@ -116,14 +116,14 @@ pub struct VehicleLimits {
     pub shift_time: Option<f64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct VehicleBreak {
     pub times: Vec<Vec<String>>,
     pub duration: f64,
     pub location: Option<Vec<f64>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct VehicleType {
     pub id: String,
     pub profile: String,
@@ -138,7 +138,7 @@ pub struct VehicleType {
     pub vehicle_break: Option<VehicleBreak>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Fleet {
     pub types: Vec<VehicleType>,
 }
@@ -147,14 +147,14 @@ pub struct Fleet {
 
 // region Common
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Problem {
     pub id: String,
     pub plan: Plan,
     pub fleet: Fleet,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Matrix {
     pub num_origins: i32,

@@ -2,7 +2,7 @@ use serde::Serialize;
 use serde_json::Error;
 use std::io::{BufWriter, Write};
 
-#[derive(Serialize, PartialEq, Debug, Clone)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct Timing {
     pub driving: i32,
     pub serving: i32,
@@ -11,7 +11,7 @@ pub struct Timing {
     pub break_time: i32,
 }
 
-#[derive(Serialize, PartialEq, Debug, Clone)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct Statistic {
     pub cost: f64,
     pub distance: i32,
@@ -19,19 +19,19 @@ pub struct Statistic {
     pub times: Timing,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct Schedule {
     pub arrival: String,
     pub departure: String,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct Interval {
     pub start: String,
     pub end: String,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Activity {
     pub job_id: String,
@@ -43,7 +43,7 @@ pub struct Activity {
     pub job_tag: Option<String>,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct Stop {
     pub location: Vec<f64>,
     pub time: Schedule,
@@ -51,7 +51,7 @@ pub struct Stop {
     pub activities: Vec<Activity>,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Tour {
     pub vehicle_id: String,
@@ -60,13 +60,13 @@ pub struct Tour {
     pub statistic: Statistic,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct UnassignedJobReason {
     pub code: i32,
     pub description: String,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct UnassignedJob {
     pub job_id: String,
@@ -74,7 +74,7 @@ pub struct UnassignedJob {
 }
 
 /// Defines iteration model.
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct Iteration {
     /// Iteration number.
     pub number: i32,
@@ -89,13 +89,13 @@ pub struct Iteration {
 }
 
 /// Contains extra information.
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct Extras {
     /// Stores information about iteration performance.
     pub performance: Vec<Iteration>,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Solution {
     pub problem_id: String,
