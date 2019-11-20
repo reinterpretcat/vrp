@@ -49,7 +49,7 @@ impl AdjustedStringRemoval {
 
 impl Default for AdjustedStringRemoval {
     fn default() -> Self {
-        Self::new(10, 10, 0.01)
+        Self::new(30, 15, 0.01)
     }
 }
 
