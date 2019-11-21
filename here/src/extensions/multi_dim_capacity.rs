@@ -6,7 +6,11 @@ use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 
 /// Specifies multi dimensional capacity type.
-#[derive(Clone, Eq, PartialEq, PartialOrd)]
+/// Ordering trait is implemented the following way:
+/// Less is returned only when all dimensions are less than in rhs
+/// Equal is returned when at least one dimensions is equal and others are less
+/// Greater is returned when at least one dimension is greater than in rhs
+#[derive(Clone)]
 struct MultiDimensionalCapacity {
     pub capacity: Vec<i32>,
 }
@@ -68,6 +72,39 @@ impl Sub for MultiDimensionalCapacity {
 
 impl Ord for MultiDimensionalCapacity {
     fn cmp(&self, other: &Self) -> Ordering {
-        unimplemented!()
+        let size = self.capacity.len().max(other.capacity.len());
+        (0..size).fold(Ordering::Equal, |acc, idx| match acc {
+            Ordering::Greater => Ordering::Greater,
+            Ordering::Equal => {
+                if self.get(idx) > other.get(idx) {
+                    Ordering::Greater
+                } else if self.get(idx) == other.get(idx) {
+                    Ordering::Equal
+                } else {
+                    Ordering::Less
+                }
+            }
+            Ordering::Less => {
+                if self.get(idx) > other.get(idx) {
+                    Ordering::Greater
+                } else {
+                    Ordering::Less
+                }
+            }
+        })
+    }
+}
+
+impl PartialOrd for MultiDimensionalCapacity {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for MultiDimensionalCapacity {}
+
+impl PartialEq for MultiDimensionalCapacity {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
     }
 }
