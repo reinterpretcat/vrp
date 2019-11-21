@@ -72,22 +72,32 @@ impl ActivityInfo {
                     _ => Err(format!("Invalid job activity type: '{}' for {}", self.activity.activity_type, job.id)),
                 },
                 JobVariant::Multi(job) => {
-                    let tag = self
-                        .activity
-                        .job_tag
-                        .as_ref()
-                        .ok_or("UNSUPPORTED: solution checker requires multi job to have tags!")?;
+                    let err_msg = "UNSUPPORTED: solution checker requires each multi job to have unique tags!";
+                    let tag = self.activity.job_tag.as_ref().ok_or(err_msg)?;
+                    if job.places.pickups.iter().chain(job.places.deliveries.iter()).any(|place| place.tag.is_none()) {
+                        return Err(err_msg.to_string());
+                    }
+                    let find_place = move |places: &Vec<MultiJobPlace>| {
+                        let places: Vec<_> =
+                            places.iter().cloned().filter(|p| p.tag.as_ref().unwrap() == tag).zip(0usize..).collect();
+                        if places.len() != 1 {
+                            Err(err_msg.to_string())
+                        } else {
+                            let (place, index) = places.first().unwrap();
+                            Ok((place.clone(), *index))
+                        }
+                    };
+
+                    let places = &job.places;
                     match self.activity.activity_type.as_str() {
                         "pickup" => {
-                            //let places: Vec<_> = job.places.pickups.iter().filter(|p| p.tag == tag).collect();
-
-                            //                            job.places.pickups.iter().try_fold(Err("Cannot find pickup"), |acc, pickup| {
-                            //
-                            //                            })
-
-                            unimplemented!()
+                            let (place, index) = find_place(&places.pickups)?;
+                            Ok((ActivityPlace::Multi(place), index))
                         }
-                        "delivery" => unimplemented!(),
+                        "delivery" => {
+                            let (place, index) = find_place(&places.deliveries)?;
+                            Ok((ActivityPlace::Multi(place), index))
+                        }
                         _ => {
                             Err(format!("Invalid job activity type: '{}' for {}", self.activity.activity_type, job.id))
                         }
