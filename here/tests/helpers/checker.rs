@@ -2,32 +2,33 @@ use crate::checker::index::create_solution_info;
 use crate::checker::models::SolutionInfo;
 use crate::json::problem::*;
 use crate::json::solution::{Activity, Solution};
-use chrono::DateTime;
 use std::collections::{HashMap, HashSet};
 
 struct Prototype {
-    duration: f64,
     activity_type: String,
     job_type: String,
-
     place_index: usize,
+
     location: Vec<f64>,
     demand: Vec<i32>,
     times: Vec<Vec<i32>>,
+    duration: f64,
 
     tag: String,
 }
 
+/// Creates tag which parameters for original job place
 pub fn create_info_tag(
     job_type: String,
     place_index: usize,
     location: Vec<f64>,
     demand: Vec<i32>,
     times: Vec<Vec<i32>>,
+    duration: f64,
 ) -> String {
     assert!(job_type == "simple" || job_type == "multi");
     format!(
-        "{} {} {} {} {}",
+        "{} {} {} {} {} {}",
         job_type,
         place_index,
         location.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(":"),
@@ -36,7 +37,8 @@ pub fn create_info_tag(
             .iter()
             .map(|tw| tw.iter().map(|t| t.to_string()).collect::<Vec<String>>().join(","))
             .collect::<Vec<String>>()
-            .join(":")
+            .join(":"),
+        duration
     )
 }
 
@@ -67,21 +69,13 @@ fn create_job_prototypes(solution: &Solution) -> HashMap<String, Vec<Prototype>>
                 "departure" | "arrival" | "break" => {}
                 "pickup" | "delivery" => {
                     let tag = activity.job_tag.as_ref().unwrap_or_else(|| panic!("Activity must specify tag.")).clone();
-                    let (job_type, place_index, location, demand, times) = extract_params_from_tag(&tag);
+                    let (job_type, place_index, location, demand, times, duration) = extract_params_from_tag(&tag);
 
                     acc.entry(activity.job_id.clone()).or_insert_with(|| vec![]).push(Prototype {
-                        location: activity
-                            .location
-                            .as_ref()
-                            .unwrap_or_else(|| panic!("Location on activity is required."))
-                            .clone(),
-                        demand,
-                        duration: activity
-                            .time
-                            .as_ref()
-                            .map(|t| parse_time(&t.end) - parse_time(&t.start))
-                            .unwrap_or_else(|| panic!("Time on activity is required.")),
                         activity_type: activity.activity_type.clone(),
+                        location,
+                        demand,
+                        duration,
                         job_type,
                         place_index,
                         tag,
@@ -122,10 +116,10 @@ fn create_job_variants(prototypes: HashMap<String, Vec<Prototype>>) -> Vec<JobVa
     })
 }
 
-fn extract_params_from_tag(tag: &String) -> (String, usize, Vec<f64>, Vec<i32>, Vec<Vec<i32>>) {
+fn extract_params_from_tag(tag: &String) -> (String, usize, Vec<f64>, Vec<i32>, Vec<Vec<i32>>, f64) {
     // single 1 53.1:13.1 1:2:3 10,20:30,40
     let parts: Vec<&str> = tag.split_whitespace().collect();
-    assert_eq!(parts.len(), 4);
+    assert_eq!(parts.len(), 6);
 
     let job_type = parts.get(0).unwrap().to_string();
 
@@ -135,7 +129,6 @@ fn extract_params_from_tag(tag: &String) -> (String, usize, Vec<f64>, Vec<i32>, 
         .parse::<usize>()
         .unwrap_or_else(|err| panic!("Cannot parse place index in tag '{}': '{}'", tag, err));
 
-    // TODO
     let location = parts.get(2).unwrap().split(':').map(|v| v.parse::<f64>().unwrap()).collect();
 
     let demand = parts.get(3).unwrap().split(':').map(|v| v.parse::<i32>().unwrap()).collect();
@@ -148,9 +141,7 @@ fn extract_params_from_tag(tag: &String) -> (String, usize, Vec<f64>, Vec<i32>, 
         .map(|tw| tw.map(|v| v.parse::<i32>().unwrap()).collect::<Vec<i32>>())
         .collect();
 
-    (job_type, place_index, location, demand, times)
-}
+    let duration = parts.get(5).and_then(|v| v.parse::<f64>().ok()).unwrap();
 
-fn parse_time(time: &String) -> f64 {
-    DateTime::parse_from_rfc3339(time).unwrap().timestamp() as f64
+    (job_type, place_index, location, demand, times, duration)
 }
