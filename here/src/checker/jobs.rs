@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/checker/jobs_test.rs"]
+mod jobs_test;
+
 use crate::checker::models::*;
 use crate::extensions::MultiDimensionalCapacity;
 use std::collections::HashSet;

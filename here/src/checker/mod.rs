@@ -5,9 +5,9 @@ use crate::checker::vehicles::check_vehicles;
 use crate::json::problem::{Matrix, Problem};
 use crate::json::solution::Solution;
 
-mod index;
+pub mod index;
 mod jobs;
-mod models;
+pub mod models;
 mod relations;
 mod vehicles;
 
