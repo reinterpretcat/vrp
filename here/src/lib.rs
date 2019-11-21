@@ -9,6 +9,7 @@ pub mod features;
 
 mod checker;
 mod constraints;
+mod extensions;
 mod utils;
 
 pub mod json;
