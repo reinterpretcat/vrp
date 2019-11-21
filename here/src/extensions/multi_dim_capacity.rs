@@ -7,16 +7,16 @@ use std::ops::{Add, Sub};
 
 /// Specifies multi dimensional capacity type.
 /// Ordering trait is implemented the following way:
-/// Less is returned only when all dimensions are less than in rhs
-/// Equal is returned when at least one dimensions is equal and others are less
+/// Less is returned when at least one dimension is less, others can be equal
+/// Equal is returned when all dimensions are equal
 /// Greater is returned when at least one dimension is greater than in rhs
-#[derive(Clone)]
-struct MultiDimensionalCapacity {
+#[derive(Clone, Debug)]
+pub struct MultiDimensionalCapacity {
     pub capacity: Vec<i32>,
 }
 
 impl MultiDimensionalCapacity {
-    pub fn from_vec(capacity: Vec<i32>) -> Self {
+    pub fn new(capacity: Vec<i32>) -> Self {
         Self { capacity }
     }
 

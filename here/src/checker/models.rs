@@ -24,9 +24,15 @@ pub struct ActivityInfo {
     pub schedule: (f64, f64),
 }
 
+pub struct StopInfo {
+    pub stop: Stop,
+    pub activities: Vec<ActivityInfo>,
+    pub schedule: (f64, f64),
+}
+
 pub struct TourInfo {
     pub vehicle_meta: VehicleMeta,
-    pub activities: Vec<ActivityInfo>,
+    pub stops: Vec<StopInfo>,
     pub schedule: (f64, f64),
 }
 
@@ -46,6 +52,16 @@ pub struct SolutionInfo {
     pub tours: Vec<TourInfo>,
     pub relations: Vec<RelationInfo>,
     pub unassigned: Vec<UnassignedInfo>,
+}
+
+impl TourInfo {
+    pub fn first(&self) -> Result<&StopInfo, String> {
+        self.stops.first().ok_or_else(|| format!("Empty tour in solution!"))
+    }
+
+    pub fn activities<'a>(&'a self) -> Box<dyn Iterator<Item = &ActivityInfo> + 'a> {
+        Box::new(self.stops.iter().flat_map(|stop| stop.activities.iter()))
+    }
 }
 
 impl ActivityInfo {
@@ -129,7 +145,20 @@ impl ActivityInfo {
         }
     }
 
-    pub fn get_demand(&self) -> Option<&Vec<i32>> {
-        unimplemented!()
+    pub fn get_demand(&self) -> Result<Option<Vec<i32>>, String> {
+        if let Some(job) = &self.job {
+            match job.as_ref() {
+                JobVariant::Single(job) => Ok(Some(job.demand.clone())),
+                JobVariant::Multi(job) => {
+                    let (place, _) = self.get_place()?;
+                    match &place {
+                        ActivityPlace::Multi(place) => Ok(Some(place.demand.clone())),
+                        _ => Err(format!("Unexpected place type for multi job: {}", job.id)),
+                    }
+                }
+            }
+        } else {
+            Ok(None)
+        }
     }
 }

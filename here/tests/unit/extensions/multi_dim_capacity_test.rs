@@ -1,7 +1,7 @@
 use crate::extensions::multi_dim_capacity::MultiDimensionalCapacity;
 
 fn from_vec(capacity: Vec<i32>) -> MultiDimensionalCapacity {
-    MultiDimensionalCapacity::from_vec(capacity)
+    MultiDimensionalCapacity::new(capacity)
 }
 
 #[test]

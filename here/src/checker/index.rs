@@ -36,13 +36,14 @@ fn create_tour_infos(
     solution: &Solution,
 ) -> Result<Vec<TourInfo>, String> {
     solution.tours.iter().try_fold::<Vec<_>, _, Result<_, String>>(Default::default(), |mut acc, tour: &Tour| {
-        let mut activities: Vec<ActivityInfo> = Default::default();
+        let mut stops: Vec<StopInfo> = Default::default();
 
         let vehicle_type = vehicle_map.get(&tour.type_id).ok_or("".to_string())?;
         let vehicle_meta = VehicleMeta { vehicle_id: tour.vehicle_id.clone(), vehicle_type: vehicle_type.clone() };
 
         tour.stops.iter().for_each(|stop| {
             let schedule = parse_interval(&stop.time.arrival, &stop.time.departure);
+            let mut activities: Vec<ActivityInfo> = Default::default();
             stop.activities.iter().for_each(|activity| {
                 let job = job_map.get(&activity.job_id).cloned();
                 activities.push(ActivityInfo {
@@ -57,15 +58,18 @@ fn create_tour_infos(
                         .unwrap_or(schedule.clone()),
                 });
             });
+            stops.push(StopInfo { stop: stop.clone(), activities, schedule })
         });
 
-        let start = activities
-            .first()
+        let start = stops
+            .iter()
+            .flat_map(|s| s.activities.iter())
+            .next()
             .map(|a| a.schedule.1)
             .ok_or(format!("No activities in the tour: {}", tour.vehicle_id))?;
-        let end = activities.last().map(|a| a.schedule.0).unwrap();
+        let end = stops.iter().flat_map(|s| s.activities.iter()).last().map(|a| a.schedule.0).unwrap();
 
-        acc.push(TourInfo { vehicle_meta, activities, schedule: (start, end) });
+        acc.push(TourInfo { vehicle_meta, stops, schedule: (start, end) });
 
         Ok(acc)
     })

@@ -1,4 +1,5 @@
 use crate::checker::models::*;
+use crate::extensions::MultiDimensionalCapacity;
 use std::collections::HashSet;
 
 pub fn check_jobs(solution: &SolutionInfo) -> Result<(), String> {
@@ -21,7 +22,7 @@ fn check_job_presence(solution: &SolutionInfo) -> Result<(), String> {
     let mut assigned_job_ids = solution.tours.iter().try_fold::<_, _, Result<_, String>>(
         HashSet::<String>::default(),
         |mut out_acc, tour| {
-            let others = tour.activities.iter().try_fold(HashSet::<String>::default(), |mut in_acc, act| {
+            let others = tour.activities().try_fold(HashSet::<String>::default(), |mut in_acc, act| {
                 if let Some(job_id) = act.job_id.as_ref() {
                     if out_acc.get(job_id).is_some() {
                         return Err(format!(
@@ -63,7 +64,30 @@ fn check_job_presence(solution: &SolutionInfo) -> Result<(), String> {
 }
 
 fn check_stop_has_proper_demand_change(tour: &TourInfo) -> Result<(), String> {
-    unimplemented!()
+    // TODO check initial stop too
+    let initial = tour.first()?;
+    let initial_load = MultiDimensionalCapacity::new(initial.stop.load.clone());
+    tour.stops.iter().skip(1).try_fold(initial_load, |acc, stop| {
+        let total_demand = stop.activities.iter().try_fold::<_, _, Result<_, String>>(
+            MultiDimensionalCapacity::new(vec![0]),
+            |acc, activity| {
+                let demand = activity.get_demand()?.unwrap_or_else(|| vec![0]);
+
+                Ok(acc + MultiDimensionalCapacity::new(demand))
+            },
+        )?;
+
+        let result = MultiDimensionalCapacity::new(stop.stop.load.clone());
+        let expected = acc.clone() - total_demand;
+
+        if result != expected {
+            return Err(format!("Stop load mismatch: result '{:?}' != expected '{:?}'", result, expected));
+        }
+
+        Ok(acc)
+    })?;
+
+    Ok(())
 }
 
 fn check_activity_has_no_time_window_violation(tour: &TourInfo) -> Result<(), String> {
