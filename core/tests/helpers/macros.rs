@@ -27,6 +27,7 @@ macro_rules! parameterized_test {
 }
 
 // See https://stackoverflow.com/questions/30429801/whats-the-most-idiomatic-way-to-test-two-options-for-equality-when-they-contain
+#[allow(unused)]
 macro_rules! cmp_eq_option {
     ($left:expr, $right:expr) => {{
         match (&$left, &$right) {

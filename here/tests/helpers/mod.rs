@@ -18,9 +18,6 @@ pub fn format_time(time: i32) -> String {
     Utc.timestamp(time as i64, 0).to_rfc3339_opts(SecondsFormat::Secs, true)
 }
 
-mod checker;
-pub use self::checker::*;
-
 mod solver;
 pub use self::solver::*;
 

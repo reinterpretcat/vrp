@@ -7,7 +7,6 @@ pub mod helpers;
 #[path = "../tests/features/mod.rs"]
 pub mod features;
 
-mod checker;
 mod constraints;
 mod extensions;
 mod utils;
