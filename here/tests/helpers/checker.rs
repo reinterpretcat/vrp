@@ -99,15 +99,53 @@ fn create_job_variants(prototypes: HashMap<String, Vec<Prototype>>) -> Vec<JobVa
         let first = prototypes.first().unwrap();
         let variant = match first.job_type.as_ref() {
             "single" => {
-                let places = prototypes.iter().map(|p| JobPlace {
-                    times: Option::None,
-                    location: p.location.clone(),
-                    duration: p.duration,
-                    tag: Some(p.tag.clone()),
+                assert!(prototypes.iter().len() <= 2);
+                let places = prototypes.iter().fold(HashMap::new(), |mut acc, p| {
+                    acc.insert(
+                        p.activity_type.clone(),
+                        JobPlace {
+                            times: Option::None,
+                            location: p.location.clone(),
+                            duration: p.duration,
+                            tag: Some(p.tag.clone()),
+                        },
+                    );
+
+                    acc
                 });
-                unimplemented!()
+
+                JobVariant::Single(Job {
+                    id,
+                    places: JobPlaces {
+                        pickup: places.get("pickup").cloned(),
+                        delivery: places.get("delivery").cloned(),
+                    },
+                    demand: first.demand.clone(),
+                    skills: Option::None,
+                })
             }
-            "multi" => unimplemented!(),
+            "multi" => {
+                let mut places = prototypes.iter().fold(HashMap::new(), |mut acc, p| {
+                    acc.entry(p.activity_type.clone()).or_insert_with(|| vec![]).push(MultiJobPlace {
+                        times: Option::None,
+                        location: p.location.clone(),
+                        duration: p.duration,
+                        demand: p.demand.clone(),
+                        tag: Some(p.tag.clone()),
+                    });
+
+                    acc
+                });
+
+                JobVariant::Multi(MultiJob {
+                    id,
+                    places: MultiJobPlaces {
+                        pickups: places.get("pickup").unwrap().clone(),
+                        deliveries: places.get("delivery").unwrap().clone(),
+                    },
+                    skills: Option::None,
+                })
+            }
             value @ _ => panic!("Unknown job type: '{}'", value),
         };
         acc.push(variant);
