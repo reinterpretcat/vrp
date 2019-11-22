@@ -65,3 +65,7 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
 
     assert_eq!(result, expected);
 }
+
+pub fn default_time_window() -> (&'static str, &'static str) {
+    ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z")
+}

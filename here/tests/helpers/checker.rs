@@ -1,7 +1,8 @@
 use crate::checker::index::create_solution_info;
-use crate::checker::models::SolutionInfo;
+use crate::checker::models::{SolutionInfo, TourInfo};
+use crate::helpers::create_default_vehicle;
 use crate::json::problem::*;
-use crate::json::solution::{Activity, Solution};
+use crate::json::solution::{Activity, Extras, Solution, Tour};
 use std::collections::{HashMap, HashSet};
 
 struct Prototype {
@@ -19,14 +20,14 @@ struct Prototype {
 
 /// Creates tag which parameters for original job place
 pub fn create_info_tag(
-    job_type: String,
+    job_type: &str,
     place_index: usize,
     location: Vec<f64>,
     demand: Vec<i32>,
     times: Vec<Vec<i32>>,
     duration: f64,
 ) -> String {
-    assert!(job_type == "simple" || job_type == "multi");
+    assert!(job_type == "single" || job_type == "multi");
     format!(
         "{} {} {} {} {} {}",
         job_type,
@@ -59,6 +60,24 @@ pub fn create_test_solution_info(
     };
 
     create_solution_info(&problem, &solution).unwrap_or_else(|err| panic!("Cannot create solution: '{}'", err))
+}
+
+pub fn create_test_tour_info(tour: Tour) -> TourInfo {
+    create_test_solution_info(
+        vec![create_default_vehicle("my_vehicle")],
+        None,
+        Solution {
+            problem_id: "my_problem".to_string(),
+            statistic: Default::default(),
+            tours: vec![tour],
+            unassigned: vec![],
+            extras: Extras { performance: vec![] },
+        },
+    )
+    .tours
+    .first()
+    .unwrap()
+    .clone()
 }
 
 fn create_job_prototypes(solution: &Solution) -> HashMap<String, Vec<Prototype>> {
@@ -155,7 +174,7 @@ fn create_job_variants(prototypes: HashMap<String, Vec<Prototype>>) -> Vec<JobVa
 }
 
 fn extract_params_from_tag(tag: &String) -> (String, usize, Vec<f64>, Vec<i32>, Vec<Vec<i32>>, f64) {
-    // single 1 53.1:13.1 1:2:3 10,20:30,40 180
+    // single 1 53.1:13.1 1,2,3 10,20:30,40 180
     let parts: Vec<&str> = tag.split_whitespace().collect();
     assert_eq!(parts.len(), 6);
 
@@ -169,7 +188,7 @@ fn extract_params_from_tag(tag: &String) -> (String, usize, Vec<f64>, Vec<i32>, 
 
     let location = parts.get(2).unwrap().split(':').map(|v| v.parse::<f64>().unwrap()).collect();
 
-    let demand = parts.get(3).unwrap().split(':').map(|v| v.parse::<i32>().unwrap()).collect();
+    let demand = parts.get(3).unwrap().split(',').map(|v| v.parse::<i32>().unwrap()).collect();
 
     let times = parts
         .get(4)

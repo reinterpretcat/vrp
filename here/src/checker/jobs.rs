@@ -77,18 +77,27 @@ fn check_stop_has_proper_demand_change(tour: &TourInfo) -> Result<(), String> {
             |acc, activity| {
                 let demand = activity.get_demand()?.unwrap_or_else(|| vec![0]);
 
-                Ok(acc + MultiDimensionalCapacity::new(demand))
+                let result = match activity.activity.activity_type.as_str() {
+                    "delivery" => acc - MultiDimensionalCapacity::new(demand),
+                    "pickup" => acc + MultiDimensionalCapacity::new(demand),
+                    _ => acc,
+                };
+
+                Ok(result)
             },
         )?;
 
         let result = MultiDimensionalCapacity::new(stop.stop.load.clone());
-        let expected = acc.clone() - total_demand;
+        let expected = acc.clone() + total_demand;
 
         if result != expected {
-            return Err(format!("Stop load mismatch: result '{:?}' != expected '{:?}'", result, expected));
+            return Err(format!(
+                "Stop load mismatch: result '{:?}' != expected '{:?}'",
+                result.capacity, expected.capacity
+            ));
         }
 
-        Ok(acc)
+        Ok(result)
     })?;
 
     Ok(())

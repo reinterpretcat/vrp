@@ -16,6 +16,7 @@ pub enum ActivityPlace {
     Vehicle(VehiclePlace),
 }
 
+#[derive(Clone)]
 pub struct ActivityInfo {
     pub activity: Activity,
     pub job_id: Option<String>,
@@ -24,12 +25,14 @@ pub struct ActivityInfo {
     pub schedule: (f64, f64),
 }
 
+#[derive(Clone)]
 pub struct StopInfo {
     pub stop: Stop,
     pub activities: Vec<ActivityInfo>,
     pub schedule: (f64, f64),
 }
 
+#[derive(Clone)]
 pub struct TourInfo {
     pub vehicle_meta: VehicleMeta,
     pub stops: Vec<StopInfo>,
