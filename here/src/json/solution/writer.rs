@@ -223,16 +223,18 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
             11 => (100, "location unreachable"),
             _ => (0, "unknown"),
         };
-        acc.push(UnassignedJob {
-            job_id: match unassigned.0.as_ref() {
-                Job::Single(job) => &job.dimens,
-                Job::Multi(job) => &job.dimens,
-            }
-            .get_id()
-            .unwrap()
-            .clone(),
-            reasons: vec![UnassignedJobReason { code: reason.0, description: reason.1.to_string() }],
-        });
+        let dimens = match unassigned.0.as_ref() {
+            Job::Single(job) => &job.dimens,
+            Job::Multi(job) => &job.dimens,
+        };
+        // NOTE: skip unassigned breaks
+        if dimens.get_value::<String>("vehicle_id").is_none() {
+            acc.push(UnassignedJob {
+                job_id: dimens.get_id().unwrap().clone(),
+                reasons: vec![UnassignedJobReason { code: reason.0, description: reason.1.to_string() }],
+            });
+        }
+
         acc
     })
 }

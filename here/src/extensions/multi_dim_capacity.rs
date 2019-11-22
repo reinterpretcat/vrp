@@ -16,6 +16,7 @@ pub struct MultiDimensionalCapacity {
 }
 
 impl MultiDimensionalCapacity {
+    #[allow(dead_code)]
     pub fn new(capacity: Vec<i32>) -> Self {
         Self { capacity }
     }
