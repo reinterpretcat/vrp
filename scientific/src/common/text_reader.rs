@@ -8,6 +8,7 @@ use core::models::common::*;
 use core::models::problem::*;
 use core::models::solution::{Activity, Registry, Route, Tour};
 use core::models::{Problem, Solution};
+use core::refinement::objectives::PenalizeUnassigned;
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
@@ -52,6 +53,7 @@ pub trait TextReader {
             constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
             activity,
             transport,
+            objective: Arc::new(PenalizeUnassigned::default()),
             extras: Arc::new(Default::default()),
         })
     }

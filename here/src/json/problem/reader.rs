@@ -12,6 +12,7 @@ use core::construction::constraints::*;
 use core::models::common::*;
 use core::models::problem::*;
 use core::models::{Extras, Lock, LockDetail, LockOrder, LockPosition, Problem};
+use core::refinement::objectives::PenalizeUnassigned;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
@@ -87,6 +88,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         constraint: Arc::new(constraint),
         activity,
         transport,
+        objective: Arc::new(PenalizeUnassigned::default()),
         extras: Arc::new(extras),
     })
 }

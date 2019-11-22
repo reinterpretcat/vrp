@@ -54,6 +54,7 @@ fn can_calculate_cost_with_penalty_properly() {
             constraint,
             activity,
             transport,
+            objective: Arc::new(PenalizeUnassigned::default()),
             extras: Arc::new(Extras::default()),
         }),
         solution: SolutionContext {

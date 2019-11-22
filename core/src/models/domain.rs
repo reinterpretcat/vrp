@@ -1,6 +1,7 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::models::problem::{ActivityCost, Actor, Fleet, Job, Jobs, TransportCost};
 use crate::models::solution::{Registry, Route};
+use crate::refinement::objectives::Objective;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -11,16 +12,25 @@ pub type Extras = HashMap<String, Box<dyn Any + Send + Sync>>;
 pub struct Problem {
     /// Specifies used fleet.
     pub fleet: Arc<Fleet>,
+
     /// Specifies all jobs.
     pub jobs: Arc<Jobs>,
+
     /// Specifies jobs which preassigned to specific vehicles and/or drivers.
     pub locks: Vec<Arc<Lock>>,
+
     /// Specifies constraints pipeline.
     pub constraint: Arc<ConstraintPipeline>,
+
     /// Specifies activity costs.
     pub activity: Arc<dyn ActivityCost + Send + Sync>,
+
     /// Specifies transport costs.
     pub transport: Arc<dyn TransportCost + Send + Sync>,
+
+    /// Specifies objective function for the problem.
+    pub objective: Arc<dyn Objective + Send + Sync>,
+
     /// Specifies index for storing extra parameters of arbitrary type.
     pub extras: Arc<Extras>,
 }

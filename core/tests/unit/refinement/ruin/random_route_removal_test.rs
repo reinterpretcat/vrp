@@ -46,6 +46,7 @@ fn can_remove_parts_routes_from_context() {
         constraint: problem.constraint,
         activity: problem.activity,
         transport: problem.transport,
+        objective: problem.objective,
         extras: problem.extras,
     };
     let insertion_ctx = InsertionContext::new_from_solution(

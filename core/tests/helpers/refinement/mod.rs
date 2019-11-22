@@ -5,6 +5,7 @@ use crate::helpers::models::solution::{create_route_with_activities, test_tour_a
 use crate::models::problem::{Fleet, Job, Jobs, MatrixTransportCost, Vehicle};
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
+use crate::refinement::objectives::PenalizeUnassigned;
 use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
@@ -61,6 +62,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         constraint: Arc::new(create_constraint_pipeline()),
         activity: Arc::new(TestActivityCost::new()),
         transport,
+        objective: Arc::new(PenalizeUnassigned::default()),
         extras: Arc::new(Default::default()),
     };
 

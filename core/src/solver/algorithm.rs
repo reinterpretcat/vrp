@@ -2,7 +2,6 @@ use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::models::{Problem, Solution};
 use crate::refinement::acceptance::{Acceptance, Greedy};
-use crate::refinement::objectives::{Objective, PenalizeUnassigned};
 use crate::refinement::recreate::{CompositeRecreate, Recreate};
 use crate::refinement::ruin::{CompositeRuin, Ruin};
 use crate::refinement::selection::{SelectBest, Selection};
@@ -19,7 +18,6 @@ pub struct Solver {
     pub recreate: Box<dyn Recreate>,
     pub ruin: Box<dyn Ruin>,
     pub selection: Box<dyn Selection>,
-    pub objective: Box<dyn Objective>,
     pub acceptance: Box<dyn Acceptance>,
     pub termination: Box<dyn Termination>,
     pub settings: SolverSettings,
@@ -45,7 +43,6 @@ impl Default for Solver {
             Box::new(CompositeRecreate::default()),
             Box::new(CompositeRuin::default()),
             Box::new(SelectBest::default()),
-            Box::new(PenalizeUnassigned::default()),
             Box::new(Greedy::default()),
             Box::new(CompositeTermination::default()),
             SolverSettings::default(),
@@ -59,13 +56,12 @@ impl Solver {
         recreate: Box<dyn Recreate>,
         ruin: Box<dyn Ruin>,
         selection: Box<dyn Selection>,
-        objective: Box<dyn Objective>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
         settings: SolverSettings,
         logger: Box<dyn Fn(String) -> ()>,
     ) -> Self {
-        Self { recreate, ruin, selection, objective, acceptance, termination, settings, logger }
+        Self { recreate, ruin, selection, acceptance, termination, settings, logger }
     }
 
     pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
@@ -82,7 +78,7 @@ impl Solver {
             insertion_ctx = self.ruin.run(insertion_ctx);
             insertion_ctx = self.recreate.run(insertion_ctx);
 
-            let cost = self.objective.estimate(&insertion_ctx);
+            let cost = problem.objective.estimate(&insertion_ctx);
             let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost.clone()));
             let is_terminated =
                 self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
