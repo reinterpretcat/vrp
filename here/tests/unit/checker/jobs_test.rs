@@ -1,8 +1,59 @@
-use crate::checker::jobs::check_stop_has_proper_demand_change;
+use crate::checker::jobs::*;
 use crate::checker::models::{StopInfo, TourInfo, VehicleMeta};
 use crate::helpers::*;
 use crate::json::solution::{Extras, Solution, Statistic, Timing, Tour};
 use std::sync::Arc;
+
+#[test]
+fn can_validate_job_presence() {
+    let tour = Tour {
+        vehicle_id: "my_vehicle_1".to_string(),
+        type_id: "my_vehicle".to_string(),
+        stops: vec![
+            create_stop_with_activity_with_tag(
+                "departure",
+                "departure",
+                (1., 0.),
+                2,
+                default_time_window(),
+                &create_info_tag(&"single", 1, vec![1., 0.], vec![0], vec![vec![0, 1]], 0.),
+            ),
+            create_stop_with_activity_with_tag(
+                "job1",
+                "delivery",
+                (1., 0.),
+                2,
+                default_time_window(),
+                &create_info_tag(&"single", 1, vec![1., 0.], vec![0], vec![vec![0, 1]], 0.),
+            ),
+            create_stop_with_activity_with_tag(
+                "job2",
+                "pickup",
+                (1., 0.),
+                2,
+                default_time_window(),
+                &create_info_tag(&"single", 1, vec![1., 0.], vec![0], vec![vec![0, 1]], 0.),
+            ),
+        ],
+        statistic: Default::default(),
+    };
+    let mut solution_info = create_test_solution_info(
+        vec![create_default_vehicle("my_vehicle")],
+        None,
+        Solution {
+            problem_id: "my_problem".to_string(),
+            statistic: Default::default(),
+            tours: vec![tour],
+            unassigned: vec![],
+            extras: Extras { performance: vec![] },
+        },
+    );
+    solution_info.jobs.insert("job3".to_string(), Arc::new(create_delivery_job("job3", vec![1., 0.])));
+
+    let result = check_job_presence(&solution_info).err();
+
+    assert_eq_option!(result, Some("Solution has less jobs than the problem: 2 < 3".to_string()));
+}
 
 parameterized_test! {can_validate_stop_demand, (loads, expected), {
     can_validate_stop_demand_impl(loads.into_iter().map(|(load, demand)| (load, vec![demand])).collect(), expected);
