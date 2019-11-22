@@ -46,7 +46,7 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
                 .short("r")
                 .long(MINIMIZE_ROUTES_ARG_NAME)
                 .required(false)
-                .default_value("true")
+                .default_value("false")
                 .takes_value(true),
         )
         .arg(
