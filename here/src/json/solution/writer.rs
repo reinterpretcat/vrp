@@ -228,7 +228,10 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
             Job::Multi(job) => &job.dimens,
         };
         acc.push(UnassignedJob {
-            job_id: dimens.get_id().unwrap().clone(),
+            job_id: dimens
+                .get_value::<String>("vehicle_id")
+                .map(|vehicle_id| format!("{}_break", vehicle_id))
+                .unwrap_or_else(|| dimens.get_id().unwrap().clone()),
             reasons: vec![UnassignedJobReason { code: reason.0, description: reason.1.to_string() }],
         });
 

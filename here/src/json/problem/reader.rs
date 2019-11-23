@@ -235,7 +235,7 @@ fn create_constraint_pipeline(
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
     constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
-    constraint.add_module(Box::new(BreakModule::new(4)));
+    constraint.add_module(Box::new(BreakModule::new(4, Some(-100.), false)));
     constraint.add_module(Box::new(SkillsModule::new(10)));
 
     if !locks.is_empty() {
