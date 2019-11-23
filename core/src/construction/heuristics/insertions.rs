@@ -27,7 +27,8 @@ impl InsertionHeuristic {
         ctx: InsertionContext,
     ) -> InsertionContext {
         let mut ctx = ctx;
-        ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
+
+        prepare_ctx(&mut ctx);
 
         while !ctx.solution.required.is_empty() {
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Arc<Job>>>();
@@ -36,38 +37,44 @@ impl InsertionHeuristic {
                 .map(|job| evaluate_job_insertion(&job, &ctx))
                 .reduce(InsertionResult::make_failure, |a, b| result_selector.select(&ctx, a, b));
 
-            Self::insert(result, &mut ctx);
+            insert(result, &mut ctx);
         }
 
         ctx
     }
+}
 
-    fn insert(result: InsertionResult, ctx: &mut InsertionContext) {
-        match result {
-            InsertionResult::Success(mut success) => {
-                let job = success.job;
+fn prepare_ctx(ctx: &mut InsertionContext) {
+    ctx.solution.required.extend(ctx.solution.unassigned.drain().map(|(job, _)| job));
 
-                ctx.solution.registry.use_actor(&success.context.route.actor);
-                if !ctx.solution.routes.contains(&success.context) {
-                    ctx.solution.routes.push(success.context.clone());
-                }
+    ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
+}
 
-                let route = success.context.route_mut();
-                success.activities.into_iter().for_each(|(a, index)| {
-                    route.tour.insert_at(a, index + 1);
-                });
+fn insert(result: InsertionResult, ctx: &mut InsertionContext) {
+    match result {
+        InsertionResult::Success(mut success) => {
+            let job = success.job;
 
-                ctx.solution.required.retain(|j| !compare_shared(j, &job));
-                ctx.problem.constraint.accept_route_state(&mut success.context);
+            ctx.solution.registry.use_actor(&success.context.route.actor);
+            if !ctx.solution.routes.contains(&success.context) {
+                ctx.solution.routes.push(success.context.clone());
             }
-            InsertionResult::Failure(failure) => {
-                let unassigned = &mut ctx.solution.unassigned;
-                ctx.solution.required.drain(..).for_each(|j| {
-                    unassigned.insert(j.clone(), failure.constraint);
-                });
-            }
+
+            let route = success.context.route_mut();
+            success.activities.into_iter().for_each(|(a, index)| {
+                route.tour.insert_at(a, index + 1);
+            });
+
+            ctx.solution.required.retain(|j| !compare_shared(j, &job));
+            ctx.problem.constraint.accept_route_state(&mut success.context);
         }
-        // TODO update progress
-        ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
+        InsertionResult::Failure(failure) => {
+            let unassigned = &mut ctx.solution.unassigned;
+            ctx.solution.required.drain(..).for_each(|j| {
+                unassigned.insert(j.clone(), failure.constraint);
+            });
+        }
     }
+    // TODO update progress
+    ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
