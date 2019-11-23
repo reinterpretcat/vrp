@@ -188,6 +188,10 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
                 (current, breaks)
             });
 
+        breaks_set.iter().for_each(|break_job| {
+            rc.route_mut().tour.remove(break_job);
+        });
+
         acc.extend(breaks_set.into_iter());
 
         acc
