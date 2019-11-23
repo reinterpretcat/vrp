@@ -51,21 +51,39 @@ struct BreakHardActivityConstraint {
     code: i32,
 }
 
+impl BreakHardActivityConstraint {
+    fn stop(&self) -> Option<ActivityConstraintViolation> {
+        Some(ActivityConstraintViolation { code: self.code, stopped: false })
+    }
+}
+
 impl HardActivityConstraint for BreakHardActivityConstraint {
     fn evaluate_activity(
         &self,
-        _route_ctx: &RouteContext,
+        route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let is_break =
-            activity_ctx.target.job.as_ref().and_then(|job| Some(job.as_single())).map_or(false, |job| is_break(&job));
+        let single_job = activity_ctx.target.job.as_ref().and_then(|job| Some(job.as_single()));
 
-        // avoid assigning break right after departure
-        if is_break && activity_ctx.prev.job.is_none() {
-            Some(ActivityConstraintViolation { code: self.code, stopped: false })
-        } else {
-            None
+        let is_break = single_job.as_ref().map_or(false, |job| is_break(job));
+
+        if is_break {
+            // avoid assigning break right after departure
+            if activity_ctx.prev.job.is_none() {
+                return self.stop();
+            } else {
+                // lock break to specific vehicle
+                let is_correct_vehicle = single_job
+                    .as_ref()
+                    .and_then(|job| get_vehicle_id_from_break(&job))
+                    .map_or(false, |vehicle_id| vehicle_id == get_vehicle_id_from_ctx(route_ctx));
+                if !is_correct_vehicle {
+                    return self.stop();
+                }
+            }
         }
+
+        None
     }
 }
 
