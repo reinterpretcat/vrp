@@ -1,7 +1,12 @@
+#[cfg(test)]
+#[path = "../../tests/unit/constraints/breaks_test.rs"]
+mod breaks_test;
+
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use core::models::common::{Cost, IdDimension, ValueDimension};
 use core::models::problem::{Job, Single};
+use core::models::solution::Activity;
 use std::collections::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -33,6 +38,9 @@ impl ConstraintModule for BreakModule {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
+
+        remove_orphan_breaks(ctx);
+
         if self.demote_breaks_from_unassigned {
             demote_unassigned_breaks(ctx);
         }
@@ -63,19 +71,15 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let single_job = activity_ctx.target.job.as_ref().and_then(|job| Some(job.as_single()));
+        let break_job = as_break_job(activity_ctx.target);
 
-        let is_break = single_job.as_ref().map_or(false, |job| is_break(job));
-
-        if is_break {
+        if let Some(break_job) = break_job {
             // avoid assigning break right after departure
             if activity_ctx.prev.job.is_none() {
                 return self.stop();
             } else {
                 // lock break to specific vehicle
-                let is_correct_vehicle = single_job
-                    .as_ref()
-                    .and_then(|job| get_vehicle_id_from_break(&job))
+                let is_correct_vehicle = get_vehicle_id_from_break(&break_job)
                     .map_or(false, |vehicle_id| vehicle_id == get_vehicle_id_from_ctx(route_ctx));
                 if !is_correct_vehicle {
                     return self.stop();
@@ -95,17 +99,7 @@ struct BreakSoftActivityConstraint {
 impl SoftActivityConstraint for BreakSoftActivityConstraint {
     fn estimate_activity(&self, _route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> f64 {
         if let Some(cost) = self.extra_break_cost {
-            let is_break = activity_ctx
-                .target
-                .job
-                .as_ref()
-                .map(|job| match job.as_ref() {
-                    Job::Single(job) => is_break(job),
-                    _ => false,
-                })
-                .unwrap_or(false);
-
-            (if is_break { cost } else { 0. })
+            (if as_break_job(activity_ctx.target).is_some() { cost } else { 0. })
         } else {
             0.
         }
@@ -116,7 +110,7 @@ impl SoftActivityConstraint for BreakSoftActivityConstraint {
 fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
     match job.as_ref() {
         Job::Single(job) => {
-            if is_break(job) {
+            if is_break_job(job) {
                 let vehicle_id = get_vehicle_id_from_break(job.as_ref()).unwrap();
                 !ctx.required.is_empty() && ctx.routes.iter().any(move |rc| get_vehicle_id_from_ctx(rc) == vehicle_id)
             } else {
@@ -127,8 +121,21 @@ fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
     }
 }
 
-fn is_break(job: &Arc<Single>) -> bool {
+fn is_break_job(job: &Arc<Single>) -> bool {
     job.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
+}
+
+fn as_break_job(activity: &Activity) -> Option<Arc<Single>> {
+    activity.job.as_ref().and_then(|job| match job.as_ref() {
+        Job::Single(job) => {
+            if is_break_job(job) {
+                Some(job.clone())
+            } else {
+                None
+            }
+        }
+        _ => None,
+    })
 }
 
 /// Remove some breaks from required jobs as we don't want to consider breaks
@@ -158,4 +165,33 @@ fn get_vehicle_id_from_ctx(ctx: &RouteContext) -> String {
 
 fn get_vehicle_id_from_break(job: &Single) -> Option<String> {
     job.dimens.get_value::<String>("vehicle_id").cloned()
+}
+
+/// Removes breaks without location served separately.They are left-overs
+/// from ruin methods when original job is removed, but break is kept.
+fn remove_orphan_breaks(ctx: &mut SolutionContext) {
+    let breaks_set = ctx.routes.iter_mut().fold(HashSet::new(), |mut acc, rc: &mut RouteContext| {
+        // NOTE assume that first activity is never break (should be always departure)
+        let (_, breaks_set) =
+            rc.route.tour.all_activities().fold((0, HashSet::new()), |(prev, mut breaks), activity| {
+                let current = activity.place.location;
+
+                if let Some(break_job) = as_break_job(activity) {
+                    // TODO support multiple places for break
+                    assert_eq!(break_job.places.len(), 1);
+
+                    if prev != current && break_job.places.first().and_then(|p| p.location).is_none() {
+                        breaks.insert(activity.job.as_ref().unwrap().clone());
+                    }
+                }
+
+                (current, breaks)
+            });
+
+        acc.extend(breaks_set.into_iter());
+
+        acc
+    });
+
+    ctx.required.extend(breaks_set.into_iter());
 }
