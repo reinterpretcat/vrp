@@ -117,7 +117,7 @@ fn create_job_variants(prototypes: HashMap<String, Vec<Prototype>>) -> Vec<JobVa
 }
 
 fn extract_params_from_tag(tag: &String) -> (String, usize, Vec<f64>, Vec<i32>, Vec<Vec<i32>>, f64) {
-    // single 1 53.1:13.1 1:2:3 10,20:30,40
+    // single 1 53.1:13.1 1:2:3 10,20:30,40 180
     let parts: Vec<&str> = tag.split_whitespace().collect();
     assert_eq!(parts.len(), 6);
 
