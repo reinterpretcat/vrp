@@ -5,6 +5,7 @@ mod random_route_removal_test;
 use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::refinement::ruin::Ruin;
+use crate::refinement::RefinementContext;
 use std::sync::Arc;
 
 /// Removes random route from solution.
@@ -56,7 +57,7 @@ impl Default for RandomRouteRemoval {
 }
 
 impl Ruin for RandomRouteRemoval {
-    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
         let max = (insertion_ctx.solution.routes.len() as f64 * self.threshold).max(self.rmin).round() as usize;
         let affected = insertion_ctx

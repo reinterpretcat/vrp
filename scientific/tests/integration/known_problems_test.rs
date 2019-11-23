@@ -3,6 +3,7 @@ use core::construction::states::InsertionContext;
 use core::models::Problem;
 use core::refinement::objectives::{Objective, PenalizeUnassigned};
 use core::refinement::recreate::{Recreate, RecreateWithCheapest};
+use core::refinement::RefinementContext;
 use core::utils::DefaultRandom;
 use std::sync::Arc;
 
@@ -56,8 +57,10 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     expected: Vec<Vec<&str>>,
     cost: f64,
 ) {
-    let insertion_ctx =
-        RecreateWithCheapest::default().run(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())));
+    let insertion_ctx = RecreateWithCheapest::default().run(
+        &RefinementContext { problem: problem.clone(), population: vec![], generation: 0 },
+        InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
+    );
 
     let result_cost = PenalizeUnassigned::new(1000.).estimate(&insertion_ctx);
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);

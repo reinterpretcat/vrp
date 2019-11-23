@@ -75,8 +75,8 @@ impl Solver {
         loop {
             let generation_time = Instant::now();
 
-            insertion_ctx = self.ruin.run(insertion_ctx);
-            insertion_ctx = self.recreate.run(insertion_ctx);
+            insertion_ctx = self.ruin.run(&refinement_ctx, insertion_ctx);
+            insertion_ctx = self.recreate.run(&refinement_ctx, insertion_ctx);
 
             let cost = problem.objective.estimate(&insertion_ctx);
             let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost.clone()));

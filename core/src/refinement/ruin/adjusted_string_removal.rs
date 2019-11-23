@@ -10,6 +10,7 @@ use crate::models::problem::{Actor, Job};
 use crate::models::solution::Tour;
 use crate::models::Problem;
 use crate::refinement::ruin::Ruin;
+use crate::refinement::RefinementContext;
 use crate::utils::Random;
 use std::iter::{empty, once};
 
@@ -54,7 +55,7 @@ impl Default for AdjustedStringRemoval {
 }
 
 impl Ruin for AdjustedStringRemoval {
-    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
         let jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::new());
         let actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());

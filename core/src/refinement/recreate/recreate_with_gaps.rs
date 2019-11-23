@@ -4,6 +4,7 @@ use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSel
 use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
 use crate::refinement::recreate::{BestResultSelector, Recreate};
+use crate::refinement::RefinementContext;
 use rand::prelude::*;
 use std::sync::Arc;
 
@@ -46,7 +47,7 @@ impl Default for RecreateWithGaps {
 }
 
 impl Recreate for RecreateWithGaps {
-    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::process(&self.job_selector, &self.result_selector, insertion_ctx)
     }
 }

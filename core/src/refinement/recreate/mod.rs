@@ -2,7 +2,7 @@ use crate::construction::heuristics::ResultSelector;
 use crate::construction::states::{InsertionContext, InsertionResult};
 
 pub trait Recreate {
-    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext;
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
 /// Selects best result.
@@ -28,6 +28,7 @@ mod recreate_with_gaps;
 
 pub use self::recreate_with_gaps::RecreateWithGaps;
 use crate::refinement::recreate::recreate_with_blinks::RecreateWithBlinks;
+use crate::refinement::RefinementContext;
 
 mod recreate_with_blinks;
 
@@ -55,8 +56,8 @@ impl CompositeRecreate {
 }
 
 impl Recreate for CompositeRecreate {
-    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.random.weighted(self.weights.iter());
-        self.recreates.get(index).unwrap().run(insertion_ctx)
+        self.recreates.get(index).unwrap().run(refinement_ctx, insertion_ctx)
     }
 }

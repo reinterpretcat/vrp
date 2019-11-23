@@ -2,6 +2,7 @@ use crate::json::problem::{HereProblem, Matrix, Problem};
 use crate::json::solution::{create_solution, Solution};
 use core::construction::states::InsertionContext;
 use core::refinement::recreate::{Recreate, RecreateWithCheapest};
+use core::refinement::RefinementContext;
 use core::solver::SolverBuilder;
 use core::utils::DefaultRandom;
 use std::cmp::Ordering::Less;
@@ -9,8 +10,9 @@ use std::sync::Arc;
 
 pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
     let problem = Arc::new((problem, matrices).read_here().unwrap());
+    let refinement_ctx = RefinementContext { problem: problem.clone(), population: vec![], generation: 0 };
     let solution = RecreateWithCheapest::default()
-        .run(InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
+        .run(&refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
         .solution
         .to_solution(problem.extras.clone());
     sort_all_data(create_solution(problem.as_ref(), &solution))

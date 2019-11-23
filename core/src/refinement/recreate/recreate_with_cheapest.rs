@@ -2,6 +2,7 @@ use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSel
 use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
 use crate::refinement::recreate::{BestResultSelector, Recreate};
+use crate::refinement::RefinementContext;
 use std::sync::Arc;
 
 /// Returns a list of all jobs to be inserted.
@@ -25,7 +26,7 @@ impl Default for RecreateWithCheapest {
 }
 
 impl Recreate for RecreateWithCheapest {
-    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::process(&self.job_selector, &self.result_selector, insertion_ctx)
     }
 }

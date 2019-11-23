@@ -11,6 +11,7 @@ use crate::models::common::Distance;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::refinement::recreate::Recreate;
+use crate::refinement::RefinementContext;
 use crate::utils::compare_floats;
 use rand::prelude::*;
 use std::cmp::Ordering;
@@ -173,7 +174,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Recreate
     for RecreateWithBlinks<Capacity>
 {
-    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.random.weighted(self.weights.iter());
         let job_selector = self.job_selectors.get(index).unwrap();
         InsertionHeuristic::process(&job_selector, &self.result_selector, insertion_ctx)

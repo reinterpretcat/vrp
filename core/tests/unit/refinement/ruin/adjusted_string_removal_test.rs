@@ -18,6 +18,7 @@ use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
 use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;
 use crate::refinement::ruin::{AdjustedStringRemoval, Ruin};
+use crate::refinement::RefinementContext;
 use std::sync::Arc;
 
 parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, reals, expected_ids), {
@@ -49,7 +50,10 @@ fn can_ruin_solution_with_matrix_routes_impl(
         Arc::new(FakeRandom::new(ints, reals)),
     );
 
-    let insertion_ctx = AdjustedStringRemoval::default().run(insertion_ctx);
+    let insertion_ctx = AdjustedStringRemoval::default().run(
+        &RefinementContext { problem: insertion_ctx.problem.clone(), population: vec![], generation: 0 },
+        insertion_ctx,
+    );
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }

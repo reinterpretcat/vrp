@@ -13,7 +13,10 @@ use std::sync::Arc;
 
 /// Creates initial solution using cheapest insertion
 pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> InsertionContext {
-    RecreateWithCheapest::default().run(InsertionContext::new(problem, random))
+    RecreateWithCheapest::default().run(
+        &RefinementContext { problem: problem.clone(), population: vec![], generation: 0 },
+        InsertionContext::new(problem, random),
+    )
 }
 
 pub fn create_refinement_context(problem: Arc<Problem>) -> RefinementContext {

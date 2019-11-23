@@ -1,5 +1,6 @@
 use crate::construction::states::InsertionContext;
 use crate::refinement::ruin::Ruin;
+use crate::refinement::RefinementContext;
 
 /// Removes random jobs from solution.
 pub struct RandomJobRemoval {
@@ -24,7 +25,7 @@ impl Default for RandomJobRemoval {
 }
 
 impl Ruin for RandomJobRemoval {
-    fn run(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
 
         if insertion_ctx.solution.routes.is_empty() {
