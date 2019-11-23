@@ -39,10 +39,12 @@ impl ConstraintModule for BreakModule {
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
 
-        remove_orphan_breaks(ctx);
+        if ctx.required.is_empty() {
+            remove_orphan_breaks(ctx);
 
-        if self.demote_breaks_from_unassigned {
-            demote_unassigned_breaks(ctx);
+            if self.demote_breaks_from_unassigned {
+                demote_unassigned_breaks(ctx);
+            }
         }
     }
 
