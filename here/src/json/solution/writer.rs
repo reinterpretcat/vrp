@@ -227,13 +227,10 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
             Job::Single(job) => &job.dimens,
             Job::Multi(job) => &job.dimens,
         };
-        // NOTE: skip unassigned breaks
-        if dimens.get_value::<String>("vehicle_id").is_none() {
-            acc.push(UnassignedJob {
-                job_id: dimens.get_id().unwrap().clone(),
-                reasons: vec![UnassignedJobReason { code: reason.0, description: reason.1.to_string() }],
-            });
-        }
+        acc.push(UnassignedJob {
+            job_id: dimens.get_id().unwrap().clone(),
+            reasons: vec![UnassignedJobReason { code: reason.0, description: reason.1.to_string() }],
+        });
 
         acc
     })

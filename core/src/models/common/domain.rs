@@ -24,6 +24,14 @@ impl TimeWindow {
     pub fn max() -> Self {
         Self { start: 0., end: std::f64::MAX }
     }
+
+    pub fn intersects(&self, other: &Self) -> bool {
+        self.start <= other.end && other.start >= self.end
+    }
+
+    pub fn intersects_many(left: &Vec<Self>, right: &Vec<Self>) -> bool {
+        left.iter().any(|lhs| right.iter().any(|rhs| lhs.intersects(rhs)))
+    }
 }
 
 impl PartialEq<TimeWindow> for TimeWindow {
