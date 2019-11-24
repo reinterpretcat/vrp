@@ -140,23 +140,14 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
             let last = tour.stops.len() - 1;
             let mut last = tour.stops.get_mut(last).unwrap();
-            let add_optional_fields = last.activities.len() > 1;
 
             last.time.departure = format_time(departure);
             last.load[0] = load;
             last.activities.push(Activity {
                 job_id,
                 activity_type,
-                location: if add_optional_fields {
-                    Some(coord_index.get_by_idx(&act.place.location).unwrap().as_vec())
-                } else {
-                    None
-                },
-                time: if add_optional_fields {
-                    Some(Interval { start: format_time(arrival), end: format_time(departure) })
-                } else {
-                    None
-                },
+                location: Some(coord_index.get_by_idx(&act.place.location).unwrap().as_vec()),
+                time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
                 job_tag,
             });
 
@@ -184,6 +175,16 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
             }
         },
     );
+
+    // NOTE remove redundant info
+    tour.stops
+        .iter_mut()
+        .filter(|stop| stop.activities.len() == 1)
+        .flat_map(|stop| stop.activities.iter_mut())
+        .for_each(|activity| {
+            activity.location = None;
+            activity.time = None;
+        });
 
     leg.statistic.cost += vehicle.costs.fixed;
 
