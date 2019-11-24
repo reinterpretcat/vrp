@@ -37,8 +37,11 @@ pub struct Activity {
     pub job_id: String,
     #[serde(rename(serialize = "type"))]
     pub activity_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<Vec<f64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub time: Option<Interval>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename(serialize = "tag"))]
     pub job_tag: Option<String>,
 }
