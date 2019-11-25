@@ -124,17 +124,21 @@ impl Solver {
         is_accepted: bool,
     ) {
         let (insertion_ctx, cost) = solution;
+        let (actual_change, total_change) = refinement_ctx
+            .population
+            .first()
+            .map(|(_, c, _)| {
+                ((cost.actual - c.actual) / c.actual * 100., (cost.total() - c.total()) / c.total() * 100.)
+            })
+            .unwrap_or((100., 100.));
         self.logger.deref()(format!(
-            "generation {} took {}ms, cost: ({:.2},{:.2}): {:.3}%, routes: {}, accepted: {}",
+            "generation {} took {}ms, cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, accepted: {}",
             refinement_ctx.generation,
             generation_time.elapsed().as_millis(),
             cost.actual,
             cost.penalty,
-            refinement_ctx
-                .population
-                .first()
-                .map(|(_, c, _)| (cost.total() - c.total()) / c.total() * 100.)
-                .unwrap_or(100.),
+            actual_change,
+            total_change,
             insertion_ctx.solution.routes.len(),
             is_accepted
         ));
