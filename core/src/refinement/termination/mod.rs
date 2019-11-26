@@ -13,6 +13,9 @@ pub trait Termination {
 mod max_generation;
 pub use self::max_generation::MaxGeneration;
 
+mod max_time;
+pub use self::max_time::MaxTime;
+
 mod variation_coefficient;
 pub use self::variation_coefficient::VariationCoefficient;
 
