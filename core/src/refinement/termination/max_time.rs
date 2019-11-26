@@ -1,4 +1,3 @@
-
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::termination::Termination;
@@ -13,10 +12,7 @@ pub struct MaxTime {
 
 impl MaxTime {
     pub fn new(limit_in_secs: f64) -> Self {
-        Self {
-            start: Instant::now(),
-            limit_in_secs
-        }
+        Self { start: Instant::now(), limit_in_secs }
     }
 }
 

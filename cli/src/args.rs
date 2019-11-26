@@ -5,6 +5,7 @@ pub const FORMAT_ARG_NAME: &str = "FORMAT";
 pub const PROBLEM_ARG_NAME: &str = "PROBLEM";
 pub const MATRIX_ARG_NAME: &str = "routing-matrix";
 pub const GENERATIONS_ARG_NAME: &str = "max-generations";
+pub const TIME_ARG_NAME: &str = "max-time";
 pub const VARIATION_COEFFICIENT_ARG_NAME: &str = "variation-coefficient";
 pub const MINIMIZE_ROUTES_ARG_NAME: &str = "minimize-routes";
 pub const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
@@ -28,7 +29,14 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
                 .short("g")
                 .long(GENERATIONS_ARG_NAME)
                 .required(false)
-                .default_value("2000")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(TIME_ARG_NAME)
+                .help("Specifies max time algorithm run in seconds")
+                .short("t")
+                .long(TIME_ARG_NAME)
+                .required(false)
                 .takes_value(true),
         )
         .arg(
@@ -37,7 +45,6 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
                 .short("v")
                 .long(VARIATION_COEFFICIENT_ARG_NAME)
                 .required(false)
-                .default_value("200,0.001")
                 .takes_value(true),
         )
         .arg(

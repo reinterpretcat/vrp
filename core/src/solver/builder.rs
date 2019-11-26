@@ -1,7 +1,7 @@
 use crate::construction::states::InsertionContext;
 use crate::models::{Problem, Solution};
 use crate::refinement::acceptance::Greedy;
-use crate::refinement::termination::{CompositeTermination, MaxGeneration, VariationCoefficient};
+use crate::refinement::termination::*;
 use crate::solver::Solver;
 use crate::utils::DefaultRandom;
 use std::ops::Deref;
@@ -11,8 +11,11 @@ use std::sync::Arc;
 pub struct SolverBuilder {
     solver: Solver,
     minimize_routes: Option<bool>,
+
     max_generations: Option<usize>,
     variation_coefficient: Option<(usize, f64)>,
+    max_time: Option<f64>,
+
     init_solution: Option<(Arc<Problem>, Arc<Solution>)>,
 }
 
@@ -23,6 +26,7 @@ impl Default for SolverBuilder {
             minimize_routes: None,
             max_generations: None,
             variation_coefficient: None,
+            max_time: None,
             init_solution: None,
         }
     }
@@ -34,15 +38,22 @@ impl SolverBuilder {
         self
     }
 
-    pub fn with_max_generations(&mut self, limit: usize) -> &mut Self {
-        self.max_generations = Some(limit);
+    pub fn with_max_generations(&mut self, limit: Option<usize>) -> &mut Self {
+        self.max_generations = limit;
         self
     }
 
-    pub fn with_variation_coefficient(&mut self, params: Vec<f64>) -> &mut Self {
-        let sample = params.get(0).map(|s| s.round() as usize).unwrap_or_else(|| panic!("Cannot get sample size"));
-        let threshold = *params.get(1).unwrap_or_else(|| panic!("Cannot get threshold"));
-        self.variation_coefficient = Some((sample, threshold));
+    pub fn with_variation_coefficient(&mut self, params: Option<Vec<f64>>) -> &mut Self {
+        if let Some(params) = params {
+            let sample = params.get(0).map(|s| s.round() as usize).unwrap_or_else(|| panic!("Cannot get sample size"));
+            let threshold = *params.get(1).unwrap_or_else(|| panic!("Cannot get threshold"));
+            self.variation_coefficient = Some((sample, threshold));
+        }
+        self
+    }
+
+    pub fn with_max_time(&mut self, limit: Option<f64>) -> &mut Self {
+        self.max_time = limit;
         self
     }
 
@@ -52,28 +63,34 @@ impl SolverBuilder {
     }
 
     pub fn build(&mut self) -> Solver {
-        self.solver.termination =
-            Box::new(CompositeTermination::new(match (self.max_generations, self.variation_coefficient) {
-                (Some(limit), Some((sample, threshold))) => {
-                    self.solver.logger.deref()(format!(
-                        "configured to use max-generations {} and variation ({}, {}) limits",
-                        limit, sample, threshold
-                    ));
-                    vec![Box::new(MaxGeneration::new(limit)), Box::new(VariationCoefficient::new(sample, threshold))]
+        self.solver.termination = Box::new(CompositeTermination::new(
+            match (self.max_generations, self.variation_coefficient, self.max_time) {
+                (None, None, None) => {
+                    self.solver.logger.deref()("configured to use default max-generations (2000)".to_string());
+                    vec![Box::new(MaxGeneration::default())]
                 }
-                (None, Some((sample, threshold))) => {
-                    self.solver.logger.deref()(format!(
-                        "configured to use variation ({}, {}) limit",
-                        sample, threshold
-                    ));
-                    vec![Box::new(MaxGeneration::default()), Box::new(VariationCoefficient::new(sample, threshold))]
+                _ => {
+                    let mut criterias: Vec<Box<dyn Termination>> = vec![];
+
+                    if let Some(limit) = self.max_generations {
+                        self.solver.logger.deref()(format!("configured to use max-generations {}", limit));
+                        criterias.push(Box::new(MaxGeneration::new(limit)))
+                    }
+
+                    if let Some((sample, threshold)) = self.variation_coefficient {
+                        self.solver.logger.deref()(format!("configured to use variation ({}, {})", sample, threshold));
+                        criterias.push(Box::new(VariationCoefficient::new(sample, threshold)));
+                    }
+
+                    if let Some(limit) = self.max_time {
+                        self.solver.logger.deref()(format!("configured to use max-time {}s", limit));
+                        criterias.push(Box::new(MaxTime::new(limit)));
+                    }
+
+                    criterias
                 }
-                (Some(limit), None) => {
-                    self.solver.logger.deref()(format!("configured to use generation {} limit", limit));
-                    vec![Box::new(MaxGeneration::new(limit)), Box::new(VariationCoefficient::default())]
-                }
-                _ => vec![Box::new(MaxGeneration::default()), Box::new(VariationCoefficient::default())],
-            }));
+            },
+        ));
 
         if let Some(value) = self.minimize_routes {
             self.solver.logger.deref()(format!("configured to use minimize routes: {}", value));

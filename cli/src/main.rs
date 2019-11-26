@@ -1,7 +1,9 @@
 mod args;
+
 use self::args::*;
 
 mod formats;
+
 use self::formats::*;
 
 use core::solver::SolverBuilder;
@@ -22,21 +24,28 @@ fn main() {
     let problem_file = open_file(problem_path, "problem");
 
     // optional
-    let max_generations = matches.value_of(GENERATIONS_ARG_NAME).unwrap().parse::<usize>().unwrap_or_else(|err| {
-        eprintln!("Cannot get max generations: '{}'", err.to_string());
-        process::exit(1);
-    });
-    let variation_coefficient = matches
-        .value_of(VARIATION_COEFFICIENT_ARG_NAME)
-        .unwrap()
-        .split(',')
-        .map(|line| {
-            line.parse::<f64>().unwrap_or_else(|err| {
-                eprintln!("Cannot get variation coefficient: '{}'", err.to_string());
-                process::exit(1);
-            })
+    let max_generations = matches.value_of(GENERATIONS_ARG_NAME).map(|arg| {
+        arg.parse::<usize>().unwrap_or_else(|err| {
+            eprintln!("Cannot get max generations: '{}'", err.to_string());
+            process::exit(1);
         })
-        .collect();
+    });
+    let max_time = matches.value_of(TIME_ARG_NAME).map(|arg| {
+        arg.parse::<f64>().unwrap_or_else(|err| {
+            eprintln!("Cannot get max time: '{}'", err.to_string());
+            process::exit(1);
+        })
+    });
+    let variation_coefficient = matches.value_of(VARIATION_COEFFICIENT_ARG_NAME).map(|args| {
+        args.split(',')
+            .map(|line| {
+                line.parse::<f64>().unwrap_or_else(|err| {
+                    eprintln!("Cannot get variation coefficient: '{}'", err.to_string());
+                    process::exit(1);
+                })
+            })
+            .collect()
+    });
     let minimize_routes = matches.value_of(MINIMIZE_ROUTES_ARG_NAME).unwrap().parse::<bool>().unwrap_or_else(|err| {
         eprintln!("Cannot get minimize routes: '{}'", err.to_string());
         process::exit(1);
@@ -57,6 +66,7 @@ fn main() {
                         .with_minimize_routes(minimize_routes)
                         .with_max_generations(max_generations)
                         .with_variation_coefficient(variation_coefficient)
+                        .with_max_time(max_time)
                         .build()
                         .solve(problem.clone());
                     match solution {

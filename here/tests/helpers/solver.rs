@@ -20,7 +20,7 @@ pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution
 
 pub fn solve_with_metaheuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
     let problem = Arc::new((problem, matrices).read_here().unwrap());
-    let solution = SolverBuilder::default().with_max_generations(100).build().solve(problem.clone()).unwrap().0;
+    let solution = SolverBuilder::default().with_max_generations(Some(100)).build().solve(problem.clone()).unwrap().0;
     sort_all_data(create_solution(problem.as_ref(), &solution))
 }
 
