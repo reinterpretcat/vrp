@@ -79,3 +79,49 @@ fn can_use_two_dimensions() {
         }
     );
 }
+
+#[test]
+fn can_unassign_due_to_dimension_mismatch() {
+    let problem = Problem {
+        id: "my_problem".to_string(),
+        plan: Plan { jobs: vec![create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, 1])], relations: None },
+        fleet: Fleet {
+            types: vec![VehicleType {
+                id: "my_vehicle".to_string(),
+                profile: "car".to_string(),
+                costs: create_default_vehicle_costs(),
+                places: create_default_open_vehicle_places(),
+                capacity: vec![1],
+                amount: 1,
+                skills: None,
+                limits: None,
+                vehicle_break: None,
+            }],
+        },
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+
+    assert_eq!(
+        solution,
+        Solution {
+            problem_id: "my_problem".to_string(),
+            statistic: Statistic {
+                cost: 0.,
+                distance: 0,
+                duration: 0,
+                times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
+            },
+            tours: vec![],
+            unassigned: vec![UnassignedJob {
+                job_id: "job1".to_string(),
+                reasons: vec![UnassignedJobReason {
+                    code: 3,
+                    description: "does not fit into any vehicle due to capacity".to_string()
+                }]
+            }],
+            extras: Extras { performance: vec![] },
+        }
+    );
+}
