@@ -1,4 +1,5 @@
-use crate::helpers::get_test_resource;
+use crate::extensions::MultiDimensionalCapacity;
+use crate::helpers::{get_test_resource, single_demand};
 use crate::json::problem::*;
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::{Dimensions, IdDimension, TimeWindow};
@@ -41,11 +42,11 @@ fn assert_time_windows(tws: &Vec<TimeWindow>, expected: Vec<(f64, f64)>) {
     });
 }
 
-fn assert_demand(demand: &Demand<i32>, expected: &Demand<i32>) {
-    assert_eq!(demand.pickup.0, expected.pickup.0);
-    assert_eq!(demand.pickup.1, expected.pickup.1);
-    assert_eq!(demand.delivery.0, expected.delivery.0);
-    assert_eq!(demand.delivery.1, expected.delivery.1);
+fn assert_demand(demand: &Demand<MultiDimensionalCapacity>, expected: &Demand<MultiDimensionalCapacity>) {
+    assert_eq!(demand.pickup.0.as_vec(), expected.pickup.0.as_vec());
+    assert_eq!(demand.pickup.1.as_vec(), expected.pickup.1.as_vec());
+    assert_eq!(demand.delivery.0.as_vec(), expected.delivery.0.as_vec());
+    assert_eq!(demand.delivery.1.as_vec(), expected.delivery.1.as_vec());
 }
 
 fn assert_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
@@ -189,7 +190,7 @@ fn can_read_complex_problem() {
     assert_eq!(job.dimens.get_id().unwrap(), "delivery_job");
     assert_eq!(place.duration, 100.);
     assert_eq!(place.location.unwrap(), 0);
-    assert_demand(job.dimens.get_demand().unwrap(), &Demand::<i32> { pickup: (0, 0), delivery: (1, 0) });
+    assert_demand(job.dimens.get_demand().unwrap(), &single_demand((0, 0), (1, 0)));
     assert_time_windows(&place.times, vec![(0., 100.), (110., 120.)]);
     assert_skills(&job.dimens, Some(vec!["unique".to_string()]));
 
@@ -202,14 +203,14 @@ fn can_read_complex_problem() {
     let place = get_single_place(pickup.as_ref());
     assert_eq!(place.duration, 110.);
     assert_eq!(place.location.unwrap(), 1);
-    assert_demand(pickup.dimens.get_demand().unwrap(), &Demand::<i32> { pickup: (0, 2), delivery: (0, 0) });
+    assert_demand(pickup.dimens.get_demand().unwrap(), &single_demand((0, 2), (0, 0)));
     assert_time_windows(&place.times, vec![(10., 30.)]);
 
     let delivery = job.jobs.last().unwrap().clone();
     let place = get_single_place(delivery.as_ref());
     assert_eq!(place.duration, 120.);
     assert_eq!(place.location.unwrap(), 0);
-    assert_demand(delivery.dimens.get_demand().unwrap(), &Demand::<i32> { pickup: (0, 0), delivery: (0, 2) });
+    assert_demand(delivery.dimens.get_demand().unwrap(), &single_demand((0, 0), (0, 2)));
     assert_time_windows(&place.times, vec![(50., 60.)]);
 
     // pickup
@@ -218,7 +219,7 @@ fn can_read_complex_problem() {
     assert_eq!(job.dimens.get_id().unwrap(), "pickup_job");
     assert_eq!(place.duration, 90.);
     assert_eq!(place.location.unwrap(), 2);
-    assert_demand(job.dimens.get_demand().unwrap(), &Demand::<i32> { pickup: (3, 0), delivery: (0, 0) });
+    assert_demand(job.dimens.get_demand().unwrap(), &single_demand((3, 0), (0, 0)));
     assert_time_windows(&place.times, vec![(10., 70.)]);
     assert_skills(&job.dimens, Some(vec!["unique2".to_string()]));
 

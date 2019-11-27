@@ -1,3 +1,5 @@
+use crate::extensions::MultiDimensionalCapacity;
+use core::construction::constraints::Demand;
 use core::construction::states::{create_end_activity, create_start_activity};
 use core::models::common::*;
 use core::models::problem::*;
@@ -61,4 +63,16 @@ pub fn create_single_with_location(location: Option<Location>) -> Single {
         }],
         dimens: Default::default(),
     }
+}
+
+pub fn single_demand(pickup: (i32, i32), delivery: (i32, i32)) -> Demand<MultiDimensionalCapacity> {
+    let make = |value| {
+        if value == 0 {
+            MultiDimensionalCapacity::default()
+        } else {
+            MultiDimensionalCapacity::new(vec![value])
+        }
+    };
+
+    Demand { pickup: (make(pickup.0), make(pickup.1)), delivery: (make(delivery.0), make(delivery.1)) }
 }

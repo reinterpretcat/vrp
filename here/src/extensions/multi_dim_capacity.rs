@@ -5,24 +5,47 @@ mod multi_dim_capacity_test;
 use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 
+const CAPACITY_DIMENSION_SIZE: usize = 8;
+
 /// Specifies multi dimensional capacity type.
 /// Ordering trait is implemented the following way:
 /// Less is returned when at least one dimension is less, others can be equal
 /// Equal is returned when all dimensions are equal
 /// Greater is returned when at least one dimension is greater than in rhs
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct MultiDimensionalCapacity {
-    pub capacity: Vec<i32>,
+    pub capacity: [i32; CAPACITY_DIMENSION_SIZE],
+    pub size: usize,
 }
 
 impl MultiDimensionalCapacity {
-    #[allow(dead_code)]
-    pub fn new(capacity: Vec<i32>) -> Self {
-        Self { capacity }
+    pub fn new(data: Vec<i32>) -> Self {
+        assert!(data.len() <= CAPACITY_DIMENSION_SIZE);
+
+        let mut capacity = [0; CAPACITY_DIMENSION_SIZE];
+        for (idx, value) in data.iter().enumerate() {
+            capacity[idx] = *value;
+        }
+
+        Self { capacity, size: data.len() }
     }
 
     fn get(&self, idx: usize) -> i32 {
-        *self.capacity.get(idx).unwrap_or(&0)
+        self.capacity[idx]
+    }
+
+    pub fn as_vec(&self) -> Vec<i32> {
+        if self.size == 0 {
+            vec![0]
+        } else {
+            self.capacity[..self.size].to_vec()
+        }
+    }
+}
+
+impl Default for MultiDimensionalCapacity {
+    fn default() -> Self {
+        Self { capacity: [0; CAPACITY_DIMENSION_SIZE], size: 0 }
     }
 }
 
@@ -31,13 +54,13 @@ impl Add for MultiDimensionalCapacity {
 
     fn add(self, rhs: Self) -> Self::Output {
         fn sum(acc: MultiDimensionalCapacity, rhs: &MultiDimensionalCapacity) -> MultiDimensionalCapacity {
-            assert!(acc.capacity.len() >= rhs.capacity.len());
-
             let mut dimens = acc;
 
             for (idx, value) in rhs.capacity.iter().enumerate() {
                 dimens.capacity[idx] += value;
             }
+
+            dimens.size = dimens.size.max(rhs.size);
 
             dimens
         }
@@ -54,18 +77,13 @@ impl Sub for MultiDimensionalCapacity {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut dimens = if self.capacity.len() >= rhs.capacity.len() {
-            self
-        } else {
-            let mut dimens = self;
-            dimens.capacity.resize(rhs.capacity.len(), 0);
-
-            dimens
-        };
+        let mut dimens = self;
 
         for (idx, value) in rhs.capacity.iter().enumerate() {
             dimens.capacity[idx] -= value;
         }
+
+        dimens.size = dimens.size.max(rhs.size);
 
         dimens
     }

@@ -4,6 +4,7 @@ mod reader_test;
 
 use super::StringReader;
 use crate::constraints::{BreakModule, ExtraCostModule, ReachableModule, SkillsModule};
+use crate::extensions::MultiDimensionalCapacity;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
 use crate::utils::get_split_permutations;
@@ -167,9 +168,6 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
     let mut vehicles: Vec<Vehicle> = Default::default();
 
     api_problem.fleet.types.iter().for_each(|vehicle| {
-        // TODO support multi-dimensional capacity
-        assert_eq!(vehicle.capacity.len(), 1);
-
         let start = {
             let location = coord_index.get_by_vec(&vehicle.places.start.location).unwrap();
             let time = parse_time(&vehicle.places.start.time);
@@ -202,7 +200,7 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
             let mut dimens: Dimensions = Default::default();
             dimens.insert("type_id".to_owned(), Box::new(vehicle.id.clone()));
             dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
-            dimens.set_capacity(*vehicle.capacity.first().unwrap());
+            dimens.set_capacity(MultiDimensionalCapacity::new(vehicle.capacity.clone()));
             add_skills(&mut dimens, &vehicle.skills);
 
             vehicles.push(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() });
@@ -234,7 +232,7 @@ fn create_constraint_pipeline(
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
-    constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
+    constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
     constraint.add_module(Box::new(BreakModule::new(4, Some(-100.), false)));
     constraint.add_module(Box::new(SkillsModule::new(10)));
 
@@ -280,15 +278,15 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
     let mut jobs = vec![];
     api_problem.plan.jobs.iter().for_each(|job| match job {
         JobVariant::Single(job) => {
-            let demand = *job.demand.first().unwrap();
+            let demand = MultiDimensionalCapacity::new(job.demand.clone());
             let is_shipment = job.places.pickup.is_some() && job.places.delivery.is_some();
-            let demand = if is_shipment { (0, demand) } else { (demand, 0) };
+            let demand = if is_shipment { (empty(), demand) } else { (demand, empty()) };
 
             let pickup = job.places.pickup.as_ref().map(|pickup| {
                 get_single_with_extras(
                     &pickup.location,
                     pickup.duration,
-                    Demand { pickup: demand.clone(), delivery: (0, 0) },
+                    Demand { pickup: demand, delivery: (empty(), empty()) },
                     &pickup.times,
                     &pickup.tag,
                     "pickup",
@@ -299,7 +297,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 get_single_with_extras(
                     &delivery.location,
                     delivery.duration,
-                    Demand { pickup: (0, 0), delivery: demand },
+                    Demand { pickup: (empty(), empty()), delivery: demand },
                     &delivery.times,
                     &delivery.tag,
                     "delivery",
@@ -325,11 +323,11 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 .pickups
                 .iter()
                 .map(|pickup| {
-                    let demand = *pickup.demand.first().unwrap();
+                    let demand = MultiDimensionalCapacity::new(pickup.demand.clone());
                     Arc::new(get_single_with_extras(
                         &pickup.location,
                         pickup.duration,
-                        Demand { pickup: (0, demand), delivery: (0, 0) },
+                        Demand { pickup: (empty(), demand), delivery: (empty(), empty()) },
                         &pickup.times,
                         &pickup.tag,
                         "pickup",
@@ -338,11 +336,11 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                 })
                 .collect::<Vec<Arc<Single>>>();
             singles.extend(job.places.deliveries.iter().map(|delivery| {
-                let demand = *delivery.demand.first().unwrap();
+                let demand = MultiDimensionalCapacity::new(delivery.demand.clone());
                 Arc::new(get_single_with_extras(
                     &delivery.location,
                     delivery.duration,
-                    Demand { pickup: (0, 0), delivery: (0, demand) },
+                    Demand { pickup: (empty(), empty()), delivery: (empty(), demand) },
                     &delivery.times,
                     &delivery.tag,
                     "delivery",
@@ -507,7 +505,7 @@ fn get_single(
 fn get_single_with_extras(
     location: &Vec<f64>,
     duration: Duration,
-    demand: Demand<i32>,
+    demand: Demand<MultiDimensionalCapacity>,
     times: &Option<Vec<Vec<String>>>,
     tag: &Option<String>,
     activity_type: &str,
@@ -562,6 +560,10 @@ fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
     if let Some(tag) = tag {
         dimens.insert("tag".to_string(), Box::new(tag.clone()));
     }
+}
+
+fn empty() -> MultiDimensionalCapacity {
+    MultiDimensionalCapacity::default()
 }
 
 // endregion

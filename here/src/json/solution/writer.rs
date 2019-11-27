@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/json/solution/writer_test.rs"]
 mod writer_test;
 
+use crate::extensions::MultiDimensionalCapacity;
 use crate::json::coord_index::CoordIndex;
 use crate::json::solution::serializer::Timing;
 use crate::json::solution::{
@@ -34,11 +35,11 @@ struct Leg {
     pub location: Location,
     pub departure: Timestamp,
     pub statistic: Statistic,
-    pub load: i32,
+    pub load: MultiDimensionalCapacity,
 }
 
 impl Leg {
-    fn new(location: Location, departure: Timestamp, load: i32) -> Self {
+    fn new(location: Location, departure: Timestamp, load: MultiDimensionalCapacity) -> Self {
         Self { location, departure, statistic: Statistic::default(), load }
     }
 }
@@ -69,12 +70,14 @@ pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
 }
 
 fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> Tour {
-    let load = route.tour.all_activities().fold(0, |acc, activity| {
+    let load = route.tour.all_activities().fold(MultiDimensionalCapacity::default(), |acc, activity| {
         acc + activity
             .job
             .as_ref()
-            .and_then(|job| job.as_single().dimens.get_demand().and_then(|d: &Demand<i32>| Some(d.delivery.0)))
-            .unwrap_or(0)
+            .and_then(|job| {
+                job.as_single().dimens.get_demand().and_then(|d: &Demand<MultiDimensionalCapacity>| Some(d.delivery.0))
+            })
+            .unwrap_or(MultiDimensionalCapacity::default())
     });
 
     let vehicle = &route.actor.vehicle;
@@ -90,7 +93,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
     tour.stops.push(Stop {
         location: coord_index.get_by_idx(&start.place.location).unwrap().as_vec(),
         time: format_schedule(&start.schedule),
-        load: vec![load],
+        load: load.as_vec(),
         activities: vec![Activity {
             job_id: "departure".to_string(),
             activity_type: "departure".to_string(),
@@ -131,7 +134,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 tour.stops.push(Stop {
                     location: coord_index.get_by_idx(&act.place.location).unwrap().as_vec(),
                     time: format_as_schedule(&(arrival, departure)),
-                    load: vec![acc.load],
+                    load: acc.load.as_vec(),
                     activities: vec![],
                 });
             }
@@ -142,7 +145,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
             let mut last = tour.stops.get_mut(last).unwrap();
 
             last.time.departure = format_time(departure);
-            last.load[0] = load;
+            last.load = load.as_vec();
             last.activities.push(Activity {
                 job_id,
                 activity_type,
@@ -207,9 +210,12 @@ fn format_as_schedule(schedule: &(f64, f64)) -> ApiSchedule {
     format_schedule(&Schedule::new(schedule.0, schedule.1))
 }
 
-fn calculate_load(current: i32, act: &TourActivity) -> i32 {
+fn calculate_load(current: MultiDimensionalCapacity, act: &TourActivity) -> MultiDimensionalCapacity {
     let job = act.job.as_ref().and_then(|job| Some(job.as_single()));
-    let demand = job.as_ref().and_then(|job| job.dimens.get_demand().cloned()).unwrap_or(Demand::<i32>::default());
+    let demand = job
+        .as_ref()
+        .and_then(|job| job.dimens.get_demand().cloned())
+        .unwrap_or(Demand::<MultiDimensionalCapacity>::default());
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
 }
 
