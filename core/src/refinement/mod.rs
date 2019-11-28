@@ -18,7 +18,7 @@ pub struct RefinementContext {
 
 impl RefinementContext {
     pub fn new(problem: Arc<Problem>) -> Self {
-        Self { problem, population: vec![], generation: 0 }
+        Self { problem, population: vec![], generation: 1 }
     }
 }
 

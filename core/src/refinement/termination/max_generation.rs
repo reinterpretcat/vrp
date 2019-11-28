@@ -30,6 +30,6 @@ impl Termination for MaxGeneration {
         refinement_ctx: &RefinementContext,
         _: (&InsertionContext, ObjectiveCost, bool),
     ) -> bool {
-        refinement_ctx.generation > self.limit
+        refinement_ctx.generation >= self.limit
     }
 }
