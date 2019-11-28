@@ -16,6 +16,7 @@ pub use self::random_job_removal::RandomJobRemoval;
 use crate::refinement::RefinementContext;
 
 mod worst_jobs_removal;
+pub use self::worst_jobs_removal::WorstJobRemoval;
 
 /// Provides the way to run multiple ruin methods.
 pub struct CompositeRuin {

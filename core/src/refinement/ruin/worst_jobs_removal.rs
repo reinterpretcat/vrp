@@ -18,19 +18,24 @@ use std::iter::once;
 use std::sync::Arc;
 
 /// Detects the most cost expensive jobs in each route and delete them with their neighbours
-struct RuinWorstJobs {
-    transport: Arc<dyn TransportCost + Send + Sync>,
+pub struct WorstJobRemoval {
     range: (i32, i32),
 }
 
-impl Ruin for RuinWorstJobs {
+impl Default for WorstJobRemoval {
+    fn default() -> Self {
+        Self::new(1, 8)
+    }
+}
+
+impl Ruin for WorstJobRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let locked = insertion_ctx.locked.clone();
         let random = insertion_ctx.random.clone();
 
-        let mut route_jobs = self.get_route_jobs(&insertion_ctx.solution);
-        let routes_savings = self.get_routes_cost_savings(&insertion_ctx.solution);
+        let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
+        let routes_savings = get_routes_cost_savings(&insertion_ctx);
 
         routes_savings.iter().for_each(|(rc, savings)| {
             let worst = savings.iter().filter(|(job, _)| !locked.contains(job)).next();
@@ -60,52 +65,73 @@ impl Ruin for RuinWorstJobs {
     }
 }
 
-impl RuinWorstJobs {
-    fn get_route_jobs(&self, solution: &SolutionContext) -> HashMap<Arc<Job>, RouteContext> {
-        solution.routes.iter().fold(HashMap::default(), |acc, rc| {
-            rc.route.tour.jobs().fold(acc, |mut acc, job| {
-                acc.insert(job, rc.clone());
-                acc
-            })
+impl WorstJobRemoval {
+    pub fn new(min: usize, max: usize) -> Self {
+        assert!(min <= max);
+
+        Self { range: (min as i32, max as i32) }
+    }
+}
+
+fn get_route_jobs(solution: &SolutionContext) -> HashMap<Arc<Job>, RouteContext> {
+    solution.routes.iter().fold(HashMap::default(), |acc, rc| {
+        rc.route.tour.jobs().fold(acc, |mut acc, job| {
+            acc.insert(job, rc.clone());
+            acc
         })
-    }
+    })
+}
 
-    fn get_routes_cost_savings(&self, solution: &SolutionContext) -> Vec<(RouteContext, Vec<(Arc<Job>, Cost)>)> {
-        solution
-            .routes
-            .par_iter()
-            .map(|rc| {
-                let actor = rc.route.actor.as_ref();
-                let mut savings: Vec<(Arc<Job>, Cost)> = rc
-                    .route
-                    .tour
-                    .all_activities()
-                    .as_slice()
-                    .windows(3)
-                    .fold(HashMap::<Arc<Job>, Cost>::default(), |mut acc, iter| match iter {
-                        [start, eval, end] => {
-                            let savings = self.get_cost_savings(actor, start, eval, end);
-                            let job = eval.retrieve_job().unwrap_or_else(|| panic!("Unexpected activity without job"));
-                            *acc.entry(job).or_insert(0.) += savings;
+fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Arc<Job>, Cost)>)> {
+    insertion_ctx
+        .solution
+        .routes
+        .par_iter()
+        .map(|rc| {
+            let actor = rc.route.actor.as_ref();
+            let mut savings: Vec<(Arc<Job>, Cost)> = rc
+                .route
+                .tour
+                .all_activities()
+                .as_slice()
+                .windows(3)
+                .fold(HashMap::<Arc<Job>, Cost>::default(), |mut acc, iter| match iter {
+                    [start, eval, end] => {
+                        let savings = get_cost_savings(actor, start, eval, end, &insertion_ctx.problem.transport);
+                        let job = eval.retrieve_job().unwrap_or_else(|| panic!("Unexpected activity without job"));
+                        *acc.entry(job).or_insert(0.) += savings;
 
-                            acc
-                        }
-                        _ => panic!("Unexpected activity window"),
-                    })
-                    .drain()
-                    .collect();
-                savings.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Greater));
+                        acc
+                    }
+                    _ => panic!("Unexpected activity window"),
+                })
+                .drain()
+                .collect();
+            savings.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Greater));
 
-                (rc.clone(), savings)
-            })
-            .collect()
-    }
+            (rc.clone(), savings)
+        })
+        .collect()
+}
 
-    fn get_cost_savings(&self, actor: &Actor, start: &TourActivity, middle: &TourActivity, end: &TourActivity) -> Cost {
-        self.get_cost(actor, start, middle) + self.get_cost(actor, middle, end) - self.get_cost(actor, start, end)
-    }
+#[inline(always)]
+fn get_cost_savings(
+    actor: &Actor,
+    start: &TourActivity,
+    middle: &TourActivity,
+    end: &TourActivity,
+    transport: &Arc<dyn TransportCost + Send + Sync>,
+) -> Cost {
+    get_cost(actor, start, middle, transport) + get_cost(actor, middle, end, transport)
+        - get_cost(actor, start, end, transport)
+}
 
-    fn get_cost(&self, actor: &Actor, from: &TourActivity, to: &TourActivity) -> Cost {
-        self.transport.cost(actor, from.place.location, to.place.location, from.schedule.departure)
-    }
+#[inline(always)]
+fn get_cost(
+    actor: &Actor,
+    from: &TourActivity,
+    to: &TourActivity,
+    transport: &Arc<dyn TransportCost + Send + Sync>,
+) -> Cost {
+    transport.cost(actor, from.place.location, to.place.location, from.schedule.departure)
 }
