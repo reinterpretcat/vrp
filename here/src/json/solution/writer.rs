@@ -18,6 +18,7 @@ use std::io::{BufWriter, Write};
 
 type ApiSolution = crate::json::solution::serializer::Solution;
 type ApiSchedule = crate::json::solution::serializer::Schedule;
+type DomainExtras = core::models::Extras;
 
 pub trait HereSolution<W: Write> {
     fn write_here(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
@@ -70,13 +71,12 @@ pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
 }
 
 fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> Tour {
+    let is_multi_dimen = has_multi_dimensional_capacity(problem.extras.as_ref());
     let load = route.tour.all_activities().fold(MultiDimensionalCapacity::default(), |acc, activity| {
         acc + activity
             .job
             .as_ref()
-            .and_then(|job| {
-                job.as_single().dimens.get_demand().and_then(|d: &Demand<MultiDimensionalCapacity>| Some(d.delivery.0))
-            })
+            .and_then(|job| get_capacity(&job.as_single().dimens, is_multi_dimen).and_then(|d| Some(d.delivery.0)))
             .unwrap_or(MultiDimensionalCapacity::default())
     });
 
@@ -139,7 +139,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 });
             }
 
-            let load = calculate_load(acc.load, act);
+            let load = calculate_load(acc.load, act, is_multi_dimen);
 
             let last = tour.stops.len() - 1;
             let mut last = tour.stops.get_mut(last).unwrap();
@@ -210,11 +210,15 @@ fn format_as_schedule(schedule: &(f64, f64)) -> ApiSchedule {
     format_schedule(&Schedule::new(schedule.0, schedule.1))
 }
 
-fn calculate_load(current: MultiDimensionalCapacity, act: &TourActivity) -> MultiDimensionalCapacity {
+fn calculate_load(
+    current: MultiDimensionalCapacity,
+    act: &TourActivity,
+    is_multi_dimen: bool,
+) -> MultiDimensionalCapacity {
     let job = act.job.as_ref().and_then(|job| Some(job.as_single()));
     let demand = job
         .as_ref()
-        .and_then(|job| job.dimens.get_demand().cloned())
+        .and_then(|job| get_capacity(&job.dimens, is_multi_dimen))
         .unwrap_or(Demand::<MultiDimensionalCapacity>::default());
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
 }
@@ -244,6 +248,36 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
 
         acc
     })
+}
+
+fn get_capacity(dimens: &Dimensions, is_multi_dimen: bool) -> Option<Demand<MultiDimensionalCapacity>> {
+    if is_multi_dimen {
+        dimens.get_demand().cloned()
+    } else {
+        let create_capacity = |value: i32| {
+            if value == 0 {
+                MultiDimensionalCapacity::default()
+            } else {
+                MultiDimensionalCapacity::new(vec![value])
+            }
+        };
+        dimens.get_demand().map(|demand: &Demand<i32>| Demand {
+            pickup: (create_capacity(demand.pickup.0), create_capacity(demand.pickup.1)),
+            delivery: (create_capacity(demand.delivery.0), create_capacity(demand.delivery.1)),
+        })
+    }
+}
+
+fn has_multi_dimensional_capacity(extras: &DomainExtras) -> bool {
+    let capacity_type = extras
+        .get("capacity_type")
+        .and_then(|s| s.downcast_ref::<String>())
+        .unwrap_or_else(|| panic!("Cannot get capacity type!"));
+    match capacity_type.as_str() {
+        "multi" => true,
+        "single" => false,
+        _ => panic!("Unknown capacity type: '{}'", capacity_type),
+    }
 }
 
 fn create_extras(solution: &Solution) -> Extras {

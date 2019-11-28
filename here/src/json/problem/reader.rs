@@ -20,6 +20,9 @@ use std::io::BufReader;
 use std::iter::FromIterator;
 use std::sync::Arc;
 
+// TODO configure sample size
+const MULTI_JOB_SAMPLE_SIZE: usize = 3;
+
 type ApiProblem = crate::json::problem::Problem;
 type JobIndex = HashMap<String, Arc<Job>>;
 
@@ -30,7 +33,6 @@ pub trait HereProblem {
 
 impl HereProblem for (File, Vec<File>) {
     fn read_here(self) -> Result<Problem, String> {
-        // TODO consume files and close them?
         let problem = deserialize_problem(BufReader::new(&self.0)).map_err(|err| err.to_string())?;
 
         let matrices = self.1.iter().fold(vec![], |mut acc, matrix| {
@@ -61,26 +63,29 @@ impl HereProblem for (ApiProblem, Vec<Matrix>) {
     }
 }
 
+struct ProblemProperties {
+    has_multi_dimen_capacity: bool,
+    has_breaks: bool,
+    has_skills: bool,
+    has_unreachable_locations: bool,
+    has_fixed_cost: bool,
+}
+
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
+    let problem_props = get_problem_properties(&api_problem, &matrices);
+
     let coord_index = create_coord_index(&api_problem);
     let transport = Arc::new(create_transport_costs(&matrices));
     let activity = Arc::new(SimpleActivityCost::default());
-    let fleet = read_fleet(&api_problem, &coord_index);
+    let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
 
     let mut job_index = Default::default();
-    let jobs = read_jobs(&api_problem, &coord_index, &fleet, transport.as_ref(), &mut job_index);
+    let jobs = read_jobs(&api_problem, &problem_props, &coord_index, &fleet, transport.as_ref(), &mut job_index);
     let locks = read_locks(&api_problem, &job_index);
     let limits = read_limits(&api_problem);
-
-    let constraint = create_constraint_pipeline(
-        &fleet,
-        activity.clone(),
-        transport.clone(),
-        locks.iter().cloned().collect(),
-        limits,
-        matrices.iter().any(|m| m.error_codes.is_some()),
-    );
-    let extras = create_extras(&api_problem.id, coord_index);
+    let extras = create_extras(&api_problem.id, &problem_props, coord_index);
+    let constraint =
+        create_constraint_pipeline(&fleet, activity.clone(), transport.clone(), problem_props, &locks, limits);
 
     Ok(Problem {
         fleet: Arc::new(fleet),
@@ -163,7 +168,7 @@ fn create_transport_costs(matrices: &Vec<Matrix>) -> MatrixTransportCost {
     MatrixTransportCost::new(all_durations, all_distances)
 }
 
-fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
+fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
     let profiles = get_profile_map(api_problem);
     let mut vehicles: Vec<Vehicle> = Default::default();
 
@@ -200,7 +205,11 @@ fn read_fleet(api_problem: &ApiProblem, coord_index: &CoordIndex) -> Fleet {
             let mut dimens: Dimensions = Default::default();
             dimens.insert("type_id".to_owned(), Box::new(vehicle.id.clone()));
             dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
-            dimens.set_capacity(MultiDimensionalCapacity::new(vehicle.capacity.clone()));
+            if props.has_multi_dimen_capacity {
+                dimens.set_capacity(MultiDimensionalCapacity::new(vehicle.capacity.clone()));
+            } else {
+                dimens.set_capacity(*vehicle.capacity.first().unwrap());
+            }
             add_skills(&mut dimens, &vehicle.skills);
 
             vehicles.push(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() });
@@ -226,55 +235,78 @@ fn create_constraint_pipeline(
     fleet: &Fleet,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    locks: Vec<Arc<Lock>>,
-    limit_func: Option<TravelLimitFunc>,
-    has_unreachable_locations: bool,
+    props: ProblemProperties,
+    locks: &Vec<Arc<Lock>>,
+    limits: Option<TravelLimitFunc>,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
-    constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
-    constraint.add_module(Box::new(BreakModule::new(4, Some(-100.), false)));
-    constraint.add_module(Box::new(SkillsModule::new(10)));
+
+    if props.has_multi_dimen_capacity {
+        constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
+    } else {
+        constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
+    }
+
+    if props.has_breaks {
+        constraint.add_module(Box::new(BreakModule::new(4, Some(-100.), false)));
+    }
+
+    if props.has_skills {
+        constraint.add_module(Box::new(SkillsModule::new(10)));
+    }
 
     if !locks.is_empty() {
-        constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks, 3)));
+        constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks.clone(), 3)));
     }
 
-    if let Some(limit_func) = limit_func {
-        constraint.add_module(Box::new(TravelModule::new(limit_func.clone(), transport.clone(), 5, 6)));
+    if let Some(limits) = limits {
+        constraint.add_module(Box::new(TravelModule::new(limits.clone(), transport.clone(), 5, 6)));
     }
 
-    if has_unreachable_locations {
+    if props.has_unreachable_locations {
         constraint.add_module(Box::new(ReachableModule::new(transport.clone(), 11)));
     }
 
-    constraint.add_module(Box::new(ExtraCostModule::default()));
+    if props.has_fixed_cost {
+        constraint.add_module(Box::new(ExtraCostModule::default()));
+    }
 
     constraint
 }
 
-fn create_extras(problem_id: &String, coord_index: CoordIndex) -> Extras {
+fn create_extras(problem_id: &String, props: &ProblemProperties, coord_index: CoordIndex) -> Extras {
     let mut extras = Extras::default();
-    extras.insert("coord_index".to_owned(), Box::new(coord_index));
     extras.insert("problem_id".to_string(), Box::new(problem_id.clone()));
+    extras.insert(
+        "capacity_type".to_string(),
+        Box::new((if props.has_multi_dimen_capacity { "multi" } else { "single" }).to_string()),
+    );
+    extras.insert("coord_index".to_owned(), Box::new(coord_index));
 
     extras
 }
 
 fn read_jobs(
     api_problem: &ApiProblem,
+    props: &ProblemProperties,
     coord_index: &CoordIndex,
     fleet: &Fleet,
     transport: &impl TransportCost,
     job_index: &mut JobIndex,
 ) -> Jobs {
-    let mut jobs = read_required_jobs(api_problem, coord_index, job_index);
+    let mut jobs = read_required_jobs(api_problem, props, coord_index, job_index);
     jobs.extend(read_conditional_jobs(api_problem, coord_index, job_index));
 
     Jobs::new(fleet, jobs, transport)
 }
 
-fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_index: &mut JobIndex) -> Vec<Arc<Job>> {
+fn read_required_jobs(
+    api_problem: &ApiProblem,
+    props: &ProblemProperties,
+    coord_index: &CoordIndex,
+    job_index: &mut JobIndex,
+) -> Vec<Arc<Job>> {
     let mut jobs = vec![];
     api_problem.plan.jobs.iter().for_each(|job| match job {
         JobVariant::Single(job) => {
@@ -290,6 +322,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                     &pickup.times,
                     &pickup.tag,
                     "pickup",
+                    props.has_multi_dimen_capacity,
                     &coord_index,
                 )
             });
@@ -301,6 +334,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                     &delivery.times,
                     &delivery.tag,
                     "delivery",
+                    props.has_multi_dimen_capacity,
                     &coord_index,
                 )
             });
@@ -331,6 +365,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                         &pickup.times,
                         &pickup.tag,
                         "pickup",
+                        props.has_multi_dimen_capacity,
                         &coord_index,
                     ))
                 })
@@ -344,6 +379,7 @@ fn read_required_jobs(api_problem: &ApiProblem, coord_index: &CoordIndex, job_in
                     &delivery.times,
                     &delivery.tag,
                     "delivery",
+                    props.has_multi_dimen_capacity,
                     &coord_index,
                 ))
             }));
@@ -482,6 +518,26 @@ fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     })
 }
 
+fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> ProblemProperties {
+    let has_unreachable_locations = matrices.iter().any(|m| m.error_codes.is_some());
+    let has_multi_dimen_capacity = api_problem.fleet.types.iter().any(|t| t.capacity.len() > 1)
+        || api_problem.plan.jobs.iter().any(|j| match j {
+            JobVariant::Single(job) => job.demand.len() > 1,
+            JobVariant::Multi(job) => {
+                job.places.pickups.iter().any(|p| p.demand.len() > 1)
+                    || job.places.deliveries.iter().any(|p| p.demand.len() > 1)
+            }
+        });
+    let has_breaks = api_problem.fleet.types.iter().any(|t| t.vehicle_break.is_some());
+    let has_skills = api_problem.plan.jobs.iter().any(|j| match j {
+        JobVariant::Single(job) => job.skills.is_some(),
+        JobVariant::Multi(job) => job.skills.is_some(),
+    });
+    let has_fixed_cost = api_problem.fleet.types.iter().any(|t| t.costs.fixed.is_some());
+
+    ProblemProperties { has_multi_dimen_capacity, has_breaks, has_skills, has_unreachable_locations, has_fixed_cost }
+}
+
 // region helpers
 
 fn get_single(
@@ -509,10 +565,18 @@ fn get_single_with_extras(
     times: &Option<Vec<Vec<String>>>,
     tag: &Option<String>,
     activity_type: &str,
+    has_multi_dimens: bool,
     coord_index: &CoordIndex,
 ) -> Single {
     let mut single = get_single(Some(location), duration, times, coord_index);
-    single.dimens.set_demand(demand);
+    if has_multi_dimens {
+        single.dimens.set_demand(demand);
+    } else {
+        single.dimens.set_demand(Demand {
+            pickup: (demand.pickup.0.capacity[0], demand.pickup.1.capacity[0]),
+            delivery: (demand.delivery.0.capacity[0], demand.delivery.1.capacity[0]),
+        });
+    }
     single.dimens.insert("type".to_string(), Box::new(activity_type.to_string()));
     add_tag(&mut single.dimens, tag);
 
@@ -539,12 +603,10 @@ fn get_multi_job(
     let multi = if singles.len() == 2 && deliveries_start_index == 1 {
         Multi::new(singles, dimens)
     } else {
-        // TODO configure sample size
-        const SAMPLE_SIZE: usize = 3;
         Multi::new_with_generator(
             singles,
             dimens,
-            Box::new(move |m| get_split_permutations(m.jobs.len(), deliveries_start_index, SAMPLE_SIZE)),
+            Box::new(move |m| get_split_permutations(m.jobs.len(), deliveries_start_index, MULTI_JOB_SAMPLE_SIZE)),
         )
     };
     Arc::new(Job::Multi(Multi::bind(multi)))
