@@ -4,9 +4,9 @@ mod jobs_test;
 
 use crate::models::common::*;
 use crate::models::problem::{Fleet, TransportCost};
+use hashbrown::HashMap;
 use std::cell::UnsafeCell;
 use std::cmp::Ordering::Less;
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
 

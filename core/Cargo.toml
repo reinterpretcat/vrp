@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 rayon = "1.1"
 rand = "0.7.2"
+hashbrown = "0.6"

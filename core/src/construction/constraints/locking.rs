@@ -6,7 +6,7 @@ use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::problem::{Actor, Fleet, Job};
 use crate::models::{Lock, LockOrder, LockPosition};
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use std::slice::Iter;
 use std::sync::Arc;
 

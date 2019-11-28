@@ -1,8 +1,8 @@
 use crate::models::common::Timestamp;
 use crate::utils::compare_floats;
+use hashbrown::HashMap;
 use std::any::Any;
 use std::cmp::Ordering;
-use std::collections::HashMap;
 
 /// Specifies location type.
 pub type Location = usize;

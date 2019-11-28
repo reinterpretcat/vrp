@@ -8,7 +8,7 @@ use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
 use crate::utils::DefaultRandom;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::sync::Arc;
 
 #[test]

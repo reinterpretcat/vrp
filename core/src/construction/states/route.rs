@@ -7,8 +7,8 @@ use crate::models::common::Schedule;
 use crate::models::problem::Actor;
 use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
 use crate::utils::as_mut;
+use hashbrown::{HashMap, HashSet};
 use std::any::Any;
-use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::sync::Arc;
 

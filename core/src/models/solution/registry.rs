@@ -3,7 +3,7 @@
 mod actor_test;
 
 use crate::models::problem::{Actor, ActorDetail, Costs, Fleet};
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 

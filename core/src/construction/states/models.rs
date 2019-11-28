@@ -5,8 +5,8 @@ use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Place, Registry, TourActivity};
 use crate::models::{Extras, LockOrder, Problem, Solution};
 use crate::utils::Random;
+use hashbrown::{HashMap, HashSet};
 use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::sync::Arc;
 

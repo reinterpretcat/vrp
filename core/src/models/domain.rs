@@ -2,8 +2,8 @@ use crate::construction::constraints::ConstraintPipeline;
 use crate::models::problem::{ActivityCost, Actor, Fleet, Job, Jobs, TransportCost};
 use crate::models::solution::{Registry, Route};
 use crate::refinement::objectives::Objective;
+use hashbrown::HashMap;
 use std::any::Any;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 pub type Extras = HashMap<String, Box<dyn Any + Send + Sync>>;
