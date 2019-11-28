@@ -80,7 +80,7 @@ impl TimingConstraintModule {
         ctx.route_mut().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
             a.schedule.arrival = dep + self.transport.duration(actor.vehicle.profile, loc, a.place.location, dep);
             a.schedule.departure = a.schedule.arrival.max(a.place.time.start)
-                + self.activity.duration(actor.vehicle.as_ref(), actor.driver.as_ref(), a.deref(), a.schedule.arrival);
+                + self.activity.duration(actor.as_ref(), a.deref(), a.schedule.arrival);
 
             (a.place.location, a.schedule.departure)
         });
@@ -105,7 +105,7 @@ impl TimingConstraintModule {
             let (end_time, prev_loc, waiting) = acc;
             let potential_latest = end_time
                 - self.transport.duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
-                - self.activity.duration(actor.vehicle.as_ref(), actor.driver.as_ref(), act.deref(), end_time);
+                - self.activity.duration(actor.as_ref(), act.deref(), end_time);
 
             let latest_arrival_time = act.place.time.end.min(potential_latest);
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0f64);
@@ -214,12 +214,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             departure + self.transport.duration(profile, prev.place.location, target.place.location, departure);
 
         let end_time_at_new_act = arr_time_at_target_act.max(target.place.time.start)
-            + self.activity.duration(
-                actor.vehicle.as_ref(),
-                actor.driver.as_ref(),
-                target.deref(),
-                arr_time_at_target_act,
-            );
+            + self.activity.duration(actor, target.deref(), arr_time_at_target_act);
 
         let latest_arr_time_at_new_act = target.place.time.end.min(
             latest_arr_time_at_next_act
@@ -229,12 +224,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
                     next_act_location,
                     latest_arr_time_at_next_act,
                 )
-                + self.activity.duration(
-                    actor.vehicle.as_ref(),
-                    actor.driver.as_ref(),
-                    target.deref(),
-                    arr_time_at_target_act,
-                ),
+                + self.activity.duration(actor, target.deref(), arr_time_at_target_act),
         );
 
         if arr_time_at_target_act > latest_arr_time_at_new_act {
@@ -271,17 +261,10 @@ impl TimeSoftActivityConstraint {
     ) -> (Cost, Cost, Timestamp) {
         let arrival =
             time + self.transport.duration(actor.vehicle.profile, start.place.location, end.place.location, time);
-        let departure = arrival.max(end.place.time.start)
-            + self.activity.duration(actor.vehicle.deref(), actor.driver.deref(), end, arrival);
+        let departure = arrival.max(end.place.time.start) + self.activity.duration(actor, end, arrival);
 
-        let transport_cost = self.transport.cost(
-            actor.vehicle.deref(),
-            actor.driver.deref(),
-            start.place.location,
-            end.place.location,
-            time,
-        );
-        let activity_cost = self.activity.cost(actor.vehicle.deref(), actor.driver.deref(), end, arrival);
+        let transport_cost = self.transport.cost(actor, start.place.location, end.place.location, time);
+        let activity_cost = self.activity.cost(actor, end, arrival);
 
         (transport_cost, activity_cost, departure)
     }

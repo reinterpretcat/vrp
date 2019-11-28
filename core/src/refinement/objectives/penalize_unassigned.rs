@@ -29,16 +29,15 @@ impl Objective for PenalizeUnassigned {
 
             let start = rc.route.tour.start().unwrap();
             let problem = &insertion_ctx.problem;
-            let initial = problem.activity.cost(&actor.vehicle, &actor.driver, start, start.schedule.arrival);
+            let initial = problem.activity.cost(actor, start, start.schedule.arrival);
             let initial = initial + actor.vehicle.costs.fixed + actor.driver.costs.fixed;
 
             acc + rc.route.tour.legs().fold(initial, |acc, (items, _)| {
                 acc + match items {
                     [from, to] => {
-                        problem.activity.cost(&actor.vehicle, &actor.driver, to, to.schedule.arrival)
+                        problem.activity.cost(actor, to, to.schedule.arrival)
                             + problem.transport.cost(
-                                &actor.vehicle,
-                                &actor.driver,
+                                actor,
                                 from.place.location,
                                 to.place.location,
                                 from.schedule.departure,

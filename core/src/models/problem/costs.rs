@@ -1,21 +1,20 @@
 use crate::models::common::{Cost, Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::{Driver, Vehicle};
+use crate::models::problem::Actor;
 use crate::models::solution::Activity;
 
-// TODO add default implementation
-/// Provides the way to get cost information for specific activities.
+/// Provides the way to get cost information for specific activities done by specific actor.
 pub trait ActivityCost {
     /// Returns cost to perform activity.
-    fn cost(&self, vehicle: &Vehicle, driver: &Driver, activity: &Activity, arrival: Timestamp) -> Cost {
+    fn cost(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Cost {
         let waiting = if activity.place.time.start > arrival { activity.place.time.start - arrival } else { 0.0 };
-        let service = self.duration(vehicle, driver, activity, arrival);
+        let service = self.duration(actor, activity, arrival);
 
-        waiting * (driver.costs.per_waiting_time + vehicle.costs.per_waiting_time)
-            + service * (driver.costs.per_service_time + vehicle.costs.per_service_time)
+        waiting * (actor.driver.costs.per_waiting_time + actor.vehicle.costs.per_waiting_time)
+            + service * (actor.driver.costs.per_service_time + actor.vehicle.costs.per_service_time)
     }
 
     /// Returns operation time spent to perform activity.
-    fn duration(&self, _vehicle: &Vehicle, _driver: &Driver, activity: &Activity, _arrival: Timestamp) -> Cost {
+    fn duration(&self, _actor: &Actor, activity: &Activity, _arrival: Timestamp) -> Cost {
         activity.place.duration
     }
 }
@@ -31,15 +30,15 @@ impl Default for SimpleActivityCost {
 
 impl ActivityCost for SimpleActivityCost {}
 
-/// Provides the way to get routing information for specific locations.
+/// Provides the way to get routing information for specific locations and actor.
 pub trait TransportCost {
     /// Returns transport cost between two locations.
-    fn cost(&self, vehicle: &Vehicle, driver: &Driver, from: Location, to: Location, departure: Timestamp) -> Cost {
-        let distance = self.distance(vehicle.profile, from, to, departure);
-        let duration = self.duration(vehicle.profile, from, to, departure);
+    fn cost(&self, actor: &Actor, from: Location, to: Location, departure: Timestamp) -> Cost {
+        let distance = self.distance(actor.vehicle.profile, from, to, departure);
+        let duration = self.duration(actor.vehicle.profile, from, to, departure);
 
-        distance * (driver.costs.per_distance + vehicle.costs.per_distance)
-            + duration * (driver.costs.per_driving_time + vehicle.costs.per_driving_time)
+        distance * (actor.driver.costs.per_distance + actor.vehicle.costs.per_distance)
+            + duration * (actor.driver.costs.per_driving_time + actor.vehicle.costs.per_driving_time)
     }
 
     /// Returns transport time between two locations.

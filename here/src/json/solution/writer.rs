@@ -80,7 +80,8 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
             .unwrap_or(MultiDimensionalCapacity::default())
     });
 
-    let vehicle = &route.actor.vehicle;
+    let actor = route.actor.as_ref();
+    let vehicle = actor.vehicle.as_ref();
     let start = route.tour.start().unwrap();
 
     let mut tour = Tour {
@@ -127,7 +128,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
             let arrival = acc.departure + driving;
             let start = act.schedule.arrival.max(act.place.time.start);
             let waiting = start - act.schedule.arrival;
-            let serving = problem.activity.duration(vehicle, &route.actor.driver, act, act.schedule.arrival);
+            let serving = problem.activity.duration(route.actor.as_ref(), act, act.schedule.arrival);
             let departure = start + serving;
 
             if acc.location != act.place.location {
@@ -154,8 +155,8 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 job_tag,
             });
 
-            let cost = problem.activity.cost(vehicle, &route.actor.driver, act, act.schedule.arrival)
-                + problem.transport.cost(vehicle, &route.actor.driver, acc.location, act.place.location, acc.departure);
+            let cost = problem.activity.cost(actor, act, act.schedule.arrival)
+                + problem.transport.cost(actor, acc.location, act.place.location, acc.departure);
 
             let distance =
                 problem.transport.distance(vehicle.profile, acc.location, act.place.location, acc.departure) as i32;

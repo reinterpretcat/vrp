@@ -24,6 +24,13 @@ pub struct RouteContext {
     pub state: Arc<RouteState>,
 }
 
+/// Provides the way to associate arbitrary data within route and activity.
+pub struct RouteState {
+    route_states: HashMap<i32, RouteStateValue>,
+    activity_states: HashMap<ActivityWithKey, RouteStateValue>,
+    keys: HashSet<i32>,
+}
+
 impl RouteContext {
     pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
         let route: &mut Route = unsafe { as_mut(&self.route) };
@@ -82,13 +89,6 @@ impl PartialEq<RouteContext> for RouteContext {
 }
 
 impl Eq for RouteContext {}
-
-/// Provides the way to associate arbitrary data within route and activity.
-pub struct RouteState {
-    route_states: HashMap<i32, RouteStateValue>,
-    activity_states: HashMap<ActivityWithKey, RouteStateValue>,
-    keys: HashSet<i32>,
-}
 
 impl Default for RouteState {
     fn default() -> RouteState {
