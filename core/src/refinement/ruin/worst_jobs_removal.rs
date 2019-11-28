@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/refinement/ruin/worst_jobs_removal_test.rs"]
+mod worst_jobs_removal_test;
+
 extern crate rayon;
 
 use self::rayon::prelude::*;
