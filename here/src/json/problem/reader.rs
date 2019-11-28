@@ -4,7 +4,7 @@ mod reader_test;
 
 use super::StringReader;
 use crate::constraints::{BreakModule, ExtraCostModule, ReachableModule, SkillsModule};
-use crate::extensions::MultiDimensionalCapacity;
+use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
 use crate::utils::get_split_permutations;
@@ -76,7 +76,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
 
     let coord_index = create_coord_index(&api_problem);
     let transport = Arc::new(create_transport_costs(&matrices));
-    let activity = Arc::new(SimpleActivityCost::default());
+    let activity = Arc::new(OnlyVehicleActivityCost::default());
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
 
     let mut job_index = Default::default();
