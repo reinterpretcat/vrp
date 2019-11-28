@@ -15,6 +15,8 @@ mod random_job_removal;
 pub use self::random_job_removal::RandomJobRemoval;
 use crate::refinement::RefinementContext;
 
+mod ruin_worst_jobs;
+
 /// Provides the way to run multiple ruin methods.
 pub struct CompositeRuin {
     ruins: Vec<(Box<dyn Ruin>, f64)>,
