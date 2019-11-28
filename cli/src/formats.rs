@@ -6,14 +6,14 @@ use scientific::lilim::{LilimProblem, LilimSolution};
 use scientific::solomon::{SolomonProblem, SolomonSolution};
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{stdout, BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 use std::sync::Arc;
 
 pub struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
 
 pub struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Option<Solution>>);
 
-pub struct SolutionWriter(pub Box<dyn Fn(&Problem, Solution) -> Result<(), String>>);
+pub struct SolutionWriter(pub Box<dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>) -> Result<(), String>>);
 
 pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter)> {
     vec![
@@ -25,7 +25,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                     problem.read_solomon()
                 })),
                 InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
-                SolutionWriter(Box::new(|_, solution| solution.write_solomon(BufWriter::new(Box::new(stdout()))))),
+                SolutionWriter(Box::new(|_, solution, writer| solution.write_solomon(writer))),
             ),
         ),
         (
@@ -36,7 +36,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                     problem.read_lilim()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|_, solution| solution.write_lilim(BufWriter::new(Box::new(stdout()))))),
+                SolutionWriter(Box::new(|_, solution, writer| solution.write_lilim(writer))),
             ),
         ),
         (
@@ -47,9 +47,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                     (problem, matrices.unwrap()).read_here()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|problem, solution| {
-                    solution.write_here(problem, BufWriter::new(Box::new(stdout())))
-                })),
+                SolutionWriter(Box::new(|problem, solution, writer| solution.write_here(problem, writer))),
             ),
         ),
     ]

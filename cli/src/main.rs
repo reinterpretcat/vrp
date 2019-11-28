@@ -12,6 +12,7 @@ use std::ops::Deref;
 use std::process;
 
 use clap::Values;
+use std::io::{stdout, BufWriter, Write};
 use std::sync::Arc;
 
 fn main() {
@@ -69,8 +70,9 @@ fn main() {
                         .with_max_time(max_time)
                         .build()
                         .solve(problem.clone());
+                    let out: BufWriter<Box<dyn Write>> = BufWriter::new(Box::new(stdout()));
                     match solution {
-                        Some(solution) => solution_writer.0(&problem, solution.0).unwrap(),
+                        Some(solution) => solution_writer.0(&problem, solution.0, out).unwrap(),
                         None => println!("Cannot find any solution"),
                     };
                 }
