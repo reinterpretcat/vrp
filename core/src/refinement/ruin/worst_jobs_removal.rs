@@ -3,17 +3,15 @@
 mod worst_jobs_removal_test;
 
 extern crate rayon;
-
 use self::rayon::prelude::*;
-
 use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, TransportCost};
 use crate::models::solution::TourActivity;
 use crate::refinement::ruin::Ruin;
 use crate::refinement::RefinementContext;
-use hashbrown::HashMap;
-use std::cmp::Ordering::Greater;
+use hashbrown::{HashMap, HashSet};
+use std::cmp::Ordering::Less;
 use std::iter::once;
 use std::sync::Arc;
 
@@ -30,12 +28,15 @@ impl Default for WorstJobRemoval {
 
 impl Ruin for WorstJobRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        let mut insertion_ctx = insertion_ctx;
+
         let problem = insertion_ctx.problem.clone();
         let locked = insertion_ctx.locked.clone();
         let random = insertion_ctx.random.clone();
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let routes_savings = get_routes_cost_savings(&insertion_ctx);
+        let mut removed_jobs: HashSet<Arc<Job>> = HashSet::default();
 
         routes_savings.iter().for_each(|(rc, savings)| {
             let worst = savings.iter().filter(|(job, _)| !locked.contains(job)).next();
@@ -57,9 +58,12 @@ impl Ruin for WorstJobRemoval {
                             .route_mut()
                             .tour
                             .remove(&job);
+                        removed_jobs.insert(job);
                     });
             }
         });
+
+        removed_jobs.iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
     }
@@ -107,7 +111,7 @@ fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContex
                 })
                 .drain()
                 .collect();
-            savings.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Greater));
+            savings.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Less));
 
             (rc.clone(), savings)
         })

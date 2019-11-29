@@ -50,7 +50,11 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
             ));
             let route = routes.get_mut(i).unwrap();
             jobs.push(single.clone());
-            route.tour.insert_last(test_tour_activity_with_job(single));
+
+            let mut activity = test_tour_activity_with_job(single);
+            activity.place.location = index;
+
+            route.tour.insert_last(activity);
         });
     });
 

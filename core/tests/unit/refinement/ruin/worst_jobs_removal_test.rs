@@ -7,13 +7,17 @@ use crate::helpers::utils::random::FakeRandom;
 use crate::refinement::ruin::{Ruin, WorstJobRemoval};
 use crate::refinement::RefinementContext;
 
-#[test]
-fn can_ruin_worst_jobs() {
-    // TODO
-    let matrix = (8, 3);
-    let ints = vec![0, 3, 1, 2];
-    let reals = vec![1., 5.];
-    let expected_ids = vec!["c1", "c2", "c3", "c4", "c5"];
+parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, expected_ids), {
+    can_ruin_solution_with_matrix_routes_impl(matrix, ints, expected_ids);
+}}
+
+can_ruin_solution_with_matrix_routes! {
+    case_01: ((5, 3), vec![2, 2, 2], vec!["c14", "c3", "c4", "c9"]),
+    case_02: ((5, 3), vec![2, 2, 3], vec!["c13", "c14", "c3", "c4", "c9"]),
+}
+
+fn can_ruin_solution_with_matrix_routes_impl(matrix: (usize, usize), ints: Vec<i32>, expected_ids: Vec<&str>) {
+    let reals = vec![];
 
     let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1);
     let insertion_ctx: InsertionContext = InsertionContext::new_from_solution(
