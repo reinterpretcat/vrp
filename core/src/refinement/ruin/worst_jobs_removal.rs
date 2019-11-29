@@ -3,6 +3,7 @@
 mod worst_jobs_removal_test;
 
 extern crate rayon;
+
 use self::rayon::prelude::*;
 use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::common::Cost;
@@ -51,14 +52,12 @@ impl Ruin for WorstJobRemoval {
                     ))
                     .take(remove)
                     .for_each(|job| {
-                        // NOTE actual insertion context modification via route mut
-                        route_jobs
-                            .get_mut(&job)
-                            .unwrap_or_else(|| panic!("Cannot get route for job"))
-                            .route_mut()
-                            .tour
-                            .remove(&job);
-                        removed_jobs.insert(job);
+                        // NOTE job can be absent if it is unassigned
+                        if let Some(rc) = route_jobs.get_mut(&job) {
+                            // NOTE actual insertion context modification via route mut
+                            rc.route_mut().tour.remove(&job);
+                            removed_jobs.insert(job);
+                        }
                     });
             }
         });
