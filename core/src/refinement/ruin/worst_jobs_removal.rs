@@ -21,12 +21,13 @@ use std::sync::{Arc, RwLock};
 /// Detects the most cost expensive jobs in each route and delete them with their neighbours
 pub struct WorstJobRemoval {
     threshold: usize,
+    worst_skip: i32,
     range: (i32, i32),
 }
 
 impl Default for WorstJobRemoval {
     fn default() -> Self {
-        Self::new(30, 1, 8)
+        Self::new(32, 4,(1, 4))
     }
 }
 
@@ -35,8 +36,11 @@ impl Ruin for WorstJobRemoval {
         let mut insertion_ctx = insertion_ctx;
 
         let problem = insertion_ctx.problem.clone();
-        let locked = insertion_ctx.locked.clone();
         let random = insertion_ctx.random.clone();
+
+        let can_remove_job = |job: &Arc<Job>| -> bool {
+            !insertion_ctx.locked.contains(job) && !insertion_ctx.solution.unassigned.contains_key(job)
+        };
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let mut routes_savings = get_routes_cost_savings(&insertion_ctx);
@@ -46,7 +50,12 @@ impl Ruin for WorstJobRemoval {
 
         routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() <= self.threshold).for_each(
             |(rc, savings)| {
-                let worst = savings.iter().filter(|(job, _)| !locked.contains(job)).next();
+                let skip = savings.len().min(random.uniform_int(0, self.worst_skip) as usize);
+                let worst = savings.iter()
+                    .filter(|(job, _)| can_remove_job(job))
+                    .skip(skip)
+                    .next();
+
                 if let Some((job, _)) = worst {
                     let remove = random.uniform_int(self.range.0, self.range.1) as usize;
                     once(job.clone())
@@ -56,7 +65,7 @@ impl Ruin for WorstJobRemoval {
                             Default::default(),
                             std::f64::MAX,
                         ))
-                        .filter(|job| !locked.contains(job))
+                        .filter(|job| can_remove_job(job))
                         .take(remove)
                         .for_each(|job| {
                             // NOTE job can be absent if it is unassigned
@@ -77,10 +86,10 @@ impl Ruin for WorstJobRemoval {
 }
 
 impl WorstJobRemoval {
-    pub fn new(threshold: usize, min: usize, max: usize) -> Self {
-        assert!(min <= max);
+    pub fn new(threshold: usize, worst_skip: usize, range: (usize, usize)) -> Self {
+        assert!(range.0 <= range.1);
 
-        Self { threshold, range: (min as i32, max as i32) }
+        Self { threshold, worst_skip: worst_skip as i32, range: (range.0 as i32, range.1 as i32) }
     }
 }
 

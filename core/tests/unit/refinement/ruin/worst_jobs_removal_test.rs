@@ -12,8 +12,8 @@ parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, expect
 }}
 
 can_ruin_solution_with_matrix_routes! {
-    case_01: ((5, 3), vec![2, 2, 2], vec!["c14", "c3", "c4", "c9"]),
-    case_02: ((5, 3), vec![3, 3, 3], vec!["c13", "c14", "c3", "c4", "c8", "c9"]),
+    case_01: ((5, 3), vec![0, 2, 0, 2, 0, 2], vec!["c14", "c3", "c4", "c9"]),
+    case_02: ((5, 3), vec![0, 3, 0, 3, 0, 3], vec!["c13", "c14", "c3", "c4", "c8", "c9"]),
 }
 
 fn can_ruin_solution_with_matrix_routes_impl(matrix: (usize, usize), ints: Vec<i32>, expected_ids: Vec<&str>) {
