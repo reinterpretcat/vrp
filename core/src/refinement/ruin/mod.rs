@@ -27,7 +27,8 @@ impl Default for CompositeRuin {
     fn default() -> Self {
         Self {
             ruins: vec![
-                (Box::new(AdjustedStringRemoval::default()), 1.),
+                (Box::new(AdjustedStringRemoval::default()), 0.5),
+                (Box::new(WorstJobRemoval::default()), 0.5),
                 (Box::new(RandomRouteRemoval::default()), 0.05),
                 (Box::new(RandomJobRemoval::default()), 0.1),
             ],
