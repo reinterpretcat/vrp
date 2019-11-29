@@ -6,33 +6,52 @@ pub trait Ruin {
 }
 
 mod adjusted_string_removal;
+
 pub use self::adjusted_string_removal::AdjustedStringRemoval;
 
 mod random_route_removal;
+
 pub use self::random_route_removal::RandomRouteRemoval;
 
 mod random_job_removal;
+
 pub use self::random_job_removal::RandomJobRemoval;
 use crate::refinement::RefinementContext;
 
 mod worst_jobs_removal;
+
 pub use self::worst_jobs_removal::WorstJobRemoval;
+use std::sync::Arc;
 
 /// Provides the way to run multiple ruin methods.
 pub struct CompositeRuin {
-    ruins: Vec<(Box<dyn Ruin>, f64)>,
+    ruins: Vec<Vec<(Arc<dyn Ruin>, f64)>>,
+    weights: Vec<usize>,
 }
 
 impl Default for CompositeRuin {
     fn default() -> Self {
-        Self {
-            ruins: vec![
-                (Box::new(AdjustedStringRemoval::default()), 0.5),
-                (Box::new(WorstJobRemoval::default()), 0.5),
-                (Box::new(RandomRouteRemoval::default()), 0.05),
-                (Box::new(RandomJobRemoval::default()), 0.1),
-            ],
-        }
+        let adjusted_string = Arc::new(AdjustedStringRemoval::default());
+        let worst_job = Arc::new(WorstJobRemoval::default());
+        let random_job = Arc::new(RandomJobRemoval::default());
+        let random_route = Arc::new(RandomRouteRemoval::default());
+        Self::new(vec![
+            (vec![(adjusted_string.clone(), 1.), (random_job.clone(), 0.01)], 50),
+            (vec![(worst_job.clone(), 1.), (random_job.clone(), 0.01)], 50),
+            (vec![(random_job.clone(), 1.), (random_route.clone(), 0.02)], 1),
+            (vec![(random_route.clone(), 1.), (random_job.clone(), 0.02)], 1),
+        ])
+    }
+}
+
+impl CompositeRuin {
+    pub fn new(ruins: Vec<(Vec<(Arc<dyn Ruin>, f64)>, usize)>) -> Self {
+        let mut ruins = ruins;
+        ruins.sort_by(|(_, a), (_, b)| b.cmp(&a));
+
+        let weights = ruins.iter().map(|(_, weight)| *weight).collect();
+
+        Self { ruins: ruins.into_iter().map(|(ruin, _)| ruin).collect(), weights }
     }
 }
 
@@ -44,8 +63,12 @@ impl Ruin for CompositeRuin {
 
         let random = insertion_ctx.random.clone();
 
+        let index = insertion_ctx.random.weighted(self.weights.iter());
+
         let mut insertion_ctx = self
             .ruins
+            .get(index)
+            .unwrap()
             .iter()
             .filter(|(_, probability)| *probability > random.uniform_real(0., 1.))
             .fold(insertion_ctx, |ctx, (ruin, _)| ruin.run(refinement_ctx, ctx));
