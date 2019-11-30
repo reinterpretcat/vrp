@@ -36,10 +36,11 @@ impl Default for CompositeRuin {
         let random_job = Arc::new(RandomJobRemoval::default());
         let random_route = Arc::new(RandomRouteRemoval::default());
         Self::new(vec![
-            (vec![(adjusted_string.clone(), 1.)], 100),
-            (vec![(worst_job.clone(), 1.)], 10),
-            (vec![(random_job.clone(), 1.), (random_route.clone(), 0.02)], 1),
-            (vec![(random_route.clone(), 1.), (random_job.clone(), 0.02)], 1),
+            (vec![(adjusted_string.clone(), 1.), (random_route.clone(), 0.05), (random_job.clone(), 0.05)], 100),
+            (vec![(worst_job.clone(), 1.), (random_route.clone(), 0.05), (random_job.clone(), 0.05)], 100),
+            (vec![(worst_job.clone(), 1.), (adjusted_string.clone(), 1.), (random_route.clone(), 0.05), (random_job.clone(), 0.05)], 20),
+            (vec![(random_job.clone(), 1.), (random_route.clone(), 0.02)], 5),
+            (vec![(random_route.clone(), 1.), (random_job.clone(), 0.02)], 5),
         ])
     }
 }
