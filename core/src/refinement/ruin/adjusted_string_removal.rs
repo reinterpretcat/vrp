@@ -29,7 +29,7 @@ pub struct AdjustedStringRemoval {
 }
 
 impl AdjustedStringRemoval {
-    fn new(lmax: usize, cavg: usize, alpha: f64) -> Self {
+    pub fn new(lmax: usize, cavg: usize, alpha: f64) -> Self {
         Self { lmax, cavg, alpha }
     }
 

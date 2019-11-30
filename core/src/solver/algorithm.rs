@@ -84,7 +84,13 @@ impl Solver {
                 self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
 
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
-                self.log_generation(&refinement_ctx, generation_time, (&insertion_ctx, &cost), is_accepted);
+                self.log_generation(
+                    &refinement_ctx,
+                    generation_time,
+                    refinement_time,
+                    (&insertion_ctx, &cost),
+                    is_accepted,
+                );
             }
 
             if is_accepted {
@@ -120,6 +126,7 @@ impl Solver {
         &self,
         refinement_ctx: &RefinementContext,
         generation_time: Instant,
+        refinement_time: Instant,
         solution: (&InsertionContext, &ObjectiveCost),
         is_accepted: bool,
     ) {
@@ -132,9 +139,10 @@ impl Solver {
             })
             .unwrap_or((100., 100.));
         self.logger.deref()(format!(
-            "generation {} took {}ms, cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, accepted: {}",
+            "generation {} took {}ms (total {}s), cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, accepted: {}",
             refinement_ctx.generation,
             generation_time.elapsed().as_millis(),
+            refinement_time.elapsed().as_secs(),
             cost.actual,
             cost.penalty,
             actual_change,
