@@ -28,7 +28,7 @@ pub struct Solver {
 pub struct SolverSettings {
     pub minimize_routes: bool,
     pub population_size: usize,
-    pub init_insertion_ctx: Option<InsertionContext>,
+    pub init_insertion_ctx: Option<(InsertionContext, ObjectiveCost)>,
 }
 
 impl Default for SolverSettings {
@@ -67,7 +67,10 @@ impl Solver {
     pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
         let mut refinement_ctx = RefinementContext::new(problem.clone());
         let mut insertion_ctx = match &self.settings.init_insertion_ctx {
-            Some(ctx) => ctx.deep_copy(),
+            Some((ctx, cost)) => {
+                self.add_solution(&mut refinement_ctx, (ctx.deep_copy(), cost.clone()));
+                ctx.deep_copy()
+            }
             None => InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
         };
 

@@ -99,16 +99,21 @@ impl SolverBuilder {
         }
 
         if let Some((problem, solution)) = &self.init_solution {
-            self.solver.logger.deref()(format!(
-                "configured to use initial solution with {} routes",
-                solution.routes.len()
-            ));
             let insertion_ctx = InsertionContext::new_from_solution(
                 problem.clone(),
                 (solution.clone(), None),
                 Arc::new(DefaultRandom::default()),
             );
-            self.solver.settings.init_insertion_ctx = Some(insertion_ctx);
+
+            let cost = problem.objective.estimate(&insertion_ctx);
+            self.solver.logger.deref()(format!(
+                "configured to use initial solution with cost: ({:.2},{:.2}), routes: {}",
+                cost.actual,
+                cost.penalty,
+                solution.routes.len()
+            ));
+
+            self.solver.settings.init_insertion_ctx = Some((insertion_ctx, cost));
         }
         std::mem::replace(&mut self.solver, Solver::default())
     }
