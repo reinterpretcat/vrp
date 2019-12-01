@@ -175,7 +175,13 @@ fn can_skip_break_when_jobs_completed() {
                     times: Timing { driving: 2, serving: 10, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
+            unassigned: vec![UnassignedJob {
+                job_id: "my_vehicle_1_break".to_string(),
+                reasons: vec![UnassignedJobReason {
+                    code: 2,
+                    description: "cannot be visited within time window".to_string(),
+                }],
+            }],
             extras: Extras { performance: vec![] },
         }
     );
@@ -222,13 +228,13 @@ fn can_skip_second_break_when_jobs_completed() {
         Solution {
             problem_id: "my_problem".to_string(),
             statistic: Statistic {
-                cost: 52.,
+                cost: 54.,
                 distance: 20,
-                duration: 22,
-                times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 0 },
+                duration: 24,
+                times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 2 },
             },
             tours: vec![Tour {
-                vehicle_id: "my_vehicle".to_string(),
+                vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
                 stops: vec![
                     create_stop_with_activity(
@@ -239,32 +245,39 @@ fn can_skip_second_break_when_jobs_completed() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                     ),
                     create_stop_with_activity(
-                        "job2",
-                        "delivery",
-                        (10., 0.),
-                        1,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                    ),
-                    create_stop_with_activity(
                         "job1",
                         "delivery",
                         (5., 0.),
+                        1,
+                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
+                    ),
+                    create_stop_with_activity(
+                        "break",
+                        "break",
+                        (6., 0.),
+                        1,
+                        ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
+                    ),
+                    create_stop_with_activity(
+                        "job2",
+                        "delivery",
+                        (10., 0.),
                         0,
-                        ("1970-01-01T00:00:16Z", "1970-01-01T00:00:17Z"),
+                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
                     ),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",
                         (0., 0.),
                         0,
-                        ("1970-01-01T00:00:22Z", "1970-01-01T00:00:22Z"),
+                        ("1970-01-01T00:00:24Z", "1970-01-01T00:00:24Z"),
                     )
                 ],
                 statistic: Statistic {
-                    cost: 52.,
+                    cost: 54.,
                     distance: 20,
-                    duration: 22,
-                    times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 0 },
+                    duration: 24,
+                    times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 2 },
                 },
             }],
             unassigned: vec![],

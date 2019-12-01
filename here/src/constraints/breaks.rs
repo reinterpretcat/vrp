@@ -116,31 +116,13 @@ fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
             if is_break_job(job) {
                 let vehicle_id = get_vehicle_id_from_break(job.as_ref()).unwrap();
                 let shift_index = get_shift_index(&job.dimens);
-                !ctx.required.is_empty()
-                    && ctx.routes.iter().any(move |rc| is_correct_vehicle(rc, &vehicle_id, shift_index))
+                ctx.routes.iter().any(move |rc| is_correct_vehicle(rc, &vehicle_id, shift_index) && is_time(rc, job))
             } else {
                 true
             }
         }
         Job::Multi(_) => true,
     }
-}
-
-fn is_break_job(job: &Arc<Single>) -> bool {
-    job.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
-}
-
-fn as_break_job(activity: &Activity) -> Option<Arc<Single>> {
-    activity.job.as_ref().and_then(|job| match job.as_ref() {
-        Job::Single(job) => {
-            if is_break_job(job) {
-                Some(job.clone())
-            } else {
-                None
-            }
-        }
-        _ => None,
-    })
 }
 
 /// Remove some breaks from required jobs as we don't want to consider breaks
@@ -162,19 +144,6 @@ fn demote_unassigned_breaks(ctx: &mut SolutionContext) {
 
     ctx.unassigned.retain(|job, _| breaks_set.get(job).is_none());
     ctx.ignored.extend(breaks_set.into_iter());
-}
-
-fn get_vehicle_id_from_break(job: &Single) -> Option<&String> {
-    job.dimens.get_value::<String>("vehicle_id")
-}
-
-fn get_shift_index(dimens: &Dimensions) -> usize {
-    *dimens.get_value::<usize>("shift_index").unwrap()
-}
-
-fn is_correct_vehicle(rc: &RouteContext, target_id: &String, target_shift: usize) -> bool {
-    rc.route.actor.vehicle.dimens.get_id().unwrap() == target_id
-        && get_shift_index(&rc.route.actor.vehicle.dimens) == target_shift
 }
 
 /// Removes breaks without location served separately.They are left-overs
@@ -209,3 +178,42 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
 
     ctx.required.extend(breaks_set.into_iter());
 }
+
+//region Helpers
+
+fn is_break_job(job: &Arc<Single>) -> bool {
+    job.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
+}
+
+fn as_break_job(activity: &Activity) -> Option<Arc<Single>> {
+    activity.job.as_ref().and_then(|job| match job.as_ref() {
+        Job::Single(job) => {
+            if is_break_job(job) {
+                Some(job.clone())
+            } else {
+                None
+            }
+        }
+        _ => None,
+    })
+}
+
+fn get_vehicle_id_from_break(job: &Single) -> Option<&String> {
+    job.dimens.get_value::<String>("vehicle_id")
+}
+
+fn get_shift_index(dimens: &Dimensions) -> usize {
+    *dimens.get_value::<usize>("shift_index").unwrap()
+}
+
+fn is_correct_vehicle(rc: &RouteContext, target_id: &String, target_shift: usize) -> bool {
+    rc.route.actor.vehicle.dimens.get_id().unwrap() == target_id
+        && get_shift_index(&rc.route.actor.vehicle.dimens) == target_shift
+}
+
+fn is_time(rc: &RouteContext, break_job: &Single) -> bool {
+    let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
+    break_job.places.first().unwrap().times.iter().any(|t| t.start < arrival)
+}
+
+//endregion
