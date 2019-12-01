@@ -17,7 +17,6 @@ fn can_use_vehicle_with_open_end() {
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };

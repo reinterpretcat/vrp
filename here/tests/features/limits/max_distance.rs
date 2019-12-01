@@ -17,7 +17,6 @@ fn can_limit_by_max_distance() {
                 amount: 1,
                 skills: None,
                 limits: Some(VehicleLimits { max_distance: Some(99.), shift_time: None }),
-                vehicle_break: None,
             }],
         },
     };

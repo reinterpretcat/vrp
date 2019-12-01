@@ -155,20 +155,20 @@ fn can_read_complex_problem() {
                         time: "1970-01-01T00:01:40Z".to_string(),
                         location: vec![52.4862, 13.45148],
                     }),
+                    breaks: Some(vec![VehicleBreak {
+                        times: vec![
+                            vec!["1970-01-01T00:00:10Z".to_string(), "1970-01-01T00:01:20Z".to_string()],
+                            vec!["1970-01-01T00:01:00Z".to_string(), "1970-01-01T00:03:00Z".to_string()],
+                        ],
+                        duration: 100.0,
+                        location: Some(vec![52.48315, 13.4330]),
+                    }]),
                     max_tours: Option::None,
                 },
                 capacity: vec![10, 1],
                 amount: 2,
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),
                 limits: Some(VehicleLimits { max_distance: Some(123.1), shift_time: Some(100.) }),
-                vehicle_break: Some(VehicleBreak {
-                    times: vec![
-                        vec!["1970-01-01T00:00:10Z".to_string(), "1970-01-01T00:01:20Z".to_string()],
-                        vec!["1970-01-01T00:01:00Z".to_string(), "1970-01-01T00:03:00Z".to_string()],
-                    ],
-                    duration: 100.0,
-                    location: Some(vec![52.48315, 13.4330]),
-                }),
             }],
         },
     };

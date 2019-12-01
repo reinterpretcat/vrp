@@ -23,7 +23,6 @@ fn can_use_two_dimensions() {
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };
@@ -95,7 +94,6 @@ fn can_unassign_due_to_dimension_mismatch() {
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };

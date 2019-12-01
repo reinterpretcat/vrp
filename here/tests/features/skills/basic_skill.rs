@@ -22,7 +22,6 @@ fn can_wait_for_job_start() {
                     amount: 1,
                     skills: Some(vec!["unique_skill".to_string()]),
                     limits: None,
-                    vehicle_break: None,
                 },
             ],
         },

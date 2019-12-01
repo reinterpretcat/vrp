@@ -17,7 +17,6 @@ fn can_limit_one_job_by_shift_time() {
                 amount: 1,
                 skills: None,
                 limits: Some(VehicleLimits { max_distance: None, shift_time: Some(99.) }),
-                vehicle_break: None,
             }],
         },
     };
@@ -78,7 +77,6 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                 amount: 1,
                 skills: None,
                 limits: Some(VehicleLimits { max_distance: None, shift_time: Some(40.) }),
-                vehicle_break: None,
             }],
         },
     };

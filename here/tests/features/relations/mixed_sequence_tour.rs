@@ -39,7 +39,6 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };

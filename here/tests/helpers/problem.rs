@@ -131,14 +131,29 @@ pub fn create_default_vehicle_places() -> VehiclePlaces {
     create_default_vehicle_places_with_locations((0., 0.), (0., 0.))
 }
 
+pub fn create_default_vehicle_places_with_breaks(breaks: Vec<VehicleBreak>) -> VehiclePlaces {
+    VehiclePlaces {
+        start: VehiclePlace { time: format_time(0), location: vec![0., 0.] },
+        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![0., 0.] }),
+        breaks: Some(breaks),
+        max_tours: None,
+    }
+}
+
 pub fn create_default_open_vehicle_places() -> VehiclePlaces {
-    VehiclePlaces { start: VehiclePlace { time: format_time(0), location: vec![0., 0.] }, end: None, max_tours: None }
+    VehiclePlaces {
+        start: VehiclePlace { time: format_time(0), location: vec![0., 0.] },
+        end: None,
+        breaks: None,
+        max_tours: None,
+    }
 }
 
 pub fn create_default_vehicle_places_with_locations(start: (f64, f64), end: (f64, f64)) -> VehiclePlaces {
     VehiclePlaces {
         start: VehiclePlace { time: format_time(0), location: vec![start.0, start.1] },
         end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![end.0, end.1] }),
+        breaks: None,
         max_tours: None,
     }
 }
@@ -161,7 +176,6 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
         amount: 1,
         skills: None,
         limits: None,
-        vehicle_break: None,
     }
 }
 
@@ -196,7 +210,14 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
     problem.fleet.types.iter().for_each(|vehicle| {
         once(Some(vehicle.places.start.location.clone()))
             .chain(once(vehicle.places.end.as_ref().map(|p| p.location.clone())))
-            .chain(once(vehicle.vehicle_break.as_ref().and_then(|b| b.location.clone())))
+            .chain(
+                vehicle
+                    .places
+                    .breaks
+                    .as_ref()
+                    .and_then(|breaks| Some(breaks.iter().map(|b| b.location.clone()).collect()))
+                    .unwrap_or_else(|| vec![]),
+            )
             .for_each(|location| {
                 if let Some(location) = location {
                     coord_index.add_from_vec(&location);

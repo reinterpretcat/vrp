@@ -26,7 +26,6 @@ fn can_split_into_two_tours_because_of_strict_times() {
                 amount: 2,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };

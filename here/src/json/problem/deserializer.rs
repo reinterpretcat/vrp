@@ -106,6 +106,7 @@ pub struct VehiclePlace {
 pub struct VehiclePlaces {
     pub start: VehiclePlace,
     pub end: Option<VehiclePlace>,
+    pub breaks: Option<Vec<VehicleBreak>>,
     pub max_tours: Option<i32>,
 }
 
@@ -131,11 +132,8 @@ pub struct VehicleType {
     pub places: VehiclePlaces,
     pub capacity: Vec<i32>,
     pub amount: i32,
-
     pub skills: Option<Vec<String>>,
     pub limits: Option<VehicleLimits>,
-    #[serde(rename(deserialize = "break"))]
-    pub vehicle_break: Option<VehicleBreak>,
 }
 
 #[derive(Clone, Deserialize)]

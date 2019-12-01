@@ -130,10 +130,12 @@ fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
             index.add_from_vec(&end.location);
         }
 
-        if let Some(vehicle_break) = &vehicle.vehicle_break {
-            if let Some(location) = &vehicle_break.location {
-                index.add_from_vec(location);
-            }
+        if let Some(breaks) = &vehicle.places.breaks {
+            breaks.iter().for_each(|vehicle_break| {
+                if let Some(location) = &vehicle_break.location {
+                    index.add_from_vec(location);
+                }
+            });
         }
     });
 
@@ -399,26 +401,29 @@ fn read_conditional_jobs(
     job_index: &mut JobIndex,
 ) -> Vec<Arc<Job>> {
     let mut jobs = vec![];
-    api_problem.fleet.types.iter().filter(|v| v.vehicle_break.is_some()).for_each(|vehicle| {
-        let place = vehicle.vehicle_break.as_ref().unwrap();
-        (1..vehicle.amount + 1).for_each(|index| {
-            let id = format!("{}_{}", vehicle.id, index);
-            let times = if place.times.is_empty() {
-                panic!("Break without any time window does not make sense!")
-            } else {
-                Some(place.times.clone())
-            };
-            let mut single =
-                get_single(place.location.as_ref().and_then(|l| Some(l)), place.duration, &times, coord_index);
-            single.dimens.set_id("break");
-            single.dimens.insert("type".to_string(), Box::new("break".to_string()));
-            single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
+    api_problem.fleet.types.iter().filter(|v| v.places.breaks.as_ref().map_or(false, |b| b.len() > 0)).for_each(
+        |vehicle| {
+            vehicle.places.breaks.as_ref().unwrap().iter().for_each(|place| {
+                (1..vehicle.amount + 1).for_each(|index| {
+                    let id = format!("{}_{}", vehicle.id, index);
+                    let times = if place.times.is_empty() {
+                        panic!("Break without any time window does not make sense!")
+                    } else {
+                        Some(place.times.clone())
+                    };
+                    let mut single =
+                        get_single(place.location.as_ref().and_then(|l| Some(l)), place.duration, &times, coord_index);
+                    single.dimens.set_id("break");
+                    single.dimens.insert("type".to_string(), Box::new("break".to_string()));
+                    single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
 
-            let job = Arc::new(Job::Single(Arc::new(single)));
-            job_index.insert(format!("{}_break", id), job.clone());
-            jobs.push(job);
-        });
-    });
+                    let job = Arc::new(Job::Single(Arc::new(single)));
+                    job_index.insert(format!("{}_break", id), job.clone());
+                    jobs.push(job);
+                });
+            });
+        },
+    );
 
     jobs
 }
@@ -528,7 +533,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
                     || job.places.deliveries.iter().any(|p| p.demand.len() > 1)
             }
         });
-    let has_breaks = api_problem.fleet.types.iter().any(|t| t.vehicle_break.is_some());
+    let has_breaks = api_problem.fleet.types.iter().any(|t| t.places.breaks.as_ref().map_or(false, |b| b.len() > 0));
     let has_skills = api_problem.plan.jobs.iter().any(|j| match j {
         JobVariant::Single(job) => job.skills.is_some(),
         JobVariant::Multi(job) => job.skills.is_some(),

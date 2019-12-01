@@ -27,7 +27,6 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };

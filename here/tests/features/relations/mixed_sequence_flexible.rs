@@ -39,7 +39,6 @@ fn can_use_sequence_and_flexible_relation_for_one_vehicle() {
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };
@@ -186,7 +185,6 @@ fn can_use_sequence_and_flexible_relation_for_two_vehicles() {
                 amount: 2,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };

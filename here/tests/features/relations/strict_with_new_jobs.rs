@@ -42,7 +42,6 @@ fn can_use_two_sequence_relations_with_two_vehicles_with_new_jobs() {
                 amount: 2,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };

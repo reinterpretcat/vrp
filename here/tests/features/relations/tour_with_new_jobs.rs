@@ -28,7 +28,6 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: None,
             }],
         },
     };

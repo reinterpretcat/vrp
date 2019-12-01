@@ -15,16 +15,15 @@ fn can_assign_break_between_jobs() {
                 id: "my_vehicle".to_string(),
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
-                places: create_default_vehicle_places(),
+                places: create_default_vehicle_places_with_breaks(vec![VehicleBreak {
+                    times: vec![vec![format_time(5), format_time(10)]],
+                    duration: 2.0,
+                    location: Some(vec![6., 0.]),
+                }]),
                 capacity: vec![10],
                 amount: 1,
                 skills: None,
                 limits: None,
-                vehicle_break: Some(VehicleBreak {
-                    times: vec![vec![format_time(5), format_time(10)]],
-                    duration: 2.0,
-                    location: Some(vec![6., 0.]),
-                }),
             }],
         },
     };
