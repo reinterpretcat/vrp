@@ -4,7 +4,7 @@ mod breaks_test;
 
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use core::models::common::{Cost, IdDimension, ValueDimension};
+use core::models::common::{Cost, Dimensions, IdDimension, ValueDimension};
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
 use std::collections::HashSet;
@@ -80,10 +80,11 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
             if activity_ctx.prev.job.is_none() {
                 return self.stop();
             } else {
-                // lock break to specific vehicle
-                let is_correct_vehicle = get_vehicle_id_from_break(&break_job)
-                    .map_or(false, |vehicle_id| vehicle_id == get_vehicle_id_from_ctx(route_ctx));
-                if !is_correct_vehicle {
+                // lock break to specific vehicle and shift
+                let vehicle_id = get_vehicle_id_from_break(&break_job).unwrap();
+                let shift_index = get_shift_index(&break_job.dimens);
+
+                if !is_correct_vehicle(route_ctx, vehicle_id, shift_index) {
                     return self.stop();
                 }
             }
@@ -114,7 +115,9 @@ fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
         Job::Single(job) => {
             if is_break_job(job) {
                 let vehicle_id = get_vehicle_id_from_break(job.as_ref()).unwrap();
-                !ctx.required.is_empty() && ctx.routes.iter().any(move |rc| get_vehicle_id_from_ctx(rc) == vehicle_id)
+                let shift_index = get_shift_index(&job.dimens);
+                !ctx.required.is_empty()
+                    && ctx.routes.iter().any(move |rc| is_correct_vehicle(rc, &vehicle_id, shift_index))
             } else {
                 true
             }
@@ -161,12 +164,17 @@ fn demote_unassigned_breaks(ctx: &mut SolutionContext) {
     ctx.ignored.extend(breaks_set.into_iter());
 }
 
-fn get_vehicle_id_from_ctx(ctx: &RouteContext) -> String {
-    ctx.route.actor.vehicle.dimens.get_id().unwrap().clone()
+fn get_vehicle_id_from_break(job: &Single) -> Option<&String> {
+    job.dimens.get_value::<String>("vehicle_id")
 }
 
-fn get_vehicle_id_from_break(job: &Single) -> Option<String> {
-    job.dimens.get_value::<String>("vehicle_id").cloned()
+fn get_shift_index(dimens: &Dimensions) -> usize {
+    *dimens.get_value::<usize>("shift_index").unwrap()
+}
+
+fn is_correct_vehicle(rc: &RouteContext, target_id: &String, target_shift: usize) -> bool {
+    rc.route.actor.vehicle.dimens.get_id().unwrap() == target_id
+        && get_shift_index(&rc.route.actor.vehicle.dimens) == target_shift
 }
 
 /// Removes breaks without location served separately.They are left-overs

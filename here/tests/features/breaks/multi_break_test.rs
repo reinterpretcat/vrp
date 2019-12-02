@@ -37,6 +37,7 @@ fn can_use_two_breaks() {
     let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
+
     assert_eq!(
         solution,
         Solution {
