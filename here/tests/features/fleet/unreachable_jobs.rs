@@ -12,7 +12,7 @@ fn can_use_vehicle_with_open_end() {
                 id: "my_vehicle".to_string(),
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
-                places: create_default_open_vehicle_places(),
+                shifts: vec![create_default_open_vehicle_shift()],
                 capacity: vec![10],
                 amount: 1,
                 skills: None,

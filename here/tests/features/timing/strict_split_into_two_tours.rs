@@ -21,7 +21,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                 id: "my_vehicle".to_string(),
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
-                places: create_default_vehicle_places(),
+                shifts: vec![create_default_vehicle_shift()],
                 capacity: vec![10],
                 amount: 2,
                 skills: None,

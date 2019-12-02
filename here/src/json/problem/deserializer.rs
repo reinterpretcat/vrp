@@ -103,7 +103,7 @@ pub struct VehiclePlace {
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct VehiclePlaces {
+pub struct VehicleShift {
     pub start: VehiclePlace,
     pub end: Option<VehiclePlace>,
     pub breaks: Option<Vec<VehicleBreak>>,
@@ -129,7 +129,7 @@ pub struct VehicleType {
     pub id: String,
     pub profile: String,
     pub costs: VehicleCosts,
-    pub places: VehiclePlaces,
+    pub shifts: Vec<VehicleShift>,
     pub capacity: Vec<i32>,
     pub amount: i32,
     pub skills: Option<Vec<String>>,

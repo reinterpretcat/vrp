@@ -124,19 +124,21 @@ fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
 
     // process fleet
     api_problem.fleet.types.iter().for_each(|vehicle| {
-        index.add_from_vec(&vehicle.places.start.location);
+        vehicle.shifts.iter().for_each(|shift| {
+            index.add_from_vec(&shift.start.location);
 
-        if let Some(end) = &vehicle.places.end {
-            index.add_from_vec(&end.location);
-        }
+            if let Some(end) = &shift.end {
+                index.add_from_vec(&end.location);
+            }
 
-        if let Some(breaks) = &vehicle.places.breaks {
-            breaks.iter().for_each(|vehicle_break| {
-                if let Some(location) = &vehicle_break.location {
-                    index.add_from_vec(location);
-                }
-            });
-        }
+            if let Some(breaks) = &shift.breaks {
+                breaks.iter().for_each(|vehicle_break| {
+                    if let Some(location) = &vehicle_break.location {
+                        index.add_from_vec(location);
+                    }
+                });
+            }
+        });
     });
 
     index
@@ -175,24 +177,6 @@ fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: 
     let mut vehicles: Vec<Vehicle> = Default::default();
 
     api_problem.fleet.types.iter().for_each(|vehicle| {
-        let start = {
-            let location = coord_index.get_by_vec(&vehicle.places.start.location).unwrap();
-            let time = parse_time(&vehicle.places.start.time);
-            (location, time)
-        };
-
-        let end = vehicle.places.end.as_ref().map_or(None, |end| {
-            let location = coord_index.get_by_vec(&end.location).unwrap();
-            let time = parse_time(&end.time);
-            Some((location, time))
-        });
-
-        let details = vec![VehicleDetail {
-            start: Some(start.0),
-            end: end.map_or(None, |end| Some(end.0)),
-            time: Some(TimeWindow::new(start.1, end.map_or(std::f64::MAX, |end| end.1))),
-        }];
-
         let costs = Costs {
             fixed: vehicle.costs.fixed.unwrap_or(0.),
             per_distance: vehicle.costs.distance,
@@ -203,19 +187,41 @@ fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: 
 
         let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
 
-        (1..vehicle.amount + 1).for_each(|number| {
-            let mut dimens: Dimensions = Default::default();
-            dimens.insert("type_id".to_owned(), Box::new(vehicle.id.clone()));
-            dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
-            if props.has_multi_dimen_capacity {
-                dimens.set_capacity(MultiDimensionalCapacity::new(vehicle.capacity.clone()));
-            } else {
-                dimens.set_capacity(*vehicle.capacity.first().unwrap());
-            }
-            add_skills(&mut dimens, &vehicle.skills);
+        for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
+            let start = {
+                let location = coord_index.get_by_vec(&shift.start.location).unwrap();
+                let time = parse_time(&shift.start.time);
+                (location, time)
+            };
 
-            vehicles.push(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() });
-        });
+            let end = shift.end.as_ref().map_or(None, |end| {
+                let location = coord_index.get_by_vec(&end.location).unwrap();
+                let time = parse_time(&end.time);
+                Some((location, time))
+            });
+
+            let details = vec![VehicleDetail {
+                start: Some(start.0),
+                end: end.map_or(None, |end| Some(end.0)),
+                time: Some(TimeWindow::new(start.1, end.map_or(std::f64::MAX, |end| end.1))),
+            }];
+
+            (1..vehicle.amount + 1).for_each(|number| {
+                let mut dimens: Dimensions = Default::default();
+                dimens.insert("type_id".to_owned(), Box::new(vehicle.id.clone()));
+                dimens.insert("shift_index".to_owned(), Box::new(shift_index));
+                dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
+
+                if props.has_multi_dimen_capacity {
+                    dimens.set_capacity(MultiDimensionalCapacity::new(vehicle.capacity.clone()));
+                } else {
+                    dimens.set_capacity(*vehicle.capacity.first().unwrap());
+                }
+                add_skills(&mut dimens, &vehicle.skills);
+
+                vehicles.push(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() });
+            });
+        }
     });
 
     let fake_driver = Driver {
@@ -401,29 +407,37 @@ fn read_conditional_jobs(
     job_index: &mut JobIndex,
 ) -> Vec<Arc<Job>> {
     let mut jobs = vec![];
-    api_problem.fleet.types.iter().filter(|v| v.places.breaks.as_ref().map_or(false, |b| b.len() > 0)).for_each(
-        |vehicle| {
-            vehicle.places.breaks.as_ref().unwrap().iter().for_each(|place| {
-                (1..vehicle.amount + 1).for_each(|index| {
-                    let id = format!("{}_{}", vehicle.id, index);
-                    let times = if place.times.is_empty() {
-                        panic!("Break without any time window does not make sense!")
-                    } else {
-                        Some(place.times.clone())
-                    };
-                    let mut single =
-                        get_single(place.location.as_ref().and_then(|l| Some(l)), place.duration, &times, coord_index);
-                    single.dimens.set_id("break");
-                    single.dimens.insert("type".to_string(), Box::new("break".to_string()));
-                    single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
 
-                    let job = Arc::new(Job::Single(Arc::new(single)));
-                    job_index.insert(format!("{}_break", id), job.clone());
-                    jobs.push(job);
+    api_problem.fleet.types.iter().for_each(|vehicle| {
+        for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
+            if let Some(breaks) = &shift.breaks {
+                breaks.iter().for_each(|place| {
+                    (1..vehicle.amount + 1).for_each(|index| {
+                        let id = format!("{}_{}", vehicle.id, index);
+                        let times = if place.times.is_empty() {
+                            panic!("Break without any time window does not make sense!")
+                        } else {
+                            Some(place.times.clone())
+                        };
+                        let mut single = get_single(
+                            place.location.as_ref().and_then(|l| Some(l)),
+                            place.duration,
+                            &times,
+                            coord_index,
+                        );
+                        single.dimens.set_id("break");
+                        single.dimens.insert("type".to_string(), Box::new("break".to_string()));
+                        single.dimens.insert("shift_index".to_string(), Box::new(shift_index));
+                        single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
+
+                        let job = Arc::new(Job::Single(Arc::new(single)));
+                        job_index.insert(format!("{}_break", id), job.clone());
+                        jobs.push(job);
+                    });
                 });
-            });
-        },
-    );
+            }
+        }
+    });
 
     jobs
 }
@@ -533,7 +547,12 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
                     || job.places.deliveries.iter().any(|p| p.demand.len() > 1)
             }
         });
-    let has_breaks = api_problem.fleet.types.iter().any(|t| t.places.breaks.as_ref().map_or(false, |b| b.len() > 0));
+    let has_breaks = api_problem
+        .fleet
+        .types
+        .iter()
+        .flat_map(|t| &t.shifts)
+        .any(|shift| shift.breaks.as_ref().map_or(false, |b| b.len() > 0));
     let has_skills = api_problem.plan.jobs.iter().any(|j| match j {
         JobVariant::Single(job) => job.skills.is_some(),
         JobVariant::Multi(job) => job.skills.is_some(),

@@ -23,7 +23,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                 id: "my_vehicle".to_string(),
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
-                places: create_default_open_vehicle_places(),
+                shifts: vec![create_default_open_vehicle_shift()],
                 capacity: vec![3],
                 amount: 1,
                 skills: None,

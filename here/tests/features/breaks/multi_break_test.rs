@@ -15,7 +15,7 @@ fn can_use_two_breaks() {
                 id: "my_vehicle".to_string(),
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
-                places: create_default_vehicle_places_with_breaks(vec![
+                shifts: vec![create_default_vehicle_shift_with_breaks(vec![
                     VehicleBreak {
                         times: vec![vec![format_time(5), format_time(10)]],
                         duration: 2.0,
@@ -26,7 +26,7 @@ fn can_use_two_breaks() {
                         duration: 2.0,
                         location: None,
                     },
-                ]),
+                ])],
                 capacity: vec![10],
                 amount: 1,
                 skills: None,

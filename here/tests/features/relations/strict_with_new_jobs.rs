@@ -37,7 +37,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_with_new_jobs() {
                 id: "my_vehicle".to_string(),
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
-                places: create_default_vehicle_places(),
+                shifts: vec![create_default_vehicle_shift()],
                 capacity: vec![5],
                 amount: 2,
                 skills: None,

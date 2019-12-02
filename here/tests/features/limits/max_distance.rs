@@ -12,7 +12,7 @@ fn can_limit_by_max_distance() {
                 id: "my_vehicle".to_string(),
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
-                places: create_default_vehicle_places(),
+                shifts: vec![create_default_vehicle_shift()],
                 capacity: vec![10],
                 amount: 1,
                 skills: None,

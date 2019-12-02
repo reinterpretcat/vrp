@@ -127,12 +127,12 @@ fn create_job_place(location: Vec<f64>) -> JobPlace {
     JobPlace { times: None, location, duration: 1., tag: None }
 }
 
-pub fn create_default_vehicle_places() -> VehiclePlaces {
-    create_default_vehicle_places_with_locations((0., 0.), (0., 0.))
+pub fn create_default_vehicle_shift() -> VehicleShift {
+    create_default_vehicle_shift_with_locations((0., 0.), (0., 0.))
 }
 
-pub fn create_default_vehicle_places_with_breaks(breaks: Vec<VehicleBreak>) -> VehiclePlaces {
-    VehiclePlaces {
+pub fn create_default_vehicle_shift_with_breaks(breaks: Vec<VehicleBreak>) -> VehicleShift {
+    VehicleShift {
         start: VehiclePlace { time: format_time(0), location: vec![0., 0.] },
         end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![0., 0.] }),
         breaks: Some(breaks),
@@ -140,8 +140,8 @@ pub fn create_default_vehicle_places_with_breaks(breaks: Vec<VehicleBreak>) -> V
     }
 }
 
-pub fn create_default_open_vehicle_places() -> VehiclePlaces {
-    VehiclePlaces {
+pub fn create_default_open_vehicle_shift() -> VehicleShift {
+    VehicleShift {
         start: VehiclePlace { time: format_time(0), location: vec![0., 0.] },
         end: None,
         breaks: None,
@@ -149,8 +149,8 @@ pub fn create_default_open_vehicle_places() -> VehiclePlaces {
     }
 }
 
-pub fn create_default_vehicle_places_with_locations(start: (f64, f64), end: (f64, f64)) -> VehiclePlaces {
-    VehiclePlaces {
+pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64, f64)) -> VehicleShift {
+    VehicleShift {
         start: VehiclePlace { time: format_time(0), location: vec![start.0, start.1] },
         end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![end.0, end.1] }),
         breaks: None,
@@ -171,7 +171,7 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
         id: id.to_string(),
         profile: "car".to_string(),
         costs: create_default_vehicle_costs(),
-        places: create_default_vehicle_places(),
+        shifts: vec![create_default_vehicle_shift()],
         capacity,
         amount: 1,
         skills: None,
@@ -208,16 +208,20 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
         }),
     });
     problem.fleet.types.iter().for_each(|vehicle| {
-        once(Some(vehicle.places.start.location.clone()))
-            .chain(once(vehicle.places.end.as_ref().map(|p| p.location.clone())))
-            .chain(
-                vehicle
-                    .places
-                    .breaks
-                    .as_ref()
-                    .and_then(|breaks| Some(breaks.iter().map(|b| b.location.clone()).collect()))
-                    .unwrap_or_else(|| vec![]),
-            )
+        vehicle
+            .shifts
+            .iter()
+            .flat_map(|shift| {
+                once(Some(shift.start.location.clone()))
+                    .chain(once(shift.end.as_ref().map(|p| p.location.clone())))
+                    .chain(
+                        shift
+                            .breaks
+                            .as_ref()
+                            .and_then(|breaks| Some(breaks.iter().map(|b| b.location.clone()).collect()))
+                            .unwrap_or_else(|| vec![]),
+                    )
+            })
             .for_each(|location| {
                 if let Some(location) = location {
                     coord_index.add_from_vec(&location);

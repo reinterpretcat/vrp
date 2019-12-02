@@ -17,7 +17,7 @@ fn can_wait_for_job_start() {
                     id: "vehicle_with_skill".to_string(),
                     profile: "car".to_string(),
                     costs: create_default_vehicle_costs(),
-                    places: create_default_vehicle_places_with_locations((10., 0.), (10., 0.)),
+                    shifts: vec![create_default_vehicle_shift_with_locations((10., 0.), (10., 0.))],
                     capacity: vec![10],
                     amount: 1,
                     skills: Some(vec!["unique_skill".to_string()]),
