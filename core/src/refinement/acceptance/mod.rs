@@ -8,3 +8,6 @@ pub trait Acceptance {
 
 mod greedy;
 pub use self::greedy::Greedy;
+
+mod random;
+pub use self::random::SmoothRandom;

@@ -34,7 +34,7 @@ impl Acceptance for Greedy {
 
                 match (unassigned_cmp, route_cmp, self.is_minimize_routes) {
                     (Ordering::Less, _, _) => true,
-                    (Ordering::Greater, _, _) => false ,
+                    (Ordering::Greater, _, _) => false,
                     (_, Ordering::Less, true) => true,
                     (_, Ordering::Greater, true) => false,
                     _ => solution.1.total() < best.1.total(),

@@ -1,7 +1,10 @@
+extern crate rand;
+
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::models::Problem;
 use crate::utils::compare_floats;
+use rand::prelude::*;
 use std::cmp::Ordering;
 use std::iter::once;
 use std::sync::Arc;
@@ -92,12 +95,16 @@ impl Population {
         );
     }
 
-    fn add_to_queue<F>(individuum: Individuum, batch_size: usize, individuums: &mut Vec<Individuum>, compare: F)
+    fn add_to_queue<F>(individuum: Individuum, batch_size: usize, individuums: &mut Vec<Individuum>, mut compare: F)
     where
         F: FnMut(&Individuum, &Individuum) -> Ordering,
     {
         individuums.push(individuum);
-        individuums.sort_by(compare);
+        individuums.sort_by(|a, b| compare(b, a));
+
+        let best = individuums.pop().unwrap();
+        individuums.shuffle(&mut rand::thread_rng());
+        individuums.insert(0, best);
         individuums.truncate(batch_size);
     }
 
