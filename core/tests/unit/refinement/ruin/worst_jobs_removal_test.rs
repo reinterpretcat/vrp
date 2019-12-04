@@ -26,10 +26,8 @@ fn can_ruin_solution_with_matrix_routes_impl(matrix: (usize, usize), ints: Vec<i
         Arc::new(FakeRandom::new(ints, reals)),
     );
 
-    let insertion_ctx = WorstJobRemoval::default().run(
-        &RefinementContext { problem: insertion_ctx.problem.clone(), population: vec![], generation: 0 },
-        insertion_ctx,
-    );
+    let insertion_ctx =
+        WorstJobRemoval::default().run(&RefinementContext::new(insertion_ctx.problem.clone(), 1), insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }

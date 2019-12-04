@@ -27,11 +27,16 @@ impl Default for Greedy {
 
 impl Acceptance for Greedy {
     fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (&InsertionContext, ObjectiveCost)) -> bool {
-        match refinement_ctx.population.first() {
+        match refinement_ctx.population.all().next() {
             Some(best) => {
-                match (solution.0.solution.routes.len().cmp(&best.0.solution.routes.len()), self.is_minimize_routes) {
-                    (Ordering::Less, true) => true,
-                    (Ordering::Greater, true) => false,
+                let unassigned_cmp = solution.0.solution.unassigned.len().cmp(&best.0.solution.unassigned.len());
+                let route_cmp = solution.0.solution.routes.len().cmp(&best.0.solution.routes.len());
+
+                match (unassigned_cmp, route_cmp, self.is_minimize_routes) {
+                    (Ordering::Less, _, _) => true,
+                    (Ordering::Greater, _, _) => false ,
+                    (_, Ordering::Less, true) => true,
+                    (_, Ordering::Greater, true) => false,
                     _ => solution.1.total() < best.1.total(),
                 }
             }

@@ -18,6 +18,6 @@ impl SelectBest {
 
 impl Selection for SelectBest {
     fn select(&self, refinement_ctx: &RefinementContext) -> InsertionContext {
-        refinement_ctx.population.first().unwrap().0.deep_copy()
+        refinement_ctx.population.all().next().unwrap().0.deep_copy()
     }
 }

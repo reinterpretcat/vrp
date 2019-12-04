@@ -4,11 +4,10 @@ use crate::models::{Problem, Solution};
 use crate::refinement::acceptance::{Acceptance, Greedy};
 use crate::refinement::recreate::{CompositeRecreate, Recreate};
 use crate::refinement::ruin::{CompositeRuin, Ruin};
-use crate::refinement::selection::{SelectBest, Selection};
+use crate::refinement::selection::{SelectRandom, Selection};
 use crate::refinement::termination::*;
 use crate::refinement::RefinementContext;
-use crate::utils::{compare_floats, DefaultRandom};
-use std::cmp::Ordering::{Greater, Less};
+use crate::utils::DefaultRandom;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Instant;
@@ -42,7 +41,7 @@ impl Default for Solver {
         Solver::new(
             Box::new(CompositeRecreate::default()),
             Box::new(CompositeRuin::default()),
-            Box::new(SelectBest::default()),
+            Box::new(SelectRandom::default()),
             Box::new(Greedy::default()),
             Box::new(CompositeTermination::default()),
             SolverSettings::default(),
@@ -65,10 +64,10 @@ impl Solver {
     }
 
     pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
-        let mut refinement_ctx = RefinementContext::new(problem.clone());
+        let mut refinement_ctx = RefinementContext::new(problem.clone(), 1);
         let mut insertion_ctx = match &self.settings.init_insertion_ctx {
             Some((ctx, cost)) => {
-                self.add_solution(&mut refinement_ctx, (ctx.deep_copy(), cost.clone()));
+                refinement_ctx.population.add((ctx.deep_copy(), cost.clone(), 1));
                 ctx.deep_copy()
             }
             None => InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
@@ -97,7 +96,7 @@ impl Solver {
             }
 
             if is_accepted {
-                self.add_solution(&mut refinement_ctx, (insertion_ctx, cost));
+                refinement_ctx.population.add((insertion_ctx, cost, refinement_ctx.generation))
             }
 
             insertion_ctx = self.selection.select(&refinement_ctx);
@@ -113,18 +112,6 @@ impl Solver {
         self.get_result(refinement_ctx)
     }
 
-    fn add_solution(&self, refinement_ctx: &mut RefinementContext, solution: (InsertionContext, ObjectiveCost)) {
-        refinement_ctx.population.push((solution.0, solution.1, refinement_ctx.generation));
-        refinement_ctx.population.sort_by(|(a_ctx, a_cost, _), (b_ctx, b_cost, _)| {
-            match (a_ctx.solution.routes.len().cmp(&b_ctx.solution.routes.len()), self.settings.minimize_routes) {
-                (Less, true) => Less,
-                (Greater, true) => Greater,
-                _ => compare_floats(a_cost.total(), b_cost.total()),
-            }
-        });
-        refinement_ctx.population.truncate(self.settings.population_size);
-    }
-
     fn log_generation(
         &self,
         refinement_ctx: &RefinementContext,
@@ -136,7 +123,8 @@ impl Solver {
         let (insertion_ctx, cost) = solution;
         let (actual_change, total_change) = refinement_ctx
             .population
-            .first()
+            .all()
+            .next()
             .map(|(_, c, _)| {
                 ((cost.actual - c.actual) / c.actual * 100., (cost.total() - c.total()) / c.total() * 100.)
             })
@@ -166,17 +154,15 @@ impl Solver {
     }
 
     fn get_result(&self, refinement_ctx: RefinementContext) -> Option<(Solution, ObjectiveCost, usize)> {
-        if refinement_ctx.population.is_empty() {
-            None
-        } else {
-            let mut refinement_ctx = refinement_ctx;
-            let (ctx, cost, generation) = refinement_ctx.population.remove(0);
+        if let Some((ctx, cost, generation)) = refinement_ctx.population.all().next() {
             self.logger.deref()(format!(
                 "Best solution within cost {} discovered at {} generation",
                 cost.total(),
                 generation
             ));
-            Some((ctx.solution.to_solution(refinement_ctx.problem.extras.clone()), cost, generation))
+            Some((ctx.solution.to_solution(refinement_ctx.problem.extras.clone()), cost.clone(), *generation))
+        } else {
+            None
         }
     }
 }

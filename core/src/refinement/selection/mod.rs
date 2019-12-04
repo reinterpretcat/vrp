@@ -8,3 +8,6 @@ pub trait Selection {
 
 mod select_best;
 pub use self::select_best::SelectBest;
+
+mod select_random;
+pub use self::select_random::SelectRandom;

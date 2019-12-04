@@ -13,14 +13,12 @@ use std::sync::Arc;
 
 /// Creates initial solution using cheapest insertion
 pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> InsertionContext {
-    RecreateWithCheapest::default().run(
-        &RefinementContext { problem: problem.clone(), population: vec![], generation: 0 },
-        InsertionContext::new(problem, random),
-    )
+    RecreateWithCheapest::default()
+        .run(&create_refinement_context(problem.clone()), InsertionContext::new(problem, random))
 }
 
 pub fn create_refinement_context(problem: Arc<Problem>) -> RefinementContext {
-    RefinementContext { problem, population: vec![], generation: 0 }
+    RefinementContext::new(problem, 1)
 }
 
 /// Generates problem and solution which has routes distributed uniformly, e.g.:
