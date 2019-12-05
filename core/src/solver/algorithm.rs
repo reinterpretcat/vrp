@@ -1,7 +1,7 @@
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::models::{Problem, Solution};
-use crate::refinement::acceptance::{Acceptance, Greedy};
+use crate::refinement::acceptance::{Acceptance, RandomProbability};
 use crate::refinement::recreate::{CompositeRecreate, Recreate};
 use crate::refinement::ruin::{CompositeRuin, Ruin};
 use crate::refinement::selection::{SelectRandom, Selection};
@@ -42,7 +42,7 @@ impl Default for Solver {
             Box::new(CompositeRecreate::default()),
             Box::new(CompositeRuin::default()),
             Box::new(SelectRandom::default()),
-            Box::new(Greedy::default()),
+            Box::new(RandomProbability::default()),
             Box::new(CompositeTermination::default()),
             SolverSettings::default(),
             Box::new(|msg| println!("{}", msg)),

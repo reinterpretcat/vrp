@@ -10,4 +10,4 @@ mod greedy;
 pub use self::greedy::Greedy;
 
 mod random;
-pub use self::random::SmoothRandom;
+pub use self::random::RandomProbability;

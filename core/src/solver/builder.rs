@@ -1,6 +1,6 @@
 use crate::construction::states::InsertionContext;
 use crate::models::{Problem, Solution};
-use crate::refinement::acceptance::Greedy;
+use crate::refinement::acceptance::{Greedy, RandomProbability};
 use crate::refinement::termination::*;
 use crate::solver::Solver;
 use crate::utils::DefaultRandom;
@@ -94,7 +94,7 @@ impl SolverBuilder {
 
         if let Some(value) = self.minimize_routes {
             self.solver.logger.deref()(format!("configured to use minimize routes: {}", value));
-            self.solver.acceptance = Box::new(Greedy::new(value));
+            self.solver.acceptance = Box::new(RandomProbability::new(Box::new(Greedy::new(value)), 0.001));
             self.solver.settings.minimize_routes = value;
         }
 
