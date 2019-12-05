@@ -35,13 +35,8 @@ impl Default for CompositeRuin {
         let adjusted_string_agressive = Arc::new(AdjustedStringRemoval::new(30, 120, 0.02));
 
         let worst_job_default = Arc::new(WorstJobRemoval::default());
-        let worst_job_agressive = Arc::new(WorstJobRemoval::new(120, 8, (4, 16)));
-
         let random_job_default = Arc::new(RandomJobRemoval::default());
-        let random_job_agressive = Arc::new(RandomJobRemoval::new(30, 120, 0.2));
-
         let random_route_default = Arc::new(RandomRouteRemoval::default());
-        let random_route_agressive = Arc::new(RandomRouteRemoval::new(5, 20, 0.2));
 
         Self::new(vec![
             (
@@ -53,20 +48,9 @@ impl Default for CompositeRuin {
                 100,
             ),
             (vec![(adjusted_string_agressive.clone(), 1.)], 3),
-            (
-                vec![
-                    (worst_job_default.clone(), 1.),
-                    (random_route_default.clone(), 0.05),
-                    (random_job_default.clone(), 0.05),
-                ],
-                100,
-            ),
-            (vec![(worst_job_agressive.clone(), 1.)], 3),
-            (vec![(worst_job_default.clone(), 1.), (adjusted_string_default.clone(), 1.)], 20),
             (vec![(random_job_default.clone(), 1.), (random_route_default.clone(), 0.02)], 2),
-            (vec![(random_job_agressive.clone(), 1.)], 1),
             (vec![(random_route_default.clone(), 1.), (random_job_default.clone(), 0.02)], 2),
-            (vec![(random_route_agressive.clone(), 1.)], 1),
+            (vec![(worst_job_default.clone(), 1.), (adjusted_string_default.clone(), 1.)], 1),
         ])
     }
 }
