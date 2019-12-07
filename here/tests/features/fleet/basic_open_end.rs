@@ -18,6 +18,7 @@ fn can_use_vehicle_with_open_end() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

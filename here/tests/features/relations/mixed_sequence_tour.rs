@@ -40,6 +40,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

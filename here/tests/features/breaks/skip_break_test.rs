@@ -33,6 +33,7 @@ fn can_skip_break_when_vehicle_not_used() {
                 },
                 create_default_vehicle("vehicle_without_break"),
             ],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -126,6 +127,7 @@ fn can_skip_break_when_jobs_completed() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -217,6 +219,7 @@ fn can_skip_second_break_when_jobs_completed() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

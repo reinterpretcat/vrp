@@ -43,6 +43,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_with_new_jobs() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

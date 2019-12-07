@@ -14,7 +14,7 @@ fn can_use_one_pickup_delivery_and_two_deliveries_with_one_vehicle() {
             ],
             relations: None,
         },
-        fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")] },
+        fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
     };
     let matrix = create_matrix_from_problem(&problem);
 

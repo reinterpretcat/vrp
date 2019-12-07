@@ -21,7 +21,10 @@ fn can_handle_limited_capacity() {
             ],
             relations: Option::None,
         },
-        fleet: Fleet { types: vec![create_vehicle_with_capacity("my_vehicle", vec![2])] },
+        fleet: Fleet {
+            types: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
+            profiles: create_default_profiles(),
+        },
     };
     let matrix = create_matrix_from_problem(&problem);
 

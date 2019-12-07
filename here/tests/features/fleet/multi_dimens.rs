@@ -24,6 +24,7 @@ fn can_use_two_dimensions() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -95,6 +96,7 @@ fn can_unassign_due_to_dimension_mismatch() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

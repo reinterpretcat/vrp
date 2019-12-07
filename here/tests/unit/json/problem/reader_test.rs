@@ -1,5 +1,5 @@
 use crate::extensions::MultiDimensionalCapacity;
-use crate::helpers::{get_test_resource, single_demand_as_multi};
+use crate::helpers::{create_default_profiles, get_test_resource, single_demand_as_multi};
 use crate::json::problem::*;
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::{Dimensions, IdDimension, TimeWindow};
@@ -170,6 +170,7 @@ fn can_read_complex_problem() {
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),
                 limits: Some(VehicleLimits { max_distance: Some(123.1), shift_time: Some(100.) }),
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = Matrix {

@@ -37,6 +37,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

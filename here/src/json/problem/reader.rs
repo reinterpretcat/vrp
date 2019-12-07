@@ -529,9 +529,9 @@ fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
 }
 
 fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
-    api_problem.fleet.types.iter().fold(Default::default(), |mut acc, vehicle| {
-        if acc.get(&vehicle.profile) == None {
-            acc.insert(vehicle.profile.clone(), acc.len());
+    api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
+        if acc.get(&profile.name) == None {
+            acc.insert(profile.name.clone(), acc.len());
         }
         acc
     })

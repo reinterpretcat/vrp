@@ -24,6 +24,7 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

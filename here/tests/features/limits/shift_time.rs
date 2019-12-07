@@ -18,6 +18,7 @@ fn can_limit_one_job_by_shift_time() {
                 skills: None,
                 limits: Some(VehicleLimits { max_distance: None, shift_time: Some(99.) }),
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = Matrix {
@@ -78,6 +79,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                 skills: None,
                 limits: Some(VehicleLimits { max_distance: None, shift_time: Some(40.) }),
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

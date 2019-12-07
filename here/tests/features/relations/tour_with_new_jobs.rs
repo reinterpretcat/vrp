@@ -29,6 +29,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);

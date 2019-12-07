@@ -179,6 +179,10 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
     }
 }
 
+pub fn create_default_profiles() -> Vec<Profile> {
+    vec![Profile { name: "car".to_string(), profile_type: "car".to_string() }]
+}
+
 pub fn create_matrix(data: Vec<i64>) -> Matrix {
     let size = (data.len() as f64).sqrt() as i32;
 

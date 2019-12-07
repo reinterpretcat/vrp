@@ -137,8 +137,16 @@ pub struct VehicleType {
 }
 
 #[derive(Clone, Deserialize)]
+pub struct Profile {
+    pub name: String,
+    #[serde(rename(deserialize = "type"))]
+    pub profile_type: String,
+}
+
+#[derive(Clone, Deserialize)]
 pub struct Fleet {
     pub types: Vec<VehicleType>,
+    pub profiles: Vec<Profile>,
 }
 
 // endregion

@@ -10,7 +10,10 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
             jobs: vec![create_delivery_job_with_skills("job1", vec![1., 0.], vec!["unique_skill".to_string()])],
             relations: Option::None,
         },
-        fleet: Fleet { types: vec![create_default_vehicle("vehicle_without_skill")] },
+        fleet: Fleet {
+            types: vec![create_default_vehicle("vehicle_without_skill")],
+            profiles: create_default_profiles(),
+        },
     };
     let matrix = create_matrix_from_problem(&problem);
 

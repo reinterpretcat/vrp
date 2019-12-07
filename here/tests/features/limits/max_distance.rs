@@ -18,6 +18,7 @@ fn can_limit_by_max_distance() {
                 skills: None,
                 limits: Some(VehicleLimits { max_distance: Some(99.), shift_time: None }),
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = Matrix {

@@ -25,6 +25,7 @@ fn can_assign_break_between_jobs() {
                 skills: None,
                 limits: None,
             }],
+            profiles: create_default_profiles(),
         },
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -50,35 +51,35 @@ fn can_assign_break_between_jobs() {
                         "departure",
                         (0., 0.),
                         2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z")
+                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                     ),
                     create_stop_with_activity(
                         "job1",
                         "delivery",
                         (5., 0.),
                         1,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z")
+                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
                     ),
                     create_stop_with_activity(
                         "break",
                         "break",
                         (6., 0.),
                         1,
-                        ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z")
+                        ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
                     ),
                     create_stop_with_activity(
                         "job2",
                         "delivery",
                         (10., 0.),
                         0,
-                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z")
+                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
                     ),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",
                         (0., 0.),
                         0,
-                        ("1970-01-01T00:00:24Z", "1970-01-01T00:00:24Z")
+                        ("1970-01-01T00:00:24Z", "1970-01-01T00:00:24Z"),
                     )
                 ],
                 statistic: Statistic {
