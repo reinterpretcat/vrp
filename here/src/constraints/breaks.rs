@@ -2,6 +2,7 @@
 #[path = "../../tests/unit/constraints/breaks_test.rs"]
 mod breaks_test;
 
+use crate::constraints::as_single_job;
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use core::models::common::{Cost, Dimensions, IdDimension, ValueDimension};
@@ -80,6 +81,7 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
             if activity_ctx.prev.job.is_none() {
                 return self.stop();
             } else {
+                // TODO move this to route level constraint
                 // lock break to specific vehicle and shift
                 let vehicle_id = get_vehicle_id_from_break(&break_job).unwrap();
                 let shift_index = get_shift_index(&break_job.dimens);
@@ -186,16 +188,7 @@ fn is_break_job(job: &Arc<Single>) -> bool {
 }
 
 fn as_break_job(activity: &Activity) -> Option<Arc<Single>> {
-    activity.job.as_ref().and_then(|job| match job.as_ref() {
-        Job::Single(job) => {
-            if is_break_job(job) {
-                Some(job.clone())
-            } else {
-                None
-            }
-        }
-        _ => None,
-    })
+    as_single_job(activity, |job| is_break_job(job))
 }
 
 fn get_vehicle_id_from_break(job: &Single) -> Option<&String> {

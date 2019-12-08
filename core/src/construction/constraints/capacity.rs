@@ -12,9 +12,9 @@ use std::ops::{Add, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 
-const CURRENT_CAPACITY_KEY: i32 = 11;
-const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
-const MAX_PAST_CAPACITY_KEY: i32 = 13;
+pub const CURRENT_CAPACITY_KEY: i32 = 11;
+pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
+pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
 
 // TODO to avoid code duplication in generic type definition and implementation,
 // TODO consider to use TODO trait aliases once they are stabilized (or macro?).
@@ -79,6 +79,73 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             phantom: PhantomData,
         }
     }
+
+    pub fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
+        activity.job.as_ref().and_then(|job| match job.as_ref() {
+            Job::Single(job) => job.dimens.get_demand(),
+            _ => None,
+        })
+    }
+
+    pub fn can_handle_demand(
+        state: &RouteState,
+        pivot: &TourActivity,
+        capacity: Option<&Capacity>,
+        demand: Option<&Demand<Capacity>>,
+    ) -> bool {
+        if let Some(demand) = demand {
+            if let Some(&capacity) = capacity {
+                // cannot handle more static deliveries
+                if demand.delivery.0 > Capacity::default() {
+                    let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+                    if past + demand.delivery.0 > capacity {
+                        return false;
+                    }
+                }
+
+                let change = demand.change();
+
+                // cannot handle more pickups
+                if change > Capacity::default() {
+                    let future =
+                        *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+                    if future + change > capacity {
+                        return false;
+                    }
+                }
+
+                // can load more at current
+                let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+
+                current + change <= capacity
+            } else {
+                false
+            }
+        } else {
+            true
+        }
+    }
+
+    pub fn store_max_past_current_state(
+        state: &mut RouteState,
+        activity: &TourActivity,
+        current: Capacity,
+        max: Capacity,
+    ) -> (Capacity, Capacity) {
+        let current = current + Self::get_demand(activity).unwrap_or(&Demand::<Capacity>::default()).change();
+        let max = std::cmp::max(max, current);
+
+        state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
+        state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity, max);
+
+        (current, max)
+    }
+
+    pub fn store_max_future_state(state: &mut RouteState, activity: &TourActivity, max: Capacity) -> Capacity {
+        let max = std::cmp::max(max, *state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
+        state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
+        max
+    }
 }
 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
@@ -87,26 +154,16 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn accept_route_state(&self, ctx: &mut RouteContext) {
         let (route, state) = ctx.as_mut();
 
-        let start = route
+        let start = route.tour.all_activities().fold(Capacity::default(), |total, a| {
+            total + Self::get_demand(a).map_or(Capacity::default(), |d| d.delivery.0)
+        });
+
+        let (end, _) = route
             .tour
             .all_activities()
-            .fold(Capacity::default(), |total, a| total + get_demand(a).map_or(Capacity::default(), |d| d.delivery.0));
+            .fold((start, start), |(current, max), a| Self::store_max_past_current_state(state, a, current, max));
 
-        let end = route.tour.all_activities().fold((start, start), |acc, a| {
-            let current = acc.0 + get_demand(a).unwrap_or(&Demand::<Capacity>::default()).change();
-            let max = std::cmp::max(acc.1, current);
-
-            state.put_activity_state(CURRENT_CAPACITY_KEY, a, current);
-            state.put_activity_state(MAX_PAST_CAPACITY_KEY, a, max);
-
-            (current, max)
-        });
-
-        route.tour.all_activities().rev().fold(end.0, |acc, a| {
-            let max = std::cmp::max(acc, *state.get_activity_state(CURRENT_CAPACITY_KEY, a).unwrap());
-            state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, a, max);
-            max
-        });
+        route.tour.all_activities().rev().fold(end, |max, a| Self::store_max_future_state(state, a, max));
     }
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
@@ -170,7 +227,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         match job.as_ref() {
             Job::Single(job) => {
-                if can_handle_demand::<Capacity>(
+                if CapacityConstraintModule::<Capacity>::can_handle_demand(
                     &ctx.state,
                     ctx.route.tour.start().unwrap_or_else(|| unimplemented!("Optional start is not yet implemented.")),
                     ctx.route.actor.vehicle.dimens.get_capacity(),
@@ -205,7 +262,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             _ => None,
         });
 
-        if can_handle_demand::<Capacity>(
+        if CapacityConstraintModule::<Capacity>::can_handle_demand(
             &route_ctx.state,
             activity_ctx.prev,
             route_ctx.route.actor.vehicle.dimens.get_capacity(),
@@ -215,56 +272,5 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         } else {
             Some(ActivityConstraintViolation { code: self.code, stopped: false })
         }
-    }
-}
-
-fn get_demand<
-    Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
->(
-    activity: &TourActivity,
-) -> Option<&Demand<Capacity>> {
-    activity.job.as_ref().and_then(|job| match job.as_ref() {
-        Job::Single(job) => job.dimens.get_demand(),
-        _ => None,
-    })
-}
-
-fn can_handle_demand<
-    Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
->(
-    state: &RouteState,
-    pivot: &TourActivity,
-    capacity: Option<&Capacity>,
-    demand: Option<&Demand<Capacity>>,
-) -> bool {
-    if let Some(demand) = demand {
-        if let Some(&capacity) = capacity {
-            // cannot handle more static deliveries
-            if demand.delivery.0 > Capacity::default() {
-                let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
-                if past + demand.delivery.0 > capacity {
-                    return false;
-                }
-            }
-
-            let change = demand.change();
-
-            // cannot handle more pickups
-            if change > Capacity::default() {
-                let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
-                if future + change > capacity {
-                    return false;
-                }
-            }
-
-            // can load more at current
-            let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
-
-            current + change <= capacity
-        } else {
-            false
-        }
-    } else {
-        true
     }
 }

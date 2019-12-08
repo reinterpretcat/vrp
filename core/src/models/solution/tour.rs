@@ -78,6 +78,11 @@ impl Tour {
         self.activities.iter()
     }
 
+    /// Returns activities slice in specific range.
+    pub fn activities_slice(&self, start: usize, end: usize) -> &[TourActivity] {
+        &self.activities[start..end]
+    }
+
     /// Returns all activities in tour as mutable.
     pub fn all_activities_mut(&mut self) -> IterMut<TourActivity> {
         self.activities.iter_mut()

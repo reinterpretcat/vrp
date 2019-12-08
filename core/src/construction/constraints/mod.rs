@@ -13,10 +13,7 @@ mod timing;
 pub use self::timing::TimingConstraintModule;
 
 mod capacity;
-pub use self::capacity::CapacityConstraintModule;
-pub use self::capacity::CapacityDimension;
-pub use self::capacity::Demand;
-pub use self::capacity::DemandDimension;
+pub use self::capacity::*;
 
 mod traveling;
 pub use self::traveling::TravelLimitFunc;

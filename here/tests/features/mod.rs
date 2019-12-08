@@ -3,6 +3,7 @@ mod fleet;
 mod limits;
 mod multjob;
 mod multshift;
+mod multtour;
 mod pickdev;
 mod relations;
 mod skills;
