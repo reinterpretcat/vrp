@@ -2,10 +2,10 @@
 #[path = "../../tests/unit/constraints/breaks_test.rs"]
 mod breaks_test;
 
-use crate::constraints::as_single_job;
+use crate::constraints::{as_single_job, get_shift_index, get_vehicle_id_from_job, is_correct_vehicle};
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use core::models::common::{Cost, Dimensions, IdDimension, ValueDimension};
+use core::models::common::{Cost, ValueDimension};
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
 use std::collections::HashSet;
@@ -83,7 +83,7 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
             } else {
                 // TODO move this to route level constraint
                 // lock break to specific vehicle and shift
-                let vehicle_id = get_vehicle_id_from_break(&break_job).unwrap();
+                let vehicle_id = get_vehicle_id_from_job(&break_job).unwrap();
                 let shift_index = get_shift_index(&break_job.dimens);
 
                 if !is_correct_vehicle(route_ctx, vehicle_id, shift_index) {
@@ -116,7 +116,7 @@ fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
     match job.as_ref() {
         Job::Single(job) => {
             if is_break_job(job) {
-                let vehicle_id = get_vehicle_id_from_break(job.as_ref()).unwrap();
+                let vehicle_id = get_vehicle_id_from_job(job).unwrap();
                 let shift_index = get_shift_index(&job.dimens);
                 ctx.routes.iter().any(move |rc| is_correct_vehicle(rc, &vehicle_id, shift_index) && is_time(rc, job))
             } else {
@@ -139,7 +139,7 @@ fn demote_unassigned_breaks(ctx: &mut SolutionContext) {
         .unassigned
         .iter()
         .filter_map(|(job, _)| match job.as_ref() {
-            Job::Single(single) => get_vehicle_id_from_break(single.as_ref()).map(|_| job.clone()),
+            Job::Single(single) => get_vehicle_id_from_job(single).map(|_| job.clone()),
             Job::Multi(_) => None,
         })
         .collect();
@@ -189,19 +189,6 @@ fn is_break_job(job: &Arc<Single>) -> bool {
 
 fn as_break_job(activity: &Activity) -> Option<Arc<Single>> {
     as_single_job(activity, |job| is_break_job(job))
-}
-
-fn get_vehicle_id_from_break(job: &Single) -> Option<&String> {
-    job.dimens.get_value::<String>("vehicle_id")
-}
-
-fn get_shift_index(dimens: &Dimensions) -> usize {
-    *dimens.get_value::<usize>("shift_index").unwrap()
-}
-
-fn is_correct_vehicle(rc: &RouteContext, target_id: &String, target_shift: usize) -> bool {
-    rc.route.actor.vehicle.dimens.get_id().unwrap() == target_id
-        && get_shift_index(&rc.route.actor.vehicle.dimens) == target_shift
 }
 
 fn is_time(rc: &RouteContext, break_job: &Single) -> bool {

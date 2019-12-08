@@ -69,6 +69,7 @@ struct ProblemProperties {
     has_skills: bool,
     has_unreachable_locations: bool,
     has_fixed_cost: bool,
+    has_multi_tour: bool,
 }
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
@@ -250,6 +251,7 @@ fn create_constraint_pipeline(
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
 
+    // TODO
     if props.has_multi_dimen_capacity {
         constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
     } else {
@@ -410,6 +412,7 @@ fn read_conditional_jobs(
 
     api_problem.fleet.types.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
+            // TODO add multi tour here
             if let Some(breaks) = &shift.breaks {
                 breaks.iter().for_each(|place| {
                     (1..vehicle.amount + 1).for_each(|index| {
@@ -558,8 +561,17 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         JobVariant::Multi(job) => job.skills.is_some(),
     });
     let has_fixed_cost = api_problem.fleet.types.iter().any(|t| t.costs.fixed.is_some());
+    let has_multi_tour =
+        api_problem.fleet.types.iter().any(|t| t.shifts.iter().any(|s| s.max_tours.map_or(false, |mt| mt > 1)));
 
-    ProblemProperties { has_multi_dimen_capacity, has_breaks, has_skills, has_unreachable_locations, has_fixed_cost }
+    ProblemProperties {
+        has_multi_dimen_capacity,
+        has_breaks,
+        has_skills,
+        has_unreachable_locations,
+        has_fixed_cost,
+        has_multi_tour,
+    }
 }
 
 // region helpers

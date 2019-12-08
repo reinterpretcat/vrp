@@ -1,7 +1,7 @@
-use crate::constraints::as_single_job;
+use crate::constraints::{as_single_job, get_shift_index, get_vehicle_id_from_job, is_correct_vehicle};
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use core::models::common::{IdDimension, ValueDimension};
+use core::models::common::{Dimensions, IdDimension, ValueDimension};
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
 use std::iter::once;
@@ -16,12 +16,19 @@ pub struct MultiTourCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + 
     state_keys: Vec<i32>,
     capacity_inner: CapacityConstraintModule<Capacity>,
     conditional_inner: ConditionalJobModule,
+    constraints: Vec<ConstraintVariant>,
 }
 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     MultiTourCapacityConstraintModule<Capacity>
 {
     pub fn new(code: i32, minimum: Capacity) -> Self {
+        let mut constraints = vec![
+            ConstraintVariant::HardRoute(Arc::new(MultiTourHardRouteConstraint { code })),
+            ConstraintVariant::HardActivity(Arc::new(MultiTourHardActivityConstraint { code })),
+        ];
+        constraints.extend(CapacityConstraintModule::<Capacity>::new(code).constraints());
+
         let capacity_inner = CapacityConstraintModule::new(code);
         let conditional_inner =
             ConditionalJobModule::new(Box::new(move |ctx, job| Self::is_required_job(ctx, job, &minimum)));
@@ -31,6 +38,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             state_keys: capacity_inner.state_keys().chain(once(&MULTI_TOUR_KEY)).cloned().collect(),
             capacity_inner,
             conditional_inner,
+            constraints,
         }
     }
 
@@ -57,7 +65,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             Job::Single(job) => {
                 if let Some(tour_index) = get_tour_index(job) {
                     let vehicle_id = get_vehicle_id_from_job(job).unwrap();
-                    ctx.routes.iter().any(move |rc| is_same_vehicle(rc, vehicle_id) && is_time(rc, tour_index))
+                    let shift_index = get_shift_index(&job.dimens);
+                    ctx.routes
+                        .iter()
+                        .any(move |rc| is_correct_vehicle(rc, vehicle_id, shift_index) && is_time(rc, tour_index))
                 } else {
                     true
                 }
@@ -131,11 +142,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional_inner.accept_solution_state(ctx);
-
-        // TODO make sure that multi tour jobs are locked (do this in reader)?
-        // This should prevent them from being ruined. But this brings
-        // possibility that reconstructed multi tour will be sparse
-
+        // NOTE assume that multi tour jobs are locked in reader
         remove_trivial_tours(ctx);
     }
 
@@ -144,8 +151,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     fn get_constraints(&self) -> Iter<ConstraintVariant> {
-        // TODO return all constraints
-        self.capacity_inner.get_constraints()
+        self.constraints.iter()
     }
 }
 
@@ -160,7 +166,9 @@ impl HardRouteConstraint for MultiTourHardRouteConstraint {
             Job::Single(job) => {
                 if let Some(tour_index) = get_tour_index(job) {
                     let vehicle_id = get_vehicle_id_from_job(job).unwrap();
-                    if !is_same_vehicle(ctx, vehicle_id) {
+                    let shift_index = get_shift_index(&job.dimens);
+
+                    if !is_correct_vehicle(ctx, vehicle_id, shift_index) {
                         return Some(RouteConstraintViolation { code: self.code });
                     }
                 }
@@ -196,12 +204,6 @@ impl HardActivityConstraint for MultiTourHardActivityConstraint {
 /// Removes multi tours without jobs.
 fn remove_trivial_tours(ctx: &mut SolutionContext) {
     // TODO remove multi tour job if next is final arrival or none (open vrp)
-    unimplemented!()
-}
-
-/// Checks whether route has vehicle with given id.
-fn is_same_vehicle(ctx: &RouteContext, target_id: &String) -> bool {
-    ctx.route.actor.vehicle.dimens.get_id().unwrap() == target_id
 }
 
 /// Checks whether tour index of job is applicable for current tour index of route.
@@ -223,8 +225,4 @@ fn get_tour_state(ctx: &RouteContext) -> Option<usize> {
 
 fn get_tour_index(job: &Arc<Single>) -> Option<usize> {
     job.dimens.get_value::<usize>("tour_index").cloned()
-}
-
-fn get_vehicle_id_from_job(job: &Arc<Single>) -> Option<&String> {
-    job.dimens.get_value::<String>("vehicle_id")
 }
