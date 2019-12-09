@@ -164,7 +164,7 @@ impl HardRouteConstraint for MultiTourHardRouteConstraint {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         match job.as_ref() {
             Job::Single(job) => {
-                if let Some(tour_index) = get_tour_index(job) {
+                if is_multi_tour_job(job) {
                     let vehicle_id = get_vehicle_id_from_job(job).unwrap();
                     let shift_index = get_shift_index(&job.dimens);
 
@@ -215,8 +215,12 @@ fn is_time(ctx: &RouteContext, tour_index_job: usize) -> bool {
     }
 }
 
+fn is_multi_tour_job(job: &Arc<Single>) -> bool {
+    job.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
+}
+
 fn as_multi_tour_job(activity: &Activity) -> Option<Arc<Single>> {
-    as_single_job(activity, |job| get_tour_index(job).is_some())
+    as_single_job(activity, |job| is_multi_tour_job(job))
 }
 
 fn get_tour_state(ctx: &RouteContext) -> Option<usize> {

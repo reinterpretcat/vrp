@@ -6,7 +6,9 @@ use super::StringReader;
 use crate::constraints::{BreakModule, ExtraCostModule, ReachableModule, SkillsModule};
 use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
-use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType};
+use crate::json::problem::{
+    deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType, VehicleBreak, VehicleType,
+};
 use crate::utils::get_split_permutations;
 use chrono::DateTime;
 use core::construction::constraints::*;
@@ -414,35 +416,42 @@ fn read_conditional_jobs(
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             // TODO add multi tour here
             if let Some(breaks) = &shift.breaks {
-                breaks.iter().for_each(|place| {
-                    (1..vehicle.amount + 1).for_each(|index| {
-                        let id = format!("{}_{}", vehicle.id, index);
-                        let times = if place.times.is_empty() {
-                            panic!("Break without any time window does not make sense!")
-                        } else {
-                            Some(place.times.clone())
-                        };
-                        let mut single = get_single(
-                            place.location.as_ref().and_then(|l| Some(l)),
-                            place.duration,
-                            &times,
-                            coord_index,
-                        );
-                        single.dimens.set_id("break");
-                        single.dimens.insert("type".to_string(), Box::new("break".to_string()));
-                        single.dimens.insert("shift_index".to_string(), Box::new(shift_index));
-                        single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
-
-                        let job = Arc::new(Job::Single(Arc::new(single)));
-                        job_index.insert(format!("{}_break", id), job.clone());
-                        jobs.push(job);
-                    });
-                });
+                read_breaks(coord_index, job_index, &mut jobs, vehicle, breaks, shift_index);
             }
         }
     });
 
     jobs
+}
+
+fn read_breaks(
+    coord_index: &CoordIndex,
+    job_index: &mut JobIndex,
+    jobs: &mut Vec<Arc<Job>>,
+    vehicle: &VehicleType,
+    breaks: &Vec<VehicleBreak>,
+    shift_index: usize,
+) {
+    breaks.iter().for_each(|place| {
+        (1..vehicle.amount + 1).for_each(|index| {
+            let id = format!("{}_{}", vehicle.id, index);
+            let times = if place.times.is_empty() {
+                panic!("Break without any time window does not make sense!")
+            } else {
+                Some(place.times.clone())
+            };
+            let mut single =
+                get_single(place.location.as_ref().and_then(|l| Some(l)), place.duration, &times, coord_index);
+            single.dimens.set_id("break");
+            single.dimens.insert("type".to_string(), Box::new("break".to_string()));
+            single.dimens.insert("shift_index".to_string(), Box::new(shift_index));
+            single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
+
+            let job = Arc::new(Job::Single(Arc::new(single)));
+            job_index.insert(format!("{}_break", id), job.clone());
+            jobs.push(job);
+        });
+    });
 }
 
 fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {

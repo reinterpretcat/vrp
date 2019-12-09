@@ -62,18 +62,11 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                         ("1970-01-01T00:00:1Z", "1970-01-01T00:00:02Z"),
                     ),
                     create_stop_with_activity(
-                        "arrival",
-                        "arrival",
+                        "reload",
+                        "reload",
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:03Z"),
-                    ),
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        1,
-                        ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
                     ),
                     create_stop_with_activity(
                         "job2",
