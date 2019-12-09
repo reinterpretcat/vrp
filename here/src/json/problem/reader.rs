@@ -481,29 +481,23 @@ fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> 
                 _ => LockPosition::Any,
             };
 
-            let jobs = rel
+            let (_, jobs) = rel
                 .jobs
                 .iter()
                 .filter(|job| job.as_str() != "departure" && job.as_str() != "arrival")
-                .flat_map(|job| {
-                    if job.as_str() == "break" {
-                        (1..)
-                            .try_fold(vec![], |mut acc, idx| {
-                                if let Some(job) =
-                                    job_index.get(format!("{}_break_{}", vehicle_id, idx).as_str()).cloned()
-                                {
-                                    acc.push(job);
-                                    Ok(acc)
-                                } else {
-                                    Err(acc)
-                                }
-                            })
-                            .unwrap_or_else(|acc| acc)
-                    } else {
-                        vec![job_index.get(job).unwrap().clone()]
-                    }
-                })
-                .collect();
+                .fold((0_usize, vec![]), |(mut break_idx, mut jobs), job| {
+                    let job = match job.as_str() {
+                        "break" => {
+                            break_idx += 1;
+                            job_index.get(format!("{}_break_{}", vehicle_id, break_idx).as_str()).cloned().unwrap()
+                        }
+                        _ => job_index.get(job).unwrap().clone(),
+                    };
+
+                    jobs.push(job);
+
+                    (break_idx, jobs)
+                });
 
             acc.push(LockDetail::new(order, position, jobs));
 
