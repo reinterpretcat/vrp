@@ -22,11 +22,13 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                     type_field: RelationType::Sequence,
                     jobs: to_strings(vec!["departure", "job1", "job6", "job4", "job8", "arrival"]),
                     vehicle_id: "my_vehicle_1".to_string(),
+                    shift_index: None,
                 },
                 Relation {
                     type_field: RelationType::Sequence,
                     jobs: to_strings(vec!["departure", "job2", "job3", "job5", "job7", "arrival"]),
                     vehicle_id: "my_vehicle_2".to_string(),
+                    shift_index: None,
                 },
             ]),
         },

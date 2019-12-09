@@ -15,6 +15,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                 type_field: RelationType::Sequence,
                 jobs: to_strings(vec!["job1", "job2", "job1", "job2"]),
                 vehicle_id: "my_vehicle_1".to_string(),
+                shift_index: None,
             }]),
         },
         fleet: Fleet {

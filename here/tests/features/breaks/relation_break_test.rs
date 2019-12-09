@@ -7,7 +7,12 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
         id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
-            relations: Some(vec![Relation { type_field: relation_type, jobs, vehicle_id: "my_vehicle_1".to_string() }]),
+            relations: Some(vec![Relation {
+                type_field: relation_type,
+                jobs,
+                vehicle_id: "my_vehicle_1".to_string(),
+                shift_index: None,
+            }]),
         },
         fleet: Fleet {
             types: vec![VehicleType {

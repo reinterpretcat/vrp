@@ -21,11 +21,13 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                     type_field: RelationType::Sequence,
                     jobs: to_strings(vec!["departure", "job4", "job2", "job6"]),
                     vehicle_id: "my_vehicle_1".to_string(),
+                    shift_index: None,
                 },
                 Relation {
                     type_field: RelationType::Tour,
                     jobs: to_strings(vec!["job1", "job3"]),
                     vehicle_id: "my_vehicle_1".to_string(),
+                    shift_index: None,
                 },
             ]),
         },

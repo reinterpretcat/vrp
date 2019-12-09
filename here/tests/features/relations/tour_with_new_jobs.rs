@@ -16,6 +16,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                 type_field: RelationType::Tour,
                 jobs: to_strings(vec!["job1", "job3"]),
                 vehicle_id: "my_vehicle_1".to_string(),
+                shift_index: None,
             }]),
         },
         fleet: Fleet {

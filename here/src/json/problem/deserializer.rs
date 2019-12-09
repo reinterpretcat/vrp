@@ -25,6 +25,7 @@ pub struct Relation {
     pub type_field: RelationType,
     pub jobs: Vec<String>,
     pub vehicle_id: String,
+    pub shift_index: Option<usize>,
 }
 
 #[derive(Clone, Deserialize)]

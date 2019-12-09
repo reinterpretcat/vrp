@@ -525,14 +525,20 @@ fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> 
     }
 
     let relations = api_problem.plan.relations.as_ref().unwrap().iter().fold(HashMap::new(), |mut acc, r| {
-        acc.entry(r.vehicle_id.clone()).or_insert(vec![]).push(r.clone());
+        let shift_index = r.shift_index.unwrap_or(0);
+        acc.entry((r.vehicle_id.clone(), shift_index)).or_insert(vec![]).push(r.clone());
+
         acc
     });
 
-    let locks = relations.into_iter().fold(vec![], |mut acc, (vehicle_id, rels)| {
+    let locks = relations.into_iter().fold(vec![], |mut acc, ((vehicle_id, shift_index), rels)| {
         let vehicle_id_copy = vehicle_id.clone();
-        let condition = Arc::new(move |a: &Actor| *a.vehicle.dimens.get_id().unwrap() == vehicle_id_copy);
+        let condition = Arc::new(move |a: &Actor| {
+            *a.vehicle.dimens.get_id().unwrap() == vehicle_id_copy
+                && *a.vehicle.dimens.get_value::<usize>("shift_index").unwrap() == shift_index
+        });
         let details = rels.iter().fold(vec![], |mut acc, rel| {
+            let shift_index = rel.shift_index.unwrap_or(0);
             let order = match rel.type_field {
                 RelationType::Tour => LockOrder::Any,
                 RelationType::Flexible => LockOrder::Sequence,
