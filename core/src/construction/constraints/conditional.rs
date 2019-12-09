@@ -12,14 +12,14 @@ use std::sync::Arc;
 /// Allows to promote jobs between required and ignored collection using some condition.
 /// Useful to model some optional/conditional activities, e.g. breaks, refueling, etc.
 pub struct ConditionalJobModule {
-    condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>,
+    required_condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
 }
 
 impl ConditionalJobModule {
     pub fn new(condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>) -> Self {
-        Self { condition, state_keys: vec![], constraints: vec![] }
+        Self { required_condition: condition, state_keys: vec![], constraints: vec![] }
     }
 }
 
@@ -29,12 +29,12 @@ impl ConstraintModule for ConditionalJobModule {
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         // identify ignored inside required
         let ignored: HashSet<Arc<Job>> =
-            ctx.required.iter().filter(|job| !(self.condition)(ctx, job)).cloned().collect();
+            ctx.required.iter().filter(|job| !(self.required_condition)(ctx, job)).cloned().collect();
         ctx.required.retain(|job| !ignored.contains(job));
 
         // identify required inside ignored
         let required: HashSet<Arc<Job>> =
-            ctx.ignored.iter().filter(|job| (self.condition)(ctx, job)).cloned().collect();
+            ctx.ignored.iter().filter(|job| (self.required_condition)(ctx, job)).cloned().collect();
         ctx.ignored.retain(|job| !required.contains(job));
 
         ctx.required.extend(required);

@@ -213,7 +213,7 @@ fn read_conditional_jobs(
                         .and_then(|p| Some(p.time.clone()))
                         .unwrap_or_else(|| "2970-01-01T00:00:00Z".to_string()),
                 ]]);
-                let reloads = (0..max_tour).fold(vec![], |mut acc, _| {
+                let reloads = (1..max_tour).fold(vec![], |mut acc, _| {
                     acc.push((&location, duration, &times));
                     acc
                 });
