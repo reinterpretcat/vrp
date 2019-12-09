@@ -22,7 +22,7 @@ pub struct BreakModule {
 impl BreakModule {
     pub fn new(code: i32, extra_break_cost: Option<Cost>, demote_breaks_from_unassigned: bool) -> Self {
         Self {
-            conditional: ConditionalJobModule::new(Box::new(|ctx, job| is_required_job(ctx, job))),
+            conditional: ConditionalJobModule::new(Some(Box::new(|ctx, job| is_required_job(ctx, job))), None),
             constraints: vec![
                 ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint { code })),
                 ConstraintVariant::SoftActivity(Arc::new(BreakSoftActivityConstraint { extra_break_cost })),

@@ -9,17 +9,20 @@ use std::collections::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
 
+pub type JobCondition = Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>;
+
 /// Allows to promote jobs between required and ignored collection using some condition.
 /// Useful to model some optional/conditional activities, e.g. breaks, refueling, etc.
 pub struct ConditionalJobModule {
-    required_condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>,
+    required_condition: Option<JobCondition>,
+    locked_condition: Option<JobCondition>,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
 }
 
 impl ConditionalJobModule {
-    pub fn new(condition: Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>) -> Self {
-        Self { required_condition: condition, state_keys: vec![], constraints: vec![] }
+    pub fn new(required_condition: Option<JobCondition>, locked_condition: Option<JobCondition>) -> Self {
+        Self { required_condition, locked_condition, state_keys: vec![], constraints: vec![] }
     }
 }
 
@@ -27,18 +30,32 @@ impl ConstraintModule for ConditionalJobModule {
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        // identify ignored inside required
-        let ignored: HashSet<Arc<Job>> =
-            ctx.required.iter().filter(|job| !(self.required_condition)(ctx, job)).cloned().collect();
-        ctx.required.retain(|job| !ignored.contains(job));
+        if let Some(required_condition) = &self.required_condition {
+            // identify ignored inside required
+            let ignored: HashSet<Arc<Job>> =
+                ctx.required.iter().filter(|job| !(required_condition)(ctx, job)).cloned().collect();
+            ctx.required.retain(|job| !ignored.contains(job));
 
-        // identify required inside ignored
-        let required: HashSet<Arc<Job>> =
-            ctx.ignored.iter().filter(|job| (self.required_condition)(ctx, job)).cloned().collect();
-        ctx.ignored.retain(|job| !required.contains(job));
+            // identify required inside ignored
+            let required: HashSet<Arc<Job>> =
+                ctx.ignored.iter().filter(|job| (required_condition)(ctx, job)).cloned().collect();
+            ctx.ignored.retain(|job| !required.contains(job));
 
-        ctx.required.extend(required);
-        ctx.ignored.extend(ignored);
+            ctx.required.extend(required);
+            ctx.ignored.extend(ignored);
+        }
+
+        if let Some(locked_condition) = &self.locked_condition {
+            // remove from locked
+            let not_locked: HashSet<Arc<Job>> =
+                ctx.locked.iter().filter(|job| !(locked_condition)(ctx, job)).cloned().collect();
+            ctx.locked.retain(|job| !not_locked.contains(job));
+
+            // promote to locked
+            let locked: HashSet<Arc<Job>> =
+                ctx.required.iter().filter(|job| (locked_condition)(ctx, job)).cloned().collect();
+            ctx.locked.extend(locked);
+        }
     }
 
     fn state_keys(&self) -> Iter<i32> {

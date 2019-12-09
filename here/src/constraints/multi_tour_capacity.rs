@@ -30,7 +30,8 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         constraints.extend(CapacityConstraintModule::<Capacity>::new(code).constraints());
 
         let capacity_inner = CapacityConstraintModule::new(code);
-        let conditional_inner = ConditionalJobModule::new(Box::new(move |ctx, job| Self::is_required_job(ctx, job)));
+        let conditional_inner =
+            ConditionalJobModule::new(Some(Box::new(move |ctx, job| Self::is_required_job(ctx, job))), None);
 
         Self {
             threshold,
