@@ -7,7 +7,7 @@ use crate::constraints::{BreakModule, ExtraCostModule, ReachableModule, SkillsMo
 use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{
-    deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType, VehicleBreak, VehicleType,
+    deserialize_matrix, deserialize_problem, JobVariant, Matrix, RelationType, VehicleBreak, VehiclePlace, VehicleType,
 };
 use crate::utils::get_split_permutations;
 use chrono::DateTime;
@@ -414,9 +414,28 @@ fn read_conditional_jobs(
 
     api_problem.fleet.types.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
-            // TODO add multi tour here
             if let Some(breaks) = &shift.breaks {
-                read_breaks(coord_index, job_index, &mut jobs, vehicle, breaks, shift_index);
+                read_breaks(coord_index, job_index, &mut jobs, vehicle, shift_index, breaks);
+            }
+
+            if let Some(max_tour) = shift.max_tours {
+                // NOTE actually, we are not limited by start/end places
+                let location = Some(shift.start.location.clone());
+                // TODO read value from problem
+                let duration = 15. * 60.;
+                let times = Some(vec![vec![
+                    shift.start.time.clone(),
+                    shift
+                        .end
+                        .as_ref()
+                        .and_then(|p| Some(p.time.clone()))
+                        .unwrap_or_else(|| "2970-01-01T00:00:00Z".to_string()),
+                ]]);
+                let reloads = (0..max_tour).fold(vec![], |mut acc, idx| {
+                    acc.push((&location, duration, &times));
+                    acc
+                });
+                read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads);
             }
         }
     });
@@ -429,8 +448,8 @@ fn read_breaks(
     job_index: &mut JobIndex,
     jobs: &mut Vec<Arc<Job>>,
     vehicle: &VehicleType,
-    breaks: &Vec<VehicleBreak>,
     shift_index: usize,
+    breaks: &Vec<VehicleBreak>,
 ) {
     (1..).zip(breaks.iter()).for_each(|(break_idx, place)| {
         (1..vehicle.amount + 1).for_each(|index| {
@@ -440,18 +459,64 @@ fn read_breaks(
             } else {
                 Some(place.times.clone())
             };
-            let mut single =
-                get_single(place.location.as_ref().and_then(|l| Some(l)), place.duration, &times, coord_index);
-            single.dimens.set_id("break");
-            single.dimens.insert("type".to_string(), Box::new("break".to_string()));
-            single.dimens.insert("shift_index".to_string(), Box::new(shift_index));
-            single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
-
-            let job = Arc::new(Job::Single(Arc::new(single)));
-            job_index.insert(format!("{}_break_{}", id, break_idx), job.clone());
-            jobs.push(job);
+            add_conditional_job(
+                coord_index,
+                job_index,
+                jobs,
+                format!("{}_{}", vehicle.id, index),
+                "break",
+                shift_index,
+                break_idx,
+                (&place.location, place.duration, &times),
+            );
         });
     });
+}
+
+fn read_reloads(
+    coord_index: &CoordIndex,
+    job_index: &mut JobIndex,
+    jobs: &mut Vec<Arc<Job>>,
+    vehicle: &VehicleType,
+    shift_index: usize,
+    reloads: Vec<(&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>)>,
+) {
+    (1..).zip(reloads.iter()).for_each(|(reload_idx, (location, duration, times))| {
+        (1..vehicle.amount + 1).for_each(|index| {
+            add_conditional_job(
+                coord_index,
+                job_index,
+                jobs,
+                format!("{}_{}", vehicle.id, index),
+                "reload",
+                shift_index,
+                reload_idx,
+                (location, *duration, times),
+            );
+        });
+    });
+}
+
+fn add_conditional_job(
+    coord_index: &CoordIndex,
+    job_index: &mut JobIndex,
+    jobs: &mut Vec<Arc<Job>>,
+    vehicle_id: String,
+    job_type: &str,
+    shift_index: usize,
+    index: usize,
+    place: (&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>),
+) {
+    let (location, duration, times) = place;
+    let mut single = get_single(location.as_ref().and_then(|l| Some(l)), duration, &times, coord_index);
+    single.dimens.set_id(job_type);
+    single.dimens.insert("type".to_string(), Box::new(job_type.to_string()));
+    single.dimens.insert("shift_index".to_string(), Box::new(shift_index));
+    single.dimens.insert("vehicle_id".to_string(), Box::new(vehicle_id.clone()));
+
+    let job = Arc::new(Job::Single(Arc::new(single)));
+    job_index.insert(format!("{}_{}_{}", vehicle_id, job_type, index), job.clone());
+    jobs.push(job);
 }
 
 fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {
@@ -481,22 +546,26 @@ fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> 
                 _ => LockPosition::Any,
             };
 
-            let (_, jobs) = rel
+            let (_, _, jobs) = rel
                 .jobs
                 .iter()
                 .filter(|job| job.as_str() != "departure" && job.as_str() != "arrival")
-                .fold((0_usize, vec![]), |(mut break_idx, mut jobs), job| {
+                .fold((0_usize, 0_usize, vec![]), |(mut break_idx, mut reload_idx, mut jobs), job| {
                     let job = match job.as_str() {
                         "break" => {
                             break_idx += 1;
                             job_index.get(format!("{}_break_{}", vehicle_id, break_idx).as_str()).cloned().unwrap()
+                        }
+                        "reload" => {
+                            reload_idx += 1;
+                            job_index.get(format!("{}_reload_{}", vehicle_id, reload_idx).as_str()).cloned().unwrap()
                         }
                         _ => job_index.get(job).unwrap().clone(),
                     };
 
                     jobs.push(job);
 
-                    (break_idx, jobs)
+                    (break_idx, reload_idx, jobs)
                 });
 
             acc.push(LockDetail::new(order, position, jobs));

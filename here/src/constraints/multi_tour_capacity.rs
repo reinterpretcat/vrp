@@ -83,7 +83,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         let (_, starts) = (0_usize..).zip(route.tour.all_activities()).fold(
             (Capacity::default(), Vec::<(usize, usize, Capacity)>::default()),
             |(total, mut acc), (idx, a)| {
-                let total = if as_multi_tour_job(a).is_some() {
+                let total = if as_reload_job(a).is_some() {
                     let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
                     let end_idx = idx - 1;
 
@@ -164,7 +164,7 @@ impl HardRouteConstraint for MultiTourHardRouteConstraint {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         match job.as_ref() {
             Job::Single(job) => {
-                if is_multi_tour_job(job) {
+                if is_reload_job(job) {
                     let vehicle_id = get_vehicle_id_from_job(job).unwrap();
                     let shift_index = get_shift_index(&job.dimens);
 
@@ -190,8 +190,8 @@ impl HardActivityConstraint for MultiTourHardActivityConstraint {
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        if let Some(job) = as_multi_tour_job(activity_ctx.target) {
-            // NOTE insert multi tour job in route only as last
+        if let Some(job) = as_reload_job(activity_ctx.target) {
+            // NOTE insert reload job in route only as last
             if activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some() {
                 return Some(ActivityConstraintViolation { code: self.code, stopped: false });
             }
@@ -215,12 +215,12 @@ fn is_time(ctx: &RouteContext, tour_index_job: usize) -> bool {
     }
 }
 
-fn is_multi_tour_job(job: &Arc<Single>) -> bool {
+fn is_reload_job(job: &Arc<Single>) -> bool {
     job.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
 }
 
-fn as_multi_tour_job(activity: &Activity) -> Option<Arc<Single>> {
-    as_single_job(activity, |job| is_multi_tour_job(job))
+fn as_reload_job(activity: &Activity) -> Option<Arc<Single>> {
+    as_single_job(activity, |job| is_reload_job(job))
 }
 
 fn get_tour_state(ctx: &RouteContext) -> Option<usize> {
