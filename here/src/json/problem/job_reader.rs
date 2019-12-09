@@ -289,7 +289,7 @@ fn read_reloads(
                 .collect::<Vec<_>>()
         })
         .for_each(|(reload_idx, job_id, mut single)| {
-            single.dimens.insert("tour_index".to_string(), Box::new(reload_idx));
+            single.dimens.insert("tour_index".to_string(), Box::new(reload_idx as usize));
             add_conditional_job(job_index, jobs, job_id, single);
         });
 }
