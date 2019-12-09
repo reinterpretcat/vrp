@@ -109,6 +109,7 @@ pub struct VehicleShift {
     pub end: Option<VehiclePlace>,
     pub breaks: Option<Vec<VehicleBreak>>,
     pub max_tours: Option<i32>,
+    pub load_time: Option<i32>,
 }
 
 #[derive(Deserialize, Clone)]

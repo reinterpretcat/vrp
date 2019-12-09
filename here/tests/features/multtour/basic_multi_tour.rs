@@ -20,6 +20,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                     end: Some(VehiclePlace { time: format_time(100).to_string(), location: vec![0., 0.] }),
                     breaks: None,
                     max_tours: Some(2),
+                    load_time: Some(2),
                 }],
                 capacity: vec![1],
                 amount: 1,

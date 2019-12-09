@@ -55,9 +55,9 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             let empty_capacity = Capacity::default();
             let max_capacity = threshold(rc.route.actor.vehicle.dimens.get_capacity().unwrap());
 
-            let load = state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).unwrap_or_else(|| &empty_capacity);
+            let load = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).unwrap_or_else(|| &empty_capacity);
 
-            load > &max_capacity
+            load >= max_capacity
         } else {
             false
         }
@@ -145,8 +145,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional_inner.accept_solution_state(ctx);
-        // NOTE assume that multi tour jobs are locked in reader
-        remove_trivial_tours(ctx);
+
+        if ctx.required.is_empty() {
+            // NOTE assume that multi tour jobs are locked in reader
+            remove_trivial_tours(ctx);
+        }
     }
 
     fn state_keys(&self) -> Iter<i32> {

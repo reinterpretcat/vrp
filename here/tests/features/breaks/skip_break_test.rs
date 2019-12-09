@@ -25,6 +25,7 @@ fn can_skip_break_when_vehicle_not_used() {
                             location: Some(vec![6., 0.]),
                         }]),
                         max_tours: None,
+                        load_time: None,
                     }],
                     capacity: vec![10],
                     amount: 1,

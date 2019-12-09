@@ -201,8 +201,7 @@ fn read_conditional_jobs(
             if let Some(max_tour) = shift.max_tours {
                 // NOTE actually, we are not limited by start/end places
                 let location = Some(shift.start.location.clone());
-                // TODO read value from problem
-                let duration = 15. * 60.;
+                let duration = shift.load_time.unwrap() as f64;
                 let times = Some(vec![vec![
                     shift.start.time.clone(),
                     shift
