@@ -5,7 +5,7 @@ mod conditional_test;
 use crate::construction::constraints::{ConstraintModule, ConstraintVariant};
 use crate::construction::states::{RouteContext, SolutionContext};
 use crate::models::problem::Job;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
 
