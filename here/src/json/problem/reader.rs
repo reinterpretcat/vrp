@@ -19,7 +19,7 @@ use core::refinement::objectives::PenalizeUnassigned;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
-use std::iter::FromIterator;
+use std::iter::{once, FromIterator};
 use std::sync::Arc;
 
 // TODO configure sample size
@@ -432,7 +432,7 @@ fn read_breaks(
     breaks: &Vec<VehicleBreak>,
     shift_index: usize,
 ) {
-    breaks.iter().for_each(|place| {
+    (1..).zip(breaks.iter()).for_each(|(break_idx, place)| {
         (1..vehicle.amount + 1).for_each(|index| {
             let id = format!("{}_{}", vehicle.id, index);
             let times = if place.times.is_empty() {
@@ -448,7 +448,7 @@ fn read_breaks(
             single.dimens.insert("vehicle_id".to_string(), Box::new(id.clone()));
 
             let job = Arc::new(Job::Single(Arc::new(single)));
-            job_index.insert(format!("{}_break", id), job.clone());
+            job_index.insert(format!("{}_break_{}", id, break_idx), job.clone());
             jobs.push(job);
         });
     });
@@ -485,11 +485,22 @@ fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> 
                 .jobs
                 .iter()
                 .filter(|job| job.as_str() != "departure" && job.as_str() != "arrival")
-                .map(|job| {
+                .flat_map(|job| {
                     if job.as_str() == "break" {
-                        job_index.get(format!("{}_break", vehicle_id).as_str()).unwrap().clone()
+                        (1..)
+                            .try_fold(vec![], |mut acc, idx| {
+                                if let Some(job) =
+                                    job_index.get(format!("{}_break_{}", vehicle_id, idx).as_str()).cloned()
+                                {
+                                    acc.push(job);
+                                    Ok(acc)
+                                } else {
+                                    Err(acc)
+                                }
+                            })
+                            .unwrap_or_else(|acc| acc)
                     } else {
-                        job_index.get(job).unwrap().clone()
+                        vec![job_index.get(job).unwrap().clone()]
                     }
                 })
                 .collect();
