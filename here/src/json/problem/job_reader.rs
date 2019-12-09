@@ -192,8 +192,6 @@ fn read_conditional_jobs(
     job_index: &mut JobIndex,
 ) -> (Vec<Arc<Job>>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
-    let mut locks = vec![];
-
     api_problem.fleet.types.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             if let Some(breaks) = &shift.breaks {
@@ -217,13 +215,12 @@ fn read_conditional_jobs(
                     acc.push((&location, duration, &times));
                     acc
                 });
-                locks
-                    .extend(read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads).into_iter());
+                read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads);
             }
         }
     });
 
-    (jobs, locks)
+    (jobs, vec![])
 }
 
 fn read_breaks(
@@ -262,12 +259,11 @@ fn read_reloads(
     vehicle: &VehicleType,
     shift_index: usize,
     reloads: Vec<(&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>)>,
-) -> Vec<Arc<Lock>> {
-    let mut locks = vec![];
+) {
     (1..).zip(reloads.iter()).for_each(|(reload_idx, (location, duration, times))| {
         (1..vehicle.amount + 1).for_each(|index| {
             let vehicle_id = format!("{}_{}", vehicle.id, index);
-            let job = add_conditional_job(
+            add_conditional_job(
                 coord_index,
                 job_index,
                 jobs,
@@ -277,15 +273,8 @@ fn read_reloads(
                 reload_idx,
                 (location, *duration, times),
             );
-
-            locks.push(Arc::new(Lock {
-                condition: create_condition(vehicle_id, shift_index),
-                details: vec![LockDetail { order: LockOrder::Any, position: LockPosition::Any, jobs: vec![job] }],
-            }));
         });
     });
-
-    locks
 }
 
 fn add_conditional_job(
@@ -297,7 +286,7 @@ fn add_conditional_job(
     shift_index: usize,
     index: usize,
     place: (&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>),
-) -> Arc<Job> {
+) {
     let (location, duration, times) = place;
     let mut single = get_single(location.as_ref().and_then(|l| Some(l)), duration, &times, coord_index);
     single.dimens.set_id(job_type);
@@ -307,9 +296,7 @@ fn add_conditional_job(
 
     let job = Arc::new(Job::Single(Arc::new(single)));
     job_index.insert(format!("{}_{}_{}", vehicle_id, job_type, index), job.clone());
-    jobs.push(job.clone());
-
-    job
+    jobs.push(job);
 }
 
 fn get_single(
