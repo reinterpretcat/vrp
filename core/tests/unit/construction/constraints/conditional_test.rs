@@ -41,6 +41,7 @@ fn can_promote_jobs_between_required_and_ignored_impl(
         required,
         ignored,
         unassigned: Default::default(),
+        locked: Default::default(),
         routes: Default::default(),
         registry: Registry::new(&test_fleet()),
     };

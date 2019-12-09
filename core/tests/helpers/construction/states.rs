@@ -22,10 +22,10 @@ pub fn create_insertion_context(
             required: vec![],
             ignored: vec![],
             unassigned: Default::default(),
+            locked: Default::default(),
             routes,
             registry,
         },
-        locked: Arc::new(Default::default()),
         random: Arc::new(DefaultRandom::default()),
     }
 }

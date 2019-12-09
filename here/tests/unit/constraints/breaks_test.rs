@@ -39,6 +39,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
         required: vec![],
         ignored: vec![],
         unassigned: Default::default(),
+        locked: Default::default(),
         routes: vec![RouteContext {
             route: Arc::new(create_route_with_activities(
                 &fleet,

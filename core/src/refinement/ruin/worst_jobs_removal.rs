@@ -39,7 +39,8 @@ impl Ruin for WorstJobRemoval {
         let random = insertion_ctx.random.clone();
 
         let can_remove_job = |job: &Arc<Job>| -> bool {
-            !insertion_ctx.locked.contains(job) && !insertion_ctx.solution.unassigned.contains_key(job)
+            let solution = &insertion_ctx.solution;
+            !solution.locked.contains(job) && !solution.unassigned.contains_key(job)
         };
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);

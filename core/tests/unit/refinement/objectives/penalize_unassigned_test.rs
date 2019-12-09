@@ -61,10 +61,10 @@ fn can_calculate_cost_with_penalty_properly() {
             required: vec![],
             ignored: vec![],
             unassigned,
+            locked: Default::default(),
             routes: vec![route1, route2],
             registry: Registry::new(&fleet),
         },
-        locked: Arc::new(Default::default()),
         random: Arc::new(DefaultRandom::default()),
     };
 

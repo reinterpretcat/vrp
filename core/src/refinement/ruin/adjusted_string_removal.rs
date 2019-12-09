@@ -62,7 +62,7 @@ impl Ruin for AdjustedStringRemoval {
         let routes: Vec<RouteContext> = insertion_ctx.solution.routes.clone();
 
         let problem = insertion_ctx.problem.clone();
-        let locked = insertion_ctx.locked.clone();
+        let locked = insertion_ctx.solution.locked.clone();
         let random = insertion_ctx.random.clone();
 
         let (lsmax, ks) = self.calculate_limits(&routes, &random);

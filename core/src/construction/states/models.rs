@@ -76,9 +76,6 @@ pub struct InsertionContext {
     /// Solution context.
     pub solution: SolutionContext,
 
-    /// Specifies jobs which should not be affected.
-    pub locked: Arc<HashSet<Arc<Job>>>,
-
     /// Random generator.
     pub random: Arc<dyn Random + Send + Sync>,
 }
@@ -169,8 +166,7 @@ impl InsertionContext {
         let mut ctx = InsertionContext {
             progress: InsertionProgress { cost: None, completeness: 0., total: problem.jobs.size() },
             problem: problem.clone(),
-            solution: SolutionContext { required, ignored: vec![], unassigned, routes, registry },
-            locked: Arc::new(locked),
+            solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry },
             random: random.clone(),
         };
 
@@ -212,8 +208,7 @@ impl InsertionContext {
         InsertionContext {
             progress: InsertionProgress { cost, completeness, total: problem.jobs.size() },
             problem: problem.clone(),
-            solution: SolutionContext { required: jobs, ignored: vec![], unassigned, routes, registry },
-            locked: Arc::new(locked),
+            solution: SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry },
             random,
         }
     }
@@ -238,7 +233,6 @@ impl InsertionContext {
             progress: self.progress.clone(),
             problem: self.problem.clone(),
             solution: self.solution.deep_copy(),
-            locked: self.locked.clone(),
             random: self.random.clone(),
         }
     }
@@ -268,6 +262,9 @@ pub struct SolutionContext {
     /// Map of jobs which cannot be assigned and within reason code.
     pub unassigned: HashMap<Arc<Job>, i32>,
 
+    /// Specifies jobs which should not be affected by ruin.
+    pub locked: HashSet<Arc<Job>>,
+
     /// Set of routes within their state.
     pub routes: Vec<RouteContext>,
 
@@ -290,6 +287,7 @@ impl SolutionContext {
             required: self.required.clone(),
             ignored: self.ignored.clone(),
             unassigned: self.unassigned.clone(),
+            locked: self.locked.clone(),
             routes: self.routes.iter().map(|rc| rc.deep_copy()).collect(),
             registry: self.registry.deep_copy(),
         }

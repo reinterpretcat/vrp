@@ -47,10 +47,10 @@ pub fn create_empty_insertion_context() -> InsertionContext {
             required: vec![],
             ignored: vec![],
             unassigned: Default::default(),
+            locked: Default::default(),
             routes: vec![],
             registry: Registry::new(&Fleet::new(vec![test_driver()], vec![test_vehicle(0)])),
         },
-        locked: Arc::new(Default::default()),
         random: Arc::new(DefaultRandom::default()),
     }
 }

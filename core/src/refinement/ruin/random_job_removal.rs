@@ -40,18 +40,18 @@ impl Ruin for RandomJobRemoval {
             insertion_ctx.random.uniform_int(self.min as i32, self.max as i32).min(assigned.min(max) as i32) as usize;
 
         (0..affected).for_each(|_| {
-            let route_index =
-                insertion_ctx.random.uniform_int(0, insertion_ctx.solution.routes.len() as i32 - 1) as usize;
+            let solution = &mut insertion_ctx.solution;
+            let route_index = insertion_ctx.random.uniform_int(0, solution.routes.len() as i32 - 1) as usize;
 
-            let route = insertion_ctx.solution.routes.get_mut(route_index).unwrap().route_mut();
+            let route = solution.routes.get_mut(route_index).unwrap().route_mut();
 
             if route.tour.job_count() > 0 {
                 let job_index = insertion_ctx.random.uniform_int(0, route.tour.job_count() as i32 - 1) as usize;
                 let job = route.tour.jobs().skip(job_index).next().unwrap();
 
-                if !insertion_ctx.locked.contains(&job) {
+                if !solution.locked.contains(&job) {
                     route.tour.remove(&job);
-                    insertion_ctx.solution.required.push(job);
+                    solution.required.push(job);
                 }
             }
         });
