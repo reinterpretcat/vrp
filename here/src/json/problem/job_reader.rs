@@ -231,25 +231,33 @@ fn read_breaks(
     shift_index: usize,
     breaks: &Vec<VehicleBreak>,
 ) {
-    (1..).zip(breaks.iter()).for_each(|(break_idx, place)| {
-        (1..vehicle.amount + 1).for_each(|index| {
-            let times = if place.times.is_empty() {
-                panic!("Break without any time window does not make sense!")
-            } else {
-                Some(place.times.clone())
-            };
-            add_conditional_job(
-                coord_index,
-                job_index,
-                jobs,
-                format!("{}_{}", vehicle.id, index),
-                "break",
-                shift_index,
-                break_idx,
-                (&place.location, place.duration, &times),
-            );
-        });
-    });
+    (1..)
+        .zip(breaks.iter())
+        .flat_map(|(break_idx, place)| {
+            (1..vehicle.amount + 1)
+                .map(|vehicle_index| {
+                    let times = if place.times.is_empty() {
+                        panic!("Break without any time window does not make sense!")
+                    } else {
+                        Some(place.times.clone())
+                    };
+
+                    let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
+                    let job_id = format!("{}_break_{}", vehicle_id, break_idx);
+
+                    let job = get_conditional_job(
+                        coord_index,
+                        vehicle_id.clone(),
+                        "break",
+                        shift_index,
+                        (&place.location, place.duration, &times),
+                    );
+
+                    (job_id, job)
+                })
+                .collect::<Vec<_>>()
+        })
+        .for_each(|(job_id, single)| add_conditional_job(job_index, jobs, job_id, single));
 }
 
 fn read_reloads(
@@ -260,33 +268,39 @@ fn read_reloads(
     shift_index: usize,
     reloads: Vec<(&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>)>,
 ) {
-    (1..).zip(reloads.iter()).for_each(|(reload_idx, (location, duration, times))| {
-        (1..vehicle.amount + 1).for_each(|index| {
-            let vehicle_id = format!("{}_{}", vehicle.id, index);
-            add_conditional_job(
-                coord_index,
-                job_index,
-                jobs,
-                vehicle_id.clone(),
-                "reload",
-                shift_index,
-                reload_idx,
-                (location, *duration, times),
-            );
+    (1..)
+        .zip(reloads.iter())
+        .flat_map(|(reload_idx, (location, duration, times))| {
+            (1..vehicle.amount + 1)
+                .map(|vehicle_index| {
+                    let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
+                    let job_id = format!("{}_reload_{}", vehicle_id, reload_idx);
+
+                    let job = get_conditional_job(
+                        coord_index,
+                        vehicle_id.clone(),
+                        "reload",
+                        shift_index,
+                        (location, *duration, times),
+                    );
+
+                    (reload_idx, job_id, job)
+                })
+                .collect::<Vec<_>>()
+        })
+        .for_each(|(reload_idx, job_id, mut single)| {
+            single.dimens.insert("tour_index".to_string(), Box::new(reload_idx));
+            add_conditional_job(job_index, jobs, job_id, single);
         });
-    });
 }
 
-fn add_conditional_job(
+fn get_conditional_job(
     coord_index: &CoordIndex,
-    job_index: &mut JobIndex,
-    jobs: &mut Vec<Arc<Job>>,
     vehicle_id: String,
     job_type: &str,
     shift_index: usize,
-    index: usize,
     place: (&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>),
-) {
+) -> Single {
     let (location, duration, times) = place;
     let mut single = get_single(location.as_ref().and_then(|l| Some(l)), duration, &times, coord_index);
     single.dimens.set_id(job_type);
@@ -294,8 +308,12 @@ fn add_conditional_job(
     single.dimens.insert("shift_index".to_string(), Box::new(shift_index));
     single.dimens.insert("vehicle_id".to_string(), Box::new(vehicle_id.clone()));
 
+    single
+}
+
+fn add_conditional_job(job_index: &mut JobIndex, jobs: &mut Vec<Arc<Job>>, job_id: String, single: Single) {
     let job = Arc::new(Job::Single(Arc::new(single)));
-    job_index.insert(format!("{}_{}_{}", vehicle_id, job_type, index), job.clone());
+    job_index.insert(job_id, job.clone());
     jobs.push(job);
 }
 
