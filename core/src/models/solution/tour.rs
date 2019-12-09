@@ -78,9 +78,9 @@ impl Tour {
         self.activities.iter()
     }
 
-    /// Returns activities slice in specific range.
+    /// Returns activities slice in specific range (all inclusive).
     pub fn activities_slice(&self, start: usize, end: usize) -> &[TourActivity] {
-        &self.activities[start..end]
+        &self.activities[start..=end]
     }
 
     /// Returns all activities in tour as mutable.
