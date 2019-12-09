@@ -23,10 +23,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     MultiTourCapacityConstraintModule<Capacity>
 {
     pub fn new(code: i32, threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>) -> Self {
-        let mut constraints = vec![
-            ConstraintVariant::HardRoute(Arc::new(MultiTourHardRouteConstraint { code })),
-            ConstraintVariant::HardActivity(Arc::new(MultiTourHardActivityConstraint { code })),
-        ];
+        let mut constraints = vec![ConstraintVariant::HardActivity(Arc::new(MultiTourHardActivityConstraint { code }))];
         constraints.extend(CapacityConstraintModule::<Capacity>::new(code).constraints());
 
         let capacity_inner = CapacityConstraintModule::new(code);
@@ -149,31 +146,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn get_constraints(&self) -> Iter<ConstraintVariant> {
         self.constraints.iter()
-    }
-}
-
-/// Locks multi tour jobs to specific vehicles
-struct MultiTourHardRouteConstraint {
-    code: i32,
-}
-
-impl HardRouteConstraint for MultiTourHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
-        match job.as_ref() {
-            Job::Single(job) => {
-                if is_reload_job(job) {
-                    let vehicle_id = get_vehicle_id_from_job(job).unwrap();
-                    let shift_index = get_shift_index(&job.dimens);
-
-                    if !is_correct_vehicle(ctx, vehicle_id, shift_index) {
-                        return Some(RouteConstraintViolation { code: self.code });
-                    }
-                }
-            }
-            Job::Multi(_) => {}
-        }
-
-        None
     }
 }
 

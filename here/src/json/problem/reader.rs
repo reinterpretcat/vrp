@@ -13,7 +13,7 @@ use crate::constraints::*;
 use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::fleet_reader::{create_transport_costs, read_fleet, read_limits};
-use crate::json::problem::reader::job_reader::{read_jobs, read_locks};
+use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_locks};
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
 use chrono::DateTime;
 use core::construction::constraints::*;
@@ -85,8 +85,15 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
 
     let mut job_index = Default::default();
-    let jobs = read_jobs(&api_problem, &problem_props, &coord_index, &fleet, transport.as_ref(), &mut job_index);
-    let locks = read_locks(&api_problem, &job_index);
+    let (jobs, locks) = read_jobs_with_extra_locks(
+        &api_problem,
+        &problem_props,
+        &coord_index,
+        &fleet,
+        transport.as_ref(),
+        &mut job_index,
+    );
+    let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect();
     let limits = read_limits(&api_problem);
     let extras = create_extras(&api_problem.id, &problem_props, coord_index);
     let constraint =

@@ -13,18 +13,21 @@ use std::sync::Arc;
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
 
-pub fn read_jobs(
+pub fn read_jobs_with_extra_locks(
     api_problem: &ApiProblem,
     props: &ProblemProperties,
     coord_index: &CoordIndex,
     fleet: &Fleet,
     transport: &impl TransportCost,
     job_index: &mut JobIndex,
-) -> Jobs {
-    let mut jobs = read_required_jobs(api_problem, props, coord_index, job_index);
-    jobs.extend(read_conditional_jobs(api_problem, coord_index, job_index));
+) -> (Jobs, Vec<Arc<Lock>>) {
+    let (mut jobs, mut locks) = read_required_jobs(api_problem, props, coord_index, job_index);
+    let (conditional_jobs, conditional_locks) = read_conditional_jobs(api_problem, coord_index, job_index);
 
-    Jobs::new(fleet, jobs, transport)
+    jobs.extend(conditional_jobs);
+    locks.extend(conditional_locks);
+
+    (Jobs::new(fleet, jobs, transport), locks)
 }
 
 pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Lock>> {
@@ -41,10 +44,7 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
 
     let locks = relations.into_iter().fold(vec![], |mut acc, ((vehicle_id, shift_index), rels)| {
         let vehicle_id_copy = vehicle_id.clone();
-        let condition = Arc::new(move |a: &Actor| {
-            *a.vehicle.dimens.get_id().unwrap() == vehicle_id_copy
-                && *a.vehicle.dimens.get_value::<usize>("shift_index").unwrap() == shift_index
-        });
+        let condition = create_condition(vehicle_id_copy, shift_index);
         let details = rels.iter().fold(vec![], |mut acc, rel| {
             let order = match rel.type_field {
                 RelationType::Tour => LockOrder::Any,
@@ -99,7 +99,7 @@ fn read_required_jobs(
     props: &ProblemProperties,
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
-) -> Vec<Arc<Job>> {
+) -> (Vec<Arc<Job>>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
     api_problem.plan.jobs.iter().for_each(|job| match job {
         JobVariant::Single(job) => {
@@ -183,15 +183,16 @@ fn read_required_jobs(
         }
     });
 
-    jobs
+    (jobs, vec![])
 }
 
 fn read_conditional_jobs(
     api_problem: &ApiProblem,
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
-) -> Vec<Arc<Job>> {
+) -> (Vec<Arc<Job>>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
+    let mut locks = vec![];
 
     api_problem.fleet.types.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
@@ -216,12 +217,13 @@ fn read_conditional_jobs(
                     acc.push((&location, duration, &times));
                     acc
                 });
-                read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads);
+                locks
+                    .extend(read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads).into_iter());
             }
         }
     });
 
-    jobs
+    (jobs, locks)
 }
 
 fn read_breaks(
@@ -260,21 +262,30 @@ fn read_reloads(
     vehicle: &VehicleType,
     shift_index: usize,
     reloads: Vec<(&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>)>,
-) {
+) -> Vec<Arc<Lock>> {
+    let mut locks = vec![];
     (1..).zip(reloads.iter()).for_each(|(reload_idx, (location, duration, times))| {
         (1..vehicle.amount + 1).for_each(|index| {
-            add_conditional_job(
+            let vehicle_id = format!("{}_{}", vehicle.id, index);
+            let job = add_conditional_job(
                 coord_index,
                 job_index,
                 jobs,
-                format!("{}_{}", vehicle.id, index),
+                vehicle_id.clone(),
                 "reload",
                 shift_index,
                 reload_idx,
                 (location, *duration, times),
             );
+
+            locks.push(Arc::new(Lock {
+                condition: create_condition(vehicle_id, shift_index),
+                details: vec![LockDetail { order: LockOrder::Any, position: LockPosition::Any, jobs: vec![job] }],
+            }));
         });
     });
+
+    locks
 }
 
 fn add_conditional_job(
@@ -286,7 +297,7 @@ fn add_conditional_job(
     shift_index: usize,
     index: usize,
     place: (&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>),
-) {
+) -> Arc<Job> {
     let (location, duration, times) = place;
     let mut single = get_single(location.as_ref().and_then(|l| Some(l)), duration, &times, coord_index);
     single.dimens.set_id(job_type);
@@ -296,7 +307,9 @@ fn add_conditional_job(
 
     let job = Arc::new(Job::Single(Arc::new(single)));
     job_index.insert(format!("{}_{}_{}", vehicle_id, job_type, index), job.clone());
-    jobs.push(job);
+    jobs.push(job.clone());
+
+    job
 }
 
 fn get_single(
@@ -369,6 +382,13 @@ fn get_multi_job(
         )
     };
     Arc::new(Job::Multi(Multi::bind(multi)))
+}
+
+fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor) -> bool + Sync + Send> {
+    Arc::new(move |actor: &Actor| {
+        *actor.vehicle.dimens.get_id().unwrap() == vehicle_id
+            && *actor.vehicle.dimens.get_value::<usize>("shift_index").unwrap() == shift_index
+    })
 }
 
 fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
