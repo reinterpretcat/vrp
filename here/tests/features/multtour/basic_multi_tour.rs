@@ -2,14 +2,32 @@ use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
 
-#[test]
-fn can_use_multiple_times_from_vehicle_and_job() {
+parameterized_test! {can_use_two_tours_with_two_jobs, (jobs, unassigned), {
+    can_use_two_tours_with_two_jobs_impl(jobs, unassigned);
+}}
+
+can_use_two_tours_with_two_jobs! {
+    case01: (vec![
+                create_delivery_job("job1", vec![1., 0.]),
+                create_delivery_job("job2", vec![2., 0.])],
+            vec![]),
+    case02: (vec![
+               create_delivery_job("job1", vec![1., 0.]),
+               create_delivery_job("job2", vec![2., 0.]),
+               create_delivery_job("job3", vec![3., 0.])
+             ],
+             vec![
+               UnassignedJob {
+                    job_id: "job3".to_string(),
+                    reasons: vec![UnassignedJobReason { code: 3, description: "does not fit into any vehicle due to capacity".to_string() }]
+                }
+             ]),
+}
+
+fn can_use_two_tours_with_two_jobs_impl(jobs: Vec<JobVariant>, unassigned: Vec<UnassignedJob>) {
     let problem = Problem {
         id: "my_problem".to_string(),
-        plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
-            relations: Option::None,
-        },
+        plan: Plan { jobs, relations: Option::None },
         fleet: Fleet {
             types: vec![VehicleType {
                 id: "my_vehicle".to_string(),
@@ -91,7 +109,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                     times: Timing { driving: 6, serving: 4, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
+            unassigned,
             extras: Extras { performance: vec![] },
         }
     );
