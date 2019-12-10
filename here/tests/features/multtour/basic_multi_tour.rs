@@ -66,7 +66,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                         "reload",
                         "reload",
                         (0., 0.),
-                        0,
+                        1,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:05Z"),
                     ),
                     create_stop_with_activity(
