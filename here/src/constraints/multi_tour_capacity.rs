@@ -1,7 +1,7 @@
 use crate::constraints::{as_single_job, get_shift_index, get_vehicle_id_from_job, is_correct_vehicle};
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use core::models::common::{Dimensions, IdDimension, ValueDimension};
+use core::models::common::ValueDimension;
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
 use std::iter::once;
@@ -46,7 +46,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         let tour = &rc.route.tour;
         let state = &rc.state;
 
-        if let (Some(start), Some(end)) = (tour.start(), tour.end()) {
+        if let Some(end) = tour.end() {
             let empty_capacity = Capacity::default();
 
             let max_capacity: Capacity = *rc.route.actor.vehicle.dimens.get_capacity().unwrap();
@@ -202,7 +202,7 @@ impl HardActivityConstraint for MultiTourHardActivityConstraint {
 }
 
 /// Removes multi tours without jobs.
-fn remove_trivial_tours(ctx: &mut SolutionContext) {
+fn remove_trivial_tours(_ctx: &mut SolutionContext) {
     // TODO remove multi tour job if next is final arrival or none (open vrp)
 }
 
