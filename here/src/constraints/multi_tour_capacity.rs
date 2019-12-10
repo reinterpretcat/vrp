@@ -78,8 +78,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn recalculate_states(ctx: &mut RouteContext) {
         let (route, state) = ctx.as_mut();
 
-        // TODO check what happens here
-
         let last_idx = route.tour.total() - 1;
         let (_, starts) = (0_usize..).zip(route.tour.all_activities()).fold(
             (Capacity::default(), Vec::<(usize, usize, Capacity)>::default()),
@@ -100,8 +98,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 (total, acc)
             },
         );
-
-        //let last_multi_tour_index = starts.len() - 1;
 
         let ends = starts.iter().cloned().fold(vec![], |mut acc, (start_idx, end_idx, total)| {
             let (current, _) =
@@ -165,8 +161,9 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             });
 
             if let Some(index) = index {
-                ctx.required.push(ctx.ignored.remove(index));
-                //rc.state_mut().put_route_state(MULTI_TOUR_FULL_KEY, false);
+                let job = ctx.ignored.remove(index);
+                ctx.required.push(job.clone());
+                ctx.locked.insert(job);
             }
         });
 
