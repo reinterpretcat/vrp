@@ -33,15 +33,22 @@ impl<W: Write> HereSolution<W> for Solution {
 }
 
 struct Leg {
-    pub location: Location,
-    pub departure: Timestamp,
+    pub last_detail: Option<(Location, Timestamp)>,
+    pub load: Option<MultiDimensionalCapacity>,
     pub statistic: Statistic,
-    pub load: MultiDimensionalCapacity,
 }
 
 impl Leg {
-    fn new(location: Location, departure: Timestamp, load: MultiDimensionalCapacity) -> Self {
-        Self { location, departure, statistic: Statistic::default(), load }
+    fn new(
+        last_detail: Option<(Location, Timestamp)>,
+        load: Option<MultiDimensionalCapacity>,
+        statistic: Statistic,
+    ) -> Self {
+        Self { last_detail, load, statistic }
+    }
+
+    fn empty() -> Self {
+        Self { last_detail: None, load: None, statistic: Statistic::default() }
     }
 }
 
@@ -72,17 +79,9 @@ pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
 
 fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> Tour {
     let is_multi_dimen = has_multi_dimensional_capacity(problem.extras.as_ref());
-    let load = route.tour.all_activities().fold(MultiDimensionalCapacity::default(), |acc, activity| {
-        acc + activity
-            .job
-            .as_ref()
-            .and_then(|job| get_capacity(&job.as_single().dimens, is_multi_dimen).and_then(|d| Some(d.delivery.0)))
-            .unwrap_or(MultiDimensionalCapacity::default())
-    });
 
     let actor = route.actor.as_ref();
     let vehicle = actor.vehicle.as_ref();
-    let start = route.tour.start().unwrap();
 
     let mut tour = Tour {
         vehicle_id: vehicle.dimens.get_id().unwrap().clone(),
@@ -91,94 +90,131 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
         statistic: Statistic::default(),
     };
 
-    tour.stops.push(Stop {
-        location: coord_index.get_by_idx(&start.place.location).unwrap().as_vec(),
-        time: format_schedule(&start.schedule),
-        load: load.as_vec(),
-        activities: vec![Activity {
-            job_id: "departure".to_string(),
-            activity_type: "departure".to_string(),
-            location: Option::None,
-            time: Option::None,
-            job_tag: Option::None,
-        }],
-    });
+    let last_idx = route.tour.total() - 1;
+    let mut leg = (0_usize..)
+        .zip(route.tour.all_activities())
+        .fold(Vec::<(usize, usize)>::default(), |mut acc, (idx, a)| {
+            if get_activity_type(&a).map_or(false, |t| t == "reload") || idx == route.tour.total() - 1 {
+                let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
+                let end_idx = if idx == last_idx { last_idx } else { idx - 1 };
 
-    let mut leg = route.tour.all_activities().skip(1).fold(
-        Leg::new(start.place.location, start.schedule.departure, load),
-        |acc, act| {
-            let activity_type = match &act.job {
-                Some(job) => job.as_single().dimens.get_value::<String>("type").unwrap().clone(),
-                None => "arrival".to_string(),
-            };
-            let is_break = activity_type == "break";
-
-            let job_tag = act.job.as_ref().and_then(|job| job.as_single().dimens.get_value::<String>("tag").cloned());
-
-            let job_id = match activity_type.as_str() {
-                "pickup" | "delivery" => {
-                    let single = act.job.as_ref().unwrap().as_single();
-                    let id = single.dimens.get_id().cloned();
-                    id.unwrap_or_else(|| Multi::roots(&single).unwrap().dimens.get_id().unwrap().clone())
-                }
-                _ => activity_type.clone(),
-            };
-
-            let driving = problem.transport.duration(vehicle.profile, acc.location, act.place.location, acc.departure);
-            let arrival = acc.departure + driving;
-            let start = act.schedule.arrival.max(act.place.time.start);
-            let waiting = start - act.schedule.arrival;
-            let serving = problem.activity.duration(route.actor.as_ref(), act, act.schedule.arrival);
-            let departure = start + serving;
-
-            if acc.location != act.place.location {
-                tour.stops.push(Stop {
-                    location: coord_index.get_by_idx(&act.place.location).unwrap().as_vec(),
-                    time: format_as_schedule(&(arrival, departure)),
-                    load: acc.load.as_vec(),
-                    activities: vec![],
-                });
+                acc.push((start_idx, end_idx));
             }
 
-            let load = calculate_load(acc.load, act, is_multi_dimen);
-
-            let last = tour.stops.len() - 1;
-            let mut last = tour.stops.get_mut(last).unwrap();
-
-            last.time.departure = format_time(departure);
-            last.load = load.as_vec();
-            last.activities.push(Activity {
-                job_id,
-                activity_type,
-                location: Some(coord_index.get_by_idx(&act.place.location).unwrap().as_vec()),
-                time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
-                job_tag,
-            });
-
-            let cost = problem.activity.cost(actor, act, act.schedule.arrival)
-                + problem.transport.cost(actor, acc.location, act.place.location, acc.departure);
-
-            let distance =
-                problem.transport.distance(vehicle.profile, acc.location, act.place.location, acc.departure) as i32;
-
-            Leg {
-                location: act.place.location,
-                departure: act.schedule.departure,
-                statistic: Statistic {
-                    cost: acc.statistic.cost + cost,
-                    distance: acc.statistic.distance + distance,
-                    duration: acc.statistic.duration + departure as i32 - acc.departure as i32,
-                    times: Timing {
-                        driving: acc.statistic.times.driving + driving as i32,
-                        serving: acc.statistic.times.serving + (if is_break { 0 } else { serving as i32 }),
-                        waiting: acc.statistic.times.waiting + waiting as i32,
-                        break_time: acc.statistic.times.break_time + (if is_break { serving as i32 } else { 0 }),
-                    },
+            acc
+        })
+        .into_iter()
+        .fold(Leg::empty(), |leg, (start_idx, end_idx)| {
+            let initial_load = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                leg.load.unwrap_or_else(|| MultiDimensionalCapacity::default()),
+                |acc, activity| {
+                    acc + activity
+                        .job
+                        .as_ref()
+                        .and_then(|job| {
+                            get_capacity(&job.as_single().dimens, is_multi_dimen).and_then(|d| Some(d.delivery.0))
+                        })
+                        .unwrap_or(MultiDimensionalCapacity::default())
                 },
-                load,
-            }
-        },
-    );
+            );
+
+            let (start_idx, start) = if start_idx == 0 {
+                let start = route.tour.start().unwrap();
+                tour.stops.push(Stop {
+                    location: coord_index.get_by_idx(&start.place.location).unwrap().as_vec(),
+                    time: format_schedule(&start.schedule),
+                    load: initial_load.as_vec(),
+                    activities: vec![Activity {
+                        job_id: "departure".to_string(),
+                        activity_type: "departure".to_string(),
+                        location: None,
+                        time: None,
+                        job_tag: None,
+                    }],
+                });
+                (start_idx + 1, start)
+            } else {
+                (start_idx, route.tour.get(start_idx - 1).unwrap())
+            };
+
+            route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                Leg::new(Some((start.place.location, start.schedule.departure)), Some(initial_load), leg.statistic),
+                |leg, act| {
+                    let (prev_location, prev_departure) = leg.last_detail.unwrap();
+                    let prev_load = leg.load.unwrap();
+
+                    let activity_type = get_activity_type(act).cloned().unwrap_or_else(|| "arrival".to_string());
+                    let is_break = activity_type == "break";
+
+                    let job_tag =
+                        act.job.as_ref().and_then(|job| job.as_single().dimens.get_value::<String>("tag").cloned());
+                    let job_id = match activity_type.as_str() {
+                        "pickup" | "delivery" => {
+                            let single = act.job.as_ref().unwrap().as_single();
+                            let id = single.dimens.get_id().cloned();
+                            id.unwrap_or_else(|| Multi::roots(&single).unwrap().dimens.get_id().unwrap().clone())
+                        }
+                        _ => activity_type.clone(),
+                    };
+
+                    let driving =
+                        problem.transport.duration(vehicle.profile, prev_location, act.place.location, prev_departure);
+                    let arrival = prev_departure + driving;
+                    let start = act.schedule.arrival.max(act.place.time.start);
+                    let waiting = start - act.schedule.arrival;
+                    let serving = problem.activity.duration(route.actor.as_ref(), act, act.schedule.arrival);
+                    let departure = start + serving;
+
+                    if prev_location != act.place.location {
+                        tour.stops.push(Stop {
+                            location: coord_index.get_by_idx(&act.place.location).unwrap().as_vec(),
+                            time: format_as_schedule(&(arrival, departure)),
+                            load: prev_load.as_vec(),
+                            activities: vec![],
+                        });
+                    }
+
+                    let load = calculate_load(prev_load, act, is_multi_dimen);
+
+                    let last = tour.stops.len() - 1;
+                    let mut last = tour.stops.get_mut(last).unwrap();
+
+                    last.time.departure = format_time(departure);
+                    last.load = load.as_vec();
+                    last.activities.push(Activity {
+                        job_id,
+                        activity_type,
+                        location: Some(coord_index.get_by_idx(&act.place.location).unwrap().as_vec()),
+                        time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
+                        job_tag,
+                    });
+
+                    let cost = problem.activity.cost(actor, act, act.schedule.arrival)
+                        + problem.transport.cost(actor, prev_location, act.place.location, prev_departure);
+
+                    let distance =
+                        problem.transport.distance(vehicle.profile, prev_location, act.place.location, prev_departure)
+                            as i32;
+
+                    Leg {
+                        last_detail: Some((act.place.location, act.schedule.departure)),
+                        statistic: Statistic {
+                            cost: leg.statistic.cost + cost,
+                            distance: leg.statistic.distance + distance,
+                            duration: leg.statistic.duration + departure as i32 - prev_departure as i32,
+                            times: Timing {
+                                driving: leg.statistic.times.driving + driving as i32,
+                                serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i32 }),
+                                waiting: leg.statistic.times.waiting + waiting as i32,
+                                break_time: leg.statistic.times.break_time
+                                    + (if is_break { serving as i32 } else { 0 }),
+                            },
+                        },
+                        load: Some(load),
+                    }
+                },
+            )
+        });
 
     // NOTE remove redundant info
     tour.stops
@@ -248,6 +284,13 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
         });
 
         acc
+    })
+}
+
+fn get_activity_type(activity: &TourActivity) -> Option<&String> {
+    activity.job.as_ref().and_then(|job| match job.as_ref() {
+        Job::Single(job) => job.dimens.get_value::<String>("type"),
+        _ => None,
     })
 }
 
