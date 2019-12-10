@@ -160,11 +160,26 @@ fn create_constraint_pipeline(
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
 
-    // TODO
-    if props.has_multi_dimen_capacity {
-        constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
+    if props.has_multi_tour {
+        let threshold = 0.9;
+        if props.has_multi_dimen_capacity {
+            // TODO
+            constraint.add_module(Box::new(MultiTourCapacityConstraintModule::<MultiDimensionalCapacity>::new(
+                2,
+                Box::new(|_capacity| unimplemented!()),
+            )));
+        } else {
+            constraint.add_module(Box::new(MultiTourCapacityConstraintModule::<i32>::new(
+                2,
+                Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32),
+            )));
+        }
     } else {
-        constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
+        if props.has_multi_dimen_capacity {
+            constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
+        } else {
+            constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
+        }
     }
 
     if props.has_breaks {

@@ -12,7 +12,7 @@ use std::sync::Arc;
 const MULTI_TOUR_KEY: i32 = 101;
 
 pub struct MultiTourCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    minimum: Capacity,
+    threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,
     state_keys: Vec<i32>,
     capacity_inner: CapacityConstraintModule<Capacity>,
     conditional_inner: ConditionalJobModule,
@@ -22,7 +22,7 @@ pub struct MultiTourCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     MultiTourCapacityConstraintModule<Capacity>
 {
-    pub fn new(code: i32, minimum: Capacity) -> Self {
+    pub fn new(code: i32, threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>) -> Self {
         let mut constraints = vec![
             ConstraintVariant::HardRoute(Arc::new(MultiTourHardRouteConstraint { code })),
             ConstraintVariant::HardActivity(Arc::new(MultiTourHardActivityConstraint { code })),
@@ -30,11 +30,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         constraints.extend(CapacityConstraintModule::<Capacity>::new(code).constraints());
 
         let capacity_inner = CapacityConstraintModule::new(code);
-        let conditional_inner =
-            ConditionalJobModule::new(Box::new(move |ctx, job| Self::is_required_job(ctx, job, &minimum)));
+        let conditional_inner = ConditionalJobModule::new(Box::new(move |ctx, job| Self::is_required_job(ctx, job)));
 
         Self {
-            minimum,
+            threshold,
             state_keys: capacity_inner.state_keys().chain(once(&MULTI_TOUR_KEY)).cloned().collect(),
             capacity_inner,
             conditional_inner,
@@ -42,15 +41,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
-    fn is_vehicle_full(rc: &RouteContext, minimum: &Capacity) -> bool {
+    fn is_vehicle_full(rc: &RouteContext, threshold: &Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>) -> bool {
         let tour = &rc.route.tour;
         let state = &rc.state;
 
         if let Some(end) = tour.end() {
             let empty_capacity = Capacity::default();
-
-            let max_capacity: Capacity = *rc.route.actor.vehicle.dimens.get_capacity().unwrap();
-            let max_capacity = max_capacity - *minimum;
+            let max_capacity = threshold(rc.route.actor.vehicle.dimens.get_capacity().unwrap());
 
             let load = state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).unwrap_or_else(|| &empty_capacity);
 
@@ -60,7 +57,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
-    fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>, minimum: &Capacity) -> bool {
+    fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
         match job.as_ref() {
             Job::Single(job) => {
                 if let Some(tour_index) = get_tour_index(job) {
@@ -134,7 +131,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             Self::recalculate_states(ctx);
         } else {
             self.capacity_inner.accept_route_state(ctx);
-            if Self::is_vehicle_full(ctx, &self.minimum) {
+            if Self::is_vehicle_full(ctx, &self.threshold) {
                 ctx.state_mut().put_route_state(MULTI_TOUR_KEY, 0_usize);
             }
         }
@@ -187,10 +184,10 @@ struct MultiTourHardActivityConstraint {
 impl HardActivityConstraint for MultiTourHardActivityConstraint {
     fn evaluate_activity(
         &self,
-        route_ctx: &RouteContext,
+        _route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        if let Some(job) = as_reload_job(activity_ctx.target) {
+        if let Some(_) = as_reload_job(activity_ctx.target) {
             // NOTE insert reload job in route only as last
             if activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some() {
                 return Some(ActivityConstraintViolation { code: self.code, stopped: false });
