@@ -39,8 +39,8 @@ pub use self::breaks::BreakModule;
 mod extra_costs;
 pub use self::extra_costs::ExtraCostModule;
 
-mod multi_tour_capacity;
-pub use self::multi_tour_capacity::MultiTourCapacityConstraintModule;
+mod reload_capacity;
+pub use self::reload_capacity::ReloadCapacityConstraintModule;
 
 mod reachable;
 pub use self::reachable::ReachableModule;

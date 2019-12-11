@@ -9,9 +9,9 @@ use std::ops::{Add, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 
-const MULTI_TOUR_INDEX_KEY: i32 = 101;
+const RELOAD_INDEX_KEY: i32 = 101;
 
-pub struct MultiTourCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,
     state_keys: Vec<i32>,
     capacity_inner: CapacityConstraintModule<Capacity>,
@@ -20,7 +20,7 @@ pub struct MultiTourCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + 
 }
 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    MultiTourCapacityConstraintModule<Capacity>
+    ReloadCapacityConstraintModule<Capacity>
 {
     pub fn new(code: i32, threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>) -> Self {
         let capacity_constraint = CapacityConstraintModule::<Capacity>::new(code);
@@ -44,15 +44,15 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
         Self {
             threshold,
-            state_keys: capacity_constraint.state_keys().chain(vec![MULTI_TOUR_INDEX_KEY].iter()).cloned().collect(),
+            state_keys: capacity_constraint.state_keys().chain(vec![RELOAD_INDEX_KEY].iter()).cloned().collect(),
             capacity_inner: capacity_constraint,
             conditional_inner: ConditionalJobModule::new(
                 Some(Box::new(move |_, job| !is_reload_job(job))),
                 Some(Box::new(move |_, job| is_reload_job(job))),
             ),
             constraints: vec![
-                ConstraintVariant::HardRoute(Arc::new(MultiTourHardRouteConstraint { code, hard_route_constraint })),
-                ConstraintVariant::HardActivity(Arc::new(MultiTourHardActivityConstraint::<Capacity> {
+                ConstraintVariant::HardRoute(Arc::new(ReloadHardRouteConstraint { code, hard_route_constraint })),
+                ConstraintVariant::HardActivity(Arc::new(ReloadHardActivityConstraint::<Capacity> {
                     code,
                     hard_activity_constraint,
                     phantom: PhantomData,
@@ -124,12 +124,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 }
 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    ConstraintModule for MultiTourCapacityConstraintModule<Capacity>
+    ConstraintModule for ReloadCapacityConstraintModule<Capacity>
 {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>) {
         if is_reload_job(job) {
             let reload_idx = get_reload_index_from_job(&job.as_single()).unwrap();
-            route_ctx.state_mut().put_route_state(MULTI_TOUR_INDEX_KEY, reload_idx);
+            route_ctx.state_mut().put_route_state(RELOAD_INDEX_KEY, reload_idx);
             self.accept_route_state(route_ctx);
         } else {
             self.accept_route_state(route_ctx);
@@ -154,7 +154,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             }
         }
 
-        remove_trivial_tours(solution_ctx);
+        remove_trivial_reloads(solution_ctx);
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
@@ -171,7 +171,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             self.conditional_inner.accept_solution_state(ctx);
         }
 
-        remove_trivial_tours(ctx);
+        remove_trivial_reloads(ctx);
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -183,13 +183,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-/// Locks multi tour jobs to specific vehicles
-struct MultiTourHardRouteConstraint {
+/// Locks reload jobs to specific vehicles
+struct ReloadHardRouteConstraint {
     code: i32,
     hard_route_constraint: Arc<dyn HardRouteConstraint + Send + Sync>,
 }
 
-impl HardRouteConstraint for MultiTourHardRouteConstraint {
+impl HardRouteConstraint for ReloadHardRouteConstraint {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         if is_reload_job(job) {
             let job = job.as_single();
@@ -212,14 +212,14 @@ impl HardRouteConstraint for MultiTourHardRouteConstraint {
     }
 }
 
-struct MultiTourHardActivityConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+struct ReloadHardActivityConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     code: i32,
     hard_activity_constraint: Arc<dyn HardActivityConstraint + Send + Sync>,
     phantom: PhantomData<Capacity>,
 }
 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    HardActivityConstraint for MultiTourHardActivityConstraint<Capacity>
+    HardActivityConstraint for ReloadHardActivityConstraint<Capacity>
 {
     fn evaluate_activity(
         &self,
@@ -264,8 +264,8 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-/// Removes multi tours without jobs.
-fn remove_trivial_tours(ctx: &mut SolutionContext) {
+/// Removes reloads at the end of tour.
+fn remove_trivial_reloads(ctx: &mut SolutionContext) {
     if ctx.required.is_empty() {
         ctx.routes.iter_mut().for_each(|rc| {
             let activities = rc.route.tour.total();
@@ -298,7 +298,7 @@ fn has_reload_index(ctx: &RouteContext) -> bool {
 }
 
 fn get_reload_index_from_route(ctx: &RouteContext) -> Option<usize> {
-    ctx.state.get_route_state::<usize>(MULTI_TOUR_INDEX_KEY).cloned()
+    ctx.state.get_route_state::<usize>(RELOAD_INDEX_KEY).cloned()
 }
 
 fn get_reload_index_from_job(job: &Arc<Single>) -> Option<usize> {

@@ -73,7 +73,7 @@ pub struct ProblemProperties {
     has_skills: bool,
     has_unreachable_locations: bool,
     has_fixed_cost: bool,
-    has_multi_tour: bool,
+    has_reload: bool,
 }
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
@@ -167,16 +167,16 @@ fn create_constraint_pipeline(
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
 
-    if props.has_multi_tour {
+    if props.has_reload {
         let threshold = 0.9;
         if props.has_multi_dimen_capacity {
             // TODO
-            constraint.add_module(Box::new(MultiTourCapacityConstraintModule::<MultiDimensionalCapacity>::new(
+            constraint.add_module(Box::new(ReloadCapacityConstraintModule::<MultiDimensionalCapacity>::new(
                 2,
                 Box::new(|_capacity| unimplemented!()),
             )));
         } else {
-            constraint.add_module(Box::new(MultiTourCapacityConstraintModule::<i32>::new(
+            constraint.add_module(Box::new(ReloadCapacityConstraintModule::<i32>::new(
                 2,
                 Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32),
             )));
@@ -268,7 +268,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         has_skills,
         has_unreachable_locations,
         has_fixed_cost,
-        has_multi_tour,
+        has_reload: has_multi_tour,
     }
 }
 
