@@ -157,6 +157,11 @@ impl Tour {
         }
     }
 
+    /// Returns amount of all activities in tour.
+    pub fn total(&self) -> usize {
+        self.activities.len()
+    }
+
     /// Returns amount of jobs.
     pub fn job_count(&self) -> usize {
         self.jobs.len()

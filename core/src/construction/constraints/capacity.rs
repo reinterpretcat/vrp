@@ -80,10 +80,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
-    pub fn constraints(self) -> Vec<ConstraintVariant> {
-        self.constraints
-    }
-
     pub fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
         activity.job.as_ref().and_then(|job| match job.as_ref() {
             Job::Single(job) => job.dimens.get_demand(),
