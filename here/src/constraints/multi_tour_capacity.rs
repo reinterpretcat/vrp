@@ -124,8 +124,32 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     ConstraintModule for MultiTourCapacityConstraintModule<Capacity>
 {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
         self.accept_route_state(route_ctx);
+
+        if Self::is_vehicle_full(route_ctx, &self.threshold) {
+            let next_reload_idx = get_reload_index(route_ctx).unwrap_or(0) + 1;
+            let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
+
+            let index = solution_ctx.ignored.iter().position(move |job| match job.as_ref() {
+                Job::Single(job) => {
+                    is_reload_single(&job)
+                        && get_shift_index(&job.dimens) == shift_index
+                        && get_tour_index(&job).unwrap() == next_reload_idx
+                }
+                _ => false,
+            });
+
+            if let Some(index) = index {
+                route_ctx.state_mut().put_route_state(MULTI_TOUR_INDEX_KEY, next_reload_idx);
+
+                let job = solution_ctx.ignored.remove(index);
+                solution_ctx.required.push(job.clone());
+                solution_ctx.locked.insert(job);
+            }
+        }
+
+        remove_trivial_tours(solution_ctx);
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
@@ -134,47 +158,15 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         } else {
             self.capacity_inner.accept_route_state(ctx);
         }
-
-        if Self::is_vehicle_full(ctx, &self.threshold) {
-            let next_reload_idx = get_reload_index(ctx).unwrap_or(0) + 1;
-            ctx.state_mut().put_route_state(MULTI_TOUR_INDEX_KEY, next_reload_idx);
-        }
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        let mut routes_with_reload =
-            ctx.routes.iter().filter(|rc| get_reload_index(rc).is_some()).cloned().collect::<Vec<_>>();
-
-        // NOTE promote reload jobs only when they are not yet used
-        // TODO do it once
-        if routes_with_reload.is_empty() {
+        // NOTE promote reload jobs to ignored and locked
+        if ctx.routes.iter().find(|rc| get_reload_index(rc).is_some()).is_none() {
             self.conditional_inner.accept_solution_state(ctx);
         }
 
-        routes_with_reload.iter_mut().for_each(|rc| {
-            let shift_index = get_shift_index(&rc.route.actor.vehicle.dimens);
-            let reload_idx = get_reload_index(rc).unwrap();
-
-            let index = ctx.ignored.iter().position(move |job| match job.as_ref() {
-                Job::Single(job) => {
-                    is_reload_single(&job)
-                        && get_shift_index(&job.dimens) == shift_index
-                        && get_tour_index(&job).unwrap() == reload_idx
-                }
-                _ => false,
-            });
-
-            if let Some(index) = index {
-                let job = ctx.ignored.remove(index);
-                ctx.required.push(job.clone());
-                ctx.locked.insert(job);
-            }
-        });
-
-        if ctx.required.is_empty() {
-            // NOTE assume that multi tour jobs are locked in reader
-            remove_trivial_tours(ctx);
-        }
+        remove_trivial_tours(ctx);
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -241,14 +233,16 @@ impl HardActivityConstraint for MultiTourHardActivityConstraint {
 
 /// Removes multi tours without jobs.
 fn remove_trivial_tours(ctx: &mut SolutionContext) {
-    ctx.routes.iter_mut().for_each(|rc| {
-        let activities = rc.route.tour.total();
-        let last_reload_idx = if rc.route.actor.detail.end.is_some() { activities - 2 } else { activities - 1 };
+    if ctx.required.is_empty() {
+        ctx.routes.iter_mut().for_each(|rc| {
+            let activities = rc.route.tour.total();
+            let last_reload_idx = if rc.route.actor.detail.end.is_some() { activities - 2 } else { activities - 1 };
 
-        if as_reload_job(rc.route.tour.get(last_reload_idx).unwrap()).is_some() {
-            rc.route_mut().tour.remove_activity_at(last_reload_idx);
-        }
-    });
+            if as_reload_job(rc.route.tour.get(last_reload_idx).unwrap()).is_some() {
+                rc.route_mut().tour.remove_activity_at(last_reload_idx);
+            }
+        });
+    }
 }
 
 fn is_reload_single(job: &Arc<Single>) -> bool {
