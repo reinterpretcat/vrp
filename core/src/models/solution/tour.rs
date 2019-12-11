@@ -148,6 +148,13 @@ impl Tour {
         self.activities.iter().position(move |a| a.has_same_job(&job))
     }
 
+    /// Returns index of the activity in the tour.
+    pub fn activity_index(&self, activity: &TourActivity) -> Option<usize> {
+        self.activities
+            .iter()
+            .position(|a| (a.as_ref() as *const Activity as usize) == (activity.as_ref() as *const Activity as usize))
+    }
+
     /// Checks whether tour has jobs.
     pub fn has_jobs(&self) -> bool {
         !self.jobs.is_empty()

@@ -4,6 +4,7 @@ use core::construction::states::{ActivityContext, RouteContext, SolutionContext}
 use core::models::common::ValueDimension;
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
+use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
@@ -51,9 +52,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             ),
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(MultiTourHardRouteConstraint { code, hard_route_constraint })),
-                ConstraintVariant::HardActivity(Arc::new(MultiTourHardActivityConstraint {
+                ConstraintVariant::HardActivity(Arc::new(MultiTourHardActivityConstraint::<Capacity> {
                     code,
                     hard_activity_constraint,
+                    phantom: PhantomData,
                 })),
             ],
         }
@@ -210,12 +212,15 @@ impl HardRouteConstraint for MultiTourHardRouteConstraint {
     }
 }
 
-struct MultiTourHardActivityConstraint {
+struct MultiTourHardActivityConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     code: i32,
     hard_activity_constraint: Arc<dyn HardActivityConstraint + Send + Sync>,
+    phantom: PhantomData<Capacity>,
 }
 
-impl HardActivityConstraint for MultiTourHardActivityConstraint {
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    HardActivityConstraint for MultiTourHardActivityConstraint<Capacity>
+{
     fn evaluate_activity(
         &self,
         route_ctx: &RouteContext,
@@ -228,6 +233,29 @@ impl HardActivityConstraint for MultiTourHardActivityConstraint {
             } else {
                 None
             };
+        }
+
+        if get_reload_index(route_ctx).is_some() {
+            let multi = activity_ctx.target.retrieve_job().and_then(|job| match job.as_ref() {
+                Job::Multi(multi) => Some((job.clone(), multi.jobs.len())),
+                _ => None,
+            });
+
+            if let Some((job, singles)) = multi {
+                let processed_activities = route_ctx.route.tour.job_activities(&job).count();
+                // NOTE check capacity violation for reloads
+                if processed_activities == singles - 1 {
+                    let capacity: Capacity = *route_ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
+                    let index = route_ctx.route.tour.activity_index(activity_ctx.prev).unwrap();
+                    let has_violation = route_ctx.route.tour.activities_slice(0, index).iter().rev().any(|a| {
+                        *route_ctx.state.get_activity_state::<Capacity>(MAX_PAST_CAPACITY_KEY, a).unwrap() > capacity
+                    });
+
+                    if has_violation {
+                        return Some(ActivityConstraintViolation { code: self.code, stopped: false });
+                    }
+                }
+            }
         }
 
         self.hard_activity_constraint.evaluate_activity(route_ctx, activity_ctx)

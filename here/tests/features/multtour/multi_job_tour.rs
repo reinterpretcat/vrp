@@ -48,10 +48,10 @@ fn can_serve_multi_job_and_delivery_with_reload() {
         Solution {
             problem_id: "my_problem".to_string(),
             statistic: Statistic {
-                cost: 50.,
-                distance: 16,
-                duration: 24,
-                times: Timing { driving: 16, serving: 8, waiting: 0, break_time: 0 },
+                cost: 46.,
+                distance: 14,
+                duration: 22,
+                times: Timing { driving: 14, serving: 8, waiting: 0, break_time: 0 },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -61,52 +61,51 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                         "departure",
                         "departure",
                         (0., 0.),
-                        2,
+                        1,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                     ),
                     create_stop_with_activity(
                         "simple1",
                         "delivery",
                         (1., 0.),
-                        1,
+                        0,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
                     ),
-                    create_stop_with_activity_with_tag(
-                        "multi",
-                        "pickup",
-                        (2., 0.),
+                    create_stop_with_activity(
+                        "reload",
+                        "reload",
+                        (0., 0.),
                         2,
-                        ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
-                        "1"
+                        ("1970-01-01T00:00:03Z", "1970-01-01T00:00:05Z")
                     ),
                     create_stop_with_activity(
                         "simple2",
                         "delivery",
                         (3., 0.),
                         1,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
+                        ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
                     ),
                     create_stop_with_activity_with_tag(
-                        "reload",
-                        "reload",
-                        (0., 0.),
+                        "multi",
+                        "pickup",
+                        (2., 0.),
                         2,
-                        ("1970-01-01T00:00:09Z", "1970-01-01T00:00:11Z"),
-                        "2"
+                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                        "1"
                     ),
                     create_stop_with_activity(
-                        "simple1",
+                        "simple3",
                         "delivery",
                         (7., 0.),
                         1,
-                        ("1970-01-01T00:00:18Z", "1970-01-01T00:00:19Z"),
+                        ("1970-01-01T00:00:16Z", "1970-01-01T00:00:17Z"),
                     ),
                     create_stop_with_activity_with_tag(
                         "multi",
                         "pickup",
                         (8., 0.),
                         2,
-                        ("1970-01-01T00:00:20Z", "1970-01-01T00:00:21Z"),
+                        ("1970-01-01T00:00:18Z", "1970-01-01T00:00:19Z"),
                         "2"
                     ),
                     create_stop_with_activity_with_tag(
@@ -114,7 +113,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                         "delivery",
                         (9., 0.),
                         0,
-                        ("1970-01-01T00:00:22Z", "1970-01-01T00:00:23Z"),
+                        ("1970-01-01T00:00:20Z", "1970-01-01T00:00:21Z"),
                         "1"
                     ),
                     create_stop_with_activity(
@@ -122,14 +121,14 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                         "arrival",
                         (10., 0.),
                         0,
-                        ("1970-01-01T00:00:24Z", "1970-01-01T00:00:24Z"),
+                        ("1970-01-01T00:00:22Z", "1970-01-01T00:00:22Z"),
                     )
                 ],
                 statistic: Statistic {
-                    cost: 50.,
-                    distance: 16,
-                    duration: 24,
-                    times: Timing { driving: 16, serving: 8, waiting: 0, break_time: 0 },
+                    cost: 46.,
+                    distance: 14,
+                    duration: 22,
+                    times: Timing { driving: 14, serving: 8, waiting: 0, break_time: 0 },
                 },
             }],
             unassigned: vec![],
