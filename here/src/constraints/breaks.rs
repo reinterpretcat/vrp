@@ -25,7 +25,7 @@ impl BreakModule {
             conditional: ConditionalJobModule::new(Some(Box::new(|ctx, job| is_required_job(ctx, job))), None),
             constraints: vec![
                 ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint { code })),
-                ConstraintVariant::SoftActivity(Arc::new(BreakSoftActivityConstraint { extra_break_cost })),
+                ConstraintVariant::SoftRoute(Arc::new(BreakSoftRouteConstraint { extra_break_cost })),
             ],
             demote_breaks_from_unassigned,
         }
@@ -100,16 +100,16 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
         None
     }
 }
-
-struct BreakSoftActivityConstraint {
+// TODO make soft route constraint
+struct BreakSoftRouteConstraint {
     /// Allows to control whether break should be preferable for insertion
     extra_break_cost: Option<Cost>,
 }
 
-impl SoftActivityConstraint for BreakSoftActivityConstraint {
-    fn estimate_activity(&self, _route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> f64 {
+impl SoftRouteConstraint for BreakSoftRouteConstraint {
+    fn estimate_job(&self, _ctx: &RouteContext, job: &Arc<Job>) -> f64 {
         if let Some(cost) = self.extra_break_cost {
-            (if as_break_job(activity_ctx.target).is_some() { cost } else { 0. })
+            (if is_break_job(job) { cost } else { 0. })
         } else {
             0.
         }
@@ -120,7 +120,7 @@ impl SoftActivityConstraint for BreakSoftActivityConstraint {
 fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
     match job.as_ref() {
         Job::Single(job) => {
-            if is_break_job(job) {
+            if is_break_single(job) {
                 let vehicle_id = get_vehicle_id_from_job(job).unwrap();
                 let shift_index = get_shift_index(&job.dimens);
                 ctx.routes.iter().any(move |rc| is_correct_vehicle(rc, &vehicle_id, shift_index) && is_time(rc, job))
@@ -188,12 +188,21 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
 
 //region Helpers
 
-fn is_break_job(job: &Arc<Single>) -> bool {
+fn is_break_job(job: &Arc<Job>) -> bool {
+    match job.as_ref() {
+        Job::Single(job) => {
+            job.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
+        }
+        _ => false
+    }
+}
+
+fn is_break_single(job: &Arc<Single>) -> bool {
     job.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
 }
 
 fn as_break_job(activity: &Activity) -> Option<Arc<Single>> {
-    as_single_job(activity, |job| is_break_job(job))
+    as_single_job(activity, |job| is_break_single(job))
 }
 
 fn is_time(rc: &RouteContext, break_job: &Single) -> bool {

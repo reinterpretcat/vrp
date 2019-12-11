@@ -1,7 +1,7 @@
 use crate::constraints::{as_single_job, get_shift_index, get_vehicle_id_from_job, is_correct_vehicle};
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use core::models::common::ValueDimension;
+use core::models::common::{ValueDimension, Cost};
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
 use std::marker::PhantomData;
@@ -51,6 +51,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 Some(Box::new(move |_, job| is_reload_job(job))),
             ),
             constraints: vec![
+                ConstraintVariant::SoftRoute(Arc::new(ReloadSoftRouteConstraint { cost: 10. })),
                 ConstraintVariant::HardRoute(Arc::new(ReloadHardRouteConstraint { code, hard_route_constraint })),
                 ConstraintVariant::HardActivity(Arc::new(ReloadHardActivityConstraint::<Capacity> {
                     code,
@@ -180,6 +181,18 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn get_constraints(&self) -> Iter<ConstraintVariant> {
         self.constraints.iter()
+    }
+}
+
+struct ReloadSoftRouteConstraint {
+    cost: Cost
+}
+
+impl SoftRouteConstraint for ReloadSoftRouteConstraint {
+    fn estimate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> f64 {
+        if is_reload_job(job) {
+            -ctx.route.actor.vehicle.costs.fixed - self.cost
+        } else { 0. }
     }
 }
 
