@@ -236,8 +236,15 @@ impl HardActivityConstraint for MultiTourHardActivityConstraint {
 }
 
 /// Removes multi tours without jobs.
-fn remove_trivial_tours(_ctx: &mut SolutionContext) {
-    // TODO remove multi tour job if next is final arrival or none (open vrp)
+fn remove_trivial_tours(ctx: &mut SolutionContext) {
+    ctx.routes.iter_mut().for_each(|rc| {
+        let activities = rc.route.tour.total();
+        let last_reload_idx = if rc.route.actor.detail.end.is_some() { activities - 2 } else { activities - 1 };
+
+        if as_reload_job(rc.route.tour.get(last_reload_idx).unwrap()).is_some() {
+            rc.route_mut().tour.remove_activity_at(last_reload_idx);
+        }
+    });
 }
 
 fn is_reload_single(job: &Arc<Single>) -> bool {
@@ -247,7 +254,7 @@ fn is_reload_single(job: &Arc<Single>) -> bool {
 fn is_reload_job(job: &Arc<Job>) -> bool {
     match job.as_ref() {
         Job::Single(job) => is_reload_single(job),
-        _ => true,
+        _ => false,
     }
 }
 

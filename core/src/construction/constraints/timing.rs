@@ -34,7 +34,10 @@ impl ConstraintModule for TimingConstraintModule {
         // NOTE revise this once routing is sensible to departure time reschedule departure and
         // arrivals if arriving earlier to the first activity do it only in implicit end of algorithm
         if ctx.required.is_empty() {
-            ctx.routes.iter_mut().for_each(|rc| self.reschedule_departure(rc))
+            ctx.routes.iter_mut().for_each(|rc| {
+                self.accept_route_state(rc);
+                self.reschedule_departure(rc)
+            })
         }
     }
 

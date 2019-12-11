@@ -73,6 +73,16 @@ impl Tour {
         self.jobs.remove(job)
     }
 
+    /// Removes activity and its job from the tour.
+    pub fn remove_activity_at(&mut self, idx: usize) -> Option<Arc<Job>> {
+        if let Some(job) = self.activities.get(idx).and_then(|a| a.job.clone()) {
+            self.remove(&job);
+            Some(job)
+        } else {
+            panic!("Attempt to remove activity without job from the tour!")
+        }
+    }
+
     /// Returns all activities in tour.
     pub fn all_activities(&self) -> Iter<TourActivity> {
         self.activities.iter()

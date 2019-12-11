@@ -40,6 +40,8 @@ impl InsertionHeuristic {
             insert(result, &mut ctx);
         }
 
+        finalize_ctx(&mut ctx);
+
         ctx
     }
 }
@@ -47,6 +49,10 @@ impl InsertionHeuristic {
 fn prepare_ctx(ctx: &mut InsertionContext) {
     ctx.solution.required.extend(ctx.solution.unassigned.drain().map(|(job, _)| job));
 
+    ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
+}
+
+fn finalize_ctx(ctx: &mut InsertionContext) {
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
 
