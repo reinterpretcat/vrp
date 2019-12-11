@@ -151,6 +151,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     ConstraintModule for CapacityConstraintModule<Capacity>
 {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+        self.accept_route_state(route_ctx);
+    }
+
     fn accept_route_state(&self, ctx: &mut RouteContext) {
         let (route, state) = ctx.as_mut();
 

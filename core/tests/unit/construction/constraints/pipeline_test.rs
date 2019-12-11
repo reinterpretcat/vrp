@@ -2,6 +2,7 @@ use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::helpers::models::solution::{test_actor, test_tour_activity_without_job};
 use crate::models::common::Cost;
+use crate::models::problem::Job;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -11,6 +12,10 @@ struct TestConstraintModule {
 }
 
 impl ConstraintModule for TestConstraintModule {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+        unimplemented!()
+    }
+
     fn accept_route_state(&self, _ctx: &mut RouteContext) {
         unimplemented!()
     }

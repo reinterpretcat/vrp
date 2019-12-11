@@ -33,6 +33,11 @@ impl BreakModule {
 }
 
 impl ConstraintModule for BreakModule {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+        self.accept_route_state(route_ctx);
+        self.accept_solution_state(solution_ctx);
+    }
+
     fn accept_route_state(&self, ctx: &mut RouteContext) {
         self.conditional.accept_route_state(ctx);
     }

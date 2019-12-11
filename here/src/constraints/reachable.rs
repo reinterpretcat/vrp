@@ -1,6 +1,6 @@
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use core::models::problem::TransportCost;
+use core::models::problem::{Job, TransportCost};
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -22,6 +22,8 @@ impl ReachableModule {
 }
 
 impl ConstraintModule for ReachableModule {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Arc<Job>) {}
+
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}

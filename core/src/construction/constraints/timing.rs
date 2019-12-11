@@ -5,7 +5,7 @@ mod timing_test;
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::{Cost, Timestamp};
-use crate::models::problem::{ActivityCost, Actor, TransportCost};
+use crate::models::problem::{ActivityCost, Actor, Job, TransportCost};
 use crate::models::solution::Activity;
 use std::ops::Deref;
 use std::slice::Iter;
@@ -25,6 +25,10 @@ pub struct TimingConstraintModule {
 }
 
 impl ConstraintModule for TimingConstraintModule {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+        self.accept_route_state(route_ctx);
+    }
+
     fn accept_route_state(&self, ctx: &mut RouteContext) {
         self.update_route_schedules(ctx);
         self.update_route_states(ctx);
@@ -33,12 +37,10 @@ impl ConstraintModule for TimingConstraintModule {
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         // NOTE revise this once routing is sensible to departure time reschedule departure and
         // arrivals if arriving earlier to the first activity do it only in implicit end of algorithm
-        if ctx.required.is_empty() {
-            ctx.routes.iter_mut().for_each(|rc| {
-                self.accept_route_state(rc);
-                self.reschedule_departure(rc)
-            })
-        }
+        ctx.routes.iter_mut().for_each(|rc| {
+            self.accept_route_state(rc);
+            self.reschedule_departure(rc)
+        })
     }
 
     fn state_keys(&self) -> Iter<i32> {

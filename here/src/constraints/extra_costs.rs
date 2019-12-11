@@ -19,6 +19,8 @@ impl Default for ExtraCostModule {
 }
 
 impl ConstraintModule for ExtraCostModule {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Arc<Job>) {}
+
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}

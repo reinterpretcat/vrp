@@ -48,7 +48,6 @@ impl InsertionHeuristic {
 
 fn prepare_ctx(ctx: &mut InsertionContext) {
     ctx.solution.required.extend(ctx.solution.unassigned.drain().map(|(job, _)| job));
-
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
 
@@ -72,7 +71,7 @@ fn insert(result: InsertionResult, ctx: &mut InsertionContext) {
             });
 
             ctx.solution.required.retain(|j| !compare_shared(j, &job));
-            ctx.problem.constraint.accept_route_state(&mut success.context);
+            ctx.problem.constraint.accept_insertion(&mut ctx.solution, &mut success.context, &job);
         }
         InsertionResult::Failure(failure) => {
             let unassigned = &mut ctx.solution.unassigned;
@@ -81,6 +80,4 @@ fn insert(result: InsertionResult, ctx: &mut InsertionContext) {
             });
         }
     }
-    // TODO update progress
-    ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }

@@ -75,6 +75,9 @@ pub enum ConstraintVariant {
 
 /// Represents constraint module which can be added to constraint pipeline.
 pub trait ConstraintModule {
+    /// Accept insertion of specific job.
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>);
+
     /// Accept route and updates its state to allow more efficient constraint checks.
     fn accept_route_state(&self, ctx: &mut RouteContext);
 
@@ -112,14 +115,19 @@ impl Default for ConstraintPipeline {
 }
 
 impl ConstraintPipeline {
-    /// Accepts solution with its context.
-    pub fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        self.modules.iter().for_each(|c| c.accept_solution_state(ctx))
+    /// Accepts job insertion.
+    pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>) {
+        self.modules.iter().for_each(|c| c.accept_insertion(solution_ctx, route_ctx, job))
     }
 
-    /// Accepts solution with its context.
+    /// Accepts route state.
     pub fn accept_route_state(&self, ctx: &mut RouteContext) {
         self.modules.iter().for_each(|c| c.accept_route_state(ctx))
+    }
+
+    /// Accepts solution state.
+    pub fn accept_solution_state(&self, ctx: &mut SolutionContext) {
+        self.modules.iter().for_each(|c| c.accept_solution_state(ctx))
     }
 
     /// Adds constraint module.

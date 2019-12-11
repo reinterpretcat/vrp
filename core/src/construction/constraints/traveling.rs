@@ -5,7 +5,7 @@ mod traveling_test;
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::{Actor, TransportCost};
+use crate::models::problem::{Actor, Job, TransportCost};
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -45,6 +45,10 @@ impl TravelModule {
 }
 
 impl ConstraintModule for TravelModule {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+        self.accept_route_state(route_ctx);
+    }
+
     fn accept_route_state(&self, ctx: &mut RouteContext) {
         let limit = (self.limit_func)(&ctx.route.actor);
 
