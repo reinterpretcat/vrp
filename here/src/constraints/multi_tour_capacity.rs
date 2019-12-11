@@ -79,23 +79,23 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         let (route, state) = ctx.as_mut();
 
         let last_idx = route.tour.total() - 1;
-        let (_, starts) = (0_usize..).zip(route.tour.all_activities()).fold(
-            (Capacity::default(), Vec::<(usize, usize, Capacity)>::default()),
-            |(total, mut acc), (idx, a)| {
-                let total = if as_reload_job(a).is_some() || idx == last_idx {
+        let (_, _, starts) = (0_usize..).zip(route.tour.all_activities()).fold(
+            (Capacity::default(), Capacity::default(), Vec::<(usize, usize, Capacity)>::default()),
+            |(start_total, end_total, mut acc), (idx, a)| {
+                let demand = Demand::<Capacity>::default();
+                let demand = CapacityConstraintModule::<Capacity>::get_demand(a).unwrap_or(&demand);
+                let (start_total, end_total) = if as_reload_job(a).is_some() || idx == last_idx {
                     let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
                     let end_idx = if idx == last_idx { last_idx } else { idx - 1 };
 
-                    acc.push((start_idx, end_idx, total));
+                    acc.push((start_idx, end_idx, start_total));
 
-                    Capacity::default()
+                    (end_total, Capacity::default())
                 } else {
-                    total
-                        + CapacityConstraintModule::<Capacity>::get_demand(a)
-                            .map_or(Capacity::default(), |d| d.delivery.0)
+                    (start_total + demand.delivery.0, end_total + demand.pickup.1 - demand.delivery.1)
                 };
 
-                (total, acc)
+                (start_total, end_total, acc)
             },
         );
 
