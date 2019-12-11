@@ -128,20 +128,20 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>) {
         if is_reload_job(job) {
-            let reload_idx = get_tour_index(&job.as_single()).unwrap();
+            let reload_idx = get_reload_index_from_job(&job.as_single()).unwrap();
             route_ctx.state_mut().put_route_state(MULTI_TOUR_INDEX_KEY, reload_idx);
             self.accept_route_state(route_ctx);
         } else {
             self.accept_route_state(route_ctx);
             if Self::is_vehicle_full(route_ctx, &self.threshold) {
-                let next_reload_idx = get_reload_index(route_ctx).unwrap_or(0) + 1;
+                let next_reload_idx = get_reload_index_from_route(route_ctx).unwrap_or(0) + 1;
                 let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
 
                 let index = solution_ctx.ignored.iter().position(move |job| match job.as_ref() {
                     Job::Single(job) => {
                         is_reload_single(&job)
                             && get_shift_index(&job.dimens) == shift_index
-                            && get_tour_index(&job).unwrap() == next_reload_idx
+                            && get_reload_index_from_job(&job).unwrap() == next_reload_idx
                     }
                     _ => false,
                 });
@@ -158,7 +158,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        if get_reload_index(ctx).is_some() {
+        if has_reload_index(ctx) {
             Self::recalculate_states(ctx);
         } else {
             self.capacity_inner.accept_route_state(ctx);
@@ -167,7 +167,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         // NOTE promote reload jobs to ignored and locked
-        if ctx.routes.iter().find(|rc| get_reload_index(rc).is_some()).is_none() {
+        if ctx.routes.iter().find(|rc| has_reload_index(rc)).is_none() {
             self.conditional_inner.accept_solution_state(ctx);
         }
 
@@ -203,11 +203,11 @@ impl HardRouteConstraint for MultiTourHardRouteConstraint {
             };
         }
 
-        if get_reload_index(ctx).is_none() {
-            self.hard_route_constraint.evaluate_job(ctx, job)
-        } else {
+        if has_reload_index(ctx) {
             // TODO can we do some checks here?
             None
+        } else {
+            self.hard_route_constraint.evaluate_job(ctx, job)
         }
     }
 }
@@ -235,7 +235,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             };
         }
 
-        if get_reload_index(route_ctx).is_some() {
+        if has_reload_index(route_ctx) {
             let multi = activity_ctx.target.retrieve_job().and_then(|job| match job.as_ref() {
                 Job::Multi(multi) => Some((job.clone(), multi.jobs.len())),
                 _ => None,
@@ -247,6 +247,8 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 if processed_activities == singles - 1 {
                     let capacity: Capacity = *route_ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
                     let index = route_ctx.route.tour.activity_index(activity_ctx.prev).unwrap();
+
+                    // TODO optimize this?
                     let has_violation = route_ctx.route.tour.activities_slice(0, index).iter().rev().any(|a| {
                         *route_ctx.state.get_activity_state::<Capacity>(MAX_PAST_CAPACITY_KEY, a).unwrap() > capacity
                     });
@@ -291,10 +293,14 @@ fn as_reload_job(activity: &Activity) -> Option<Arc<Single>> {
     as_single_job(activity, |job| is_reload_single(job))
 }
 
-fn get_reload_index(ctx: &RouteContext) -> Option<usize> {
+fn has_reload_index(ctx: &RouteContext) -> bool {
+    get_reload_index_from_route(ctx).is_some()
+}
+
+fn get_reload_index_from_route(ctx: &RouteContext) -> Option<usize> {
     ctx.state.get_route_state::<usize>(MULTI_TOUR_INDEX_KEY).cloned()
 }
 
-fn get_tour_index(job: &Arc<Single>) -> Option<usize> {
-    job.dimens.get_value::<usize>("tour_index").cloned()
+fn get_reload_index_from_job(job: &Arc<Single>) -> Option<usize> {
+    job.dimens.get_value::<usize>("reload_index").cloned()
 }
