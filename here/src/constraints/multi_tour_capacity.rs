@@ -124,28 +124,31 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     ConstraintModule for MultiTourCapacityConstraintModule<Capacity>
 {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
-        self.accept_route_state(route_ctx);
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>) {
+        if is_reload_job(job) {
+            let reload_idx = get_tour_index(&job.as_single()).unwrap();
+            route_ctx.state_mut().put_route_state(MULTI_TOUR_INDEX_KEY, reload_idx);
+            self.accept_route_state(route_ctx);
+        } else {
+            self.accept_route_state(route_ctx);
+            if Self::is_vehicle_full(route_ctx, &self.threshold) {
+                let next_reload_idx = get_reload_index(route_ctx).unwrap_or(0) + 1;
+                let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
 
-        if Self::is_vehicle_full(route_ctx, &self.threshold) {
-            let next_reload_idx = get_reload_index(route_ctx).unwrap_or(0) + 1;
-            let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
+                let index = solution_ctx.ignored.iter().position(move |job| match job.as_ref() {
+                    Job::Single(job) => {
+                        is_reload_single(&job)
+                            && get_shift_index(&job.dimens) == shift_index
+                            && get_tour_index(&job).unwrap() == next_reload_idx
+                    }
+                    _ => false,
+                });
 
-            let index = solution_ctx.ignored.iter().position(move |job| match job.as_ref() {
-                Job::Single(job) => {
-                    is_reload_single(&job)
-                        && get_shift_index(&job.dimens) == shift_index
-                        && get_tour_index(&job).unwrap() == next_reload_idx
+                if let Some(index) = index {
+                    let job = solution_ctx.ignored.remove(index);
+                    solution_ctx.required.push(job.clone());
+                    solution_ctx.locked.insert(job);
                 }
-                _ => false,
-            });
-
-            if let Some(index) = index {
-                route_ctx.state_mut().put_route_state(MULTI_TOUR_INDEX_KEY, next_reload_idx);
-
-                let job = solution_ctx.ignored.remove(index);
-                solution_ctx.required.push(job.clone());
-                solution_ctx.locked.insert(job);
             }
         }
 
