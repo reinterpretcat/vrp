@@ -1,7 +1,7 @@
 use crate::constraints::{as_single_job, get_shift_index, get_vehicle_id_from_job, is_correct_vehicle};
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use core::models::common::{ValueDimension, Cost};
+use core::models::common::{Cost, IdDimension, ValueDimension};
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
 use std::marker::PhantomData;
@@ -137,12 +137,14 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             if Self::is_vehicle_full(route_ctx, &self.threshold) {
                 let next_reload_idx = get_reload_index_from_route(route_ctx).unwrap_or(0) + 1;
                 let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
+                let vehicle_id = route_ctx.route.actor.vehicle.dimens.get_id().unwrap();
 
                 let index = solution_ctx.ignored.iter().position(move |job| match job.as_ref() {
                     Job::Single(job) => {
                         is_reload_single(&job)
                             && get_shift_index(&job.dimens) == shift_index
                             && get_reload_index_from_job(&job).unwrap() == next_reload_idx
+                            && get_vehicle_id_from_job(&job).unwrap() == vehicle_id
                     }
                     _ => false,
                 });
@@ -185,14 +187,16 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 }
 
 struct ReloadSoftRouteConstraint {
-    cost: Cost
+    cost: Cost,
 }
 
 impl SoftRouteConstraint for ReloadSoftRouteConstraint {
     fn estimate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> f64 {
         if is_reload_job(job) {
             -ctx.route.actor.vehicle.costs.fixed - self.cost
-        } else { 0. }
+        } else {
+            0.
+        }
     }
 }
 

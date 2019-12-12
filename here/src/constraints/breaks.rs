@@ -190,10 +190,8 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
 
 fn is_break_job(job: &Arc<Job>) -> bool {
     match job.as_ref() {
-        Job::Single(job) => {
-            job.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
-        }
-        _ => false
+        Job::Single(job) => job.dimens.get_value::<String>("type").map_or(false, |t| t == "break"),
+        _ => false,
     }
 }
 
