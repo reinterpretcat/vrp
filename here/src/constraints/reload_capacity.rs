@@ -22,7 +22,7 @@ pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Def
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     ReloadCapacityConstraintModule<Capacity>
 {
-    pub fn new(code: i32, threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>) -> Self {
+    pub fn new(code: i32, cost_reward: Cost, threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>) -> Self {
         let capacity_constraint = CapacityConstraintModule::<Capacity>::new(code);
         let hard_route_constraint = capacity_constraint
             .get_constraints()
@@ -51,7 +51,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 Some(Box::new(move |_, job| is_reload_job(job))),
             ),
             constraints: vec![
-                ConstraintVariant::SoftRoute(Arc::new(ReloadSoftRouteConstraint { cost: 10. })),
+                ConstraintVariant::SoftRoute(Arc::new(ReloadSoftRouteConstraint { cost: cost_reward })),
                 ConstraintVariant::HardRoute(Arc::new(ReloadHardRouteConstraint { code, hard_route_constraint })),
                 ConstraintVariant::HardActivity(Arc::new(ReloadHardActivityConstraint::<Capacity> {
                     code,

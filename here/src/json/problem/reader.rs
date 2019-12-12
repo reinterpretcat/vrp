@@ -173,11 +173,13 @@ fn create_constraint_pipeline(
             // TODO
             constraint.add_module(Box::new(ReloadCapacityConstraintModule::<MultiDimensionalCapacity>::new(
                 2,
+                100.,
                 Box::new(|_capacity| unimplemented!()),
             )));
         } else {
             constraint.add_module(Box::new(ReloadCapacityConstraintModule::<i32>::new(
                 2,
+                100.,
                 Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32),
             )));
         }
