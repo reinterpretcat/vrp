@@ -3,7 +3,7 @@
 mod multi_dim_capacity_test;
 
 use std::cmp::Ordering;
-use std::ops::{Add, Sub};
+use std::ops::{Add, Mul, Sub};
 
 const CAPACITY_DIMENSION_SIZE: usize = 8;
 
@@ -125,5 +125,19 @@ impl Eq for MultiDimensionalCapacity {}
 impl PartialEq for MultiDimensionalCapacity {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Mul<f64> for MultiDimensionalCapacity {
+    type Output = Self;
+
+    fn mul(self, value: f64) -> Self::Output {
+        let mut dimens = self;
+
+        dimens.capacity.iter_mut().for_each(|item| {
+            *item = (*item as f64 * value).round() as i32;
+        });
+
+        dimens
     }
 }
