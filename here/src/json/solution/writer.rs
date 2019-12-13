@@ -105,16 +105,18 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
         })
         .into_iter()
         .fold(Leg::empty(), |leg, (start_idx, end_idx)| {
-            let initial_load = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                leg.load.unwrap_or_else(|| MultiDimensionalCapacity::default()),
+            let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                (leg.load.unwrap_or_else(|| MultiDimensionalCapacity::default()), MultiDimensionalCapacity::default()),
                 |acc, activity| {
-                    acc + activity
+                    let (delivery, pickup) = activity
                         .job
                         .as_ref()
                         .and_then(|job| {
-                            get_capacity(&job.as_single().dimens, is_multi_dimen).and_then(|d| Some(d.delivery.0))
+                            get_capacity(&job.as_single().dimens, is_multi_dimen)
+                                .and_then(|d| Some((d.delivery.0, d.pickup.0)))
                         })
-                        .unwrap_or(MultiDimensionalCapacity::default())
+                        .unwrap_or((MultiDimensionalCapacity::default(), MultiDimensionalCapacity::default()));
+                    (acc.0 + delivery, acc.1 + pickup)
                 },
             );
 
@@ -123,7 +125,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 tour.stops.push(Stop {
                     location: coord_index.get_by_idx(&start.place.location).unwrap().as_vec(),
                     time: format_schedule(&start.schedule),
-                    load: initial_load.as_vec(),
+                    load: start_delivery.as_vec(),
                     activities: vec![Activity {
                         job_id: "departure".to_string(),
                         activity_type: "departure".to_string(),
@@ -137,13 +139,20 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 (start_idx, route.tour.get(start_idx - 1).unwrap())
             };
 
-            route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                Leg::new(Some((start.place.location, start.schedule.departure)), Some(initial_load), leg.statistic),
+            let mut leg = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                Leg::new(Some((start.place.location, start.schedule.departure)), Some(start_delivery), leg.statistic),
                 |leg, act| {
+                    let activity_type = get_activity_type(act).cloned();
                     let (prev_location, prev_departure) = leg.last_detail.unwrap();
-                    let prev_load = leg.load.unwrap();
+                    let prev_load = if activity_type.is_some() {
+                        leg.load.unwrap()
+                    } else {
+                        // NOTE arrival must have zero load
+                        let dimen_size = leg.load.unwrap().size;
+                        MultiDimensionalCapacity::new(vec![0; dimen_size])
+                    };
 
-                    let activity_type = get_activity_type(act).cloned().unwrap_or_else(|| "arrival".to_string());
+                    let activity_type = activity_type.unwrap_or_else(|| "arrival".to_string());
                     let is_break = activity_type == "break";
 
                     let job_tag =
@@ -213,7 +222,11 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                         load: Some(load),
                     }
                 },
-            )
+            );
+
+            leg.load = Some(leg.load.unwrap() - end_pickup);
+
+            leg
         });
 
     // NOTE remove redundant info
