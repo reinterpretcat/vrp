@@ -24,6 +24,7 @@ impl BreakModule {
         Self {
             conditional: ConditionalJobModule::new(Some(Box::new(|ctx, job| is_required_job(ctx, job))), None),
             constraints: vec![
+                ConstraintVariant::HardRoute(Arc::new(BreakHardRouteConstraint { code })),
                 ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint { code })),
                 ConstraintVariant::SoftRoute(Arc::new(BreakSoftRouteConstraint { extra_break_cost })),
             ],
@@ -67,6 +68,29 @@ struct BreakHardActivityConstraint {
     code: i32,
 }
 
+/// Locks break jobs to specific vehicles
+struct BreakHardRouteConstraint {
+    code: i32,
+}
+
+impl HardRouteConstraint for BreakHardRouteConstraint {
+    fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
+        if is_break_job(job) {
+            let job = job.as_single();
+            let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
+            let shift_index = get_shift_index(&job.dimens);
+
+            return if !is_correct_vehicle(ctx, vehicle_id, shift_index) {
+                Some(RouteConstraintViolation { code: self.code })
+            } else {
+                None
+            };
+        }
+
+        None
+    }
+}
+
 impl BreakHardActivityConstraint {
     fn stop(&self) -> Option<ActivityConstraintViolation> {
         Some(ActivityConstraintViolation { code: self.code, stopped: false })
@@ -76,30 +100,20 @@ impl BreakHardActivityConstraint {
 impl HardActivityConstraint for BreakHardActivityConstraint {
     fn evaluate_activity(
         &self,
-        route_ctx: &RouteContext,
+        _route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let break_job = as_break_job(activity_ctx.target);
+        let is_break = activity_ctx.target.job.as_ref().map_or(false, |job| is_break_job(job));
 
-        if let Some(break_job) = break_job {
-            // avoid assigning break right after departure
-            if activity_ctx.prev.job.is_none() {
-                return self.stop();
-            } else {
-                // TODO move this to route level constraint
-                // lock break to specific vehicle and shift
-                let vehicle_id = get_vehicle_id_from_job(&break_job).unwrap();
-                let shift_index = get_shift_index(&break_job.dimens);
-
-                if !is_correct_vehicle(route_ctx, vehicle_id, shift_index) {
-                    return self.stop();
-                }
-            }
+        // avoid assigning break right after departure
+        if is_break && activity_ctx.prev.job.is_none() {
+            self.stop()
+        } else {
+            None
         }
-
-        None
     }
 }
+
 // TODO make soft route constraint
 struct BreakSoftRouteConstraint {
     /// Allows to control whether break should be preferable for insertion
