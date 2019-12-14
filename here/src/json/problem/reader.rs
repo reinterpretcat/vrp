@@ -151,6 +151,10 @@ fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
                     }
                 });
             }
+
+            if let Some(reloads) = &shift.reloads {
+                reloads.iter().for_each(|reload| index.add_from_vec(&reload.location));
+            }
         });
     });
 

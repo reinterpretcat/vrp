@@ -225,6 +225,13 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
                             .and_then(|breaks| Some(breaks.iter().map(|b| b.location.clone()).collect()))
                             .unwrap_or_else(|| vec![]),
                     )
+                    .chain(
+                        shift
+                            .reloads
+                            .as_ref()
+                            .and_then(|reloads| Some(reloads.iter().map(|r| Some(r.location.clone())).collect()))
+                            .unwrap_or_else(|| vec![]),
+                    )
             })
             .for_each(|location| {
                 if let Some(location) = location {
