@@ -143,6 +143,11 @@ impl Tour {
         self.activities.last()
     }
 
+    /// Checks whether job is present in tour
+    pub fn contains(&self, job: &Arc<Job>) -> bool {
+        self.jobs.contains(job)
+    }
+
     /// Returns index of first job occurrence in the tour.
     pub fn index(&self, job: &Arc<Job>) -> Option<usize> {
         self.activities.iter().position(move |a| a.has_same_job(&job))

@@ -8,11 +8,9 @@ use std::sync::{Arc, RwLock};
 use crate::construction::states::{InsertionContext, RouteContext};
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Tour;
-use crate::models::Problem;
-use crate::refinement::ruin::Ruin;
+use crate::refinement::ruin::{select_seed_jobs, Ruin};
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
-use std::iter::{empty, once};
 
 /// "Adjusted string removal" strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) by Jan Christiaens, Greet Vanden Berghe.
@@ -163,82 +161,6 @@ fn preserved_string<'a>(
             .filter(move |&i| i < split_start || i >= split_end || i == index)
             .filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())),
     )
-}
-
-/// Returns randomly selected job within all its neighbours.
-fn select_seed_jobs<'a>(
-    problem: &'a Problem,
-    routes: &[RouteContext],
-    random: &Arc<dyn Random + Send + Sync>,
-) -> JobIter<'a> {
-    let seed = select_seed_job(routes, random);
-
-    if let Some((rc, job)) = seed {
-        return Box::new(once(job.clone()).chain(problem.jobs.neighbors(
-            rc.route.actor.vehicle.profile,
-            &job,
-            Default::default(),
-            std::f64::MAX,
-        )));
-    }
-
-    Box::new(empty())
-}
-
-/// Selects seed job from existing solution
-fn select_seed_job<'a>(
-    routes: &'a [RouteContext],
-    random: &Arc<dyn Random + Send + Sync>,
-) -> Option<(&'a RouteContext, Arc<Job>)> {
-    if routes.is_empty() {
-        return None;
-    }
-
-    let route_index = random.uniform_int(0, (routes.len() - 1) as i32) as usize;
-    let mut ri = route_index;
-
-    loop {
-        let rc = routes.get(ri).unwrap();
-
-        if rc.route.tour.has_jobs() {
-            let job = select_random_job(rc, random);
-            if let Some(job) = job {
-                return Some((rc, job));
-            }
-        }
-
-        ri = (ri + 1) % routes.len();
-        if ri == route_index {
-            break;
-        }
-    }
-
-    None
-}
-
-fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) -> Option<Arc<Job>> {
-    let size = rc.route.tour.activity_count();
-    if size == 0 {
-        return None;
-    }
-
-    let activity_index = random.uniform_int(1, size as i32) as usize;
-    let mut ai = activity_index;
-
-    loop {
-        let job = rc.route.tour.get(ai).and_then(|a| a.retrieve_job());
-
-        if job.is_some() {
-            return job;
-        }
-
-        ai = (ai + 1) % (size + 1);
-        if ai == activity_index {
-            break;
-        }
-    }
-
-    None
 }
 
 /// Returns range of possible lower bounds.
