@@ -38,6 +38,7 @@ impl RefinementContext {
 
 impl Population {
     pub fn new(minimize_routes: bool, batch_size: usize) -> Self {
+        assert!(batch_size > 1);
         Self { less_costs: vec![], less_routes: vec![], less_unassigned: vec![], minimize_routes, batch_size }
     }
 
@@ -75,7 +76,7 @@ impl Population {
     pub fn add(&mut self, individuum: Individuum) {
         Self::add_to_queue(
             self.clone_individuum(&individuum),
-            if self.minimize_routes { 1 } else { self.batch_size },
+            if self.minimize_routes { 2 } else { self.batch_size },
             &mut self.less_costs,
             |(_, a_cost, _), (_, b_cost, _)| compare_floats(a_cost.total(), b_cost.total()),
         );
@@ -97,7 +98,7 @@ impl Population {
 
         Self::add_to_queue(
             individuum,
-            if self.minimize_routes { self.batch_size } else { 1 },
+            if self.minimize_routes { self.batch_size } else { 2 },
             &mut self.less_routes,
             |(a_ctx, a_cost, _), (b_ctx, b_cost, _)| match a_ctx.solution.routes.len().cmp(&b_ctx.solution.routes.len())
             {
@@ -111,9 +112,10 @@ impl Population {
     where
         F: FnMut(&Individuum, &Individuum) -> Ordering,
     {
+        individuums.truncate(batch_size - 1);
+
         individuums.push(individuum);
         individuums.sort_by(|a, b| compare(a, b));
-        individuums.truncate(batch_size);
     }
 
     fn clone_individuum(&self, individuum: &Individuum) -> Individuum {
