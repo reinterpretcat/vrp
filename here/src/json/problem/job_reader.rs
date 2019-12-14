@@ -235,6 +235,7 @@ fn read_breaks(
                         "break",
                         shift_index,
                         (&place.location, place.duration, &times),
+                        &None,
                     );
 
                     (job_id, job)
@@ -266,6 +267,7 @@ fn read_reloads(
                         "reload",
                         shift_index,
                         (&Some(reload.location.to_vec()), reload.duration, &reload.times),
+                        &reload.tag,
                     );
 
                     (reload_idx, job_id, job)
@@ -284,6 +286,7 @@ fn get_conditional_job(
     job_type: &str,
     shift_index: usize,
     place: (&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>),
+    tag: &Option<String>,
 ) -> Single {
     let (location, duration, times) = place;
     let mut single = get_single(location.as_ref().and_then(|l| Some(l)), duration, &times, coord_index);
@@ -291,6 +294,9 @@ fn get_conditional_job(
     single.dimens.insert("type".to_string(), Box::new(job_type.to_string()));
     single.dimens.insert("shift_index".to_string(), Box::new(shift_index));
     single.dimens.insert("vehicle_id".to_string(), Box::new(vehicle_id.clone()));
+    if let Some(tag) = tag {
+        single.dimens.insert("tag".to_string(), Box::new(tag.clone()));
+    }
 
     single
 }
