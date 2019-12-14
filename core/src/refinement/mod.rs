@@ -42,14 +42,30 @@ impl Population {
         Self { less_costs: vec![], less_routes: vec![], less_unassigned: vec![], batch_size }
     }
 
+    /// Returns best solution by cost or minimum routes
+    pub fn best(&self, minimum_routes: bool) -> Option<&Individuum> {
+        if minimum_routes { self.less_routes() } else { self.less_costs() }.next()
+    }
+
     /// Returns sorted collection discovered and accepted solutions
     /// with their cost and generations when they are discovered.
-    pub fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
+    pub fn less_costs<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
         Box::new(
             self.less_costs
                 .iter()
                 .zip(self.less_unassigned.iter())
                 .zip(self.less_routes.iter())
+                .flat_map(|((x, y), z)| once(x).chain(once(y)).chain(once(z))),
+        )
+    }
+
+    /// Returns sorted collection by minimum routes amount.
+    pub fn less_routes<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
+        Box::new(
+            self.less_routes
+                .iter()
+                .zip(self.less_unassigned.iter())
+                .zip(self.less_costs.iter())
                 .flat_map(|((x, y), z)| once(x).chain(once(y)).chain(once(z))),
         )
     }

@@ -123,8 +123,7 @@ impl Solver {
         let (insertion_ctx, cost) = solution;
         let (actual_change, total_change) = refinement_ctx
             .population
-            .all()
-            .next()
+            .best(self.settings.minimize_routes)
             .map(|(_, c, _)| {
                 ((cost.actual - c.actual) / c.actual * 100., (cost.total() - c.total()) / c.total() * 100.)
             })
@@ -154,7 +153,8 @@ impl Solver {
     }
 
     fn get_result(&self, refinement_ctx: RefinementContext) -> Option<(Solution, ObjectiveCost, usize)> {
-        if let Some((ctx, cost, generation)) = refinement_ctx.population.all().next() {
+        let best = refinement_ctx.population.best(self.settings.minimize_routes);
+        if let Some((ctx, cost, generation)) = best {
             self.logger.deref()(format!(
                 "Best solution within cost {} discovered at {} generation",
                 cost.total(),

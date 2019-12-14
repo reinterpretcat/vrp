@@ -27,7 +27,7 @@ impl Default for Greedy {
 
 impl Acceptance for Greedy {
     fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (&InsertionContext, ObjectiveCost)) -> bool {
-        match refinement_ctx.population.all().next() {
+        match refinement_ctx.population.best(self.is_minimize_routes) {
             Some(best) => {
                 let unassigned_cmp = solution.0.solution.unassigned.len().cmp(&best.0.solution.unassigned.len());
                 let route_cmp = solution.0.solution.routes.len().cmp(&best.0.solution.routes.len());
