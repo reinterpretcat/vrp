@@ -50,8 +50,8 @@ fn can_ruin_solution_with_matrix_routes_impl(
         Arc::new(FakeRandom::new(ints, reals)),
     );
 
-    let insertion_ctx =
-        AdjustedStringRemoval::default().run(&RefinementContext::new(insertion_ctx.problem.clone(), 1), insertion_ctx);
+    let insertion_ctx = AdjustedStringRemoval::default()
+        .run(&RefinementContext::new(insertion_ctx.problem.clone(), false, 1), insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }

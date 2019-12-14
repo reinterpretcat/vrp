@@ -17,9 +17,13 @@ impl SelectRandom {
 
     fn get_index(refinement_ctx: &RefinementContext) -> usize {
         let size = refinement_ctx.population.size() as i32;
+        let weights: Vec<_> =
+            (0..size).rev().map(|idx| (std::f64::consts::E.powi(idx) * 100.).round() as usize).collect();
+
         let (insertion_ctx, _, _) = refinement_ctx.population.less_routes().next().unwrap();
 
-        insertion_ctx.random.uniform_int(0, size - 1) as usize
+        // NOTE random weighted
+        insertion_ctx.random.weighted(weights.iter()) as usize
     }
 }
 

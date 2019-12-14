@@ -6,7 +6,6 @@ use crate::models::Problem;
 use crate::utils::compare_floats;
 use rand::prelude::*;
 use std::cmp::Ordering;
-use std::iter::once;
 use std::sync::Arc;
 
 /// Contains information needed to perform refinement.
@@ -28,18 +27,19 @@ pub struct Population {
     less_unassigned: Vec<Individuum>,
     less_routes: Vec<Individuum>,
 
+    minimize_routes: bool,
     batch_size: usize,
 }
 
 impl RefinementContext {
-    pub fn new(problem: Arc<Problem>, batch_size: usize) -> Self {
-        Self { problem, population: Population::new(batch_size), generation: 1 }
+    pub fn new(problem: Arc<Problem>, minimize_routes: bool, batch_size: usize) -> Self {
+        Self { problem, population: Population::new(minimize_routes, batch_size), generation: 1 }
     }
 }
 
 impl Population {
-    pub fn new(batch_size: usize) -> Self {
-        Self { less_costs: vec![], less_routes: vec![], less_unassigned: vec![], batch_size }
+    pub fn new(minimize_routes: bool, batch_size: usize) -> Self {
+        Self { less_costs: vec![], less_routes: vec![], less_unassigned: vec![], minimize_routes, batch_size }
     }
 
     /// Returns best solution by cost or minimum routes
@@ -50,24 +50,12 @@ impl Population {
     /// Returns sorted collection discovered and accepted solutions
     /// with their cost and generations when they are discovered.
     pub fn less_costs<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
-        Box::new(
-            self.less_costs
-                .iter()
-                .zip(self.less_unassigned.iter())
-                .zip(self.less_routes.iter())
-                .flat_map(|((x, y), z)| once(x).chain(once(y)).chain(once(z))),
-        )
+        Box::new(self.less_costs.iter().chain(self.less_unassigned.iter()).chain(self.less_routes.iter()))
     }
 
     /// Returns sorted collection by minimum routes amount.
     pub fn less_routes<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
-        Box::new(
-            self.less_routes
-                .iter()
-                .zip(self.less_unassigned.iter())
-                .zip(self.less_costs.iter())
-                .flat_map(|((x, y), z)| once(x).chain(once(y)).chain(once(z))),
-        )
+        Box::new(self.less_routes.iter().chain(self.less_unassigned.iter()).chain(self.less_costs.iter()))
     }
 
     /// Returns total size of population.
@@ -79,14 +67,14 @@ impl Population {
     pub fn add(&mut self, individuum: Individuum) {
         Self::add_to_queue(
             self.clone_individuum(&individuum),
-            self.batch_size,
+            if self.minimize_routes { 1 } else { self.batch_size },
             &mut self.less_costs,
             |(_, a_cost, _), (_, b_cost, _)| compare_floats(a_cost.total(), b_cost.total()),
         );
 
         Self::add_to_queue(
             self.clone_individuum(&individuum),
-            self.batch_size,
+            1,
             &mut self.less_unassigned,
             |(a_ctx, a_cost, _), (b_ctx, b_cost, _)| match a_ctx
                 .solution
@@ -101,7 +89,7 @@ impl Population {
 
         Self::add_to_queue(
             individuum,
-            self.batch_size,
+            if self.minimize_routes { self.batch_size } else { 1 },
             &mut self.less_routes,
             |(a_ctx, a_cost, _), (b_ctx, b_cost, _)| match a_ctx.solution.routes.len().cmp(&b_ctx.solution.routes.len())
             {
