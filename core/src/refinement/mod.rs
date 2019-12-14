@@ -42,9 +42,18 @@ impl Population {
         Self { less_costs: vec![], less_routes: vec![], less_unassigned: vec![], minimize_routes, batch_size }
     }
 
+    /// Returns all solutions.
+    pub fn all<'a>(&'a self, minimum_routes: bool) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
+        if minimum_routes {
+            self.less_routes()
+        } else {
+            self.less_costs()
+        }
+    }
+
     /// Returns best solution by cost or minimum routes
     pub fn best(&self, minimum_routes: bool) -> Option<&Individuum> {
-        if minimum_routes { self.less_routes() } else { self.less_costs() }.next()
+        self.all(minimum_routes).next()
     }
 
     /// Returns sorted collection discovered and accepted solutions

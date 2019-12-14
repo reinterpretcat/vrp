@@ -64,7 +64,7 @@ impl Solver {
     }
 
     pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
-        let mut refinement_ctx = RefinementContext::new(problem.clone(), self.settings.minimize_routes, 3);
+        let mut refinement_ctx = RefinementContext::new(problem.clone(), self.settings.minimize_routes, 5);
         let mut insertion_ctx = match &self.settings.init_insertion_ctx {
             Some((ctx, cost)) => {
                 refinement_ctx.population.add((ctx.deep_copy(), cost.clone(), 1));
@@ -95,6 +95,10 @@ impl Solver {
                 );
             }
 
+            if refinement_ctx.generation > 0 && refinement_ctx.generation % 1000 == 0 {
+                self.log_population(&refinement_ctx, refinement_time);
+            }
+
             if is_accepted {
                 refinement_ctx.population.add((insertion_ctx, cost, refinement_ctx.generation))
             }
@@ -121,13 +125,7 @@ impl Solver {
         is_accepted: bool,
     ) {
         let (insertion_ctx, cost) = solution;
-        let (actual_change, total_change) = refinement_ctx
-            .population
-            .best(self.settings.minimize_routes)
-            .map(|(_, c, _)| {
-                ((cost.actual - c.actual) / c.actual * 100., (cost.total() - c.total()) / c.total() * 100.)
-            })
-            .unwrap_or((100., 100.));
+        let (actual_change, total_change) = self.get_cost_change(refinement_ctx, &cost);
         self.logger.deref()(format!(
             "generation {} took {}ms (total {}s), cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, accepted: {}",
             refinement_ctx.generation,
@@ -140,6 +138,22 @@ impl Solver {
             insertion_ctx.solution.routes.len(),
             is_accepted
         ));
+    }
+
+    fn log_population(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
+        self.logger.deref()(format!("\tpopulation state after {}s:", refinement_time.elapsed().as_secs()));
+        refinement_ctx.population.all(self.settings.minimize_routes).for_each(|(insertion_ctx, cost, generation)| {
+            let (actual_change, total_change) = self.get_cost_change(refinement_ctx, cost);
+            self.logger.deref()(format!(
+                "\t\tindividuum  cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, discovered at: {}",
+                cost.actual,
+                cost.penalty,
+                actual_change,
+                total_change,
+                insertion_ctx.solution.routes.len(),
+                generation
+            ))
+        });
     }
 
     fn log_speed(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
@@ -164,5 +178,15 @@ impl Solver {
         } else {
             None
         }
+    }
+
+    fn get_cost_change(&self, refinement_ctx: &RefinementContext, cost: &ObjectiveCost) -> (f64, f64) {
+        refinement_ctx
+            .population
+            .best(self.settings.minimize_routes)
+            .map(|(_, c, _)| {
+                ((cost.actual - c.actual) / c.actual * 100., (cost.total() - c.total()) / c.total() * 100.)
+            })
+            .unwrap_or((100., 100.))
     }
 }
