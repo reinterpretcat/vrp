@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
     let problem = Arc::new((problem, matrices).read_here().unwrap());
-    let refinement_ctx = RefinementContext::new(problem.clone(), false, 1);
+    let refinement_ctx = RefinementContext::new(problem.clone(), false, 2);
     let solution = RecreateWithCheapest::default()
         .run(&refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
         .solution

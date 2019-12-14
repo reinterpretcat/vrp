@@ -142,18 +142,21 @@ impl Solver {
 
     fn log_population(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
         self.logger.deref()(format!("\tpopulation state after {}s:", refinement_time.elapsed().as_secs()));
-        refinement_ctx.population.all(self.settings.minimize_routes).for_each(|(insertion_ctx, cost, generation)| {
-            let (actual_change, total_change) = self.get_cost_change(refinement_ctx, cost);
-            self.logger.deref()(format!(
-                "\t\tindividuum  cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, discovered at: {}",
-                cost.actual,
-                cost.penalty,
-                actual_change,
-                total_change,
-                insertion_ctx.solution.routes.len(),
-                generation
-            ))
-        });
+        refinement_ctx.population.all(self.settings.minimize_routes).enumerate().for_each(
+            |(idx, (insertion_ctx, cost, generation))| {
+                let (actual_change, total_change) = self.get_cost_change(refinement_ctx, cost);
+                self.logger.deref()(format!(
+                    "\t\t{} cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, discovered at: {}",
+                    idx,
+                    cost.actual,
+                    cost.penalty,
+                    actual_change,
+                    total_change,
+                    insertion_ctx.solution.routes.len(),
+                    generation
+                ))
+            },
+        );
     }
 
     fn log_speed(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {

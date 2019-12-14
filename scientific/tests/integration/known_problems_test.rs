@@ -58,7 +58,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     cost: f64,
 ) {
     let insertion_ctx = RecreateWithCheapest::default().run(
-        &RefinementContext::new(problem.clone(), false, 1),
+        &RefinementContext::new(problem.clone(), false, 2),
         InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
     );
 
