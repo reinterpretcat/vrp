@@ -42,7 +42,7 @@ impl Default for CompositeRuin {
         let adjusted_string_default = Arc::new(AdjustedStringRemoval::default());
         let adjusted_string_aggressive = Arc::new(AdjustedStringRemoval::new(30, 120, 0.02));
 
-        let neighbour_removal = Arc::new(NeighbourRemoval::new(10, 30, 0.5));
+        let neighbour_removal = Arc::new(NeighbourRemoval::default());
         let neighbour_aggressive = Arc::new(NeighbourRemoval::new(30, 120, 0.5));
 
         let worst_job_default = Arc::new(WorstJobRemoval::default());
@@ -58,7 +58,7 @@ impl Default for CompositeRuin {
                 ],
                 100,
             ),
-            (vec![(adjusted_string_aggressive.clone(), 1.)], 3),
+            (vec![(adjusted_string_aggressive.clone(), 1.)], 5),
             (
                 vec![
                     (neighbour_removal.clone(), 1.),
@@ -67,7 +67,7 @@ impl Default for CompositeRuin {
                 ],
                 25,
             ),
-            (vec![(neighbour_aggressive.clone(), 1.)], 2),
+            (vec![(neighbour_aggressive.clone(), 1.)], 5),
             (vec![(random_job_default.clone(), 1.), (random_route_default.clone(), 0.02)], 2),
             (vec![(random_route_default.clone(), 1.), (random_job_default.clone(), 0.02)], 2),
             (vec![(worst_job_default.clone(), 1.), (adjusted_string_default.clone(), 1.)], 1),

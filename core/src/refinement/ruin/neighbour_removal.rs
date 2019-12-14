@@ -18,7 +18,7 @@ impl NeighbourRemoval {
 
 impl Default for NeighbourRemoval {
     fn default() -> Self {
-        Self::new(8, 30, 0.5)
+        Self::new(15, 30, 0.5)
     }
 }
 
