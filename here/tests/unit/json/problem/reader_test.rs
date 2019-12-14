@@ -173,6 +173,7 @@ fn can_read_complex_problem() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = Matrix {
         num_origins: 5,

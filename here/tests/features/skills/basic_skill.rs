@@ -26,6 +26,7 @@ fn can_wait_for_job_start() {
             ],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

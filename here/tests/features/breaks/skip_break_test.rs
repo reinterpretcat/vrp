@@ -36,6 +36,7 @@ fn can_skip_break_when_vehicle_not_used() {
             ],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -130,6 +131,7 @@ fn can_skip_break_when_jobs_completed() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -222,6 +224,7 @@ fn can_skip_second_break_when_jobs_completed() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

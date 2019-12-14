@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/constraints/breaks_test.rs"]
 mod breaks_test;
 
-use crate::constraints::{as_single_job, get_shift_index, get_vehicle_id_from_job, is_correct_vehicle};
+use crate::constraints::*;
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use core::models::common::{Cost, ValueDimension};

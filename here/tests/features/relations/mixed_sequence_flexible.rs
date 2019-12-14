@@ -44,6 +44,7 @@ fn can_use_sequence_and_flexible_relation_for_one_vehicle() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -195,6 +196,7 @@ fn can_use_sequence_and_flexible_relation_for_two_vehicles() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

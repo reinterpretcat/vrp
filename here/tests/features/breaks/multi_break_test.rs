@@ -34,6 +34,7 @@ fn can_use_two_breaks() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

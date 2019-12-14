@@ -32,6 +32,7 @@ fn can_use_multi_dim_capacity() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

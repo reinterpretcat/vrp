@@ -1,4 +1,4 @@
-use crate::constraints::{as_single_job, get_shift_index, get_vehicle_id_from_job, is_correct_vehicle};
+use crate::constraints::*;
 use core::construction::constraints::*;
 use core::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use core::models::common::{Cost, IdDimension, ValueDimension};
@@ -8,8 +8,6 @@ use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
-
-const RELOAD_INDEX_KEY: i32 = 101;
 
 pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,
@@ -44,7 +42,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
         Self {
             threshold,
-            state_keys: capacity_constraint.state_keys().chain(vec![RELOAD_INDEX_KEY].iter()).cloned().collect(),
+            state_keys: capacity_constraint
+                .state_keys()
+                .chain(vec![RELOAD_INDEX_KEY, MAX_TOUR_LOAD_KEY].iter())
+                .cloned()
+                .collect(),
             capacity_inner: capacity_constraint,
             conditional_inner: ConditionalJobModule::new(
                 Some(Box::new(move |_, job| !is_reload_job(job))),
@@ -112,6 +114,8 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
             acc
         });
+
+        state.put_route_state::<Capacity>(MAX_TOUR_LOAD_KEY, *ends.iter().max().unwrap());
 
         starts.into_iter().zip(ends.into_iter()).for_each(|((start_idx, end_idx, _), end)| {
             route

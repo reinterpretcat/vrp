@@ -8,6 +8,7 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
         id: "my_problem".to_string(),
         plan: Plan { jobs: vec![create_pickup_delivery_job("job1", vec![1., 0.], vec![2., 0.])], relations: None },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

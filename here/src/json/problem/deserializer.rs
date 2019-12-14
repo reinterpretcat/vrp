@@ -153,6 +153,26 @@ pub struct Fleet {
 
 // endregion
 
+// region Configuration
+
+#[derive(Clone, Deserialize)]
+pub struct Config {
+    pub features: Option<Features>,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Features {
+    pub even_distribution: Option<EvenDistribution>,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct EvenDistribution {
+    pub enabled: bool,
+    pub extra_cost: Option<f64>,
+}
+
+// endregion
+
 // region Common
 
 #[derive(Clone, Deserialize)]
@@ -160,6 +180,7 @@ pub struct Problem {
     pub id: String,
     pub plan: Plan,
     pub fleet: Fleet,
+    pub config: Option<Config>,
 }
 
 #[derive(Clone, Deserialize)]

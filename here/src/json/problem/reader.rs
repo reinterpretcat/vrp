@@ -17,7 +17,7 @@ use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
 use chrono::DateTime;
 use core::construction::constraints::*;
-use core::models::common::{Dimensions, TimeWindow, Timestamp};
+use core::models::common::{Cost, Dimensions, TimeWindow, Timestamp};
 use core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use core::models::{Extras, Lock, Problem};
 use core::refinement::objectives::PenalizeUnassigned;
@@ -74,6 +74,7 @@ pub struct ProblemProperties {
     has_unreachable_locations: bool,
     has_fixed_cost: bool,
     has_reload: bool,
+    even_dist: Option<Cost>,
 }
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
@@ -167,29 +168,8 @@ fn create_constraint_pipeline(
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
 
-    if props.has_reload {
-        let threshold = 0.9;
-        if props.has_multi_dimen_capacity {
-            // TODO
-            constraint.add_module(Box::new(ReloadCapacityConstraintModule::<MultiDimensionalCapacity>::new(
-                2,
-                100.,
-                Box::new(|capacity| *capacity * 0.9),
-            )));
-        } else {
-            constraint.add_module(Box::new(ReloadCapacityConstraintModule::<i32>::new(
-                2,
-                100.,
-                Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32),
-            )));
-        }
-    } else {
-        if props.has_multi_dimen_capacity {
-            constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
-        } else {
-            constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
-        }
-    }
+    add_capacity_module(&mut constraint, &props);
+    add_even_dist_module(&mut constraint, &props);
 
     if props.has_breaks {
         constraint.add_module(Box::new(BreakModule::new(4, Some(-100.), false)));
@@ -216,6 +196,57 @@ fn create_constraint_pipeline(
     }
 
     constraint
+}
+
+fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
+    if props.has_reload {
+        let threshold = 0.9;
+        if props.has_multi_dimen_capacity {
+            // TODO
+            constraint.add_module(Box::new(ReloadCapacityConstraintModule::<MultiDimensionalCapacity>::new(
+                2,
+                100.,
+                Box::new(|capacity| *capacity * 0.9),
+            )));
+        } else {
+            constraint.add_module(Box::new(ReloadCapacityConstraintModule::<i32>::new(
+                2,
+                100.,
+                Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32),
+            )));
+        }
+    } else {
+        if props.has_multi_dimen_capacity {
+            constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
+        } else {
+            constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
+        }
+    }
+}
+
+fn add_even_dist_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
+    if let Some(even_dist_penalty) = props.even_dist {
+        if props.has_multi_dimen_capacity {
+            constraint.add_module(Box::new(EvenDistributionModule::<MultiDimensionalCapacity>::new(
+                even_dist_penalty,
+                Box::new(|loaded, total| {
+                    let mut max_ratio = 0_f64;
+
+                    for (idx, value) in total.capacity.iter().enumerate() {
+                        let ratio = loaded.capacity[idx] as f64 / *value as f64;
+                        max_ratio = max_ratio.max(ratio);
+                    }
+
+                    max_ratio
+                }),
+            )));
+        } else {
+            constraint.add_module(Box::new(EvenDistributionModule::<i32>::new(
+                even_dist_penalty,
+                Box::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
+            )));
+        }
+    }
 }
 
 fn create_extras(problem_id: &String, props: &ProblemProperties, coord_index: CoordIndex) -> Extras {
@@ -261,8 +292,15 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         JobVariant::Multi(job) => job.skills.is_some(),
     });
     let has_fixed_cost = api_problem.fleet.types.iter().any(|t| t.costs.fixed.is_some());
-    let has_multi_tour =
+    let has_reload =
         api_problem.fleet.types.iter().any(|t| t.shifts.iter().any(|s| s.max_tours.map_or(false, |mt| mt > 1)));
+
+    let even_dist = api_problem
+        .config
+        .as_ref()
+        .and_then(|c| c.features.as_ref())
+        .and_then(|f| f.even_distribution.as_ref())
+        .and_then(|ed| ed.extra_cost.clone());
 
     ProblemProperties {
         has_multi_dimen_capacity,
@@ -270,7 +308,8 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         has_skills,
         has_unreachable_locations,
         has_fixed_cost,
-        has_reload: has_multi_tour,
+        has_reload,
+        even_dist,
     }
 }
 

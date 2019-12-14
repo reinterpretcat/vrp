@@ -27,6 +27,7 @@ fn can_assign_break_between_jobs() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

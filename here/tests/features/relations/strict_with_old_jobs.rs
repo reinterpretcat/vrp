@@ -45,6 +45,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

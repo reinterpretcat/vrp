@@ -20,6 +20,7 @@ fn can_limit_one_job_by_shift_time() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = Matrix {
         num_origins: 2,
@@ -81,6 +82,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

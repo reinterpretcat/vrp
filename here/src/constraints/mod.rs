@@ -4,6 +4,9 @@ use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
 use std::sync::Arc;
 
+pub const RELOAD_INDEX_KEY: i32 = 101;
+pub const MAX_TOUR_LOAD_KEY: i32 = 102;
+
 fn as_single_job<F>(activity: &Activity, condition: F) -> Option<Arc<Single>>
 where
     F: Fn(&Arc<Single>) -> bool,
@@ -35,6 +38,9 @@ fn is_correct_vehicle(rc: &RouteContext, target_id: &String, target_shift: usize
 
 mod breaks;
 pub use self::breaks::BreakModule;
+
+mod even_dist;
+pub use self::even_dist::EvenDistributionModule;
 
 mod extra_costs;
 pub use self::extra_costs::ExtraCostModule;

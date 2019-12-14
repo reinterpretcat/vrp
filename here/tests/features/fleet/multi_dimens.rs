@@ -26,6 +26,7 @@ fn can_use_two_dimensions() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -98,6 +99,7 @@ fn can_unassign_due_to_dimension_mismatch() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

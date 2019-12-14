@@ -31,6 +31,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

@@ -14,6 +14,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
             types: vec![create_default_vehicle("vehicle_without_skill")],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
 

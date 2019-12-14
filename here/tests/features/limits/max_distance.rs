@@ -20,6 +20,7 @@ fn can_limit_by_max_distance() {
             }],
             profiles: create_default_profiles(),
         },
+        config: None,
     };
     let matrix = Matrix {
         num_origins: 2,
