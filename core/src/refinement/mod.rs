@@ -4,7 +4,6 @@ use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::models::Problem;
 use crate::utils::compare_floats;
-use rand::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
@@ -113,11 +112,7 @@ impl Population {
         F: FnMut(&Individuum, &Individuum) -> Ordering,
     {
         individuums.push(individuum);
-        individuums.sort_by(|a, b| compare(b, a));
-
-        let best = individuums.pop().unwrap();
-        individuums.shuffle(&mut rand::thread_rng());
-        individuums.insert(0, best);
+        individuums.sort_by(|a, b| compare(a, b));
         individuums.truncate(batch_size);
     }
 
