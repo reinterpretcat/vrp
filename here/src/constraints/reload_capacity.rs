@@ -4,6 +4,7 @@ use core::construction::states::{ActivityContext, RouteContext, SolutionContext}
 use core::models::common::{Cost, IdDimension, ValueDimension};
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
+use std::iter::once;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::slice::Iter;
@@ -82,12 +83,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn recalculate_states(ctx: &mut RouteContext) {
         let (route, state) = ctx.as_mut();
+        let demand = Demand::<Capacity>::default();
 
         let last_idx = route.tour.total() - 1;
         let (_, _, starts) = (0_usize..).zip(route.tour.all_activities()).fold(
-            (Capacity::default(), Capacity::default(), Vec::<(usize, usize, Capacity)>::default()),
+            (Capacity::default(), Capacity::default(), Vec::<(usize, usize, Capacity)>::new()),
             |(start_total, end_total, mut acc), (idx, a)| {
-                let demand = Demand::<Capacity>::default();
                 let demand = CapacityConstraintModule::<Capacity>::get_demand(a).unwrap_or(&demand);
                 let (start_total, end_total) = if as_reload_job(a).is_some() || idx == last_idx {
                     let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
@@ -249,7 +250,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     ) -> Option<ActivityConstraintViolation> {
         if let Some(_) = as_reload_job(activity_ctx.target) {
             // NOTE insert reload job in route only as last
-            return if activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some() {
+
+            let is_first = activity_ctx.prev.job.is_none();
+            let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
+
+            return if is_first || is_not_last {
                 Some(ActivityConstraintViolation { code: self.code, stopped: false })
             } else {
                 None
@@ -285,16 +290,19 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-/// Removes reloads at the end of tour.
+/// Removes reloads at the start and end of tour.
 fn remove_trivial_reloads(ctx: &mut SolutionContext) {
     if ctx.required.is_empty() {
         ctx.routes.iter_mut().for_each(|rc| {
             let activities = rc.route.tour.total();
+            let first_reload_idx = 1_usize;
             let last_reload_idx = if rc.route.actor.detail.end.is_some() { activities - 2 } else { activities - 1 };
 
-            if as_reload_job(rc.route.tour.get(last_reload_idx).unwrap()).is_some() {
-                rc.route_mut().tour.remove_activity_at(last_reload_idx);
-            }
+            once(first_reload_idx).chain(once(last_reload_idx)).for_each(|idx| {
+                if as_reload_job(rc.route.tour.get(idx).unwrap()).is_some() {
+                    rc.route_mut().tour.remove_activity_at(idx);
+                }
+            });
         });
     }
 }
