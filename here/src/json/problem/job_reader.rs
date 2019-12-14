@@ -1,7 +1,7 @@
 use crate::extensions::MultiDimensionalCapacity;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
-use crate::json::problem::{JobVariant, RelationType, VehicleBreak, VehicleType};
+use crate::json::problem::{JobVariant, RelationType, VehicleBreak, VehicleReload, VehicleType};
 use crate::utils::get_split_permutations;
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::{Dimensions, Duration, IdDimension, TimeWindow, ValueDimension};
@@ -198,22 +198,7 @@ fn read_conditional_jobs(
                 read_breaks(coord_index, job_index, &mut jobs, vehicle, shift_index, breaks);
             }
 
-            if let Some(max_tour) = shift.max_tours {
-                // NOTE actually, we are not limited by start/end places
-                let location = Some(shift.start.location.clone());
-                let duration = shift.load_time.unwrap() as f64;
-                let times = Some(vec![vec![
-                    shift.start.time.clone(),
-                    shift
-                        .end
-                        .as_ref()
-                        .and_then(|p| Some(p.time.clone()))
-                        .unwrap_or_else(|| "2970-01-01T00:00:00Z".to_string()),
-                ]]);
-                let reloads = (1..max_tour).fold(vec![], |mut acc, _| {
-                    acc.push((&location, duration, &times));
-                    acc
-                });
+            if let Some(reloads) = &shift.reloads {
                 read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads);
             }
         }
@@ -265,11 +250,11 @@ fn read_reloads(
     jobs: &mut Vec<Arc<Job>>,
     vehicle: &VehicleType,
     shift_index: usize,
-    reloads: Vec<(&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>)>,
+    reloads: &Vec<VehicleReload>,
 ) {
     (1..)
         .zip(reloads.iter())
-        .flat_map(|(reload_idx, (location, duration, times))| {
+        .flat_map(|(reload_idx, reload)| {
             (1..vehicle.amount + 1)
                 .map(|vehicle_index| {
                     let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
@@ -280,7 +265,7 @@ fn read_reloads(
                         vehicle_id.clone(),
                         "reload",
                         shift_index,
-                        (location, *duration, times),
+                        (&Some(reload.location.to_vec()), reload.duration, &reload.times),
                     );
 
                     (reload_idx, job_id, job)

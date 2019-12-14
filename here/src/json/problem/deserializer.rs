@@ -108,9 +108,10 @@ pub struct VehicleShift {
     pub start: VehiclePlace,
     pub end: Option<VehiclePlace>,
     pub breaks: Option<Vec<VehicleBreak>>,
-    pub max_tours: Option<i32>,
-    pub load_time: Option<i32>,
+    pub reloads: Option<Vec<VehicleReload>>,
 }
+
+pub type VehicleReload = JobPlace;
 
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]

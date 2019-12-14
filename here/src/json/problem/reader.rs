@@ -292,8 +292,11 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         JobVariant::Multi(job) => job.skills.is_some(),
     });
     let has_fixed_cost = api_problem.fleet.types.iter().any(|t| t.costs.fixed.is_some());
-    let has_reload =
-        api_problem.fleet.types.iter().any(|t| t.shifts.iter().any(|s| s.max_tours.map_or(false, |mt| mt > 1)));
+    let has_reload = api_problem
+        .fleet
+        .types
+        .iter()
+        .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
     let even_dist = api_problem
         .config

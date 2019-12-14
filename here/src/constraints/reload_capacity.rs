@@ -270,6 +270,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             if let Some((job, singles)) = multi {
                 let processed_activities = route_ctx.route.tour.job_activities(&job).count();
                 // NOTE check capacity violation for reloads
+                // we allow temporary overload when pickups are inserted, but delivery should fix it later
                 if processed_activities == singles - 1 {
                     let capacity: Capacity = *route_ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
                     let index = route_ctx.route.tour.activity_index(activity_ctx.prev).unwrap();
