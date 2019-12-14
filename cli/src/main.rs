@@ -55,6 +55,7 @@ fn main() {
     let matrix_files = matches
         .values_of(MATRIX_ARG_NAME)
         .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect());
+    let out_solution = matches.value_of(OUT_SOLUTION_ARG_NAME).map(|path| create_file(path, "out solution"));
 
     match formats.get(problem_format) {
         Some((problem_reader, init_reader, solution_writer)) => {
@@ -70,9 +71,15 @@ fn main() {
                         .with_max_time(max_time)
                         .build()
                         .solve(problem.clone());
-                    let out: BufWriter<Box<dyn Write>> = BufWriter::new(Box::new(stdout()));
                     match solution {
-                        Some(solution) => solution_writer.0(&problem, solution.0, out).unwrap(),
+                        Some(solution) => {
+                            let out_buffer: BufWriter<Box<dyn Write>> = if let Some(out_solution) = out_solution {
+                                BufWriter::new(Box::new(out_solution))
+                            } else {
+                                BufWriter::new(Box::new(stdout()))
+                            };
+                            solution_writer.0(&problem, solution.0, out_buffer).unwrap()
+                        }
                         None => println!("Cannot find any solution"),
                     };
                 }
@@ -92,6 +99,13 @@ fn main() {
 fn open_file(path: &str, description: &str) -> File {
     File::open(path).unwrap_or_else(|err| {
         eprintln!("Cannot open {} file '{}': '{}'", description, path, err.to_string());
+        process::exit(1);
+    })
+}
+
+fn create_file(path: &str, description: &str) -> File {
+    File::create(path).unwrap_or_else(|err| {
+        eprintln!("Cannot create {} file '{}': '{}'", description, path, err.to_string());
         process::exit(1);
     })
 }

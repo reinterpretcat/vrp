@@ -9,6 +9,7 @@ pub const TIME_ARG_NAME: &str = "max-time";
 pub const VARIATION_COEFFICIENT_ARG_NAME: &str = "variation-coefficient";
 pub const MINIMIZE_ROUTES_ARG_NAME: &str = "minimize-routes";
 pub const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
+pub const OUT_SOLUTION_ARG_NAME: &str = "out-solution";
 
 pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
     App::new("Vehicle Routing Problem Solver")
@@ -70,6 +71,14 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
                 .short("m")
                 .long(MATRIX_ARG_NAME)
                 .multiple(true)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(OUT_SOLUTION_ARG_NAME)
+                .help("Specifies path to file for output solution")
+                .short("o")
+                .long(OUT_SOLUTION_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
