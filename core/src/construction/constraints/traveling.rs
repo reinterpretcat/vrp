@@ -9,9 +9,6 @@ use crate::models::problem::{Actor, Job, TransportCost};
 use std::slice::Iter;
 use std::sync::Arc;
 
-const MAX_DISTANCE_KEY: i32 = 21;
-const MAX_DURATION_KEY: i32 = 22;
-
 pub type TravelLimitFunc = Arc<dyn Fn(&Actor) -> (Option<Distance>, Option<Duration>) + Send + Sync>;
 
 /// Allows to limit actor's traveling distance and time.

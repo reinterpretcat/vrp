@@ -1,13 +1,17 @@
+pub const LATEST_ARRIVAL_KEY: i32 = 1;
+pub const WAITING_KEY: i32 = 2;
+
+pub const CURRENT_CAPACITY_KEY: i32 = 11;
+pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
+pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
+
+pub const MAX_DISTANCE_KEY: i32 = 21;
+pub const MAX_DURATION_KEY: i32 = 22;
+
+const OP_START_MSG: &str = "Optional start is not yet implemented.";
+
 mod pipeline;
-pub use self::pipeline::ActivityConstraintViolation;
-pub use self::pipeline::ConstraintModule;
-pub use self::pipeline::ConstraintPipeline;
-pub use self::pipeline::ConstraintVariant;
-pub use self::pipeline::HardActivityConstraint;
-pub use self::pipeline::HardRouteConstraint;
-pub use self::pipeline::RouteConstraintViolation;
-pub use self::pipeline::SoftActivityConstraint;
-pub use self::pipeline::SoftRouteConstraint;
+pub use self::pipeline::*;
 
 mod timing;
 pub use self::timing::TimingConstraintModule;

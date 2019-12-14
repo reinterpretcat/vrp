@@ -12,10 +12,6 @@ use std::ops::{Add, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 
-pub const CURRENT_CAPACITY_KEY: i32 = 11;
-pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
-pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
-
 // TODO to avoid code duplication in generic type definition and implementation,
 // TODO consider to use TODO trait aliases once they are stabilized (or macro?).
 

@@ -1,5 +1,4 @@
-use crate::construction::constraints::capacity::CURRENT_CAPACITY_KEY;
-use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
+use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, RouteState};
 use crate::helpers::construction::constraints::*;
 use crate::helpers::models::problem::*;
