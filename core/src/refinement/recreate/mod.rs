@@ -41,9 +41,9 @@ pub struct CompositeRecreate {
 impl Default for CompositeRecreate {
     fn default() -> Self {
         Self::new(vec![
-            (Box::new(RecreateWithCheapest::default()), 10),
-            (Box::new(RecreateWithBlinks::<i32>::default()), 100),
-            (Box::new(RecreateWithGaps::default()), 50),
+            (Box::new(RecreateWithCheapest::default()), 100),
+            (Box::new(RecreateWithBlinks::<i32>::default()), 50),
+            (Box::new(RecreateWithGaps::default()), 10),
         ])
     }
 }
