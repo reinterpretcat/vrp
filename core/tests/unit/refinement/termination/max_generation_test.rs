@@ -1,8 +1,8 @@
 use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_problem};
-use crate::helpers::refinement::create_refinement_context;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::termination::max_generation::MaxGeneration;
 use crate::refinement::termination::Termination;
+use crate::refinement::RefinementContext;
 
 parameterized_test! {can_detect_termination, (generation, limit, expected), {
     can_detect_termination_impl(generation, limit, expected);
@@ -15,7 +15,7 @@ can_detect_termination! {
 }
 
 fn can_detect_termination_impl(generation: usize, limit: usize, expected: bool) {
-    let mut refinement_ctx = create_refinement_context(create_empty_problem());
+    let mut refinement_ctx = RefinementContext::new(create_empty_problem());
     refinement_ctx.generation = generation;
 
     let result = MaxGeneration::new(limit)

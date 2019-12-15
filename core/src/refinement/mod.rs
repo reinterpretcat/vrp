@@ -3,8 +3,7 @@ extern crate rand;
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::models::Problem;
-use crate::utils::compare_floats;
-use std::cmp::Ordering;
+
 use std::sync::Arc;
 
 /// Contains information needed to perform refinement.
@@ -13,113 +12,67 @@ pub struct RefinementContext {
     pub problem: Arc<Problem>,
 
     /// Specifies solution population.
-    pub population: Population,
+    pub population: Box<dyn Population>,
 
     /// Specifies refinement generation (or iteration).
     pub generation: usize,
 }
 
+/// Represents solution in population defined as actual solution, its cost, and generation
 pub type Individuum = (InsertionContext, ObjectiveCost, usize);
 
-pub struct Population {
-    less_costs: Vec<Individuum>,
-    less_unassigned: Vec<Individuum>,
-    less_routes: Vec<Individuum>,
+/// Represents a solution population.
+pub trait Population {
+    /// Adds individuum into population.
+    fn add(&mut self, individuum: Individuum);
 
-    minimize_routes: bool,
-    batch_size: usize,
+    /// Returns all solutions from population sorted according their quality.
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a>;
+
+    /// Returns best solution from population.
+    fn best(&self) -> Option<&Individuum>;
+
+    /// Returns size of population.
+    fn size(&self) -> usize;
+}
+
+/// A population which consist maximum of one solution.
+struct SinglePopulation {
+    individuums: Vec<Individuum>,
+}
+
+impl Default for SinglePopulation {
+    fn default() -> Self {
+        Self { individuums: vec![] }
+    }
+}
+
+impl Population for SinglePopulation {
+    fn add(&mut self, individuum: Individuum) {
+        self.individuums.clear();
+        self.individuums.push(individuum);
+    }
+
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
+        Box::new(self.individuums.iter())
+    }
+
+    fn best(&self) -> Option<&Individuum> {
+        self.individuums.first()
+    }
+
+    fn size(&self) -> usize {
+        self.individuums.len()
+    }
 }
 
 impl RefinementContext {
-    pub fn new(problem: Arc<Problem>, minimize_routes: bool, batch_size: usize) -> Self {
-        Self { problem, population: Population::new(minimize_routes, batch_size), generation: 1 }
-    }
-}
-
-impl Population {
-    pub fn new(minimize_routes: bool, batch_size: usize) -> Self {
-        assert!(batch_size > 1);
-        Self { less_costs: vec![], less_routes: vec![], less_unassigned: vec![], minimize_routes, batch_size }
+    pub fn new(problem: Arc<Problem>) -> Self {
+        Self { problem, population: Box::new(SinglePopulation::default()), generation: 1 }
     }
 
-    /// Returns all solutions.
-    pub fn all<'a>(&'a self, minimum_routes: bool) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
-        if minimum_routes {
-            self.less_routes()
-        } else {
-            self.less_costs()
-        }
-    }
-
-    /// Returns best solution by cost or minimum routes
-    pub fn best(&self, minimum_routes: bool) -> Option<&Individuum> {
-        self.all(minimum_routes).next()
-    }
-
-    /// Returns sorted collection discovered and accepted solutions
-    /// with their cost and generations when they are discovered.
-    pub fn less_costs<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
-        Box::new(self.less_costs.iter().chain(self.less_unassigned.iter()).chain(self.less_routes.iter()))
-    }
-
-    /// Returns sorted collection by minimum routes amount.
-    pub fn less_routes<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
-        Box::new(self.less_routes.iter().chain(self.less_unassigned.iter()).chain(self.less_costs.iter()))
-    }
-
-    /// Returns total size of population.
-    pub fn size(&self) -> usize {
-        self.less_costs.len() + self.less_unassigned.len() + self.less_routes.len()
-    }
-
-    /// Adds solution to population
-    pub fn add(&mut self, individuum: Individuum) {
-        Self::add_to_queue(
-            self.clone_individuum(&individuum),
-            if self.minimize_routes { 2 } else { self.batch_size },
-            &mut self.less_costs,
-            |(_, a_cost, _), (_, b_cost, _)| compare_floats(a_cost.total(), b_cost.total()),
-        );
-
-        Self::add_to_queue(
-            self.clone_individuum(&individuum),
-            1,
-            &mut self.less_unassigned,
-            |(a_ctx, a_cost, _), (b_ctx, b_cost, _)| match a_ctx
-                .solution
-                .unassigned
-                .len()
-                .cmp(&b_ctx.solution.unassigned.len())
-            {
-                Ordering::Equal => compare_floats(a_cost.total(), b_cost.total()),
-                value @ _ => value,
-            },
-        );
-
-        Self::add_to_queue(
-            individuum,
-            if self.minimize_routes { self.batch_size } else { 2 },
-            &mut self.less_routes,
-            |(a_ctx, a_cost, _), (b_ctx, b_cost, _)| match a_ctx.solution.routes.len().cmp(&b_ctx.solution.routes.len())
-            {
-                Ordering::Equal => compare_floats(a_cost.total(), b_cost.total()),
-                value @ _ => value,
-            },
-        );
-    }
-
-    fn add_to_queue<F>(individuum: Individuum, batch_size: usize, individuums: &mut Vec<Individuum>, mut compare: F)
-    where
-        F: FnMut(&Individuum, &Individuum) -> Ordering,
-    {
-        individuums.truncate(batch_size - 1);
-
-        individuums.push(individuum);
-        individuums.sort_by(|a, b| compare(a, b));
-    }
-
-    fn clone_individuum(&self, individuum: &Individuum) -> Individuum {
-        (individuum.0.deep_copy(), individuum.1.clone(), individuum.2)
+    pub fn new_with_population(problem: Arc<Problem>, population: Box<dyn Population>) -> Self {
+        Self { problem, population, generation: 1 }
     }
 }
 

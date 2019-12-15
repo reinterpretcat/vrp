@@ -6,6 +6,7 @@ use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::acceptance::Acceptance;
 use crate::refinement::RefinementContext;
+use crate::utils::compare_floats;
 use std::cmp::Ordering;
 
 /// Greedy acceptance which accepts only better solutions.
@@ -27,8 +28,12 @@ impl Default for Greedy {
 
 impl Acceptance for Greedy {
     fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (&InsertionContext, ObjectiveCost)) -> bool {
-        let less_cost = refinement_ctx.population.best(false);
-        let less_routes = refinement_ctx.population.best(true);
+        let less_cost =
+            refinement_ctx.population.all().min_by(|(_, a, _), (_, b, _)| compare_floats(a.total(), b.total()));
+        let less_routes = refinement_ctx
+            .population
+            .all()
+            .min_by(|(a, _, _), (b, _, _)| a.solution.routes.len().cmp(&b.solution.routes.len()));
 
         match (less_cost, less_routes) {
             (Some(less_cost), Some(less_routes)) => {
