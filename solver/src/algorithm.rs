@@ -145,7 +145,11 @@ impl Solver {
     }
 
     fn log_population(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
-        self.logger.deref()(format!("\tpopulation state after {}s:", refinement_time.elapsed().as_secs()));
+        self.logger.deref()(format!(
+            "\tpopulation state after {}s (speed: {:.2} gen/sec):",
+            refinement_time.elapsed().as_secs(),
+            refinement_ctx.generation as f64 / refinement_time.elapsed().as_secs_f64(),
+        ));
         refinement_ctx.population.all().enumerate().for_each(|(idx, (insertion_ctx, cost, generation))| {
             let (actual_change, total_change) = self.get_cost_change(refinement_ctx, cost);
             self.logger.deref()(format!(
@@ -164,7 +168,7 @@ impl Solver {
     fn log_speed(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
         let elapsed = refinement_time.elapsed();
         self.logger.deref()(format!(
-            "Solving took {} ms, total generations: {}, speed: {:.2} generations/sec",
+            "Solving took {} ms, total generations: {}, speed: {:.2} gen/sec",
             elapsed.as_millis(),
             refinement_ctx.generation,
             refinement_ctx.generation as f64 / elapsed.as_secs_f64()
