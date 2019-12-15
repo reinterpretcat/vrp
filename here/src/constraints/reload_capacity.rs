@@ -226,7 +226,8 @@ impl HardRouteConstraint for ReloadHardRouteConstraint {
         }
 
         if has_reload_index(ctx) {
-            // TODO can we do some checks here?
+            // TODO we need to check all ranges to avoid going into full scan when vehicle is full
+            //  store reload jobs in route state and call tour.index to scan each reload range?
             None
         } else {
             self.hard_route_constraint.evaluate_job(ctx, job)
@@ -261,7 +262,9 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             };
         }
 
-        if has_reload_index(route_ctx) {
+        let has_reload = has_reload_index(route_ctx);
+
+        if has_reload {
             let multi = activity_ctx.target.retrieve_job().and_then(|job| match job.as_ref() {
                 Job::Multi(multi) => Some((job.clone(), multi.jobs.len())),
                 _ => None,
@@ -287,7 +290,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             }
         }
 
-        self.hard_activity_constraint.evaluate_activity(route_ctx, activity_ctx)
+        // TODO optimize: we should skip activity range till next reload if "stopped:true" is returned
+        if let Some(result) = self.hard_activity_constraint.evaluate_activity(route_ctx, activity_ctx) {
+            let stopped = result.stopped && !has_reload;
+            Some(ActivityConstraintViolation { code: self.code, stopped })
+        } else {
+            None
+        }
     }
 }
 

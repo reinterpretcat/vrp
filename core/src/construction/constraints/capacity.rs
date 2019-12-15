@@ -88,37 +88,44 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         pivot: &TourActivity,
         capacity: Option<&Capacity>,
         demand: Option<&Demand<Capacity>>,
-    ) -> bool {
+        code: i32,
+        can_stop: bool,
+    ) -> Option<ActivityConstraintViolation> {
         if let Some(demand) = demand {
             if let Some(&capacity) = capacity {
+                let default = Capacity::default();
+
                 // cannot handle more static deliveries
-                if demand.delivery.0 > Capacity::default() {
-                    let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+                if demand.delivery.0 > default {
+                    let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&default);
                     if past + demand.delivery.0 > capacity {
-                        return false;
+                        return Some(ActivityConstraintViolation { code, stopped: can_stop });
                     }
                 }
 
                 let change = demand.change();
 
                 // cannot handle more pickups
-                if change > Capacity::default() {
-                    let future =
-                        *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+                if change > default {
+                    let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&default);
                     if future + change > capacity {
-                        return false;
+                        return Some(ActivityConstraintViolation { code, stopped: can_stop });
                     }
                 }
 
                 // can load more at current
-                let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&Capacity::default());
+                let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&default);
 
-                current + change <= capacity
+                if current + change <= capacity {
+                    None
+                } else {
+                    Some(ActivityConstraintViolation { code, stopped: false })
+                }
             } else {
-                false
+                Some(ActivityConstraintViolation { code, stopped: can_stop })
             }
         } else {
-            true
+            None
         }
     }
 
@@ -232,7 +239,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                     ctx.route.tour.start().unwrap_or_else(|| unimplemented!("Optional start is not yet implemented.")),
                     ctx.route.actor.vehicle.dimens.get_capacity(),
                     job.dimens.get_demand(),
-                ) {
+                    self.code,
+                    true,
+                )
+                .is_none()
+                {
                     None
                 } else {
                     Some(RouteConstraintViolation { code: self.code })
@@ -262,15 +273,18 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             _ => None,
         });
 
-        if CapacityConstraintModule::<Capacity>::can_handle_demand(
+        let can_stop = activity_ctx.target.retrieve_job().map_or(true, |job| match job.as_ref() {
+            Job::Single(_) => true,
+            Job::Multi(_) => false,
+        });
+
+        CapacityConstraintModule::<Capacity>::can_handle_demand(
             &route_ctx.state,
             activity_ctx.prev,
             route_ctx.route.actor.vehicle.dimens.get_capacity(),
             demand,
-        ) {
-            None
-        } else {
-            Some(ActivityConstraintViolation { code: self.code, stopped: false })
-        }
+            self.code,
+            can_stop,
+        )
     }
 }

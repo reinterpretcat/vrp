@@ -11,8 +11,8 @@ fn create_test_vehicle(capacity: i32) -> Vehicle {
     VehicleBuilder::new().id("v1").capacity(capacity).build()
 }
 
-fn create_activity_violation() -> Option<ActivityConstraintViolation> {
-    Some(ActivityConstraintViolation { code: 2, stopped: false })
+fn create_activity_violation(stopped: bool) -> Option<ActivityConstraintViolation> {
+    Some(ActivityConstraintViolation { code: 2, stopped })
 }
 
 fn get_simple_capacity_state(key: i32, state: &RouteState, activity: Option<&TourActivity>) -> i32 {
@@ -93,16 +93,16 @@ parameterized_test! {can_evaluate_demand_on_activity, (sizes, neighbours, size, 
 
 can_evaluate_demand_on_activity! {
     case01: (vec![1, 1], (1, 2), 1, None),
-    case02: (vec![1, 1], (1, 2),10, create_activity_violation()),
-    case03: (vec![-5, -5], (1, 2),-1, create_activity_violation()),
-    case04: (vec![5, 5], (1, 2),1, create_activity_violation()),
-    case05: (vec![-5, 5], (1, 2),1, None),
-    case06: (vec![5, -5], (1, 2), 1, create_activity_violation()),
+    case02: (vec![1, 1], (1, 2), 10, create_activity_violation(true)),
+    case03: (vec![-5, -5], (1, 2), -1, create_activity_violation(true)),
+    case04: (vec![5, 5], (1, 2), 1, create_activity_violation(true)),
+    case05: (vec![-5, 5], (1, 2), 1, None),
+    case06: (vec![5, -5], (1, 2), 1, create_activity_violation(true)),
     case07: (vec![4, -5], (1, 2),-1, None),
-    case08: (vec![-3, -5, -2], (0, 1),-1, create_activity_violation()),
-    case09: (vec![-3, -5, -2], (0, 2), -1, create_activity_violation()),
-    case10: (vec![-3, -5, -2], (1, 3), -1, create_activity_violation()),
-    case11: (vec![-3, -5, -2], (3, 4), -1, create_activity_violation()),
+    case08: (vec![-3, -5, -2], (0, 1), -1, create_activity_violation(true)),
+    case09: (vec![-3, -5, -2], (0, 2), -1, create_activity_violation(true)),
+    case10: (vec![-3, -5, -2], (1, 3), -1, create_activity_violation(true)),
+    case11: (vec![-3, -5, -2], (3, 4), -1, create_activity_violation(true)),
 }
 
 fn can_evaluate_demand_on_activity_impl(
