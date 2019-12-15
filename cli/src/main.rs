@@ -6,12 +6,12 @@ mod formats;
 
 use self::formats::*;
 
-use core::solver::SolverBuilder;
 use std::fs::File;
 use std::ops::Deref;
 use std::process;
 
 use clap::Values;
+use solver::SolverBuilder;
 use std::io::{stdout, BufWriter, Write};
 use std::sync::Arc;
 

@@ -8,5 +8,6 @@ edition = "2018"
 core = { path = "../core" }
 scientific = { path = "../scientific" }
 here = { path = "../here" }
+solver = { path = "../solver" }
 
 clap = "2.33.0"

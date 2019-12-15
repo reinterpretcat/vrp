@@ -1,9 +1,9 @@
-use crate::construction::states::InsertionContext;
-use crate::models::{Problem, Solution};
-use crate::refinement::acceptance::{Greedy, RandomProbability};
-use crate::refinement::termination::*;
-use crate::solver::Solver;
-use crate::utils::DefaultRandom;
+use crate::Solver;
+use core::construction::states::InsertionContext;
+use core::models::{Problem, Solution};
+use core::refinement::acceptance::{Greedy, RandomProbability};
+use core::refinement::termination::*;
+use core::utils::DefaultRandom;
 use std::ops::Deref;
 use std::sync::Arc;
 

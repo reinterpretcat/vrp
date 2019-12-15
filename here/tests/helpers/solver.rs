@@ -3,8 +3,8 @@ use crate::json::solution::{create_solution, Solution};
 use core::construction::states::InsertionContext;
 use core::refinement::recreate::{Recreate, RecreateWithCheapest};
 use core::refinement::RefinementContext;
-use core::solver::SolverBuilder;
 use core::utils::DefaultRandom;
+use solver::SolverBuilder;
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
 

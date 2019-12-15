@@ -53,24 +53,24 @@ impl Default for CompositeRuin {
             (
                 vec![
                     (adjusted_string_default.clone(), 1.),
-                    (random_route_default.clone(), 0.05),
-                    (random_job_default.clone(), 0.05),
+                    (random_route_default.clone(), 0.2),
+                    (random_job_default.clone(), 0.2),
                 ],
                 100,
             ),
-            (vec![(adjusted_string_aggressive.clone(), 1.)], 5),
+            (vec![(adjusted_string_aggressive.clone(), 1.)], 30),
             (
                 vec![
                     (neighbour_removal.clone(), 1.),
-                    (random_route_default.clone(), 0.05),
-                    (random_job_default.clone(), 0.05),
+                    (random_route_default.clone(), 0.2),
+                    (random_job_default.clone(), 0.2),
                 ],
-                25,
+                80,
             ),
-            (vec![(neighbour_aggressive.clone(), 1.)], 5),
-            (vec![(random_job_default.clone(), 1.), (random_route_default.clone(), 0.02)], 2),
-            (vec![(random_route_default.clone(), 1.), (random_job_default.clone(), 0.02)], 2),
-            (vec![(worst_job_default.clone(), 1.), (adjusted_string_default.clone(), 1.)], 1),
+            (vec![(neighbour_aggressive.clone(), 1.)], 40),
+            (vec![(random_job_default.clone(), 1.), (random_route_default.clone(), 0.1)], 20),
+            (vec![(random_route_default.clone(), 1.), (random_job_default.clone(), 0.1)], 20),
+            (vec![(worst_job_default.clone(), 1.), (adjusted_string_default.clone(), 1.)], 10),
         ])
     }
 }

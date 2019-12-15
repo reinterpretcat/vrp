@@ -4,5 +4,6 @@ members = [
     "core",
     "here",
     "cli",
-    "scientific"
+    "scientific",
+    "solver"
 ]

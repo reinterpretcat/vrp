@@ -10,6 +10,7 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 core = { path = "../core" }
+solver = { path = "../solver" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

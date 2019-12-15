@@ -15,7 +15,7 @@ pub mod json;
 
 use crate::json::problem::HereProblem;
 use crate::json::solution::HereSolution;
-use core::solver::SolverBuilder;
+use solver::SolverBuilder;
 use std::ffi::{CStr, CString};
 use std::io::BufWriter;
 use std::os::raw::c_char;
