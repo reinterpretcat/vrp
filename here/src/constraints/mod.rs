@@ -4,7 +4,7 @@ use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
 use std::sync::Arc;
 
-pub const RELOAD_INDEX_KEY: i32 = 101;
+pub const HAS_RELOAD_KEY: i32 = 101;
 pub const MAX_TOUR_LOAD_KEY: i32 = 102;
 
 fn as_single_job<F>(activity: &Activity, condition: F) -> Option<Arc<Single>>

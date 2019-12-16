@@ -270,12 +270,11 @@ fn read_reloads(
                         &reload.tag,
                     );
 
-                    (reload_idx, job_id, job)
+                    (job_id, job)
                 })
                 .collect::<Vec<_>>()
         })
-        .for_each(|(reload_idx, job_id, mut single)| {
-            single.dimens.insert("reload_index".to_string(), Box::new(reload_idx as usize));
+        .for_each(|(job_id, single)| {
             add_conditional_job(job_index, jobs, job_id, single);
         });
 }

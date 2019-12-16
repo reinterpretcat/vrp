@@ -9,6 +9,7 @@ use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
+use std::collections::HashSet;
 
 pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,
@@ -45,7 +46,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             threshold,
             state_keys: capacity_constraint
                 .state_keys()
-                .chain(vec![RELOAD_INDEX_KEY, MAX_TOUR_LOAD_KEY].iter())
+                .chain(vec![HAS_RELOAD_KEY, MAX_TOUR_LOAD_KEY].iter())
                 .cloned()
                 .collect(),
             capacity_inner: capacity_constraint,
@@ -134,31 +135,21 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>) {
         if is_reload_job(job) {
-            let reload_idx = get_reload_index_from_job(&job.as_single()).unwrap();
-            route_ctx.state_mut().put_route_state(RELOAD_INDEX_KEY, reload_idx);
+            route_ctx.state_mut().put_route_state(HAS_RELOAD_KEY, true);
+            // move all unassigned reloads back to ignored
+            let jobs = get_reload_jobs(route_ctx, &solution_ctx.required);
+            solution_ctx.required.retain(|i| !jobs.contains(i));
+            solution_ctx.ignored.extend(jobs.into_iter());
+
             self.accept_route_state(route_ctx);
         } else {
             self.accept_route_state(route_ctx);
             if Self::is_vehicle_full(route_ctx, &self.threshold) {
-                let next_reload_idx = get_reload_index_from_route(route_ctx).unwrap_or(0) + 1;
-                let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
-                let vehicle_id = route_ctx.route.actor.vehicle.dimens.get_id().unwrap();
-
-                let index = solution_ctx.ignored.iter().position(move |job| match job.as_ref() {
-                    Job::Single(job) => {
-                        is_reload_single(&job)
-                            && get_shift_index(&job.dimens) == shift_index
-                            && get_reload_index_from_job(&job).unwrap() == next_reload_idx
-                            && get_vehicle_id_from_job(&job).unwrap() == vehicle_id
-                    }
-                    _ => false,
-                });
-
-                if let Some(index) = index {
-                    let job = solution_ctx.ignored.remove(index);
-                    solution_ctx.required.push(job.clone());
-                    solution_ctx.locked.insert(job);
-                }
+                // move all reloads for this shift to required
+                let jobs = get_reload_jobs(route_ctx, &solution_ctx.ignored);
+                solution_ctx.ignored.retain(|i| !jobs.contains(i));
+                solution_ctx.locked.extend(jobs.iter().cloned());
+                solution_ctx.required.extend(jobs.into_iter());
             }
         }
 
@@ -333,13 +324,23 @@ fn as_reload_job(activity: &Activity) -> Option<Arc<Single>> {
 }
 
 fn has_reload_index(ctx: &RouteContext) -> bool {
-    get_reload_index_from_route(ctx).is_some()
+    *ctx.state.get_route_state::<bool>(HAS_RELOAD_KEY).unwrap_or(&false)
 }
 
-fn get_reload_index_from_route(ctx: &RouteContext) -> Option<usize> {
-    ctx.state.get_route_state::<usize>(RELOAD_INDEX_KEY).cloned()
-}
+fn get_reload_jobs(route_ctx: &RouteContext, collection: &Vec<Arc<Job>>) -> HashSet<Arc<Job>> {
+    let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
+    let vehicle_id = route_ctx.route.actor.vehicle.dimens.get_id().unwrap();
 
-fn get_reload_index_from_job(job: &Arc<Single>) -> Option<usize> {
-    job.dimens.get_value::<usize>("reload_index").cloned()
+    collection
+        .iter()
+        .filter(move |job| match job.as_ref() {
+            Job::Single(job) => {
+                is_reload_single(&job)
+                    && get_shift_index(&job.dimens) == shift_index
+                    && get_vehicle_id_from_job(&job).unwrap() == vehicle_id
+            }
+            _ => false,
+        })
+        .cloned()
+        .collect()
 }
