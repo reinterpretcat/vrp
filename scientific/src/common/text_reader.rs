@@ -134,10 +134,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                 assert_eq!(route.len(), 2);
                 let id_map =
                     problem.jobs.all().fold(HashMap::<String, (Arc<Job>, Arc<Single>)>::new(), |mut acc, job| {
-                        let single = match job.as_ref() {
-                            Job::Single(single) => single.clone(),
-                            _ => panic!("Unexpected job type!"),
-                        };
+                        let single = job.to_single().clone();
                         acc.insert(single.dimens.get_id().unwrap().to_string(), (job.clone(), single));
                         acc
                     });

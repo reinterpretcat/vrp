@@ -157,10 +157,7 @@ fn demote_unassigned_breaks(ctx: &mut SolutionContext) {
     let breaks_set: HashSet<_> = ctx
         .unassigned
         .iter()
-        .filter_map(|(job, _)| match job.as_ref() {
-            Job::Single(single) => get_vehicle_id_from_job(single).map(|_| job.clone()),
-            Job::Multi(_) => None,
-        })
+        .filter_map(|(job, _)| job.as_single().and_then(|single| get_vehicle_id_from_job(single).map(|_| job.clone())))
         .collect();
 
     ctx.unassigned.retain(|job, _| breaks_set.get(job).is_none());

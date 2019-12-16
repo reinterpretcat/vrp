@@ -265,7 +265,7 @@ fn calculate_load(
     act: &TourActivity,
     is_multi_dimen: bool,
 ) -> MultiDimensionalCapacity {
-    let job = act.job.as_ref().and_then(|job| Some(job.to_single()));
+    let job = act.job.as_ref().and_then(|job| job.as_single());
     let demand = job
         .as_ref()
         .and_then(|job| get_capacity(&job.dimens, is_multi_dimen))
@@ -301,10 +301,7 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
 }
 
 fn get_activity_type(activity: &TourActivity) -> Option<&String> {
-    activity.job.as_ref().and_then(|job| match job.as_ref() {
-        Job::Single(job) => job.dimens.get_value::<String>("type"),
-        _ => None,
-    })
+    activity.job.as_ref().and_then(|job| job.as_single()).and_then(|single| single.dimens.get_value::<String>("type"))
 }
 
 fn get_capacity(dimens: &Dimensions, is_multi_dimen: bool) -> Option<Demand<MultiDimensionalCapacity>> {

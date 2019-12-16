@@ -77,10 +77,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     pub fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
-        activity.job.as_ref().and_then(|job| match job.as_ref() {
-            Job::Single(job) => job.dimens.get_demand(),
-            _ => None,
-        })
+        activity.job.as_ref().and_then(|job| job.as_single()).and_then(|single| single.dimens.get_demand())
     }
 
     pub fn can_handle_demand(
@@ -268,15 +265,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let demand = activity_ctx.target.job.as_ref().and_then(|job| match job.as_ref() {
-            Job::Single(job) => job.dimens.get_demand(),
-            _ => None,
-        });
+        let demand = CapacityConstraintModule::<Capacity>::get_demand(activity_ctx.target);
 
-        let can_stop = activity_ctx.target.retrieve_job().map_or(true, |job| match job.as_ref() {
-            Job::Single(_) => true,
-            Job::Multi(_) => false,
-        });
+        let can_stop = activity_ctx
+            .target
+            .retrieve_job()
+            .and_then(|job| job.as_single().map_or(None, |_| Some(true)))
+            .unwrap_or(false);
 
         CapacityConstraintModule::<Capacity>::can_handle_demand(
             &route_ctx.state,
