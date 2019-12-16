@@ -62,7 +62,7 @@ impl RouteContext {
         let mut new_state = RouteState::new_with_sizes(self.state.sizes());
 
         // copy activity states
-        self.route.tour.all_activities().zip(0usize..).for_each(|(a, index)| {
+        self.route.tour.all_activities().zip(0_usize..).for_each(|(a, index)| {
             self.state.all_keys().for_each(|key| {
                 if let Some(value) = self.state.get_activity_state_raw(key, a) {
                     let a = new_route.tour.get(index).unwrap();

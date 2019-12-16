@@ -93,7 +93,7 @@ impl TransportConstraintModule {
         let init = (
             actor.detail.time.end,
             actor.detail.end.unwrap_or_else(|| actor.detail.start.unwrap_or_else(|| panic!(OP_START_MSG))),
-            0f64,
+            0_f64,
         );
 
         let (route, state) = ctx.as_mut();
@@ -109,7 +109,7 @@ impl TransportConstraintModule {
                 - self.activity.duration(actor.as_ref(), act.deref(), end_time);
 
             let latest_arrival_time = act.place.time.end.min(potential_latest);
-            let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0f64);
+            let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0_f64);
 
             state.put_activity_state(LATEST_ARRIVAL_KEY, &act, latest_arrival_time);
             state.put_activity_state(WAITING_KEY, &act, future_waiting);
@@ -298,13 +298,13 @@ impl SoftActivityConstraint for CostSoftActivityConstraint {
         }
 
         let next = next.unwrap();
-        let waiting_time = *route_ctx.state.get_activity_state(WAITING_KEY, next).unwrap_or(&0.0f64);
+        let waiting_time = *route_ctx.state.get_activity_state(WAITING_KEY, next).unwrap_or(&0_f64);
 
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(actor, prev, next, prev.schedule.departure);
 
         let waiting_cost =
-            waiting_time.min(0f64.max(dep_time_right - dep_time_old)) * actor.vehicle.costs.per_waiting_time;
+            waiting_time.min(0_f64.max(dep_time_right - dep_time_old)) * actor.vehicle.costs.per_waiting_time;
 
         let old_costs = tp_cost_old + act_cost_old + waiting_cost;
 

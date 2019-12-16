@@ -186,7 +186,7 @@ fn preserved_cardinality(
         return 0;
     }
 
-    let mut preserved_crd = 1usize;
+    let mut preserved_crd = 1_usize;
     while string_crd + preserved_crd < tour_crd {
         if random.uniform_real(0.0, 1.0) < alpha {
             break;

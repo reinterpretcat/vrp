@@ -107,7 +107,7 @@ impl Tour {
     pub fn legs<'a>(&'a self) -> Box<dyn Iterator<Item = (&'a [TourActivity], usize)> + 'a> {
         let last_index = self.activities.len() - 1;
         let window_size = if last_index == 0 { 1 } else { 2 };
-        let legs = self.activities.windows(window_size).zip(0usize..);
+        let legs = self.activities.windows(window_size).zip(0_usize..);
 
         let is_open_tour_with_jobs = !self.is_closed && last_index > 0;
 
