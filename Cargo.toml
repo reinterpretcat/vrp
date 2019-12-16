@@ -2,8 +2,8 @@
 
 members = [
     "core",
-    "here",
     "cli",
+    "pragmatic",
     "scientific",
     "solver"
 ]

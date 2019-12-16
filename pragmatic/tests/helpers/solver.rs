@@ -1,4 +1,4 @@
-use crate::json::problem::{HereProblem, Matrix, Problem};
+use crate::json::problem::{PragmaticProblem, Matrix, Problem};
 use crate::json::solution::{create_solution, Solution};
 use core::construction::states::InsertionContext;
 use core::refinement::recreate::{Recreate, RecreateWithCheapest};
@@ -9,7 +9,7 @@ use std::cmp::Ordering::Less;
 use std::sync::Arc;
 
 pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
-    let problem = Arc::new((problem, matrices).read_here().unwrap());
+    let problem = Arc::new((problem, matrices).read_pragmatic().unwrap());
     let refinement_ctx = RefinementContext::new(problem.clone());
     let solution = RecreateWithCheapest::default()
         .run(&refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
@@ -19,7 +19,7 @@ pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution
 }
 
 pub fn solve_with_metaheuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
-    let problem = Arc::new((problem, matrices).read_here().unwrap());
+    let problem = Arc::new((problem, matrices).read_pragmatic().unwrap());
     let solution = SolverBuilder::default().with_max_generations(Some(100)).build().solve(problem.clone()).unwrap().0;
     sort_all_data(create_solution(problem.as_ref(), &solution))
 }

@@ -31,12 +31,12 @@ pub type ApiProblem = crate::json::problem::Problem;
 pub type JobIndex = HashMap<String, Arc<Job>>;
 
 /// Reads specific problem definition from various sources.
-pub trait HereProblem {
-    fn read_here(self) -> Result<Problem, String>;
+pub trait PragmaticProblem {
+    fn read_pragmatic(self) -> Result<Problem, String>;
 }
 
-impl HereProblem for (File, Vec<File>) {
-    fn read_here(self) -> Result<Problem, String> {
+impl PragmaticProblem for (File, Vec<File>) {
+    fn read_pragmatic(self) -> Result<Problem, String> {
         let problem = deserialize_problem(BufReader::new(&self.0)).map_err(|err| err.to_string())?;
 
         let matrices = self.1.iter().fold(vec![], |mut acc, matrix| {
@@ -48,8 +48,8 @@ impl HereProblem for (File, Vec<File>) {
     }
 }
 
-impl HereProblem for (String, Vec<String>) {
-    fn read_here(self) -> Result<Problem, String> {
+impl PragmaticProblem for (String, Vec<String>) {
+    fn read_pragmatic(self) -> Result<Problem, String> {
         let problem = deserialize_problem(BufReader::new(StringReader::new(&self.0))).map_err(|err| err.to_string())?;
 
         let matrices = self.1.iter().fold(vec![], |mut acc, matrix| {
@@ -61,8 +61,8 @@ impl HereProblem for (String, Vec<String>) {
     }
 }
 
-impl HereProblem for (ApiProblem, Vec<Matrix>) {
-    fn read_here(self) -> Result<Problem, String> {
+impl PragmaticProblem for (ApiProblem, Vec<Matrix>) {
+    fn read_pragmatic(self) -> Result<Problem, String> {
         map_to_problem(self.0, self.1)
     }
 }

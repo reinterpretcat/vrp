@@ -13,8 +13,8 @@ mod utils;
 
 pub mod json;
 
-use crate::json::problem::HereProblem;
-use crate::json::solution::HereSolution;
+use crate::json::problem::PragmaticProblem;
+use crate::json::solution::PragmaticSolution;
 use solver::SolverBuilder;
 use std::ffi::{CStr, CString};
 use std::io::BufWriter;
@@ -45,13 +45,13 @@ extern "C" fn solve(
         let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
         let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
 
-        let problem = Arc::new((problem, matrices).read_here().unwrap());
+        let problem = Arc::new((problem, matrices).read_pragmatic().unwrap());
 
         let (solution, _, _) = SolverBuilder::default().build().solve(problem.clone()).unwrap();
 
         let mut buffer = String::new();
         let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-        solution.write_here(&problem, writer).ok();
+        solution.write_pragmatic(&problem, writer).ok();
 
         buffer
     });

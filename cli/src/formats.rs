@@ -1,6 +1,6 @@
 use core::models::{Problem, Solution};
-use here::json::problem::HereProblem;
-use here::json::solution::HereSolution;
+use pragmatic::json::problem::PragmaticProblem;
+use pragmatic::json::solution::PragmaticSolution;
 use scientific::common::read_init_solution;
 use scientific::lilim::{LilimProblem, LilimSolution};
 use scientific::solomon::{SolomonProblem, SolomonSolution};
@@ -40,14 +40,14 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
             ),
         ),
         (
-            "here",
+            "pragmatic",
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_some());
-                    (problem, matrices.unwrap()).read_here()
+                    (problem, matrices.unwrap()).read_pragmatic()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|problem, solution, writer| solution.write_here(problem, writer))),
+                SolutionWriter(Box::new(|problem, solution, writer| solution.write_pragmatic(problem, writer))),
             ),
         ),
     ]

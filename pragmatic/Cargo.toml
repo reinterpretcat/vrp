@@ -1,11 +1,11 @@
 [package]
-name = "here"
+name = "pragmatic"
 version = "0.1.0"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 edition = "2018"
 
 [lib]
-name = "here"
+name = "pragmatic"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]

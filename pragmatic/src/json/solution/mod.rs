@@ -5,4 +5,4 @@ mod extensions;
 
 mod writer;
 pub use self::writer::create_solution;
-pub use self::writer::HereSolution;
+pub use self::writer::PragmaticSolution;

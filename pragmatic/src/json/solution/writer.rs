@@ -20,12 +20,12 @@ type ApiSolution = crate::json::solution::serializer::Solution;
 type ApiSchedule = crate::json::solution::serializer::Schedule;
 type DomainExtras = core::models::Extras;
 
-pub trait HereSolution<W: Write> {
-    fn write_here(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
+pub trait PragmaticSolution<W: Write> {
+    fn write_pragmatic(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
 }
 
-impl<W: Write> HereSolution<W> for Solution {
-    fn write_here(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+impl<W: Write> PragmaticSolution<W> for Solution {
+    fn write_pragmatic(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
         let solution = create_solution(problem, &self);
         serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
         Ok(())
