@@ -163,6 +163,7 @@ pub struct Config {
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Features {
     pub even_distribution: Option<EvenDistribution>,
 }
