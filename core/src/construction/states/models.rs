@@ -154,7 +154,7 @@ impl InsertionContext {
 
         // NOTE all services from sequence should be used in init route or none of them
         sequence_job_usage.iter().for_each(|(job, usage)| {
-            assert_eq!(job.as_multi().jobs.len(), *usage);
+            assert_eq!(job.to_multi().jobs.len(), *usage);
         });
 
         let required = problem

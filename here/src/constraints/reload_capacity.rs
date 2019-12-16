@@ -205,7 +205,7 @@ struct ReloadHardRouteConstraint {
 impl HardRouteConstraint for ReloadHardRouteConstraint {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
         if is_reload_job(job) {
-            let job = job.as_single();
+            let job = job.to_single();
             let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
             let shift_index = get_shift_index(&job.dimens);
 

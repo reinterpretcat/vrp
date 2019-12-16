@@ -61,7 +61,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
 
     if break_removed {
         assert_eq!(solution_ctx.required.len(), 1);
-        assert_eq!(solution_ctx.required.first().unwrap().as_single().dimens.get_id().unwrap().clone(), "break");
+        assert_eq!(solution_ctx.required.first().unwrap().to_single().dimens.get_id().unwrap().clone(), "break");
     } else {
         assert!(solution_ctx.required.is_empty());
     }

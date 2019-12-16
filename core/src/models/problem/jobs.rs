@@ -17,18 +17,26 @@ pub enum Job {
 }
 
 impl Job {
-    pub fn as_single(&self) -> Arc<Single> {
+    pub fn as_single(&self) -> Option<Arc<Single>> {
         match &self {
-            Job::Single(job) => job.clone(),
-            _ => panic!("Unexpected job type: multi"),
+            Job::Single(job) => Some(job.clone()),
+            _ => None,
         }
     }
 
-    pub fn as_multi(&self) -> Arc<Multi> {
+    pub fn to_single(&self) -> Arc<Single> {
+        self.as_single().expect("Unexpected job type: multi")
+    }
+
+    pub fn as_multi(&self) -> Option<Arc<Multi>> {
         match &self {
-            Job::Multi(job) => job.clone(),
-            _ => panic!("Unexpected job type: single"),
+            Job::Multi(job) => Some(job.clone()),
+            _ => None,
         }
+    }
+
+    pub fn to_multi(&self) -> Arc<Multi> {
+        self.as_multi().expect("Unexpected job type: single")
     }
 }
 
