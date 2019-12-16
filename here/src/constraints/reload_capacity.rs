@@ -4,12 +4,12 @@ use core::construction::states::{ActivityContext, RouteContext, SolutionContext}
 use core::models::common::{Cost, IdDimension, ValueDimension};
 use core::models::problem::{Job, Single};
 use core::models::solution::Activity;
+use std::collections::HashSet;
 use std::iter::once;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
-use std::collections::HashSet;
 
 pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,

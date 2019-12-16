@@ -15,7 +15,7 @@ struct GapsJobSelector {
 
 impl JobSelector for GapsJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
-        // TODO move to Random struct?
+        // TODO we should prefer to always insert locked jobs
         ctx.solution.required.shuffle(&mut rand::thread_rng());
 
         // TODO improve formula
