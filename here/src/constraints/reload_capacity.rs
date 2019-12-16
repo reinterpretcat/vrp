@@ -313,10 +313,7 @@ fn is_reload_single(job: &Arc<Single>) -> bool {
 }
 
 fn is_reload_job(job: &Arc<Job>) -> bool {
-    match job.as_ref() {
-        Job::Single(job) => is_reload_single(job),
-        _ => false,
-    }
+    job.as_single().map_or(false, |single| is_reload_single(single))
 }
 
 fn as_reload_job(activity: &Activity) -> Option<Arc<Single>> {

@@ -1,5 +1,4 @@
 use core::models::common::IdDimension;
-use core::models::problem::Job;
 use core::models::Solution;
 use std::io::{BufWriter, Error, ErrorKind, Write};
 
@@ -18,15 +17,7 @@ pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) 
             .all_activities()
             .filter(|a| a.job.is_some())
             .map(|a| a.retrieve_job().unwrap().clone())
-            .map(|job| {
-                match job.as_ref() {
-                    Job::Single(job) => &job.dimens,
-                    Job::Multi(job) => &job.dimens,
-                }
-                .get_id()
-                .unwrap()
-                .clone()
-            })
+            .map(|job| job.dimens().get_id().unwrap().clone())
             .collect::<Vec<String>>()
             .join(" ");
         writer.write_all(format!("Route {}: {}\n", i, customers).as_bytes()).unwrap();

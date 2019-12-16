@@ -85,11 +85,5 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
 }
 
 pub fn get_customer_id(job: &Arc<Job>) -> String {
-    match job.as_ref() {
-        Job::Single(job) => &job.dimens,
-        Job::Multi(job) => &job.dimens,
-    }
-    .get_id()
-    .unwrap()
-    .clone()
+    job.dimens().get_id().unwrap().clone()
 }

@@ -10,12 +10,7 @@ pub fn get_customer_id(job: &Arc<Job>) -> String {
 }
 
 pub fn get_job_id(job: &Job) -> &String {
-    match job {
-        Job::Single(single) => &single.dimens,
-        Job::Multi(multi) => &multi.dimens,
-    }
-    .get_id()
-    .unwrap()
+    job.dimens().get_id().unwrap()
 }
 
 pub fn get_customer_ids_from_routes_sorted(insertion_ctx: &InsertionContext) -> Vec<Vec<String>> {

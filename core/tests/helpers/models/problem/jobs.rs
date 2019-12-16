@@ -76,12 +76,7 @@ pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> J
 }
 
 pub fn get_job_id(job: &Job) -> &String {
-    match job {
-        Job::Single(single) => &single.dimens,
-        Job::Multi(multi) => &multi.dimens,
-    }
-    .get_id()
-    .unwrap()
+    job.dimens().get_id().unwrap()
 }
 
 pub struct SingleBuilder {

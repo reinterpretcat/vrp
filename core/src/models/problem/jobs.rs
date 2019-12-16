@@ -38,6 +38,13 @@ impl Job {
     pub fn to_multi(&self) -> &Arc<Multi> {
         self.as_multi().expect("Unexpected job type: single")
     }
+
+    pub fn dimens(&self) -> &Dimensions {
+        match &self {
+            Job::Single(single) => &single.dimens,
+            Job::Multi(multi) => &multi.dimens,
+        }
+    }
 }
 
 /// Represents a job place details where and/or when work has to be performed.
