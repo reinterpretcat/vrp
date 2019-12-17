@@ -111,7 +111,7 @@ pub fn create_dimens_with_id(prefix: &str, id: usize) -> Dimensions {
 
 pub fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport, 1)));
+    constraint.add_module(Box::new(TransportConstraintModule::new(activity, transport, 1)));
     constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
 
     constraint

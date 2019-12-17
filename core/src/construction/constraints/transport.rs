@@ -1,6 +1,6 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/construction/constraints/timing_test.rs"]
-mod timing_test;
+#[path = "../../../tests/unit/construction/constraints/transport_test.rs"]
+mod transport_test;
 
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
@@ -13,14 +13,14 @@ use std::sync::Arc;
 
 /// Checks whether vehicle can serve activity taking into account their time windows.
 /// TODO add extra check that job's and actor's TWs have intersection (hard route constraint).
-pub struct TimingConstraintModule {
+pub struct TransportConstraintModule {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
-impl ConstraintModule for TimingConstraintModule {
+impl ConstraintModule for TransportConstraintModule {
     fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
         self.accept_route_state(route_ctx);
     }
@@ -48,7 +48,7 @@ impl ConstraintModule for TimingConstraintModule {
     }
 }
 
-impl TimingConstraintModule {
+impl TransportConstraintModule {
     pub fn new(
         activity: Arc<dyn ActivityCost + Send + Sync>,
         transport: Arc<dyn TransportCost + Send + Sync>,
@@ -62,7 +62,7 @@ impl TimingConstraintModule {
                     transport: transport.clone(),
                     activity: activity.clone(),
                 })),
-                ConstraintVariant::SoftActivity(Arc::new(TimeSoftActivityConstraint {
+                ConstraintVariant::SoftActivity(Arc::new(CostSoftActivityConstraint {
                     transport: transport.clone(),
                     activity: activity.clone(),
                 })),
@@ -145,6 +145,7 @@ impl TimingConstraintModule {
     }
 }
 
+/// Checks time windows of actor and job.
 struct TimeHardActivityConstraint {
     code: i32,
     activity: Arc<dyn ActivityCost + Send + Sync>,
@@ -247,12 +248,13 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
     }
 }
 
-struct TimeSoftActivityConstraint {
+/// Calculates transportation costs.
+struct CostSoftActivityConstraint {
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
-impl TimeSoftActivityConstraint {
+impl CostSoftActivityConstraint {
     fn analyze_route_leg(
         &self,
         actor: &Actor,
@@ -271,7 +273,7 @@ impl TimeSoftActivityConstraint {
     }
 }
 
-impl SoftActivityConstraint for TimeSoftActivityConstraint {
+impl SoftActivityConstraint for CostSoftActivityConstraint {
     fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> f64 {
         let actor = route_ctx.route.actor.as_ref();
 

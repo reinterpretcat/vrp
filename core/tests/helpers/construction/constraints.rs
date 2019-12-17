@@ -17,7 +17,7 @@ pub fn create_constraint_pipeline_with_module(module: Box<dyn ConstraintModule +
 }
 
 pub fn create_constraint_pipeline_with_timing() -> ConstraintPipeline {
-    create_constraint_pipeline_with_module(Box::new(TimingConstraintModule::new(
+    create_constraint_pipeline_with_module(Box::new(TransportConstraintModule::new(
         Arc::new(TestActivityCost::new()),
         Arc::new(TestTransportCost::new()),
         1,
@@ -29,7 +29,7 @@ pub fn create_constraint_pipeline_with_simple_capacity() -> ConstraintPipeline {
 }
 
 pub fn create_constraint_pipeline() -> ConstraintPipeline {
-    create_constraint_pipeline_with_module(Box::new(TimingConstraintModule::new(
+    create_constraint_pipeline_with_module(Box::new(TransportConstraintModule::new(
         Arc::new(TestActivityCost::new()),
         Arc::new(TestTransportCost::new()),
         1,

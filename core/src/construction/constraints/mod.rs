@@ -13,8 +13,8 @@ const OP_START_MSG: &str = "Optional start is not yet implemented.";
 mod pipeline;
 pub use self::pipeline::*;
 
-mod timing;
-pub use self::timing::TimingConstraintModule;
+mod transport;
+pub use self::transport::TransportConstraintModule;
 
 mod capacity;
 pub use self::capacity::*;

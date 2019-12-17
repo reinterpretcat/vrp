@@ -170,7 +170,7 @@ fn create_constraint_pipeline(
     limits: Option<TravelLimitFunc>,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Box::new(TimingConstraintModule::new(activity, transport.clone(), 1)));
+    constraint.add_module(Box::new(TransportConstraintModule::new(activity, transport.clone(), 1)));
 
     add_capacity_module(&mut constraint, &props);
     add_even_dist_module(&mut constraint, &props);
