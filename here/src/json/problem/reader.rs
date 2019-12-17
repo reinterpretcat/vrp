@@ -119,18 +119,18 @@ fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
     api_problem.plan.jobs.iter().for_each(|job| match &job {
         JobVariant::Single(job) => {
             if let Some(pickup) = &job.places.pickup {
-                index.add_from_vec(&pickup.location);
+                index.add(&pickup.location);
             }
             if let Some(delivery) = &job.places.delivery {
-                index.add_from_vec(&delivery.location);
+                index.add(&delivery.location);
             }
         }
         JobVariant::Multi(job) => {
             job.places.pickups.iter().for_each(|pickup| {
-                index.add_from_vec(&pickup.location);
+                index.add(&pickup.location);
             });
             job.places.deliveries.iter().for_each(|delivery| {
-                index.add_from_vec(&delivery.location);
+                index.add(&delivery.location);
             });
         }
     });
@@ -138,22 +138,22 @@ fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
     // process fleet
     api_problem.fleet.types.iter().for_each(|vehicle| {
         vehicle.shifts.iter().for_each(|shift| {
-            index.add_from_vec(&shift.start.location);
+            index.add(&shift.start.location);
 
             if let Some(end) = &shift.end {
-                index.add_from_vec(&end.location);
+                index.add(&end.location);
             }
 
             if let Some(breaks) = &shift.breaks {
                 breaks.iter().for_each(|vehicle_break| {
                     if let Some(location) = &vehicle_break.location {
-                        index.add_from_vec(location);
+                        index.add(location);
                     }
                 });
             }
 
             if let Some(reloads) = &shift.reloads {
-                reloads.iter().for_each(|reload| index.add_from_vec(&reload.location));
+                reloads.iter().for_each(|reload| index.add(&reload.location));
             }
         });
     });

@@ -1,5 +1,5 @@
 use crate::extensions::MultiDimensionalCapacity;
-use crate::helpers::{create_default_profiles, get_test_resource, single_demand_as_multi};
+use crate::helpers::{create_default_profiles, get_test_resource, single_demand_as_multi, ToLocation};
 use crate::json::problem::*;
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::{Dimensions, IdDimension, TimeWindow};
@@ -91,7 +91,7 @@ fn can_read_complex_problem() {
                                 vec!["1970-01-01T00:00:00Z".to_string(), "1970-01-01T00:01:40Z".to_string()],
                                 vec!["1970-01-01T00:01:50Z".to_string(), "1970-01-01T00:02:00Z".to_string()],
                             ]),
-                            location: vec![52.48325, 13.4436],
+                            location: vec![52.48325, 13.4436].to_loc(),
                             duration: 100.0,
                             tag: Some("my_delivery".to_string()),
                         }),
@@ -107,7 +107,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:00:10Z".to_string(),
                                 "1970-01-01T00:00:30Z".to_string(),
                             ]]),
-                            location: vec![52.48300, 13.4420],
+                            location: vec![52.48300, 13.4420].to_loc(),
                             duration: 110.0,
                             tag: None,
                         }),
@@ -116,7 +116,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:00:50Z".to_string(),
                                 "1970-01-01T00:01:00Z".to_string(),
                             ]]),
-                            location: vec![52.48325, 13.4436],
+                            location: vec![52.48325, 13.4436].to_loc(),
                             duration: 120.0,
                             tag: None,
                         }),
@@ -132,7 +132,7 @@ fn can_read_complex_problem() {
                                 "1970-01-01T00:00:10Z".to_string(),
                                 "1970-01-01T00:01:10Z".to_string(),
                             ]]),
-                            location: vec![52.48321, 13.4438],
+                            location: vec![52.48321, 13.4438].to_loc(),
                             duration: 90.0,
                             tag: None,
                         }),
@@ -150,10 +150,13 @@ fn can_read_complex_problem() {
                 profile: "car".to_string(),
                 costs: VehicleCosts { fixed: Some(100.), distance: 1., time: 2. },
                 shifts: vec![VehicleShift {
-                    start: VehiclePlace { time: "1970-01-01T00:00:00Z".to_string(), location: vec![52.4862, 13.45148] },
+                    start: VehiclePlace {
+                        time: "1970-01-01T00:00:00Z".to_string(),
+                        location: vec![52.4862, 13.45148].to_loc(),
+                    },
                     end: Some(VehiclePlace {
                         time: "1970-01-01T00:01:40Z".to_string(),
-                        location: vec![52.4862, 13.45148],
+                        location: vec![52.4862, 13.45148].to_loc(),
                     }),
                     breaks: Some(vec![VehicleBreak {
                         times: vec![
@@ -161,7 +164,7 @@ fn can_read_complex_problem() {
                             vec!["1970-01-01T00:01:00Z".to_string(), "1970-01-01T00:03:00Z".to_string()],
                         ],
                         duration: 100.0,
-                        location: Some(vec![52.48315, 13.4330]),
+                        location: Some(vec![52.48315, 13.4330].to_loc()),
                     }]),
                     reloads: None,
                 }],

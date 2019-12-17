@@ -19,7 +19,7 @@ fn can_use_two_breaks() {
                     VehicleBreak {
                         times: vec![vec![format_time(5), format_time(10)]],
                         duration: 2.0,
-                        location: Some(vec![6., 0.]),
+                        location: Some(vec![6., 0.].to_loc()),
                     },
                     VehicleBreak {
                         times: vec![vec![format_time(100), format_time(120)]],
@@ -76,7 +76,7 @@ fn can_use_two_breaks() {
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
                     ),
                     Stop {
-                        location: vec![99., 0.],
+                        location: vec![99., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:01:42Z".to_string(),
                             departure: "1970-01-01T00:01:45Z".to_string()
@@ -86,7 +86,7 @@ fn can_use_two_breaks() {
                             Activity {
                                 job_id: "job2".to_string(),
                                 activity_type: "delivery".to_string(),
-                                location: Some(vec![99., 0.]),
+                                location: Some(vec![99., 0.].to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:01:42Z".to_string(),
                                     end: "1970-01-01T00:01:43Z".to_string(),
@@ -96,7 +96,7 @@ fn can_use_two_breaks() {
                             Activity {
                                 job_id: "break".to_string(),
                                 activity_type: "break".to_string(),
-                                location: Some(vec![99., 0.]),
+                                location: Some(vec![99., 0.].to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:01:43Z".to_string(),
                                     end: "1970-01-01T00:01:45Z".to_string(),

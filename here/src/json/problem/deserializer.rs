@@ -5,6 +5,7 @@ mod deserializer_test;
 extern crate serde_json;
 
 use self::serde_json::Error;
+use crate::json::Location;
 use serde::Deserialize;
 use std::io::{BufReader, Read};
 
@@ -31,7 +32,7 @@ pub struct Relation {
 #[derive(Clone, Deserialize)]
 pub struct JobPlace {
     pub times: Option<Vec<Vec<String>>>,
-    pub location: Vec<f64>,
+    pub location: Location,
     pub duration: f64,
     pub tag: Option<String>,
 }
@@ -53,7 +54,7 @@ pub struct Job {
 #[derive(Clone, Deserialize)]
 pub struct MultiJobPlace {
     pub times: Option<Vec<Vec<String>>>,
-    pub location: Vec<f64>,
+    pub location: Location,
     pub duration: f64,
     pub demand: Vec<i32>,
     pub tag: Option<String>,
@@ -99,7 +100,7 @@ pub struct VehicleCosts {
 #[derive(Clone, Deserialize)]
 pub struct VehiclePlace {
     pub time: String,
-    pub location: Vec<f64>,
+    pub location: Location,
 }
 
 #[derive(Clone, Deserialize)]
@@ -124,7 +125,7 @@ pub struct VehicleLimits {
 pub struct VehicleBreak {
     pub times: Vec<Vec<String>>,
     pub duration: f64,
-    pub location: Option<Vec<f64>>,
+    pub location: Option<Location>,
 }
 
 #[derive(Clone, Deserialize)]

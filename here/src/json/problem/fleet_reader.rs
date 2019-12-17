@@ -54,13 +54,13 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             let start = {
-                let location = coord_index.get_by_vec(&shift.start.location).unwrap();
+                let location = coord_index.get_by_loc(&shift.start.location).unwrap();
                 let time = parse_time(&shift.start.time);
                 (location, time)
             };
 
             let end = shift.end.as_ref().map_or(None, |end| {
-                let location = coord_index.get_by_vec(&end.location).unwrap();
+                let location = coord_index.get_by_loc(&end.location).unwrap();
                 let time = parse_time(&end.time);
                 Some((location, time))
             });

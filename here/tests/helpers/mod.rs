@@ -18,6 +18,17 @@ pub fn format_time(time: i32) -> String {
     Utc.timestamp(time as i64, 0).to_rfc3339_opts(SecondsFormat::Secs, true)
 }
 
+pub trait ToLocation {
+    fn to_loc(&self) -> Location;
+}
+
+impl ToLocation for Vec<f64> {
+    fn to_loc(&self) -> Location {
+        assert_eq!(self.len(), 2);
+        Location::new(*self.get(0).unwrap(), *self.get(1).unwrap())
+    }
+}
+
 mod core;
 pub use self::core::*;
 
@@ -29,3 +40,4 @@ pub use self::problem::*;
 
 pub mod solution;
 pub use self::solution::*;
+use crate::json::Location;

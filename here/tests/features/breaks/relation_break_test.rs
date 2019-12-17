@@ -22,7 +22,7 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
                     times: vec![vec![format_time(0), format_time(1000)]],
                     duration: 2.0,
-                    location: Some(vec![3., 0.]),
+                    location: Some(vec![3., 0.].to_loc()),
                 }])],
                 capacity: vec![10],
                 amount: 1,

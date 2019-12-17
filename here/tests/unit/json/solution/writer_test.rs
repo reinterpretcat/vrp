@@ -110,7 +110,7 @@ fn can_merge_activities_in_one_stop() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z")
                     ),
                     Stop {
-                        location: vec![5., 0.],
+                        location: vec![5., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
                             departure: "1970-01-01T00:00:07Z".to_string()
@@ -120,7 +120,7 @@ fn can_merge_activities_in_one_stop() {
                             Activity {
                                 job_id: "job2".to_string(),
                                 activity_type: "delivery".to_string(),
-                                location: Some(vec![5., 0.]),
+                                location: Some(vec![5., 0.].to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:05Z".to_string(),
                                     end: "1970-01-01T00:00:06Z".to_string()
@@ -130,7 +130,7 @@ fn can_merge_activities_in_one_stop() {
                             Activity {
                                 job_id: "job1".to_string(),
                                 activity_type: "delivery".to_string(),
-                                location: Some(vec![5., 0.]),
+                                location: Some(vec![5., 0.].to_loc()),
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:06Z".to_string(),
                                     end: "1970-01-01T00:00:07Z".to_string()

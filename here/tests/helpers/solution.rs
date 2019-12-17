@@ -1,3 +1,4 @@
+use crate::helpers::ToLocation;
 use crate::json::solution::{Activity, Schedule, Solution, Stop};
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
@@ -42,7 +43,7 @@ fn create_stop_with_activity_impl(
     job_tag: Option<String>,
 ) -> Stop {
     Stop {
-        location: vec![location.0, location.1],
+        location: vec![location.0, location.1].to_loc(),
         time: Schedule { arrival: time.0.to_string(), departure: time.1.to_string() },
         load,
         activities: vec![Activity {

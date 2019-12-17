@@ -1,22 +1,7 @@
+use crate::json::Location;
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-
-#[derive(Clone)]
-pub struct Location {
-    pub latitude: f64,
-    pub longitude: f64,
-}
-
-impl Location {
-    pub fn new(latitude: f64, longitude: f64) -> Self {
-        Self { latitude, longitude }
-    }
-
-    pub fn as_vec(&self) -> Vec<f64> {
-        vec![self.latitude, self.longitude]
-    }
-}
 
 /// Represents coordinate index.
 pub struct CoordIndex {
@@ -31,22 +16,16 @@ impl Default for CoordIndex {
 }
 
 impl CoordIndex {
-    pub fn add_from_vec(&mut self, location: &Vec<f64>) {
-        assert_eq!(location.len(), 2);
-        self.add_from_loc(Location::new(*location.first().unwrap(), *location.last().unwrap()));
-    }
-
-    pub fn add_from_loc(&mut self, location: Location) {
-        if self.direct_index.get(&location).is_none() {
+    pub fn add(&mut self, location: &Location) {
+        if self.direct_index.get(location).is_none() {
             let value = self.direct_index.len();
             self.direct_index.insert(location.clone(), value);
             self.reverse_index.insert(value, location.clone());
         }
     }
 
-    pub fn get_by_vec(&self, location: &Vec<f64>) -> Option<usize> {
-        assert_eq!(location.len(), 2);
-        self.direct_index.get(&Location::new(*location.first().unwrap(), *location.last().unwrap())).cloned()
+    pub fn get_by_loc(&self, location: &Location) -> Option<usize> {
+        self.direct_index.get(location).cloned()
     }
 
     pub fn get_by_idx(&self, index: &usize) -> Option<Location> {
@@ -65,14 +44,14 @@ impl Eq for Location {}
 
 impl PartialEq for Location {
     fn eq(&self, other: &Self) -> bool {
-        self.latitude == other.latitude && self.longitude == other.longitude
+        self.lat == other.lat && self.lng == other.lng
     }
 }
 
 impl Hash for Location {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        write_hash(self.latitude, state);
-        write_hash(self.longitude, state);
+        write_hash(self.lat, state);
+        write_hash(self.lng, state);
     }
 }
 

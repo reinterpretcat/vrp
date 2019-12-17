@@ -1,3 +1,4 @@
+use crate::json::Location;
 use serde::Serialize;
 use serde_json::Error;
 use std::io::{BufWriter, Write};
@@ -38,7 +39,7 @@ pub struct Activity {
     #[serde(rename(serialize = "type"))]
     pub activity_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub location: Option<Vec<f64>>,
+    pub location: Option<Location>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub time: Option<Interval>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -48,7 +49,7 @@ pub struct Activity {
 
 #[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct Stop {
-    pub location: Vec<f64>,
+    pub location: Location,
     pub time: Schedule,
     pub load: Vec<i32>,
     pub activities: Vec<Activity>,

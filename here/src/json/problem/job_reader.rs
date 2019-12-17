@@ -2,6 +2,7 @@ use crate::extensions::MultiDimensionalCapacity;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
 use crate::json::problem::{JobVariant, RelationType, VehicleBreak, VehicleReload, VehicleType};
+use crate::json::Location;
 use crate::utils::get_split_permutations;
 use core::construction::constraints::{Demand, DemandDimension};
 use core::models::common::{Dimensions, Duration, IdDimension, TimeWindow, ValueDimension};
@@ -266,7 +267,7 @@ fn read_reloads(
                         vehicle_id.clone(),
                         "reload",
                         shift_index,
-                        (&Some(reload.location.to_vec()), reload.duration, &reload.times),
+                        (&Some(reload.location.clone()), reload.duration, &reload.times),
                         &reload.tag,
                     );
 
@@ -284,7 +285,7 @@ fn get_conditional_job(
     vehicle_id: String,
     job_type: &str,
     shift_index: usize,
-    place: (&Option<Vec<f64>>, Duration, &Option<Vec<Vec<String>>>),
+    place: (&Option<Location>, Duration, &Option<Vec<Vec<String>>>),
     tag: &Option<String>,
 ) -> Single {
     let (location, duration, times) = place;
@@ -307,14 +308,14 @@ fn add_conditional_job(job_index: &mut JobIndex, jobs: &mut Vec<Arc<Job>>, job_i
 }
 
 fn get_single(
-    location: Option<&Vec<f64>>,
+    location: Option<&Location>,
     duration: Duration,
     times: &Option<Vec<Vec<String>>>,
     coord_index: &CoordIndex,
 ) -> Single {
     Single {
         places: vec![Place {
-            location: location.as_ref().and_then(|l| coord_index.get_by_vec(l)),
+            location: location.as_ref().and_then(|l| coord_index.get_by_loc(l)),
             duration,
             times: times
                 .as_ref()
@@ -325,7 +326,7 @@ fn get_single(
 }
 
 fn get_single_with_extras(
-    location: &Vec<f64>,
+    location: &Location,
     duration: Duration,
     demand: Demand<MultiDimensionalCapacity>,
     times: &Option<Vec<Vec<String>>>,

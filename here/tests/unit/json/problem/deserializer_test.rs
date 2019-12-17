@@ -10,10 +10,9 @@ fn assert_time_windows(actual: &Option<Vec<Vec<String>>>, expected: (&str, &str)
     assert_eq!(actual.first().unwrap().last().unwrap(), expected.1);
 }
 
-fn assert_location(actual: &Vec<f64>, expected: (f64, f64)) {
-    assert_eq!(actual.len(), 2);
-    assert_eq!(*actual.first().unwrap(), expected.0);
-    assert_eq!(*actual.last().unwrap(), expected.1);
+fn assert_location(actual: &Location, expected: (f64, f64)) {
+    assert_eq!(actual.lat, expected.0);
+    assert_eq!(actual.lng, expected.1);
 }
 
 fn assert_demand(actual: &Vec<i32>, expected: i32) {

@@ -17,12 +17,15 @@ fn can_skip_break_when_vehicle_not_used() {
                     profile: "car".to_string(),
                     costs: create_default_vehicle_costs(),
                     shifts: vec![VehicleShift {
-                        start: VehiclePlace { time: format_time(0), location: vec![100., 0.] },
-                        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![100., 0.] }),
+                        start: VehiclePlace { time: format_time(0), location: vec![100., 0.].to_loc() },
+                        end: Some(VehiclePlace {
+                            time: format_time(1000).to_string(),
+                            location: vec![100., 0.].to_loc(),
+                        }),
                         breaks: Some(vec![VehicleBreak {
                             times: vec![vec![format_time(5), format_time(8)]],
                             duration: 2.0,
-                            location: Some(vec![6., 0.]),
+                            location: Some(vec![6., 0.].to_loc()),
                         }]),
                         reloads: None,
                     }],
@@ -106,7 +109,7 @@ fn can_skip_break_when_jobs_completed() {
                 id: "job1".to_string(),
                 places: JobPlaces {
                     pickup: Option::None,
-                    delivery: Some(JobPlace { times: None, location: vec![1., 0.], duration: 10., tag: None }),
+                    delivery: Some(JobPlace { times: None, location: vec![1., 0.].to_loc(), duration: 10., tag: None }),
                 },
                 demand: vec![1],
                 skills: None,
@@ -121,7 +124,7 @@ fn can_skip_break_when_jobs_completed() {
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
                     times: vec![vec![format_time(5), format_time(8)]],
                     duration: 2.0,
-                    location: Some(vec![6., 0.]),
+                    location: Some(vec![6., 0.].to_loc()),
                 }])],
                 capacity: vec![10],
                 amount: 1,
@@ -208,7 +211,7 @@ fn can_skip_second_break_when_jobs_completed() {
                     VehicleBreak {
                         times: vec![vec![format_time(5), format_time(10)]],
                         duration: 2.0,
-                        location: Some(vec![6., 0.]),
+                        location: Some(vec![6., 0.].to_loc()),
                     },
                     VehicleBreak {
                         times: vec![vec![format_time(100), format_time(120)]],

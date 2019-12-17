@@ -1,4 +1,4 @@
-use crate::helpers::format_time;
+use crate::helpers::{format_time, ToLocation};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::*;
 use std::iter::once;
@@ -26,7 +26,7 @@ pub fn create_delivery_job_with_duration(id: &str, location: Vec<f64>, duration:
         id: id.to_string(),
         places: JobPlaces {
             pickup: Option::None,
-            delivery: Some(JobPlace { times: None, location, duration, tag: None }),
+            delivery: Some(JobPlace { times: None, location: location.to_loc(), duration, tag: None }),
         },
         demand: vec![1],
         skills: None,
@@ -38,7 +38,7 @@ pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: Vec
         id: id.to_string(),
         places: JobPlaces {
             pickup: Option::None,
-            delivery: Some(JobPlace { times: None, location, duration: 1., tag: None }),
+            delivery: Some(JobPlace { times: None, location: location.to_loc(), duration: 1., tag: None }),
         },
         demand: vec![1],
         skills: Some(skills),
@@ -57,7 +57,7 @@ pub fn create_delivery_job_with_times(
             pickup: Option::None,
             delivery: Some(JobPlace {
                 times: Some(times.iter().map(|tw| vec![format_time(tw.0), format_time(tw.1)]).collect()),
-                location,
+                location: location.to_loc(),
                 duration,
                 tag: None,
             }),
@@ -101,7 +101,7 @@ pub fn create_multi_job(
                 .enumerate()
                 .map(|(i, (location, duration, demand))| MultiJobPlace {
                     times: Option::None,
-                    location: vec![location.0, location.1],
+                    location: vec![location.0, location.1].to_loc(),
                     duration,
                     demand,
                     tag: Some((i + 1).to_string()),
@@ -112,7 +112,7 @@ pub fn create_multi_job(
                 .enumerate()
                 .map(|(i, (location, duration, demand))| MultiJobPlace {
                     times: Option::None,
-                    location: vec![location.0, location.1],
+                    location: vec![location.0, location.1].to_loc(),
                     duration,
                     demand,
                     tag: Some((i + 1).to_string()),
@@ -124,7 +124,7 @@ pub fn create_multi_job(
 }
 
 fn create_job_place(location: Vec<f64>) -> JobPlace {
-    JobPlace { times: None, location, duration: 1., tag: None }
+    JobPlace { times: None, location: location.to_loc(), duration: 1., tag: None }
 }
 
 pub fn create_default_vehicle_shift() -> VehicleShift {
@@ -133,8 +133,8 @@ pub fn create_default_vehicle_shift() -> VehicleShift {
 
 pub fn create_default_vehicle_shift_with_breaks(breaks: Vec<VehicleBreak>) -> VehicleShift {
     VehicleShift {
-        start: VehiclePlace { time: format_time(0), location: vec![0., 0.] },
-        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![0., 0.] }),
+        start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
+        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![0., 0.].to_loc() }),
         breaks: Some(breaks),
         reloads: None,
     }
@@ -142,7 +142,7 @@ pub fn create_default_vehicle_shift_with_breaks(breaks: Vec<VehicleBreak>) -> Ve
 
 pub fn create_default_open_vehicle_shift() -> VehicleShift {
     VehicleShift {
-        start: VehiclePlace { time: format_time(0), location: vec![0., 0.] },
+        start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
         end: None,
         breaks: None,
         reloads: None,
@@ -151,8 +151,8 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
 
 pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64, f64)) -> VehicleShift {
     VehicleShift {
-        start: VehiclePlace { time: format_time(0), location: vec![start.0, start.1] },
-        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![end.0, end.1] }),
+        start: VehiclePlace { time: format_time(0), location: vec![start.0, start.1].to_loc() },
+        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![end.0, end.1].to_loc() }),
         breaks: None,
         reloads: None,
     }
@@ -203,12 +203,12 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
         JobVariant::Single(job) => {
             once(&job.places.pickup).chain(once(&job.places.delivery)).for_each(|place| {
                 if let Some(place) = place {
-                    coord_index.add_from_vec(&place.location);
+                    coord_index.add(&place.location);
                 }
             });
         }
         JobVariant::Multi(job) => job.places.pickups.iter().chain(job.places.deliveries.iter()).for_each(|place| {
-            coord_index.add_from_vec(&place.location);
+            coord_index.add(&place.location);
         }),
     });
     problem.fleet.types.iter().for_each(|vehicle| {
@@ -235,7 +235,7 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
             })
             .for_each(|location| {
                 if let Some(location) = location {
-                    coord_index.add_from_vec(&location);
+                    coord_index.add(&location);
                 }
             })
     });
@@ -245,9 +245,7 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
         .iter()
         .cloned()
         .flat_map(|a| {
-            unique.iter().map(move |b| {
-                ((a.latitude - b.latitude).powf(2.) + (a.longitude - b.longitude).powf(2.)).sqrt().round() as i64
-            })
+            unique.iter().map(move |b| ((a.lat - b.lat).powf(2.) + (a.lng - b.lng).powf(2.)).sqrt().round() as i64)
         })
         .collect();
 
