@@ -110,5 +110,5 @@ pub struct Solution {
 }
 
 pub fn serialize_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
-    serde_json::to_writer(writer, solution)
+    serde_json::to_writer_pretty(writer, solution)
 }
