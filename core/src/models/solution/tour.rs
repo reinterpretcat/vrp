@@ -165,14 +165,9 @@ impl Tour {
         !self.jobs.is_empty()
     }
 
-    /// Checks whether tour is empty.
-    pub fn has_activities(&self) -> bool {
-        self.activities.is_empty()
-    }
-
     /// Returns amount of job activities.
     pub fn activity_count(&self) -> usize {
-        if self.has_activities() {
+        if self.activities.is_empty() {
             0
         } else {
             self.activities.len() - (if self.is_closed { 2 } else { 1 })
