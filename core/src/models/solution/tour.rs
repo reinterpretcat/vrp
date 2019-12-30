@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::models::problem::Job;
-use crate::models::solution::{Activity, Place};
+use crate::models::solution::Activity;
 use std::iter::once;
 use std::slice::{Iter, IterMut};
 
@@ -187,21 +187,7 @@ impl Tour {
     /// Creates a copy of existing tour deeply copying all activities and jobs.
     pub fn deep_copy(&self) -> Tour {
         Tour {
-            activities: self
-                .activities
-                .iter()
-                .map(|a| {
-                    Box::new(Activity {
-                        place: Place {
-                            location: a.place.location,
-                            duration: a.place.duration,
-                            time: a.place.time.clone(),
-                        },
-                        schedule: a.schedule.clone(),
-                        job: a.job.clone(),
-                    })
-                })
-                .collect(),
+            activities: self.activities.iter().map(|a| Box::new(a.deep_copy())).collect(),
             jobs: self.jobs.iter().cloned().collect(),
             is_closed: self.is_closed,
         }
