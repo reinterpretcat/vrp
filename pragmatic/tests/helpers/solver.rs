@@ -1,4 +1,4 @@
-use crate::json::problem::{PragmaticProblem, Matrix, Problem};
+use crate::json::problem::{Matrix, PragmaticProblem, Problem};
 use crate::json::solution::{create_solution, Solution};
 use core::construction::states::InsertionContext;
 use core::refinement::recreate::{Recreate, RecreateWithCheapest};

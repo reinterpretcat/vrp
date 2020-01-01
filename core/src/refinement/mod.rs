@@ -12,7 +12,7 @@ pub struct RefinementContext {
     pub problem: Arc<Problem>,
 
     /// Specifies solution population.
-    pub population: Box<dyn Population>,
+    pub population: Box<dyn Population + Sync + Send>,
 
     /// Specifies refinement generation (or iteration).
     pub generation: usize,
@@ -71,7 +71,7 @@ impl RefinementContext {
         Self { problem, population: Box::new(SinglePopulation::default()), generation: 1 }
     }
 
-    pub fn new_with_population(problem: Arc<Problem>, population: Box<dyn Population>) -> Self {
+    pub fn new_with_population(problem: Arc<Problem>, population: Box<dyn Population + Sync + Send>) -> Self {
         Self { problem, population, generation: 1 }
     }
 }
