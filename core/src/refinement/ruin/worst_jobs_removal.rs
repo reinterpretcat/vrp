@@ -18,7 +18,8 @@ use std::cmp::Ordering::Less;
 use std::iter::once;
 use std::sync::{Arc, RwLock};
 
-/// Detects the most cost expensive jobs in each route and delete them with their neighbours
+/// A ruin strategy which detects the most cost expensive jobs in each route and delete them
+/// with their neighbours.
 pub struct WorstJobRemoval {
     threshold: usize,
     worst_skip: i32,

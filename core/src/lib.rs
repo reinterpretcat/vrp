@@ -1,6 +1,4 @@
-//! # Core
-//!
-//! Core crate contains a main buildings blocks to solve variations of ***Vehicle Routing Problem***.
+//! Core crate contains a main buildings blocks for metaheuristic to solve variations of ***Vehicle Routing Problem***.
 //!
 //!
 //! ## Vehicle Routing Problem
@@ -20,6 +18,7 @@
 //! Although performance is constantly in focus, a main idea behind design is extensibility: the crate
 //! aims to support a very wide range of VRP variations known as Rich VRP. This is achieved through
 //! various extension points: custom constraints, objective functions, acceptance criteria, etc.
+//! More details can be found in child modules.
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]

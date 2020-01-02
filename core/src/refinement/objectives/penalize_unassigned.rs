@@ -6,6 +6,7 @@ use crate::construction::states::InsertionContext;
 use crate::models::common::{Cost, ObjectiveCost};
 use crate::refinement::objectives::Objective;
 
+/// An objective function which penalizes unassigned jobs.
 pub struct PenalizeUnassigned {
     penalty: Cost,
 }

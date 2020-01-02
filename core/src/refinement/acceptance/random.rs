@@ -7,13 +7,15 @@ use crate::models::common::ObjectiveCost;
 use crate::refinement::acceptance::{Acceptance, Greedy};
 use crate::refinement::RefinementContext;
 
-/// Accepts some solutions randomly given probability.
+/// Decorates existing acceptance method by adding extra logic which accepts some solutions
+/// randomly with given probability.
 pub struct RandomProbability {
     other: Box<dyn Acceptance>,
     probability: f64,
 }
 
 impl RandomProbability {
+    /// Creates a new instance.
     pub fn new(other: Box<dyn Acceptance>, probability: f64) -> Self {
         Self { other, probability }
     }

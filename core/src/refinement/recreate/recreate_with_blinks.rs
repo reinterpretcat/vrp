@@ -115,7 +115,7 @@ impl JobSelector for RankedJobSelector {
     }
 }
 
-/// Selects best result.
+/// Selects best result with "blinks" - select random one with some probability.
 struct BlinkResultSelector {
     ratio: f64,
 }
@@ -140,6 +140,8 @@ impl ResultSelector for BlinkResultSelector {
     }
 }
 
+/// A recreate method as described in "Slack Induction by String Removals for
+/// Vehicle Routing Problems" (aka SISR) paper by Jan Christiaens, Greet Vanden Berghe.
 pub struct RecreateWithBlinks<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     result_selector: Box<dyn ResultSelector + Send + Sync>,

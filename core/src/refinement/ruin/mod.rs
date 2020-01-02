@@ -1,3 +1,5 @@
+//! A various strategies to destroy parts of an existing solution.
+
 use crate::construction::states::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
 use crate::models::Problem;
@@ -6,8 +8,9 @@ use crate::utils::Random;
 use std::iter::{empty, once};
 use std::sync::Arc;
 
-/// Specifies ruin strategy.
+/// A trait which specifies logic to destroy parts of solution.
 pub trait Ruin {
+    /// Ruins given solution and returns a new one with less jobs assigned.
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
@@ -31,7 +34,7 @@ mod worst_jobs_removal;
 
 pub use self::worst_jobs_removal::WorstJobRemoval;
 
-/// Provides the way to run multiple ruin methods.
+/// Provides the way to run multiple ruin methods one by one on the same solution.
 pub struct CompositeRuin {
     ruins: Vec<Vec<(Arc<dyn Ruin>, f64)>>,
     weights: Vec<usize>,

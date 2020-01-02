@@ -2,7 +2,7 @@ use crate::construction::states::InsertionContext;
 use crate::refinement::ruin::{get_chunk_size, select_seed_job, Ruin};
 use crate::refinement::RefinementContext;
 
-/// Removes random jobs from solution.
+/// A ruin strategy which removes random jobs from solution.
 pub struct RandomJobRemoval {
     /// Specifies minimum and maximum amount of removed jobs.
     range: (usize, usize),
@@ -11,6 +11,7 @@ pub struct RandomJobRemoval {
 }
 
 impl RandomJobRemoval {
+    /// Creates a new instance of [`RandomJobRemoval`].
     pub fn new(min: usize, max: usize, threshold: f64) -> Self {
         Self { range: (min, max), threshold }
     }

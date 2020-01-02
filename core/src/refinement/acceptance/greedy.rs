@@ -15,6 +15,8 @@ pub struct Greedy {
 }
 
 impl Greedy {
+    /// Creates a new `Greedy`. `is_minimize_routes` specifies whether solution with less
+    /// routes should be preferred over lower cost.
     pub fn new(is_minimize_routes: bool) -> Self {
         Self { is_minimize_routes }
     }

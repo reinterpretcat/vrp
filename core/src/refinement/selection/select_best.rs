@@ -2,6 +2,7 @@ use crate::construction::states::InsertionContext;
 use crate::refinement::selection::Selection;
 use crate::refinement::RefinementContext;
 
+/// Selects a best solution from population.
 pub struct SelectBest {}
 
 impl Default for SelectBest {

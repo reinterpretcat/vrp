@@ -13,6 +13,7 @@ pub struct MaxGeneration {
 }
 
 impl MaxGeneration {
+    /// Creates a new instance of [`MaxGeneration`].
     pub fn new(limit: usize) -> Self {
         Self { limit }
     }

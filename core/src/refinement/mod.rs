@@ -1,4 +1,11 @@
 //! Buildings blocks for metaheuristic (e.g. ruin and recreate, genetic, etc.).
+//!
+//! **Metaheuristic** is a higher-level procedure which tries to refine existing solution (e.g. found by
+//! insertion heuristic) escaping local optimum.
+//! One of metaheuristic examples, is **ruin and recreate**, formulated by
+//! [Schrimpf et al. (2000)](https://www.sciencedirect.com/science/article/pii/S0021999199964136).
+//! It describes approach which essentially destroys parts of solution and rebuild from it solution
+//! with some modifications.
 
 extern crate rand;
 

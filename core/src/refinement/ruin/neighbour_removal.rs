@@ -2,7 +2,7 @@ use crate::construction::states::InsertionContext;
 use crate::refinement::ruin::{get_chunk_size, select_seed_jobs, Ruin};
 use crate::refinement::RefinementContext;
 
-/// Removes jobs in neighbourhood of randomly selected job (inclusive).
+/// A ruin strategy which removes jobs in neighbourhood of randomly selected job (inclusive).
 pub struct NeighbourRemoval {
     /// Specifies minimum and maximum amount of removed jobs.
     range: (usize, usize),
@@ -11,6 +11,7 @@ pub struct NeighbourRemoval {
 }
 
 impl NeighbourRemoval {
+    /// Creates a new instance of [`NeighbourRemoval`].
     pub fn new(min: usize, max: usize, threshold: f64) -> Self {
         Self { range: (min, max), threshold }
     }

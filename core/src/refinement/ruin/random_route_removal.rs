@@ -8,7 +8,7 @@ use crate::refinement::ruin::Ruin;
 use crate::refinement::RefinementContext;
 use std::sync::Arc;
 
-/// Removes random route from solution.
+/// A ruin strategy which removes random route from solution.
 pub struct RandomRouteRemoval {
     /// Specifies minimum amount of removed routes.
     rmin: f64,
@@ -19,6 +19,7 @@ pub struct RandomRouteRemoval {
 }
 
 impl RandomRouteRemoval {
+    /// Creates a new instance of [`RandomRouteRemoval`].
     pub fn new(rmin: usize, rmax: usize, threshold: f64) -> Self {
         Self { rmin: rmin as f64, rmax: rmax as f64, threshold }
     }

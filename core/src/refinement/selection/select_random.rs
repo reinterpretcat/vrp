@@ -2,6 +2,7 @@ use crate::construction::states::InsertionContext;
 use crate::refinement::selection::Selection;
 use crate::refinement::RefinementContext;
 
+/// Selects a weighted random solution from population.
 pub struct SelectRandom {}
 
 impl Default for SelectRandom {
@@ -11,6 +12,7 @@ impl Default for SelectRandom {
 }
 
 impl SelectRandom {
+    /// Creates a new instance of [`SelectRandom`].
     pub fn new() -> Self {
         Self {}
     }

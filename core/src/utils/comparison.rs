@@ -1,6 +1,7 @@
 use std::cmp::{Ordering, PartialOrd};
 use std::sync::Arc;
 
+/// Compares floats.
 pub fn compare_floats(a: f64, b: f64) -> Ordering {
     match (a, b) {
         (x, y) if x.is_nan() && y.is_nan() => Ordering::Equal,
@@ -10,6 +11,7 @@ pub fn compare_floats(a: f64, b: f64) -> Ordering {
     }
 }
 
+/// Compares pointers from shared objects.
 pub fn compare_shared<T: ?Sized>(left: &Arc<T>, right: &Arc<T>) -> bool {
     let left: *const T = left.as_ref();
     let right: *const T = right.as_ref();

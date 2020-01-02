@@ -42,6 +42,7 @@ impl Default for VariationCoefficient {
 }
 
 impl VariationCoefficient {
+    /// Creates a new instance of [`VariationCoefficient`].
     pub fn new(capacity: usize, threshold: f64) -> Self {
         let costs = vec![0.; capacity];
         Self { capacity, threshold, last_cost: None, costs }

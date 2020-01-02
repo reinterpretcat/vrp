@@ -1,8 +1,12 @@
+//! Metaheuristic termination logic.
+
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::refinement::RefinementContext;
 
+/// A trait which specifies criteria when metaheuristic should stop searching for improved solution.
 pub trait Termination {
+    /// Returns true if termination condition is met.
     fn is_termination(
         &mut self,
         refinement_ctx: &RefinementContext,
@@ -19,11 +23,13 @@ pub use self::max_time::MaxTime;
 mod variation_coefficient;
 pub use self::variation_coefficient::VariationCoefficient;
 
+/// A trait which encapsulates multiple termination criteria.
 pub struct CompositeTermination {
     terminations: Vec<Box<dyn Termination>>,
 }
 
 impl CompositeTermination {
+    /// Creates a new instance of [`CompositeTermination`].
     pub fn new(terminations: Vec<Box<dyn Termination>>) -> Self {
         Self { terminations }
     }

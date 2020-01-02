@@ -1,7 +1,11 @@
+//! Contains logic to build a feasible solution from partially ruined one.
+
 use crate::construction::heuristics::ResultSelector;
 use crate::construction::states::{InsertionContext, InsertionResult};
 
+/// A trait which specifies logic to produce a new feasible solution from partial one.
 pub trait Recreate {
+    /// Recreates a new solution from the given.
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 

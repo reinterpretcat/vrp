@@ -54,12 +54,12 @@ pub struct ActivityContext<'a> {
     pub next: Option<&'a TourActivity>,
 }
 
-/// Contains information needed to performed insertions in solution.
+/// A context which contains information needed for heuristic and metaheuristic.
 pub struct InsertionContext {
     /// Original problem.
     pub problem: Arc<Problem>,
 
-    /// Solution context.
+    /// Solution context: discovered solution.
     pub solution: SolutionContext,
 
     /// Random generator.
@@ -231,7 +231,7 @@ impl InsertionContext {
     }
 }
 
-/// Contains information regarding insertion solution.
+/// Contains information regarding discovered solution.
 pub struct SolutionContext {
     /// List of jobs which require permanent assignment.
     pub required: Vec<Arc<Job>>,

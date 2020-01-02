@@ -11,6 +11,7 @@ pub struct MaxTime {
 }
 
 impl MaxTime {
+    /// Creates a new instance of [`MaxTime`].
     pub fn new(limit_in_secs: f64) -> Self {
         Self { start: Instant::now(), limit_in_secs }
     }

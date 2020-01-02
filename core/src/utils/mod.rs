@@ -11,7 +11,8 @@ mod random;
 pub use self::random::DefaultRandom;
 pub use self::random::Random;
 
-// See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector
+/// A trait to get tuple from collection items.
+/// See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector
 pub trait TryCollect<T> {
     fn try_collect(&mut self) -> Option<T>;
 }

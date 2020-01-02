@@ -12,7 +12,7 @@ use crate::refinement::ruin::{select_seed_jobs, Ruin};
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
 
-/// "Adjusted string removal" strategy based on "Slack Induction by String Removals for
+/// "Adjusted string removal" ruin strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) by Jan Christiaens, Greet Vanden Berghe.
 /// Some definitions from the paper:
 ///     String is a sequence of consecutive nodes in a tour.
@@ -27,6 +27,7 @@ pub struct AdjustedStringRemoval {
 }
 
 impl AdjustedStringRemoval {
+    /// Creates a new instance of [`AdjustedStringRemoval`].
     pub fn new(lmax: usize, cavg: usize, alpha: f64) -> Self {
         Self { lmax, cavg, alpha }
     }

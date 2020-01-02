@@ -26,6 +26,7 @@ impl JobSelector for GapsJobSelector {
     }
 }
 
+/// A recreate method which selects on each insertion step only subset of randomly chosen jobs.
 pub struct RecreateWithGaps {
     job_selector: Box<dyn JobSelector + Send + Sync>,
     result_selector: Box<dyn ResultSelector + Send + Sync>,

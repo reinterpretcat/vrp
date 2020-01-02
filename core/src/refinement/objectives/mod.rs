@@ -1,9 +1,11 @@
+//! Specifies objective functions.
+
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 
 /// Encapsulates objective function behaviour.
 pub trait Objective {
-    /// Estimates solution cost for given problem.
+    /// Estimates cost for given problem and solution.
     fn estimate(&self, insertion_ctx: &InsertionContext) -> ObjectiveCost;
 }
 

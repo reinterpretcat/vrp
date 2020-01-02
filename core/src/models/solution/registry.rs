@@ -14,8 +14,9 @@ pub struct Registry {
 }
 
 impl Registry {
-    pub fn new(fleet: &Fleet) -> Registry {
-        Registry {
+    /// Creates a new instance of [`Registry`];
+    pub fn new(fleet: &Fleet) -> Self {
+        Self {
             available: fleet.actors.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
                 acc.entry(ActorKey::new(&actor)).or_insert_with(HashSet::new).insert(actor.clone());
                 acc
@@ -49,8 +50,8 @@ impl Registry {
         self.available.iter().flat_map(|(_, set)| set.iter().take(1).cloned())
     }
 
-    /// Creates a copy of registry
-    pub fn deep_copy(&self) -> Registry {
+    /// Creates a deep copy of registry.
+    pub fn deep_copy(&self) -> Self {
         Self { available: self.available.clone(), all: self.all.clone() }
     }
 }

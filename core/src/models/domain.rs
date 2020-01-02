@@ -6,6 +6,7 @@ use hashbrown::HashMap;
 use std::any::Any;
 use std::sync::Arc;
 
+/// Specifies a type used to store any values regarding problem and solution.
 pub type Extras = HashMap<String, Box<dyn Any + Send + Sync>>;
 
 /// Defines VRP problem.
@@ -50,7 +51,7 @@ pub struct Solution {
     pub extras: Arc<Extras>,
 }
 
-/// Specifies how jobs should be ordered in tour.
+/// An enumeration which specifies how jobs should be ordered in tour.
 pub enum LockOrder {
     /// Jobs can be reshuffled in any order.
     Any,
@@ -60,7 +61,7 @@ pub enum LockOrder {
     Strict,
 }
 
-/// Specifies how other jobs can be inserted in tour.
+/// An enumeration which specifies how other jobs can be inserted in tour.
 #[derive(Clone)]
 pub enum LockPosition {
     /// No specific position.
@@ -75,12 +76,15 @@ pub enum LockPosition {
 
 /// Specifies lock details.
 pub struct LockDetail {
+    /// Lock order.
     pub order: LockOrder,
+    /// Lock position.
     pub position: LockPosition,
+    /// Jobs affected by the lock.
     pub jobs: Vec<Arc<Job>>,
 }
 
-/// Specifies jobs locked to specific actors.
+/// Contains information about jobs locked to specific actors.
 pub struct Lock {
     /// Specifies condition when locked jobs can be assigned to specific actor
     pub condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
@@ -89,12 +93,14 @@ pub struct Lock {
 }
 
 impl LockDetail {
+    /// Creates a new instance of [`LockDetail`].
     pub fn new(order: LockOrder, position: LockPosition, jobs: Vec<Arc<Job>>) -> Self {
         Self { order, position, jobs }
     }
 }
 
 impl Lock {
+    /// Creates a new instance of [`Lock`].
     pub fn new(condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>, details: Vec<LockDetail>) -> Self {
         Self { condition, details }
     }

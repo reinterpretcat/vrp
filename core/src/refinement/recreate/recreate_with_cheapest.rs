@@ -14,6 +14,7 @@ impl JobSelector for AllJobSelector {
     }
 }
 
+/// A recreate method which is equivalent to cheapest insertion heuristic.
 pub struct RecreateWithCheapest {
     job_selector: Box<dyn JobSelector + Send + Sync>,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
