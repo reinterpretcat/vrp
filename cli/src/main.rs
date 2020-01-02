@@ -1,3 +1,26 @@
+//! A command line interface to solve variations of *Vehicle Routing Problem*.
+//!
+//! ## Usage
+//!
+//! Depending on your problem type and settings, you might need to specify different command line
+//! arguments, for example:
+//!
+//! - solve scientific problem from **solomon** set using existing solution
+//!
+//!     `cli solomon RC1_10_1.txt --init-solution RC1_10_1_solution.txt  --max-time=3600`
+//!
+//! - solve custom problem specified in **pragmatic** json format with its routing matrix.
+//!
+//!     `cli pragmatic problem_definition.json -m routing_matrix.json --max-generations=1000`
+//!
+//! - solve scientific problem from **li lim** set writing solution to the file specified
+//!
+//!     `cli lilim LC1_10_2.txt -o LC1_10_2_solution.txt`
+//!
+//! For more details, simply run
+//!
+//!     cli --help
+
 mod args;
 
 use self::args::*;
