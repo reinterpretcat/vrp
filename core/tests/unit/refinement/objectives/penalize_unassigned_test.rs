@@ -1,4 +1,4 @@
-use crate::construction::states::{InsertionContext, InsertionProgress, RouteContext, RouteState, SolutionContext};
+use crate::construction::states::{InsertionContext, RouteContext, RouteState, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
@@ -46,7 +46,6 @@ fn can_calculate_cost_with_penalty_properly() {
     let mut unassigned = HashMap::new();
     unassigned.insert(Arc::new(test_single_job()), 1);
     let insertion_ctx = InsertionContext {
-        progress: InsertionProgress { cost: None, completeness: 0.0, total: 0 },
         problem: Arc::new(Problem {
             fleet: fleet.clone(),
             jobs: Arc::new(Jobs::new(&fleet, vec![], transport.as_ref())),

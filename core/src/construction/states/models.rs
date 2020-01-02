@@ -37,19 +37,6 @@ pub struct InsertionFailure {
     pub constraint: i32,
 }
 
-/// Provides the way to get some meta information about insertion progress.
-#[derive(Clone)]
-pub struct InsertionProgress {
-    /// Specifies best known cost depending on context.
-    pub cost: Option<Cost>,
-
-    /// Specifies solution completeness.
-    pub completeness: f64,
-
-    /// Total amount of jobs.
-    pub total: usize,
-}
-
 /// Specifies insertion context for activity.
 pub struct ActivityContext<'a> {
     /// Activity insertion index.
@@ -67,9 +54,6 @@ pub struct ActivityContext<'a> {
 
 /// Contains information needed to performed insertions in solution.
 pub struct InsertionContext {
-    /// Solution progress.
-    pub progress: InsertionProgress,
-
     /// Original problem.
     pub problem: Arc<Problem>,
 
@@ -164,7 +148,6 @@ impl InsertionContext {
             .collect();
 
         let mut ctx = InsertionContext {
-            progress: InsertionProgress { cost: None, completeness: 0., total: problem.jobs.size() },
             problem: problem.clone(),
             solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry },
             random: random.clone(),
@@ -181,9 +164,6 @@ impl InsertionContext {
         solution: (Arc<Solution>, Option<Cost>),
         random: Arc<dyn Random + Send + Sync>,
     ) -> Self {
-        let completeness = 1. - (solution.0.unassigned.len() as f64 / problem.jobs.size() as f64);
-        let cost = solution.1;
-
         let jobs: Vec<Arc<Job>> = solution.0.unassigned.iter().map(|(job, _)| job.clone()).collect();
         let unassigned = Default::default();
         let locked = problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
@@ -206,7 +186,6 @@ impl InsertionContext {
         });
 
         InsertionContext {
-            progress: InsertionProgress { cost, completeness, total: problem.jobs.size() },
             problem: problem.clone(),
             solution: SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry },
             random,
@@ -230,7 +209,6 @@ impl InsertionContext {
 
     pub fn deep_copy(&self) -> Self {
         InsertionContext {
-            progress: self.progress.clone(),
             problem: self.problem.clone(),
             solution: self.solution.deep_copy(),
             random: self.random.clone(),

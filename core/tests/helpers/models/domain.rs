@@ -1,5 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::construction::states::{InsertionContext, InsertionProgress, SolutionContext};
+use crate::construction::states::{InsertionContext, SolutionContext};
 use crate::helpers::models::problem::*;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs};
@@ -41,7 +41,6 @@ pub fn create_empty_solution() -> Solution {
 
 pub fn create_empty_insertion_context() -> InsertionContext {
     InsertionContext {
-        progress: InsertionProgress { cost: None, completeness: 0.0, total: 0 },
         problem: create_empty_problem(),
         solution: SolutionContext {
             required: vec![],
