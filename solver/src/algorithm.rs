@@ -129,7 +129,7 @@ impl Solver {
         is_accepted: bool,
     ) {
         let (insertion_ctx, cost) = solution;
-        let (actual_change, total_change) = self.get_cost_change(refinement_ctx, &cost);
+        let (actual_change, total_change) = get_cost_change(refinement_ctx, &cost);
         self.logger.deref()(format!(
             "generation {} took {}ms (total {}s), cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, accepted: {}",
             refinement_ctx.generation,
@@ -151,7 +151,7 @@ impl Solver {
             refinement_ctx.generation as f64 / refinement_time.elapsed().as_secs_f64(),
         ));
         refinement_ctx.population.all().enumerate().for_each(|(idx, (insertion_ctx, cost, generation))| {
-            let (actual_change, total_change) = self.get_cost_change(refinement_ctx, cost);
+            let (actual_change, total_change) = get_cost_change(refinement_ctx, cost);
             self.logger.deref()(format!(
                 "\t\t{} cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, discovered at: {}",
                 idx,
@@ -187,14 +187,12 @@ impl Solver {
             None
         }
     }
+}
 
-    fn get_cost_change(&self, refinement_ctx: &RefinementContext, cost: &ObjectiveCost) -> (f64, f64) {
-        refinement_ctx
-            .population
-            .best()
-            .map(|(_, c, _)| {
-                ((cost.actual - c.actual) / c.actual * 100., (cost.total() - c.total()) / c.total() * 100.)
-            })
-            .unwrap_or((100., 100.))
-    }
+fn get_cost_change(refinement_ctx: &RefinementContext, cost: &ObjectiveCost) -> (f64, f64) {
+    refinement_ctx
+        .population
+        .best()
+        .map(|(_, c, _)| ((cost.actual - c.actual) / c.actual * 100., (cost.total() - c.total()) / c.total() * 100.))
+        .unwrap_or((100., 100.))
 }
