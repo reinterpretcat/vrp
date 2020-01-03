@@ -4,8 +4,8 @@
 //!
 //! # Supported formats
 //!
-//! - **solomon**, see [Solomon benchmark](https://www.sintef.no/projectweb/top/vrptw/solomon-benchmark)
-//! - **lilim**, see [Li&Lim benchmark](https://www.sintef.no/projectweb/top/pdptw/li-lim-benchmark)
+//! - **solomon**: see [Solomon benchmark](https://www.sintef.no/projectweb/top/vrptw/solomon-benchmark)
+//! - **lilim**: see [Li&Lim benchmark](https://www.sintef.no/projectweb/top/pdptw/li-lim-benchmark)
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
