@@ -41,6 +41,22 @@ cargo install vrp-cli
 
 Ensure that your `$PATH` is properly configured to source the Crates binaries, and then run solver using the `vrp-cli` command.
 
+## Use from command line
+
+`vrp-cli` crate is designed to use on problems defined in scientific or custom (aka 'pragmatic') format:
+
+`vrp-cli pragmatic problem_definition.json -m routing_matrix.json --max-generations=1000`
+
+Please refer to crate docs for more details.
+
+## Use from code
+
+If you're using rust, then you can simply use `vrp-solver`, `vrp-scientific`, `vrp-pragmatic` crates to solve VRP problem
+defined in 'pragmatic' or 'scientific' format using default metaheuristic. For more complex scenarios, please refer to
+`vrp-core` documentation.
+
+If you're using some other language, please check `examples`
+
 
 # Status
 
