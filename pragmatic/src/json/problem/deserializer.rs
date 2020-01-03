@@ -198,10 +198,12 @@ pub struct Matrix {
 
 // endregion
 
+/// Deserializes problem in json format from [`BufReader`].
 pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Error> {
     serde_json::from_reader(reader)
 }
 
+/// Deserializes routing matrix in json format from [`BufReader`].
 pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Error> {
     serde_json::from_reader(reader)
 }
