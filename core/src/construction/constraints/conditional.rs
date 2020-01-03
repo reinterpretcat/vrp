@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 pub type JobCondition = Box<dyn Fn(&SolutionContext, &Arc<Job>) -> bool + Send + Sync>;
 
-/// Allows to promote jobs between required and ignored collection using some condition.
+/// A module which allows to promote jobs between required and ignored collection using some condition.
 /// Useful to model some optional/conditional activities, e.g. breaks, refueling, etc.
 pub struct ConditionalJobModule {
     required_condition: Option<JobCondition>,

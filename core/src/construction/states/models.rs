@@ -10,13 +10,15 @@ use std::borrow::Borrow;
 use std::ops::Deref;
 use std::sync::Arc;
 
-/// Specifies insertion result.
+/// Specifies insertion result variant.
 pub enum InsertionResult {
+    /// Successful insertion result.
     Success(InsertionSuccess),
+    /// Insertion failure.
     Failure(InsertionFailure),
 }
 
-/// Specifies insertion result needed to insert job into tour.
+/// Specifies insertion success result needed to insert job into tour.
 pub struct InsertionSuccess {
     /// Specifies delta cost change for the insertion.
     pub cost: Cost,

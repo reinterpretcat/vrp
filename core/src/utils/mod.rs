@@ -1,3 +1,5 @@
+//! Utility helpers.
+
 mod comparison;
 pub use self::comparison::compare_floats;
 pub use self::comparison::compare_shared;

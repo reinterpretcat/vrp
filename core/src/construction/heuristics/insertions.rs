@@ -7,17 +7,21 @@ use crate::models::problem::Job;
 use crate::utils::compare_shared;
 use std::sync::Arc;
 
-/// Selects jobs to be inserted.
+/// On each insertion step, selects a list of jobs to be inserted.
+/// It is up to implementation to decide whether a list is original consists of jobs to be inserted,
+/// subset, randomized or something else.
 pub trait JobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 }
 
-/// Selects insertion result to be promoted from two.
+/// Selects one insertion result from two to promote as best.
 pub trait ResultSelector {
     fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult;
 }
 
-/// Implements abstract insertion heuristic.
+/// Implements generalized insertion heuristic.
+/// Using [`JobSelector`] and [`ResultSelector`], it tries to identify next job to be inserted until
+/// there are no jobs left or it is not possible to insert due to constraint limitations.
 pub struct InsertionHeuristic {}
 
 impl InsertionHeuristic {

@@ -172,6 +172,7 @@ impl RouteState {
 
 type ActivityWithKey = (usize, i32);
 
+/// Creates start activity.
 pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
     Box::new(Activity {
         place: Place {
@@ -184,6 +185,7 @@ pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
     })
 }
 
+/// Creates end activity if it is specified for the actor.
 pub fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
     actor.detail.end.map(|location| {
         Box::new(Activity {

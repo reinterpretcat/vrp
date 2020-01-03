@@ -12,11 +12,14 @@ use std::sync::{Arc, Weak};
 
 /// Represents a job variant.
 pub enum Job {
+    /// Single job.
     Single(Arc<Single>),
+    /// MultiJob with multiple dependent jobs.
     Multi(Arc<Multi>),
 }
 
 impl Job {
+    /// Considers job as [`Single`].
     pub fn as_single(&self) -> Option<&Arc<Single>> {
         match &self {
             Job::Single(job) => Some(job),
@@ -24,10 +27,12 @@ impl Job {
         }
     }
 
+    /// Considers job as [`Single`]. Panics if it is [`Multi`].
     pub fn to_single(&self) -> &Arc<Single> {
         self.as_single().expect("Unexpected job type: multi")
     }
 
+    /// Considers job as [`Multi`].
     pub fn as_multi(&self) -> Option<&Arc<Multi>> {
         match &self {
             Job::Multi(job) => Some(job),
@@ -35,10 +40,12 @@ impl Job {
         }
     }
 
+    /// Considers job as [`Multi`]. Panics if it is [`Multi`]
     pub fn to_multi(&self) -> &Arc<Multi> {
         self.as_multi().expect("Unexpected job type: single")
     }
 
+    /// Returns dimensions collection.
     pub fn dimens(&self) -> &Dimensions {
         match &self {
             Job::Single(single) => &single.dimens,
@@ -65,7 +72,7 @@ pub struct Single {
     pub dimens: Dimensions,
 }
 
-/// Represents a job which consists of multiple sub jobs without ids.
+/// Represents a job which consists of multiple sub jobs.
 /// All of these jobs must be performed or none of them. Order can be controlled
 /// via specific dimension value.
 pub struct Multi {
@@ -78,10 +85,14 @@ pub struct Multi {
 }
 
 impl Multi {
+    /// Creates a new multi job from given 'dimens' and `jobs` assuming that jobs has to be
+    /// inserted in order they specified.
     pub fn new(jobs: Vec<Arc<Single>>, dimens: Dimensions) -> Self {
         Self { jobs, dimens, generator: Box::new(|m| vec![(0..m.jobs.len()).collect()]) }
     }
 
+    /// Creates a new multi job from given 'dimens' and `jobs` using `generator` to specify
+    /// insertion order.
     pub fn new_with_generator(
         jobs: Vec<Arc<Single>>,
         dimens: Dimensions,
@@ -90,6 +101,7 @@ impl Multi {
         Self { jobs, dimens, generator }
     }
 
+    /// Returns all sub-jobs permutations.
     pub fn permutations(&self) -> Vec<Vec<Arc<Single>>> {
         (self.generator)(self)
             .iter()
@@ -97,6 +109,7 @@ impl Multi {
             .collect()
     }
 
+    /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
     pub fn bind(multi: Self) -> Arc<Self> {
         // NOTE: layout must be identical
         struct SingleConstruct {
@@ -116,6 +129,7 @@ impl Multi {
         multi
     }
 
+    /// Returns parent multi job for given sub-job.
     pub fn roots(single: &Single) -> Option<Arc<Multi>> {
         single.dimens.get("rf").map(|v| v.downcast_ref::<Weak<Multi>>()).and_then(|w| w).and_then(|w| w.upgrade())
     }
@@ -130,10 +144,12 @@ pub struct Jobs {
 }
 
 impl Jobs {
+    /// Creates a new [`Jobs`].
     pub fn new(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCost) -> Jobs {
         Jobs { jobs: jobs.clone(), index: create_index(fleet, jobs, transport) }
     }
 
+    /// Returns all jobs in original order.
     pub fn all<'a>(&'a self) -> impl Iterator<Item = Arc<Job>> + 'a {
         self.jobs.iter().cloned()
     }
@@ -163,7 +179,7 @@ impl Jobs {
         self.index.get(&profile).unwrap().get(job).unwrap().1
     }
 
-    /// Returns amount of jobs
+    /// Returns amount of jobs.
     pub fn size(&self) -> usize {
         self.jobs.len()
     }

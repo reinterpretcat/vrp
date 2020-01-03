@@ -1,3 +1,5 @@
+//! Models to represent problem and solution domain.
+
 pub mod common;
 
 mod domain;

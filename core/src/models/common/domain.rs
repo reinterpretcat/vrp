@@ -18,19 +18,14 @@ pub struct TimeWindow {
 }
 
 impl TimeWindow {
+    /// Creates a new [`TimeWindow`].
     pub fn new(start: Timestamp, end: Timestamp) -> Self {
         Self { start, end }
     }
+
+    /// Returns unlimited time window.
     pub fn max() -> Self {
         Self { start: 0., end: std::f64::MAX }
-    }
-
-    pub fn intersects(&self, other: &Self) -> bool {
-        self.start <= other.end && other.start >= self.end
-    }
-
-    pub fn intersects_many(left: &Vec<Self>, right: &Vec<Self>) -> bool {
-        left.iter().any(|lhs| right.iter().any(|rhs| lhs.intersects(rhs)))
     }
 }
 
@@ -46,7 +41,9 @@ impl Eq for TimeWindow {}
 /// Represents a schedule.
 #[derive(Clone, Debug)]
 pub struct Schedule {
+    /// Arrival time.
     pub arrival: Timestamp,
+    /// Departure time.
     pub departure: Timestamp,
 }
 
@@ -65,12 +62,13 @@ impl PartialEq<Schedule> for Schedule {
 
 impl Eq for Schedule {}
 
-/// Multiple named dimension which can represents anything:
+/// Multiple named dimensions which can contain anything:
 /// * unit of measure, e.g. volume, mass, size, etc.
 /// * set of skills
 /// * tag.
 pub type Dimensions = HashMap<String, Box<dyn Any + Send + Sync>>;
 
+/// A trait to return arbitrary typed value by its key.
 pub trait ValueDimension {
     fn get_value<T: 'static>(&self, key: &str) -> Option<&T>;
 }
@@ -81,6 +79,7 @@ impl ValueDimension for Dimensions {
     }
 }
 
+/// A trait to get or set id.
 pub trait IdDimension {
     fn set_id(&mut self, id: &str) -> &mut Self;
     fn get_id(&self) -> Option<&String>;

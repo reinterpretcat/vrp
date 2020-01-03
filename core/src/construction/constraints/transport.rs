@@ -11,8 +11,10 @@ use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
-/// Checks whether vehicle can serve activity taking into account their time windows.
-/// TODO add extra check that job's and actor's TWs have intersection (hard route constraint).
+// TODO add extra check that job's and actor's TWs have intersection (hard route constraint).
+
+/// A module which checks whether vehicle can serve activity taking into account their time windows.
+/// Also it is responsible for transport cost calculations.
 pub struct TransportConstraintModule {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,

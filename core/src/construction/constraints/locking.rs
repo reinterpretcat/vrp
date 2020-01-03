@@ -10,7 +10,7 @@ use hashbrown::{HashMap, HashSet};
 use std::slice::Iter;
 use std::sync::Arc;
 
-/// Allows to lock specific actors within specific jobs using different rules.
+/// A module which allows to lock specific actors within specific jobs using different rules.
 pub struct StrictLockingModule {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,

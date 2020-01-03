@@ -48,8 +48,9 @@ pub trait TransportCost {
     fn distance(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Distance;
 }
 
-/// Uses custom distance and duration matrices as source of transport cost information.
-/// Not time aware as it ignores departure timestamp.
+/// A transport cost implementation which uses custom distance and duration matrices as source of
+/// transport cost information.
+/// NOTE Not day time aware as it ignores departure timestamp.
 pub struct MatrixTransportCost {
     durations: Vec<Vec<Duration>>,
     distances: Vec<Vec<Distance>>,
@@ -57,6 +58,7 @@ pub struct MatrixTransportCost {
 }
 
 impl MatrixTransportCost {
+    /// Creates a new [`MatrixTransportCost`]
     pub fn new(durations: Vec<Vec<Duration>>, distances: Vec<Vec<Distance>>) -> Self {
         let size = (durations.first().unwrap().len() as f64).sqrt() as usize;
 

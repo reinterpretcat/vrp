@@ -32,6 +32,7 @@ pub struct DriverDetail {
 /// Introduced to allow the following scenarios:
 /// * reuse vehicle multiple times with different drivers
 /// * solve best driver-vehicle match problem.
+/// NOTE: At the moment, it is not used.
 pub struct Driver {
     /// Specifies operating costs for driver.
     pub costs: Costs,

@@ -1,3 +1,5 @@
+//! Buildings blocks for metaheuristic (e.g. ruin and recreate, genetic, etc.).
+
 extern crate rand;
 
 use crate::construction::states::InsertionContext;

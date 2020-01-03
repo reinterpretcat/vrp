@@ -48,8 +48,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-/// Checks whether vehicle can handle activity's demand.
-/// Capacity can be interpreted as vehicle capacity change after visiting specific activity.
+/// A module which checks whether vehicle can handle customer's demand.
 pub struct CapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
@@ -59,6 +58,7 @@ pub struct CapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default +
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     CapacityConstraintModule<Capacity>
 {
+    /// Creates a new [`CapacityConstraintModule`].
     pub fn new(code: i32) -> Self {
         Self {
             state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],
@@ -76,10 +76,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
+    /// A helper method to return demand defined on tour activity.
     pub fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
         activity.job.as_ref().and_then(|job| job.as_single()).and_then(|single| single.dimens.get_demand())
     }
 
+    /// Checks whether demand can be handled.
     pub fn can_handle_demand(
         state: &RouteState,
         pivot: &TourActivity,
@@ -126,6 +128,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
+    /// Stores max past current state inside route state.
     pub fn store_max_past_current_state(
         state: &mut RouteState,
         activity: &TourActivity,
@@ -141,6 +144,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         (current, max)
     }
 
+    /// Stores max future current state inside route state.
     pub fn store_max_future_state(state: &mut RouteState, activity: &TourActivity, max: Capacity) -> Capacity {
         let max = std::cmp::max(max, *state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
         state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
@@ -184,11 +188,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 const CAPACITY_DIMENSION_KEY: &str = "cpc";
 const DEMAND_DIMENSION_KEY: &str = "dmd";
 
+/// A trait to get or set capacity.
 pub trait CapacityDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     fn set_capacity(&mut self, demand: Capacity) -> &mut Self;
     fn get_capacity(&self) -> Option<&Capacity>;
 }
 
+/// A trait to get or set demand.
 pub trait DemandDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     fn set_demand(&mut self, demand: Demand<Capacity>) -> &mut Self;
     fn get_demand(&self) -> Option<&Demand<Capacity>>;

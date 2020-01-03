@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 pub type TravelLimitFunc = Arc<dyn Fn(&Actor) -> (Option<Distance>, Option<Duration>) + Send + Sync>;
 
-/// Allows to limit actor's traveling distance and time.
+/// A module which allows to limit actor's traveling distance and time.
 /// NOTE should be used after Timing module.
 pub struct TravelModule {
     limit_func: TravelLimitFunc,
