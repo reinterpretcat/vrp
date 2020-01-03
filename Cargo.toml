@@ -1,9 +1,9 @@
 [workspace]
 
 members = [
-    "core",
-    "cli",
-    "pragmatic",
-    "scientific",
-    "solver"
+    "vrp-core",
+    "vrp-cli",
+    "vrp-pragmatic",
+    "vrp-scientific",
+    "vrp-solver"
 ]

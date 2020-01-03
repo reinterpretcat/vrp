@@ -1,0 +1,19 @@
+[package]
+name = "vrp-pragmatic"
+version = "0.1.0"
+authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "vrp_pragmatic"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+vrp-core = { path = "../vrp-core" }
+vrp-solver = { path = "../vrp-solver" }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+chrono = "0.4"
+rand = "0.7.2"

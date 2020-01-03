@@ -1,0 +1,10 @@
+[package]
+name = "vrp-core"
+version = "0.1.0"
+authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rayon = "1.1"
+rand = "0.7.2"
+hashbrown = "0.6"
