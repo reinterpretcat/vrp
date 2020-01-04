@@ -20,6 +20,7 @@ type ApiSolution = crate::json::solution::serializer::Solution;
 type ApiSchedule = crate::json::solution::serializer::Schedule;
 type DomainExtras = core::models::Extras;
 
+/// A trait to serialize solution in pragmatic format.
 pub trait PragmaticSolution<W: Write> {
     fn write_pragmatic(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
 }
@@ -52,6 +53,7 @@ impl Leg {
     }
 }
 
+/// Creates solution.
 pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
     let coord_index = solution
         .extras

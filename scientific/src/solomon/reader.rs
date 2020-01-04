@@ -17,6 +17,7 @@ pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, Str
     SolomonReader { buffer: String::new(), reader, matrix: MatrixFactory::default() }.read_problem()
 }
 
+/// A trait read write solomon problem.
 pub trait SolomonProblem {
     fn read_solomon(&self) -> Result<Problem, String>;
 }

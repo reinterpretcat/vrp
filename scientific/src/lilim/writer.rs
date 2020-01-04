@@ -2,6 +2,7 @@ use crate::common::write_text_solution;
 use core::models::Solution;
 use std::io::{BufWriter, Write};
 
+/// A trait to write lilim solution.
 pub trait LilimSolution<W: Write> {
     fn write_lilim(&self, writer: BufWriter<W>) -> Result<(), String>;
 }

@@ -26,14 +26,16 @@ pub struct Solver {
 
 /// A solver settings.
 pub struct SolverSettings {
+    /// A flag which is used to check whether route minimization should be preferred over cost.
+    /// Default is false.
     pub minimize_routes: bool,
-    pub population_size: usize,
+    /// An initial solution within cost.
     pub init_insertion_ctx: Option<(InsertionContext, ObjectiveCost)>,
 }
 
 impl Default for SolverSettings {
     fn default() -> Self {
-        Self { minimize_routes: false, population_size: 1, init_insertion_ctx: None }
+        Self { minimize_routes: false, init_insertion_ctx: None }
     }
 }
 
@@ -52,6 +54,7 @@ impl Default for Solver {
 }
 
 impl Solver {
+    /// Creates a new instance of [`Solver`].
     pub fn new(
         recreate: Box<dyn Recreate>,
         ruin: Box<dyn Ruin>,
@@ -64,6 +67,8 @@ impl Solver {
         Self { recreate, ruin, selection, acceptance, termination, settings, logger }
     }
 
+    /// Solves given problem and returns solution, its cost and generation when it is found.
+    /// Return None if no solution found.
     pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
         let mut refinement_ctx = RefinementContext::new_with_population(
             problem.clone(),

@@ -1,3 +1,5 @@
+//! Contains functionality to read lilim problem and write its solution.
+
 mod reader;
 pub use self::reader::LilimProblem;
 

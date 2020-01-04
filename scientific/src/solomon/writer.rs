@@ -2,6 +2,7 @@ use crate::common::write_text_solution;
 use core::models::Solution;
 use std::io::{BufWriter, Write};
 
+/// A trait to write solomon solution.
 pub trait SolomonSolution<W: Write> {
     fn write_solomon(&self, writer: BufWriter<W>) -> Result<(), String>;
 }

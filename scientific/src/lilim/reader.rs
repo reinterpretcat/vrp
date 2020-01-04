@@ -18,6 +18,7 @@ pub fn read_lilim_format<R: Read>(reader: BufReader<R>) -> Result<Problem, Strin
     LilimReader { buffer: String::new(), reader, matrix: MatrixFactory::default() }.read_problem()
 }
 
+/// A trait to read lilim problem.
 pub trait LilimProblem {
     fn read_lilim(&self) -> Result<Problem, String>;
 }

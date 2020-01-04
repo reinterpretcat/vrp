@@ -1,3 +1,5 @@
+//! Contains common text reading and writing functionality.
+
 mod text_reader;
 pub use self::text_reader::create_dimens_with_id;
 pub use self::text_reader::create_fleet_with_distance_costs;

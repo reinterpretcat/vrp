@@ -1,4 +1,4 @@
-//! Specifies logic to write solution.
+//! Specifies logic to create a "pragmatic" solution and write it into json format.
 
 mod serializer;
 pub use self::serializer::*;
