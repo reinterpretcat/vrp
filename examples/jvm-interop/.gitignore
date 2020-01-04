@@ -1,0 +1,11 @@
+.idea/
+.gradle
+*.class
+*.iml
+*.DS_Store
+*.kotlintest
+build/
+output/
+out/
+
+gradle*

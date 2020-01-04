@@ -55,7 +55,7 @@ If you're using rust, then you can simply use `vrp-solver`, `vrp-scientific`, `v
 defined in 'pragmatic' or 'scientific' format using default metaheuristic. For more complex scenarios, please refer to
 `vrp-core` documentation.
 
-If you're using some other language, please check `examples`
+If you're using some other language, e.g java, please check `examples`.
 
 
 # Status
