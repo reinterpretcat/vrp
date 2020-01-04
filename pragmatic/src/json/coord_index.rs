@@ -1,4 +1,4 @@
-//! A helper module for processing geo coordinates.
+//! A helper module for processing geo coordinates in problem and solution.
 
 use crate::json::Location;
 use std::cmp::Ordering::Less;

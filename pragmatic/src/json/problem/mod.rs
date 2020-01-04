@@ -43,17 +43,20 @@
 //!  have two jobs with locations A and B, one vehicle type with depot location C, then you have
 //!  the following location list: A,B,C. It corresponds to the matrix (durations or distances):
 //!
-//!     |  0 | BA | CA |
-//!     | AB |  0 | CB |
-//!     | AC | BC |  0 |
+//! ```md
+//! |----|----|----|
+//! |  0 | BA | CA |
+//! | AB |  0 | CB |
+//! | AC | BC |  0 |
+//!```
 //!
 //!  where
-//!     - `0`: zero duration or distance
-//!     - `XY`: distance or duration from X location to Y
+//! - `0`: zero duration or distance
+//! - `XY`: distance or duration from X location to Y
 //!
 //!  As single dimensional array it looks like:
 //!
-//!     [0,BA,CA,AB,0,CB,AC,BC,0]
+//! `[0,BA,CA,AB,0,CB,AC,BC,0]`
 //!
 //!  Check `create_coord_index` function for more details.
 //!
