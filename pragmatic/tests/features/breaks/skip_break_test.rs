@@ -95,7 +95,7 @@ fn can_skip_break_when_vehicle_not_used() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }
@@ -189,7 +189,7 @@ fn can_skip_break_when_jobs_completed() {
                     description: "cannot be visited within time window".to_string(),
                 }],
             }],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }
@@ -290,7 +290,7 @@ fn can_skip_second_break_when_jobs_completed() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

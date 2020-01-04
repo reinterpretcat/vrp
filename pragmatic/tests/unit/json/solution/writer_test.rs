@@ -68,7 +68,7 @@ fn can_create_solution() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }
@@ -155,7 +155,7 @@ fn can_merge_activities_in_one_stop() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

@@ -95,7 +95,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }
@@ -183,7 +183,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

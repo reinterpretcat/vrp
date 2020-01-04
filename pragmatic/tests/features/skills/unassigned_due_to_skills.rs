@@ -35,7 +35,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason { code: 1, description: "cannot serve required skill".to_string() }]
             }],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

@@ -124,7 +124,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 }
             ],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

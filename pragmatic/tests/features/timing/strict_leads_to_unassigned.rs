@@ -94,7 +94,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                     description: "cannot be visited within time window".to_string()
                 }]
             }],
-            extras: Extras { performance: vec![] },
+            extras: None,
         },
     );
 }

@@ -136,7 +136,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

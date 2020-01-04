@@ -116,7 +116,7 @@ fn can_handle_limited_capacity() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

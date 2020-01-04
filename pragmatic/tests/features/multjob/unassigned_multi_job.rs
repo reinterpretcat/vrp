@@ -42,7 +42,7 @@ fn can_unassign_multi_job_due_to_capacity() {
                     description: "does not fit into any vehicle due to capacity".to_string()
                 }]
             }],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

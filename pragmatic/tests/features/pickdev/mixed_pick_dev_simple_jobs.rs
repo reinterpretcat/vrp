@@ -86,7 +86,7 @@ fn can_use_one_pickup_delivery_and_two_deliveries_with_one_vehicle() {
                 }
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

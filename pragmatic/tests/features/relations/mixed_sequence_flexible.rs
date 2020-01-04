@@ -136,7 +136,7 @@ fn can_use_sequence_and_flexible_relation_for_one_vehicle() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }
@@ -309,7 +309,7 @@ fn can_use_sequence_and_flexible_relation_for_two_vehicles() {
                 }
             ],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

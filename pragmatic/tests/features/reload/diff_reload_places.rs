@@ -141,7 +141,7 @@ fn can_use_reloads_with_different_locations() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

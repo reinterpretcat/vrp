@@ -47,7 +47,7 @@ fn can_use_vehicle_with_open_end() {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason { code: 100, description: "location unreachable".to_string() }]
             }],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

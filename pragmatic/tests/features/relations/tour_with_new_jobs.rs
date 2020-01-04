@@ -89,7 +89,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

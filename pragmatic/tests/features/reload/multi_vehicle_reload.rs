@@ -97,7 +97,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         },
     );
 }

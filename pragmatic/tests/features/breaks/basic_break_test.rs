@@ -91,7 +91,7 @@ fn can_assign_break_between_jobs() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

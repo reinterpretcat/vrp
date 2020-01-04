@@ -1,3 +1,5 @@
+//! Specifies logic to write solution.
+
 mod serializer;
 pub use self::serializer::*;
 

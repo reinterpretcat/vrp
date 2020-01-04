@@ -76,7 +76,7 @@ fn can_use_two_dimensions() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }
@@ -123,7 +123,7 @@ fn can_unassign_due_to_dimension_mismatch() {
                     description: "does not fit into any vehicle due to capacity".to_string()
                 }]
             }],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

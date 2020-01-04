@@ -121,7 +121,7 @@ fn can_use_two_breaks() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

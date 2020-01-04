@@ -71,7 +71,7 @@ fn can_wait_for_job_start() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }
@@ -135,7 +135,7 @@ fn can_skip_initial_waiting() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

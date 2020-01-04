@@ -95,7 +95,7 @@ fn can_use_multiple_times() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

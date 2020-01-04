@@ -137,7 +137,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

@@ -123,7 +123,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                     description: "does not fit into any vehicle due to capacity".to_string()
                 }],
             }],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

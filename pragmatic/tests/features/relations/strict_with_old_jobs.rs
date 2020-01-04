@@ -172,7 +172,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                 }
             ],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

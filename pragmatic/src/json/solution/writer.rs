@@ -334,10 +334,10 @@ fn has_multi_dimensional_capacity(extras: &DomainExtras) -> bool {
     }
 }
 
-fn create_extras(solution: &Solution) -> Extras {
+fn create_extras(solution: &Solution) -> Option<Extras> {
     if solution.extras.get("iterations").is_some() {
         unimplemented!()
     }
 
-    Extras { performance: vec![] }
+    None
 }

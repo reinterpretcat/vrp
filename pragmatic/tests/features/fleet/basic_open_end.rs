@@ -63,7 +63,7 @@ fn can_use_vehicle_with_open_end() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

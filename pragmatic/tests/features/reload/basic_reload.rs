@@ -118,7 +118,7 @@ fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<JobVariant>, unass
                 },
             }],
             unassigned,
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

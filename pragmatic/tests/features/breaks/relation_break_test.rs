@@ -108,7 +108,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }
@@ -183,7 +183,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

@@ -76,7 +76,7 @@ fn can_wait_for_job_start() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

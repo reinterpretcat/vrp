@@ -100,7 +100,7 @@ fn can_use_multi_dim_capacity() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

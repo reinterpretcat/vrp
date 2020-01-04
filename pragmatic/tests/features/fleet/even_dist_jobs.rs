@@ -98,7 +98,7 @@ fn can_even_dist_jobs() {
                 },
             ],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         },
     );
 }

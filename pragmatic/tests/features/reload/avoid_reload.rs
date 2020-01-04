@@ -114,7 +114,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
                 },
             }],
             unassigned: vec![],
-            extras: Extras { performance: vec![] },
+            extras: None,
         }
     );
 }

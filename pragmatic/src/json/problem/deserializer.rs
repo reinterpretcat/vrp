@@ -216,7 +216,7 @@ pub struct VehicleType {
     pub limits: Option<VehicleLimits>,
 }
 
-/// Specifies routing profile.  
+/// Specifies routing profile.
 #[derive(Clone, Deserialize)]
 pub struct Profile {
     /// Profile name.
