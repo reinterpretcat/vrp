@@ -1,0 +1,132 @@
+{
+  "id": "A basic show case of multi-jobs",
+  "plan": {
+    "jobs": [
+      {
+        "id": "multi_job1",
+        "places": {
+          "pickups": [
+            {
+              "location": {
+                "lat": 52.5622847,
+                "lng": 13.4023099
+              },
+              "duration": 240,
+              "demand": [
+                1
+              ],
+              "tag": "p1"
+            },
+            {
+              "location": {
+                "lat": 52.5330881,
+                "lng": 13.3973059
+              },
+              "duration": 240,
+              "demand": [
+                1
+              ],
+              "tag": "p2"
+            }
+          ],
+          "deliveries": [
+            {
+              "location": {
+                "lat": 52.5252832,
+                "lng": 13.4188422
+              },
+              "duration": 240,
+              "demand": [
+                2
+              ],
+              "tag": "d1"
+            }
+          ]
+        }
+      },
+      {
+        "id": "multi_job2",
+        "places": {
+          "pickups": [
+            {
+              "location": {
+                "lat": 52.52599,
+                "lng": 13.45413
+              },
+              "duration": 240,
+              "demand": [
+                2
+              ],
+              "tag": "p1"
+            }
+          ],
+          "deliveries": [
+            {
+              "location": {
+                "lat": 52.4928,
+                "lng": 13.4597
+              },
+              "duration": 240,
+              "demand": [
+                1
+              ],
+              "tag": "d1"
+            },
+            {
+              "location": {
+                "lat": 52.4989,
+                "lng": 13.3917
+              },
+              "duration": 240,
+              "demand": [
+                1
+              ],
+              "tag": "d2"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "fleet": {
+    "types": [
+      {
+        "id": "vehicle",
+        "profile": "normal_car",
+        "costs": {
+          "distance": 0.0002,
+          "time": 0.004806,
+          "fixed": 22
+        },
+        "shifts": [
+          {
+            "start": {
+              "time": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            },
+            "end": {
+              "time": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ],
+        "amount": 1
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car",
+        "type": "car"
+      }
+    ]
+  }
+}

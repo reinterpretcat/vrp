@@ -1,0 +1,117 @@
+{
+  "id": "A basic show case of skills usage",
+  "plan": {
+    "jobs": [
+      {
+        "id": "job1",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.52599,
+              "lng": 13.45413
+            },
+            "duration": 300
+          }
+        },
+        "demand": [
+          1
+        ],
+        "skills": [
+          "fridge"
+        ]
+      },
+      {
+        "id": "job2",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.5225,
+              "lng": 13.4095
+            },
+            "duration": 240
+          }
+        },
+        "demand": [
+          1
+        ],
+        "skills": [
+          "handyman"
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "types": [
+      {
+        "id": "vehicle_with_fridge",
+        "profile": "normal_car",
+        "costs": {
+          "distance": 0.0002,
+          "time": 0.004806,
+          "fixed": 22
+        },
+        "shifts": [
+          {
+            "start": {
+              "time": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "end": {
+              "time": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            }
+          }
+        ],
+        "capacity": [
+          2
+        ],
+        "amount": 1,
+        "skills": ["fridge"]
+      },
+      {
+        "id": "vehicle_with_handyman",
+        "profile": "normal_car",
+        "costs": {
+          "distance": 0.0002,
+          "time": 0.004806,
+          "fixed": 22
+        },
+        "shifts": [
+          {
+            "start": {
+              "time": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "end": {
+              "time": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            }
+          }
+        ],
+        "capacity": [
+          2
+        ],
+        "amount": 1,
+        "skills": ["handyman"]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car",
+        "type": "car"
+      }
+    ]
+  }
+}

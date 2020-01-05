@@ -1,0 +1,115 @@
+{
+  "id": "A basic show-case of jobs locked to specific vehicle",
+  "plan": {
+    "jobs": [
+      {
+        "id": "job1",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.52599,
+              "lng": 13.45413
+            },
+            "duration": 300
+          }
+        },
+        "demand": [
+          1
+        ]
+      },
+      {
+        "id": "job2",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.5225,
+              "lng": 13.4095
+            },
+            "duration": 240
+          }
+        },
+        "demand": [
+          1
+        ]
+      },
+      {
+        "id": "job3",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.5165,
+              "lng": 13.3808
+            },
+            "duration": 300
+          }
+        },
+        "demand": [
+          1
+        ]
+      },
+      {
+        "id": "job4",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.5145,
+              "lng": 13.3513
+            },
+            "duration": 300
+          }
+        },
+        "demand": [
+          1
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "type": "tour",
+        "vehicle_id": "vehicle_1",
+        "jobs": ["job1", "job3"]
+      }
+    ]
+  },
+  "fleet": {
+    "types": [
+      {
+        "id": "vehicle",
+        "profile": "normal_car",
+        "costs": {
+          "distance": 0.0002,
+          "time": 0.004806,
+          "fixed": 22
+        },
+        "shifts": [
+          {
+            "start": {
+              "time": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            },
+            "end": {
+              "time": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ],
+        "amount": 1
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car",
+        "type": "car"
+      }
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+[book]
+authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+description = "This book describes a Vehicle Routing Problem solver."
+language = "en"
+multilingual = false
+src = "src"
+title = "A Vehicle Routing Problem Solver Documentation"

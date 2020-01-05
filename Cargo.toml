@@ -5,5 +5,7 @@ members = [
     "vrp-cli",
     "vrp-pragmatic",
     "vrp-scientific",
-    "vrp-solver"
+    "vrp-solver",
+
+    "examples/json-pragmatic"
 ]

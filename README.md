@@ -45,7 +45,9 @@ Ensure that your `$PATH` is properly configured to source the Crates binaries, a
 
 `vrp-cli` crate is designed to use on problems defined in scientific or custom (aka 'pragmatic') format:
 
-`vrp-cli pragmatic problem_definition.json -m routing_matrix.json --max-generations=1000`
+```bash
+vrp-cli pragmatic problem_definition.json -m routing_matrix.json --max-generations=1000`
+```
 
 Please refer to crate docs for more details.
 
@@ -55,7 +57,7 @@ If you're using rust, then you can simply use `vrp-solver`, `vrp-scientific`, `v
 defined in 'pragmatic' or 'scientific' format using default metaheuristic. For more complex scenarios, please refer to
 `vrp-core` documentation.
 
-If you're using some other language, e.g java, please check `examples`.
+If you're using some other language, e.g java, please check `examples` to see how to call the library from it.
 
 
 # Status
