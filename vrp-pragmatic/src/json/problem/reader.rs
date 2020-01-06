@@ -8,13 +8,13 @@ mod job_reader;
 #[path = "./fleet_reader.rs"]
 mod fleet_reader;
 
-use super::StringReader;
 use crate::constraints::*;
 use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::fleet_reader::{create_transport_costs, read_fleet, read_limits};
 use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_locks};
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
+use crate::StringReader;
 use chrono::DateTime;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -80,7 +80,7 @@ pub struct ProblemProperties {
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
     let problem_props = get_problem_properties(&api_problem, &matrices);
 
-    let coord_index = create_coord_index(&api_problem);
+    let coord_index = CoordIndex::new(&api_problem);
     let transport = Arc::new(create_transport_costs(&matrices));
     let activity = Arc::new(OnlyVehicleActivityCost::default());
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
@@ -110,55 +110,6 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         objective: Arc::new(PenalizeUnassigned::default()),
         extras: Arc::new(extras),
     })
-}
-
-fn create_coord_index(api_problem: &ApiProblem) -> CoordIndex {
-    let mut index = CoordIndex::default();
-
-    // process plan
-    api_problem.plan.jobs.iter().for_each(|job| match &job {
-        JobVariant::Single(job) => {
-            if let Some(pickup) = &job.places.pickup {
-                index.add(&pickup.location);
-            }
-            if let Some(delivery) = &job.places.delivery {
-                index.add(&delivery.location);
-            }
-        }
-        JobVariant::Multi(job) => {
-            job.places.pickups.iter().for_each(|pickup| {
-                index.add(&pickup.location);
-            });
-            job.places.deliveries.iter().for_each(|delivery| {
-                index.add(&delivery.location);
-            });
-        }
-    });
-
-    // process fleet
-    api_problem.fleet.types.iter().for_each(|vehicle| {
-        vehicle.shifts.iter().for_each(|shift| {
-            index.add(&shift.start.location);
-
-            if let Some(end) = &shift.end {
-                index.add(&end.location);
-            }
-
-            if let Some(breaks) = &shift.breaks {
-                breaks.iter().for_each(|vehicle_break| {
-                    if let Some(location) = &vehicle_break.location {
-                        index.add(location);
-                    }
-                });
-            }
-
-            if let Some(reloads) = &shift.reloads {
-                reloads.iter().for_each(|reload| index.add(&reload.location));
-            }
-        });
-    });
-
-    index
 }
 
 fn create_constraint_pipeline(

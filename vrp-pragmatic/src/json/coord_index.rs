@@ -1,5 +1,6 @@
 //! A helper module for processing geo coordinates in problem and solution.
 
+use crate::json::problem::{JobVariant, Problem};
 use crate::json::Location;
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
@@ -11,13 +12,56 @@ pub struct CoordIndex {
     reverse_index: HashMap<usize, Location>,
 }
 
-impl Default for CoordIndex {
-    fn default() -> Self {
-        Self { direct_index: Default::default(), reverse_index: Default::default() }
-    }
-}
-
 impl CoordIndex {
+    pub fn new(problem: &Problem) -> Self {
+        let mut index = Self { direct_index: Default::default(), reverse_index: Default::default() };
+
+        // process plan
+        problem.plan.jobs.iter().for_each(|job| match &job {
+            JobVariant::Single(job) => {
+                if let Some(pickup) = &job.places.pickup {
+                    index.add(&pickup.location);
+                }
+                if let Some(delivery) = &job.places.delivery {
+                    index.add(&delivery.location);
+                }
+            }
+            JobVariant::Multi(job) => {
+                job.places.pickups.iter().for_each(|pickup| {
+                    index.add(&pickup.location);
+                });
+                job.places.deliveries.iter().for_each(|delivery| {
+                    index.add(&delivery.location);
+                });
+            }
+        });
+
+        // process fleet
+        problem.fleet.types.iter().for_each(|vehicle| {
+            vehicle.shifts.iter().for_each(|shift| {
+                index.add(&shift.start.location);
+
+                if let Some(end) = &shift.end {
+                    index.add(&end.location);
+                }
+
+                if let Some(breaks) = &shift.breaks {
+                    breaks.iter().for_each(|vehicle_break| {
+                        if let Some(location) = &vehicle_break.location {
+                            index.add(location);
+                        }
+                    });
+                }
+
+                if let Some(reloads) = &shift.reloads {
+                    reloads.iter().for_each(|reload| index.add(&reload.location));
+                }
+            });
+        });
+
+        index
+    }
+
     pub fn add(&mut self, location: &Location) {
         if self.direct_index.get(location).is_none() {
             let value = self.direct_index.len();
@@ -34,7 +78,6 @@ impl CoordIndex {
         self.reverse_index.get(index).cloned()
     }
 
-    #[allow(dead_code)]
     pub fn unique(&self) -> Vec<Location> {
         let mut sorted_pairs: Vec<_> = self.reverse_index.iter().collect();
         sorted_pairs.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));

@@ -20,15 +20,54 @@ mod utils;
 
 pub mod json;
 
-use crate::json::problem::PragmaticProblem;
+use crate::json::coord_index::CoordIndex;
+use crate::json::problem::{deserialize_problem, PragmaticProblem};
 use crate::json::solution::PragmaticSolution;
 use std::ffi::{CStr, CString};
-use std::io::BufWriter;
+use std::io::{BufReader, BufWriter};
 use std::os::raw::c_char;
 use std::panic::catch_unwind;
 use std::slice;
 use std::sync::Arc;
 use vrp_solver::SolverBuilder;
+
+use std::io::Read;
+use std::slice::Iter;
+
+struct StringReader<'a> {
+    iter: Iter<'a, u8>,
+}
+
+impl<'a> StringReader<'a> {
+    pub fn new(data: &'a str) -> Self {
+        Self { iter: data.as_bytes().iter() }
+    }
+}
+
+impl<'a> Read for StringReader<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        for i in 0..buf.len() {
+            if let Some(x) = self.iter.next() {
+                buf[i] = *x;
+            } else {
+                return Ok(i);
+            }
+        }
+        Ok(buf.len())
+    }
+}
+
+/// Returns serialized into json list of unique locations from serialized `problem` in order used
+/// by routing matrix.
+pub fn get_locations<R: Read>(problem: BufReader<R>) -> String {
+    let problem = deserialize_problem(problem).map_err(|err| err.to_string()).unwrap();
+    let locations = CoordIndex::new(&problem).unique();
+    let mut buffer = String::new();
+    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    serde_json::to_writer(writer, &locations).unwrap();
+
+    buffer
+}
 
 // TODO improve error propagation
 
@@ -37,6 +76,22 @@ type Callback = extern "C" fn(*const c_char);
 fn to_string(pointer: *const c_char) -> String {
     let slice = unsafe { CStr::from_ptr(pointer).to_bytes() };
     std::str::from_utf8(slice).unwrap().to_string()
+}
+
+#[no_mangle]
+extern "C" fn locations(problem: *const c_char, success: Callback, failure: Callback) {
+    let result = catch_unwind(|| get_locations(BufReader::new(StringReader::new(&to_string(problem)))));
+
+    match result {
+        Ok(locations) => {
+            let locations = CString::new(locations.as_bytes()).unwrap();
+            success(locations.as_ptr());
+        }
+        Err(_) => {
+            let error = CString::new("Cannot get locations".as_bytes()).unwrap();
+            failure(error.as_ptr());
+        }
+    };
 }
 
 #[no_mangle]

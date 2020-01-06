@@ -1,7 +1,6 @@
 use crate::helpers::{format_time, ToLocation};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::*;
-use std::iter::once;
 
 pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
     JobVariant::Single(Job {
@@ -198,48 +197,7 @@ pub fn create_matrix(data: Vec<i64>) -> Matrix {
 }
 
 pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
-    let mut coord_index = CoordIndex::default();
-    problem.plan.jobs.iter().for_each(|job| match &job {
-        JobVariant::Single(job) => {
-            once(&job.places.pickup).chain(once(&job.places.delivery)).for_each(|place| {
-                if let Some(place) = place {
-                    coord_index.add(&place.location);
-                }
-            });
-        }
-        JobVariant::Multi(job) => job.places.pickups.iter().chain(job.places.deliveries.iter()).for_each(|place| {
-            coord_index.add(&place.location);
-        }),
-    });
-    problem.fleet.types.iter().for_each(|vehicle| {
-        vehicle
-            .shifts
-            .iter()
-            .flat_map(|shift| {
-                once(Some(shift.start.location.clone()))
-                    .chain(once(shift.end.as_ref().map(|p| p.location.clone())))
-                    .chain(
-                        shift
-                            .breaks
-                            .as_ref()
-                            .and_then(|breaks| Some(breaks.iter().map(|b| b.location.clone()).collect()))
-                            .unwrap_or_else(|| vec![]),
-                    )
-                    .chain(
-                        shift
-                            .reloads
-                            .as_ref()
-                            .and_then(|reloads| Some(reloads.iter().map(|r| Some(r.location.clone())).collect()))
-                            .unwrap_or_else(|| vec![]),
-                    )
-            })
-            .for_each(|location| {
-                if let Some(location) = location {
-                    coord_index.add(&location);
-                }
-            })
-    });
-    let unique = coord_index.unique();
+    let unique = CoordIndex::new(problem).unique();
 
     let data: Vec<i64> = unique
         .iter()
