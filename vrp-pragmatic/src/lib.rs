@@ -59,14 +59,14 @@ impl<'a> Read for StringReader<'a> {
 
 /// Returns serialized into json list of unique locations from serialized `problem` in order used
 /// by routing matrix.
-pub fn get_locations<R: Read>(problem: BufReader<R>) -> String {
-    let problem = deserialize_problem(problem).map_err(|err| err.to_string()).unwrap();
+pub fn get_locations<R: Read>(problem: BufReader<R>) -> Result<String, String> {
+    let problem = deserialize_problem(problem).map_err(|err| err.to_string())?;
     let locations = CoordIndex::new(&problem).unique();
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serde_json::to_writer(writer, &locations).unwrap();
+    serde_json::to_writer_pretty(writer, &locations).map_err(|err| err.to_string())?;
 
-    buffer
+    Ok(buffer)
 }
 
 // TODO improve error propagation
@@ -80,7 +80,7 @@ fn to_string(pointer: *const c_char) -> String {
 
 #[no_mangle]
 extern "C" fn locations(problem: *const c_char, success: Callback, failure: Callback) {
-    let result = catch_unwind(|| get_locations(BufReader::new(StringReader::new(&to_string(problem)))));
+    let result = catch_unwind(|| get_locations(BufReader::new(StringReader::new(&to_string(problem)))).ok().unwrap());
 
     match result {
         Ok(locations) => {

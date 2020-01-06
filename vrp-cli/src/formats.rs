@@ -15,7 +15,9 @@ pub struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Option<Solut
 
 pub struct SolutionWriter(pub Box<dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>) -> Result<(), String>>);
 
-pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter)> {
+pub struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<(), String>>);
+
+pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)> {
     vec![
         (
             "solomon",
@@ -26,6 +28,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                 })),
                 InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
                 SolutionWriter(Box::new(|_, solution, writer| solution.write_solomon(writer))),
+                LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         ),
         (
@@ -37,6 +40,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
                 SolutionWriter(Box::new(|_, solution, writer| solution.write_lilim(writer))),
+                LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         ),
         (
@@ -48,6 +52,11 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
                 SolutionWriter(Box::new(|problem, solution, writer| solution.write_pragmatic(problem, writer))),
+                LocationWriter(Box::new(|problem, writer| {
+                    let mut writer = writer;
+                    vrp_pragmatic::get_locations(BufReader::new(problem))
+                        .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
+                })),
             ),
         ),
     ]
