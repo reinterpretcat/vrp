@@ -1,0 +1,165 @@
+{
+  "problemId": "A basic show case of skills usage",
+  "statistic": {
+    "cost": 64.31331800000001,
+    "distance": 16188,
+    "duration": 3553,
+    "times": {
+      "driving": 3013,
+      "serving": 540,
+      "waiting": 0,
+      "break": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_with_fridge_1",
+      "typeId": "vehicle_with_fridge",
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T09:15:12Z",
+            "departure": "2019-07-04T09:20:12Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:37:07Z",
+            "departure": "2019-07-04T09:37:07Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 34.912962,
+        "distance": 11050,
+        "duration": 2227,
+        "times": {
+          "driving": 1927,
+          "serving": 300,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_with_handyman_1",
+      "typeId": "vehicle_with_handyman",
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5225,
+            "lng": 13.4095
+          },
+          "time": {
+            "arrival": "2019-07-04T09:08:28Z",
+            "departure": "2019-07-04T09:12:28Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job2",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:22:06Z",
+            "departure": "2019-07-04T09:22:06Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 29.400356000000002,
+        "distance": 5138,
+        "duration": 1326,
+        "times": {
+          "driving": 1086,
+          "serving": 240,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    }
+  ],
+  "unassigned": []
+}

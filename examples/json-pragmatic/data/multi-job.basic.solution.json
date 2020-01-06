@@ -1,0 +1,192 @@
+{
+  "problemId": "A basic show case of multi-jobs",
+  "statistic": {
+    "cost": 74.412666,
+    "distance": 52738,
+    "duration": 8711,
+    "times": {
+      "driving": 7271,
+      "serving": 1440,
+      "waiting": 0,
+      "break": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "stops": [
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5622847,
+            "lng": 13.4023099
+          },
+          "time": {
+            "arrival": "2019-07-04T09:32:24Z",
+            "departure": "2019-07-04T09:36:24Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "multi_job1",
+              "type": "pickup",
+              "tag": "p1"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5330881,
+            "lng": 13.3973059
+          },
+          "time": {
+            "arrival": "2019-07-04T09:49:48Z",
+            "departure": "2019-07-04T09:53:48Z"
+          },
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "multi_job1",
+              "type": "pickup",
+              "tag": "p2"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5252832,
+            "lng": 13.4188422
+          },
+          "time": {
+            "arrival": "2019-07-04T10:00:48Z",
+            "departure": "2019-07-04T10:04:48Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "multi_job1",
+              "type": "delivery",
+              "tag": "d1"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T10:12:17Z",
+            "departure": "2019-07-04T10:16:17Z"
+          },
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "multi_job2",
+              "type": "pickup",
+              "tag": "p1"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4928,
+            "lng": 13.4597
+          },
+          "time": {
+            "arrival": "2019-07-04T10:38:25Z",
+            "departure": "2019-07-04T10:42:25Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "multi_job2",
+              "type": "delivery",
+              "tag": "d1"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4989,
+            "lng": 13.3917
+          },
+          "time": {
+            "arrival": "2019-07-04T10:57:57Z",
+            "departure": "2019-07-04T11:01:57Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "multi_job2",
+              "type": "delivery",
+              "tag": "d2"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "2019-07-04T11:25:11Z",
+            "departure": "2019-07-04T11:25:11Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 74.412666,
+        "distance": 52738,
+        "duration": 8711,
+        "times": {
+          "driving": 7271,
+          "serving": 1440,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    }
+  ],
+  "unassigned": []
+}

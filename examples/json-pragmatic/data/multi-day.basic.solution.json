@@ -1,0 +1,203 @@
+{
+  "problemId": "A basic show case of multi-day planning",
+  "statistic": {
+    "cost": 75.30316200000001,
+    "distance": 26105,
+    "duration": 5427,
+    "times": {
+      "driving": 4287,
+      "serving": 1140,
+      "waiting": 0,
+      "break": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-05T09:00:00Z",
+            "departure": "2019-07-05T09:48:41Z"
+          },
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5145,
+            "lng": 13.3513
+          },
+          "time": {
+            "arrival": "2019-07-05T10:00:00Z",
+            "departure": "2019-07-05T10:05:00Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job4",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-05T10:26:14Z",
+            "departure": "2019-07-05T10:31:14Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-05T10:47:22Z",
+            "departure": "2019-07-05T10:47:22Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 42.789126,
+        "distance": 19336,
+        "duration": 3521,
+        "times": {
+          "driving": 2921,
+          "serving": 600,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:51:52Z"
+          },
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5225,
+            "lng": 13.4095
+          },
+          "time": {
+            "arrival": "2019-07-04T10:00:00Z",
+            "departure": "2019-07-04T10:04:00Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job2",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5165,
+            "lng": 13.3808
+          },
+          "time": {
+            "arrival": "2019-07-04T10:10:58Z",
+            "departure": "2019-07-04T10:15:58Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job3",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T10:23:38Z",
+            "departure": "2019-07-04T10:23:38Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 32.514036000000004,
+        "distance": 6769,
+        "duration": 1906,
+        "times": {
+          "driving": 1366,
+          "serving": 540,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    }
+  ],
+  "unassigned": []
+}
