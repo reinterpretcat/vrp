@@ -1,0 +1,109 @@
+{
+  "id": "A basic show case of unassigned job due to unreachable location",
+  "plan": {
+    "jobs": [
+      {
+        "id": "job1",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.52599,
+              "lng": 13.45413
+            },
+            "times": [
+              [
+                "2019-07-04T09:00:00Z",
+                "2019-07-04T18:00:00Z"
+              ],
+              [
+                "2019-07-05T09:00:00Z",
+                "2019-07-05T18:00:00Z"
+              ]
+            ],
+            "duration": 300
+          }
+        },
+        "demand": [
+          1
+        ]
+      },
+      {
+        "id": "job2",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.4576,
+              "lng": 13.1778
+            },
+            "times": [
+              [
+                "2019-07-04T10:00:00Z",
+                "2019-07-04T16:00:00Z"
+              ]
+            ],
+            "duration": 240
+          }
+        },
+        "demand": [
+          1
+        ]
+      },
+      {
+        "id": "job3",
+        "places": {
+          "delivery": {
+            "location": {
+              "lat": 52.5165,
+              "lng": 13.3808
+            },
+            "duration": 300
+          }
+        },
+        "demand": [
+          1
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "types": [
+      {
+        "id": "vehicle",
+        "profile": "normal_car",
+        "costs": {
+          "distance": 0.0002,
+          "time": 0.004806,
+          "fixed": 22
+        },
+        "shifts": [
+          {
+            "start": {
+              "time": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "end": {
+              "time": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ],
+        "amount": 1
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car",
+        "type": "car"
+      }
+    ]
+  }
+}

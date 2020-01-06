@@ -1,0 +1,120 @@
+{
+  "problemId": "A basic show case of unassigned job due to unreachable location",
+  "statistic": {
+    "cost": 43.248002,
+    "distance": 13316,
+    "duration": 3867,
+    "times": {
+      "driving": 3267,
+      "serving": 600,
+      "waiting": 0,
+      "break": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T09:19:24Z",
+            "departure": "2019-07-04T09:24:24Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5165,
+            "lng": 13.3808
+          },
+          "time": {
+            "arrival": "2019-07-04T09:46:40Z",
+            "departure": "2019-07-04T09:51:40Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job3",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T10:04:27Z",
+            "departure": "2019-07-04T10:04:27Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 43.248002,
+        "distance": 13316,
+        "duration": 3867,
+        "times": {
+          "driving": 3267,
+          "serving": 600,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    }
+  ],
+  "unassigned": [
+    {
+      "jobId": "job2",
+      "reasons": [
+        {
+          "code": 100,
+          "description": "location unreachable"
+        }
+      ]
+    }
+  ]
+}
