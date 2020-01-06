@@ -66,7 +66,7 @@
     "relations": [
       {
         "type": "tour",
-        "vehicle_id": "vehicle_1",
+        "vehicleId": "vehicle_1",
         "jobs": ["job1", "job3"]
       }
     ]

@@ -67,8 +67,8 @@
         "places": {
           "pickup": {
             "location": {
-              "lat": 52.4928,
-              "lng": 13.4597
+              "lat": 52.4922,
+              "lng": 13.4593
             },
             "duration": 300
           }
@@ -123,15 +123,15 @@
             "reloads": [
               {
                 "location": {
-                  "lat": 52.5157,
-                  "lng": 13.454
+                  "lat": 52.5103,
+                  "lng": 13.3898
                 },
                 "duration": 600
               },
               {
                 "location": {
-                  "lat": 52.5104,
-                  "lng": 13.3907
+                  "lat": 52.5043,
+                  "lng": 13.4091
                 },
                 "duration": 600
               }
