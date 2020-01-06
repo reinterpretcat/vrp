@@ -1,0 +1,149 @@
+{
+  "problemId": "A basic show case of break",
+  "statistic": {
+    "cost": 101.964322,
+    "distance": 13251,
+    "duration": 16087,
+    "times": {
+      "driving": 2367,
+      "serving": 840,
+      "waiting": 9280,
+      "break": 3600
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T11:44:12Z"
+          },
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T12:00:00Z",
+            "departure": "2019-07-04T13:05:00Z"
+          },
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery",
+              "location": {
+                "lat": 52.52599,
+                "lng": 13.45413
+              },
+              "time": {
+                "start": "2019-07-04T12:00:00Z",
+                "end": "2019-07-04T12:05:00Z"
+              }
+            },
+            {
+              "jobId": "break",
+              "type": "break",
+              "location": {
+                "lat": 52.52599,
+                "lng": 13.45413
+              },
+              "time": {
+                "start": "2019-07-04T12:05:00Z",
+                "end": "2019-07-04T13:05:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5225,
+            "lng": 13.4095
+          },
+          "time": {
+            "arrival": "2019-07-04T13:15:09Z",
+            "departure": "2019-07-04T13:19:09Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job2",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5165,
+            "lng": 13.3808
+          },
+          "time": {
+            "arrival": "2019-07-04T13:25:20Z",
+            "departure": "2019-07-04T16:05:00Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job3",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T16:12:19Z",
+            "departure": "2019-07-04T16:12:19Z"
+          },
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 101.964322,
+        "distance": 13251,
+        "duration": 16087,
+        "times": {
+          "driving": 2367,
+          "serving": 840,
+          "waiting": 9280,
+          "break": 3600
+        }
+      }
+    }
+  ],
+  "unassigned": []
+}
