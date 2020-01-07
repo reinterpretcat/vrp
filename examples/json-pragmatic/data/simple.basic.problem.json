@@ -1,5 +1,5 @@
 {
-  "id": "A basic show case of delivery jobs",
+  "id": "A basic show case of simple jobs",
   "plan": {
     "jobs": [
       {
@@ -30,7 +30,7 @@
       {
         "id": "job2",
         "places": {
-          "delivery": {
+          "pickup": {
             "location": {
               "lat": 52.5225,
               "lng": 13.4095
@@ -51,6 +51,13 @@
       {
         "id": "job3",
         "places": {
+          "pickup": {
+            "location": {
+              "lat": 52.5225,
+              "lng": 13.4095
+            },
+            "duration": 300
+          },
           "delivery": {
             "location": {
               "lat": 52.5165,

@@ -25,7 +25,7 @@ The main focus of the project is to support solving multiple variations of VRP w
  - **Multi-Depot VRP (MDVRP)**: assumes that multiple depots are geographically spread among
      the customers
 
- - **Open VRP**: usually, a route beginning at a given depot must finish at this depot, but in
+ - **Open VRP (OVRP)**: usually, a route beginning at a given depot must finish at this depot, but in
      this variation vehicle ends at the last served customer.
 
  - **Periodic VRP (PVRP)**: is used when planning is made over a certain period and deliveries
@@ -56,6 +56,9 @@ The main focus of the project is to support solving multiple variations of VRP w
 
  - **multiple vehicle profiles**: allows to use different routing matrix for different vehicles.
      This is useful when fleet consists of different vehicle types, such as truck and car.
+
+ - **multidimensional demand**: allows you to use multiple dimensions to set different types of capacity/demand
+     simultaneously.
 
 - **skills**: allows to specify various skills (which is simple some tag) on vehicle and customer.
      Customer with specific skills can be visited only if these skills are present on vehicle.

@@ -1,12 +1,12 @@
 {
-  "problemId": "A basic show case of delivery jobs",
+  "problemId": "A basic show case of simple jobs",
   "statistic": {
-    "cost": 40.063041999999996,
+    "cost": 41.504842000000004,
     "distance": 13251,
-    "duration": 3207,
+    "duration": 3507,
     "times": {
       "driving": 2367,
-      "serving": 840,
+      "serving": 1140,
       "waiting": 0,
       "break": 0
     }
@@ -26,7 +26,7 @@
             "departure": "2019-07-04T09:51:29Z"
           },
           "load": [
-            3
+            1
           ],
           "activities": [
             {
@@ -45,7 +45,7 @@
             "departure": "2019-07-04T10:12:17Z"
           },
           "load": [
-            2
+            0
           ],
           "activities": [
             {
@@ -61,15 +61,35 @@
           },
           "time": {
             "arrival": "2019-07-04T10:22:26Z",
-            "departure": "2019-07-04T10:26:26Z"
+            "departure": "2019-07-04T10:31:26Z"
           },
           "load": [
-            1
+            2
           ],
           "activities": [
             {
+              "jobId": "job3",
+              "type": "pickup",
+              "location": {
+                "lat": 52.5225,
+                "lng": 13.4095
+              },
+              "time": {
+                "start": "2019-07-04T10:22:26Z",
+                "end": "2019-07-04T10:27:26Z"
+              }
+            },
+            {
               "jobId": "job2",
-              "type": "delivery"
+              "type": "pickup",
+              "location": {
+                "lat": 52.5225,
+                "lng": 13.4095
+              },
+              "time": {
+                "start": "2019-07-04T10:27:26Z",
+                "end": "2019-07-04T10:31:26Z"
+              }
             }
           ]
         },
@@ -79,11 +99,11 @@
             "lng": 13.3808
           },
           "time": {
-            "arrival": "2019-07-04T10:32:37Z",
-            "departure": "2019-07-04T10:37:37Z"
+            "arrival": "2019-07-04T10:37:37Z",
+            "departure": "2019-07-04T10:42:37Z"
           },
           "load": [
-            0
+            1
           ],
           "activities": [
             {
@@ -98,8 +118,8 @@
             "lng": 13.3884
           },
           "time": {
-            "arrival": "2019-07-04T10:44:56Z",
-            "departure": "2019-07-04T10:44:56Z"
+            "arrival": "2019-07-04T10:49:56Z",
+            "departure": "2019-07-04T10:49:56Z"
           },
           "load": [
             0
@@ -113,12 +133,12 @@
         }
       ],
       "statistic": {
-        "cost": 40.063041999999996,
+        "cost": 41.504842000000004,
         "distance": 13251,
-        "duration": 3207,
+        "duration": 3507,
         "times": {
           "driving": 2367,
-          "serving": 840,
+          "serving": 1140,
           "waiting": 0,
           "break": 0
         }
