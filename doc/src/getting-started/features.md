@@ -54,16 +54,16 @@ The main focus of the project is to support solving multiple variations of VRP w
      is considered as assigned only when all of sub jobs are assigned. This is useful for scenarios such as multiple
      pickups, but single delivery, or other way round.
 
- - **[multiple vehicle profiles](../examples/pragmatic/profiles.md)**: allows to use different routing matrix for different
-     vehicles. This is useful when fleet consists of different vehicle types, such as truck and car.
+ - **[vehicle profiles](../examples/pragmatic/profiles.md)**: allows to use different routing matrix profiles for different
+     vehicle types, e.g. truck and car.
 
  - **multidimensional demand**: allows you to use multiple dimensions to set different types of capacity/demand
      simultaneously.
 
-- **skills**: allows to specify various skills (which is simple some tag) on vehicle and customer.
-     Customer with specific skills can be visited only if these skills are present on vehicle.
+- **[skills](../examples/pragmatic/skills.md)**: allows to specify various skills (which is simple some tag) on vehicle
+     and customer. Customer with specific skills can be visited only if these skills are present on vehicle.
 
- - **relations**: allows to specify relations which locks jobs to specific vehicles in
-     customizable way.
+ - **[relations](../examples/pragmatic/relations.md)**: allows to specify relations which locks jobs to specific vehicles
+     in customizable way.
 
  - **limits**: allows to specify limits on vehicle such as max traveling distance or time.
