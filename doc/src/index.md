@@ -1,5 +1,7 @@
 # Introduction
 
+This project is about solving Vehicle Routing Problem which is common task in transportation planning.
+
  ## Vehicle Routing Problem
  From wiki:
  > The vehicle routing problem (VRP) is a combinatorial optimization and integer programming problem

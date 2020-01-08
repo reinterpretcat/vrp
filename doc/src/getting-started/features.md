@@ -41,21 +41,21 @@ The main focus of the project is to support solving multiple variations of VRP w
 
  This list describes some of supported features in informal way:
 
- - **multiple breaks** with multiple time windows and optional location for vehicles.
+ - **[multiple breaks](../examples/pragmatic/break.md)** with multiple time windows and optional location for vehicles.
 
- - **multiple shifts** for vehicles: this allows to define multi-day planning scenario when
-     vehicle can be used multiple times, but on different days.
+ - **[multiple shifts](../examples/pragmatic/multi-day.md)** for vehicles: this allows to define multi-day planning
+     scenario when vehicle can be used multiple times, but on different days.
 
- - **multiple reloads**: this allows vehicle to return back to the depot (or any other place) in
-     order to unload/load goods during single tour. In some VRP variations this helps to significantly
-     reduce amount of used vehicles.
+ - **[multiple reloads](../examples/pragmatic/reload.md)**: this allows vehicle to return back to the depot (or any other place)
+     in order to unload/load goods during single tour. In some VRP variations this helps to significantly reduce amount
+     of used vehicles.
 
- - **multi jobs**: multi job is a job which consists of multiple sub-jobs. Multi job is considered
-     as assigned only when all of sub jobs are assigned. This is useful for scenarios such as
-     multiple pickups, but single delivery, or other way round.
+ - **[multi jobs](../examples/pragmatic/multi-jobs.md)**: multi job is a job which consists of multiple sub-jobs. Multi job
+     is considered as assigned only when all of sub jobs are assigned. This is useful for scenarios such as multiple
+     pickups, but single delivery, or other way round.
 
- - **multiple vehicle profiles**: allows to use different routing matrix for different vehicles.
-     This is useful when fleet consists of different vehicle types, such as truck and car.
+ - **[multiple vehicle profiles](../examples/pragmatic/profiles.md)**: allows to use different routing matrix for different
+     vehicles. This is useful when fleet consists of different vehicle types, such as truck and car.
 
  - **multidimensional demand**: allows you to use multiple dimensions to set different types of capacity/demand
      simultaneously.
