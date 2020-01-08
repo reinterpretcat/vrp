@@ -62,4 +62,5 @@ More details about `shift` property can be found in [vehicle type section](./veh
 ### Skills
 
 An optional `skills` property is a set of unique tags which should be matched on job and vehicle to be used. It is useful
-to model some specific job requirements to assigned vehicle (e.g. should have fridge or driver should be a handyman). 
+to model some specific job requirements to assigned vehicle (e.g. should have fridge or driver should be a handyman).
+See [skills example](../../../examples/pragmatic/skills.md).

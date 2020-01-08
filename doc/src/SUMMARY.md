@@ -32,6 +32,8 @@
     * [Multi day](examples/pragmatic/multi-day.md)
     * [Break](examples/pragmatic/break.md)
     * [Reload](examples/pragmatic/reload.md)
+    * [Relations](examples/pragmatic/relations.md)
+    * [Skills](examples/pragmatic/skills.md)
   * [Scientific format](examples/scientific/index.md)
     * [Solomon benchmarks](examples/scientific/solomon.md)
     * [Li&Lim benchmarks](examples/scientific/lilim.md)

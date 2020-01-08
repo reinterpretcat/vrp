@@ -1,7 +1,7 @@
 //! This module defines logic to serialize/deserialize problem and routing matrix in pragmatic
 //! format from json input and create and write pragmatic solution.
 //!
-//! Check child modules for problem and solution definitions.
+//! Check [documentation](concepts/pragmatic/index.md) problem and solution definitions.
 
 extern crate serde_json;
 use serde::{Deserialize, Serialize};
