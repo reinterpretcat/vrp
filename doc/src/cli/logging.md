@@ -1,5 +1,7 @@
 # Logging information
 
+CLI tool logs to std out some information about refinement progress:
+
     ....
     generation 19500 took 165ms (total 582s), cost: (25330.77,100000000.00): (-0.418%, 143.813%), routes: 47, accepted: false
     generation 19600 took 8ms (total 584s), cost: (25459.05,53000000.00): (0.086%, 29.250%), routes: 47, accepted: false
@@ -20,3 +22,4 @@
     Solving took 595482 ms, total generations: 20000, speed: 33.59 gen/sec
     Best solution within cost 41025419.87973632 discovered at 19691 generation
 
+This log contains information about the costs, amount of routes, time, etc.
