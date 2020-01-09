@@ -1,15 +1,15 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/refinement/ruin/worst_jobs_removal_test.rs"]
+#[path = "../../../../tests/unit/refinement/mutation/ruin/worst_jobs_removal_test.rs"]
 mod worst_jobs_removal_test;
 
 extern crate rand;
 extern crate rayon;
 
+use super::Ruin;
 use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, TransportCost};
 use crate::models::solution::TourActivity;
-use crate::refinement::ruin::Ruin;
 use crate::refinement::RefinementContext;
 use hashbrown::{HashMap, HashSet};
 use rand::prelude::*;

@@ -3,7 +3,7 @@ use crate::json::solution::{create_solution, Solution};
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
 use vrp_core::construction::states::InsertionContext;
-use vrp_core::refinement::recreate::{Recreate, RecreateWithCheapest};
+use vrp_core::refinement::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::DefaultRandom;
 use vrp_solver::SolverBuilder;

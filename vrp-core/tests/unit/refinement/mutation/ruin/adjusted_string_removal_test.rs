@@ -13,11 +13,11 @@ double distribution values:
     dbl 3. alpha param
 */
 
+use super::{AdjustedStringRemoval, Ruin};
 use crate::construction::states::InsertionContext;
 use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
 use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;
-use crate::refinement::ruin::{AdjustedStringRemoval, Ruin};
 use crate::refinement::RefinementContext;
 use std::sync::Arc;
 

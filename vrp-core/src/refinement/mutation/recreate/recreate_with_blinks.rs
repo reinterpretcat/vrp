@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/refinement/recreate/recreate_with_blinks_test.rs"]
+#[path = "../../../../tests/unit/refinement/mutation/recreate/recreate_with_blinks_test.rs"]
 mod recreate_with_blinks_test;
 
 extern crate rand;
@@ -10,7 +10,7 @@ use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::common::Distance;
 use crate::models::problem::Job;
 use crate::models::Problem;
-use crate::refinement::recreate::Recreate;
+use crate::refinement::mutation::recreate::Recreate;
 use crate::refinement::RefinementContext;
 use crate::utils::compare_floats;
 use rand::prelude::*;

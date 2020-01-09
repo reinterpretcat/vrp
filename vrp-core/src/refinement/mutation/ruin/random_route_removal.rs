@@ -1,10 +1,10 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/refinement/ruin/random_route_removal_test.rs"]
+#[path = "../../../../tests/unit/refinement/mutation/ruin/random_route_removal_test.rs"]
 mod random_route_removal_test;
 
+use super::Ruin;
 use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
-use crate::refinement::ruin::Ruin;
 use crate::refinement::RefinementContext;
 use std::sync::Arc;
 

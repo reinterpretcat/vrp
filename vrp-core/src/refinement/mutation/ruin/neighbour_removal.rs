@@ -1,5 +1,5 @@
+use super::{get_chunk_size, select_seed_jobs, Ruin};
 use crate::construction::states::InsertionContext;
-use crate::refinement::ruin::{get_chunk_size, select_seed_jobs, Ruin};
 use crate::refinement::RefinementContext;
 
 /// A ruin strategy which removes jobs in neighbourhood of randomly selected job (inclusive).

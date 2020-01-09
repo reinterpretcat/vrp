@@ -1,6 +1,6 @@
 use crate::construction::heuristics::*;
 use crate::construction::states::InsertionContext;
-use crate::refinement::recreate::Recreate;
+use crate::refinement::mutation::recreate::Recreate;
 use crate::refinement::RefinementContext;
 
 /// A recreate method which is equivalent to cheapest insertion heuristic.

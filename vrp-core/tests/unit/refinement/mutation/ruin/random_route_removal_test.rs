@@ -1,10 +1,9 @@
+use super::{RandomRouteRemoval, Ruin};
 use crate::construction::states::InsertionContext;
 use crate::helpers::models::domain::*;
 use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
-use crate::refinement::ruin::random_route_removal::RandomRouteRemoval;
-use crate::refinement::ruin::Ruin;
 use crate::refinement::RefinementContext;
 use std::sync::Arc;
 

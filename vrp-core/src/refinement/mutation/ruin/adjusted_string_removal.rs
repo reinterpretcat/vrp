@@ -1,14 +1,14 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/refinement/ruin/adjusted_string_removal_test.rs"]
+#[path = "../../../../tests/unit/refinement/mutation/ruin/adjusted_string_removal_test.rs"]
 mod adjusted_string_removal_test;
 
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
+use super::{select_seed_jobs, Ruin};
 use crate::construction::states::{InsertionContext, RouteContext};
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Tour;
-use crate::refinement::ruin::{select_seed_jobs, Ruin};
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
 

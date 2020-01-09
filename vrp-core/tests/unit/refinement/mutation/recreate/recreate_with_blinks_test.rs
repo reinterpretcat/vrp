@@ -1,9 +1,9 @@
+use super::DemandJobSelector;
 use crate::construction::heuristics::JobSelector;
 use crate::helpers::construction::constraints::create_simple_demand;
 use crate::helpers::construction::states::create_test_insertion_context;
 use crate::helpers::models::problem::test_single_job_with_simple_demand;
 use crate::helpers::models::solution::create_test_registry;
-use crate::refinement::recreate::recreate_with_blinks::DemandJobSelector;
 use std::sync::Arc;
 
 parameterized_test! {can_sort_jobs_by_demand, (demands, is_asc_order, expected), {

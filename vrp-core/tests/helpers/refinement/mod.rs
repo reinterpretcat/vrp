@@ -5,8 +5,8 @@ use crate::helpers::models::solution::{create_route_with_activities, test_tour_a
 use crate::models::problem::{Fleet, Job, Jobs, MatrixTransportCost, Vehicle};
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
+use crate::refinement::mutation::{Recreate, RecreateWithCheapest};
 use crate::refinement::objectives::PenalizeUnassigned;
-use crate::refinement::recreate::{Recreate, RecreateWithCheapest};
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
 use std::sync::Arc;

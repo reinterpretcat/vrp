@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use super::{Ruin, WorstJobRemoval};
 use crate::construction::states::InsertionContext;
 use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
 use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;
-use crate::refinement::ruin::{Ruin, WorstJobRemoval};
 use crate::refinement::RefinementContext;
 
 parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, expected_ids), {

@@ -16,10 +16,10 @@ mod recreate_with_gaps;
 pub use self::recreate_with_gaps::RecreateWithGaps;
 
 mod recreate_with_blinks;
-use crate::refinement::recreate::recreate_with_blinks::RecreateWithBlinks;
+pub use self::recreate_with_blinks::RecreateWithBlinks;
 
 mod recreate_with_regret;
-use crate::refinement::recreate::recreate_with_regret::RecreateWithRegret;
+pub use self::recreate_with_regret::RecreateWithRegret;
 
 /// Provides the way to run one of multiple recreate methods.
 pub struct CompositeRecreate {

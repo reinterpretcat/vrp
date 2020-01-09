@@ -1,5 +1,5 @@
+use super::{get_chunk_size, select_seed_job, Ruin};
 use crate::construction::states::InsertionContext;
-use crate::refinement::ruin::{get_chunk_size, select_seed_job, Ruin};
 use crate::refinement::RefinementContext;
 
 /// A ruin strategy which removes random jobs from solution.

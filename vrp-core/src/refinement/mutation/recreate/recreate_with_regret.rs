@@ -5,7 +5,7 @@ use self::rayon::prelude::*;
 use crate::construction::heuristics::*;
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
-use crate::refinement::recreate::Recreate;
+use crate::refinement::mutation::Recreate;
 use crate::refinement::RefinementContext;
 use std::cmp::Ordering::*;
 use std::ops::Deref;

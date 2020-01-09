@@ -3,7 +3,7 @@ extern crate rand;
 use crate::construction::heuristics::*;
 use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
-use crate::refinement::recreate::Recreate;
+use crate::refinement::mutation::recreate::Recreate;
 use crate::refinement::RefinementContext;
 use rand::prelude::*;
 use std::sync::Arc;
