@@ -1,9 +1,11 @@
 # Reload
 
-These examples demonstrates how to use vehicle reload feature.
+These examples demonstrates how to use vehicle reload feature which is designed to overcome vehicle capacity limitation.
 
 
 ## Same location reload
+
+In this scenario, once some jobs are delivered, the vehicle returns to the original depot to load next goods.
 
 <details>
     <summary>List of problem locations</summary><p>
@@ -44,6 +46,9 @@ These examples demonstrates how to use vehicle reload feature.
 
 
 ## Multiple reloads with different locations
+
+In this scenario, vehicle picks goods and flushes them on two different locations during single tour. This can be used
+to model _waste collection_ use case.
 
 <details>
     <summary>List of problem locations</summary><p>

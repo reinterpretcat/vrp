@@ -1,6 +1,7 @@
-# Multi jobs
+# Multi day/shift
 
-This example demonstrates how to simulate multi day planning scenario.
+This example demonstrates how to simulate multi day/shift planning scenario. The problem has jobs with time windows of
+different days and one vehicle type with two shifts on different days.
 
 
 <details>

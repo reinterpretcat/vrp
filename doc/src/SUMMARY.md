@@ -33,7 +33,7 @@
   * [Pragmatic format](examples/pragmatic/index.md)
     * [Simple jobs](examples/pragmatic/simple-jobs.md)
     * [Multi jobs](examples/pragmatic/multi-jobs.md)
-    * [Multi day](examples/pragmatic/multi-day.md)
+    * [Multi day/shift](examples/pragmatic/multi-day.md)
     * [Break](examples/pragmatic/break.md)
     * [Reload](examples/pragmatic/reload.md)
     * [Relations](examples/pragmatic/relations.md)

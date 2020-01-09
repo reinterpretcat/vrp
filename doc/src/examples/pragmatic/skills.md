@@ -1,6 +1,6 @@
 # Skills
 
-This example demonstrates how to use skills feature with jobs and vehicles
+This example demonstrates how to use skills feature with jobs and vehicles.
 
 <details>
     <summary>List of problem locations</summary><p>
