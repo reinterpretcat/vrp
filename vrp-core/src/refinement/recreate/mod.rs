@@ -1,27 +1,11 @@
 //! Contains logic to build a feasible solution from partially ruined one.
 
-use crate::construction::heuristics::ResultSelector;
-use crate::construction::states::{InsertionContext, InsertionResult};
+use crate::construction::states::InsertionContext;
 
 /// A trait which specifies logic to produce a new feasible solution from partial one.
 pub trait Recreate {
     /// Recreates a new solution from the given.
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
-}
-
-/// Selects best result.
-struct BestResultSelector {}
-
-impl Default for BestResultSelector {
-    fn default() -> Self {
-        Self {}
-    }
-}
-
-impl ResultSelector for BestResultSelector {
-    fn select(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
-        InsertionResult::choose_best_result(left, right)
-    }
 }
 
 mod recreate_with_cheapest;

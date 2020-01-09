@@ -5,6 +5,7 @@ use crate::construction::heuristics::evaluators::evaluate_job_insertion;
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::utils::compare_shared;
+use std::ops::Deref;
 use std::sync::Arc;
 
 /// On each insertion step, selects a list of jobs to be inserted.
@@ -14,9 +15,73 @@ pub trait JobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a>;
 }
 
+/// Returns a list of all jobs to be inserted.
+pub struct AllJobSelector {}
+
+impl Default for AllJobSelector {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+impl JobSelector for AllJobSelector {
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+        Box::new(ctx.solution.required.iter().cloned())
+    }
+}
+
+/// Reduces job collection into single insertion result.
+pub trait JobMapReducer {
+    fn reduce<'a>(
+        &'a self,
+        ctx: &'a InsertionContext,
+        jobs: Vec<Arc<Job>>,
+        map: Box<dyn Fn(&Arc<Job>) -> InsertionResult + Send + Sync + 'a>,
+    ) -> InsertionResult;
+}
+
+/// A job map reducer which compares pairs of insertion results and pick one from those.
+pub struct PairJobMapReducer {
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+}
+
+impl PairJobMapReducer {
+    pub fn new(result_selector: Box<dyn ResultSelector + Send + Sync>) -> Self {
+        Self { result_selector }
+    }
+}
+
+impl JobMapReducer for PairJobMapReducer {
+    fn reduce<'a>(
+        &'a self,
+        ctx: &'a InsertionContext,
+        jobs: Vec<Arc<Job>>,
+        map: Box<dyn Fn(&Arc<Job>) -> InsertionResult + Send + Sync + 'a>,
+    ) -> InsertionResult {
+        jobs.par_iter()
+            .map(|job| map.deref()(&job))
+            .reduce(InsertionResult::make_failure, |a, b| self.result_selector.select(&ctx, a, b))
+    }
+}
+
 /// Selects one insertion result from two to promote as best.
 pub trait ResultSelector {
     fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult;
+}
+
+/// Selects best result.
+pub struct BestResultSelector {}
+
+impl Default for BestResultSelector {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+impl ResultSelector for BestResultSelector {
+    fn select(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+        InsertionResult::choose_best_result(left, right)
+    }
 }
 
 /// Implements generalized insertion heuristic.
@@ -27,7 +92,7 @@ pub struct InsertionHeuristic {}
 impl InsertionHeuristic {
     pub fn process(
         job_selector: &Box<dyn JobSelector + Send + Sync>,
-        result_selector: &Box<dyn ResultSelector + Send + Sync>,
+        job_reducer: &Box<dyn JobMapReducer + Send + Sync>,
         ctx: InsertionContext,
     ) -> InsertionContext {
         let mut ctx = ctx;
@@ -36,11 +101,7 @@ impl InsertionHeuristic {
 
         while !ctx.solution.required.is_empty() {
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Arc<Job>>>();
-            let result = jobs
-                .par_iter()
-                .map(|job| evaluate_job_insertion(&job, &ctx))
-                .reduce(InsertionResult::make_failure, |a, b| result_selector.select(&ctx, a, b));
-
+            let result = job_reducer.reduce(&ctx, jobs, Box::new(|job| evaluate_job_insertion(&job, &ctx)));
             insert(result, &mut ctx);
         }
 

@@ -1,9 +1,9 @@
 extern crate rand;
 
-use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
+use crate::construction::heuristics::*;
 use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
-use crate::refinement::recreate::{BestResultSelector, Recreate};
+use crate::refinement::recreate::Recreate;
 use crate::refinement::RefinementContext;
 use rand::prelude::*;
 use std::sync::Arc;
@@ -29,14 +29,14 @@ impl JobSelector for GapsJobSelector {
 /// A recreate method which selects on each insertion step only subset of randomly chosen jobs.
 pub struct RecreateWithGaps {
     job_selector: Box<dyn JobSelector + Send + Sync>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    job_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
 
 impl RecreateWithGaps {
     pub fn new(min_jobs: usize) -> Self {
         Self {
             job_selector: Box::new(GapsJobSelector { min_jobs }),
-            result_selector: Box::new(BestResultSelector::default()),
+            job_reducer: Box::new(PairJobMapReducer::new(Box::new(BestResultSelector::default()))),
         }
     }
 }
@@ -49,6 +49,6 @@ impl Default for RecreateWithGaps {
 
 impl Recreate for RecreateWithGaps {
     fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::process(&self.job_selector, &self.result_selector, insertion_ctx)
+        InsertionHeuristic::process(&self.job_selector, &self.job_reducer, insertion_ctx)
     }
 }

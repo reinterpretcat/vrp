@@ -5,7 +5,7 @@ mod recreate_with_blinks_test;
 extern crate rand;
 
 use crate::construction::constraints::{Demand, DemandDimension};
-use crate::construction::heuristics::{InsertionHeuristic, JobSelector, ResultSelector};
+use crate::construction::heuristics::*;
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::common::Distance;
 use crate::models::problem::Job;
@@ -144,7 +144,7 @@ impl ResultSelector for BlinkResultSelector {
 /// Vehicle Routing Problems" (aka SISR) paper by Jan Christiaens, Greet Vanden Berghe.
 pub struct RecreateWithBlinks<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    job_reducer: Box<dyn JobMapReducer + Send + Sync>,
     weights: Vec<usize>,
     phantom: PhantomData<Capacity>,
 }
@@ -156,7 +156,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
-            result_selector: Box::new(BlinkResultSelector::default()),
+            job_reducer: Box::new(PairJobMapReducer::new(Box::new(BlinkResultSelector::default()))),
             weights,
             phantom: PhantomData,
         }
@@ -183,6 +183,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.random.weighted(self.weights.iter());
         let job_selector = self.job_selectors.get(index).unwrap();
-        InsertionHeuristic::process(&job_selector, &self.result_selector, insertion_ctx)
+        InsertionHeuristic::process(&job_selector, &self.job_reducer, insertion_ctx)
     }
 }
