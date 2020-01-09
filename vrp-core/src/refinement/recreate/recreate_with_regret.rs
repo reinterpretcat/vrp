@@ -33,13 +33,12 @@ impl Recreate for RecreateWithRegret {
 }
 
 struct RegretJobMapReducer {
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
     regret_range: (i32, i32),
 }
 
 impl Default for RegretJobMapReducer {
     fn default() -> Self {
-        Self { result_selector: Box::new(BestResultSelector::default()), regret_range: (2, 4) }
+        Self { regret_range: (2, 4) }
     }
 }
 
@@ -63,7 +62,7 @@ impl JobMapReducer for RegretJobMapReducer {
             ctx.random.uniform_int(self.regret_range.0, self.regret_range.1).min(results.len() as i32) as usize - 1;
 
         let insertion_ctx = results
-            .drain(regret_index..regret_index)
+            .drain(regret_index..regret_index + 1)
             .next()
             .unwrap_or_else(|| panic!("Unexpected insertion results length"));
 
