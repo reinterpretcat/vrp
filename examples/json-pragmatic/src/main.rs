@@ -8,7 +8,7 @@ use vrp_solver::SolverBuilder;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let base_path = args.get(1).unwrap_or_else(|| panic!("Path proper path to examples!"));
+    let base_path = args.get(1).unwrap_or_else(|| panic!("Please set a proper path to example data"));
     run_examples(base_path.as_str());
 }
 
