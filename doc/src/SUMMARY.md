@@ -8,6 +8,8 @@
   * [First Steps with CLI](getting-started/first-steps.md)
 
 * [Command Line Tool](cli/index.md)
+    * [Options](cli/options.md)
+    * [Logging](cli/logging.md)
 
 * [Concepts](concepts/index.md)
   * [Pragmatic format](concepts/pragmatic/index.md)
