@@ -6,17 +6,16 @@ use vrp_core::construction::states::InsertionContext;
 use vrp_core::models::common::ObjectiveCost;
 use vrp_core::models::{Problem, Solution};
 use vrp_core::refinement::acceptance::{Acceptance, RandomProbability};
-use vrp_core::refinement::mutation::{CompositeRecreate, CompositeRuin, Recreate, Ruin};
+use vrp_core::refinement::mutation::{Mutator, RuinAndRecreateMutator};
 use vrp_core::refinement::selection::{SelectRandom, Selection};
 use vrp_core::refinement::termination::*;
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::DefaultRandom;
 
-/// A basic implementation of ruin and recreate metaheuristic.
+/// A skeleton of metaheuristic with default ruin and recreate implementation.
 pub struct Solver {
-    pub recreate: Box<dyn Recreate>,
-    pub ruin: Box<dyn Ruin>,
     pub selection: Box<dyn Selection>,
+    pub mutator: Box<dyn Mutator>,
     pub acceptance: Box<dyn Acceptance>,
     pub termination: Box<dyn Termination>,
     pub settings: SolverSettings,
@@ -41,9 +40,8 @@ impl Default for SolverSettings {
 impl Default for Solver {
     fn default() -> Self {
         Solver::new(
-            Box::new(CompositeRecreate::default()),
-            Box::new(CompositeRuin::default()),
             Box::new(SelectRandom::default()),
+            Box::new(RuinAndRecreateMutator::default()),
             Box::new(RandomProbability::default()),
             Box::new(CompositeTermination::default()),
             SolverSettings::default(),
@@ -55,15 +53,14 @@ impl Default for Solver {
 impl Solver {
     /// Creates a new instance of [`Solver`].
     pub fn new(
-        recreate: Box<dyn Recreate>,
-        ruin: Box<dyn Ruin>,
         selection: Box<dyn Selection>,
+        mutator: Box<dyn Mutator>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
         settings: SolverSettings,
         logger: Box<dyn Fn(String) -> ()>,
     ) -> Self {
-        Self { recreate, ruin, selection, acceptance, termination, settings, logger }
+        Self { selection, mutator, acceptance, termination, settings, logger }
     }
 
     /// Solves given problem and returns solution, its cost and generation when it is found.
@@ -85,8 +82,7 @@ impl Solver {
         loop {
             let generation_time = Instant::now();
 
-            insertion_ctx = self.ruin.run(&refinement_ctx, insertion_ctx);
-            insertion_ctx = self.recreate.run(&refinement_ctx, insertion_ctx);
+            insertion_ctx = self.mutator.mutate(&refinement_ctx, insertion_ctx);
 
             let cost = problem.objective.estimate(&insertion_ctx);
             let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost.clone()));
