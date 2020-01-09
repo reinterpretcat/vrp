@@ -1,6 +1,7 @@
 //! Contains logic to build a feasible solution from partially ruined one.
 
 use crate::construction::states::InsertionContext;
+use crate::refinement::RefinementContext;
 
 /// A trait which specifies logic to produce a new feasible solution from partial one.
 pub trait Recreate {
@@ -9,16 +10,16 @@ pub trait Recreate {
 }
 
 mod recreate_with_cheapest;
-
 pub use self::recreate_with_cheapest::RecreateWithCheapest;
 
 mod recreate_with_gaps;
-
 pub use self::recreate_with_gaps::RecreateWithGaps;
-use crate::refinement::recreate::recreate_with_blinks::RecreateWithBlinks;
-use crate::refinement::RefinementContext;
 
 mod recreate_with_blinks;
+use crate::refinement::recreate::recreate_with_blinks::RecreateWithBlinks;
+
+mod recreate_with_regret;
+use crate::refinement::recreate::recreate_with_regret::RecreateWithRegret;
 
 /// Provides the way to run one of multiple recreate methods.
 pub struct CompositeRecreate {
