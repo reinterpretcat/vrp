@@ -61,11 +61,11 @@ impl JobMapReducer for RegretJobMapReducer {
         let regret_index =
             ctx.random.uniform_int(self.regret_range.0, self.regret_range.1).min(results.len() as i32) as usize - 1;
 
-        let insertion_ctx = results
+        let insertion_result = results
             .drain(regret_index..regret_index + 1)
             .next()
             .unwrap_or_else(|| panic!("Unexpected insertion results length"));
 
-        insertion_ctx
+        insertion_result
     }
 }
