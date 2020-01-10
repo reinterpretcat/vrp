@@ -1,9 +1,9 @@
 # Options
 
-`vrp-cli` tool provides various options.
+This section describes `vrp-cli` options.
 
 
-## Solve scientific problem
+## Scientific problem
 
 At the moment, `vrp-cli` supports solving of two scientific problem sets: **solomon** and **lilim**.
 
@@ -20,7 +20,7 @@ To run the problem from Li&Lim set, simply specify _lilim_ instead of _solomon_ 
     vrp-cli lilim LC1_10_2.txt -o LC1_10_2_solution.txt
 
 
-## Solve pragmatic problem
+## Pragmatic problem
 
 Pragmatic format requires at least one routing matrix passed as argument:
 
