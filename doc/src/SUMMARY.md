@@ -39,6 +39,7 @@
     * [Relations](examples/pragmatic/relations.md)
     * [Skills](examples/pragmatic/skills.md)
     * [Multiple profiles](examples/pragmatic/profiles.md)
+    * [Unassigned job](examples/pragmatic/unassigned.md)
   * [Scientific format](examples/scientific/index.md)
     * [Solomon benchmarks](examples/scientific/solomon.md)
     * [Li&Lim benchmarks](examples/scientific/lilim.md)
