@@ -12,7 +12,7 @@ pub trait Mutation {
     fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
-/// A mutatation which implements ruin and recreate metaheuristic.
+/// A mutation which implements ruin and recreate metaheuristic.
 pub struct RuinAndRecreateMutation {
     pub recreate: Box<dyn Recreate>,
     pub ruin: Box<dyn Ruin>,
