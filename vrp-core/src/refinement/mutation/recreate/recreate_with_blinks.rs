@@ -183,6 +183,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.random.weighted(self.weights.iter());
         let job_selector = self.job_selectors.get(index).unwrap();
-        InsertionHeuristic::process(&job_selector, &self.job_reducer, insertion_ctx)
+        InsertionHeuristic::default().process(&job_selector, &self.job_reducer, insertion_ctx)
     }
 }

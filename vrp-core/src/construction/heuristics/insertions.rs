@@ -87,10 +87,25 @@ impl ResultSelector for BestResultSelector {
 /// Implements generalized insertion heuristic.
 /// Using [`JobSelector`] and [`ResultSelector`], it tries to identify next job to be inserted until
 /// there are no jobs left or it is not possible to insert due to constraint limitations.
-pub struct InsertionHeuristic {}
+pub struct InsertionHeuristic {
+    insertion_position: InsertionPosition,
+}
+
+impl Default for InsertionHeuristic {
+    fn default() -> Self {
+        InsertionHeuristic::new(InsertionPosition::Any)
+    }
+}
+
+impl InsertionHeuristic {
+    pub fn new(insertion_position: InsertionPosition) -> Self {
+        Self { insertion_position }
+    }
+}
 
 impl InsertionHeuristic {
     pub fn process(
+        &self,
         job_selector: &Box<dyn JobSelector + Send + Sync>,
         job_reducer: &Box<dyn JobMapReducer + Send + Sync>,
         ctx: InsertionContext,
@@ -104,7 +119,7 @@ impl InsertionHeuristic {
             let result = job_reducer.reduce(
                 &ctx,
                 jobs,
-                Box::new(|job| evaluate_job_insertion(&job, &ctx, InsertionPosition::Any)),
+                Box::new(|job| evaluate_job_insertion(&job, &ctx, self.insertion_position)),
             );
             insert(result, &mut ctx);
         }

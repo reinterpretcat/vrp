@@ -28,7 +28,7 @@ impl Default for RecreateWithRegret {
 
 impl Recreate for RecreateWithRegret {
     fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::process(&self.job_selector, &self.job_reducer, insertion_ctx)
+        InsertionHeuristic::default().process(&self.job_selector, &self.job_reducer, insertion_ctx)
     }
 }
 
