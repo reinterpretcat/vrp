@@ -159,38 +159,52 @@ fn analyze_insertion_in_route(
     extra_costs: Cost,
     init: SingleContext,
 ) -> SingleContext {
-    unwrap_from_result(route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, (items, index)| {
-        let (prev, next) = match items {
-            [prev] => (prev, None),
-            [prev, next] => (prev, Some(next)),
-            _ => panic!("Unexpected route leg configuration."),
-        };
-        // analyze service details
-        single.places.iter().try_fold(out, |in1, detail| {
-            // analyze detail time windows
-            detail.times.iter().try_fold(in1, |in2, time| {
-                target.place = Place {
-                    location: detail.location.unwrap_or(prev.place.location),
-                    duration: detail.duration,
-                    time: time.clone(),
-                };
-
-                let activity_ctx = ActivityContext { index, prev, target: &target, next };
-
-                if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
-                    return SingleContext::fail(violation, in2);
-                }
-
-                let costs = extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
-
-                if costs < in2.cost.unwrap_or(std::f64::MAX) {
-                    SingleContext::success(activity_ctx.index, costs, target.place.clone())
-                } else {
-                    SingleContext::skip(in2)
-                }
-            })
-        })
+    unwrap_from_result(route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
+        analyze_insertion_in_route_leg(ctx, route_ctx, leg, single, target, extra_costs, out)
     }))
+}
+
+#[inline(always)]
+fn analyze_insertion_in_route_leg<'a>(
+    ctx: &InsertionContext,
+    route_ctx: &RouteContext,
+    leg: (&'a [TourActivity], usize),
+    single: &Single,
+    target: &mut Box<Activity>,
+    extra_costs: Cost,
+    out: SingleContext,
+) -> Result<SingleContext, SingleContext> {
+    let (items, index) = leg;
+    let (prev, next) = match items {
+        [prev] => (prev, None),
+        [prev, next] => (prev, Some(next)),
+        _ => panic!("Unexpected route leg configuration."),
+    };
+    // analyze service details
+    single.places.iter().try_fold(out, |in1, detail| {
+        // analyze detail time windows
+        detail.times.iter().try_fold(in1, |in2, time| {
+            target.place = Place {
+                location: detail.location.unwrap_or(prev.place.location),
+                duration: detail.duration,
+                time: time.clone(),
+            };
+
+            let activity_ctx = ActivityContext { index, prev, target: &target, next };
+
+            if let Some(violation) = ctx.problem.constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
+                return SingleContext::fail(violation, in2);
+            }
+
+            let costs = extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
+
+            if costs < in2.cost.unwrap_or(std::f64::MAX) {
+                SingleContext::success(activity_ctx.index, costs, target.place.clone())
+            } else {
+                SingleContext::skip(in2)
+            }
+        })
+    })
 }
 
 /// Stores information needed for single insertion.
