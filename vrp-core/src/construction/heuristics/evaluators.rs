@@ -16,7 +16,7 @@ use crate::models::Problem;
 pub enum InsertionPosition {
     /// Job can be inserted anywhere in the route.
     Any,
-    /// Job can be inserted only to the end.
+    /// Job can be inserted only to the end of the route.
     Last,
 }
 

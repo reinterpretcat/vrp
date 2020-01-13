@@ -21,6 +21,9 @@ pub use self::recreate_with_blinks::RecreateWithBlinks;
 mod recreate_with_regret;
 pub use self::recreate_with_regret::RecreateWithRegret;
 
+mod recreate_with_nearest_neighbor;
+pub use self::recreate_with_nearest_neighbor::*;
+
 /// Provides the way to run one of multiple recreate methods.
 pub struct CompositeRecreate {
     recreates: Vec<Box<dyn Recreate>>,
@@ -34,6 +37,7 @@ impl Default for CompositeRecreate {
             (Box::new(RecreateWithRegret::default()), 90),
             (Box::new(RecreateWithBlinks::<i32>::default()), 30),
             (Box::new(RecreateWithGaps::default()), 10),
+            (Box::new(RecreateWithNearestNeighbor::default()), 5),
         ])
     }
 }
