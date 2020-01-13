@@ -13,35 +13,49 @@ use crate::models::Problem;
 
 /// Evaluates possibility to preform insertion from given insertion context.
 pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext) -> InsertionResult {
-    ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next().map(RouteContext::new)).fold(
-        InsertionResult::make_failure(),
-        |acc, route_ctx| {
-            if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
-                return InsertionResult::choose_best_result(
-                    acc,
-                    InsertionResult::make_failure_with_code(violation.code),
-                );
-            }
+    ctx.solution
+        .routes
+        .iter()
+        .cloned()
+        .chain(ctx.solution.registry.next().map(RouteContext::new))
+        .fold(InsertionResult::make_failure(), |acc, route_ctx| {
+            evaluate_job_insertion_in_route(job, ctx, &route_ctx, Some(acc))
+        })
+}
 
-            let route_costs = ctx.problem.constraint.evaluate_soft_route(&route_ctx, &job);
-            let best_known_cost = match &acc {
-                InsertionResult::Success(success) => Some(success.cost),
-                _ => None,
-            };
+/// Evaluates possibility to preform insertion from given insertion context in given route.
+pub fn evaluate_job_insertion_in_route(
+    job: &Arc<Job>,
+    ctx: &InsertionContext,
+    route_ctx: &RouteContext,
+    alternative: Option<InsertionResult>,
+) -> InsertionResult {
+    let alternative = alternative.map_or_else(|| InsertionResult::make_failure(), |r| r);
 
-            if let Some(best_known_cost) = best_known_cost {
-                if best_known_cost < route_costs {
-                    return acc;
-                }
-            }
+    if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
+        return InsertionResult::choose_best_result(
+            alternative,
+            InsertionResult::make_failure_with_code(violation.code),
+        );
+    }
 
-            InsertionResult::choose_best_result(
-                acc,
-                match job.as_ref() {
-                    Job::Single(single) => evaluate_single(job, single, ctx, &route_ctx, route_costs, best_known_cost),
-                    Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, route_costs, best_known_cost),
-                },
-            )
+    let route_costs = ctx.problem.constraint.evaluate_soft_route(&route_ctx, &job);
+    let best_known_cost = match &alternative {
+        InsertionResult::Success(success) => Some(success.cost),
+        _ => None,
+    };
+
+    if let Some(best_known_cost) = best_known_cost {
+        if best_known_cost < route_costs {
+            return alternative;
+        }
+    }
+
+    InsertionResult::choose_best_result(
+        alternative,
+        match job.as_ref() {
+            Job::Single(single) => evaluate_single(job, single, ctx, &route_ctx, route_costs, best_known_cost),
+            Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, route_costs, best_known_cost),
         },
     )
 }
