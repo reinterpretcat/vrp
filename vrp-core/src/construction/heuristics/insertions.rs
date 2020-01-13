@@ -1,7 +1,7 @@
 extern crate rayon;
 
 use self::rayon::prelude::*;
-use crate::construction::heuristics::evaluators::evaluate_job_insertion;
+use crate::construction::heuristics::evaluators::{evaluate_job_insertion, InsertionPosition};
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::utils::compare_shared;
@@ -101,7 +101,11 @@ impl InsertionHeuristic {
 
         while !ctx.solution.required.is_empty() {
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Arc<Job>>>();
-            let result = job_reducer.reduce(&ctx, jobs, Box::new(|job| evaluate_job_insertion(&job, &ctx)));
+            let result = job_reducer.reduce(
+                &ctx,
+                jobs,
+                Box::new(|job| evaluate_job_insertion(&job, &ctx, InsertionPosition::Any)),
+            );
             insert(result, &mut ctx);
         }
 

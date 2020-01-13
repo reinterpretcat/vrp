@@ -26,6 +26,7 @@ fn create_tour_activity_at(loc_and_time: usize) -> TourActivity {
 
 mod single {
     use super::*;
+    use crate::construction::heuristics::evaluators::InsertionPosition;
 
     parameterized_test! {can_insert_job_with_location_into_empty_tour, job, {
         can_insert_job_with_location_into_empty_tour_impl(job);
@@ -39,7 +40,7 @@ mod single {
     fn can_insert_job_with_location_into_empty_tour_impl(job: Arc<Job>) {
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -86,7 +87,7 @@ mod single {
         let constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
 
-        let result = evaluate_job_insertion(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -138,7 +139,7 @@ mod single {
         let job = Arc::new(test_single_job_with_location(Some(job_location)));
         let ctx = create_test_insertion_context(registry);
 
-        let result = evaluate_job_insertion(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -154,7 +155,7 @@ mod single {
         let job = Arc::new(test_single_job_with_location(Some(1111)));
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
@@ -166,6 +167,7 @@ mod single {
 
 mod multi {
     use super::*;
+    use crate::construction::heuristics::evaluators::InsertionPosition;
 
     type InsertionData = (usize, Location);
 
@@ -185,7 +187,7 @@ mod multi {
             .build();
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, 28.0);
@@ -211,7 +213,7 @@ mod multi {
         let job = job.build();
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
@@ -252,7 +254,7 @@ mod multi {
         });
         let job = job.build();
 
-        let result = evaluate_job_insertion(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, cost);
@@ -272,7 +274,7 @@ mod multi {
             .job(SingleBuilder::new().id("s3").location(Some(15)).build())
             .build();
 
-        let result = evaluate_job_insertion(&job, &ctx);
+        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, 60.0);

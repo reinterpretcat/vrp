@@ -11,23 +11,35 @@ use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place, TourActivity};
 use crate::models::Problem;
 
-/// Evaluates possibility to preform insertion from given insertion context.
-pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext) -> InsertionResult {
+/// Specifies allowed insertion position in route for the job.
+#[derive(Copy, Clone)]
+pub enum InsertionPosition {
+    /// Job can be inserted anywhere in the route.
+    Any,
+    /// Job can be inserted only to the end.
+    Last,
+}
+
+/// Evaluates possibility to preform insertion from given insertion context in all available
+/// routes at given position constraint.
+pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext, position: InsertionPosition) -> InsertionResult {
     ctx.solution
         .routes
         .iter()
         .cloned()
         .chain(ctx.solution.registry.next().map(RouteContext::new))
         .fold(InsertionResult::make_failure(), |acc, route_ctx| {
-            evaluate_job_insertion_in_route(job, ctx, &route_ctx, Some(acc))
+            evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, Some(acc))
         })
 }
 
-/// Evaluates possibility to preform insertion from given insertion context in given route.
+/// Evaluates possibility to preform insertion from given insertion context in given route
+/// at given position constraint.
 pub fn evaluate_job_insertion_in_route(
     job: &Arc<Job>,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
+    position: InsertionPosition,
     alternative: Option<InsertionResult>,
 ) -> InsertionResult {
     let alternative = alternative.map_or_else(|| InsertionResult::make_failure(), |r| r);
@@ -54,8 +66,10 @@ pub fn evaluate_job_insertion_in_route(
     InsertionResult::choose_best_result(
         alternative,
         match job.as_ref() {
-            Job::Single(single) => evaluate_single(job, single, ctx, &route_ctx, route_costs, best_known_cost),
-            Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, route_costs, best_known_cost),
+            Job::Single(single) => {
+                evaluate_single(job, single, ctx, &route_ctx, position, route_costs, best_known_cost)
+            }
+            Job::Multi(multi) => evaluate_multi(job, multi, ctx, &route_ctx, position, route_costs, best_known_cost),
         },
     )
 }
@@ -65,6 +79,7 @@ fn evaluate_single(
     single: &Single,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
+    position: InsertionPosition,
     route_costs: Cost,
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
@@ -72,6 +87,7 @@ fn evaluate_single(
     let result = analyze_insertion_in_route(
         ctx,
         route_ctx,
+        position,
         single,
         &mut activity,
         route_costs,
@@ -92,6 +108,7 @@ fn evaluate_multi(
     multi: &Multi,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
+    position: InsertionPosition,
     route_costs: Cost,
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
@@ -116,6 +133,7 @@ fn evaluate_multi(
                     let srv_res = analyze_insertion_in_route(
                         ctx,
                         &shadow.ctx,
+                        position,
                         service,
                         &mut activity,
                         0.0,
@@ -154,14 +172,24 @@ fn evaluate_multi(
 fn analyze_insertion_in_route(
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
+    position: InsertionPosition,
     single: &Single,
     target: &mut Box<Activity>,
     extra_costs: Cost,
     init: SingleContext,
 ) -> SingleContext {
-    unwrap_from_result(route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
-        analyze_insertion_in_route_leg(ctx, route_ctx, leg, single, target, extra_costs, out)
-    }))
+    unwrap_from_result(match position {
+        InsertionPosition::Any => route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
+            analyze_insertion_in_route_leg(ctx, route_ctx, leg, single, target, extra_costs, out)
+        }),
+        InsertionPosition::Last => {
+            if let Some(last_leg) = route_ctx.route.tour.legs().last() {
+                analyze_insertion_in_route_leg(ctx, route_ctx, last_leg, single, target, extra_costs, init)
+            } else {
+                Ok(init)
+            }
+        }
+    })
 }
 
 #[inline(always)]
