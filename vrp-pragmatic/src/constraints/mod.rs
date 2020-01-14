@@ -42,9 +42,6 @@ pub use self::breaks::BreakModule;
 mod even_dist;
 pub use self::even_dist::EvenDistributionModule;
 
-mod extra_costs;
-pub use self::extra_costs::ExtraCostModule;
-
 mod reload_capacity;
 pub use self::reload_capacity::ReloadCapacityConstraintModule;
 

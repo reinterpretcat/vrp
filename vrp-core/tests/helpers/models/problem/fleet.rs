@@ -7,10 +7,14 @@ use std::sync::Arc;
 pub const DEFAULT_ACTOR_LOCATION: Location = 0;
 pub const DEFAULT_ACTOR_TIME_WINDOW: TimeWindow = TimeWindow { start: 0.0, end: 1000.0 };
 pub const DEFAULT_VEHICLE_COSTS: Costs =
-    Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
+    Costs { fixed: 0.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
 
 pub fn test_costs() -> Costs {
     DEFAULT_VEHICLE_COSTS
+}
+
+pub fn fixed_costs() -> Costs {
+    Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 }
 }
 
 pub fn empty_costs() -> Costs {

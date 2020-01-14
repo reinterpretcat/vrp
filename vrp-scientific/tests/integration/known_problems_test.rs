@@ -1,9 +1,10 @@
+use crate::common::NoFixedCostObjective;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::states::InsertionContext;
 use vrp_core::models::Problem;
 use vrp_core::refinement::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::refinement::objectives::{Objective, PenalizeUnassigned};
+use vrp_core::refinement::objectives::Objective;
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::DefaultRandom;
 
@@ -62,7 +63,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
         InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
     );
 
-    let result_cost = PenalizeUnassigned::new(1000.).estimate(&insertion_ctx);
+    let result_cost = NoFixedCostObjective::new(1000.).estimate(&insertion_ctx);
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
     assert_eq!(result_cost.actual.round(), cost.round());
     assert_eq!(result_cost.penalty, 0.0);

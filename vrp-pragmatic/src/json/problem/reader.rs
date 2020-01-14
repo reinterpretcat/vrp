@@ -72,7 +72,6 @@ pub struct ProblemProperties {
     has_breaks: bool,
     has_skills: bool,
     has_unreachable_locations: bool,
-    has_fixed_cost: bool,
     has_reload: bool,
     even_dist: Option<Cost>,
 }
@@ -144,10 +143,6 @@ fn create_constraint_pipeline(
 
     if props.has_unreachable_locations {
         constraint.add_module(Box::new(ReachableModule::new(transport.clone(), 11)));
-    }
-
-    if props.has_fixed_cost {
-        constraint.add_module(Box::new(ExtraCostModule::default()));
     }
 
     constraint
@@ -246,7 +241,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         JobVariant::Single(job) => job.skills.is_some(),
         JobVariant::Multi(job) => job.skills.is_some(),
     });
-    let has_fixed_cost = api_problem.fleet.types.iter().any(|t| t.costs.fixed.is_some());
     let has_reload = api_problem
         .fleet
         .types
@@ -265,7 +259,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         has_breaks,
         has_skills,
         has_unreachable_locations,
-        has_fixed_cost,
         has_reload,
         even_dist,
     }

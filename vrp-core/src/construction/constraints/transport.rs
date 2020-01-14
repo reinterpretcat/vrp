@@ -59,6 +59,7 @@ impl TransportConstraintModule {
         Self {
             state_keys: vec![LATEST_ARRIVAL_KEY, WAITING_KEY],
             constraints: vec![
+                ConstraintVariant::SoftRoute(Arc::new(RouteCostSoftRouteConstraint {})),
                 ConstraintVariant::HardActivity(Arc::new(TimeHardActivityConstraint {
                     code,
                     transport: transport.clone(),
@@ -246,6 +247,19 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             self.stop()
         } else {
             self.success()
+        }
+    }
+}
+
+/// Applies fixed cost for actor usage.
+struct RouteCostSoftRouteConstraint {}
+
+impl SoftRouteConstraint for RouteCostSoftRouteConstraint {
+    fn estimate_job(&self, ctx: &RouteContext, _job: &Arc<Job>) -> f64 {
+        if ctx.route.tour.job_count() == 0 {
+            ctx.route.actor.driver.costs.fixed + ctx.route.actor.vehicle.costs.fixed
+        } else {
+            0.
         }
     }
 }

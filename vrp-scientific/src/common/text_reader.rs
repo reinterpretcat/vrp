@@ -2,6 +2,7 @@
 #[path = "../../tests/unit/common/text_reader_test.rs"]
 mod text_reader_test;
 
+use crate::common::NoFixedCostObjective;
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
@@ -13,7 +14,6 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::{Activity, Registry, Route, Tour};
 use vrp_core::models::{Problem, Solution};
-use vrp_core::refinement::objectives::PenalizeUnassigned;
 
 pub struct StringReader<'a> {
     iter: Iter<'a, u8>,
@@ -53,7 +53,7 @@ pub trait TextReader {
             constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
             activity,
             transport,
-            objective: Arc::new(PenalizeUnassigned::default()),
+            objective: Arc::new(NoFixedCostObjective::default()),
             extras: Arc::new(Default::default()),
         })
     }
@@ -85,7 +85,7 @@ pub fn create_fleet_with_distance_costs(number: usize, capacity: usize, location
                 Vehicle {
                     profile: 0,
                     costs: Costs {
-                        fixed: 0.0,
+                        fixed: 100.0,
                         per_distance: 1.0,
                         per_driving_time: 0.0,
                         per_waiting_time: 0.0,

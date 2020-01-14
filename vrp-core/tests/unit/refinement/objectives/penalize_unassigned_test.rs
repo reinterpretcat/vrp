@@ -15,7 +15,10 @@ use std::sync::Arc;
 fn can_calculate_cost_with_penalty_properly() {
     let fleet = Arc::new(Fleet::new(
         vec![test_driver()],
-        vec![VehicleBuilder::new().id("v1").build(), VehicleBuilder::new().id("v2").build()],
+        vec![
+            VehicleBuilder::new().id("v1").costs(fixed_costs()).build(),
+            VehicleBuilder::new().id("v2").costs(fixed_costs()).build(),
+        ],
     ));
     let route1 = RouteContext {
         route: Arc::new(create_route_with_start_end_activities(
@@ -67,7 +70,7 @@ fn can_calculate_cost_with_penalty_properly() {
         random: Arc::new(DefaultRandom::default()),
     };
 
-    // vehicle or driver
+    // vehicle + driver
 
     // route 1:
     // locations: 0 10 15 0
@@ -81,10 +84,10 @@ fn can_calculate_cost_with_penalty_properly() {
     // driving: 10
     // fixed: 100
 
-    // total: 170 + 121 = 291
+    // total: (70 * 2 + 100) + (21 * 2 + 100) = 382
 
     let result = PenalizeUnassigned::new(1000.0).estimate(&insertion_ctx);
 
-    assert_eq!(result.actual, 582.0);
+    assert_eq!(result.actual, 382.0);
     assert_eq!(result.penalty, 1000.0);
 }
