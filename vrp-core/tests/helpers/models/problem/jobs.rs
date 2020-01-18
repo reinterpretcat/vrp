@@ -82,16 +82,16 @@ impl SingleBuilder {
         self
     }
 
-    pub fn time(&mut self, tw: TimeWindow) -> &mut Self {
-        let mut original_tw = self.single.places.first_mut().unwrap().times.first_mut().unwrap();
-        original_tw.start = tw.start;
-        original_tw.end = tw.end;
+    pub fn places(&mut self, places: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>) -> &mut Self {
+        self.single.places = places
+            .into_iter()
+            .map(|p| Place {
+                location: p.0,
+                duration: p.1,
+                times: p.2.into_iter().map(|(start, end)| TimeWindow::new(start, end)).collect(),
+            })
+            .collect();
 
-        self
-    }
-
-    pub fn times(&mut self, tws: Vec<TimeWindow>) -> &mut Self {
-        self.single.places.first_mut().unwrap().times = tws;
         self
     }
 

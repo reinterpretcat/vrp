@@ -37,9 +37,9 @@
 //! 10
 //!
 
-//#[cfg(test)]
-//#[path = "../../tests/unit/ann/adjacency_matrix_test.rs"]
-//mod adjacency_matrix_test;
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/states/adjacency_matrix_test.rs"]
+mod adjacency_matrix_test;
 
 use crate::construction::states::{RouteContext, SolutionContext};
 use crate::models::common::{Location, Schedule, TimeWindow};
@@ -52,22 +52,51 @@ use std::sync::Arc;
 
 use crate::models::problem::Place as JobPlace;
 use crate::models::solution::Place as ActivityPlace;
-use std::slice::Iter;
 
+/// An adjacency matrix specifies behaviour of a data structure which is used to store VRP solution.
 pub trait AdjacencyMatrix {
-    ///
+    /// Creates a new AdjacencyMatrix with given amount of dimenstions
     fn new(dimension: usize) -> Self;
 
-    /// Iterates over matrix values.
-    fn iter(&self) -> Iter<f64>;
+    /// Iterates over unique matrix values.
+    fn values<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
 
     /// Sets given value to cell.
     fn set_cell(&mut self, row: usize, col: usize, value: f64);
 
-    /// Scans given row in order to find first occurance of element for which predicate returns true.
+    /// Scans given row in order to find first occurrence of element for which predicate returns true.
     fn scan_row<F>(&self, row: usize, predicate: F) -> Option<usize>
     where
         F: Fn(f64) -> bool;
+}
+
+/// A simple `AdjacencyMatrix` implementation with built-in vectors.
+pub struct VecMatrix {
+    data: Vec<Vec<f64>>,
+    values: HashSet<i64>,
+}
+
+impl AdjacencyMatrix for VecMatrix {
+    fn new(dimension: usize) -> Self {
+        let data = vec![vec![0.; dimension]; dimension];
+        Self { data, values: Default::default() }
+    }
+
+    fn values<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
+        Box::new(self.values.iter().map(|&v| unsafe { std::mem::transmute(v) }))
+    }
+
+    fn set_cell(&mut self, row: usize, col: usize, value: f64) {
+        self.data[row][col] = value;
+        self.values.insert(unsafe { std::mem::transmute(value) });
+    }
+
+    fn scan_row<F>(&self, row: usize, predicate: F) -> Option<usize>
+    where
+        F: Fn(f64) -> bool,
+    {
+        self.data[row].iter().position(|&v| predicate(v))
+    }
 }
 
 /// Provides way to encode/decode solution to adjacency matrix representation.
@@ -163,13 +192,11 @@ impl AdjacencyMatrixDecipher {
 
     pub fn decode<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
         let registry = Registry::new(&self.problem.fleet);
-        let actor_indices = matrix.iter().map(|&i| i as usize).filter(|&i| i != 0).collect::<HashSet<_>>();
-
         // TODO consider locked and ignored!
 
         // TODO make it in parallel
-        let routes = actor_indices.iter().fold(vec![], |mut acc, actor_idx| {
-            let actor = self.actor_reverse_index.get(actor_idx).unwrap().clone();
+        let routes = matrix.values().map(|i| i as usize).fold(vec![], |mut acc, actor_idx| {
+            let actor = self.actor_reverse_index.get(&actor_idx).unwrap().clone();
             let rc = RouteContext::new(actor.clone());
 
             // TODO
