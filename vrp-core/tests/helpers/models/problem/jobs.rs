@@ -93,11 +93,6 @@ impl SingleBuilder {
         self
     }
 
-    pub fn demand_capacity(&mut self, demand: usize) -> &mut Self {
-        self.single.dimens.insert("dmd".to_string(), Box::new(demand));
-        self
-    }
-
     pub fn location(&mut self, loc: Option<Location>) -> &mut Self {
         self.single.places.first_mut().unwrap().location = loc;
         self
@@ -152,10 +147,7 @@ impl MultiBuilder {
     }
 
     pub fn new_with_permutations(permutations: Vec<Vec<usize>>) -> Self {
-        let mut multi = Multi::new_with_generator(vec![], Default::default(), Box::new(move |_| permutations.clone()));
-        multi.dimens.set_id("multi");
-
-        Self { multi }
+        Self { multi: Multi::new_with_generator(vec![], Default::default(), Box::new(move |_| permutations.clone())) }
     }
 
     pub fn id(&mut self, id: &str) -> &mut Self {
