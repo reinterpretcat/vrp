@@ -34,7 +34,7 @@ impl BreakModule {
 }
 
 impl ConstraintModule for BreakModule {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Job) {
         self.accept_route_state(route_ctx);
         self.accept_solution_state(solution_ctx);
     }
@@ -74,17 +74,19 @@ struct BreakHardRouteConstraint {
 }
 
 impl HardRouteConstraint for BreakHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
-        if is_break_job(job) {
-            let job = job.to_single();
-            let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
-            let shift_index = get_shift_index(&job.dimens);
+    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+        if let Some(single) = job.as_single() {
+            if is_break_job(single) {
+                let job = job.to_single();
+                let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
+                let shift_index = get_shift_index(&job.dimens);
 
-            return if !is_correct_vehicle(ctx, vehicle_id, shift_index) {
-                Some(RouteConstraintViolation { code: self.code })
-            } else {
-                None
-            };
+                return if !is_correct_vehicle(ctx, vehicle_id, shift_index) {
+                    Some(RouteConstraintViolation { code: self.code })
+                } else {
+                    None
+                };
+            }
         }
 
         None
@@ -121,20 +123,22 @@ struct BreakSoftRouteConstraint {
 }
 
 impl SoftRouteConstraint for BreakSoftRouteConstraint {
-    fn estimate_job(&self, _ctx: &RouteContext, job: &Arc<Job>) -> f64 {
+    fn estimate_job(&self, _ctx: &RouteContext, job: &Job) -> f64 {
         if let Some(cost) = self.extra_break_cost {
-            (if is_break_job(job) { cost } else { 0. })
-        } else {
-            0.
+            if let Some(single) = job.as_single() {
+                return if is_break_job(single) { cost } else { 0. };
+            }
         }
+
+        0.
     }
 }
 
 /// Mark job as ignored only if it has break type and vehicle id is not present in routes
-fn is_required_job(ctx: &SolutionContext, job: &Arc<Job>) -> bool {
-    match job.as_ref() {
+fn is_required_job(ctx: &SolutionContext, job: &Job) -> bool {
+    match job {
         Job::Single(job) => {
-            if is_break_single(job) {
+            if is_break_job(job) {
                 let vehicle_id = get_vehicle_id_from_job(job).unwrap();
                 let shift_index = get_shift_index(&job.dimens);
                 ctx.routes.iter().any(move |rc| is_correct_vehicle(rc, &vehicle_id, shift_index) && is_time(rc, job))
@@ -178,7 +182,7 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
                     assert_eq!(break_job.places.len(), 1);
 
                     if prev != current && break_job.places.first().and_then(|p| p.location).is_none() {
-                        breaks.insert(activity.job.as_ref().unwrap().clone());
+                        breaks.insert(Job::Single(activity.job.as_ref().unwrap().clone()));
                     }
                 }
 
@@ -199,19 +203,12 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
 
 //region Helpers
 
-fn is_break_job(job: &Arc<Job>) -> bool {
-    match job.as_ref() {
-        Job::Single(job) => job.dimens.get_value::<String>("type").map_or(false, |t| t == "break"),
-        _ => false,
-    }
-}
-
-fn is_break_single(job: &Arc<Single>) -> bool {
+fn is_break_job(job: &Arc<Single>) -> bool {
     job.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
 }
 
-fn as_break_job(activity: &Activity) -> Option<Arc<Single>> {
-    as_single_job(activity, |job| is_break_single(job))
+fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
+    as_single_job(activity, |job| is_break_job(job))
 }
 
 fn is_time(rc: &RouteContext, break_job: &Single) -> bool {

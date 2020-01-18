@@ -39,14 +39,14 @@ impl Ruin for WorstJobRemoval {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.random.clone();
 
-        let can_remove_job = |job: &Arc<Job>| -> bool {
+        let can_remove_job = |job: &Job| -> bool {
             let solution = &insertion_ctx.solution;
             !solution.locked.contains(job) && !solution.unassigned.contains_key(job)
         };
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let mut routes_savings = get_routes_cost_savings(&insertion_ctx);
-        let removed_jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::default());
+        let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
 
         routes_savings.shuffle(&mut rand::thread_rng());
 
@@ -92,7 +92,7 @@ impl WorstJobRemoval {
     }
 }
 
-fn get_route_jobs(solution: &SolutionContext) -> HashMap<Arc<Job>, RouteContext> {
+fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, RouteContext> {
     solution.routes.iter().fold(HashMap::default(), |acc, rc| {
         rc.route.tour.jobs().fold(acc, |mut acc, job| {
             acc.insert(job, rc.clone());
@@ -101,20 +101,20 @@ fn get_route_jobs(solution: &SolutionContext) -> HashMap<Arc<Job>, RouteContext>
     })
 }
 
-fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Arc<Job>, Cost)>)> {
+fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Job, Cost)>)> {
     insertion_ctx
         .solution
         .routes
         .par_iter()
         .map(|rc| {
             let actor = rc.route.actor.as_ref();
-            let mut savings: Vec<(Arc<Job>, Cost)> = rc
+            let mut savings: Vec<(Job, Cost)> = rc
                 .route
                 .tour
                 .all_activities()
                 .as_slice()
                 .windows(3)
-                .fold(HashMap::<Arc<Job>, Cost>::default(), |mut acc, iter| match iter {
+                .fold(HashMap::<Job, Cost>::default(), |mut acc, iter| match iter {
                     [start, eval, end] => {
                         let savings = get_cost_savings(actor, start, eval, end, &insertion_ctx.problem.transport);
                         let job = eval.retrieve_job().unwrap_or_else(|| panic!("Unexpected activity without job"));

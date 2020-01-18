@@ -33,11 +33,11 @@ mod single {
     }}
 
     can_insert_job_with_location_into_empty_tour! {
-        case1: Arc::new(test_single_job()),
-        case2: Arc::new(test_single_job_with_location(None)),
+        case1: Job::Single(Arc::new(test_single())),
+        case2: Job::Single(test_single_with_location(None)),
     }
 
-    fn can_insert_job_with_location_into_empty_tour_impl(job: Arc<Job>) {
+    fn can_insert_job_with_location_into_empty_tour_impl(job: Job) {
         let ctx = create_test_insertion_context(create_test_registry());
 
         let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
@@ -52,7 +52,7 @@ mod single {
     }
 
     parameterized_test! {can_insert_job_with_location_into_tour_with_two_activities_and_variations, (places, location, index), {
-        let job = Arc::new(Job::Single(Arc::new(Single { places, dimens: Default::default() })));
+        let job = Job::Single(Arc::new(Single { places, dimens: Default::default() }));
         can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(job, location, index);
     }}
 
@@ -76,7 +76,7 @@ mod single {
     }
 
     fn can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(
-        job: Arc<Job>,
+        job: Job,
         location: Location,
         index: usize,
     ) {
@@ -136,7 +136,7 @@ mod single {
                     .build(),
             ],
         ));
-        let job = Arc::new(test_single_job_with_location(Some(job_location)));
+        let job = Job::Single(test_single_with_location(Some(job_location)));
         let ctx = create_test_insertion_context(registry);
 
         let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
@@ -152,7 +152,7 @@ mod single {
 
     #[test]
     fn can_detect_and_return_insertion_violation() {
-        let job = Arc::new(test_single_job_with_location(Some(1111)));
+        let job = Job::Single(test_single_with_location(Some(1111)));
         let ctx = create_test_insertion_context(create_test_registry());
 
         let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);

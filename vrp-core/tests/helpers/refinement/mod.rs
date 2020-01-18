@@ -31,19 +31,17 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
     let registry = Registry::new(&fleet);
 
     let mut routes: Vec<Route> = Default::default();
-    let mut jobs: Vec<Arc<Job>> = Default::default();
+    let mut jobs: Vec<Job> = Default::default();
 
     (0..cols).for_each(|i| {
         routes.push(create_route_with_activities(&fleet, i.to_string().as_str(), Default::default()));
         (0..rows).for_each(|j| {
             let index = i * rows + j;
 
-            let single = Arc::new(test_single_job_with_id_and_location(
-                ["c".to_string(), index.to_string()].concat().as_str(),
-                Some(index),
-            ));
+            let single =
+                test_single_with_id_and_location(["c".to_string(), index.to_string()].concat().as_str(), Some(index));
             let route = routes.get_mut(i).unwrap();
-            jobs.push(single.clone());
+            jobs.push(Job::Single(single.clone()));
 
             let mut activity = test_tour_activity_with_job(single);
             activity.place.location = index;

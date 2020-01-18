@@ -1,7 +1,6 @@
-use crate::helpers::models::problem::test_single_job;
-use crate::helpers::models::solution::{
-    test_tour_activity_with_default_job, test_tour_activity_with_job, test_tour_activity_without_job,
-};
+use crate::helpers::models::problem::test_single;
+use crate::helpers::models::solution::*;
+use crate::models::problem::Job;
 use crate::models::solution::{Activity, Tour, TourActivity};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -106,10 +105,11 @@ fn can_remove_job() {
 #[test]
 fn can_get_activities_for_job() {
     let mut tour = get_test_tour();
-    let job = Arc::new(test_single_job());
+    let job = Arc::new(test_single());
     let activity = test_tour_activity_with_job(job.clone());
     let pointer = get_pointer(&activity);
     tour.insert_at(activity, 2);
+    let job = Job::Single(job);
 
     let result: Vec<&TourActivity> = tour.job_activities(&job).collect();
 
@@ -150,14 +150,14 @@ fn can_get_job_index() {
     let mut tour = Tour::default();
     tour.set_start(test_tour_activity_without_job());
     tour.set_end(test_tour_activity_without_job());
-    let job = Arc::new(test_single_job());
+    let job = Arc::new(test_single());
     tour.insert_last(test_tour_activity_with_default_job());
     tour.insert_last(test_tour_activity_with_job(job.clone()));
     tour.insert_last(test_tour_activity_with_default_job());
     tour.insert_last(test_tour_activity_with_job(job.clone()));
     tour.insert_last(test_tour_activity_with_default_job());
 
-    let index = tour.index(&job);
+    let index = tour.index(&Job::Single(job));
 
     assert_eq!(index.unwrap(), 2);
     assert_eq!(tour.job_count(), 4);

@@ -22,7 +22,7 @@ pub enum InsertionPosition {
 
 /// Evaluates possibility to preform insertion from given insertion context in all available
 /// routes at given position constraint.
-pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext, position: InsertionPosition) -> InsertionResult {
+pub fn evaluate_job_insertion(job: &Job, ctx: &InsertionContext, position: InsertionPosition) -> InsertionResult {
     ctx.solution
         .routes
         .iter()
@@ -36,7 +36,7 @@ pub fn evaluate_job_insertion(job: &Arc<Job>, ctx: &InsertionContext, position: 
 /// Evaluates possibility to preform insertion from given insertion context in given route
 /// at given position constraint.
 pub fn evaluate_job_insertion_in_route(
-    job: &Arc<Job>,
+    job: &Job,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
@@ -65,7 +65,7 @@ pub fn evaluate_job_insertion_in_route(
 
     InsertionResult::choose_best_result(
         alternative,
-        match job.as_ref() {
+        match job {
             Job::Single(single) => {
                 evaluate_single(job, single, ctx, &route_ctx, position, route_costs, best_known_cost)
             }
@@ -75,15 +75,15 @@ pub fn evaluate_job_insertion_in_route(
 }
 
 fn evaluate_single(
-    job: &Arc<Job>,
-    single: &Single,
+    job: &Job,
+    single: &Arc<Single>,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
     route_costs: Cost,
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
-    let mut activity = Box::new(Activity::new_with_job(job.clone()));
+    let mut activity = Box::new(Activity::new_with_job(single.clone()));
     let result = analyze_insertion_in_route(
         ctx,
         route_ctx,
@@ -104,8 +104,8 @@ fn evaluate_single(
 }
 
 fn evaluate_multi(
-    job: &Arc<Job>,
-    multi: &Multi,
+    job: &Job,
+    multi: &Arc<Multi>,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
@@ -128,7 +128,7 @@ fn evaluate_multi(
                     if in1.violation.is_some() {
                         return Result::Err(in1);
                     }
-                    let mut activity = Box::new(Activity::new_with_job(Arc::new(Job::Single(service.clone()))));
+                    let mut activity = Box::new(Activity::new_with_job(service.clone()));
                     // 3. analyze legs
                     let srv_res = analyze_insertion_in_route(
                         ctx,
@@ -417,7 +417,7 @@ impl ShadowContext {
         Box::new(self.ctx.route.tour.get(index + 1).unwrap().deep_copy())
     }
 
-    fn restore(&mut self, job: &Arc<Job>) {
+    fn restore(&mut self, job: &Job) {
         if self.is_dirty {
             let (route, state) = self.ctx.as_mut();
 

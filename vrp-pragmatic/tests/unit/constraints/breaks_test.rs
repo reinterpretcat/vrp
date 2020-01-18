@@ -4,23 +4,23 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::states::{RouteContext, RouteState, SolutionContext};
 use vrp_core::models::common::{IdDimension, Location};
-use vrp_core::models::problem::{Fleet, Job};
+use vrp_core::models::problem::{Fleet, Single};
 use vrp_core::models::solution::Registry;
 
-fn create_job(id: &str) -> Arc<Job> {
+fn create_single(id: &str) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
     single.dimens.set_id(id);
 
-    Arc::new(Job::Single(Arc::new(single)))
+    Arc::new(single)
 }
 
-fn create_break(vehicled_id: &str, location: Option<Location>) -> Arc<Job> {
+fn create_break(vehicled_id: &str, location: Option<Location>) -> Arc<Single> {
     let mut single = create_single_with_location(location);
     single.dimens.set_id("break");
     single.dimens.insert("type".to_string(), Box::new("break".to_string()));
     single.dimens.insert("vehicle_id".to_string(), Box::new(vehicled_id.to_string()));
 
-    Arc::new(Job::Single(Arc::new(single)))
+    Arc::new(single)
 }
 
 parameterized_test! {can_remove_orphan_break, (break_job_loc, break_activity_loc, break_removed), {
@@ -45,9 +45,9 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
                 &fleet,
                 "v1",
                 vec![
-                    create_activity_with_job_at_location(create_job("job1"), 1),
+                    create_activity_with_job_at_location(create_single("job1"), 1),
                     create_activity_with_job_at_location(create_break("v1", break_job_loc), break_activity_loc),
-                    create_activity_with_job_at_location(create_job("job2"), 3),
+                    create_activity_with_job_at_location(create_single("job2"), 3),
                 ],
             )),
             state: Arc::new(RouteState::default()),

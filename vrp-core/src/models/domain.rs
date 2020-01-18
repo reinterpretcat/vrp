@@ -45,7 +45,7 @@ pub struct Solution {
     pub routes: Vec<Route>,
 
     /// Map of unassigned jobs within reason code.
-    pub unassigned: HashMap<Arc<Job>, i32>,
+    pub unassigned: HashMap<Job, i32>,
 
     /// Specifies index for storing extra data of arbitrary type.
     pub extras: Arc<Extras>,
@@ -81,7 +81,7 @@ pub struct LockDetail {
     /// Lock position.
     pub position: LockPosition,
     /// Jobs affected by the lock.
-    pub jobs: Vec<Arc<Job>>,
+    pub jobs: Vec<Job>,
 }
 
 /// Contains information about jobs locked to specific actors.
@@ -94,7 +94,7 @@ pub struct Lock {
 
 impl LockDetail {
     /// Creates a new instance of [`LockDetail`].
-    pub fn new(order: LockOrder, position: LockPosition, jobs: Vec<Arc<Job>>) -> Self {
+    pub fn new(order: LockOrder, position: LockPosition, jobs: Vec<Job>) -> Self {
         Self { order, position, jobs }
     }
 }

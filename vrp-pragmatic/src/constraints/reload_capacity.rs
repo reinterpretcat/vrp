@@ -133,7 +133,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     ConstraintModule for ReloadCapacityConstraintModule<Capacity>
 {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>) {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Job) {
         if is_reload_job(job) {
             route_ctx.state_mut().put_route_state(HAS_RELOAD_KEY, true);
             // move all unassigned reloads back to ignored
@@ -187,7 +187,7 @@ struct ReloadSoftRouteConstraint {
 }
 
 impl SoftRouteConstraint for ReloadSoftRouteConstraint {
-    fn estimate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> f64 {
+    fn estimate_job(&self, ctx: &RouteContext, job: &Job) -> f64 {
         if is_reload_job(job) {
             -ctx.route.actor.vehicle.costs.fixed - self.cost
         } else {
@@ -203,7 +203,7 @@ struct ReloadHardRouteConstraint {
 }
 
 impl HardRouteConstraint for ReloadHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
+    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if is_reload_job(job) {
             let job = job.to_single();
             let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
@@ -256,7 +256,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         let has_reload = has_reload_index(route_ctx);
 
         if has_reload {
-            let multi = activity_ctx.target.retrieve_job().and_then(|job| match job.as_ref() {
+            let multi = activity_ctx.target.retrieve_job().and_then(|job| match &job {
                 Job::Multi(multi) => Some((job.clone(), multi.jobs.len())),
                 _ => None,
             });
@@ -312,11 +312,11 @@ fn is_reload_single(job: &Arc<Single>) -> bool {
     job.dimens.get_value::<String>("type").map_or(false, |t| t == "reload")
 }
 
-fn is_reload_job(job: &Arc<Job>) -> bool {
+fn is_reload_job(job: &Job) -> bool {
     job.as_single().map_or(false, |single| is_reload_single(single))
 }
 
-fn as_reload_job(activity: &Activity) -> Option<Arc<Single>> {
+fn as_reload_job(activity: &Activity) -> Option<&Arc<Single>> {
     as_single_job(activity, |job| is_reload_single(job))
 }
 
@@ -324,13 +324,13 @@ fn has_reload_index(ctx: &RouteContext) -> bool {
     *ctx.state.get_route_state::<bool>(HAS_RELOAD_KEY).unwrap_or(&false)
 }
 
-fn get_reload_jobs(route_ctx: &RouteContext, collection: &Vec<Arc<Job>>) -> HashSet<Arc<Job>> {
+fn get_reload_jobs(route_ctx: &RouteContext, collection: &Vec<Job>) -> HashSet<Job> {
     let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
     let vehicle_id = route_ctx.route.actor.vehicle.dimens.get_id().unwrap();
 
     collection
         .iter()
-        .filter(move |job| match job.as_ref() {
+        .filter(move |job| match job {
             Job::Single(job) => {
                 is_reload_single(&job)
                     && get_shift_index(&job.dimens) == shift_index

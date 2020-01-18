@@ -1,5 +1,5 @@
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
-use crate::models::problem::{Actor, Job, Multi};
+use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
 use crate::utils::compare_shared;
 use std::borrow::Borrow;
@@ -29,7 +29,7 @@ pub struct Activity {
 
     /// Specifies job relation. Empty if it has no relation to single job (e.g. tour start or end).
     /// If single job is part of multi job, then original job can be received via its dimens.
-    pub job: Option<Arc<Job>>,
+    pub job: Option<Arc<Single>>,
 }
 
 /// Represents a tour performing jobs.
@@ -63,7 +63,7 @@ impl Hash for Route {
 }
 
 impl Activity {
-    pub fn new_with_job(job: Arc<Job>) -> Self {
+    pub fn new_with_job(job: Arc<Single>) -> Self {
         Activity {
             place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: std::f64::MAX } },
             schedule: Schedule { arrival: 0.0, departure: 0.0 },
@@ -83,23 +83,20 @@ impl Activity {
         }
     }
 
-    pub fn has_same_job(&self, job: &Arc<Job>) -> bool {
+    pub fn has_same_job(&self, job: &Job) -> bool {
         match self.retrieve_job() {
-            Some(j) => match (j.as_ref(), job.as_ref()) {
-                (Job::Multi(lhs), Job::Multi(rhs)) => compare_shared(lhs, rhs),
-                (Job::Single(lhs), Job::Single(rhs)) => compare_shared(lhs, rhs),
+            Some(j) => match (&j, job) {
+                (Job::Multi(lhs), Job::Multi(rhs)) => compare_shared(&lhs, rhs),
+                (Job::Single(lhs), Job::Single(rhs)) => compare_shared(&lhs, rhs),
                 _ => false,
             },
             _ => false,
         }
     }
 
-    pub fn retrieve_job(&self) -> Option<Arc<Job>> {
+    pub fn retrieve_job(&self) -> Option<Job> {
         match self.job.borrow() {
-            Some(job) => Some(match job.borrow() {
-                Job::Single(single) => Multi::roots(single).map_or_else(|| job.clone(), |m| Arc::new(Job::Multi(m))),
-                Job::Multi(_) => job.clone(),
-            }),
+            Some(job) => Multi::roots(job).map_or_else(|| Some(Job::Single(job.clone())), |m| Some(Job::Multi(m))),
             _ => None,
         }
     }

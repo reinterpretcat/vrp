@@ -60,7 +60,7 @@ pub fn get_customer_ids_from_routes_sorted(insertion_ctx: &InsertionContext) -> 
     result
 }
 
-pub fn get_sorted_customer_ids_from_jobs(jobs: &Vec<Arc<Job>>) -> Vec<String> {
+pub fn get_sorted_customer_ids_from_jobs(jobs: &Vec<Job>) -> Vec<String> {
     let mut ids = jobs.iter().map(|job| get_customer_id(&job)).collect::<Vec<String>>();
     ids.sort();
     ids
@@ -83,6 +83,6 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
         .collect()
 }
 
-pub fn get_customer_id(job: &Arc<Job>) -> String {
+pub fn get_customer_id(job: &Job) -> String {
     job.dimens().get_id().unwrap().clone()
 }

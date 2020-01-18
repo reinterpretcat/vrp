@@ -7,72 +7,51 @@ pub const DEFAULT_JOB_LOCATION: Location = 0;
 pub const DEFAULT_JOB_DURATION: Duration = 0.0;
 pub const DEFAULT_JOB_TIME_WINDOW: TimeWindow = TimeWindow { start: 0.0, end: 1000.0 };
 
-pub fn test_single() -> Single {
-    test_single_with_id("single")
-}
-
-pub fn test_single_with_id(id: &str) -> Single {
-    let mut single = Single {
-        places: vec![Place {
-            location: Some(DEFAULT_JOB_LOCATION),
-            duration: DEFAULT_JOB_DURATION,
-            times: vec![DEFAULT_JOB_TIME_WINDOW],
-        }],
-        dimens: Default::default(),
-    };
-    single.dimens.set_id(id);
-    single
-}
-
-pub fn test_single_job() -> Job {
-    Job::Single(Arc::new(test_single()))
-}
-
-pub fn test_single_job_with_simple_demand(demand: Demand<i32>) -> Job {
-    let mut job = test_single();
-    job.dimens.set_demand(demand);
-    Job::Single(Arc::new(job))
-}
-
 pub fn test_place_with_location(location: Option<Location>) -> Place {
     Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_WINDOW] }
 }
 
-pub fn test_single_job_with_id(id: &str) -> Job {
+pub fn test_single() -> Single {
     let mut single =
         Single { places: vec![test_place_with_location(Some(DEFAULT_JOB_LOCATION))], dimens: Default::default() };
+    single.dimens.set_id("single");
+    single
+}
+
+pub fn test_single_with_simple_demand(demand: Demand<i32>) -> Arc<Single> {
+    let mut single = test_single();
+    single.dimens.set_demand(demand);
+    Arc::new(single)
+}
+
+pub fn test_single_with_id(id: &str) -> Arc<Single> {
+    let mut single = test_single();
     single.dimens.set_id(id);
-    Job::Single(Arc::new(single))
+    Arc::new(single)
 }
 
-pub fn test_single_job_with_location(location: Option<Location>) -> Job {
-    Job::Single(Arc::new(Single { places: vec![test_place_with_location(location)], dimens: Default::default() }))
+pub fn test_single_with_location(location: Option<Location>) -> Arc<Single> {
+    Arc::new(Single { places: vec![test_place_with_location(location)], dimens: Default::default() })
 }
 
-pub fn test_single_job_with_id_and_location(id: &str, location: Option<Location>) -> Job {
+pub fn test_single_with_id_and_location(id: &str, location: Option<Location>) -> Arc<Single> {
     let mut single = Single { places: vec![test_place_with_location(location)], dimens: Default::default() };
     single.dimens.set_id(id);
-    Job::Single(Arc::new(single))
+    Arc::new(single)
 }
 
-pub fn test_single_job_with_locations(locations: Vec<Option<Location>>) -> Job {
-    Job::Single(Arc::new(Single {
+pub fn test_single_with_locations(locations: Vec<Option<Location>>) -> Arc<Single> {
+    Arc::new(Single {
         places: locations.into_iter().map(|location| test_place_with_location(location)).collect(),
         dimens: Default::default(),
-    }))
+    })
 }
 
-pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Job {
-    Job::Multi(Multi::bind(Multi::new(
-        locations
-            .into_iter()
-            .map(|locs| match test_single_job_with_locations(locs) {
-                Job::Single(single) => single.clone(),
-                _ => panic!("Unexpected job type!"),
-            })
-            .collect(),
+pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Arc<Multi> {
+    Multi::bind(Multi::new(
+        locations.into_iter().map(|locs| test_single_with_locations(locs)).collect(),
         Default::default(),
-    )))
+    ))
 }
 
 pub fn get_job_id(job: &Job) -> &String {
@@ -120,16 +99,14 @@ impl SingleBuilder {
         std::mem::replace(&mut self.single, test_single())
     }
 
-    pub fn build_as_job_ref(&mut self) -> Arc<Job> {
-        Arc::new(Job::Single(Arc::new(self.build())))
+    pub fn build_as_job_ref(&mut self) -> Job {
+        Job::Single(Arc::new(self.build()))
     }
 }
 
 fn test_multi() -> Multi {
-    let mut multi = Multi::new(
-        vec![Arc::new(test_single_with_id("single1")), Arc::new(test_single_with_id("single2"))],
-        Default::default(),
-    );
+    let mut multi =
+        Multi::new(vec![test_single_with_id("single1"), test_single_with_id("single2")], Default::default());
     multi.dimens.set_id("multi");
     multi
 }
@@ -160,9 +137,9 @@ impl MultiBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Arc<Job> {
+    pub fn build(&mut self) -> Job {
         let multi = std::mem::replace(&mut self.multi, test_multi());
         let multi = Multi::bind(multi);
-        Arc::new(Job::Multi(multi))
+        Job::Multi(multi)
     }
 }

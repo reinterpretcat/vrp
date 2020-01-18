@@ -2,11 +2,9 @@
 #[path = "../../../tests/unit/models/solution/tour_test.rs"]
 mod tour_test;
 
-use std::collections::HashSet;
-use std::sync::Arc;
-
 use crate::models::problem::Job;
 use crate::models::solution::Activity;
+use std::collections::HashSet;
 use std::iter::once;
 use std::slice::{Iter, IterMut};
 
@@ -18,7 +16,7 @@ pub struct Tour {
     activities: Vec<TourActivity>,
 
     /// Stores jobs in the order of their activities added.
-    jobs: HashSet<Arc<Job>>,
+    jobs: HashSet<Job>,
 
     /// Keeps track whether tour is set as closed.
     is_closed: bool,
@@ -68,19 +66,21 @@ impl Tour {
     }
 
     /// Removes job within its activities from the tour.
-    pub fn remove(&mut self, job: &Arc<Job>) -> bool {
+    pub fn remove(&mut self, job: &Job) -> bool {
         self.activities.retain(|a| !a.has_same_job(job));
         self.jobs.remove(job)
     }
 
     /// Removes activity and its job from the tour.
-    pub fn remove_activity_at(&mut self, idx: usize) -> Option<Arc<Job>> {
-        if let Some(job) = self.activities.get(idx).and_then(|a| a.job.clone()) {
-            self.remove(&job);
-            Some(job)
-        } else {
-            panic!("Attempt to remove activity without job from the tour!")
-        }
+    pub fn remove_activity_at(&mut self, idx: usize) -> Job {
+        let job = self
+            .activities
+            .get(idx)
+            .and_then(|a| a.retrieve_job())
+            .expect("Attempt to remove activity without job from the tour!");
+        self.remove(&job);
+
+        job
     }
 
     /// Returns all activities in tour.
@@ -99,7 +99,7 @@ impl Tour {
     }
 
     /// Returns all activities in tour for specific job.
-    pub fn job_activities<'a>(&'a self, job: &'a Arc<Job>) -> impl Iterator<Item = &TourActivity> + 'a {
+    pub fn job_activities<'a>(&'a self, job: &'a Job) -> impl Iterator<Item = &TourActivity> + 'a {
         self.activities.iter().filter(move |a| a.has_same_job(job))
     }
 
@@ -119,7 +119,7 @@ impl Tour {
     }
 
     /// Returns all jobs.
-    pub fn jobs<'a>(&'a self) -> impl Iterator<Item = Arc<Job>> + 'a {
+    pub fn jobs<'a>(&'a self) -> impl Iterator<Item = Job> + 'a {
         self.jobs.iter().cloned()
     }
 
@@ -144,12 +144,12 @@ impl Tour {
     }
 
     /// Checks whether job is present in tour
-    pub fn contains(&self, job: &Arc<Job>) -> bool {
+    pub fn contains(&self, job: &Job) -> bool {
         self.jobs.contains(job)
     }
 
     /// Returns index of first job occurrence in the tour.
-    pub fn index(&self, job: &Arc<Job>) -> Option<usize> {
+    pub fn index(&self, job: &Job) -> Option<usize> {
         self.activities.iter().position(move |a| a.has_same_job(&job))
     }
 

@@ -6,7 +6,6 @@ use crate::models::problem::Job;
 use crate::refinement::mutation::recreate::Recreate;
 use crate::refinement::RefinementContext;
 use rand::prelude::*;
-use std::sync::Arc;
 
 /// Returns a sub set of randomly selected jobs.
 struct GapsJobSelector {
@@ -14,7 +13,7 @@ struct GapsJobSelector {
 }
 
 impl JobSelector for GapsJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         // TODO we should prefer to always insert locked jobs
         ctx.solution.required.shuffle(&mut rand::thread_rng());
 

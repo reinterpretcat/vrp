@@ -21,7 +21,7 @@ impl SkillsModule {
 }
 
 impl ConstraintModule for SkillsModule {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Arc<Job>) {}
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Job) {}
 
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
@@ -41,7 +41,7 @@ struct SkillsHardRouteConstraint {
 }
 
 impl HardRouteConstraint for SkillsHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
+    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if let Some(requirement) = job.dimens().get_value::<HashSet<String>>("skills") {
             if let Some(skills) = ctx.route.actor.vehicle.dimens.get_value::<HashSet<String>>("skills") {
                 if requirement.is_subset(skills) {

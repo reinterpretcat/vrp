@@ -17,7 +17,7 @@ pub struct StrictLockingModule {
 }
 
 impl ConstraintModule for StrictLockingModule {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Arc<Job>) {}
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Job) {}
 
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
@@ -53,7 +53,7 @@ impl StrictLockingModule {
                     }));
                 }
 
-                detail.jobs.iter().cloned().collect::<HashSet<Arc<Job>>>().into_iter().for_each(|job| {
+                detail.jobs.iter().cloned().collect::<HashSet<Job>>().into_iter().for_each(|job| {
                     conditions.insert(job, condition.clone());
                 });
             });
@@ -79,11 +79,11 @@ impl StrictLockingModule {
 
 struct StrictLockingHardRouteConstraint {
     code: i32,
-    conditions: HashMap<Arc<Job>, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>,
+    conditions: HashMap<Job, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>,
 }
 
 impl HardRouteConstraint for StrictLockingHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
+    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if let Some(condition) = self.conditions.get(job) {
             if !(condition)(&ctx.route.actor) {
                 return Some(RouteConstraintViolation { code: self.code });
@@ -120,9 +120,9 @@ impl HardActivityConstraint for StrictLockingHardActivityConstraint {
 }
 
 struct JobIndex {
-    first: Arc<Job>,
-    last: Arc<Job>,
-    jobs: HashSet<Arc<Job>>,
+    first: Job,
+    last: Job,
+    jobs: HashSet<Job>,
 }
 
 /// Represents a rule created from lock model.
@@ -136,12 +136,12 @@ struct Rule {
 }
 
 impl Rule {
-    fn contains(&self, job: &Arc<Job>) -> bool {
+    fn contains(&self, job: &Job) -> bool {
         self.index.jobs.contains(job)
     }
 
     /// Checks whether new job can be inserted between given according to rule's jobs.
-    pub fn can_insert(&self, prev: &Option<Arc<Job>>, next: &Option<Arc<Job>>) -> bool {
+    pub fn can_insert(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
         match self.position {
             LockPosition::Any => self.can_insert_after(&prev, &next) || self.can_insert_before(&prev, &next),
             LockPosition::Departure => self.can_insert_after(&prev, &next),
@@ -151,13 +151,13 @@ impl Rule {
     }
 
     /// Checks whether new job can be inserted between given after rule's jobs.
-    fn can_insert_after(&self, prev: &Option<Arc<Job>>, next: &Option<Arc<Job>>) -> bool {
+    fn can_insert_after(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
         prev.as_ref().map_or(false, |p| !self.contains(p) || p.clone() == self.index.last)
             && next.as_ref().map_or(true, |n| !self.contains(n))
     }
 
     /// Checks whether new job can be inserted between given before rule's jobs.
-    fn can_insert_before(&self, prev: &Option<Arc<Job>>, next: &Option<Arc<Job>>) -> bool {
+    fn can_insert_before(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
         next.as_ref().map_or(false, |n| !self.contains(n) || n.clone() == self.index.first)
             && prev.as_ref().map_or(true, |p| !self.contains(p))
     }

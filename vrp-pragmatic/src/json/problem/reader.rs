@@ -28,7 +28,7 @@ use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::refinement::objectives::PenalizeUnassigned;
 
 pub type ApiProblem = crate::json::problem::Problem;
-pub type JobIndex = HashMap<String, Arc<Job>>;
+pub type JobIndex = HashMap<String, Job>;
 
 /// Reads specific problem definition from various sources.
 pub trait PragmaticProblem {

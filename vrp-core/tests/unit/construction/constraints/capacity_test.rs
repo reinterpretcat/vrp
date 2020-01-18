@@ -3,7 +3,7 @@ use crate::construction::states::{ActivityContext, RouteContext, RouteState};
 use crate::helpers::construction::constraints::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::problem::{Fleet, Vehicle};
+use crate::models::problem::{Fleet, Job, Vehicle};
 use crate::models::solution::TourActivity;
 use std::sync::Arc;
 
@@ -80,7 +80,7 @@ fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraint
         route: Arc::new(create_route_with_activities(&fleet, "v1", vec![])),
         state: Arc::new(RouteState::default()),
     };
-    let job = Arc::new(test_single_job_with_simple_demand(create_simple_demand(size)));
+    let job = Job::Single(test_single_with_simple_demand(create_simple_demand(size)));
 
     let result = create_constraint_pipeline_with_simple_capacity().evaluate_hard_route(&ctx, &job);
 

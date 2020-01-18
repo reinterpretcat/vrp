@@ -35,8 +35,8 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         demand.pickup.0 + demand.delivery.0 + demand.pickup.1 + demand.delivery.1
     }
 
-    fn get_job_demand(job: &Arc<Job>) -> Option<Capacity> {
-        match job.as_ref() {
+    fn get_job_demand(job: &Job) -> Option<Capacity> {
+        match job {
             Job::Single(job) => job.dimens.get_demand(),
             Job::Multi(job) => job.jobs.first().and_then(|s| s.dimens.get_demand()),
         }
@@ -47,7 +47,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     JobSelector for DemandJobSelector<Capacity>
 {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
             (None, Some(_)) => Ordering::Less,
             (Some(_), None) => Ordering::Greater,
@@ -72,7 +72,7 @@ impl RandomJobSelector {
 }
 
 impl JobSelector for RandomJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         ctx.solution.required.shuffle(&mut rand::thread_rng());
 
         Box::new(ctx.solution.required.iter().cloned())
@@ -88,7 +88,7 @@ impl RankedJobSelector {
         Self { asc_order }
     }
 
-    pub fn rank_job(problem: &Arc<Problem>, job: &Arc<Job>) -> Distance {
+    pub fn rank_job(problem: &Arc<Problem>, job: &Job) -> Distance {
         problem
             .fleet
             .profiles
@@ -100,7 +100,7 @@ impl RankedJobSelector {
 }
 
 impl JobSelector for RankedJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         let problem = &ctx.problem;
 
         ctx.solution.required.sort_by(|a, b| {

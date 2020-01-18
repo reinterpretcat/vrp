@@ -24,7 +24,7 @@ pub struct InsertionSuccess {
     pub cost: Cost,
 
     /// Original job to be inserted.
-    pub job: Arc<Job>,
+    pub job: Job,
 
     /// Specifies activities within index where they have to be inserted.
     pub activities: Vec<(TourActivity, usize)>,
@@ -69,13 +69,13 @@ pub struct InsertionContext {
 impl InsertionContext {
     /// Creates insertion context from existing solution.
     pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> Self {
-        let mut locked: HashSet<Arc<Job>> = Default::default();
-        let mut reserved: HashSet<Arc<Job>> = Default::default();
-        let mut unassigned: HashMap<Arc<Job>, i32> = Default::default();
+        let mut locked: HashSet<Job> = Default::default();
+        let mut reserved: HashSet<Job> = Default::default();
+        let mut unassigned: HashMap<Job, i32> = Default::default();
         let mut routes: Vec<RouteContext> = Default::default();
         let mut registry = Registry::new(&problem.fleet);
 
-        let mut sequence_job_usage: HashMap<Arc<Job>, usize> = Default::default();
+        let mut sequence_job_usage: HashMap<Job, usize> = Default::default();
 
         problem.locks.iter().for_each(|lock| {
             let actor = registry.available().find(|a| lock.condition.deref()(a.as_ref()));
@@ -99,7 +99,7 @@ impl InsertionContext {
                             time: time.clone(),
                         },
                         schedule: Schedule { arrival: 0.0, departure: 0.0 },
-                        job: Some(Arc::new(Job::Single(single))),
+                        job: Some(single),
                     }
                 };
 
@@ -110,7 +110,7 @@ impl InsertionContext {
                     }
 
                     detail.jobs.iter().fold(acc, |acc, job| {
-                        let activity = match job.as_ref() {
+                        let activity = match job {
                             Job::Single(single) => create_activity(single.clone(), acc),
                             Job::Multi(multi) => {
                                 let idx = sequence_job_usage.get(job).cloned().unwrap_or(0);
@@ -166,7 +166,7 @@ impl InsertionContext {
         solution: (Arc<Solution>, Option<Cost>),
         random: Arc<dyn Random + Send + Sync>,
     ) -> Self {
-        let jobs: Vec<Arc<Job>> = solution.0.unassigned.iter().map(|(job, _)| job.clone()).collect();
+        let jobs: Vec<Job> = solution.0.unassigned.iter().map(|(job, _)| job.clone()).collect();
         let unassigned = Default::default();
         let locked = problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
             acc.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
@@ -234,16 +234,16 @@ impl InsertionContext {
 /// Contains information regarding discovered solution.
 pub struct SolutionContext {
     /// List of jobs which require permanent assignment.
-    pub required: Vec<Arc<Job>>,
+    pub required: Vec<Job>,
 
     /// List of jobs which at the moment does not require assignment and might be ignored.
-    pub ignored: Vec<Arc<Job>>,
+    pub ignored: Vec<Job>,
 
     /// Map of jobs which cannot be assigned and within reason code.
-    pub unassigned: HashMap<Arc<Job>, i32>,
+    pub unassigned: HashMap<Job, i32>,
 
     /// Specifies jobs which should not be affected by ruin.
-    pub locked: HashSet<Arc<Job>>,
+    pub locked: HashSet<Job>,
 
     /// Set of routes within their state.
     pub routes: Vec<RouteContext>,
@@ -275,12 +275,7 @@ impl SolutionContext {
 }
 
 impl InsertionResult {
-    pub fn make_success(
-        cost: Cost,
-        job: Arc<Job>,
-        activities: Vec<(TourActivity, usize)>,
-        route_ctx: RouteContext,
-    ) -> Self {
+    pub fn make_success(cost: Cost, job: Job, activities: Vec<(TourActivity, usize)>, route_ctx: RouteContext) -> Self {
         Self::Success(InsertionSuccess { cost, job, activities, context: route_ctx })
     }
 

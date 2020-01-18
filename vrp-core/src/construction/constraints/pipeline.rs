@@ -13,7 +13,7 @@ use std::sync::Arc;
 pub trait HardRouteConstraint {
     /// Estimates activity insertion in specific route.
     /// Returns violation error if constraint is violated.
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation>;
+    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation>;
 }
 
 /// Specifies soft constraint which operates on route level.
@@ -21,7 +21,7 @@ pub trait SoftRouteConstraint {
     /// Estimates activity insertion in specific route.
     /// Returns non-zero penalty if constraint is violated: positive makes insertion less attractive,
     /// negative - more.
-    fn estimate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Cost;
+    fn estimate_job(&self, ctx: &RouteContext, job: &Job) -> Cost;
 }
 
 /// Specifies hard constraint which operates on activity level.
@@ -73,7 +73,7 @@ pub trait ConstraintModule {
     /// Called once job has been inserted into solution represented via `solution_ctx`,
     /// target route is `route_ctx`, inserted job is `job`.
     /// This method should call `accept_route_state` internally.
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>);
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Job);
 
     /// Accept route and updates its state to allow more efficient constraint checks.
     fn accept_route_state(&self, ctx: &mut RouteContext);
@@ -115,7 +115,7 @@ impl Default for ConstraintPipeline {
 
 impl ConstraintPipeline {
     /// Accepts job insertion.
-    pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Arc<Job>) {
+    pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Job) {
         self.modules.iter().for_each(|c| c.accept_insertion(solution_ctx, route_ctx, job))
     }
 
@@ -152,7 +152,7 @@ impl ConstraintPipeline {
 
     /// Checks whether all hard route constraints are fulfilled.
     /// Returns result of first failed constraint or empty value.
-    pub fn evaluate_hard_route(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
+    pub fn evaluate_hard_route(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         self.hard_route_constraints.iter().find_map(|c| c.evaluate_job(ctx, job))
     }
 
@@ -167,7 +167,7 @@ impl ConstraintPipeline {
     }
 
     /// Checks soft route constraints and aggregates associated actual and penalty costs.
-    pub fn evaluate_soft_route(&self, ctx: &RouteContext, job: &Arc<Job>) -> Cost {
+    pub fn evaluate_soft_route(&self, ctx: &RouteContext, job: &Job) -> Cost {
         self.soft_route_constraints.iter().map(|c| c.estimate_job(ctx, job)).sum()
     }
 

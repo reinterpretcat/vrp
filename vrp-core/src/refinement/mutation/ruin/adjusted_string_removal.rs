@@ -56,7 +56,7 @@ impl Default for AdjustedStringRemoval {
 impl Ruin for AdjustedStringRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
-        let jobs: RwLock<HashSet<Arc<Job>>> = RwLock::new(HashSet::new());
+        let jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::new());
         let actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
         let routes: Vec<RouteContext> = insertion_ctx.solution.routes.clone();
 
@@ -85,7 +85,7 @@ impl Ruin for AdjustedStringRemoval {
                             actors.write().unwrap().insert(rc.route.actor.clone());
                             select_string((&rc.route.tour, index), lt, self.alpha, &random)
                                 .filter(|job| !locked.contains(job))
-                                .collect::<Vec<Arc<Job>>>()
+                                .collect::<Vec<Job>>()
                                 .into_iter()
                                 .for_each(|job| {
                                     rc.route_mut().tour.remove(&job);
@@ -101,7 +101,7 @@ impl Ruin for AdjustedStringRemoval {
     }
 }
 
-type JobIter<'a> = Box<dyn Iterator<Item = Arc<Job>> + 'a>;
+type JobIter<'a> = Box<dyn Iterator<Item = Job> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {

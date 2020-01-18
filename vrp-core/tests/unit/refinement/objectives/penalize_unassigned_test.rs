@@ -3,7 +3,7 @@ use crate::helpers::construction::constraints::create_constraint_pipeline_with_t
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::Schedule;
-use crate::models::problem::{Fleet, Jobs, SimpleActivityCost};
+use crate::models::problem::{Fleet, Job, Jobs, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
@@ -47,7 +47,7 @@ fn can_calculate_cost_with_penalty_properly() {
     let transport = Arc::new(TestTransportCost::new());
     let constraint = Arc::new(create_constraint_pipeline_with_timing());
     let mut unassigned = HashMap::new();
-    unassigned.insert(Arc::new(test_single_job()), 1);
+    unassigned.insert(Job::Single(Arc::new(test_single())), 1);
     let insertion_ctx = InsertionContext {
         problem: Arc::new(Problem {
             fleet: fleet.clone(),

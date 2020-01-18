@@ -114,8 +114,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                         .job
                         .as_ref()
                         .and_then(|job| {
-                            get_capacity(&job.to_single().dimens, is_multi_dimen)
-                                .and_then(|d| Some((d.delivery.0, d.pickup.0)))
+                            get_capacity(&job.dimens, is_multi_dimen).and_then(|d| Some((d.delivery.0, d.pickup.0)))
                         })
                         .unwrap_or((MultiDimensionalCapacity::default(), MultiDimensionalCapacity::default()));
                     (acc.0 + delivery, acc.1 + pickup)
@@ -157,11 +156,10 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     let activity_type = activity_type.unwrap_or_else(|| "arrival".to_string());
                     let is_break = activity_type == "break";
 
-                    let job_tag =
-                        act.job.as_ref().and_then(|job| job.to_single().dimens.get_value::<String>("tag").cloned());
+                    let job_tag = act.job.as_ref().and_then(|job| job.dimens.get_value::<String>("tag").cloned());
                     let job_id = match activity_type.as_str() {
                         "pickup" | "delivery" => {
-                            let single = act.job.as_ref().unwrap().to_single();
+                            let single = act.job.as_ref().unwrap();
                             let id = single.dimens.get_id().cloned();
                             id.unwrap_or_else(|| Multi::roots(&single).unwrap().dimens.get_id().unwrap().clone())
                         }
@@ -267,9 +265,8 @@ fn calculate_load(
     act: &TourActivity,
     is_multi_dimen: bool,
 ) -> MultiDimensionalCapacity {
-    let job = act.job.as_ref().and_then(|job| job.as_single());
+    let job = act.job.as_ref();
     let demand = job
-        .as_ref()
         .and_then(|job| get_capacity(&job.dimens, is_multi_dimen))
         .unwrap_or(Demand::<MultiDimensionalCapacity>::default());
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
@@ -286,7 +283,7 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
             11 => (100, "location unreachable"),
             _ => (0, "unknown"),
         };
-        let dimens = match unassigned.0.as_ref() {
+        let dimens = match unassigned.0 {
             Job::Single(job) => &job.dimens,
             Job::Multi(job) => &job.dimens,
         };
@@ -303,7 +300,7 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
 }
 
 fn get_activity_type(activity: &TourActivity) -> Option<&String> {
-    activity.job.as_ref().and_then(|job| job.as_single()).and_then(|single| single.dimens.get_value::<String>("type"))
+    activity.job.as_ref().and_then(|single| single.dimens.get_value::<String>("type"))
 }
 
 fn get_capacity(dimens: &Dimensions, is_multi_dimen: bool) -> Option<Demand<MultiDimensionalCapacity>> {

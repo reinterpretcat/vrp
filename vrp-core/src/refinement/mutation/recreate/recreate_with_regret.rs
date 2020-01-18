@@ -9,7 +9,6 @@ use crate::refinement::mutation::Recreate;
 use crate::refinement::RefinementContext;
 use std::cmp::Ordering::*;
 use std::ops::Deref;
-use std::sync::Arc;
 
 /// A recreate method which uses regret insertion approach.
 pub struct RecreateWithRegret {
@@ -46,8 +45,8 @@ impl JobMapReducer for RegretJobMapReducer {
     fn reduce<'a>(
         &'a self,
         ctx: &'a InsertionContext,
-        jobs: Vec<Arc<Job>>,
-        map: Box<dyn Fn(&Arc<Job>) -> InsertionResult + Send + Sync + 'a>,
+        jobs: Vec<Job>,
+        map: Box<dyn Fn(&Job) -> InsertionResult + Send + Sync + 'a>,
     ) -> InsertionResult {
         let mut results: Vec<InsertionResult> = jobs.par_iter().map(|job| map.deref()(&job)).collect();
 

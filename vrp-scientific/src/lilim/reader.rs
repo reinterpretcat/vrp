@@ -74,7 +74,7 @@ impl<R: Read> TextReader for LilimReader<R> {
         ))
     }
 
-    fn read_jobs(&mut self) -> Result<Vec<Arc<Job>>, String> {
+    fn read_jobs(&mut self) -> Result<Vec<Job>, String> {
         let mut customers: HashMap<usize, JobLine> = Default::default();
         let mut relations: Vec<Relation> = Default::default();
         loop {
@@ -95,15 +95,15 @@ impl<R: Read> TextReader for LilimReader<R> {
             }
         }
 
-        let mut jobs: Vec<Arc<Job>> = Default::default();
+        let mut jobs: Vec<Job> = Default::default();
         relations.iter().zip(0..).for_each(|(relation, index)| {
             let pickup = customers.get(&relation.pickup).unwrap();
             let delivery = customers.get(&relation.delivery).unwrap();
 
-            jobs.push(Arc::new(Job::Multi(Multi::bind(Multi::new(
+            jobs.push(Job::Multi(Multi::bind(Multi::new(
                 vec![self.create_single_job(pickup), self.create_single_job(delivery)],
                 create_dimens_with_id("mlt", index),
-            )))));
+            ))));
         });
 
         Ok(jobs)

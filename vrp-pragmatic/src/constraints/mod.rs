@@ -1,26 +1,17 @@
 use std::sync::Arc;
 use vrp_core::construction::states::RouteContext;
 use vrp_core::models::common::{Dimensions, IdDimension, ValueDimension};
-use vrp_core::models::problem::{Job, Single};
+use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 
 pub const HAS_RELOAD_KEY: i32 = 101;
 pub const MAX_TOUR_LOAD_KEY: i32 = 102;
 
-fn as_single_job<F>(activity: &Activity, condition: F) -> Option<Arc<Single>>
+fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
 where
     F: Fn(&Arc<Single>) -> bool,
 {
-    activity.job.as_ref().and_then(|job| match job.as_ref() {
-        Job::Single(job) => {
-            if condition(job) {
-                Some(job.clone())
-            } else {
-                None
-            }
-        }
-        _ => None,
-    })
+    activity.job.as_ref().and_then(|job| if condition(job) { Some(job) } else { None })
 }
 
 fn get_shift_index(dimens: &Dimensions) -> usize {
@@ -37,16 +28,21 @@ fn is_correct_vehicle(rc: &RouteContext, target_id: &String, target_shift: usize
 }
 
 mod breaks;
+
 pub use self::breaks::BreakModule;
 
 mod even_dist;
+
 pub use self::even_dist::EvenDistributionModule;
 
 mod reload_capacity;
+
 pub use self::reload_capacity::ReloadCapacityConstraintModule;
 
 mod reachable;
+
 pub use self::reachable::ReachableModule;
 
 mod skills;
+
 pub use self::skills::SkillsModule;

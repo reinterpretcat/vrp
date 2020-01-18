@@ -1,12 +1,11 @@
-use std::sync::Arc;
 use vrp_core::construction::constraints::{CapacityDimension, Demand, DemandDimension};
 use vrp_core::construction::states::InsertionContext;
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;
 
-pub fn get_customer_id(job: &Arc<Job>) -> String {
-    get_job_id(job.as_ref()).to_owned()
+pub fn get_customer_id(job: &Job) -> String {
+    get_job_id(job).to_owned()
 }
 
 pub fn get_job_id(job: &Job) -> &String {
@@ -44,7 +43,7 @@ pub fn get_job_time_windows(problem: &Problem) -> Vec<(f64, f64)> {
     problem
         .jobs
         .all()
-        .map(|j| match j.as_ref() {
+        .map(|j| match j {
             Job::Single(j) => j.places.first().unwrap().times.first().map(|tw| (tw.start, tw.end)).unwrap(),
             _ => panic!(),
         })
@@ -52,18 +51,18 @@ pub fn get_job_time_windows(problem: &Problem) -> Vec<(f64, f64)> {
 }
 
 pub fn get_job_ids(problem: &Problem) -> Vec<String> {
-    problem.jobs.all().map(|j| get_job_id(j.as_ref()).to_owned()).collect()
+    problem.jobs.all().map(|j| get_job_id(&j).to_owned()).collect()
 }
 
 pub fn get_job_demands(problem: &Problem) -> Vec<i32> {
-    problem.jobs.all().map(|j| get_job_simple_demand(j.as_ref()).delivery.0).collect()
+    problem.jobs.all().map(|j| get_job_simple_demand(&j).delivery.0).collect()
 }
 
 pub fn get_job_durations(problem: &Problem) -> Vec<f64> {
     problem
         .jobs
         .all()
-        .map(|j| match j.as_ref() {
+        .map(|j| match j {
             Job::Single(j) => j.places.first().unwrap().duration,
             _ => panic!(),
         })

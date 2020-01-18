@@ -67,21 +67,21 @@ impl<R: Read> TextReader for SolomonReader<R> {
         ))
     }
 
-    fn read_jobs(&mut self) -> Result<Vec<Arc<Job>>, String> {
-        let mut jobs: Vec<Arc<Job>> = Default::default();
+    fn read_jobs(&mut self) -> Result<Vec<Job>, String> {
+        let mut jobs: Vec<Job> = Default::default();
         loop {
             match self.read_customer() {
                 Ok(customer) => {
                     let mut dimens = create_dimens_with_id("", customer.id);
                     dimens.set_demand(Demand::<i32> { pickup: (0, 0), delivery: (customer.demand as i32, 0) });
-                    jobs.push(Arc::new(Job::Single(Arc::new(Single {
+                    jobs.push(Job::Single(Arc::new(Single {
                         places: vec![Place {
                             location: Some(self.matrix.collect(customer.location)),
                             duration: customer.service as f64,
                             times: vec![customer.tw.clone()],
                         }],
                         dimens,
-                    }))));
+                    })));
                 }
                 Err(error) => {
                     if self.buffer.is_empty() {

@@ -8,22 +8,16 @@ use vrp_core::construction::constraints::{Demand, DemandDimension};
 use vrp_core::models::common::{Dimensions, IdDimension, TimeWindow};
 use vrp_core::models::problem::{Jobs, Multi, Place, Single};
 
-fn get_job(index: usize, jobs: &Jobs) -> Arc<vrp_core::models::problem::Job> {
+fn get_job(index: usize, jobs: &Jobs) -> vrp_core::models::problem::Job {
     jobs.all().collect::<Vec<_>>().get(index).unwrap().clone()
 }
 
 fn get_single_job(index: usize, jobs: &Jobs) -> Arc<Single> {
-    match get_job(index, jobs).as_ref() {
-        vrp_core::models::problem::Job::Single(job) => job.clone(),
-        _ => panic!("Wrong type"),
-    }
+    get_job(index, jobs).to_single().clone()
 }
 
 fn get_multi_job(index: usize, jobs: &Jobs) -> Arc<Multi> {
-    match get_job(index, jobs).as_ref() {
-        vrp_core::models::problem::Job::Multi(job) => job.clone(),
-        _ => panic!("Wrong type"),
-    }
+    get_job(index, jobs).to_multi().clone()
 }
 
 fn get_single_place(single: &Single) -> &Place {

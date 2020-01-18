@@ -100,7 +100,7 @@ fn read_required_jobs(
     props: &ProblemProperties,
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
-) -> (Vec<Arc<Job>>, Vec<Arc<Lock>>) {
+) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
     api_problem.plan.jobs.iter().for_each(|job| match job {
         JobVariant::Single(job) => {
@@ -191,7 +191,7 @@ fn read_conditional_jobs(
     api_problem: &ApiProblem,
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
-) -> (Vec<Arc<Job>>, Vec<Arc<Lock>>) {
+) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
     api_problem.fleet.types.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
@@ -211,7 +211,7 @@ fn read_conditional_jobs(
 fn read_breaks(
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
-    jobs: &mut Vec<Arc<Job>>,
+    jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
     breaks: &Vec<VehicleBreak>,
@@ -249,7 +249,7 @@ fn read_breaks(
 fn read_reloads(
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
-    jobs: &mut Vec<Arc<Job>>,
+    jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
     reloads: &Vec<VehicleReload>,
@@ -301,8 +301,8 @@ fn get_conditional_job(
     single
 }
 
-fn add_conditional_job(job_index: &mut JobIndex, jobs: &mut Vec<Arc<Job>>, job_id: String, single: Single) {
-    let job = Arc::new(Job::Single(Arc::new(single)));
+fn add_conditional_job(job_index: &mut JobIndex, jobs: &mut Vec<Job>, job_id: String, single: Single) {
+    let job = Job::Single(Arc::new(single));
     job_index.insert(job_id, job.clone());
     jobs.push(job);
 }
@@ -350,12 +350,12 @@ fn get_single_with_extras(
     single
 }
 
-fn get_single_job(id: &String, single: Single, skills: &Option<Vec<String>>) -> Arc<Job> {
+fn get_single_job(id: &String, single: Single, skills: &Option<Vec<String>>) -> Job {
     let mut single = single;
     single.dimens.set_id(id.as_str());
     add_skills(&mut single.dimens, skills);
 
-    Arc::new(Job::Single(Arc::new(single)))
+    Job::Single(Arc::new(single))
 }
 
 fn get_multi_job(
@@ -363,7 +363,7 @@ fn get_multi_job(
     skills: &Option<Vec<String>>,
     singles: Vec<Arc<Single>>,
     deliveries_start_index: usize,
-) -> Arc<Job> {
+) -> Job {
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id.as_str());
     add_skills(&mut dimens, skills);
@@ -376,7 +376,8 @@ fn get_multi_job(
             Box::new(move |m| get_split_permutations(m.jobs.len(), deliveries_start_index, MULTI_JOB_SAMPLE_SIZE)),
         )
     };
-    Arc::new(Job::Multi(Multi::bind(multi)))
+
+    Job::Multi(Multi::bind(multi))
 }
 
 fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor) -> bool + Sync + Send> {

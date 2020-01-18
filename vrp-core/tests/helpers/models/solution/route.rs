@@ -1,21 +1,21 @@
 use crate::construction::states::{create_end_activity, create_start_activity};
 use crate::helpers::models::problem::*;
 use crate::models::common::{Duration, Location, Schedule};
-use crate::models::problem::{Actor, Fleet, Job};
+use crate::models::problem::{Actor, Fleet, Single};
 use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
 
 pub fn test_activity() -> Activity {
-    test_activity_with_job(Arc::new(test_single_job()))
+    test_activity_with_job(Arc::new(test_single()))
 }
 
 pub fn test_activity_with_location(location: Location) -> Activity {
     Activity {
         place: Place { location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: Some(Arc::new(test_single_job_with_location(Some(location)))),
+        job: Some(test_single_with_location(Some(location))),
     }
 }
 
@@ -23,7 +23,7 @@ pub fn test_activity_with_location_and_duration(location: Location, duration: Du
     Activity {
         place: Place { location, duration, time: DEFAULT_JOB_TIME_WINDOW },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: Some(Arc::new(test_single_job_with_location(Some(location)))),
+        job: Some(test_single_with_location(Some(location))),
     }
 }
 
@@ -35,7 +35,7 @@ pub fn test_activity_with_schedule(schedule: Schedule) -> Activity {
     }
 }
 
-pub fn test_activity_with_job(job: Arc<Job>) -> Activity {
+pub fn test_activity_with_job(job: Arc<Single>) -> Activity {
     Activity {
         place: Place { location: DEFAULT_JOB_LOCATION, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
@@ -101,7 +101,7 @@ impl ActivityBuilder {
         self
     }
 
-    pub fn job(&mut self, job: Option<Arc<Job>>) -> &mut Self {
+    pub fn job(&mut self, job: Option<Arc<Single>>) -> &mut Self {
         self.activity.job = job;
         self
     }

@@ -39,7 +39,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     ConstraintModule for EvenDistributionModule<Capacity>
 {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Arc<Job>) {}
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Job) {}
 
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
@@ -63,7 +63,7 @@ struct EvenDistributionSoftRouteConstraint<Capacity: Add + Sub + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     SoftRouteConstraint for EvenDistributionSoftRouteConstraint<Capacity>
 {
-    fn estimate_job(&self, ctx: &RouteContext, _job: &Arc<Job>) -> f64 {
+    fn estimate_job(&self, ctx: &RouteContext, _job: &Job) -> f64 {
         let capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
         let max_load = ctx
             .state

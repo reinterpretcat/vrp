@@ -1,17 +1,16 @@
 use crate::construction::constraints::conditional::ConditionalJobModule;
 use crate::construction::constraints::ConstraintModule;
 use crate::construction::states::SolutionContext;
-use crate::helpers::models::problem::{get_job_id, test_fleet, test_single_job_with_id};
+use crate::helpers::models::problem::{get_job_id, test_fleet, test_single_with_id};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
 use std::collections::HashSet;
-use std::sync::Arc;
 
-fn get_jobs(ids: Vec<&str>) -> Vec<Arc<Job>> {
-    ids.iter().map(|s| Arc::new(test_single_job_with_id(s))).collect()
+fn get_jobs(ids: Vec<&str>) -> Vec<Job> {
+    ids.iter().map(|s| Job::Single(test_single_with_id(s))).collect()
 }
 
-fn get_ids(jobs: &Vec<Arc<Job>>) -> Vec<&str> {
+fn get_ids(jobs: &Vec<Job>) -> Vec<&str> {
     let mut ids: Vec<&str> = jobs.iter().map(|job| get_job_id(job).as_str()).collect();
     ids.sort();
     ids

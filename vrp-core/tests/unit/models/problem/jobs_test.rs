@@ -47,25 +47,25 @@ fn create_profile_aware_transport_cost() -> ProfileAwareTransportCost {
 
 #[test]
 fn all_returns_all_jobs() {
-    let jobs = vec![Arc::new(test_single_job()), Arc::new(test_single_job())];
+    let jobs = vec![Job::Single(Arc::new(test_single())), Job::Single(Arc::new(test_single()))];
 
     assert_eq!(Jobs::new(&test_fleet(), jobs, &OnlyDistanceCost::default()).all().count(), 2)
 }
 
 parameterized_test! {calculates_proper_cost_between_single_jobs, (left, right, expected), {
-    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &OnlyDistanceCost::default(), &left, &right), expected);
+    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &OnlyDistanceCost::default(), &Job::Single(left), &Job::Single(right)), expected);
 }}
 
 calculates_proper_cost_between_single_jobs! {
-    case1: (test_single_job_with_location(Some(0)), test_single_job_with_location(Some(10)), 10.0),
-    case2: (test_single_job_with_location(Some(0)), test_single_job_with_location(None), 0.0),
-    case3: (test_single_job_with_location(None), test_single_job_with_location(None), 0.0),
-    case4: (test_single_job_with_location(Some(3)), test_single_job_with_locations(vec![Some(5), Some(2)]), 1.0),
-    case5: (test_single_job_with_locations(vec![Some(2), Some(1)]), test_single_job_with_locations(vec![Some(10), Some(9)]), 7.0),
+    case1: (test_single_with_location(Some(0)), test_single_with_location(Some(10)), 10.0),
+    case2: (test_single_with_location(Some(0)), test_single_with_location(None), 0.0),
+    case3: (test_single_with_location(None), test_single_with_location(None), 0.0),
+    case4: (test_single_with_location(Some(3)), test_single_with_locations(vec![Some(5), Some(2)]), 1.0),
+    case5: (test_single_with_locations(vec![Some(2), Some(1)]), test_single_with_locations(vec![Some(10), Some(9)]), 7.0),
 }
 
 parameterized_test! {calculates_proper_cost_between_multi_jobs, (left, right, expected), {
-    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &OnlyDistanceCost::default(), &left, &right), expected);
+    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &OnlyDistanceCost::default(), &Job::Multi(left), &Job::Multi(right)), expected);
 }}
 
 calculates_proper_cost_between_multi_jobs! {
@@ -175,15 +175,11 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
 
 #[test]
 fn can_use_multi_job_bind_and_roots() {
-    let job = Arc::new(test_multi_job_with_locations(vec![vec![Some(0)], vec![Some(1)]]));
-    let jobs = vec![job.clone()];
+    let job = test_multi_job_with_locations(vec![vec![Some(0)], vec![Some(1)]]);
+    let jobs = vec![Job::Multi(job.clone())];
+
     let jobs = Jobs::new(&test_fleet(), jobs, &OnlyDistanceCost::default());
+    let job = Job::Multi(Multi::roots(&job.jobs.first().unwrap()).unwrap());
 
-    let job = if let Job::Multi(multi) = job.as_ref() {
-        Arc::new(Job::Multi(Multi::roots(&multi.jobs.first().unwrap()).unwrap()))
-    } else {
-        panic!()
-    };
-
-    assert_eq!(jobs.neighbors(0, &job, 0.0, 100.0).collect::<Vec<Arc<Job>>>().len(), 0);
+    assert_eq!(jobs.neighbors(0, &job, 0.0, 100.0).collect::<Vec<Job>>().len(), 0);
 }

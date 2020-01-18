@@ -42,7 +42,7 @@ pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Ve
     Route { actor, tour }
 }
 
-pub fn create_activity_with_job_at_location(job: Arc<Job>, location: Location) -> TourActivity {
+pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location) -> TourActivity {
     Box::new(Activity {
         place: vrp_core::models::solution::Place {
             location,

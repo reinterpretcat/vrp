@@ -11,6 +11,7 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Weak};
 
 /// Represents a job variant.
+#[derive(Clone)]
 pub enum Job {
     /// Single job.
     Single(Arc<Single>),
@@ -135,22 +136,22 @@ impl Multi {
     }
 }
 
-type JobIndex = HashMap<Arc<Job>, (Vec<(Arc<Job>, Cost)>, Cost)>;
+type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, Cost)>;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
-    jobs: Vec<Arc<Job>>,
+    jobs: Vec<Job>,
     index: HashMap<Profile, JobIndex>,
 }
 
 impl Jobs {
     /// Creates a new [`Jobs`].
-    pub fn new(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCost) -> Jobs {
+    pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &impl TransportCost) -> Jobs {
         Jobs { jobs: jobs.clone(), index: create_index(fleet, jobs, transport) }
     }
 
     /// Returns all jobs in original order.
-    pub fn all<'a>(&'a self) -> impl Iterator<Item = Arc<Job>> + 'a {
+    pub fn all<'a>(&'a self) -> impl Iterator<Item = Job> + 'a {
         self.jobs.iter().cloned()
     }
 
@@ -159,10 +160,10 @@ impl Jobs {
     pub fn neighbors<'a>(
         &'a self,
         profile: Profile,
-        job: &Arc<Job>,
+        job: &Job,
         _: Timestamp,
         max_cost: Cost,
-    ) -> impl Iterator<Item = Arc<Job>> + 'a {
+    ) -> impl Iterator<Item = Job> + 'a {
         self.index
             .get(&profile)
             .unwrap()
@@ -175,7 +176,7 @@ impl Jobs {
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
-    pub fn rank(&self, profile: Profile, job: &Arc<Job>) -> Cost {
+    pub fn rank(&self, profile: Profile, job: &Job) -> Cost {
         self.index.get(&profile).unwrap().get(job).unwrap().1
     }
 
@@ -218,7 +219,7 @@ const DEFAULT_DEPARTURE: Timestamp = 0.0;
 const DEFAULT_COST: Cost = 0.0;
 
 /// Creates job index.
-fn create_index(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCost) -> HashMap<Profile, JobIndex> {
+fn create_index(fleet: &Fleet, jobs: Vec<Job>, transport: &impl TransportCost) -> HashMap<Profile, JobIndex> {
     fleet.profiles.iter().cloned().fold(HashMap::new(), |mut acc, profile| {
         // get all possible start positions for given profile
         let starts: Vec<Location> = fleet
@@ -232,9 +233,9 @@ fn create_index(fleet: &Fleet, jobs: Vec<Arc<Job>>, transport: &impl TransportCo
 
         // create job index
         let item = jobs.iter().cloned().fold(HashMap::new(), |mut acc, job| {
-            let mut job_costs: Vec<(Arc<Job>, Cost)> = jobs
+            let mut job_costs: Vec<(Job, Cost)> = jobs
                 .iter()
-                .filter(|j| j.as_ref() != job.as_ref())
+                .filter(|j| **j != job)
                 .map(|j| (j.clone(), get_cost_between_jobs(profile, transport, &job, j)))
                 .collect();
             job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));

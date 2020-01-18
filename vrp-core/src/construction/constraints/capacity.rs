@@ -78,7 +78,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     /// A helper method to return demand defined on tour activity.
     pub fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
-        activity.job.as_ref().and_then(|job| job.as_single()).and_then(|single| single.dimens.get_demand())
+        activity.job.as_ref().and_then(|job| job.dimens.get_demand())
     }
 
     /// Checks whether demand can be handled.
@@ -155,7 +155,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     ConstraintModule for CapacityConstraintModule<Capacity>
 {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Job) {
         self.accept_route_state(route_ctx);
     }
 
@@ -234,8 +234,8 @@ struct CapacityHardRouteConstraint<Capacity: Add + Sub + Ord + Copy + Default + 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     HardRouteConstraint for CapacityHardRouteConstraint<Capacity>
 {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Arc<Job>) -> Option<RouteConstraintViolation> {
-        match job.as_ref() {
+    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+        match job {
             Job::Single(job) => {
                 if CapacityConstraintModule::<Capacity>::can_handle_demand(
                     &ctx.state,

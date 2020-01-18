@@ -42,7 +42,7 @@ impl TravelModule {
 }
 
 impl ConstraintModule for TravelModule {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Job) {
         self.accept_route_state(route_ctx);
     }
 

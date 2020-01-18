@@ -6,7 +6,6 @@ use super::Ruin;
 use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::refinement::RefinementContext;
-use std::sync::Arc;
 
 /// A ruin strategy which removes random route from solution.
 pub struct RandomRouteRemoval {
@@ -40,7 +39,7 @@ impl RandomRouteRemoval {
             self.remove_whole_route(solution, route_ctx);
         } else {
             {
-                let jobs: Vec<Arc<Job>> = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect();
+                let jobs: Vec<Job> = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect();
 
                 jobs.iter().for_each(|job| {
                     route_ctx.route_mut().tour.remove(job);

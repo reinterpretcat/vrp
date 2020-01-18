@@ -128,7 +128,7 @@ fn select_seed_jobs<'a>(
     problem: &'a Problem,
     routes: &[RouteContext],
     random: &Arc<dyn Random + Send + Sync>,
-) -> Box<dyn Iterator<Item = Arc<Job>> + 'a> {
+) -> Box<dyn Iterator<Item = Job> + 'a> {
     let seed = select_seed_job(routes, random);
 
     if let Some((route_index, job)) = seed {
@@ -144,10 +144,7 @@ fn select_seed_jobs<'a>(
 }
 
 /// Selects seed job from existing solution
-fn select_seed_job<'a>(
-    routes: &'a [RouteContext],
-    random: &Arc<dyn Random + Send + Sync>,
-) -> Option<(usize, Arc<Job>)> {
+fn select_seed_job<'a>(routes: &'a [RouteContext], random: &Arc<dyn Random + Send + Sync>) -> Option<(usize, Job)> {
     if routes.is_empty() {
         return None;
     }
@@ -174,7 +171,7 @@ fn select_seed_job<'a>(
     None
 }
 
-fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) -> Option<Arc<Job>> {
+fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) -> Option<Job> {
     let size = rc.route.tour.activity_count();
     if size == 0 {
         return None;

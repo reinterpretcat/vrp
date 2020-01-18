@@ -60,7 +60,7 @@ pub trait TextReader {
 
     fn read_fleet(&mut self) -> Result<Fleet, String>;
 
-    fn read_jobs(&mut self) -> Result<Vec<Arc<Job>>, String>;
+    fn read_jobs(&mut self) -> Result<Vec<Job>, String>;
 
     fn create_transport(&self) -> MatrixTransportCost;
 }
@@ -132,12 +132,11 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
             Ok(read) if read > 0 => {
                 let route: Vec<_> = buffer.split(':').collect();
                 assert_eq!(route.len(), 2);
-                let id_map =
-                    problem.jobs.all().fold(HashMap::<String, (Arc<Job>, Arc<Single>)>::new(), |mut acc, job| {
-                        let single = job.to_single().clone();
-                        acc.insert(single.dimens.get_id().unwrap().to_string(), (job.clone(), single));
-                        acc
-                    });
+                let id_map = problem.jobs.all().fold(HashMap::<String, Arc<Single>>::new(), |mut acc, job| {
+                    let single = job.to_single().clone();
+                    acc.insert(single.dimens.get_id().unwrap().to_string(), single);
+                    acc
+                });
 
                 let actor = solution.registry.next().next().unwrap();
                 let mut tour = Tour::default();
@@ -145,7 +144,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                 create_end_activity(&actor).map(|end| tour.set_end(end));
 
                 route.last().unwrap().split_whitespace().for_each(|id| {
-                    let (job, single) = id_map.get(id).unwrap();
+                    let single = id_map.get(id).unwrap();
                     let place = single.places.first().unwrap();
                     tour.insert_last(Box::new(Activity {
                         place: vrp_core::models::solution::Place {
@@ -154,7 +153,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                             time: place.times.first().unwrap().clone(),
                         },
                         schedule: Schedule::new(0.0, 0.0),
-                        job: Some(job.clone()),
+                        job: Some(single.clone()),
                     }));
                 });
 

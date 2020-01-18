@@ -23,7 +23,7 @@ pub struct TransportConstraintModule {
 }
 
 impl ConstraintModule for TransportConstraintModule {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Arc<Job>) {
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Job) {
         self.accept_route_state(route_ctx);
     }
 
@@ -255,7 +255,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
 struct RouteCostSoftRouteConstraint {}
 
 impl SoftRouteConstraint for RouteCostSoftRouteConstraint {
-    fn estimate_job(&self, ctx: &RouteContext, _job: &Arc<Job>) -> f64 {
+    fn estimate_job(&self, ctx: &RouteContext, _job: &Job) -> f64 {
         if ctx.route.tour.job_count() == 0 {
             ctx.route.actor.driver.costs.fixed + ctx.route.actor.vehicle.costs.fixed
         } else {
