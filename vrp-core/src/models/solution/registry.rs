@@ -56,7 +56,7 @@ impl Registry {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash, Eq, PartialEq)]
 struct ActorKey {
     detail: ActorDetail,
     driver_costs: Costs,
@@ -70,53 +70,6 @@ impl ActorKey {
             driver_costs: actor.driver.costs.clone(),
             vehicle_costs: actor.vehicle.costs.clone(),
         }
-    }
-
-    pub fn same_costs(&self, other: &Self) -> bool {
-        Self::compare_costs(&self.vehicle_costs, &other.vehicle_costs)
-            && Self::compare_costs(&self.driver_costs, &other.driver_costs)
-    }
-
-    fn compare_costs(lhs: &Costs, rhs: &Costs) -> bool {
-        lhs.fixed == rhs.fixed
-            && lhs.per_distance == rhs.per_distance
-            && lhs.per_driving_time == rhs.per_driving_time
-            && lhs.per_service_time == rhs.per_service_time
-            && lhs.per_waiting_time == rhs.per_waiting_time
-    }
-}
-
-impl PartialEq for ActorKey {
-    fn eq(&self, other: &Self) -> bool {
-        other.same_costs(&self)
-            && other.detail.start == self.detail.start
-            && other.detail.end == self.detail.end
-            && other.detail.time.start == self.detail.time.start
-            && other.detail.time.end == self.detail.time.end
-    }
-}
-
-impl Eq for ActorKey {}
-
-impl Hash for ActorKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.detail.start.hash(state);
-        self.detail.end.hash(state);
-
-        ((self.detail.time.start * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.detail.time.end * 1024.0 * 1024.0).round() as i64).hash(state);
-
-        ((self.vehicle_costs.fixed * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.vehicle_costs.per_distance * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.vehicle_costs.per_driving_time * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.vehicle_costs.per_service_time * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.vehicle_costs.per_waiting_time * 1024.0 * 1024.0).round() as i64).hash(state);
-
-        ((self.driver_costs.fixed * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.driver_costs.per_distance * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.driver_costs.per_driving_time * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.driver_costs.per_service_time * 1024.0 * 1024.0).round() as i64).hash(state);
-        ((self.driver_costs.per_waiting_time * 1024.0 * 1024.0).round() as i64).hash(state);
     }
 }
 

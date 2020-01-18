@@ -5,6 +5,7 @@ mod fleet_test;
 use crate::models::common::{Dimensions, Location, Profile, TimeWindow};
 use std::cmp::Ordering::Less;
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 /// Represents operating costs for driver and vehicle.
@@ -65,7 +66,7 @@ pub struct Vehicle {
 }
 
 /// Represents actor detail.
-#[derive(Clone)]
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct ActorDetail {
     /// Location where actor starts.
     pub start: Option<Location>,
@@ -127,5 +128,33 @@ impl Fleet {
         });
 
         Fleet { drivers, vehicles, actors, profiles }
+    }
+}
+
+impl Hash for Costs {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let fixed: i64 = unsafe { std::mem::transmute(self.fixed) };
+        let per_distance: i64 = unsafe { std::mem::transmute(self.per_distance) };
+        let per_driving_time: i64 = unsafe { std::mem::transmute(self.per_driving_time) };
+        let per_service_time: i64 = unsafe { std::mem::transmute(self.per_service_time) };
+        let per_waiting_time: i64 = unsafe { std::mem::transmute(self.per_waiting_time) };
+
+        fixed.hash(state);
+        per_distance.hash(state);
+        per_driving_time.hash(state);
+        per_service_time.hash(state);
+        per_waiting_time.hash(state);
+    }
+}
+
+impl Eq for Costs {}
+
+impl PartialEq for Costs {
+    fn eq(&self, other: &Self) -> bool {
+        self.fixed == other.fixed
+            && self.per_distance == other.per_distance
+            && self.per_driving_time == other.per_driving_time
+            && self.per_service_time == other.per_service_time
+            && self.per_waiting_time == other.per_waiting_time
     }
 }

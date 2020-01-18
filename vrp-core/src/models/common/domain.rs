@@ -3,6 +3,7 @@ use crate::utils::compare_floats;
 use hashbrown::HashMap;
 use std::any::Any;
 use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 
 /// Specifies location type.
 pub type Location = usize;
@@ -37,6 +38,16 @@ impl PartialEq<TimeWindow> for TimeWindow {
 }
 
 impl Eq for TimeWindow {}
+
+impl Hash for TimeWindow {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let start: i64 = unsafe { std::mem::transmute(self.start) };
+        let end: i64 = unsafe { std::mem::transmute(self.end) };
+
+        start.hash(state);
+        end.hash(state);
+    }
+}
 
 /// Represents a schedule.
 #[derive(Clone, Debug)]
