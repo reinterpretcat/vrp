@@ -120,13 +120,10 @@ enum ActivityInfo {
     Terminal(ActivityWithActor),
 }
 
-// TODO remove this type and implement Hash/Eq on ActorDetail directly.
-type ActorDetailKey = (Option<Location>, Option<Location>, i64, i64);
-
 /// Represents specific job activity: (job, single index, place index, time window index) schema.
 type ActivityWithJob = (Job, usize, usize, usize);
 /// Represent specific terminal activity: (actor detail, location).
-type ActivityWithActor = (ActorDetailKey, usize);
+type ActivityWithActor = (ActorDetail, usize);
 
 impl AdjacencyMatrixDecipher {
     /// Creates `AdjacencyMatrixDecipher` for the given problem.
@@ -139,7 +136,7 @@ impl AdjacencyMatrixDecipher {
             actor_reverse_index: (1..).zip(problem.fleet.actors.iter().cloned()).collect(),
         };
 
-        get_unique_actor_details(&problem.fleet.actors).into_iter().for_each(|adk| match (adk.0, adk.1) {
+        get_unique_actor_details(&problem.fleet.actors).into_iter().for_each(|adk| match (adk.start, adk.end) {
             (Some(start), Some(end)) if start == end => decipher.add(ActivityInfo::Terminal((adk.clone(), start))),
             (Some(start), Some(end)) => {
                 decipher.add(ActivityInfo::Terminal((adk.clone(), start)));
@@ -241,17 +238,13 @@ impl AdjacencyMatrixDecipher {
     }
 }
 
-fn get_unique_actor_details(actors: &Vec<Arc<Actor>>) -> Vec<ActorDetailKey> {
-    let mut unique: HashSet<ActorDetailKey> = Default::default();
-    let mut details = actors.iter().map(|a| create_actor_detail_key(&a.detail)).collect::<Vec<_>>();
+fn get_unique_actor_details(actors: &Vec<Arc<Actor>>) -> Vec<ActorDetail> {
+    let mut unique: HashSet<ActorDetail> = Default::default();
+    let mut details = actors.iter().map(|a| a.detail.clone()).collect::<Vec<_>>();
 
-    details.retain(|&d| unique.insert(d));
+    details.retain(|d| unique.insert(d.clone()));
 
     details
-}
-
-fn create_actor_detail_key(detail: &ActorDetail) -> ActorDetailKey {
-    (detail.start.clone(), detail.end.clone(), detail.time.start.round() as i64, detail.time.end.round() as i64)
 }
 
 fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity) -> ActivityInfo {
@@ -275,7 +268,7 @@ fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity) -> ActivityInfo {
 
             ActivityInfo::Job((job, single_idx, place_idx, tw_idx))
         }
-        None => ActivityInfo::Terminal((create_actor_detail_key(&actor.detail), a.place.location)),
+        None => ActivityInfo::Terminal((actor.detail.clone(), a.place.location)),
     }
 }
 
