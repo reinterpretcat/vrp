@@ -168,6 +168,7 @@ impl AdjacencyMatrixDecipher {
         decipher
     }
 
+    /// Encodes solution to adjacency matrix.
     pub fn encode<T: AdjacencyMatrix>(&self, solution_ctx: &SolutionContext) -> T {
         let mut matrix = T::new(self.dimensions());
 
@@ -192,6 +193,8 @@ impl AdjacencyMatrixDecipher {
         matrix
     }
 
+    /// Decodes a feasible solution from adjacency matrix specified by `matrix` which might have
+    /// an unfeasible solution.
     pub fn decode<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
         let mut ctx = InsertionContext::new(self.problem.clone(), Arc::new(DefaultRandom::default()));
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
@@ -200,24 +203,15 @@ impl AdjacencyMatrixDecipher {
             let actor = self.actor_reverse_index.get(&actor_idx).unwrap().clone();
             let rc = RouteContext::new(actor.clone());
 
-            let mut row_idx =
+            let mut start_row_idx =
                 *self.activity_direct_index.get(&create_activity_info(&actor, rc.route.tour.start().unwrap())).unwrap();
-            // TODO construct tour consists of activity_info
+            let activity_infos = self.get_activity_infos(matrix, actor_idx, start_row_idx);
 
-            loop {
-                if let Some(target_activity_info_idx) = matrix.scan_row(row_idx, |v| v == actor_idx as f64) {
-                    let target_activity_info = self.activity_reverse_index.get(&target_activity_info_idx).unwrap();
-                    if let Some(target_single) = create_single_job(target_activity_info) {
-                        // TODO control acceptable order of sub-jobs in multi-job
-                        let mut result =
-                            evaluate_job_insertion_in_route(&target_single, &ctx, &rc, InsertionPosition::Last, None);
-
-                        continue;
-                        // TODO
-                    }
+            activity_infos.iter().for_each(|activity_info| {
+                if let Some(single) = create_single_job(activity_info) {
+                    let mut result = evaluate_job_insertion_in_route(&single, &ctx, &rc, InsertionPosition::Last, None);
                 }
-                break;
-            }
+            });
 
             acc.push(rc);
             acc
@@ -235,6 +229,30 @@ impl AdjacencyMatrixDecipher {
 
     fn dimensions(&self) -> usize {
         self.activity_direct_index.len()
+    }
+
+    fn get_activity_infos<T: AdjacencyMatrix>(
+        &self,
+        matrix: &T,
+        actor_idx: usize,
+        start_row_idx: usize,
+    ) -> Vec<&ActivityInfo> {
+        let mut next_row_idx = start_row_idx;
+        let mut activity_infos = vec![];
+
+        loop {
+            if let Some(activity_info_idx) = matrix.scan_row(next_row_idx, |v| v == actor_idx as f64) {
+                activity_infos.push(self.activity_reverse_index.get(&activity_info_idx).unwrap());
+                next_row_idx = activity_info_idx;
+
+                continue;
+            }
+            break;
+        }
+
+        // TODO scan activity infos to check that multi jobs are in allowed order.
+
+        activity_infos
     }
 }
 
