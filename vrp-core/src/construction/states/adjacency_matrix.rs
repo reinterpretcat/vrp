@@ -54,11 +54,12 @@ use crate::construction::heuristics::{evaluate_job_insertion_in_route, Insertion
 use crate::models::problem::Place as JobPlace;
 use crate::models::solution::Place as ActivityPlace;
 use crate::utils::DefaultRandom;
+use std::cmp::Ordering::Less;
 
 /// An adjacency matrix specifies behaviour of a data structure which is used to store VRP solution.
 pub trait AdjacencyMatrix {
-    /// Creates a new AdjacencyMatrix with given amount of dimenstions
-    fn new(dimension: usize) -> Self;
+    /// Creates a new AdjacencyMatrix with `size`*`size`
+    fn new(size: usize) -> Self;
 
     /// Iterates over unique matrix values.
     fn values<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
@@ -72,16 +73,16 @@ pub trait AdjacencyMatrix {
         F: Fn(f64) -> bool;
 }
 
-/// A simple `AdjacencyMatrix` implementation with built-in vectors.
-pub struct VecMatrix {
-    data: Vec<Vec<f64>>,
+/// A simple `AdjacencyMatrix` implementation using naive sparse matrix implementation.
+pub struct SparseMatrix {
+    size: usize,
+    data: HashMap<usize, Vec<(usize, f64)>>,
     values: HashSet<i64>,
 }
 
-impl AdjacencyMatrix for VecMatrix {
-    fn new(dimension: usize) -> Self {
-        let data = vec![vec![0.; dimension]; dimension];
-        Self { data, values: Default::default() }
+impl AdjacencyMatrix for SparseMatrix {
+    fn new(size: usize) -> Self {
+        Self { size, data: Default::default(), values: Default::default() }
     }
 
     fn values<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
@@ -89,7 +90,9 @@ impl AdjacencyMatrix for VecMatrix {
     }
 
     fn set_cell(&mut self, row: usize, col: usize, value: f64) {
-        self.data[row][col] = value;
+        let mut cells = self.data.entry(row).or_insert_with(|| vec![]);
+        cells.push((col, value));
+        cells.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
         self.values.insert(unsafe { std::mem::transmute(value) });
     }
 
@@ -97,7 +100,7 @@ impl AdjacencyMatrix for VecMatrix {
     where
         F: Fn(f64) -> bool,
     {
-        self.data[row].iter().position(|&v| predicate(v))
+        self.data.get(&row).and_then(|cells| cells.iter().find(|(col, v)| predicate(*v))).map(|(row, _)| *row)
     }
 }
 

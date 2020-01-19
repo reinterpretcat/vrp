@@ -59,8 +59,8 @@ fn can_encode_decode_valid_diverse_problem() {
         vec![1., 0., 0., 0., 0., 0., 0., 0.],
     ];
 
-    let adjacency_matrix = decipher.encode::<VecMatrix>(&original_solution);
-    assert_eq!(adjacency_matrix.data, expected_matrix);
+    let adjacency_matrix = decipher.encode::<SparseMatrix>(&original_solution);
+    assert_eq!(to_vvec(&adjacency_matrix), expected_matrix);
 
     let restored_solution = decipher.decode(&adjacency_matrix);
 
@@ -71,8 +71,8 @@ fn can_encode_decode_valid_diverse_problem() {
     assert_eq!(original_solution.unassigned.len(), restored_solution.unassigned.len());
     assert_eq!(original_solution.routes.len(), restored_solution.routes.len());
 
-    let adjacency_matrix = decipher.encode::<VecMatrix>(&restored_solution);
-    assert_eq!(adjacency_matrix.data, expected_matrix);
+    let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
+    assert_eq!(to_vvec(&adjacency_matrix), expected_matrix);
 }
 
 fn create_diverse_problem() -> Arc<Problem> {
@@ -135,4 +135,15 @@ fn create_route(actor: Arc<Actor>, activities: Vec<ActivityInfo>) -> RouteContex
     });
 
     rc
+}
+
+pub fn to_vvec(matrix: &SparseMatrix) -> Vec<Vec<f64>> {
+    let mut data = vec![vec![0.; matrix.size]; matrix.size];
+    matrix.data.iter().for_each(|(row, cells)| {
+        cells.iter().for_each(|&(col, value)| {
+            data[*row][col] = value;
+        });
+    });
+
+    data
 }
