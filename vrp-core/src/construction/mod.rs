@@ -1,4 +1,4 @@
-//! Building blocks for arbitrary insertion heuristic to construct a feasible solution.
+//! Building blocks for arbitrary heuristic to construct a feasible solution.
 //!
 //!
 //! # Insertion heuristic

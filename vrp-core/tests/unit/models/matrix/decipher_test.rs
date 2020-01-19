@@ -2,8 +2,8 @@ use super::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_simple_capacity;
 use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::helpers::models::problem::*;
-use crate::models::problem::SimpleActivityCost;
-use crate::models::problem::{Fleet, Jobs, VehicleDetail};
+use crate::models::matrix::SparseMatrix;
+use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, VehicleDetail};
 use crate::models::solution::Registry;
 use crate::refinement::objectives::PenalizeUnassigned;
 
@@ -20,7 +20,7 @@ fn can_create_adjacency_matrix_decipher() {
 }
 
 #[test]
-fn can_encode_decode_valid_diverse_problem() {
+fn can_encode_decode_feasible_diverse_problem() {
     let problem = create_diverse_problem();
     let decipher = AdjacencyMatrixDecipher::new(problem.clone());
     let original_solution = SolutionContext {
@@ -62,7 +62,7 @@ fn can_encode_decode_valid_diverse_problem() {
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&original_solution);
     assert_eq!(to_vvec(&adjacency_matrix), expected_matrix);
 
-    let restored_solution = decipher.decode(&adjacency_matrix);
+    let restored_solution = decipher.decode_feasible(&adjacency_matrix);
 
     // TODO improve comparison
     assert_eq!(original_solution.required.len(), restored_solution.required.len());
@@ -129,7 +129,7 @@ fn get_job(problem: &Problem, index: usize, single_index: usize) -> Job {
 fn create_route(actor: Arc<Actor>, activities: Vec<ActivityInfo>) -> RouteContext {
     let mut rc = RouteContext::new(actor);
 
-    activities.iter().for_each(|a| {
+    activities.iter().for_each(|_a| {
         unimplemented!();
         //rc.route_mut().tour.insert_last(create_tour_activity(a, None));
     });

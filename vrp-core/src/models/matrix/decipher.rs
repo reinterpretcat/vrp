@@ -1,108 +1,20 @@
 //! Provides functionality to represent VRP solution in adjacency matrix form.
 //!
-//! Encoding schema:
-//!
-//! For each job in plan create a tuple:
-//!  single -> places -> times : (job, 0, place_index, time_window_index)
-//!  multi -> singles-> places-> times -> (job, single_index, place_index, time_window_index)
-//!   => assign unique index
-//!
-//! For each actor in fleet create a tuple:
-//!  actors -> (start, time), (end, time) -> unique
-//!  => assign unique index (agreed indexing within jobs)
-//!
-//! Example:
-//!
-//! from problem:
-//!   actors:       a b c
-//!   activities:   (01) 02 03 04 05 06 07 08 09 (10)
-//! where (01) and (10) - depots (start and end)
-//!
-//! routes with their activities in solution:
-//!   a: 01 03 06 08 10
-//!   b: 01 07 04 10
-//!   c: 01 09 05 02 10
-//!
-//! adjacency matrix:
-//!   01 02 03 04 05 06 07 08 09 10
-//! 01       a           b     c
-//! 02                            c
-//! 03                a
-//! 04                            b
-//! 05    c
-//! 06                      a
-//! 07          b
-//! 08                            a
-//! 09             c
-//! 10
-//!
 
 #[cfg(test)]
-#[path = "../../../tests/unit/construction/states/adjacency_matrix_test.rs"]
-mod adjacency_matrix_test;
+#[path = "../../../tests/unit/models/matrix/decipher_test.rs"]
+mod decipher_test;
 
+use super::AdjacencyMatrix;
+use crate::construction::heuristics::{evaluate_job_insertion_in_route, InsertionPosition};
 use crate::construction::states::{InsertionContext, InsertionResult, RouteContext, SolutionContext};
-use crate::models::common::{Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, ActorDetail, Job, Place, Single};
-use crate::models::solution::{Activity, Registry, TourActivity};
+use crate::models::solution::TourActivity;
 use crate::models::Problem;
+use crate::utils::DefaultRandom;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::sync::Arc;
-
-use crate::construction::heuristics::{evaluate_job_insertion_in_route, InsertionPosition};
-use crate::models::problem::Place as JobPlace;
-use crate::models::solution::Place as ActivityPlace;
-use crate::utils::DefaultRandom;
-use std::cmp::Ordering::Less;
-
-/// An adjacency matrix specifies behaviour of a data structure which is used to store VRP solution.
-pub trait AdjacencyMatrix {
-    /// Creates a new AdjacencyMatrix with `size`*`size`
-    fn new(size: usize) -> Self;
-
-    /// Iterates over unique matrix values.
-    fn values<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a>;
-
-    /// Sets given value to cell.
-    fn set_cell(&mut self, row: usize, col: usize, value: f64);
-
-    /// Scans given row in order to find first occurrence of element for which predicate returns true.
-    fn scan_row<F>(&self, row: usize, predicate: F) -> Option<usize>
-    where
-        F: Fn(f64) -> bool;
-}
-
-/// A simple `AdjacencyMatrix` implementation using naive sparse matrix implementation.
-pub struct SparseMatrix {
-    size: usize,
-    data: HashMap<usize, Vec<(usize, f64)>>,
-    values: HashSet<i64>,
-}
-
-impl AdjacencyMatrix for SparseMatrix {
-    fn new(size: usize) -> Self {
-        Self { size, data: Default::default(), values: Default::default() }
-    }
-
-    fn values<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.values.iter().map(|&v| unsafe { std::mem::transmute(v) }))
-    }
-
-    fn set_cell(&mut self, row: usize, col: usize, value: f64) {
-        let mut cells = self.data.entry(row).or_insert_with(|| vec![]);
-        cells.push((col, value));
-        cells.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
-        self.values.insert(unsafe { std::mem::transmute(value) });
-    }
-
-    fn scan_row<F>(&self, row: usize, predicate: F) -> Option<usize>
-    where
-        F: Fn(f64) -> bool,
-    {
-        self.data.get(&row).and_then(|cells| cells.iter().find(|(col, v)| predicate(*v))).map(|(row, _)| *row)
-    }
-}
 
 /// Provides way to encode/decode solution to adjacency matrix representation.
 pub struct AdjacencyMatrixDecipher {
@@ -195,7 +107,7 @@ impl AdjacencyMatrixDecipher {
 
     /// Decodes a feasible solution from adjacency matrix specified by `matrix` which, potentially
     /// might define an unfeasible solution.
-    pub fn decode<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
+    pub fn decode_feasible<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
         let mut ctx = InsertionContext::new(self.problem.clone(), Arc::new(DefaultRandom::default()));
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
@@ -218,11 +130,10 @@ impl AdjacencyMatrixDecipher {
 
                     if is_unprocessed {
                         let single = Job::Single(single);
-                        let mut result =
-                            evaluate_job_insertion_in_route(&single, &ctx, &rc, InsertionPosition::Last, None);
+                        let result = evaluate_job_insertion_in_route(&single, &ctx, &rc, InsertionPosition::Last, None);
 
                         match result {
-                            InsertionResult::Success(success) => {}
+                            InsertionResult::Success(_) => {}
                             InsertionResult::Failure(_) => {}
                         }
 
@@ -238,6 +149,11 @@ impl AdjacencyMatrixDecipher {
 
         ctx.solution.routes = routes;
         ctx.solution
+    }
+
+    /// Decodes solution without checking feasibility.
+    pub fn decode_vague<T: AdjacencyMatrix>(&self, _matrix: &T) -> SolutionContext {
+        unimplemented!()
     }
 
     fn add(&mut self, activity_info: ActivityInfo) {
@@ -348,11 +264,11 @@ fn create_single_job(activity_info: &ActivityInfo) -> Option<(Job, Arc<Single>)>
 
             Some((job.clone(), Arc::new(Single { places: vec![place], dimens: single.dimens.clone() })))
         }
-        ActivityInfo::Terminal(activity_info) => None,
+        ActivityInfo::Terminal(_) => None,
     }
 }
 
-fn try_match_activity_place(activity: &TourActivity, places: &Vec<JobPlace>) -> Option<(usize, usize)> {
+fn try_match_activity_place(activity: &TourActivity, places: &Vec<Place>) -> Option<(usize, usize)> {
     (0_usize..).zip(places.iter()).fold(None, |acc, (place_idx, place)| {
         if acc.is_none() {
             if let Some(location) = place.location {
