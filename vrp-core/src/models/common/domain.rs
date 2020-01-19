@@ -4,6 +4,7 @@ use hashbrown::HashMap;
 use std::any::Any;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 /// Specifies location type.
 pub type Location = usize;
@@ -77,7 +78,7 @@ impl Eq for Schedule {}
 /// * unit of measure, e.g. volume, mass, size, etc.
 /// * set of skills
 /// * tag.
-pub type Dimensions = HashMap<String, Box<dyn Any + Send + Sync>>;
+pub type Dimensions = HashMap<String, Arc<dyn Any + Send + Sync>>;
 
 /// A trait to return arbitrary typed value by its key.
 pub trait ValueDimension {
@@ -98,7 +99,7 @@ pub trait IdDimension {
 
 impl IdDimension for Dimensions {
     fn set_id(&mut self, id: &str) -> &mut Self {
-        self.insert("id".to_string(), Box::new(id.to_string()));
+        self.insert("id".to_string(), Arc::new(id.to_string()));
         self
     }
 

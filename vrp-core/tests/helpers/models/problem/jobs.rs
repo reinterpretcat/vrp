@@ -68,7 +68,7 @@ impl SingleBuilder {
     }
 
     pub fn id(&mut self, id: &str) -> &mut Self {
-        self.single.dimens.insert("id".to_string(), Box::new(id.to_string()));
+        self.single.dimens.insert("id".to_string(), Arc::new(id.to_string()));
         self
     }
 

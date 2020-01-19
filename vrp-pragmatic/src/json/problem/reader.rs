@@ -266,6 +266,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
 
 fn add_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
     if let Some(skills) = skills {
-        dimens.insert("skills".to_owned(), Box::new(HashSet::<String>::from_iter(skills.iter().cloned())));
+        dimens.insert("skills".to_owned(), Arc::new(HashSet::<String>::from_iter(skills.iter().cloned())));
     }
 }

@@ -130,7 +130,8 @@ fn create_route(actor: Arc<Actor>, activities: Vec<ActivityInfo>) -> RouteContex
     let mut rc = RouteContext::new(actor);
 
     activities.iter().for_each(|a| {
-        rc.route_mut().tour.insert_last(create_tour_activity(a, None));
+        unimplemented!();
+        //rc.route_mut().tour.insert_last(create_tour_activity(a, None));
     });
 
     rc

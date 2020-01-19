@@ -41,17 +41,19 @@
 #[path = "../../../tests/unit/construction/states/adjacency_matrix_test.rs"]
 mod adjacency_matrix_test;
 
-use crate::construction::states::{RouteContext, SolutionContext};
+use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::common::{Location, Schedule, TimeWindow};
-use crate::models::problem::{Actor, ActorDetail, Job, Single};
+use crate::models::problem::{Actor, ActorDetail, Job, Place, Single};
 use crate::models::solution::{Activity, Registry, TourActivity};
 use crate::models::Problem;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::sync::Arc;
 
+use crate::construction::heuristics::{evaluate_job_insertion_in_route, InsertionPosition};
 use crate::models::problem::Place as JobPlace;
 use crate::models::solution::Place as ActivityPlace;
+use crate::utils::DefaultRandom;
 
 /// An adjacency matrix specifies behaviour of a data structure which is used to store VRP solution.
 pub trait AdjacencyMatrix {
@@ -112,7 +114,7 @@ pub struct AdjacencyMatrixDecipher {
 #[derive(Hash, Eq, PartialEq, Clone)]
 enum ActivityInfo {
     Job(ActivityWithJob),
-    Actor(ActivityWithActor),
+    Terminal(ActivityWithActor),
 }
 
 // TODO remove this type and implement Hash/Eq on ActorDetail directly.
@@ -135,13 +137,13 @@ impl AdjacencyMatrixDecipher {
         };
 
         get_unique_actor_details(&problem.fleet.actors).into_iter().for_each(|adk| match (adk.0, adk.1) {
-            (Some(start), Some(end)) if start == end => decipher.add(ActivityInfo::Actor((adk.clone(), start))),
+            (Some(start), Some(end)) if start == end => decipher.add(ActivityInfo::Terminal((adk.clone(), start))),
             (Some(start), Some(end)) => {
-                decipher.add(ActivityInfo::Actor((adk.clone(), start)));
-                decipher.add(ActivityInfo::Actor((adk.clone(), end)));
+                decipher.add(ActivityInfo::Terminal((adk.clone(), start)));
+                decipher.add(ActivityInfo::Terminal((adk.clone(), end)));
             }
-            (None, Some(end)) => decipher.add(ActivityInfo::Actor((adk.clone(), end))),
-            (Some(start), None) => decipher.add(ActivityInfo::Actor((adk.clone(), start))),
+            (None, Some(end)) => decipher.add(ActivityInfo::Terminal((adk.clone(), end))),
+            (Some(start), None) => decipher.add(ActivityInfo::Terminal((adk.clone(), start))),
             _ => {}
         });
 
@@ -191,44 +193,37 @@ impl AdjacencyMatrixDecipher {
     }
 
     pub fn decode<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
-        let registry = Registry::new(&self.problem.fleet);
-        // TODO consider locked and ignored!
+        let mut ctx = InsertionContext::new(self.problem.clone(), Arc::new(DefaultRandom::default()));
+        ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
-        // TODO make it in parallel
         let routes = matrix.values().map(|i| i as usize).fold(vec![], |mut acc, actor_idx| {
             let actor = self.actor_reverse_index.get(&actor_idx).unwrap().clone();
             let rc = RouteContext::new(actor.clone());
 
-            // TODO
-            //            let mut row_idx = *self.activity_direct_index.get(&create_activity_info(&actor, rc.route.tour.start().unwrap())).unwrap();
-            //
-            //            let next_activity = actor.detail.end.and_then(|_| rc.route.tour.end());
-            //            let mut prev_tour_activity_idx = 0;
-            //            loop {
-            //                if let Some(target_activity_info_idx) = matrix.scan_row(row_idx, |v| v == *actor_idx as f64) {
-            //                    let prev_activity = rc.route.tour.get(prev_tour_activity_idx);
-            //                    let prev_location = prev_activity.map(|a| a.place.location);
-            //
-            //                    let target_activity_info = self.activity_reverse_index.get(&target_activity_info_idx).unwrap();
-            //                    let target_activity = create_tour_activity(target_activity_info, prev_location);
-            //                } else {
-            //                    break;
-            //                }
-            //                unimplemented!()
-            //            }
+            let mut row_idx =
+                *self.activity_direct_index.get(&create_activity_info(&actor, rc.route.tour.start().unwrap())).unwrap();
+            // TODO construct tour consists of activity_info
+
+            loop {
+                if let Some(target_activity_info_idx) = matrix.scan_row(row_idx, |v| v == actor_idx as f64) {
+                    let target_activity_info = self.activity_reverse_index.get(&target_activity_info_idx).unwrap();
+                    if let Some(target_single) = create_single_job(target_activity_info) {
+                        // TODO control acceptable order of sub-jobs in multi-job
+                        let mut result =
+                            evaluate_job_insertion_in_route(&target_single, &ctx, &rc, InsertionPosition::Last, None);
+
+                        continue;
+                        // TODO
+                    }
+                }
+                break;
+            }
 
             acc.push(rc);
             acc
         });
 
-        SolutionContext {
-            required: vec![],
-            ignored: vec![],
-            unassigned: Default::default(),
-            locked: Default::default(),
-            routes,
-            registry,
-        }
+        ctx.solution
     }
 
     fn add(&mut self, activity_info: ActivityInfo) {
@@ -277,12 +272,13 @@ fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity) -> ActivityInfo {
 
             ActivityInfo::Job((job, single_idx, place_idx, tw_idx))
         }
-        None => ActivityInfo::Actor((create_actor_detail_key(&actor.detail), a.place.location)),
+        None => ActivityInfo::Terminal((create_actor_detail_key(&actor.detail), a.place.location)),
     }
 }
 
-/// Creates tour activity from the corresponding activity info.
-fn create_tour_activity(activity_info: &ActivityInfo, prev: Option<Location>) -> TourActivity {
+/// Creates a fake single job with single place and single time window to avoid uncertainty
+/// during insertion evaluation process.
+fn create_single_job(activity_info: &ActivityInfo) -> Option<Job> {
     match activity_info {
         ActivityInfo::Job(activity_info) => {
             let (job, single_index, place_index, tw_index) = activity_info;
@@ -292,30 +288,15 @@ fn create_tour_activity(activity_info: &ActivityInfo, prev: Option<Location>) ->
             };
 
             let place = single.places.get(*place_index).unwrap();
+            let place = Place {
+                location: place.location,
+                duration: place.duration,
+                times: vec![place.times.get(*tw_index).unwrap().clone()],
+            };
 
-            Box::new(Activity {
-                place: ActivityPlace {
-                    location: place.location.or(prev).unwrap(),
-                    duration: place.duration,
-                    time: place.times.get(*tw_index).unwrap().clone(),
-                },
-                schedule: Schedule::new(0., 0.),
-                job: Some(single),
-            })
+            Some(Job::Single(Arc::new(Single { places: vec![place], dimens: single.dimens.clone() })))
         }
-        ActivityInfo::Actor(activity_info) => {
-            let ((_, _, start, end), location) = activity_info;
-
-            // TODO Remove this with proper hash/eq implementation for ActorDetail
-            let start = *start as f64;
-            let end = *end as f64;
-
-            Box::new(Activity {
-                place: ActivityPlace { location: *location, duration: 0., time: TimeWindow::new(start, end) },
-                schedule: Schedule::new(0., 0.),
-                job: None,
-            })
-        }
+        ActivityInfo::Terminal(activity_info) => None,
     }
 }
 

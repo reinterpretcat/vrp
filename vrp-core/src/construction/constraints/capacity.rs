@@ -204,7 +204,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     CapacityDimension<Capacity> for Dimensions
 {
     fn set_capacity(&mut self, demand: Capacity) -> &mut Self {
-        self.insert(CAPACITY_DIMENSION_KEY.to_string(), Box::new(demand));
+        self.insert(CAPACITY_DIMENSION_KEY.to_string(), Arc::new(demand));
         self
     }
 
@@ -217,7 +217,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     DemandDimension<Capacity> for Dimensions
 {
     fn set_demand(&mut self, demand: Demand<Capacity>) -> &mut Self {
-        self.insert(DEMAND_DIMENSION_KEY.to_string(), Box::new(demand));
+        self.insert(DEMAND_DIMENSION_KEY.to_string(), Arc::new(demand));
         self
     }
 

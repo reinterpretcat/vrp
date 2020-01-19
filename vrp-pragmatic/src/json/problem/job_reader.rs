@@ -291,11 +291,11 @@ fn get_conditional_job(
     let (location, duration, times) = place;
     let mut single = get_single(location.as_ref().and_then(|l| Some(l)), duration, &times, coord_index);
     single.dimens.set_id(job_type);
-    single.dimens.insert("type".to_string(), Box::new(job_type.to_string()));
-    single.dimens.insert("shift_index".to_string(), Box::new(shift_index));
-    single.dimens.insert("vehicle_id".to_string(), Box::new(vehicle_id.clone()));
+    single.dimens.insert("type".to_string(), Arc::new(job_type.to_string()));
+    single.dimens.insert("shift_index".to_string(), Arc::new(shift_index));
+    single.dimens.insert("vehicle_id".to_string(), Arc::new(vehicle_id.clone()));
     if let Some(tag) = tag {
-        single.dimens.insert("tag".to_string(), Box::new(tag.clone()));
+        single.dimens.insert("tag".to_string(), Arc::new(tag.clone()));
     }
 
     single
@@ -344,7 +344,7 @@ fn get_single_with_extras(
             delivery: (demand.delivery.0.capacity[0], demand.delivery.1.capacity[0]),
         });
     }
-    single.dimens.insert("type".to_string(), Box::new(activity_type.to_string()));
+    single.dimens.insert("type".to_string(), Arc::new(activity_type.to_string()));
     add_tag(&mut single.dimens, tag);
 
     single
@@ -389,7 +389,7 @@ fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor
 
 fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
     if let Some(tag) = tag {
-        dimens.insert("tag".to_string(), Box::new(tag.clone()));
+        dimens.insert("tag".to_string(), Arc::new(tag.clone()));
     }
 }
 

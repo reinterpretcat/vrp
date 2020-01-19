@@ -56,6 +56,7 @@ impl Job {
 }
 
 /// Represents a job place details where and/or when work has to be performed.
+#[derive(Clone)]
 pub struct Place {
     /// Location where work has to be performed.
     pub location: Option<Location>,
@@ -124,7 +125,7 @@ impl Multi {
             let weak_multi = Arc::downgrade(&multi);
             let job: Arc<SingleConstruct> = unsafe { std::mem::transmute(job.clone()) };
             let dimens = unsafe { &mut *job.dimens.get() };
-            dimens.insert("rf".to_owned(), Box::new(weak_multi));
+            dimens.insert("rf".to_owned(), Arc::new(weak_multi));
         });
 
         multi

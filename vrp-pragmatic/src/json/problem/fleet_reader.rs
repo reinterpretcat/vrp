@@ -73,8 +73,8 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
 
             (1..vehicle.amount + 1).for_each(|number| {
                 let mut dimens: Dimensions = Default::default();
-                dimens.insert("type_id".to_owned(), Box::new(vehicle.id.clone()));
-                dimens.insert("shift_index".to_owned(), Box::new(shift_index));
+                dimens.insert("type_id".to_owned(), Arc::new(vehicle.id.clone()));
+                dimens.insert("shift_index".to_owned(), Arc::new(shift_index));
                 dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
 
                 if props.has_multi_dimen_capacity {
