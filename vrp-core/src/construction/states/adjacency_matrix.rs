@@ -52,10 +52,9 @@ use std::sync::Arc;
 
 use crate::models::problem::Place as JobPlace;
 use crate::models::solution::Place as ActivityPlace;
-use std::marker::PhantomData;
 use std::slice::Iter;
 
-pub trait Matrix {
+pub trait AdjacencyMatrix {
     ///
     fn new(dimension: usize) -> Self;
 
@@ -72,13 +71,12 @@ pub trait Matrix {
 }
 
 /// Provides way to encode/decode solution to adjacency matrix representation.
-pub struct AdjacencyMatrixDecipher<T: Matrix> {
+pub struct AdjacencyMatrixDecipher {
     problem: Arc<Problem>,
     activity_direct_index: HashMap<ActivityInfo, usize>,
     activity_reverse_index: HashMap<usize, ActivityInfo>,
     actor_direct_index: HashMap<Arc<Actor>, usize>,
     actor_reverse_index: HashMap<usize, Arc<Actor>>,
-    phantom: PhantomData<T>,
 }
 
 /// Provides way to store job or actor information to restore tour activity properly.
@@ -96,7 +94,7 @@ type ActivityWithJob = (Job, usize, usize, usize);
 /// Represent specific terminal activity: (actor detail, location).
 type ActivityWithActor = (ActorDetailKey, usize);
 
-impl<T: Matrix> AdjacencyMatrixDecipher<T> {
+impl AdjacencyMatrixDecipher {
     /// Creates `AdjacencyMatrixDecipher` for the given problem.
     pub fn new(problem: Arc<Problem>) -> Self {
         let mut decipher = Self {
@@ -105,7 +103,6 @@ impl<T: Matrix> AdjacencyMatrixDecipher<T> {
             activity_reverse_index: Default::default(),
             actor_direct_index: problem.fleet.actors.iter().cloned().zip(1..).collect(),
             actor_reverse_index: (1..).zip(problem.fleet.actors.iter().cloned()).collect(),
-            phantom: PhantomData,
         };
 
         get_unique_actor_details(&problem.fleet.actors).into_iter().for_each(|adk| match (adk.0, adk.1) {
@@ -140,7 +137,7 @@ impl<T: Matrix> AdjacencyMatrixDecipher<T> {
         decipher
     }
 
-    pub fn encode(&self, solution_ctx: &SolutionContext) -> T {
+    pub fn encode<T: AdjacencyMatrix>(&self, solution_ctx: &SolutionContext) -> T {
         let mut matrix = T::new(self.dimensions());
 
         solution_ctx.routes.iter().for_each(|rc| {
@@ -164,7 +161,7 @@ impl<T: Matrix> AdjacencyMatrixDecipher<T> {
         matrix
     }
 
-    pub fn decode(&self, matrix: &T) -> SolutionContext {
+    pub fn decode<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
         let registry = Registry::new(&self.problem.fleet);
         let actor_indices = matrix.iter().map(|&i| i as usize).filter(|&i| i != 0).collect::<HashSet<_>>();
 
