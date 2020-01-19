@@ -114,7 +114,7 @@ impl AdjacencyMatrixDecipher {
         let mut unprocessed = ctx.solution.required.iter().cloned().collect::<HashSet<_>>();
         let mut routes = self.get_routes(&mut ctx.solution, matrix);
 
-        routes.iter_mut().for_each(|rc| {
+        routes.iter_mut().for_each(|mut rc| {
             let actor = &rc.route.actor;
             let actor_idx = *self.actor_direct_index.get(actor).unwrap();
 
@@ -122,27 +122,7 @@ impl AdjacencyMatrixDecipher {
             let start_row_idx = *self.activity_direct_index.get(&start_info).unwrap();
             let activity_infos = self.get_activity_infos(matrix, actor_idx, start_row_idx);
 
-            //let multi_job_index: HashMap<Job, usize> = Default::default();
-
-            activity_infos.into_iter().filter_map(|activity_info| create_single_job(activity_info)).for_each(
-                |(job, single)| {
-                    let is_unprocessed = unprocessed.contains(&job);
-
-                    if is_unprocessed {
-                        let single = Job::Single(single);
-                        let result = evaluate_job_insertion_in_route(&single, &ctx, &rc, InsertionPosition::Last, None);
-
-                        match result {
-                            InsertionResult::Success(_) => {}
-                            InsertionResult::Failure(_) => {}
-                        }
-
-                        // TODO evaluate insertion based on job type from activity info
-
-                        // TODO delete from required
-                    }
-                },
-            );
+            ActivityInfoInserter::new().insert(&mut ctx, &mut rc, &mut unprocessed, activity_infos);
         });
 
         // TODO propagate left required jobs to unassigned
@@ -286,4 +266,42 @@ fn try_match_activity_place(activity: &TourActivity, places: &Vec<Place>) -> Opt
 
         acc
     })
+}
+
+/// Inserts jobs into tour taking care constraints.
+struct ActivityInfoInserter {}
+
+impl ActivityInfoInserter {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn insert(
+        &mut self,
+        insertion_ctx: &mut InsertionContext,
+        route_ctx: &mut RouteContext,
+        unprocessed: &mut HashSet<Job>,
+        activity_infos: Vec<&ActivityInfo>,
+    ) {
+        // TODO analyze multi jobs presence
+
+        activity_infos.iter().filter_map(|activity_info| create_single_job(activity_info)).for_each(|(job, single)| {
+            let is_unprocessed = unprocessed.contains(&job);
+
+            if is_unprocessed {
+                let single = Job::Single(single);
+                let result =
+                    evaluate_job_insertion_in_route(&single, insertion_ctx, route_ctx, InsertionPosition::Last, None);
+
+                match result {
+                    InsertionResult::Success(_) => {}
+                    InsertionResult::Failure(_) => {}
+                }
+
+                // TODO evaluate insertion based on job type from activity info
+
+                // TODO delete from required
+            }
+        });
+    }
 }
