@@ -152,7 +152,7 @@ impl InsertionContext {
         let mut ctx = InsertionContext {
             problem: problem.clone(),
             solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry },
-            random: random.clone(),
+            random,
         };
 
         problem.constraint.accept_solution_state(&mut ctx.solution);

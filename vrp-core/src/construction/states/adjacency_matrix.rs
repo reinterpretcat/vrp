@@ -193,30 +193,45 @@ impl AdjacencyMatrixDecipher {
         matrix
     }
 
-    /// Decodes a feasible solution from adjacency matrix specified by `matrix` which might have
-    /// an unfeasible solution.
+    /// Decodes a feasible solution from adjacency matrix specified by `matrix` which, potentially
+    /// might define an unfeasible solution.
     pub fn decode<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
         let mut ctx = InsertionContext::new(self.problem.clone(), Arc::new(DefaultRandom::default()));
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
-        let routes = matrix.values().map(|i| i as usize).fold(vec![], |mut acc, actor_idx| {
-            let actor = self.actor_reverse_index.get(&actor_idx).unwrap().clone();
-            let rc = RouteContext::new(actor.clone());
+        let mut unprocessed = ctx.solution.required.iter().cloned().collect::<HashSet<_>>();
+        let mut routes = self.get_routes(matrix, &ctx.solution.routes);
 
-            let mut start_row_idx =
-                *self.activity_direct_index.get(&create_activity_info(&actor, rc.route.tour.start().unwrap())).unwrap();
+        routes.iter_mut().for_each(|rc| {
+            let actor = &rc.route.actor;
+            let actor_idx = *self.actor_direct_index.get(actor).unwrap();
+
+            let start_info = create_activity_info(actor, rc.route.tour.start().unwrap());
+            let start_row_idx = *self.activity_direct_index.get(&start_info).unwrap();
             let activity_infos = self.get_activity_infos(matrix, actor_idx, start_row_idx);
 
-            activity_infos.iter().for_each(|activity_info| {
-                if let Some(single) = create_single_job(activity_info) {
-                    let mut result = evaluate_job_insertion_in_route(&single, &ctx, &rc, InsertionPosition::Last, None);
-                }
-            });
+            let multi_job_index: HashMap<Job, usize> = Default::default();
 
-            acc.push(rc);
-            acc
+            activity_infos.into_iter().filter_map(|activity_info| create_single_job(activity_info)).for_each(
+                |(job, single)| {
+                    let is_unprocessed = unprocessed.contains(&job);
+
+                    if is_unprocessed {
+                        let single = Job::Single(single);
+                        let mut result =
+                            evaluate_job_insertion_in_route(&single, &ctx, &rc, InsertionPosition::Last, None);
+
+                        // TODO evaluate insertion based on job type from activity info
+
+                        // TODO delete from required
+                    }
+                },
+            );
         });
 
+        // TODO propagate left required jobs to unassigned
+
+        ctx.solution.routes = routes;
         ctx.solution
     }
 
@@ -229,6 +244,17 @@ impl AdjacencyMatrixDecipher {
 
     fn dimensions(&self) -> usize {
         self.activity_direct_index.len()
+    }
+
+    fn get_routes<T: AdjacencyMatrix>(&self, matrix: &T, locked_routes: &Vec<RouteContext>) -> Vec<RouteContext> {
+        let used_actors = locked_routes.iter().map(|r| r.route.actor.clone()).collect::<HashSet<_>>();
+        matrix
+            .values()
+            .map(|i| self.actor_reverse_index.get(&(i as usize)).cloned().unwrap())
+            .filter(|a| used_actors.get(a).is_none())
+            .map(|a| RouteContext::new(a))
+            .chain(locked_routes.iter().cloned())
+            .collect()
     }
 
     fn get_activity_infos<T: AdjacencyMatrix>(
@@ -292,7 +318,7 @@ fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity) -> ActivityInfo {
 
 /// Creates a fake single job with single place and single time window to avoid uncertainty
 /// during insertion evaluation process.
-fn create_single_job(activity_info: &ActivityInfo) -> Option<Job> {
+fn create_single_job(activity_info: &ActivityInfo) -> Option<(Job, Arc<Single>)> {
     match activity_info {
         ActivityInfo::Job(activity_info) => {
             let (job, single_index, place_index, tw_index) = activity_info;
@@ -308,7 +334,7 @@ fn create_single_job(activity_info: &ActivityInfo) -> Option<Job> {
                 times: vec![place.times.get(*tw_index).unwrap().clone()],
             };
 
-            Some(Job::Single(Arc::new(Single { places: vec![place], dimens: single.dimens.clone() })))
+            Some((job.clone(), Arc::new(Single { places: vec![place], dimens: single.dimens.clone() })))
         }
         ActivityInfo::Terminal(activity_info) => None,
     }
