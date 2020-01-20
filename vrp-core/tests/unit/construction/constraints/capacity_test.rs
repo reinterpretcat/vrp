@@ -40,18 +40,15 @@ fn can_calculate_current_capacity_state_values_impl(
     exp_s3: i32,
 ) {
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
-    let mut ctx = RouteContext {
-        route: Arc::new(create_route_with_activities(
-            &fleet,
-            "v1",
-            vec![
-                test_tour_activity_with_simple_demand(create_simple_demand(s1)),
-                test_tour_activity_with_simple_demand(create_simple_demand(s2)),
-                test_tour_activity_with_simple_demand(create_simple_demand(s3)),
-            ],
-        )),
-        state: Arc::new(RouteState::default()),
-    };
+    let mut ctx = create_route_context_with_activities(
+        &fleet,
+        "v1",
+        vec![
+            test_tour_activity_with_simple_demand(create_simple_demand(s1)),
+            test_tour_activity_with_simple_demand(create_simple_demand(s2)),
+            test_tour_activity_with_simple_demand(create_simple_demand(s3)),
+        ],
+    );
 
     create_constraint_pipeline_with_simple_capacity().accept_route_state(&mut ctx);
 
@@ -76,10 +73,7 @@ can_evaluate_demand_on_route! {
 
 fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraintViolation>) {
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
-    let ctx = RouteContext {
-        route: Arc::new(create_route_with_activities(&fleet, "v1", vec![])),
-        state: Arc::new(RouteState::default()),
-    };
+    let ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
     let job = Job::Single(test_single_with_simple_demand(create_simple_demand(size)));
 
     let result = create_constraint_pipeline_with_simple_capacity().evaluate_hard_route(&ctx, &job);
@@ -112,14 +106,11 @@ fn can_evaluate_demand_on_activity_impl(
     expected: Option<ActivityConstraintViolation>,
 ) {
     let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
-    let mut route_ctx = RouteContext {
-        route: Arc::new(create_route_with_activities(
-            &fleet,
-            "v1",
-            sizes.into_iter().map(|size| test_tour_activity_with_simple_demand(create_simple_demand(size))).collect(),
-        )),
-        state: Arc::new(RouteState::default()),
-    };
+    let mut route_ctx = create_route_context_with_activities(
+        &fleet,
+        "v1",
+        sizes.into_iter().map(|size| test_tour_activity_with_simple_demand(create_simple_demand(size))).collect(),
+    );
     let pipeline = create_constraint_pipeline_with_simple_capacity();
     pipeline.accept_route_state(&mut route_ctx);
     let target = test_tour_activity_with_simple_demand(create_simple_demand(size));

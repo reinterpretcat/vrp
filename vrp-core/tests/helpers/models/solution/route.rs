@@ -1,4 +1,4 @@
-use crate::construction::states::{create_end_activity, create_start_activity};
+use crate::construction::states::{create_end_activity, create_start_activity, RouteContext, RouteState};
 use crate::helpers::models::problem::*;
 use crate::models::common::{Duration, Location, Schedule};
 use crate::models::problem::{Actor, Fleet, Single};
@@ -72,6 +72,16 @@ pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Ve
     create_end_activity(&actor).map(|end| tour.set_end(end));
 
     create_route(actor, tour, activities)
+}
+
+pub fn create_route_context_with_activities(
+    fleet: &Fleet,
+    vehicle: &str,
+    activities: Vec<TourActivity>,
+) -> RouteContext {
+    let route = create_route_with_activities(fleet, vehicle, activities);
+
+    RouteContext { route: Arc::new(route), state: Arc::new(RouteState::default()) }
 }
 
 fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<TourActivity>) -> Route {

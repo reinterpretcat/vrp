@@ -16,8 +16,7 @@ pub struct ActivityInfoInserter<'a> {
     unassigned: &'a mut HashSet<Job>,
     activity_infos: Vec<&'a ActivityInfo>,
 
-    inserted_job_map: HashMap<Job, Vec<usize>>,
-    planned_job_map: HashMap<Job, Vec<usize>>,
+    inserted_job_map: HashMap<Job, Vec<(usize, usize)>>,
 }
 
 impl<'a> ActivityInfoInserter<'a> {
@@ -28,31 +27,20 @@ impl<'a> ActivityInfoInserter<'a> {
         unassigned: &'a mut HashSet<Job>,
         activity_infos: Vec<&'a ActivityInfo>,
     ) -> Self {
-        // TODO scan activity infos to check that multi jobs are in allowed order.
-        //      if not, exclude these entries from collection.
-
         let planned_job_map = Self::get_multi_job_map(&activity_infos);
-        Self {
-            insertion_ctx,
-            route_ctx,
-            unprocessed,
-            unassigned,
-            activity_infos,
-            inserted_job_map: Default::default(),
-            planned_job_map,
-        }
+        Self { insertion_ctx, route_ctx, unprocessed, unassigned, activity_infos, inserted_job_map: Default::default() }
     }
 
     pub fn insert(&mut self) {
-        let mut next_idx = 0_usize;
+        let mut activity_info_idx = 0_usize;
         loop {
-            if let Some(activity_info) = self.activity_infos.get(next_idx) {
+            if let Some(activity_info) = self.activity_infos.get(activity_info_idx) {
                 if let Some((job, single, single_idx)) = create_single_job(activity_info) {
                     if self.unprocessed.contains(&job) {
-                        if self.try_insert_single(&job, single, single_idx) {
+                        if self.try_insert_single(&job, single, single_idx, activity_info_idx) {
                             self.accept_insertion(&job);
                         } else {
-                            next_idx = self.discard_insertion(&job, next_idx);
+                            activity_info_idx = self.discard_insertion(&job, activity_info_idx);
                             continue;
                         }
                     }
@@ -61,11 +49,17 @@ impl<'a> ActivityInfoInserter<'a> {
                 break;
             }
 
-            next_idx = next_idx + 1;
+            activity_info_idx = activity_info_idx + 1;
         }
     }
 
-    fn try_insert_single(&mut self, job: &Job, single: Arc<Single>, single_idx: usize) -> bool {
+    fn try_insert_single(
+        &mut self,
+        job: &Job,
+        single: Arc<Single>,
+        single_idx: usize,
+        activity_info_idx: usize,
+    ) -> bool {
         let single = Job::Single(single);
         let result =
             evaluate_job_insertion_in_route(&single, self.insertion_ctx, self.route_ctx, InsertionPosition::Last, None);
@@ -80,7 +74,7 @@ impl<'a> ActivityInfoInserter<'a> {
                     .or_else(|| activity.job.clone());
 
                 self.route_ctx.route_mut().tour.insert_last(activity);
-                self.inserted_job_map.entry(job.clone()).or_insert_with(|| vec![]).push(index);
+                self.inserted_job_map.entry(job.clone()).or_insert_with(|| vec![]).push((index, activity_info_idx));
 
                 true
             }
@@ -103,19 +97,22 @@ impl<'a> ActivityInfoInserter<'a> {
     }
 
     /// Removes all job activities from the tour and all its successors. Returns an index of last kept job.
-    fn discard_insertion(&mut self, job: &Job, current_idx: usize) -> usize {
-        let mut next_idx = current_idx + 1;
+    fn discard_insertion(&mut self, job: &Job, activity_info_idx: usize) -> usize {
+        let mut next_idx = activity_info_idx + 1;
         match job {
             // NOTE keep activity info as it might be inserted if some multi job is deleted
             Job::Single(_) => next_idx,
             // NOTE remove everything after first sub job and remove multi job from the list
             Job::Multi(multi) => {
                 if let Some(inserted) = self.inserted_job_map.get(job) {
-                    let start = inserted.first().cloned().unwrap();
+                    let (start, _) = inserted.first().cloned().unwrap();
                     let end = self.route_ctx.route.tour.total() - 1;
                     let jobs = self.route_ctx.route_mut().tour.remove_activities_at(start, end);
 
-                    self.unprocessed.extend(jobs.into_iter());
+                    jobs.iter().for_each(|job| {
+                        self.inserted_job_map.remove(job);
+                        self.unprocessed.insert(job.clone());
+                    });
                 }
 
                 self.unprocessed.remove(job);
@@ -128,6 +125,9 @@ impl<'a> ActivityInfoInserter<'a> {
 
     /// Get multi jobs within their sub job insertion order.
     fn get_multi_job_map(activity_infos: &Vec<&ActivityInfo>) -> HashMap<Job, Vec<usize>> {
+        // TODO scan activity infos to check that multi jobs are in allowed order.
+        //      if not, exclude these entries from collection.
+
         activity_infos.iter().enumerate().fold(HashMap::new(), |mut acc, (ai_idx, ai)| {
             match ai {
                 ActivityInfo::Job((job, single_idx, _, _)) => {
