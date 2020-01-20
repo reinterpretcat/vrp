@@ -65,3 +65,5 @@ pub use self::sparse_matrix::*;
 
 mod decipher;
 pub use self::decipher::AdjacencyMatrixDecipher;
+
+mod inserter;
