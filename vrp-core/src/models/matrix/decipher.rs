@@ -107,7 +107,7 @@ impl AdjacencyMatrixDecipher {
 
     /// Decodes a feasible solution from adjacency matrix specified by `matrix` which, potentially
     /// might define an unfeasible solution.
-    pub fn decode_feasible<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
+    pub fn decode<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
         // NOTE A new context already contains routes with locked jobs which is important as
         // passed AM solution might ignore these rules.
         let mut ctx = InsertionContext::new(self.problem.clone(), Arc::new(DefaultRandom::default()));
@@ -138,11 +138,6 @@ impl AdjacencyMatrixDecipher {
 
         ctx.solution.routes = routes;
         ctx.solution
-    }
-
-    /// Decodes solution without checking feasibility.
-    pub fn decode_vague<T: AdjacencyMatrix>(&self, _matrix: &T) -> SolutionContext {
-        unimplemented!()
     }
 
     fn add(&mut self, activity_info: ActivityInfo) {

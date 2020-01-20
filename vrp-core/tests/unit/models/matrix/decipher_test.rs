@@ -73,7 +73,7 @@ fn can_encode_decode_feasible_diverse_problem() {
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&original_solution);
     assert_eq!(to_vvec(&adjacency_matrix), expected_matrix);
 
-    let restored_solution = decipher.decode_feasible(&adjacency_matrix);
+    let restored_solution = decipher.decode(&adjacency_matrix);
 
     // TODO improve comparison
     assert_eq!(original_solution.required.len(), restored_solution.required.len());
