@@ -1,4 +1,4 @@
-//! Provides functionality to represent VRP solution in adjacency matrix form.
+//! Provides a way to represent VRP solution in adjacency matrix form (experimental).
 //!
 
 #[cfg(test)]
@@ -67,14 +67,14 @@ impl AdjacencyMatrixDecipher {
                     .map(|(idx, j)| (idx, j.places.iter().collect::<Vec<_>>()))
                     .collect::<Vec<_>>(),
             }
-            .iter()
-            .for_each(|(single_idx, places)| {
-                (0..).zip(places.iter()).for_each(|(place_idx, place)| {
-                    (0..).zip(place.times.iter()).for_each(|(tw_idx, _)| {
-                        decipher.add(ActivityInfo::Job((job.clone(), *single_idx, place_idx, tw_idx)));
+                .iter()
+                .for_each(|(single_idx, places)| {
+                    (0..).zip(places.iter()).for_each(|(place_idx, place)| {
+                        (0..).zip(place.times.iter()).for_each(|(tw_idx, _)| {
+                            decipher.add(ActivityInfo::Job((job.clone(), *single_idx, place_idx, tw_idx)));
+                        })
                     })
-                })
-            });
+                });
         });
 
         decipher
@@ -108,6 +108,8 @@ impl AdjacencyMatrixDecipher {
     /// Decodes a feasible solution from adjacency matrix specified by `matrix` which, potentially
     /// might define an unfeasible solution.
     pub fn decode_feasible<T: AdjacencyMatrix>(&self, matrix: &T) -> SolutionContext {
+        // NOTE A new context already contains routes with locked jobs which is important as
+        // passed AM solution might ignore these rules.
         let mut ctx = InsertionContext::new(self.problem.clone(), Arc::new(DefaultRandom::default()));
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
@@ -122,7 +124,7 @@ impl AdjacencyMatrixDecipher {
             let start_row_idx = *self.activity_direct_index.get(&start_info).unwrap();
             let activity_infos = self.get_activity_infos(matrix, actor_idx, start_row_idx);
 
-            ActivityInfoInserter::new().insert(&mut ctx, &mut rc, &mut unprocessed, activity_infos);
+            ActivityInfoInserter::new(&mut ctx, &mut rc, &mut unprocessed, activity_infos).insert();
         });
 
         // TODO propagate left required jobs to unassigned
@@ -226,7 +228,7 @@ fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity) -> ActivityInfo {
 
 /// Creates a fake single job with single place and single time window to avoid uncertainty
 /// during insertion evaluation process.
-fn create_single_job(activity_info: &ActivityInfo) -> Option<(Job, Arc<Single>)> {
+fn create_single_job(activity_info: &ActivityInfo) -> Option<(Job, Arc<Single>, usize)> {
     match activity_info {
         ActivityInfo::Job(activity_info) => {
             let (job, single_index, place_index, tw_index) = activity_info;
@@ -242,19 +244,19 @@ fn create_single_job(activity_info: &ActivityInfo) -> Option<(Job, Arc<Single>)>
                 times: vec![place.times.get(*tw_index).unwrap().clone()],
             };
 
-            Some((job.clone(), Arc::new(Single { places: vec![place], dimens: single.dimens.clone() })))
+            Some((job.clone(), Arc::new(Single { places: vec![place], dimens: single.dimens.clone() }), *single_index))
         }
         ActivityInfo::Terminal(_) => None,
     }
 }
 
 fn try_match_activity_place(activity: &TourActivity, places: &Vec<Place>) -> Option<(usize, usize)> {
-    (0_usize..).zip(places.iter()).fold(None, |acc, (place_idx, place)| {
+    places.iter().enumerate().fold(None, |acc, (place_idx, place)| {
         if acc.is_none() {
             if let Some(location) = place.location {
                 if location == activity.place.location {
                     if activity.place.duration == place.duration {
-                        for (tw_idx, tw) in (0_usize..).zip(place.times.iter()) {
+                        for (tw_idx, tw) in place.times.iter().enumerate() {
                             if &activity.place.time == tw {
                                 return Some((place_idx, tw_idx));
                             }
@@ -269,39 +271,110 @@ fn try_match_activity_place(activity: &TourActivity, places: &Vec<Place>) -> Opt
 }
 
 /// Inserts jobs into tour taking care constraints.
-struct ActivityInfoInserter {}
+struct ActivityInfoInserter<'a> {
+    insertion_ctx: &'a mut InsertionContext,
+    route_ctx: &'a mut RouteContext,
+    unprocessed: &'a mut HashSet<Job>,
+    activity_infos: Vec<&'a ActivityInfo>,
 
-impl ActivityInfoInserter {
-    pub fn new() -> Self {
-        Self {}
+    inserted_job_map: HashMap<Job, Vec<usize>>,
+    multi_job_map: HashMap<Job, Vec<usize>>,
+}
+
+impl<'a> ActivityInfoInserter<'a> {
+    pub fn new(
+        insertion_ctx: &'a mut InsertionContext,
+        route_ctx: &'a mut RouteContext,
+        unprocessed: &'a mut HashSet<Job>,
+        activity_infos: Vec<&'a ActivityInfo>,
+    ) -> Self {
+        let multi_job_map = Self::get_multi_job_map(&activity_infos);
+        Self {
+            insertion_ctx,
+            route_ctx,
+            unprocessed,
+            activity_infos,
+            inserted_job_map: Default::default(),
+            multi_job_map,
+        }
     }
 
-    pub fn insert(
-        &mut self,
-        insertion_ctx: &mut InsertionContext,
-        route_ctx: &mut RouteContext,
-        unprocessed: &mut HashSet<Job>,
-        activity_infos: Vec<&ActivityInfo>,
-    ) {
-        // TODO analyze multi jobs presence
-
-        activity_infos.iter().filter_map(|activity_info| create_single_job(activity_info)).for_each(|(job, single)| {
-            let is_unprocessed = unprocessed.contains(&job);
-
-            if is_unprocessed {
-                let single = Job::Single(single);
-                let result =
-                    evaluate_job_insertion_in_route(&single, insertion_ctx, route_ctx, InsertionPosition::Last, None);
-
-                match result {
-                    InsertionResult::Success(_) => {}
-                    InsertionResult::Failure(_) => {}
+    pub fn insert(&mut self) {
+        let mut next_idx = 0_usize;
+        loop {
+            if let Some(activity_info) = self.activity_infos.get(next_idx) {
+                if let Some((job, single, single_idx)) = create_single_job(activity_info) {
+                    if self.unprocessed.contains(&job) {
+                        if self.try_insert_single(&job, single, single_idx) {
+                            self.accept_insertion(&job);
+                        } else {
+                            next_idx = self.discard_insertion(&job, next_idx);
+                            continue;
+                        }
+                    }
                 }
-
-                // TODO evaluate insertion based on job type from activity info
-
-                // TODO delete from required
+            } else {
+                break;
             }
-        });
+
+            next_idx = next_idx + 1;
+        }
+    }
+
+    fn try_insert_single(&mut self, job: &Job, single: Arc<Single>, single_idx: usize) -> bool {
+        let single = Job::Single(single);
+        let result =
+            evaluate_job_insertion_in_route(&single, self.insertion_ctx, self.route_ctx, InsertionPosition::Last, None);
+
+        match result {
+            InsertionResult::Success(success) => {
+                assert_eq!(success.activities.len(), 1);
+                let (mut activity, index) = success.activities.into_iter().next().unwrap();
+                activity.job = job
+                    .as_multi()
+                    .and_then(|multi| multi.jobs.get(single_idx).cloned())
+                    .or_else(|| activity.job.clone());
+
+                self.route_ctx.route_mut().tour.insert_last(activity);
+                self.inserted_job_map.entry(job.clone()).or_insert_with(|| vec![]).push(index);
+
+                true
+            }
+            InsertionResult::Failure(_) => false,
+        }
+    }
+
+    fn accept_insertion(&mut self, job: &Job) {
+        // TODO we call accept insertion on job which might be to early for multi
+        //      job case, so document this as it might be unexpected for callee
+        self.insertion_ctx.problem.constraint.accept_insertion(&mut self.insertion_ctx.solution, self.route_ctx, &job);
+
+        let should_remove =
+            job.as_multi().map_or(true, |multi| multi.jobs.len() == self.inserted_job_map.get(job).unwrap().len());
+
+        if should_remove {
+            self.unprocessed.remove(job);
+        }
+    }
+
+    /// Removes all job activities from the tour and all its successors. Returns an index of last kept job.
+    fn discard_insertion(&mut self, job: &Job, current_idx: usize) -> usize {
+        unimplemented!()
+    }
+
+    /// Get multi jobs within their sub job insertion order.
+    fn get_multi_job_map(activity_infos: &Vec<&ActivityInfo>) -> HashMap<Job, Vec<usize>> {
+        activity_infos.iter().enumerate().fold(HashMap::new(), |mut acc, (ai_idx, ai)| {
+            match ai {
+                ActivityInfo::Job((job, single_idx, _, _)) => {
+                    if let Some(multi) = job.as_multi() {
+                        acc.entry(job.clone()).or_insert_with(|| vec![]).push(*single_idx)
+                    }
+                }
+                _ => {}
+            }
+
+            acc
+        })
     }
 }

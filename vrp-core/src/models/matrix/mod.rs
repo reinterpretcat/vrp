@@ -1,7 +1,9 @@
 //! Contains functionality to work with solution represented in adjacency matrix from.
 //!
-//! Adjacency matrix functionality in this module is designed to be used as part of more
-//! sophisticated metaheuristic.
+//! This is experimental functionality with a main purpose to design more sophisticated
+//! metaheuristics which capable to produce *unfeasible solutions and convert them to feasible.
+//!
+//! *unfeasible solution is solution which has at least one violation of hard constraint.
 //!
 //!
 //! Encoding schema:
