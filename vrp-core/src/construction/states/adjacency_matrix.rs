@@ -41,7 +41,7 @@
 #[path = "../../../tests/unit/construction/states/adjacency_matrix_test.rs"]
 mod adjacency_matrix_test;
 
-use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
+use crate::construction::states::{InsertionContext, InsertionResult, RouteContext, SolutionContext};
 use crate::models::common::{Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, ActorDetail, Job, Place, Single};
 use crate::models::solution::{Activity, Registry, TourActivity};
@@ -200,7 +200,7 @@ impl AdjacencyMatrixDecipher {
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
         let mut unprocessed = ctx.solution.required.iter().cloned().collect::<HashSet<_>>();
-        let mut routes = self.get_routes(matrix, &ctx.solution.routes);
+        let mut routes = self.get_routes(&mut ctx.solution, matrix);
 
         routes.iter_mut().for_each(|rc| {
             let actor = &rc.route.actor;
@@ -210,7 +210,7 @@ impl AdjacencyMatrixDecipher {
             let start_row_idx = *self.activity_direct_index.get(&start_info).unwrap();
             let activity_infos = self.get_activity_infos(matrix, actor_idx, start_row_idx);
 
-            let multi_job_index: HashMap<Job, usize> = Default::default();
+            //let multi_job_index: HashMap<Job, usize> = Default::default();
 
             activity_infos.into_iter().filter_map(|activity_info| create_single_job(activity_info)).for_each(
                 |(job, single)| {
@@ -220,6 +220,11 @@ impl AdjacencyMatrixDecipher {
                         let single = Job::Single(single);
                         let mut result =
                             evaluate_job_insertion_in_route(&single, &ctx, &rc, InsertionPosition::Last, None);
+
+                        match result {
+                            InsertionResult::Success(success) => {}
+                            InsertionResult::Failure(_) => {}
+                        }
 
                         // TODO evaluate insertion based on job type from activity info
 
@@ -246,15 +251,22 @@ impl AdjacencyMatrixDecipher {
         self.activity_direct_index.len()
     }
 
-    fn get_routes<T: AdjacencyMatrix>(&self, matrix: &T, locked_routes: &Vec<RouteContext>) -> Vec<RouteContext> {
-        let used_actors = locked_routes.iter().map(|r| r.route.actor.clone()).collect::<HashSet<_>>();
-        matrix
-            .values()
-            .map(|i| self.actor_reverse_index.get(&(i as usize)).cloned().unwrap())
-            .filter(|a| used_actors.get(a).is_none())
-            .map(|a| RouteContext::new(a))
-            .chain(locked_routes.iter().cloned())
-            .collect()
+    fn get_routes<T: AdjacencyMatrix>(&self, solution: &mut SolutionContext, matrix: &T) -> Vec<RouteContext> {
+        let used_actors = solution.routes.iter().map(|r| r.route.actor.clone()).collect::<HashSet<_>>();
+        let mut routes = solution.routes.clone();
+
+        routes.extend(
+            matrix
+                .values()
+                .map(|i| self.actor_reverse_index.get(&(i as usize)).cloned().unwrap())
+                .filter(|a| used_actors.get(a).is_none())
+                .map(|a| {
+                    solution.registry.use_actor(&a);
+                    RouteContext::new(a)
+                }),
+        );
+
+        routes
     }
 
     fn get_activity_infos<T: AdjacencyMatrix>(
@@ -347,8 +359,7 @@ fn try_match_activity_place(activity: &TourActivity, places: &Vec<JobPlace>) -> 
                 if location == activity.place.location {
                     if activity.place.duration == place.duration {
                         for (tw_idx, tw) in (0_usize..).zip(place.times.iter()) {
-                            // TODO rely on Eq once implemented
-                            if activity.place.time.start == tw.start && activity.place.time.end == tw.end {
+                            if &activity.place.time == tw {
                                 return Some((place_idx, tw_idx));
                             }
                         }
