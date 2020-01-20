@@ -49,10 +49,9 @@ impl AdjacencyMatrixDecipher {
         };
 
         get_unique_actor_details(&problem.fleet.actors).into_iter().for_each(|adk| match (adk.start, adk.end) {
-            (Some(start), Some(end)) if start == end => decipher.add(ActivityInfo::Terminal((adk.clone(), start))),
-            (Some(start), Some(end)) => {
-                decipher.add(ActivityInfo::Terminal((adk.clone(), start)));
-                decipher.add(ActivityInfo::Terminal((adk.clone(), end)));
+            (Some(_), Some(_)) => {
+                decipher.add(ActivityInfo::Terminal((adk.clone(), 0)));
+                decipher.add(ActivityInfo::Terminal((adk.clone(), 1)));
             }
             (None, Some(end)) => decipher.add(ActivityInfo::Terminal((adk.clone(), end))),
             (Some(start), None) => decipher.add(ActivityInfo::Terminal((adk.clone(), start))),
@@ -88,11 +87,12 @@ impl AdjacencyMatrixDecipher {
             let actor = &rc.route.actor;
             let actor_idx = *self.actor_direct_index.get(actor).unwrap() as f64;
 
-            rc.route.tour.legs().for_each(|(items, _)| {
+            rc.route.tour.legs().for_each(|(items, leg_idx)| {
                 match items {
                     [prev, next] => {
-                        let from = *self.activity_direct_index.get(&create_activity_info(actor, prev)).unwrap();
-                        let to = *self.activity_direct_index.get(&create_activity_info(actor, next)).unwrap();
+                        let from =
+                            *self.activity_direct_index.get(&create_activity_info(actor, prev, leg_idx)).unwrap();
+                        let to = *self.activity_direct_index.get(&create_activity_info(actor, next, leg_idx)).unwrap();
 
                         matrix.set_cell(from, to, actor_idx);
                     }
@@ -121,7 +121,7 @@ impl AdjacencyMatrixDecipher {
             let actor = &rc.route.actor;
             let actor_idx = *self.actor_direct_index.get(actor).unwrap();
 
-            let start_info = create_activity_info(actor, rc.route.tour.start().unwrap());
+            let start_info = create_activity_info(actor, rc.route.tour.start().unwrap(), 0);
             let start_row_idx = *self.activity_direct_index.get(&start_info).unwrap();
             let activity_infos = self.get_activity_infos(matrix, actor_idx, start_row_idx);
 
@@ -185,10 +185,6 @@ impl AdjacencyMatrixDecipher {
                 activity_infos.push(self.activity_reverse_index.get(&activity_info_idx).unwrap());
                 next_row_idx = activity_info_idx;
 
-                if next_row_idx == start_row_idx {
-                    break;
-                }
-
                 continue;
             }
             break;
@@ -207,7 +203,7 @@ fn get_unique_actor_details(actors: &Vec<Arc<Actor>>) -> Vec<ActorDetail> {
     details
 }
 
-fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity) -> ActivityInfo {
+fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity, leg_idx: usize) -> ActivityInfo {
     match a.retrieve_job() {
         Some(job) => {
             let (single_idx, single) = match &job {
@@ -228,7 +224,7 @@ fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity) -> ActivityInfo {
 
             ActivityInfo::Job((job, single_idx, place_idx, tw_idx))
         }
-        None => ActivityInfo::Terminal((actor.detail.clone(), a.place.location)),
+        None => ActivityInfo::Terminal((actor.detail.clone(), if leg_idx > 0 { 1 } else { 0 })),
     }
 }
 
