@@ -71,7 +71,7 @@ impl<'a> ActivityInfoInserter<'a> {
                 activity.job = job
                     .as_multi()
                     .and_then(|multi| multi.jobs.get(single_idx).cloned())
-                    .or_else(|| activity.job.clone());
+                    .or_else(|| job.as_single().cloned());
 
                 self.route_ctx.route_mut().tour.insert_last(activity);
                 self.inserted_job_map.entry(job.clone()).or_insert_with(|| vec![]).push((index, activity_info_idx));
