@@ -83,6 +83,21 @@ impl Tour {
         job
     }
 
+    /// Removes activities from the tour.
+    pub fn remove_activities_at(&mut self, start: usize, end: usize) -> Vec<Job> {
+        let jobs: Vec<_> = self
+            .activities
+            .drain((start..end))
+            .map(|a| a.retrieve_job().expect("Attempt to remove activity without job from the tour!"))
+            .collect();
+
+        jobs.iter().for_each(|job| {
+            self.remove(job);
+        });
+
+        jobs
+    }
+
     /// Returns all activities in tour.
     pub fn all_activities(&self) -> Iter<TourActivity> {
         self.activities.iter()

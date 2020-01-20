@@ -13,10 +13,11 @@ pub struct ActivityInfoInserter<'a> {
     insertion_ctx: &'a mut InsertionContext,
     route_ctx: &'a mut RouteContext,
     unprocessed: &'a mut HashSet<Job>,
+    unassigned: &'a mut HashSet<Job>,
     activity_infos: Vec<&'a ActivityInfo>,
 
     inserted_job_map: HashMap<Job, Vec<usize>>,
-    multi_job_map: HashMap<Job, Vec<usize>>,
+    planned_job_map: HashMap<Job, Vec<usize>>,
 }
 
 impl<'a> ActivityInfoInserter<'a> {
@@ -24,19 +25,21 @@ impl<'a> ActivityInfoInserter<'a> {
         insertion_ctx: &'a mut InsertionContext,
         route_ctx: &'a mut RouteContext,
         unprocessed: &'a mut HashSet<Job>,
+        unassigned: &'a mut HashSet<Job>,
         activity_infos: Vec<&'a ActivityInfo>,
     ) -> Self {
         // TODO scan activity infos to check that multi jobs are in allowed order.
         //      if not, exclude these entries from collection.
 
-        let multi_job_map = Self::get_multi_job_map(&activity_infos);
+        let planned_job_map = Self::get_multi_job_map(&activity_infos);
         Self {
             insertion_ctx,
             route_ctx,
             unprocessed,
+            unassigned,
             activity_infos,
             inserted_job_map: Default::default(),
-            multi_job_map,
+            planned_job_map,
         }
     }
 
@@ -86,8 +89,9 @@ impl<'a> ActivityInfoInserter<'a> {
     }
 
     fn accept_insertion(&mut self, job: &Job) {
-        // TODO we call accept insertion on job which might be to early for multi
-        //      job case, so document this as it might be unexpected for callee
+        // TODO we call accept insertion on any job which might be to early for multi
+        //      job case, so document this as it might be a bit unexpected for callee
+        //      (it seems to be not a case at the moment).
         self.insertion_ctx.problem.constraint.accept_insertion(&mut self.insertion_ctx.solution, self.route_ctx, &job);
 
         let should_remove =
@@ -100,8 +104,26 @@ impl<'a> ActivityInfoInserter<'a> {
 
     /// Removes all job activities from the tour and all its successors. Returns an index of last kept job.
     fn discard_insertion(&mut self, job: &Job, current_idx: usize) -> usize {
-        // TODO
-        unimplemented!()
+        let mut next_idx = current_idx + 1;
+        match job {
+            // NOTE keep activity info as it might be inserted if some multi job is deleted
+            Job::Single(_) => next_idx,
+            // NOTE remove everything after first sub job and remove multi job from the list
+            Job::Multi(multi) => {
+                if let Some(inserted) = self.inserted_job_map.get(job) {
+                    let start = inserted.first().cloned().unwrap();
+                    let end = self.route_ctx.route.tour.total() - 1;
+                    let jobs = self.route_ctx.route_mut().tour.remove_activities_at(start, end);
+
+                    self.unprocessed.extend(jobs.into_iter());
+                }
+
+                self.unprocessed.remove(job);
+                self.unassigned.insert(job.clone());
+
+                next_idx
+            }
+        }
     }
 
     /// Get multi jobs within their sub job insertion order.

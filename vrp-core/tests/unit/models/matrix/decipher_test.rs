@@ -7,6 +7,12 @@ use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, VehicleDetail};
 use crate::models::solution::Registry;
 use crate::refinement::objectives::PenalizeUnassigned;
 
+// TODO add tests:
+//      constraint violation (e.g. capacity)
+//      multi job in wrong order
+//      incomplete multi job
+//      locked job in wrong route
+
 #[test]
 fn can_create_adjacency_matrix_decipher() {
     let problem = create_diverse_problem();

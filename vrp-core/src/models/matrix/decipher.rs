@@ -114,6 +114,7 @@ impl AdjacencyMatrixDecipher {
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
         let mut unprocessed = ctx.solution.required.iter().cloned().collect::<HashSet<_>>();
+        let mut unassigned: HashSet<Job> = Default::default();
         let mut routes = self.get_routes(&mut ctx.solution, matrix);
 
         routes.iter_mut().for_each(|mut rc| {
@@ -124,7 +125,7 @@ impl AdjacencyMatrixDecipher {
             let start_row_idx = *self.activity_direct_index.get(&start_info).unwrap();
             let activity_infos = self.get_activity_infos(matrix, actor_idx, start_row_idx);
 
-            ActivityInfoInserter::new(&mut ctx, &mut rc, &mut unprocessed, activity_infos).insert();
+            ActivityInfoInserter::new(&mut ctx, &mut rc, &mut unprocessed, &mut unassigned, activity_infos).insert();
         });
 
         // TODO propagate left required jobs to unassigned
