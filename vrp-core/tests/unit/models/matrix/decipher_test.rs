@@ -1,11 +1,14 @@
 use super::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_simple_capacity;
-use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::helpers::models::problem::*;
+use crate::helpers::models::solution::*;
+use crate::models::common::Schedule;
 use crate::models::matrix::SparseMatrix;
 use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, VehicleDetail};
-use crate::models::solution::Registry;
+use crate::models::solution::{Activity, Registry};
 use crate::refinement::objectives::PenalizeUnassigned;
+
+use crate::models::solution::Place as ActivityPlace;
 
 // TODO add tests:
 //      constraint violation (e.g. capacity)
@@ -25,7 +28,7 @@ fn can_create_adjacency_matrix_decipher() {
     assert_eq!(decipher.actor_direct_index.len(), 2);
 }
 
-//#[test]
+#[test]
 fn can_encode_decode_feasible_diverse_problem() {
     let problem = create_diverse_problem();
     let decipher = AdjacencyMatrixDecipher::new(problem.clone());
@@ -36,17 +39,19 @@ fn can_encode_decode_feasible_diverse_problem() {
         locked: Default::default(),
         routes: vec![
             create_route(
-                problem.fleet.actors.first().unwrap().clone(),
+                &problem.fleet,
+                "v1",
                 vec![
-                    as_job_info((get_job(&problem, 0, 0), 0, 1, 1)), //
-                    as_job_info((get_job(&problem, 2, 0), 0, 0, 0)),
+                    (get_job(&problem, 0, 0), 0, 1, 1), //
+                    (get_job(&problem, 2, 0), 0, 0, 0),
                 ],
             ),
             create_route(
-                problem.fleet.actors.last().unwrap().clone(),
+                &problem.fleet,
+                "v2",
                 vec![
-                    as_job_info((get_job(&problem, 1, 0), 0, 0, 0)), //
-                    as_job_info((get_job(&problem, 1, 1), 1, 0, 0)),
+                    (get_job(&problem, 1, 0), 0, 0, 0), //
+                    (get_job(&problem, 1, 1), 1, 0, 0),
                 ],
             ),
         ],
@@ -86,9 +91,12 @@ fn create_diverse_problem() -> Arc<Problem> {
     let fleet = Arc::new(Fleet::new(
         vec![test_driver()],
         vec![
-            test_vehicle(DEFAULT_PROFILE),
             VehicleBuilder::new()
                 .id("v1")
+                .details(vec![VehicleDetail { start: Some(0), end: Some(0), time: Some(DEFAULT_ACTOR_TIME_WINDOW) }])
+                .build(),
+            VehicleBuilder::new()
+                .id("v2")
                 .details(vec![VehicleDetail { start: Some(0), end: None, time: Some(DEFAULT_ACTOR_TIME_WINDOW) }])
                 .build(),
         ],
@@ -122,18 +130,38 @@ fn create_diverse_problem() -> Arc<Problem> {
     })
 }
 
-fn as_job_info(info: ActivityWithJob) -> ActivityInfo {
-    ActivityInfo::Job(info)
-}
-
 fn get_job(problem: &Problem, index: usize, single_index: usize) -> Job {
     let job = problem.jobs.all().skip(index).next().unwrap().clone();
 
     job.as_multi().map_or_else(|| job.clone(), |m| Job::Single(m.jobs.get(single_index).unwrap().clone()))
 }
 
-fn create_route(actor: Arc<Actor>, activities: Vec<ActivityInfo>) -> RouteContext {
-    unimplemented!()
+fn create_route(fleet: &Fleet, vehicle: &str, activities: Vec<ActivityWithJob>) -> RouteContext {
+    create_route_context_with_activities(
+        fleet,
+        vehicle,
+        activities
+            .into_iter()
+            .map(|(job, single_idx, place_idx, tw_idx)| {
+                let single = match job {
+                    Job::Single(single) => single,
+                    Job::Multi(multi) => multi.jobs.get(single_idx).cloned().unwrap(),
+                };
+
+                let place = single.places.get(place_idx).unwrap();
+
+                Box::new(Activity {
+                    place: ActivityPlace {
+                        location: place.location.unwrap(),
+                        duration: place.duration,
+                        time: place.times.get(tw_idx).cloned().unwrap(),
+                    },
+                    schedule: Schedule::new(0., 0.),
+                    job: Some(single),
+                })
+            })
+            .collect(),
+    )
 }
 
 pub fn to_vvec(matrix: &SparseMatrix) -> Vec<Vec<f64>> {

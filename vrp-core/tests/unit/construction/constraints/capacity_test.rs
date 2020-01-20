@@ -1,11 +1,10 @@
 use crate::construction::constraints::*;
-use crate::construction::states::{ActivityContext, RouteContext, RouteState};
+use crate::construction::states::{ActivityContext, RouteState};
 use crate::helpers::construction::constraints::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{Fleet, Job, Vehicle};
 use crate::models::solution::TourActivity;
-use std::sync::Arc;
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {
     VehicleBuilder::new().id("v1").capacity(capacity).build()

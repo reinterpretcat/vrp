@@ -27,7 +27,7 @@ impl<'a> ActivityInfoInserter<'a> {
         unassigned: &'a mut HashSet<Job>,
         activity_infos: Vec<&'a ActivityInfo>,
     ) -> Self {
-        let planned_job_map = Self::get_multi_job_map(&activity_infos);
+        let activity_infos = Self::filter_broken(activity_infos);
         Self { insertion_ctx, route_ctx, unprocessed, unassigned, activity_infos, inserted_job_map: Default::default() }
     }
 
@@ -83,28 +83,25 @@ impl<'a> ActivityInfoInserter<'a> {
     }
 
     fn accept_insertion(&mut self, job: &Job) {
-        // TODO we call accept insertion on any job which might be to early for multi
-        //      job case, so document this as it might be a bit unexpected for callee
-        //      (it seems to be not a case at the moment).
         self.insertion_ctx.problem.constraint.accept_insertion(&mut self.insertion_ctx.solution, self.route_ctx, &job);
 
         let should_remove =
             job.as_multi().map_or(true, |multi| multi.jobs.len() == self.inserted_job_map.get(job).unwrap().len());
 
         if should_remove {
+            self.insertion_ctx.solution.required.retain(|j| *j != *job);
             self.unprocessed.remove(job);
         }
     }
 
     /// Removes all job activities from the tour and all its successors. Returns an index of last kept job.
     fn discard_insertion(&mut self, job: &Job, activity_info_idx: usize) -> usize {
-        let mut next_idx = activity_info_idx + 1;
         match job {
             // NOTE keep activity info as it might be inserted if some multi job is deleted
-            Job::Single(_) => next_idx,
+            Job::Single(_) => activity_info_idx + 1,
             // NOTE remove everything after first sub job and remove multi job from the list
-            Job::Multi(multi) => {
-                if let Some(inserted) = self.inserted_job_map.get(job) {
+            Job::Multi(_) => {
+                let activity_info_idx = if let Some(inserted) = self.inserted_job_map.get(job) {
                     let (start, _) = inserted.first().cloned().unwrap();
                     let end = self.route_ctx.route.tour.total() - 1;
                     let jobs = self.route_ctx.route_mut().tour.remove_activities_at(start, end);
@@ -113,22 +110,26 @@ impl<'a> ActivityInfoInserter<'a> {
                         self.inserted_job_map.remove(job);
                         self.unprocessed.insert(job.clone());
                     });
-                }
+
+                    start - 1
+                } else {
+                    activity_info_idx + 1
+                };
 
                 self.unprocessed.remove(job);
                 self.unassigned.insert(job.clone());
 
-                next_idx
+                activity_info_idx
             }
         }
     }
 
     /// Get multi jobs within their sub job insertion order.
-    fn get_multi_job_map(activity_infos: &Vec<&ActivityInfo>) -> HashMap<Job, Vec<usize>> {
+    fn filter_broken(activity_infos: Vec<&ActivityInfo>) -> Vec<&ActivityInfo> {
         // TODO scan activity infos to check that multi jobs are in allowed order.
         //      if not, exclude these entries from collection.
 
-        activity_infos.iter().enumerate().fold(HashMap::new(), |mut acc, (ai_idx, ai)| {
+        activity_infos.iter().enumerate().fold(HashMap::new(), |mut acc, (_ai_idx, ai)| {
             match ai {
                 ActivityInfo::Job((job, single_idx, _, _)) => {
                     if let Some(_) = job.as_multi() {
@@ -139,13 +140,15 @@ impl<'a> ActivityInfoInserter<'a> {
             }
 
             acc
-        })
+        });
+
+        activity_infos
     }
 }
 
 /// Creates a fake single job with single place and single time window to avoid uncertainty
 /// during insertion evaluation process.
-fn create_single_job(activity_info: &ActivityInfo) -> Option<(Job, Arc<Single>, usize)> {
+pub fn create_single_job(activity_info: &ActivityInfo) -> Option<(Job, Arc<Single>, usize)> {
     match activity_info {
         ActivityInfo::Job(activity_info) => {
             let (job, single_index, place_index, tw_index) = activity_info;

@@ -128,7 +128,13 @@ impl AdjacencyMatrixDecipher {
             ActivityInfoInserter::new(&mut ctx, &mut rc, &mut unprocessed, &mut unassigned, activity_infos).insert();
         });
 
-        // TODO propagate left required jobs to unassigned
+        ctx.solution.required = unprocessed
+            .into_iter()
+            .chain(unassigned.into_iter())
+            .chain(ctx.solution.required.into_iter())
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
 
         ctx.solution.routes = routes;
         ctx.solution
@@ -179,8 +185,14 @@ impl AdjacencyMatrixDecipher {
 
         loop {
             if let Some(activity_info_idx) = matrix.scan_row(next_row_idx, |v| v == actor_idx as f64) {
+                assert_ne!(activity_info_idx, next_row_idx);
+
                 activity_infos.push(self.activity_reverse_index.get(&activity_info_idx).unwrap());
                 next_row_idx = activity_info_idx;
+
+                if next_row_idx == start_row_idx {
+                    break;
+                }
 
                 continue;
             }

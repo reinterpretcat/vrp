@@ -87,7 +87,7 @@ impl Tour {
     pub fn remove_activities_at(&mut self, start: usize, end: usize) -> Vec<Job> {
         let jobs: Vec<_> = self
             .activities
-            .drain((start..end))
+            .drain(start..end)
             .map(|a| a.retrieve_job().expect("Attempt to remove activity without job from the tour!"))
             .collect();
 

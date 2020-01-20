@@ -1,6 +1,6 @@
 use crate::construction::constraints::locking::StrictLockingModule;
 use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
-use crate::construction::states::{ActivityContext, RouteContext, RouteState};
+use crate::construction::states::ActivityContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
