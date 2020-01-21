@@ -179,10 +179,14 @@ impl AdjacencyMatrixDecipher {
     ) -> Vec<&ActivityInfo> {
         let mut next_row_idx = start_row_idx;
         let mut activity_infos = vec![];
+        let mut processed: HashSet<usize> = Default::default();
 
         loop {
             if let Some(activity_info_idx) = matrix.scan_row(next_row_idx, |v| v == actor_idx as f64) {
-                assert_ne!(activity_info_idx, next_row_idx);
+                if processed.contains(&activity_info_idx) {
+                    break;
+                }
+                processed.insert(activity_info_idx);
 
                 activity_infos.push(self.activity_reverse_index.get(&activity_info_idx).unwrap());
                 next_row_idx = activity_info_idx;
