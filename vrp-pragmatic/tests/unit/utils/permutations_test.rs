@@ -31,3 +31,17 @@ fn can_generate_split_permutations() {
         assert_eq!(right, 3);
     });
 }
+
+#[test]
+fn can_validate_permutations() {
+    let permutator = VariableJobPermutation::new(5, 3, 12);
+
+    assert!(permutator.validate(&vec![vec![0, 1, 2, 3, 4]]));
+    assert!(permutator.validate(&vec![vec![0, 2, 1, 3, 4]]));
+    assert!(permutator.validate(&vec![vec![0, 2, 1, 4, 3]]));
+
+    assert!(!permutator.validate(&vec![vec![]]));
+    assert!(!permutator.validate(&vec![vec![0]]));
+    assert!(!permutator.validate(&vec![vec![0, 3, 2, 1, 4]]));
+    assert!(!permutator.validate(&vec![vec![0, 1, 3, 2, 4]]));
+}

@@ -88,11 +88,12 @@ pub struct Multi {
 
 /// Defines a trait to work with multi job's permutations.
 pub trait JobPermutation {
+    // TODO fix all implementations to support returning reference
     /// Returns a valid permutation.
     fn get(&self) -> Vec<Vec<usize>>;
 
     /// Validates given permutation.
-    fn validate(&self, permutation: &Vec<Vec<usize>>) -> bool;
+    fn validate(&self, permutations: &Vec<Vec<usize>>) -> bool;
 }
 
 /// Specifies permutation generator which allows only fixed set of permutations.

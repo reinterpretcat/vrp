@@ -1,6 +1,7 @@
 extern crate rand;
 
 use rand::seq::IteratorRandom;
+use std::collections::HashSet;
 use vrp_core::models::problem::JobPermutation;
 
 #[cfg(test)]
@@ -15,6 +16,7 @@ pub struct VariableJobPermutation {
 
 impl VariableJobPermutation {
     pub fn new(size: usize, split_start_index: usize, sample_size: usize) -> Self {
+        assert!(size > 0);
         Self { size, split_start_index, sample_size }
     }
 }
@@ -24,8 +26,12 @@ impl JobPermutation for VariableJobPermutation {
         get_split_permutations(self.size, self.split_start_index, self.sample_size)
     }
 
-    fn validate(&self, _permutation: &Vec<Vec<usize>>) -> bool {
-        unimplemented!()
+    fn validate(&self, permutations: &Vec<Vec<usize>>) -> bool {
+        permutations.iter().all(|prm| {
+            prm.iter().cloned().collect::<HashSet<_>>().len() == self.size
+                && prm[0..self.split_start_index - 1].iter().max().map_or(false, |&max| max < self.split_start_index)
+                && prm[self.split_start_index..].iter().min().map_or(false, |&min| min >= self.split_start_index)
+        })
     }
 }
 
