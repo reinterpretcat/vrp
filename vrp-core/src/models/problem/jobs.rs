@@ -93,7 +93,7 @@ pub trait JobPermutation {
     fn get(&self) -> Vec<Vec<usize>>;
 
     /// Validates given permutation.
-    fn validate(&self, permutations: &Vec<Vec<usize>>) -> bool;
+    fn validate(&self, permutation: &Vec<usize>) -> bool;
 }
 
 /// Specifies permutation generator which allows only fixed set of permutations.
@@ -113,9 +113,10 @@ impl JobPermutation for FixedJobPermutation {
         self.permutations.clone()
     }
 
-    fn validate(&self, permutations: &Vec<Vec<usize>>) -> bool {
-        self.permutations.len() == permutations.len()
-            && self.permutations.iter().zip(permutations.iter()).all(|(a, b)| a == b)
+    fn validate(&self, permutation: &Vec<usize>) -> bool {
+        self.permutations
+            .iter()
+            .any(|prm| prm.len() == permutation.len() && prm.iter().zip(permutation.iter()).all(|(&a, &b)| a == b))
     }
 }
 
@@ -143,6 +144,11 @@ impl Multi {
             .iter()
             .map(|perm| perm.iter().map(|&i| self.jobs.get(i).unwrap().clone()).collect())
             .collect()
+    }
+
+    /// Validates given set of permutations.
+    pub fn validate(&self, permutations: &Vec<usize>) -> bool {
+        self.permutator.validate(permutations)
     }
 
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.

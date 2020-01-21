@@ -126,10 +126,9 @@ impl<'a> ActivityInfoInserter<'a> {
 
     /// Get multi jobs within their sub job insertion order.
     fn filter_broken(activity_infos: Vec<&ActivityInfo>) -> Vec<&ActivityInfo> {
-        // TODO scan activity infos to check that multi jobs are in allowed order.
-        //      if not, exclude these entries from collection.
+        let mut activity_infos = activity_infos;
 
-        activity_infos.iter().enumerate().fold(HashMap::new(), |mut acc, (_ai_idx, ai)| {
+        let activity_info_map = activity_infos.iter().enumerate().fold(HashMap::new(), |mut acc, (_ai_idx, ai)| {
             match ai {
                 ActivityInfo::Job((job, single_idx, _, _)) => {
                     if let Some(_) = job.as_multi() {
@@ -140,6 +139,13 @@ impl<'a> ActivityInfoInserter<'a> {
             }
 
             acc
+        });
+
+        activity_infos.retain(|ai| match ai {
+            ActivityInfo::Job((job, _, _, _)) => {
+                job.as_multi().map_or(true, |multi| multi.validate(activity_info_map.get(job).unwrap()))
+            }
+            _ => true,
         });
 
         activity_infos
