@@ -97,7 +97,8 @@ fn validate_with_matrix(problem: &Arc<Problem>, solution: &Arc<Solution>) {
 
     let decipher = AdjacencyMatrixDecipher::new(problem.clone());
     let adjacency_matrix_orig = decipher.encode::<SparseMatrix>(&insertion_ctx.solution);
-    let adjacency_matrix_dec = decipher.encode::<SparseMatrix>(&decipher.decode(&adjacency_matrix_orig));
+    let restored_solution = decipher.decode(&adjacency_matrix_orig);
+    let adjacency_matrix_rst = decipher.encode::<SparseMatrix>(&restored_solution);
 
-    assert_eq!(adjacency_matrix_orig.to_vvec(), adjacency_matrix_dec.to_vvec());
+    assert_eq!(adjacency_matrix_rst.to_vvec(), adjacency_matrix_orig.to_vvec());
 }

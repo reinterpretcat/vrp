@@ -113,7 +113,8 @@ impl AdjacencyMatrixDecipher {
         let mut ctx = InsertionContext::new(self.problem.clone(), Arc::new(DefaultRandom::default()));
         ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 
-        let mut unprocessed = ctx.solution.required.iter().cloned().collect::<HashSet<_>>();
+        let mut unprocessed =
+            ctx.solution.ignored.iter().chain(ctx.solution.required.iter()).cloned().collect::<HashSet<_>>();
         let mut unassigned: HashSet<Job> = Default::default();
         let mut routes = self.get_routes(&mut ctx.solution, matrix);
 
