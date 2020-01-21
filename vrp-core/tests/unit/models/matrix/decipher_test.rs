@@ -8,6 +8,7 @@ use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, VehicleDetail};
 use crate::models::solution::{Activity, Registry};
 use crate::refinement::objectives::PenalizeUnassigned;
 
+use crate::construction::constraints::Demand;
 use crate::models::solution::Place as ActivityPlace;
 
 // TODO add tests:
@@ -95,13 +96,13 @@ fn can_handle_multi_job_in_wrong_order() {
     let adjacency_matrix = vec![
         vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
         vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        vec![0., 0., 0., 0., 0., 0., 2., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 2., 0.],
         vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
         vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
         vec![0., 0., 0., 0., 0., 0., 0., 0., 1.],
-        vec![0., 0., 0., 0., 0., 2., 0., 0., 0.],
         vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 1., 0., 0., 0., 0., 2., 0., 0.],
     ];
 
     let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
@@ -109,17 +110,58 @@ fn can_handle_multi_job_in_wrong_order() {
     assert_eq!(restored_solution.required.len(), 1);
 
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
-    assert_eq!(to_vvec(&adjacency_matrix), vec![
-        vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
+    assert_eq!(
+        to_vvec(&adjacency_matrix),
+        vec![
+            vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 1.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+        ]
+    );
+}
+
+#[test]
+fn can_handle_single_job_capacity_violation() {
+    let decipher = AdjacencyMatrixDecipher::new(create_diverse_problem());
+    // 0-8-1
+    // 2-6-7 5-> 5 violates capacity
+    let adjacency_matrix = vec![
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 1.], //
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 2., 0., 0.],
         vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
         vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
         vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        vec![0., 0., 0., 0., 0., 0., 0., 0., 1.],
-        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 2., 0.],
+        vec![0., 0., 0., 0., 0., 2., 0., 0., 0.],
         vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
-    ]);
+    ];
+
+    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    assert_eq!(restored_solution.routes.len(), 2);
+    assert_eq!(restored_solution.required.len(), 1);
+
+    let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
+    assert_eq!(
+        to_vvec(&adjacency_matrix),
+        vec![
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 1.], //
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 2., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 2., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+        ]
+    );
 }
 
 fn create_diverse_problem() -> Arc<Problem> {
@@ -129,27 +171,47 @@ fn create_diverse_problem() -> Arc<Problem> {
         vec![
             VehicleBuilder::new()
                 .id("v1")
+                .capacity(2)
                 .details(vec![VehicleDetail { start: Some(0), end: Some(0), time: Some(DEFAULT_ACTOR_TIME_WINDOW) }])
                 .build(),
             VehicleBuilder::new()
                 .id("v2")
+                .capacity(2)
                 .details(vec![VehicleDetail { start: Some(0), end: None, time: Some(DEFAULT_ACTOR_TIME_WINDOW) }])
                 .build(),
         ],
     ));
+    let demand = Demand { pickup: (0, 0), delivery: (1, 0) };
     let jobs = Arc::new(Jobs::new(
         &fleet,
         vec![
             SingleBuilder::new()
                 .id("job1")
+                .demand(demand.clone())
                 .places(vec![(Some(1), 1., vec![(0., 100.)]), (Some(2), 1., vec![(0., 10.), (20., 100.)])])
                 .build_as_job_ref(),
             MultiBuilder::new()
                 .id("job2")
-                .job(SingleBuilder::new().id("s1").places(vec![(Some(2), 1., vec![(0., 100.)])]).build())
-                .job(SingleBuilder::new().id("s2").places(vec![(Some(3), 1., vec![(10., 100.)])]).build())
+                .job(
+                    SingleBuilder::new()
+                        .id("s1")
+                        .demand(demand.clone())
+                        .places(vec![(Some(2), 1., vec![(0., 100.)])])
+                        .build(),
+                )
+                .job(
+                    SingleBuilder::new()
+                        .id("s2")
+                        .demand(demand.clone())
+                        .places(vec![(Some(3), 1., vec![(10., 100.)])])
+                        .build(),
+                )
                 .build(),
-            SingleBuilder::new().id("job3").places(vec![(Some(4), 1., vec![(0., 100.)])]).build_as_job_ref(),
+            SingleBuilder::new()
+                .id("job3")
+                .demand(demand.clone())
+                .places(vec![(Some(4), 1., vec![(0., 100.)])])
+                .build_as_job_ref(),
         ],
         transport.as_ref(),
     ));
@@ -216,9 +278,9 @@ fn to_sparse(matrix: &Vec<Vec<f64>>) -> SparseMatrix {
 
     for (row_idx, cols) in matrix.iter().enumerate() {
         for (col_idx, v) in cols.iter().enumerate() {
-           if *v != 0. {
-               sparse.set_cell(row_idx, col_idx, *v)
-           }
+            if *v != 0. {
+                sparse.set_cell(row_idx, col_idx, *v)
+            }
         }
     }
 

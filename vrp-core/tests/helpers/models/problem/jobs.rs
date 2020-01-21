@@ -82,6 +82,11 @@ impl SingleBuilder {
         self
     }
 
+    pub fn demand(&mut self, demand: Demand<i32>) -> &mut Self {
+        self.single.dimens.set_demand(demand);
+        self
+    }
+
     pub fn places(&mut self, places: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>) -> &mut Self {
         self.single.places = places
             .into_iter()
