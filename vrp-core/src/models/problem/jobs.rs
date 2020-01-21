@@ -83,29 +83,62 @@ pub struct Multi {
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
     /// Permutation generator.
-    generator: Box<dyn Fn(&Multi) -> Vec<Vec<usize>> + Send + Sync>,
+    permutator: Box<dyn JobPermutation + Send + Sync>,
+}
+
+/// Defines a trait to work with multi job's permutations.
+pub trait JobPermutation {
+    /// Returns a valid permutation.
+    fn get(&self) -> Vec<Vec<usize>>;
+
+    /// Validates given permutation.
+    fn validate(&self, permutation: &Vec<Vec<usize>>) -> bool;
+}
+
+/// Specifies permutation generator which allows only fixed set of permutations.
+pub struct FixedJobPermutation {
+    permutations: Vec<Vec<usize>>,
+}
+
+impl FixedJobPermutation {
+    /// Creates a new instance of `StrictJobPermutation`.
+    pub fn new(permutations: Vec<Vec<usize>>) -> Self {
+        Self { permutations }
+    }
+}
+
+impl JobPermutation for FixedJobPermutation {
+    fn get(&self) -> Vec<Vec<usize>> {
+        self.permutations.clone()
+    }
+
+    fn validate(&self, permutations: &Vec<Vec<usize>>) -> bool {
+        self.permutations.len() == permutations.len()
+            && self.permutations.iter().zip(permutations.iter()).all(|(a, b)| a == b)
+    }
 }
 
 impl Multi {
     /// Creates a new multi job from given 'dimens' and `jobs` assuming that jobs has to be
     /// inserted in order they specified.
     pub fn new(jobs: Vec<Arc<Single>>, dimens: Dimensions) -> Self {
-        Self { jobs, dimens, generator: Box::new(|m| vec![(0..m.jobs.len()).collect()]) }
+        let permutations = vec![(0..jobs.len()).collect()];
+        Self { jobs, dimens, permutator: Box::new(FixedJobPermutation::new(permutations)) }
     }
 
-    /// Creates a new multi job from given 'dimens' and `jobs` using `generator` to specify
-    /// insertion order.
-    pub fn new_with_generator(
+    /// Creates a new multi job from given 'dimens' and `jobs` using `permutator` to control insertion order.
+    pub fn new_with_permutator(
         jobs: Vec<Arc<Single>>,
         dimens: Dimensions,
-        generator: Box<dyn Fn(&Multi) -> Vec<Vec<usize>> + Send + Sync>,
+        permutator: Box<dyn JobPermutation + Send + Sync>,
     ) -> Self {
-        Self { jobs, dimens, generator }
+        Self { jobs, dimens, permutator }
     }
 
     /// Returns all sub-jobs permutations.
     pub fn permutations(&self) -> Vec<Vec<Arc<Single>>> {
-        (self.generator)(self)
+        self.permutator
+            .get()
             .iter()
             .map(|perm| perm.iter().map(|&i| self.jobs.get(i).unwrap().clone()).collect())
             .collect()

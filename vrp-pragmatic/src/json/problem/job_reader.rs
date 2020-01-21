@@ -3,7 +3,7 @@ use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
 use crate::json::problem::{JobVariant, RelationType, VehicleBreak, VehicleReload, VehicleType};
 use crate::json::Location;
-use crate::utils::get_split_permutations;
+use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Demand, DemandDimension};
@@ -370,10 +370,11 @@ fn get_multi_job(
     let multi = if singles.len() == 2 && deliveries_start_index == 1 {
         Multi::new(singles, dimens)
     } else {
-        Multi::new_with_generator(
+        let jobs_len = singles.len();
+        Multi::new_with_permutator(
             singles,
             dimens,
-            Box::new(move |m| get_split_permutations(m.jobs.len(), deliveries_start_index, MULTI_JOB_SAMPLE_SIZE)),
+            Box::new(VariableJobPermutation::new(jobs_len, deliveries_start_index, MULTI_JOB_SAMPLE_SIZE)),
         )
     };
 

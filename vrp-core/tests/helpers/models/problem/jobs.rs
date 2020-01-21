@@ -1,6 +1,6 @@
 use crate::construction::constraints::{Demand, DemandDimension};
 use crate::models::common::{Duration, IdDimension, Location, TimeWindow};
-use crate::models::problem::{Job, Multi, Place, Single};
+use crate::models::problem::{FixedJobPermutation, Job, Multi, Place, Single};
 use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;
@@ -113,6 +113,7 @@ fn test_multi() -> Multi {
 
 pub struct MultiBuilder {
     multi: Multi,
+    custom_permutator: bool,
 }
 
 impl MultiBuilder {
@@ -120,11 +121,18 @@ impl MultiBuilder {
         let mut multi = Multi::new(vec![], Default::default());
         multi.dimens.set_id("multi");
 
-        Self { multi }
+        Self { multi, custom_permutator: false }
     }
 
     pub fn new_with_permutations(permutations: Vec<Vec<usize>>) -> Self {
-        Self { multi: Multi::new_with_generator(vec![], Default::default(), Box::new(move |_| permutations.clone())) }
+        Self {
+            multi: Multi::new_with_permutator(
+                vec![],
+                Default::default(),
+                Box::new(FixedJobPermutation::new(permutations)),
+            ),
+            custom_permutator: true,
+        }
     }
 
     pub fn id(&mut self, id: &str) -> &mut Self {
@@ -139,6 +147,8 @@ impl MultiBuilder {
 
     pub fn build(&mut self) -> Job {
         let multi = std::mem::replace(&mut self.multi, test_multi());
+        let multi = if !self.custom_permutator { Multi::new(multi.jobs, multi.dimens) } else { multi };
+
         let multi = Multi::bind(multi);
         Job::Multi(multi)
     }

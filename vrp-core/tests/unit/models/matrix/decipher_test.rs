@@ -22,9 +22,9 @@ fn can_create_adjacency_matrix_decipher() {
 
     let decipher = AdjacencyMatrixDecipher::new(problem);
 
-    assert_eq!(decipher.dimensions(), 8);
-    assert_eq!(decipher.activity_direct_index.len(), 8);
-    assert_eq!(decipher.activity_reverse_index.len(), 8);
+    assert_eq!(decipher.dimensions(), 9);
+    assert_eq!(decipher.activity_direct_index.len(), 9);
+    assert_eq!(decipher.activity_reverse_index.len(), 9);
     assert_eq!(decipher.actor_direct_index.len(), 2);
 }
 

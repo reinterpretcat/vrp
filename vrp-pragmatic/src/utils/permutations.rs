@@ -1,10 +1,33 @@
 extern crate rand;
 
 use rand::seq::IteratorRandom;
+use vrp_core::models::problem::JobPermutation;
 
 #[cfg(test)]
 #[path = "../../tests/unit/utils/permutations_test.rs"]
 mod permutations_test;
+
+pub struct VariableJobPermutation {
+    size: usize,
+    split_start_index: usize,
+    sample_size: usize,
+}
+
+impl VariableJobPermutation {
+    pub fn new(size: usize, split_start_index: usize, sample_size: usize) -> Self {
+        Self { size, split_start_index, sample_size }
+    }
+}
+
+impl JobPermutation for VariableJobPermutation {
+    fn get(&self) -> Vec<Vec<usize>> {
+        get_split_permutations(self.size, self.split_start_index, self.sample_size)
+    }
+
+    fn validate(&self, _permutation: &Vec<Vec<usize>>) -> bool {
+        unimplemented!()
+    }
+}
 
 fn get_permutations(start: usize, end: usize) -> Permutations {
     Permutations { idxs: (start..end + 1).collect(), swaps: vec![0; end - start + 1], i: 0 }
@@ -49,7 +72,7 @@ fn generate_sample_permutations(start: usize, end: usize, sample_size: usize) ->
         .collect()
 }
 
-pub fn get_split_permutations(size: usize, split_start_index: usize, sample_size: usize) -> Vec<Vec<usize>> {
+fn get_split_permutations(size: usize, split_start_index: usize, sample_size: usize) -> Vec<Vec<usize>> {
     // TODO make it memory efficient somehow
     assert!(size > split_start_index);
 
