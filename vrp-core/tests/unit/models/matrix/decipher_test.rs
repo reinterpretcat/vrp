@@ -77,14 +77,49 @@ fn can_encode_decode_feasible_diverse_problem() {
     let restored_solution = decipher.decode(&adjacency_matrix);
 
     // TODO improve comparison
-    assert_eq!(original_solution.required.len(), restored_solution.required.len());
-    assert_eq!(original_solution.ignored.len(), restored_solution.ignored.len());
-    assert_eq!(original_solution.locked.len(), restored_solution.locked.len());
-    assert_eq!(original_solution.unassigned.len(), restored_solution.unassigned.len());
-    assert_eq!(original_solution.routes.len(), restored_solution.routes.len());
+    assert_eq!(restored_solution.required.len(), original_solution.required.len());
+    assert_eq!(restored_solution.ignored.len(), original_solution.ignored.len());
+    assert_eq!(restored_solution.locked.len(), original_solution.locked.len());
+    assert_eq!(restored_solution.unassigned.len(), original_solution.unassigned.len());
+    assert_eq!(restored_solution.routes.len(), original_solution.routes.len());
 
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
     assert_eq!(to_vvec(&adjacency_matrix), expected_matrix);
+}
+
+#[test]
+fn can_handle_multi_job_in_wrong_order() {
+    let decipher = AdjacencyMatrixDecipher::new(create_diverse_problem());
+    // 0-5-8-1
+    // 2-7-6 -> 7-6 is not allowed
+    let adjacency_matrix = vec![
+        vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 2., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 1.],
+        vec![0., 0., 0., 0., 0., 2., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+    ];
+
+    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    assert_eq!(restored_solution.routes.len(), 1);
+    assert_eq!(restored_solution.required.len(), 1);
+
+    let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
+    assert_eq!(to_vvec(&adjacency_matrix), vec![
+        vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 1.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+    ]);
 }
 
 fn create_diverse_problem() -> Arc<Problem> {
@@ -165,7 +200,7 @@ fn create_route(fleet: &Fleet, vehicle: &str, activities: Vec<ActivityWithJob>) 
     )
 }
 
-pub fn to_vvec(matrix: &SparseMatrix) -> Vec<Vec<f64>> {
+fn to_vvec(matrix: &SparseMatrix) -> Vec<Vec<f64>> {
     let mut data = vec![vec![0.; matrix.size]; matrix.size];
     matrix.data.iter().for_each(|(row, cells)| {
         cells.iter().for_each(|&(col, value)| {
@@ -174,4 +209,18 @@ pub fn to_vvec(matrix: &SparseMatrix) -> Vec<Vec<f64>> {
     });
 
     data
+}
+
+fn to_sparse(matrix: &Vec<Vec<f64>>) -> SparseMatrix {
+    let mut sparse = SparseMatrix::new(matrix.len());
+
+    for (row_idx, cols) in matrix.iter().enumerate() {
+        for (col_idx, v) in cols.iter().enumerate() {
+           if *v != 0. {
+               sparse.set_cell(row_idx, col_idx, *v)
+           }
+        }
+    }
+
+    sparse
 }

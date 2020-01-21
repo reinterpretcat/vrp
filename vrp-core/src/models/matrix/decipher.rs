@@ -135,8 +135,10 @@ impl AdjacencyMatrixDecipher {
             .collect::<HashSet<_>>()
             .into_iter()
             .collect();
-
         ctx.solution.routes = routes;
+
+        ctx.restore();
+
         ctx.solution
     }
 
