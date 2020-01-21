@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_simple_capacity;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::common::Schedule;
+use crate::models::common::{IdDimension, Schedule};
 use crate::models::matrix::SparseMatrix;
 use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, VehicleDetail};
 use crate::models::solution::{Activity, Registry};
@@ -10,9 +10,7 @@ use crate::refinement::objectives::PenalizeUnassigned;
 
 use crate::construction::constraints::Demand;
 use crate::models::solution::Place as ActivityPlace;
-
-// TODO add tests:
-//      locked job in wrong route
+use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
 
 #[test]
 fn can_create_adjacency_matrix_decipher() {
@@ -239,7 +237,71 @@ fn can_handle_multi_job_incomplete_order() {
     );
 }
 
+parameterized_test! {can_handle_job_with_lock, lock_order, {
+    can_handle_job_with_lock_impl(lock_order);
+}}
+
+can_handle_job_with_lock! {
+    case1: LockOrder::Any,
+    case2: LockOrder::Sequence,
+    case3: LockOrder::Strict,
+}
+
+fn can_handle_job_with_lock_impl(lock_order: LockOrder) {
+    let mut problem = create_diverse_problem_unwrapped();
+    problem.locks.push(Arc::new(Lock {
+        condition: Arc::new(|actor| {
+            let id = actor.vehicle.dimens.get_id().unwrap();
+
+            let result = id == "v1";
+
+            result
+        }),
+        details: vec![LockDetail::new(lock_order, LockPosition::Any, vec![problem.jobs.all().last().unwrap()])],
+    }));
+
+    let decipher = AdjacencyMatrixDecipher::new(Arc::new(problem));
+    // 0-5-1
+    // 2-8
+    let adjacency_matrix = vec![
+        vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 2.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+    ];
+
+    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    assert_eq!(restored_solution.routes.len(), 1);
+    assert_eq!(restored_solution.required.len(), 1);
+
+    // 0-8-5-1
+    let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
+    assert_eq!(
+        to_vvec(&adjacency_matrix),
+        vec![
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 1.], //
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 1., 0., 0., 0.],
+        ]
+    );
+}
+
 fn create_diverse_problem() -> Arc<Problem> {
+    Arc::new(create_diverse_problem_unwrapped())
+}
+
+fn create_diverse_problem_unwrapped() -> Problem {
     let transport = Arc::new(TestTransportCost {});
     let fleet = Arc::new(Fleet::new(
         vec![test_driver()],
@@ -291,7 +353,7 @@ fn create_diverse_problem() -> Arc<Problem> {
         transport.as_ref(),
     ));
 
-    Arc::new(Problem {
+    Problem {
         fleet,
         jobs,
         locks: vec![],
@@ -300,7 +362,7 @@ fn create_diverse_problem() -> Arc<Problem> {
         transport,
         objective: Arc::new(PenalizeUnassigned::default()),
         extras: Arc::new(Default::default()),
-    })
+    }
 }
 
 fn get_job(problem: &Problem, index: usize, single_index: usize) -> Job {
