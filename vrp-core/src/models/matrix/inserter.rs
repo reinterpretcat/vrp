@@ -111,6 +111,8 @@ impl<'a> ActivityInfoInserter<'a> {
                         self.unprocessed.insert(job.clone());
                     });
 
+                    self.insertion_ctx.problem.constraint.accept_route_state(self.route_ctx);
+
                     self.route_ctx
                         .route
                         .tour
