@@ -12,7 +12,6 @@ use crate::construction::constraints::Demand;
 use crate::models::solution::Place as ActivityPlace;
 
 // TODO add tests:
-//      incomplete multi job
 //      locked job in wrong route
 
 #[test]
@@ -196,6 +195,46 @@ fn can_handle_multi_job_capacity_violation() {
             vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
             vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
             vec![0., 0., 0., 0., 0., 1., 0., 0., 0.],
+        ]
+    );
+}
+
+#[test]
+fn can_handle_multi_job_incomplete_order() {
+    let decipher = AdjacencyMatrixDecipher::new(create_diverse_problem());
+    // 0-6-5-1
+    // 2-8-7
+    let adjacency_matrix = vec![
+        vec![0., 0., 0., 0., 0., 0., 1., 0., 0.], //
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 2.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 1., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 2., 0.],
+    ];
+
+    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    assert_eq!(restored_solution.routes.len(), 2);
+    assert_eq!(restored_solution.required.len(), 1);
+
+    // 0-5-1
+    // 2-8
+    let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
+    assert_eq!(
+        to_vvec(&adjacency_matrix),
+        vec![
+            vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 2.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
         ]
     );
 }
