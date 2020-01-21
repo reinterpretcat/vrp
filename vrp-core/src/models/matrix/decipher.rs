@@ -237,13 +237,11 @@ fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity, leg_idx: usize) ->
 fn try_match_activity_place(activity: &TourActivity, places: &Vec<Place>) -> Option<(usize, usize)> {
     places.iter().enumerate().fold(None, |acc, (place_idx, place)| {
         if acc.is_none() {
-            if let Some(location) = place.location {
-                if location == activity.place.location {
-                    if activity.place.duration == place.duration {
-                        for (tw_idx, tw) in place.times.iter().enumerate() {
-                            if &activity.place.time == tw {
-                                return Some((place_idx, tw_idx));
-                            }
+            if place.location.map_or(true, |location| location == activity.place.location) {
+                if activity.place.duration == place.duration {
+                    for (tw_idx, tw) in place.times.iter().enumerate() {
+                        if &activity.place.time == tw {
+                            return Some((place_idx, tw_idx));
                         }
                     }
                 }

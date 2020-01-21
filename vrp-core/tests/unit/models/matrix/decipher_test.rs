@@ -68,7 +68,7 @@ fn can_encode_decode_feasible_diverse_problem() {
     ];
 
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&original_solution);
-    assert_eq!(to_vvec(&adjacency_matrix), expected_matrix);
+    assert_eq!(adjacency_matrix.to_vvec(), expected_matrix);
 
     let restored_solution = decipher.decode(&adjacency_matrix);
 
@@ -80,7 +80,7 @@ fn can_encode_decode_feasible_diverse_problem() {
     assert_eq!(restored_solution.routes.len(), original_solution.routes.len());
 
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
-    assert_eq!(to_vvec(&adjacency_matrix), expected_matrix);
+    assert_eq!(adjacency_matrix.to_vvec(), expected_matrix);
 }
 
 #[test]
@@ -100,13 +100,13 @@ fn can_handle_multi_job_in_wrong_order() {
         vec![0., 1., 0., 0., 0., 0., 2., 0., 0.],
     ];
 
-    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    let restored_solution = decipher.decode(&SparseMatrix::from_vvec(&adjacency_matrix));
     assert_eq!(restored_solution.routes.len(), 1);
     assert_eq!(restored_solution.required.len(), 1);
 
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
     assert_eq!(
-        to_vvec(&adjacency_matrix),
+        adjacency_matrix.to_vvec(),
         vec![
             vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
             vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -138,13 +138,13 @@ fn can_handle_single_job_capacity_violation() {
         vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
     ];
 
-    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    let restored_solution = decipher.decode(&SparseMatrix::from_vvec(&adjacency_matrix));
     assert_eq!(restored_solution.routes.len(), 2);
     assert_eq!(restored_solution.required.len(), 1);
 
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
     assert_eq!(
-        to_vvec(&adjacency_matrix),
+        adjacency_matrix.to_vvec(),
         vec![
             vec![0., 0., 0., 0., 0., 0., 0., 0., 1.], //
             vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -175,14 +175,14 @@ fn can_handle_multi_job_capacity_violation() {
         vec![0., 0., 0., 0., 0., 0., 1., 0., 0.],
     ];
 
-    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    let restored_solution = decipher.decode(&SparseMatrix::from_vvec(&adjacency_matrix));
     assert_eq!(restored_solution.routes.len(), 1);
     assert_eq!(restored_solution.required.len(), 1);
 
     // expect 0-8-5-1
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
     assert_eq!(
-        to_vvec(&adjacency_matrix),
+        adjacency_matrix.to_vvec(),
         vec![
             vec![0., 0., 0., 0., 0., 0., 0., 0., 1.], //
             vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -214,7 +214,7 @@ fn can_handle_multi_job_incomplete_order() {
         vec![0., 0., 0., 0., 0., 0., 0., 2., 0.],
     ];
 
-    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    let restored_solution = decipher.decode(&SparseMatrix::from_vvec(&adjacency_matrix));
     assert_eq!(restored_solution.routes.len(), 2);
     assert_eq!(restored_solution.required.len(), 1);
 
@@ -222,7 +222,7 @@ fn can_handle_multi_job_incomplete_order() {
     // 2-8
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
     assert_eq!(
-        to_vvec(&adjacency_matrix),
+        adjacency_matrix.to_vvec(),
         vec![
             vec![0., 0., 0., 0., 0., 1., 0., 0., 0.], //
             vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -275,14 +275,14 @@ fn can_handle_job_with_lock_impl(lock_order: LockOrder) {
         vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
     ];
 
-    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    let restored_solution = decipher.decode(&SparseMatrix::from_vvec(&adjacency_matrix));
     assert_eq!(restored_solution.routes.len(), 1);
     assert_eq!(restored_solution.required.len(), 1);
 
     // 0-8-5-1
     let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
     assert_eq!(
-        to_vvec(&adjacency_matrix),
+        adjacency_matrix.to_vvec(),
         vec![
             vec![0., 0., 0., 0., 0., 0., 0., 0., 1.], //
             vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -397,29 +397,4 @@ fn create_route(fleet: &Fleet, vehicle: &str, activities: Vec<ActivityWithJob>) 
             })
             .collect(),
     )
-}
-
-fn to_vvec(matrix: &SparseMatrix) -> Vec<Vec<f64>> {
-    let mut data = vec![vec![0.; matrix.size]; matrix.size];
-    matrix.data.iter().for_each(|(row, cells)| {
-        cells.iter().for_each(|&(col, value)| {
-            data[*row][col] = value;
-        });
-    });
-
-    data
-}
-
-fn to_sparse(matrix: &Vec<Vec<f64>>) -> SparseMatrix {
-    let mut sparse = SparseMatrix::new(matrix.len());
-
-    for (row_idx, cols) in matrix.iter().enumerate() {
-        for (col_idx, v) in cols.iter().enumerate() {
-            if *v != 0. {
-                sparse.set_cell(row_idx, col_idx, *v)
-            }
-        }
-    }
-
-    sparse
 }

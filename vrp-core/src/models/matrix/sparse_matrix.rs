@@ -32,3 +32,32 @@ impl AdjacencyMatrix for SparseMatrix {
         self.data.get(&row).and_then(|cells| cells.iter().find(|(_, v)| predicate(*v))).map(|(col, _)| *col)
     }
 }
+
+impl SparseMatrix {
+    /// Converts `SparseMatrix` to vector of vectors representation.
+    pub fn to_vvec(&self) -> Vec<Vec<f64>> {
+        let mut data = vec![vec![0.; self.size]; self.size];
+        self.data.iter().for_each(|(row, cells)| {
+            cells.iter().for_each(|&(col, value)| {
+                data[*row][col] = value;
+            });
+        });
+
+        data
+    }
+
+    /// Creates `SparseMatrix` from vector of vectors representation.
+    pub fn from_vvec(matrix: &Vec<Vec<f64>>) -> Self {
+        let mut sparse = Self::new(matrix.len());
+
+        for (row_idx, cols) in matrix.iter().enumerate() {
+            for (col_idx, v) in cols.iter().enumerate() {
+                if *v != 0. {
+                    sparse.set_cell(row_idx, col_idx, *v)
+                }
+            }
+        }
+
+        sparse
+    }
+}

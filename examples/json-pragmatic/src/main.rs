@@ -2,6 +2,10 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::sync::Arc;
 use std::{fs, process};
+use vrp_core::construction::states::InsertionContext;
+use vrp_core::models::matrix::{AdjacencyMatrixDecipher, SparseMatrix};
+use vrp_core::models::{Problem, Solution};
+use vrp_core::utils::DefaultRandom;
 use vrp_pragmatic::json::problem::PragmaticProblem;
 use vrp_pragmatic::json::solution::PragmaticSolution;
 use vrp_solver::SolverBuilder;
@@ -43,20 +47,10 @@ fn run_examples(base_path: &str) {
                 },
             );
 
-        let mut solution_serialized = String::new();
-        let writer = unsafe { BufWriter::new(solution_serialized.as_mut_vec()) };
-        solution.write_pragmatic(&problem, writer).ok().unwrap();
+        let solution = Arc::new(solution);
 
-        let solution_expected = fs::read_to_string(format!["{}/{}.solution.json", base_path, name].as_str())
-            .unwrap_or_else(|err| {
-                eprintln!("Cannot read solution: '{}'", err);
-                process::exit(1);
-            });
-
-        // TODO improve check and make it assertion
-        if solution_serialized != solution_expected {
-            println!("Solutions are different for {}", name);
-        }
+        validate_with_existing(&problem, &solution, base_path, name);
+        validate_with_matrix(&problem, &solution);
     }
 }
 
@@ -73,6 +67,37 @@ mod test {
 
     #[test]
     fn can_run_examples() {
-        run_examples("data");
+        run_examples("/home/builuk/playground/vrp-rst/examples/json-pragmatic/data");
     }
+}
+
+fn validate_with_existing(problem: &Arc<Problem>, solution: &Arc<Solution>, base_path: &str, name: &str) {
+    let mut solution_serialized = String::new();
+    let writer = unsafe { BufWriter::new(solution_serialized.as_mut_vec()) };
+    solution.write_pragmatic(&problem, writer).ok().unwrap();
+
+    let solution_expected = fs::read_to_string(format!["{}/{}.solution.json", base_path, name].as_str())
+        .unwrap_or_else(|err| {
+            eprintln!("Cannot read solution: '{}'", err);
+            process::exit(1);
+        });
+
+    // TODO improve check and make it assertion
+    if solution_serialized != solution_expected {
+        println!("Solutions are different for {}", name);
+    }
+}
+
+fn validate_with_matrix(problem: &Arc<Problem>, solution: &Arc<Solution>) {
+    let insertion_ctx = InsertionContext::new_from_solution(
+        problem.clone(),
+        (solution.clone(), None),
+        Arc::new(DefaultRandom::default()),
+    );
+
+    let decipher = AdjacencyMatrixDecipher::new(problem.clone());
+    let adjacency_matrix_orig = decipher.encode::<SparseMatrix>(&insertion_ctx.solution);
+    let adjacency_matrix_dec = decipher.encode::<SparseMatrix>(&decipher.decode(&adjacency_matrix_orig));
+
+    assert_eq!(adjacency_matrix_orig.to_vvec(), adjacency_matrix_dec.to_vvec());
 }

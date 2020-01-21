@@ -6,4 +6,5 @@ edition = "2018"
 
 [dependencies]
 vrp-pragmatic = { path = "../../vrp-pragmatic" }
+vrp-core = { path = "../../vrp-core" }
 vrp-solver = { path = "../../vrp-solver" }
