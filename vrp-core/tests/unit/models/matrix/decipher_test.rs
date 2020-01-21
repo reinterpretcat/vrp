@@ -12,8 +12,6 @@ use crate::construction::constraints::Demand;
 use crate::models::solution::Place as ActivityPlace;
 
 // TODO add tests:
-//      constraint violation (e.g. capacity)
-//      multi job in wrong order
 //      incomplete multi job
 //      locked job in wrong route
 
@@ -160,6 +158,44 @@ fn can_handle_single_job_capacity_violation() {
             vec![0., 0., 0., 0., 0., 0., 0., 2., 0.],
             vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
             vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+        ]
+    );
+}
+
+#[test]
+fn can_handle_multi_job_capacity_violation() {
+    let decipher = AdjacencyMatrixDecipher::new(create_diverse_problem());
+    // 0-8-6-5-7-1 violates capacity
+    let adjacency_matrix = vec![
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 1.], //
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 0., 1., 0.],
+        vec![0., 0., 0., 0., 0., 1., 0., 0., 0.],
+        vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+        vec![0., 0., 0., 0., 0., 0., 1., 0., 0.],
+    ];
+
+    let restored_solution = decipher.decode(&to_sparse(&adjacency_matrix));
+    assert_eq!(restored_solution.routes.len(), 1);
+    assert_eq!(restored_solution.required.len(), 1);
+
+    // expect 0-8-5-1
+    let adjacency_matrix = decipher.encode::<SparseMatrix>(&restored_solution);
+    assert_eq!(
+        to_vvec(&adjacency_matrix),
+        vec![
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 1.], //
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 1., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            vec![0., 0., 0., 0., 0., 1., 0., 0., 0.],
         ]
     );
 }

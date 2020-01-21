@@ -2,7 +2,6 @@ use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
 use crate::utils::compare_shared;
-use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
@@ -95,8 +94,10 @@ impl Activity {
     }
 
     pub fn retrieve_job(&self) -> Option<Job> {
-        match self.job.borrow() {
-            Some(job) => Multi::roots(job).map_or_else(|| Some(Job::Single(job.clone())), |m| Some(Job::Multi(m))),
+        match self.job.as_ref() {
+            Some(single) => Multi::roots(single)
+                .and_then(|multi| Some(Job::Multi(multi)))
+                .or_else(|| Some(Job::Single(single.clone()))),
             _ => None,
         }
     }

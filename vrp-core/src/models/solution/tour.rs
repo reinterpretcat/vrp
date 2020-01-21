@@ -6,6 +6,7 @@ use crate::models::problem::Job;
 use crate::models::solution::Activity;
 use std::collections::HashSet;
 use std::iter::once;
+use std::ops::RangeBounds;
 use std::slice::{Iter, IterMut};
 
 pub type TourActivity = Box<Activity>;
@@ -84,10 +85,13 @@ impl Tour {
     }
 
     /// Removes activities from the tour.
-    pub fn remove_activities_at(&mut self, start: usize, end: usize) -> Vec<Job> {
+    pub fn remove_activities_at<R>(&mut self, range: R) -> Vec<Job>
+    where
+        R: RangeBounds<usize>,
+    {
         let jobs: Vec<_> = self
             .activities
-            .drain(start..end)
+            .drain(range)
             .map(|a| a.retrieve_job().expect("Attempt to remove activity without job from the tour!"))
             .collect();
 

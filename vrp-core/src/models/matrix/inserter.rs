@@ -16,7 +16,7 @@ pub struct ActivityInfoInserter<'a> {
     unassigned: &'a mut HashSet<Job>,
     activity_infos: Vec<&'a ActivityInfo>,
 
-    inserted_job_map: HashMap<Job, Vec<(usize, usize)>>,
+    inserted_job_map: HashMap<Job, Vec<usize>>,
 }
 
 impl<'a> ActivityInfoInserter<'a> {
@@ -67,14 +67,14 @@ impl<'a> ActivityInfoInserter<'a> {
         match result {
             InsertionResult::Success(success) => {
                 assert_eq!(success.activities.len(), 1);
-                let (mut activity, index) = success.activities.into_iter().next().unwrap();
+                let (mut activity, _) = success.activities.into_iter().next().unwrap();
                 activity.job = job
                     .as_multi()
                     .and_then(|multi| multi.jobs.get(single_idx).cloned())
                     .or_else(|| job.as_single().cloned());
 
                 self.route_ctx.route_mut().tour.insert_last(activity);
-                self.inserted_job_map.entry(job.clone()).or_insert_with(|| vec![]).push((index, activity_info_idx));
+                self.inserted_job_map.entry(job.clone()).or_insert_with(|| vec![]).push(activity_info_idx);
 
                 true
             }
@@ -101,17 +101,24 @@ impl<'a> ActivityInfoInserter<'a> {
             Job::Single(_) => activity_info_idx + 1,
             // NOTE remove everything after first sub job and remove multi job from the list
             Job::Multi(_) => {
-                let activity_info_idx = if let Some(inserted) = self.inserted_job_map.get(job) {
-                    let (start, _) = inserted.first().cloned().unwrap();
-                    let end = self.route_ctx.route.tour.total() - 1;
-                    let jobs = self.route_ctx.route_mut().tour.remove_activities_at(start, end);
+                let activity_info_idx = if let Some(_) = self.inserted_job_map.get(job) {
+                    let start = self.route_ctx.route.tour.index(job).unwrap();
+                    let end = 1 + self.route_ctx.route.tour.activity_count();
+                    let jobs = self.route_ctx.route_mut().tour.remove_activities_at(start..end);
 
                     jobs.iter().for_each(|job| {
                         self.inserted_job_map.remove(job);
                         self.unprocessed.insert(job.clone());
                     });
 
-                    start - 1
+                    self.route_ctx
+                        .route
+                        .tour
+                        .get(self.route_ctx.route.tour.activity_count())
+                        .and_then(|a| a.retrieve_job())
+                        .and_then(|job| self.inserted_job_map.get(&job))
+                        .and_then(|inserted| Some(inserted.last().cloned().unwrap() + 1))
+                        .unwrap_or(0)
                 } else {
                     activity_info_idx + 1
                 };
@@ -128,7 +135,7 @@ impl<'a> ActivityInfoInserter<'a> {
     fn filter_broken(activity_infos: Vec<&ActivityInfo>) -> Vec<&ActivityInfo> {
         let mut activity_infos = activity_infos;
 
-        let activity_info_map = activity_infos.iter().enumerate().fold(HashMap::new(), |mut acc, (_ai_idx, ai)| {
+        let activity_info_map = activity_infos.iter().fold(HashMap::new(), |mut acc, ai| {
             match ai {
                 ActivityInfo::Job((job, single_idx, _, _)) => {
                     if let Some(_) = job.as_multi() {
