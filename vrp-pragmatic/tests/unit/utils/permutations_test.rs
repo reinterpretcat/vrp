@@ -44,4 +44,7 @@ fn can_validate_permutations() {
     assert!(!permutator.validate(&vec![0]));
     assert!(!permutator.validate(&vec![0, 3, 2, 1, 4]));
     assert!(!permutator.validate(&vec![0, 1, 3, 2, 4]));
+
+    let permutator = VariableJobPermutation::new(3, 1, 3);
+    assert!(permutator.validate(&vec![0, 1, 2]));
 }
