@@ -62,8 +62,8 @@ pub const CURRENT_CAPACITY_KEY: i32 = 11;
 pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
 pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
 
-pub const MAX_DISTANCE_KEY: i32 = 21;
-pub const MAX_DURATION_KEY: i32 = 22;
+pub const CURRENT_DISTANCE_KEY: i32 = 21;
+pub const CURRENT_DURATION_KEY: i32 = 22;
 
 const OP_START_MSG: &str = "Optional start is not yet implemented.";
 

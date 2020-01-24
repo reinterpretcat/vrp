@@ -13,8 +13,8 @@ fn create_test_data(
 ) -> (ConstraintPipeline, RouteContext) {
     let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
     let mut state = RouteState::default();
-    state.put_route_state(MAX_DISTANCE_KEY, 50.);
-    state.put_route_state(MAX_DURATION_KEY, 50.);
+    state.put_route_state(CURRENT_DISTANCE_KEY, 50.);
+    state.put_route_state(CURRENT_DURATION_KEY, 50.);
     let target = target.to_owned();
     let route_ctx =
         RouteContext { route: Arc::new(create_route_with_activities(&fleet, vehicle, vec![])), state: Arc::new(state) };
