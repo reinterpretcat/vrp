@@ -1,6 +1,6 @@
 use crate::construction::states::{create_end_activity, create_start_activity, RouteContext, RouteState};
 use crate::helpers::models::problem::*;
-use crate::models::common::{Duration, Location, Schedule};
+use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Fleet, Single};
 use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
 use std::sync::Arc;
@@ -14,7 +14,7 @@ pub fn test_activity() -> Activity {
 pub fn test_activity_with_location(location: Location) -> Activity {
     Activity {
         place: Place { location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
-        schedule: DEFAULT_ACTIVITY_SCHEDULE,
+        schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
         job: Some(test_single_with_location(Some(location))),
     }
 }
@@ -22,7 +22,15 @@ pub fn test_activity_with_location(location: Location) -> Activity {
 pub fn test_activity_with_location_and_duration(location: Location, duration: Duration) -> Activity {
     Activity {
         place: Place { location, duration, time: DEFAULT_JOB_TIME_WINDOW },
-        schedule: DEFAULT_ACTIVITY_SCHEDULE,
+        schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
+        job: Some(test_single_with_location(Some(location))),
+    }
+}
+
+pub fn test_activity_with_location_and_tw(location: Location, tw: TimeWindow) -> Activity {
+    Activity {
+        place: Place { location, duration: DEFAULT_JOB_DURATION, time: tw },
+        schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
         job: Some(test_single_with_location(Some(location))),
     }
 }

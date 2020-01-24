@@ -1,7 +1,7 @@
 use crate::construction::constraints::Demand;
 use crate::helpers::models::problem::test_single_with_simple_demand;
 use crate::helpers::models::solution::*;
-use crate::models::common::{Duration, Location, Schedule};
+use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::Single;
 use crate::models::solution::TourActivity;
 use std::sync::Arc;
@@ -12,6 +12,10 @@ pub fn test_tour_activity_with_location(location: Location) -> TourActivity {
 
 pub fn test_tour_activity_with_location_and_duration(location: Location, duration: Duration) -> TourActivity {
     Box::new(test_activity_with_location_and_duration(location, duration))
+}
+
+pub fn test_tour_activity_with_location_and_tw(location: Location, tw: TimeWindow) -> TourActivity {
+    Box::new(test_activity_with_location_and_tw(location, tw))
 }
 
 pub fn test_tour_activity_with_schedule(schedule: Schedule) -> TourActivity {

@@ -4,8 +4,9 @@ mod traveling_test;
 
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
+use crate::models::common::{Distance, Duration, Profile, Timestamp};
 use crate::models::problem::{Actor, Job, TransportCost};
+use crate::models::solution::TourActivity;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -82,8 +83,7 @@ struct TravelHardActivityConstraint {
     limit_func: TravelLimitFunc,
     distance_code: i32,
     duration_code: i32,
-    duration_func: Box<dyn Fn(Profile, Location, Location, Timestamp) -> f64 + Send + Sync>,
-    distance_func: Box<dyn Fn(Profile, Location, Location, Timestamp) -> f64 + Send + Sync>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
 impl HardActivityConstraint for TravelHardActivityConstraint {
@@ -93,20 +93,16 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
         let limit = (self.limit_func)(&route_ctx.route.actor);
-
-        if let Some(max_distance) = limit.0 {
-            if let Some(violation) = self.check_distance(route_ctx, activity_ctx, max_distance) {
-                return Some(violation);
+        if limit.0.is_some() || limit.1.is_some() {
+            let (total_distance, total_duration) = self.calculate_travel(route_ctx, activity_ctx);
+            match limit {
+                (Some(max_distance), _) if max_distance < total_distance => self.violate(self.distance_code),
+                (_, Some(max_duration)) if max_duration < total_duration => self.violate(self.duration_code),
+                _ => None,
             }
+        } else {
+            None
         }
-
-        if let Some(max_duration) = limit.1 {
-            if let Some(violation) = self.check_duration(route_ctx, activity_ctx, max_duration) {
-                return Some(violation);
-            }
-        }
-
-        None
     }
 }
 
@@ -117,78 +113,54 @@ impl TravelHardActivityConstraint {
         duration_code: i32,
         transport: Arc<dyn TransportCost + Send + Sync>,
     ) -> Self {
-        let transport_copy = transport.clone();
-        Self {
-            limit_func,
-            distance_code,
-            duration_code,
-            duration_func: Box::new(move |profile, from, to, departure| {
-                transport.duration(profile, from, to, departure)
-            }),
-            distance_func: Box::new(move |profile, from, to, departure| {
-                transport_copy.distance(profile, from, to, departure)
-            }),
-        }
+        Self { limit_func, distance_code, duration_code, transport }
     }
 
-    fn check_distance(
-        &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
-        max_distance: f64,
-    ) -> Option<ActivityConstraintViolation> {
-        if self.check_travel(route_ctx, activity_ctx, max_distance, MAX_DISTANCE_KEY, &(self.distance_func)) {
-            None
-        } else {
-            Some(ActivityConstraintViolation { code: self.distance_code, stopped: false })
-        }
-    }
-
-    fn check_duration(
-        &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
-        max_duration: f64,
-    ) -> Option<ActivityConstraintViolation> {
-        // NOTE consider extra operation time
-        let max_duration = max_duration - activity_ctx.target.place.duration;
-
-        if self.check_travel(route_ctx, activity_ctx, max_duration, MAX_DURATION_KEY, &(self.duration_func)) {
-            None
-        } else {
-            Some(ActivityConstraintViolation { code: self.duration_code, stopped: false })
-        }
-    }
-
-    fn check_travel(
-        &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
-        limit: f64,
-        key: i32,
-        func: &Box<dyn Fn(Profile, Location, Location, Timestamp) -> f64 + Send + Sync>,
-    ) -> bool {
+    fn calculate_travel(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> (Distance, Duration) {
         let actor = &route_ctx.route.actor;
-        let current = *route_ctx.state.get_route_state(key).unwrap_or(&0.);
-
+        let profile = actor.vehicle.profile;
         let prev = activity_ctx.prev;
-        let target = activity_ctx.target;
+        let tar = activity_ctx.target;
         let next = activity_ctx.next;
 
-        let prev_to_target =
-            func(actor.vehicle.profile, prev.place.location, target.place.location, prev.schedule.departure);
+        let curr_dis = route_ctx.state.get_route_state(MAX_DISTANCE_KEY).cloned().unwrap_or(0.);
+        let curr_dur = route_ctx.state.get_route_state(MAX_DURATION_KEY).cloned().unwrap_or(0.);
 
+        assert_eq!(curr_dur, prev.schedule.departure);
+
+        let (prev_to_tar_dis, prev_to_tar_dur) = self.calculate_leg_travel_info(profile, prev, tar, curr_dur);
         if next.is_none() {
-            return current + prev_to_target <= limit;
+            return (curr_dis + prev_to_tar_dis, curr_dur + prev_to_tar_dur);
         }
 
         let next = next.unwrap();
+        let tar_dep = curr_dur + prev_to_tar_dur;
 
-        let prev_to_next =
-            func(actor.vehicle.profile, prev.place.location, next.place.location, prev.schedule.departure);
-        let target_to_next =
-            func(actor.vehicle.profile, target.place.location, next.place.location, target.schedule.departure);
+        let (tar_to_next_dis, tar_to_next_dur) = self.calculate_leg_travel_info(profile, tar, next, tar_dep);
 
-        current + prev_to_target + target_to_next - prev_to_next <= limit
+        (curr_dis + prev_to_tar_dis + tar_to_next_dis, curr_dur + prev_to_tar_dur + tar_to_next_dur)
+    }
+
+    fn calculate_leg_travel_info(
+        &self,
+        profile: Profile,
+        first: &TourActivity,
+        second: &TourActivity,
+        departure: Timestamp,
+    ) -> (Distance, Duration) {
+        let first_to_second_dis =
+            self.transport.distance(profile, first.place.location, second.place.location, departure);
+        let first_to_second_dur =
+            self.transport.duration(profile, first.place.location, second.place.location, departure);
+
+        let second_arr = departure + first_to_second_dur;
+        let second_wait = (second.place.time.start - (departure + first_to_second_dur)).max(0.);
+        let second_dep = second_arr + second_wait + second.place.duration;
+
+        (first_to_second_dis, second_dep - departure)
+    }
+
+    fn violate(&self, code: i32) -> Option<ActivityConstraintViolation> {
+        Some(ActivityConstraintViolation { code, stopped: false })
     }
 }
