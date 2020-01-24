@@ -94,7 +94,14 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
     ) -> Option<ActivityConstraintViolation> {
         let limit = (self.limit_func)(&route_ctx.route.actor);
         if limit.0.is_some() || limit.1.is_some() {
-            let (total_distance, total_duration) = self.calculate_travel(route_ctx, activity_ctx);
+            let (change_distance, change_duration) = self.calculate_travel(route_ctx, activity_ctx);
+
+            let curr_dis = route_ctx.state.get_route_state(MAX_DISTANCE_KEY).cloned().unwrap_or(0.);
+            let curr_dur = route_ctx.state.get_route_state(MAX_DURATION_KEY).cloned().unwrap_or(0.);
+
+            let total_distance = curr_dis + change_distance;
+            let total_duration = curr_dur + change_duration;
+
             match limit {
                 (Some(max_distance), _) if max_distance < total_distance => self.violate(self.distance_code),
                 (_, Some(max_duration)) if max_duration < total_duration => self.violate(self.duration_code),
@@ -119,26 +126,25 @@ impl TravelHardActivityConstraint {
     fn calculate_travel(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> (Distance, Duration) {
         let actor = &route_ctx.route.actor;
         let profile = actor.vehicle.profile;
+
         let prev = activity_ctx.prev;
         let tar = activity_ctx.target;
         let next = activity_ctx.next;
 
-        let curr_dis = route_ctx.state.get_route_state(MAX_DISTANCE_KEY).cloned().unwrap_or(0.);
-        let curr_dur = route_ctx.state.get_route_state(MAX_DURATION_KEY).cloned().unwrap_or(0.);
+        let prev_dep = prev.schedule.departure;
 
-        assert_eq!(curr_dur, prev.schedule.departure);
-
-        let (prev_to_tar_dis, prev_to_tar_dur) = self.calculate_leg_travel_info(profile, prev, tar, curr_dur);
+        let (prev_to_tar_dis, prev_to_tar_dur) = self.calculate_leg_travel_info(profile, prev, tar, prev_dep);
         if next.is_none() {
-            return (curr_dis + prev_to_tar_dis, curr_dur + prev_to_tar_dur);
+            return (prev_to_tar_dis, prev_to_tar_dur);
         }
 
         let next = next.unwrap();
-        let tar_dep = curr_dur + prev_to_tar_dur;
+        let tar_dep = prev_dep + prev_to_tar_dur;
 
+        let (prev_to_next_dis, prev_to_next_dur) = self.calculate_leg_travel_info(profile, prev, next, prev_dep);
         let (tar_to_next_dis, tar_to_next_dur) = self.calculate_leg_travel_info(profile, tar, next, tar_dep);
 
-        (curr_dis + prev_to_tar_dis + tar_to_next_dis, curr_dur + prev_to_tar_dur + tar_to_next_dur)
+        (prev_to_tar_dis + tar_to_next_dis - prev_to_next_dis, prev_to_tar_dur + tar_to_next_dur - prev_to_next_dur)
     }
 
     fn calculate_leg_travel_info(

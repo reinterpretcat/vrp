@@ -82,7 +82,7 @@ fn can_consider_waiting_time() {
             index: 0,
             prev: &test_tour_activity_with_location(50),
             target: &test_tour_activity_with_location_and_tw(75, TimeWindow::new(100., 100.)),
-            next: Some(&test_tour_activity_with_location(100)),
+            next: Some(&test_tour_activity_with_location(50)),
         },
     );
 
