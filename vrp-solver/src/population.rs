@@ -87,6 +87,7 @@ impl DiversePopulation {
     {
         individuums.truncate(batch_size - 1);
 
+        individuums.retain(|i| i.0.solution.unassigned.len() <= individuum.0.solution.unassigned.len());
         individuums.push(individuum);
         individuums.sort_by(|a, b| compare(a, b));
     }
