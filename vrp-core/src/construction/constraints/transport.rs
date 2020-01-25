@@ -351,7 +351,7 @@ impl TravelHardActivityConstraint {
             self.transport.duration(profile, first.place.location, second.place.location, departure);
 
         let second_arr = departure + first_to_second_dur;
-        let second_wait = (second.place.time.start - (departure + first_to_second_dur)).max(0.);
+        let second_wait = (second.place.time.start - second_arr).max(0.);
         let second_dep = second_arr + second_wait + second.place.duration;
 
         (first_to_second_dis, second_dep - departure)
