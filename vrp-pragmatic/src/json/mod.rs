@@ -22,6 +22,15 @@ impl Location {
     }
 }
 
+const TIME_CONSTRAINT_CODE: i32 = 1;
+const DISTANCE_LIMIT_CONSTRAINT_CODE: i32 = 2;
+const DURATION_LIMIT_CONSTRAINT_CODE: i32 = 3;
+const CAPACITY_CONSTRAINT_CODE: i32 = 4;
+const BREAK_CONSTRAINT_CODE: i32 = 5;
+const SKILLS_CONSTRAINT_CODE: i32 = 6;
+const LOCKING_CONSTRAINT_CODE: i32 = 7;
+const REACHABLE_CONSTRAINT_CODE: i32 = 8;
+
 pub mod coord_index;
 
 pub mod problem;

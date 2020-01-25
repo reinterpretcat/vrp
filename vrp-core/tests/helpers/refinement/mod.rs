@@ -1,5 +1,5 @@
 use crate::construction::states::InsertionContext;
-use crate::helpers::construction::constraints::create_constraint_pipeline;
+use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};
 use crate::models::problem::{Job, Jobs, MatrixTransportCost};
@@ -61,7 +61,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         fleet,
         jobs: Arc::new(jobs),
         locks: vec![],
-        constraint: Arc::new(create_constraint_pipeline()),
+        constraint: Arc::new(create_constraint_pipeline_with_timing()),
         activity: Arc::new(TestActivityCost::new()),
         transport,
         objective: Arc::new(PenalizeUnassigned::default()),

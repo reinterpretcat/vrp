@@ -8,6 +8,7 @@ use crate::json::solution::serializer::Timing;
 use crate::json::solution::{
     serialize_solution, Activity, Extras, Interval, Statistic, Stop, Tour, UnassignedJob, UnassignedJobReason,
 };
+use crate::json::*;
 use chrono::{SecondsFormat, TimeZone, Utc};
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::{Demand, DemandDimension};
@@ -18,6 +19,7 @@ use vrp_core::models::{Problem, Solution};
 
 type ApiSolution = crate::json::solution::serializer::Solution;
 type ApiSchedule = crate::json::solution::serializer::Schedule;
+type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
 
 /// A trait to serialize solution in pragmatic format.
@@ -34,14 +36,14 @@ impl<W: Write> PragmaticSolution<W> for Solution {
 }
 
 struct Leg {
-    pub last_detail: Option<(Location, Timestamp)>,
+    pub last_detail: Option<(DomainLocation, Timestamp)>,
     pub load: Option<MultiDimensionalCapacity>,
     pub statistic: Statistic,
 }
 
 impl Leg {
     fn new(
-        last_detail: Option<(Location, Timestamp)>,
+        last_detail: Option<(DomainLocation, Timestamp)>,
         load: Option<MultiDimensionalCapacity>,
         statistic: Statistic,
     ) -> Self {
@@ -274,13 +276,14 @@ fn calculate_load(
 
 fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
     solution.unassigned.iter().fold(vec![], |mut acc, unassigned| {
-        let reason = match unassigned.1 {
-            1 => (2, "cannot be visited within time window"),
-            2 => (3, "does not fit into any vehicle due to capacity"),
-            5 => (101, "cannot be assigned due to max distance constraint of vehicle"),
-            6 => (102, "cannot be assigned due to shift time constraint of vehicle"),
-            10 => (1, "cannot serve required skill"),
-            11 => (100, "location unreachable"),
+        let reason = match *unassigned.1 {
+            TIME_CONSTRAINT_CODE => (2, "cannot be visited within time window"),
+            CAPACITY_CONSTRAINT_CODE => (3, "does not fit into any vehicle due to capacity"),
+            DISTANCE_LIMIT_CONSTRAINT_CODE => (101, "cannot be assigned due to max distance constraint of vehicle"),
+            DURATION_LIMIT_CONSTRAINT_CODE => (102, "cannot be assigned due to shift time constraint of vehicle"),
+            SKILLS_CONSTRAINT_CODE => (1, "cannot serve required skill"),
+            REACHABLE_CONSTRAINT_CODE => (100, "location unreachable"),
+            BREAK_CONSTRAINT_CODE => (101, "break is not assignable"),
             _ => (0, "unknown"),
         };
         let dimens = match unassigned.0 {

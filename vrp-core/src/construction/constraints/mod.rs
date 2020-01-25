@@ -57,13 +57,12 @@
 
 pub const LATEST_ARRIVAL_KEY: i32 = 1;
 pub const WAITING_KEY: i32 = 2;
+pub const LIMIT_DISTANCE_KEY: i32 = 3;
+pub const LIMIT_DURATION_KEY: i32 = 4;
 
 pub const CURRENT_CAPACITY_KEY: i32 = 11;
 pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
 pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
-
-pub const CURRENT_DISTANCE_KEY: i32 = 21;
-pub const CURRENT_DURATION_KEY: i32 = 22;
 
 const OP_START_MSG: &str = "Optional start is not yet implemented.";
 
@@ -75,9 +74,6 @@ pub use self::transport::*;
 
 mod capacity;
 pub use self::capacity::*;
-
-mod traveling;
-pub use self::traveling::*;
 
 mod locking;
 pub use self::locking::*;

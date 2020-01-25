@@ -14,6 +14,7 @@ use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::fleet_reader::{create_transport_costs, read_fleet, read_limits};
 use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_locks};
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
+use crate::json::*;
 use crate::StringReader;
 use chrono::DateTime;
 use std::collections::{HashMap, HashSet};
@@ -94,7 +95,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         &mut job_index,
     );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect();
-    let limits = read_limits(&api_problem);
+    let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
     let extras = create_extras(&api_problem.id, &problem_props, coord_index);
     let constraint =
         create_constraint_pipeline(&fleet, activity.clone(), transport.clone(), problem_props, &locks, limits);
@@ -117,32 +118,28 @@ fn create_constraint_pipeline(
     transport: Arc<dyn TransportCost + Send + Sync>,
     props: ProblemProperties,
     locks: &Vec<Arc<Lock>>,
-    limits: Option<TravelLimitFunc>,
+    limits: TravelLimitFunc,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Box::new(TransportConstraintModule::new(activity, transport.clone(), 1)));
+    constraint.add_module(Box::new(TransportConstraintModule::new(activity, transport.clone(), limits, 1, 2, 3)));
 
     add_capacity_module(&mut constraint, &props);
     add_even_dist_module(&mut constraint, &props);
 
     if props.has_breaks {
-        constraint.add_module(Box::new(BreakModule::new(4, Some(-100.), false)));
+        constraint.add_module(Box::new(BreakModule::new(BREAK_CONSTRAINT_CODE, Some(-100.), false)));
     }
 
     if props.has_skills {
-        constraint.add_module(Box::new(SkillsModule::new(10)));
+        constraint.add_module(Box::new(SkillsModule::new(SKILLS_CONSTRAINT_CODE)));
     }
 
     if !locks.is_empty() {
-        constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks.clone(), 3)));
-    }
-
-    if let Some(limits) = limits {
-        constraint.add_module(Box::new(TravelModule::new(limits.clone(), transport.clone(), 5, 6)));
+        constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks.clone(), LOCKING_CONSTRAINT_CODE)));
     }
 
     if props.has_unreachable_locations {
-        constraint.add_module(Box::new(ReachableModule::new(transport.clone(), 11)));
+        constraint.add_module(Box::new(ReachableModule::new(transport.clone(), REACHABLE_CONSTRAINT_CODE)));
     }
 
     constraint
@@ -154,22 +151,24 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
         if props.has_multi_dimen_capacity {
             // TODO
             constraint.add_module(Box::new(ReloadCapacityConstraintModule::<MultiDimensionalCapacity>::new(
-                2,
+                CAPACITY_CONSTRAINT_CODE,
                 100.,
                 Box::new(|capacity| *capacity * 0.9),
             )));
         } else {
             constraint.add_module(Box::new(ReloadCapacityConstraintModule::<i32>::new(
-                2,
+                CAPACITY_CONSTRAINT_CODE,
                 100.,
                 Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32),
             )));
         }
     } else {
         if props.has_multi_dimen_capacity {
-            constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(2)));
+            constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(
+                CAPACITY_CONSTRAINT_CODE,
+            )));
         } else {
-            constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(2)));
+            constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(CAPACITY_CONSTRAINT_CODE)));
         }
     }
 }
