@@ -47,7 +47,7 @@ pub fn evaluate_job_insertion_in_route(
     if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
         return InsertionResult::choose_best_result(
             alternative,
-            InsertionResult::make_failure_with_code(violation.code),
+            InsertionResult::make_failure_with_code(violation.code, Some(job.clone())),
         );
     }
 
@@ -99,7 +99,7 @@ fn evaluate_single(
         let activities = vec![(activity, result.index)];
         InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
     } else {
-        InsertionResult::make_failure_with_code(result.violation.unwrap().code)
+        InsertionResult::make_failure_with_code(result.violation.unwrap().code, Some(job.clone()))
     }
 }
 
@@ -164,7 +164,10 @@ fn evaluate_multi(
         let activities = result.activities.unwrap();
         InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
     } else {
-        InsertionResult::make_failure_with_code(if let Some(violation) = result.violation { violation.code } else { 0 })
+        InsertionResult::make_failure_with_code(
+            if let Some(violation) = result.violation { violation.code } else { 0 },
+            Some(job.clone()),
+        )
     }
 }
 

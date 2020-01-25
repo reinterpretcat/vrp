@@ -37,6 +37,8 @@ pub struct InsertionSuccess {
 pub struct InsertionFailure {
     /// Failed constraint code.
     pub constraint: i32,
+    /// Original job failed to be inserted.
+    pub job: Option<Job>,
 }
 
 /// Specifies insertion context for activity.
@@ -281,12 +283,12 @@ impl InsertionResult {
 
     /// Creates result which represents insertion failure.
     pub fn make_failure() -> Self {
-        Self::make_failure_with_code(0)
+        Self::make_failure_with_code(-1, None)
     }
 
     /// Creates result which represents insertion failure with given code.
-    pub fn make_failure_with_code(code: i32) -> Self {
-        Self::Failure(InsertionFailure { constraint: code })
+    pub fn make_failure_with_code(code: i32, job: Option<Job>) -> Self {
+        Self::Failure(InsertionFailure { constraint: code, job })
     }
 
     /// Compares two insertion results and returns the cheapest by cost.

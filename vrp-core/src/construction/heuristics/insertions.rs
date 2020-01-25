@@ -156,10 +156,10 @@ fn insert(result: InsertionResult, ctx: &mut InsertionContext) {
             ctx.problem.constraint.accept_insertion(&mut ctx.solution, &mut success.context, &job);
         }
         InsertionResult::Failure(failure) => {
-            let unassigned = &mut ctx.solution.unassigned;
-            ctx.solution.required.drain(..).for_each(|j| {
-                unassigned.insert(j.clone(), failure.constraint);
-            });
+            if let Some(job) = failure.job {
+                ctx.solution.unassigned.insert(job.clone(), failure.constraint);
+                ctx.solution.required.retain(|j| *j != job);
+            }
         }
     }
 }
