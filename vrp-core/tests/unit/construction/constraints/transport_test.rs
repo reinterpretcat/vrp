@@ -257,6 +257,7 @@ mod timing {
 }
 
 mod traveling {
+    use super::super::stop;
     use crate::construction::constraints::*;
     use crate::construction::states::{ActivityContext, RouteContext, RouteState};
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
@@ -304,11 +305,11 @@ mod traveling {
     }}
 
     can_check_traveling_limits! {
-        case01: ("v1", "v1", 76, (Some(100.), None), Some(ActivityConstraintViolation { code: 2, stopped: false })),
+        case01: ("v1", "v1", 76, (Some(100.), None), stop(2)),
         case02: ("v1", "v1", 74, (Some(100.), None), None),
         case03: ("v1", "v2", 76, (Some(100.), None), None),
 
-        case04: ("v1", "v1", 76, (None, Some(100.)), Some(ActivityConstraintViolation { code: 3, stopped: false })),
+        case04: ("v1", "v1", 76, (None, Some(100.)), stop(3)),
         case05: ("v1", "v1", 74, (None, Some(100.)), None),
         case06: ("v1", "v2", 76, (None, Some(100.)), None),
     }
@@ -349,6 +350,6 @@ mod traveling {
             },
         );
 
-        assert_eq_option!(result, Some(ActivityConstraintViolation { code: 3, stopped: false }));
+        assert_eq_option!(result, stop(3));
     }
 }

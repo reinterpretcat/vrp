@@ -196,20 +196,6 @@ struct TimeHardActivityConstraint {
     transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
-impl TimeHardActivityConstraint {
-    fn fail(&self) -> Option<ActivityConstraintViolation> {
-        Some(ActivityConstraintViolation { code: self.code, stopped: true })
-    }
-
-    fn stop(&self) -> Option<ActivityConstraintViolation> {
-        Some(ActivityConstraintViolation { code: self.code, stopped: false })
-    }
-
-    fn success(&self) -> Option<ActivityConstraintViolation> {
-        None
-    }
-}
-
 impl HardActivityConstraint for TimeHardActivityConstraint {
     fn evaluate_activity(
         &self,
@@ -229,13 +215,13 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             || actor.detail.time.end < target.place.time.start
             || next.map_or(false, |next| actor.detail.time.end < next.place.time.start)
         {
-            return self.fail();
+            return fail(self.code);
         }
 
         let (next_act_location, latest_arr_time_at_next_act) = if let Some(next) = next {
             // closed vrp
             if actor.detail.time.end < next.place.time.start {
-                return self.fail();
+                return fail(self.code);
             }
             (
                 next.place.location,
@@ -250,10 +236,10 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             departure + self.transport.duration(profile, prev.place.location, next_act_location, departure);
 
         if arr_time_at_next > latest_arr_time_at_next_act {
-            return self.fail();
+            return fail(self.code);
         }
         if target.place.time.start > latest_arr_time_at_next_act {
-            return self.stop();
+            return stop(self.code);
         }
 
         let arr_time_at_target_act =
@@ -274,20 +260,20 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         );
 
         if arr_time_at_target_act > latest_arr_time_at_new_act {
-            return self.stop();
+            return stop(self.code);
         }
 
         if next.is_none() {
-            return self.success();
+            return success();
         }
 
         let arr_time_at_next_act = end_time_at_new_act
             + self.transport.duration(profile, target.place.location, next_act_location, end_time_at_new_act);
 
         if arr_time_at_next_act > latest_arr_time_at_next_act {
-            self.stop()
+            stop(self.code)
         } else {
-            self.success()
+            success()
         }
     }
 }
@@ -317,8 +303,8 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
             let total_duration = curr_dur + change_duration;
 
             match limit {
-                (Some(max_distance), _) if max_distance < total_distance => self.violate(self.distance_code),
-                (_, Some(max_duration)) if max_duration < total_duration => self.violate(self.duration_code),
+                (Some(max_distance), _) if max_distance < total_distance => stop(self.distance_code),
+                (_, Some(max_duration)) if max_duration < total_duration => stop(self.duration_code),
                 _ => None,
             }
         } else {
@@ -369,10 +355,6 @@ impl TravelHardActivityConstraint {
         let second_dep = second_arr + second_wait + second.place.duration;
 
         (first_to_second_dis, second_dep - departure)
-    }
-
-    fn violate(&self, code: i32) -> Option<ActivityConstraintViolation> {
-        Some(ActivityConstraintViolation { code, stopped: false })
     }
 }
 
@@ -459,4 +441,16 @@ impl SoftActivityConstraint for CostSoftActivityConstraint {
 
         new_costs - old_costs
     }
+}
+
+fn fail(code: i32) -> Option<ActivityConstraintViolation> {
+    Some(ActivityConstraintViolation { code, stopped: true })
+}
+
+fn stop(code: i32) -> Option<ActivityConstraintViolation> {
+    Some(ActivityConstraintViolation { code, stopped: false })
+}
+
+fn success() -> Option<ActivityConstraintViolation> {
+    None
 }
