@@ -3,7 +3,7 @@ use crate::helpers::construction::constraints::create_constraint_pipeline_with_t
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::Schedule;
-use crate::models::problem::{Fleet, Job, Jobs, SimpleActivityCost};
+use crate::models::problem::{Job, Jobs, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
@@ -13,13 +13,13 @@ use std::sync::Arc;
 
 #[test]
 fn can_calculate_cost_with_penalty_properly() {
-    let fleet = Arc::new(Fleet::new(
-        vec![test_driver()],
-        vec![
-            VehicleBuilder::new().id("v1").costs(fixed_costs()).build(),
-            VehicleBuilder::new().id("v2").costs(fixed_costs()).build(),
-        ],
-    ));
+    let fleet = Arc::new(
+        FleetBuilder::new()
+            .add_driver(test_driver())
+            .add_vehicle(VehicleBuilder::new().id("v1").costs(fixed_costs()).build())
+            .add_vehicle(VehicleBuilder::new().id("v2").costs(fixed_costs()).build())
+            .build(),
+    );
     let route1 = RouteContext {
         route: Arc::new(create_route_with_start_end_activities(
             &fleet,

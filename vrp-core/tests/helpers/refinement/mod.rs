@@ -2,7 +2,7 @@ use crate::construction::states::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};
-use crate::models::problem::{Fleet, Job, Jobs, MatrixTransportCost, Vehicle};
+use crate::models::problem::{Job, Jobs, MatrixTransportCost};
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::refinement::mutation::{Recreate, RecreateWithCheapest};
@@ -25,9 +25,12 @@ pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send
 /// 2  6  10 14
 /// 3  7  11 15
 pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
-    let drivers = vec![test_driver_with_costs(empty_costs())];
-    let vehicles: Vec<Vehicle> = (0..cols).map(|i| test_vehicle_with_id(i.to_string().as_str())).collect();
-    let fleet = Arc::new(Fleet::new(drivers, vehicles));
+    let fleet = Arc::new(
+        FleetBuilder::new()
+            .add_driver(test_driver_with_costs(empty_costs()))
+            .add_vehicles((0..cols).map(|i| test_vehicle_with_id(i.to_string().as_str())).collect())
+            .build(),
+    );
     let registry = Registry::new(&fleet);
 
     let mut routes: Vec<Route> = Default::default();

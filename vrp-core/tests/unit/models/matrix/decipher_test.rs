@@ -303,21 +303,27 @@ fn create_diverse_problem() -> Arc<Problem> {
 
 fn create_diverse_problem_unwrapped() -> Problem {
     let transport = Arc::new(TestTransportCost {});
-    let fleet = Arc::new(Fleet::new(
-        vec![test_driver()],
-        vec![
-            VehicleBuilder::new()
-                .id("v1")
-                .capacity(2)
-                .details(vec![VehicleDetail { start: Some(0), end: Some(0), time: Some(DEFAULT_ACTOR_TIME_WINDOW) }])
-                .build(),
-            VehicleBuilder::new()
-                .id("v2")
-                .capacity(2)
-                .details(vec![VehicleDetail { start: Some(0), end: None, time: Some(DEFAULT_ACTOR_TIME_WINDOW) }])
-                .build(),
-        ],
-    ));
+    let fleet = Arc::new(
+        FleetBuilder::new()
+            .add_driver(test_driver())
+            .add_vehicles(vec![
+                VehicleBuilder::new()
+                    .id("v1")
+                    .capacity(2)
+                    .details(vec![VehicleDetail {
+                        start: Some(0),
+                        end: Some(0),
+                        time: Some(DEFAULT_ACTOR_TIME_WINDOW),
+                    }])
+                    .build(),
+                VehicleBuilder::new()
+                    .id("v2")
+                    .capacity(2)
+                    .details(vec![VehicleDetail { start: Some(0), end: None, time: Some(DEFAULT_ACTOR_TIME_WINDOW) }])
+                    .build(),
+            ])
+            .build(),
+    );
     let demand = Demand { pickup: (0, 0), delivery: (1, 0) };
     let jobs = Arc::new(Jobs::new(
         &fleet,

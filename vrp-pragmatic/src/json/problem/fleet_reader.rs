@@ -1,4 +1,4 @@
-use crate::extensions::MultiDimensionalCapacity;
+use crate::extensions::{create_typed_actor_groups, MultiDimensionalCapacity};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::{add_skills, parse_time, ApiProblem, ProblemProperties};
 use crate::json::problem::Matrix;
@@ -39,7 +39,7 @@ pub fn create_transport_costs(matrices: &Vec<Matrix>) -> MatrixTransportCost {
 
 pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
     let profiles = get_profile_map(api_problem);
-    let mut vehicles: Vec<Vehicle> = Default::default();
+    let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 
     api_problem.fleet.types.iter().for_each(|vehicle| {
         let costs = Costs {
@@ -84,12 +84,12 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
                 }
                 add_skills(&mut dimens, &vehicle.skills);
 
-                vehicles.push(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() });
+                vehicles.push(Arc::new(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() }));
             });
         }
     });
 
-    let fake_driver = Driver {
+    let drivers = vec![Arc::new(Driver {
         costs: Costs {
             fixed: 0.0,
             per_distance: 0.0,
@@ -99,9 +99,9 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
         },
         dimens: Default::default(),
         details: vec![],
-    };
+    })];
 
-    Fleet::new(vec![fake_driver], vehicles)
+    Fleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
 }
 
 pub fn read_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {

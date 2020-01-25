@@ -67,7 +67,7 @@ pub trait TextReader {
 
 pub fn create_fleet_with_distance_costs(number: usize, capacity: usize, location: Location, time: TimeWindow) -> Fleet {
     Fleet::new(
-        vec![Driver {
+        vec![Arc::new(Driver {
             costs: Costs {
                 fixed: 0.0,
                 per_distance: 0.0,
@@ -77,12 +77,12 @@ pub fn create_fleet_with_distance_costs(number: usize, capacity: usize, location
             },
             dimens: create_dimens_with_id("driver", 0),
             details: Default::default(),
-        }],
+        })],
         (0..number)
             .map(|i| {
                 let mut dimens = create_dimens_with_id("v", i);
                 dimens.set_capacity(capacity as i32);
-                Vehicle {
+                Arc::new(Vehicle {
                     profile: 0,
                     costs: Costs {
                         fixed: 100.0,
@@ -97,9 +97,10 @@ pub fn create_fleet_with_distance_costs(number: usize, capacity: usize, location
                         end: Some(location),
                         time: Some(time.clone()),
                     }],
-                }
+                })
             })
             .collect(),
+        Box::new(|_| Box::new(|_| 0)),
     )
 }
 

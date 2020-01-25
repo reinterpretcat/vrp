@@ -87,13 +87,13 @@ returns_proper_job_neighbours! {
 }
 
 fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
-    let fleet = Fleet::new(
-        vec![test_driver()],
-        vec![
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
             VehicleBuilder::new().id("v1").profile(1).details(vec![test_vehicle_detail()]).build(),
             VehicleBuilder::new().id("v2").profile(1).details(vec![test_vehicle_detail()]).build(),
-        ],
-    );
+        ])
+        .build();
     let species = vec![
         SingleBuilder::new().id("s0").location(Some(0)).build_as_job_ref(),
         SingleBuilder::new().id("s1").location(Some(1)).build_as_job_ref(),
@@ -128,9 +128,9 @@ returns_proper_job_ranks! {
 }
 
 fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Distance) {
-    let fleet = Fleet::new(
-        vec![test_driver()],
-        vec![
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
             VehicleBuilder::new()
                 .id("v1_1")
                 .profile(1)
@@ -158,8 +158,8 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
                     time: Some(TimeWindow { start: 0.0, end: 0.0 }),
                 }])
                 .build(),
-        ],
-    );
+        ])
+        .build();
     let species = vec![
         SingleBuilder::new().id("s0").location(Some(0)).build_as_job_ref(),
         SingleBuilder::new().id("s1").location(Some(10)).build_as_job_ref(),

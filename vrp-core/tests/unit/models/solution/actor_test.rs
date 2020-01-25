@@ -1,6 +1,6 @@
-use crate::helpers::models::problem::{test_driver, test_vehicle_detail, VehicleBuilder};
+use crate::helpers::models::problem::{test_driver, test_vehicle_detail, FleetBuilder, VehicleBuilder};
 use crate::models::common::TimeWindow;
-use crate::models::problem::{Actor, Fleet, VehicleDetail};
+use crate::models::problem::{Actor, VehicleDetail};
 use crate::models::solution::Registry;
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
@@ -17,9 +17,9 @@ can_provide_available_actors_from_registry! {
 }
 
 fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize) {
-    let fleet = Fleet::new(
-        vec![test_driver()],
-        vec![
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
             VehicleBuilder::new().id("v1").details(vec![test_vehicle_detail()]).build(),
             VehicleBuilder::new()
                 .id("v2")
@@ -28,8 +28,8 @@ fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize
                     VehicleDetail { start: Some(1), end: Some(0), time: Some(TimeWindow { start: 0.0, end: 50.0 }) },
                 ])
                 .build(),
-        ],
-    );
+        ])
+        .build();
     let mut registry = Registry::new(&fleet);
 
     let actors: Vec<Arc<Actor>> = registry.available().take(count).collect();
@@ -39,9 +39,9 @@ fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize
 
 #[test]
 fn can_provide_next_actors_from_registry() {
-    let fleet = Fleet::new(
-        vec![test_driver()],
-        vec![
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
             VehicleBuilder::new().id("v1").details(vec![test_vehicle_detail()]).build(),
             VehicleBuilder::new()
                 .id("v2")
@@ -51,8 +51,8 @@ fn can_provide_next_actors_from_registry() {
                 ])
                 .build(),
             VehicleBuilder::new().id("v3").details(vec![test_vehicle_detail()]).build(),
-        ],
-    );
+        ])
+        .build();
     let registry = Registry::new(&fleet);
 
     let mut actors: Vec<Arc<Actor>> = registry.next().collect();

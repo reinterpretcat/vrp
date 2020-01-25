@@ -1,4 +1,5 @@
 use crate::constraints::BreakModule;
+use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
@@ -34,7 +35,11 @@ can_remove_orphan_break! {
 }
 
 fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_loc: Location, break_removed: bool) {
-    let fleet = Fleet::new(vec![test_driver()], vec![test_vehicle("v1")]);
+    let fleet = Fleet::new(
+        vec![Arc::new(test_driver())],
+        vec![Arc::new(test_vehicle("v1"))],
+        Box::new(|actors| create_typed_actor_groups(actors)),
+    );
     let mut solution_ctx = SolutionContext {
         required: vec![],
         ignored: vec![],

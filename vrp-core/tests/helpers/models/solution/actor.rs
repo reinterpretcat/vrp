@@ -1,6 +1,6 @@
 use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::helpers::models::problem::*;
-use crate::models::problem::{Actor, ActorDetail, Fleet};
+use crate::models::problem::{Actor, ActorDetail};
 use crate::models::solution::Registry;
 use std::sync::Arc;
 
@@ -17,8 +17,9 @@ pub fn test_actor() -> Arc<Actor> {
 }
 
 pub fn create_test_registry() -> Registry {
-    Registry::new(&Fleet::new(
-        vec![test_driver_with_costs(empty_costs())],
-        vec![VehicleBuilder::new().id("v1").build()],
-    ))
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver_with_costs(empty_costs()))
+        .add_vehicle(VehicleBuilder::new().id("v1").build())
+        .build();
+    Registry::new(&fleet)
 }

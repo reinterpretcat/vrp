@@ -2,7 +2,7 @@ use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::states::{InsertionContext, SolutionContext};
 use crate::helpers::models::problem::*;
 use crate::models::common::IdDimension;
-use crate::models::problem::{Fleet, Job, Jobs};
+use crate::models::problem::{Job, Jobs};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
 use crate::refinement::objectives::PenalizeUnassigned;
@@ -32,7 +32,7 @@ pub fn create_empty_problem() -> Arc<Problem> {
 
 pub fn create_empty_solution() -> Solution {
     Solution {
-        registry: Registry::new(&Fleet::new(vec![test_driver()], vec![test_vehicle(0)])),
+        registry: Registry::new(&test_fleet()),
         routes: vec![],
         unassigned: Default::default(),
         extras: Arc::new(Default::default()),
@@ -48,7 +48,7 @@ pub fn create_empty_insertion_context() -> InsertionContext {
             unassigned: Default::default(),
             locked: Default::default(),
             routes: vec![],
-            registry: Registry::new(&Fleet::new(vec![test_driver()], vec![test_vehicle(0)])),
+            registry: Registry::new(&test_fleet()),
         },
         random: Arc::new(DefaultRandom::default()),
     }

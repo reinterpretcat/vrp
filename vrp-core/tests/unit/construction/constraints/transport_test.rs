@@ -48,15 +48,15 @@ can_properly_handle_fleet_with_4_vehicles! {
 }
 
 fn can_properly_handle_fleet_with_4_vehicles_impl(vehicle: &str, activity: usize, time: f64) {
-    let fleet = Fleet::new(
-        vec![test_driver()],
-        vec![
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
             VehicleBuilder::new().id("v1").details(vec![create_detail((Some(0), None), Some((0.0, 100.0)))]).build(),
             VehicleBuilder::new().id("v2").details(vec![create_detail((Some(0), None), Some((0.0, 60.0)))]).build(),
             VehicleBuilder::new().id("v3").details(vec![create_detail((Some(40), None), Some((0.0, 100.0)))]).build(),
             VehicleBuilder::new().id("v4").details(vec![create_detail((Some(40), None), Some((0.0, 100.0)))]).build(),
-        ],
-    );
+        ])
+        .build();
     let mut ctx = create_route_context(&fleet, vehicle);
 
     create_constraint_pipeline_with_timing().accept_route_state(&mut ctx);
@@ -91,9 +91,9 @@ fn can_properly_handle_fleet_with_6_vehicles_impl(
     next_index: usize,
     expected: Option<ActivityConstraintViolation>,
 ) {
-    let fleet = Fleet::new(
-        vec![test_driver()],
-        vec![
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
             VehicleBuilder::new().id("v1").details(vec![create_detail((Some(0), Some(0)), Some((0.0, 100.0)))]).build(),
             VehicleBuilder::new().id("v2").details(vec![create_detail((Some(0), Some(0)), Some((0.0, 60.0)))]).build(),
             VehicleBuilder::new().id("v3").details(vec![create_detail((Some(0), Some(0)), Some((0.0, 50.0)))]).build(),
@@ -103,8 +103,8 @@ fn can_properly_handle_fleet_with_6_vehicles_impl(
                 .details(vec![create_detail((Some(0), Some(0)), Some((60.0, 100.0)))])
                 .build(),
             VehicleBuilder::new().id("v6").details(vec![create_detail((Some(0), Some(40)), Some((0.0, 40.0)))]).build(),
-        ],
-    );
+        ])
+        .build();
     let mut route_ctx = create_route_context(&fleet, vehicle);
     let pipeline = create_constraint_pipeline_with_timing();
     pipeline.accept_route_state(&mut route_ctx);
@@ -130,7 +130,10 @@ fn can_properly_handle_fleet_with_6_vehicles_impl(
 
 #[test]
 fn can_update_activity_schedule() {
-    let fleet = Fleet::new(vec![test_driver()], vec![VehicleBuilder::new().id("v1").build()]);
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver())
+        .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
+        .build();
     let mut route_ctx = create_route_context_with_activities(
         &fleet,
         "v1",
@@ -156,7 +159,10 @@ fn can_update_activity_schedule() {
 
 #[test]
 fn can_calculate_soft_activity_cost_for_empty_tour() {
-    let fleet = Fleet::new(vec![test_driver_with_costs(empty_costs())], vec![VehicleBuilder::new().id("v1").build()]);
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver_with_costs(empty_costs()))
+        .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
+        .build();
     let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
     let target = Box::new(Activity {
         place: Place { location: 5, duration: 1.0, time: DEFAULT_JOB_TIME_WINDOW },
@@ -177,7 +183,10 @@ fn can_calculate_soft_activity_cost_for_empty_tour() {
 
 #[test]
 fn can_calculate_soft_activity_cost_for_non_empty_tour() {
-    let fleet = Fleet::new(vec![test_driver_with_costs(empty_costs())], vec![VehicleBuilder::new().id("v1").build()]);
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver_with_costs(empty_costs()))
+        .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
+        .build();
     let route_ctx = create_route_context_with_activities(
         &fleet,
         "v1",

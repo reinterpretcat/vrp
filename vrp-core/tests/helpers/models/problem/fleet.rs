@@ -2,6 +2,7 @@ use crate::construction::constraints::CapacityDimension;
 use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::models::common::{Dimensions, IdDimension, Location, Profile, TimeWindow};
 use crate::models::problem::*;
+use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTOR_LOCATION: Location = 0;
@@ -38,7 +39,7 @@ pub fn test_vehicle(profile: i32) -> Vehicle {
 }
 
 pub fn test_fleet() -> Fleet {
-    Fleet::new(vec![test_driver()], vec![test_vehicle(0)])
+    FleetBuilder::new().add_driver(test_driver()).add_vehicle(test_vehicle(0)).build()
 }
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
@@ -115,7 +116,28 @@ impl FleetBuilder {
         self
     }
 
-    pub fn build(self) -> Fleet {
-        Fleet::new(self.drivers, self.vehicles)
+    pub fn add_vehicles(&mut self, vehicles: Vec<Vehicle>) -> &mut FleetBuilder {
+        self.vehicles.extend(vehicles.into_iter());
+        self
     }
+
+    pub fn build(&mut self) -> Fleet {
+        let drivers = std::mem::replace(&mut self.drivers, vec![]);
+        let vehicles = std::mem::replace(&mut self.vehicles, vec![]);
+
+        let drivers = drivers.into_iter().map(Arc::new).collect();
+        let vehicles = vehicles.into_iter().map(Arc::new).collect();
+
+        Fleet::new(drivers, vehicles, Box::new(|actors| create_details_actor_groups(actors)))
+    }
+}
+
+pub fn create_details_actor_groups(actors: &Vec<Arc<Actor>>) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync> {
+    let unique_type_keys: HashSet<_> = actors.iter().map(|a| a.detail.clone()).collect();
+
+    let type_key_map: HashMap<_, _> = unique_type_keys.into_iter().zip(0_usize..).collect();
+
+    let groups: HashMap<_, _> = actors.iter().map(|a| (a.clone(), *type_key_map.get(&a.detail).unwrap())).collect();
+
+    Box::new(move |a| *groups.get(a).unwrap())
 }

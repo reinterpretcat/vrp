@@ -6,7 +6,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_test_registry;
 use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeWindow, Timestamp};
-use crate::models::problem::{Fleet, Job, Single, VehicleDetail};
+use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Place, Registry, TourActivity};
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
@@ -115,27 +115,29 @@ mod single {
         expected_used_vehicle: &str,
         cost: Cost,
     ) {
-        let registry = Registry::new(&Fleet::new(
-            vec![test_driver_with_costs(empty_costs())],
-            vec![
-                VehicleBuilder::new()
-                    .id("v1")
-                    .details(vec![VehicleDetail {
-                        start: Some(0),
-                        end: v1_end_location,
-                        time: Some(TimeWindow { start: 0.0, end: 100.0 }),
-                    }])
-                    .build(),
-                VehicleBuilder::new()
-                    .id("v2")
-                    .details(vec![VehicleDetail {
-                        start: Some(20),
-                        end: v2_end_location,
-                        time: Some(TimeWindow { start: 0.0, end: 100.0 }),
-                    }])
-                    .build(),
-            ],
-        ));
+        let registry = Registry::new(
+            &FleetBuilder::new()
+                .add_driver(test_driver_with_costs(empty_costs()))
+                .add_vehicles(vec![
+                    VehicleBuilder::new()
+                        .id("v1")
+                        .details(vec![VehicleDetail {
+                            start: Some(0),
+                            end: v1_end_location,
+                            time: Some(TimeWindow { start: 0.0, end: 100.0 }),
+                        }])
+                        .build(),
+                    VehicleBuilder::new()
+                        .id("v2")
+                        .details(vec![VehicleDetail {
+                            start: Some(20),
+                            end: v2_end_location,
+                            time: Some(TimeWindow { start: 0.0, end: 100.0 }),
+                        }])
+                        .build(),
+                ])
+                .build(),
+        );
         let job = Job::Single(test_single_with_location(Some(job_location)));
         let ctx = create_test_insertion_context(registry);
 

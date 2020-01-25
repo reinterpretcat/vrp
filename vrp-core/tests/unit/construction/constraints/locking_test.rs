@@ -4,7 +4,7 @@ use crate::construction::states::ActivityContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::problem::{Fleet, Job, Single};
+use crate::models::problem::{Job, Single};
 use crate::models::solution::TourActivity;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
 use std::sync::Arc;
@@ -20,7 +20,11 @@ can_lock_jobs_to_actor! {
 
 fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<RouteConstraintViolation>) {
     let job = Job::Single(test_single_with_id("s1"));
-    let fleet = Fleet::new(vec![test_driver()], vec![test_vehicle_with_id("v1"), test_vehicle_with_id("v2")]);
+    let fleet = FleetBuilder::new()
+        .add_driver(test_driver())
+        .add_vehicle(test_vehicle_with_id("v1"))
+        .add_vehicle(test_vehicle_with_id("v2"))
+        .build();
     let locks = vec![Arc::new(Lock::new(
         Arc::new(move |actor| get_vehicle_id(actor.vehicle.as_ref()) == locked.as_str()),
         vec![LockDetail::new(LockOrder::Any, LockPosition::Any, vec![job.clone()])],
@@ -151,7 +155,7 @@ fn can_lock_jobs_to_position_in_tour_impl(
     expected: Option<ActivityConstraintViolation>,
 ) {
     let (prev, next) = activities;
-    let fleet = Fleet::new(vec![test_driver()], vec![test_vehicle_with_id("v1")]);
+    let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
     let locks =
         vec![Arc::new(Lock::new(Arc::new(|_| true), vec![LockDetail::new(LockOrder::Strict, lock_position, jobs)]))];
     let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, locks, 1)));

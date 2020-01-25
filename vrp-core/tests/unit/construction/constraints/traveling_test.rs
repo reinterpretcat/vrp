@@ -4,7 +4,6 @@ use crate::helpers::construction::constraints::create_constraint_pipeline_with_m
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Distance, Duration, Location};
-use crate::models::problem::Fleet;
 use std::sync::Arc;
 
 parameterized_test! {can_check_traveling_limits, (vehicle, target, location, limit, expected), {
@@ -28,7 +27,7 @@ fn can_check_traveling_limits_impl(
     limit: (Option<Distance>, Option<Duration>),
     expected: Option<ActivityConstraintViolation>,
 ) {
-    let fleet = Fleet::new(vec![test_driver()], vec![test_vehicle_with_id("v1")]);
+    let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
     let mut state = RouteState::default();
     state.put_route_state(MAX_DISTANCE_KEY, 50.);
     state.put_route_state(MAX_DURATION_KEY, 50.);

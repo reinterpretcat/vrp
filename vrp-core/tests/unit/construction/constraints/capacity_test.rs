@@ -3,7 +3,7 @@ use crate::construction::states::{ActivityContext, RouteState};
 use crate::helpers::construction::constraints::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::problem::{Fleet, Job, Vehicle};
+use crate::models::problem::{Job, Vehicle};
 use crate::models::solution::TourActivity;
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {
@@ -38,7 +38,7 @@ fn can_calculate_current_capacity_state_values_impl(
     exp_s2: i32,
     exp_s3: i32,
 ) {
-    let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
+    let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
     let mut ctx = create_route_context_with_activities(
         &fleet,
         "v1",
@@ -71,7 +71,7 @@ can_evaluate_demand_on_route! {
 }
 
 fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraintViolation>) {
-    let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
+    let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
     let ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
     let job = Job::Single(test_single_with_simple_demand(create_simple_demand(size)));
 
@@ -104,7 +104,7 @@ fn can_evaluate_demand_on_activity_impl(
     size: i32,
     expected: Option<ActivityConstraintViolation>,
 ) {
-    let fleet = Fleet::new(vec![test_driver()], vec![create_test_vehicle(10)]);
+    let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
     let mut route_ctx = create_route_context_with_activities(
         &fleet,
         "v1",

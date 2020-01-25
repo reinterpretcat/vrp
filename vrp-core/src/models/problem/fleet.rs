@@ -3,8 +3,8 @@
 mod fleet_test;
 
 use crate::models::common::{Dimensions, Location, Profile, TimeWindow};
+use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering::Less;
-use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
@@ -96,11 +96,16 @@ pub struct Fleet {
     pub vehicles: Vec<Arc<Vehicle>>,
     pub profiles: Vec<Profile>,
     pub actors: Vec<Arc<Actor>>,
+    pub groups: HashMap<usize, HashSet<Arc<Actor>>>,
 }
 
 impl Fleet {
     /// Creates a new fleet.
-    pub fn new(drivers: Vec<Driver>, vehicles: Vec<Vehicle>) -> Fleet {
+    pub fn new(
+        drivers: Vec<Arc<Driver>>,
+        vehicles: Vec<Arc<Vehicle>>,
+        group_key: Box<dyn Fn(&Vec<Arc<Actor>>) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync>>,
+    ) -> Fleet {
         // TODO we should also consider multiple drivers to support smart vehicle-driver assignment.
         assert_eq!(drivers.len(), 1);
         assert!(!vehicles.is_empty());
@@ -108,9 +113,6 @@ impl Fleet {
         let profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile).collect();
         let mut profiles: Vec<Profile> = profiles.into_iter().map(|p| p).collect();
         profiles.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Less));
-
-        let drivers: Vec<Arc<Driver>> = drivers.into_iter().map(Arc::new).collect();
-        let vehicles: Vec<Arc<Vehicle>> = vehicles.into_iter().map(Arc::new).collect();
 
         let mut actors: Vec<Arc<Actor>> = Default::default();
         vehicles.iter().for_each(|vehicle| {
@@ -127,7 +129,13 @@ impl Fleet {
             });
         });
 
-        Fleet { drivers, vehicles, actors, profiles }
+        let group_key = (*group_key)(&actors);
+        let groups = actors.iter().cloned().fold(HashMap::new(), |mut acc, actor| {
+            acc.entry((*group_key)(&actor)).or_insert_with(HashSet::new).insert(actor.clone());
+            acc
+        });
+
+        Fleet { drivers, vehicles, actors, profiles, groups }
     }
 }
 
@@ -156,5 +164,20 @@ impl PartialEq for Costs {
             && self.per_driving_time == other.per_driving_time
             && self.per_service_time == other.per_service_time
             && self.per_waiting_time == other.per_waiting_time
+    }
+}
+
+impl PartialEq<Actor> for Actor {
+    fn eq(&self, other: &Actor) -> bool {
+        &*self as *const Actor == &*other as *const Actor
+    }
+}
+
+impl Eq for Actor {}
+
+impl Hash for Actor {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let address = &*self as *const Actor;
+        address.hash(state);
     }
 }

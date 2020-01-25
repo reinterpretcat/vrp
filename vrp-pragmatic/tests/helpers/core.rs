@@ -20,6 +20,7 @@ pub fn test_driver() -> Driver {
 pub fn test_vehicle(id: &str) -> Vehicle {
     let mut dimens = Dimensions::new();
     dimens.set_id(id);
+    dimens.insert("type_id".to_owned(), Arc::new(id.to_owned()));
 
     Vehicle {
         profile: 0,
