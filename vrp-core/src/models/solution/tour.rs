@@ -4,7 +4,7 @@ mod tour_test;
 
 use crate::models::problem::Job;
 use crate::models::solution::Activity;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::iter::once;
 use std::ops::RangeBounds;
 use std::slice::{Iter, IterMut};

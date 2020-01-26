@@ -2,7 +2,6 @@
 #[path = "../../../../tests/unit/refinement/mutation/ruin/adjusted_string_removal_test.rs"]
 mod adjusted_string_removal_test;
 
-use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
 use super::{select_seed_jobs, Ruin};
@@ -11,6 +10,7 @@ use crate::models::problem::{Actor, Job};
 use crate::models::solution::Tour;
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
+use hashbrown::HashSet;
 
 /// "Adjusted string removal" ruin strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) by Jan Christiaens, Greet Vanden Berghe.

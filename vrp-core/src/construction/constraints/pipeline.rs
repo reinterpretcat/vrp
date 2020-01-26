@@ -5,7 +5,7 @@ mod pipeline_test;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
 

@@ -12,7 +12,7 @@ use crate::models::problem::{Actor, ActorDetail, Job, Place, Single};
 use crate::models::solution::TourActivity;
 use crate::models::Problem;
 use crate::utils::DefaultRandom;
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use std::hash::Hash;
 use std::sync::Arc;
 

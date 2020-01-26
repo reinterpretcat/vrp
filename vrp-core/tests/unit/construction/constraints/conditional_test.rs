@@ -4,7 +4,7 @@ use crate::construction::states::SolutionContext;
 use crate::helpers::models::problem::{get_job_id, test_fleet, test_single_with_id};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 
 fn get_jobs(ids: Vec<&str>) -> Vec<Job> {
     ids.iter().map(|s| Job::Single(test_single_with_id(s))).collect()

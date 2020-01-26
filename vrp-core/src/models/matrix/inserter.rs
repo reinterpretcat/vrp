@@ -5,7 +5,7 @@ use super::decipher::ActivityInfo;
 use crate::construction::heuristics::{evaluate_job_insertion_in_route, InsertionPosition};
 use crate::construction::states::{InsertionContext, InsertionResult, RouteContext};
 use crate::models::problem::{Job, Place, Single};
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 
 /// Inserts jobs into tour taking care constraints.
