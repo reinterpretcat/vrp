@@ -142,8 +142,8 @@ impl TransportConstraintModule {
     }
 
     fn reschedule_departure(&self, ctx: &mut RouteContext) {
-        if let Some((new_departure_time, earliest_departure_time)) = self.analyze_departures(ctx) {
-            if new_departure_time > earliest_departure_time {
+        if let Some((last_departure_time, new_departure_time)) = self.analyze_departures(ctx) {
+            if new_departure_time > last_departure_time {
                 let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
                 start.schedule.departure = new_departure_time;
                 self.update_route_schedules(ctx);
@@ -155,15 +155,15 @@ impl TransportConstraintModule {
     fn analyze_departures(&self, ctx: &RouteContext) -> Option<(Timestamp, Timestamp)> {
         if let Some(first) = ctx.route.tour.get(1) {
             let start = ctx.route.tour.start().unwrap();
-            let earliest_departure_time = start.place.time.start;
+            let last_departure_time = start.schedule.departure;
             let start_to_first = self.transport.duration(
                 ctx.route.actor.vehicle.profile,
                 start.place.location,
                 first.place.location,
-                earliest_departure_time,
+                last_departure_time,
             );
-            let new_departure_time = earliest_departure_time.max(first.place.time.start - start_to_first);
-            return Some((new_departure_time, earliest_departure_time));
+            let new_departure_time = last_departure_time.max(first.place.time.start - start_to_first);
+            return Some((last_departure_time, new_departure_time));
         }
         None
     }
