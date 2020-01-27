@@ -221,18 +221,18 @@ fn read_breaks(
         .flat_map(|(break_idx, place)| {
             (1..vehicle.amount + 1)
                 .map(|vehicle_index| {
-                    let times = match &place.times {
+                    let (times, duration) = match &place.times {
                         VehicleBreakTime::TimeWindows(times) if times.is_empty() => {
                             panic!("Break without any time window does not make sense!")
                         }
-                        VehicleBreakTime::TimeWindows(times) => Some(times.clone()),
-                        _ => unimplemented!(),
+                        VehicleBreakTime::TimeWindows(times) => (Some(times.clone()), None),
+                        VehicleBreakTime::DurationWindow(duration) => (None, Some(duration.clone())),
                     };
 
                     let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
                     let job_id = format!("{}_break_{}", vehicle_id, break_idx);
 
-                    let job = get_conditional_job(
+                    let mut job = get_conditional_job(
                         coord_index,
                         vehicle_id.clone(),
                         "break",
@@ -240,6 +240,10 @@ fn read_breaks(
                         (&place.location, place.duration, &times),
                         &None,
                     );
+
+                    if let Some(duration) = duration {
+                        job.dimens.insert("duration".to_string(), Arc::new(duration));
+                    }
 
                     (job_id, job)
                 })
