@@ -4,23 +4,27 @@ mod breaks_test;
 
 use crate::constraints::*;
 use std::collections::HashSet;
+use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::common::{Cost, ValueDimension};
-use vrp_core::models::problem::{Job, Single, TransportCost};
+use vrp_core::models::problem::{ActivityCost, Job, Single, TransportCost};
 use vrp_core::models::solution::Activity;
 
 pub struct BreakModule {
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
     /// Controls whether break should be considered as unassigned job
     demote_breaks_from_unassigned: bool,
 }
 
 impl BreakModule {
     pub fn new(
+        activity: Arc<dyn ActivityCost + Send + Sync>,
         transport: Arc<dyn TransportCost + Send + Sync>,
         code: i32,
         extra_break_cost: Option<Cost>,
@@ -30,9 +34,14 @@ impl BreakModule {
             conditional: ConditionalJobModule::new(Some(Box::new(|ctx, job| is_required_job(ctx, job))), None),
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(BreakHardRouteConstraint { code })),
-                ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint { transport, code })),
+                ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint {
+                    transport: transport.clone(),
+                    code,
+                })),
                 ConstraintVariant::SoftRoute(Arc::new(BreakSoftRouteConstraint { extra_break_cost })),
             ],
+            activity,
+            transport,
             demote_breaks_from_unassigned,
         }
     }
@@ -46,6 +55,7 @@ impl ConstraintModule for BreakModule {
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
         self.conditional.accept_route_state(ctx);
+        self.update_route_states(ctx);
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
@@ -66,6 +76,43 @@ impl ConstraintModule for BreakModule {
 
     fn get_constraints(&self) -> Iter<ConstraintVariant> {
         self.constraints.iter()
+    }
+}
+
+impl BreakModule {
+    fn update_route_states(&self, ctx: &mut RouteContext) {
+        let actor = ctx.route.actor.clone();
+        let init = (
+            actor.detail.time.end,
+            actor.detail.end.unwrap_or_else(|| actor.detail.start.unwrap_or_else(|| panic!(OP_START_MSG))),
+        );
+
+        let (route, state) = ctx.as_mut();
+
+        route.tour.all_activities().rev().skip_while(|act| get_break_interval_from_activity(act).is_some()).fold(
+            init,
+            |acc, act| {
+                if act.job.is_none() {
+                    return acc;
+                }
+
+                let (end_time, prev_loc) = acc;
+                let potential_latest = end_time
+                    - self.transport.duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
+                    - self.activity.duration(actor.as_ref(), act.deref(), end_time);
+
+                let latest_arrival_time = as_break_job(act)
+                    .and_then(|job| get_break_interval(job))
+                    .map(|interval| interval.1)
+                    .unwrap_or(act.place.time.end)
+                    .min(potential_latest);
+
+                // NOTE override LATEST_ARRIVAL_KEY set from transport constraint
+                state.put_activity_state(LATEST_ARRIVAL_KEY, &act, latest_arrival_time);
+
+                (latest_arrival_time, act.place.location)
+            },
+        );
     }
 }
 
@@ -118,7 +165,7 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
         match as_break_job(&activity_ctx.target) {
             Some(_) if activity_ctx.prev.job.is_none() => self.stop(),
             Some(break_job) => {
-                if let Some(duration) = get_break_duration(break_job) {
+                if let Some(interval) = get_break_interval(break_job) {
                     let arrival = activity_ctx.target.schedule.departure
                         + self.transport.duration(
                             route_ctx.route.actor.vehicle.profile,
@@ -126,9 +173,9 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
                             activity_ctx.target.place.location,
                             activity_ctx.prev.schedule.departure,
                         );
-                    if arrival > duration.1 {
+                    if arrival > interval.1 {
                         self.fail()
-                    } else if arrival < duration.0 {
+                    } else if arrival < interval.0 {
                         self.stop()
                     } else {
                         None
@@ -237,13 +284,23 @@ fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
     as_single_job(activity, |job| is_break_job(job))
 }
 
-fn get_break_duration(job: &Arc<Single>) -> Option<&(f64, f64)> {
-    job.dimens.get_value::<(f64, f64)>("duration")
+fn get_break_interval(job: &Arc<Single>) -> Option<&(f64, f64)> {
+    job.dimens.get_value::<(f64, f64)>("interval")
 }
 
-fn is_time(rc: &RouteContext, break_job: &Single) -> bool {
-    let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
-    break_job.places.first().unwrap().times.iter().any(|t| t.start < arrival)
+fn get_break_interval_from_activity(activity: &Activity) -> Option<&(f64, f64)> {
+    as_break_job(activity).and_then(|break_job| get_break_interval(break_job))
+}
+
+fn is_time(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
+    let tour = &rc.route.tour;
+    if let Some(interval) = get_break_interval(break_job) {
+        let tour_duration = tour.end().unwrap().schedule.arrival - tour.start().unwrap().schedule.departure;
+        tour_duration > interval.1
+    } else {
+        let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
+        break_job.places.first().unwrap().times.iter().any(|t| t.start < arrival)
+    }
 }
 
 //endregion

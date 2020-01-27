@@ -121,13 +121,26 @@ fn create_constraint_pipeline(
     limits: TravelLimitFunc,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Box::new(TransportConstraintModule::new(activity, transport.clone(), limits, 1, 2, 3)));
+    constraint.add_module(Box::new(TransportConstraintModule::new(
+        activity.clone(),
+        transport.clone(),
+        limits,
+        1,
+        2,
+        3,
+    )));
 
     add_capacity_module(&mut constraint, &props);
     add_even_dist_module(&mut constraint, &props);
 
     if props.has_breaks {
-        constraint.add_module(Box::new(BreakModule::new(transport.clone(), BREAK_CONSTRAINT_CODE, Some(-100.), false)));
+        constraint.add_module(Box::new(BreakModule::new(
+            activity.clone(),
+            transport.clone(),
+            BREAK_CONSTRAINT_CODE,
+            Some(-100.),
+            false,
+        )));
     }
 
     if props.has_skills {

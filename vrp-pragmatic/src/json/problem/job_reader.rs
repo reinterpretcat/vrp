@@ -242,7 +242,7 @@ fn read_breaks(
                     );
 
                     if let Some(duration) = duration {
-                        job.dimens.insert("duration".to_string(), Arc::new(duration));
+                        job.dimens.insert("interval".to_string(), Arc::new(duration));
                     }
 
                     (job_id, job)

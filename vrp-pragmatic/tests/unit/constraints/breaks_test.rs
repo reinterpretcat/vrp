@@ -5,7 +5,7 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::states::{RouteContext, RouteState, SolutionContext};
 use vrp_core::models::common::{IdDimension, Location};
-use vrp_core::models::problem::{Fleet, Single};
+use vrp_core::models::problem::{Fleet, SimpleActivityCost, Single};
 use vrp_core::models::solution::Registry;
 
 fn create_single(id: &str) -> Arc<Single> {
@@ -35,6 +35,7 @@ can_remove_orphan_break! {
 }
 
 fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_loc: Location, break_removed: bool) {
+    let activity = Arc::new(SimpleActivityCost::default());
     let transport = Arc::new(TestTransportCost::new());
     let fleet = Fleet::new(
         vec![Arc::new(test_driver())],
@@ -62,7 +63,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
     };
 
     ConstraintPipeline::default()
-        .add_module(Box::new(BreakModule::new(transport, 0, None, false)))
+        .add_module(Box::new(BreakModule::new(activity, transport, 0, None, false)))
         .accept_solution_state(&mut solution_ctx);
 
     if break_removed {
