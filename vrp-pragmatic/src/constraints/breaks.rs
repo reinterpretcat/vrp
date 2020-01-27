@@ -89,7 +89,7 @@ impl BreakModule {
 
         let (route, state) = ctx.as_mut();
 
-        route.tour.all_activities().rev().skip_while(|act| get_break_interval_from_activity(act).is_some()).fold(
+        route.tour.all_activities().rev().skip_while(|act| get_break_duration_limit_from_activity(act).is_some()).fold(
             init,
             |acc, act| {
                 if act.job.is_none() {
@@ -102,8 +102,8 @@ impl BreakModule {
                     - self.activity.duration(actor.as_ref(), act.deref(), end_time);
 
                 let latest_arrival_time = as_break_job(act)
-                    .and_then(|job| get_break_interval(job))
-                    .map(|interval| interval.1)
+                    .and_then(|job| get_break_duration_limit(job))
+                    .map(|&duration| duration)
                     .unwrap_or(act.place.time.end)
                     .min(potential_latest);
 
@@ -165,7 +165,7 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
         match as_break_job(&activity_ctx.target) {
             Some(_) if activity_ctx.prev.job.is_none() => self.stop(),
             Some(break_job) => {
-                if let Some(interval) = get_break_interval(break_job) {
+                if let Some(&duration) = get_break_duration_limit(break_job) {
                     let arrival = activity_ctx.target.schedule.departure
                         + self.transport.duration(
                             route_ctx.route.actor.vehicle.profile,
@@ -173,10 +173,8 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
                             activity_ctx.target.place.location,
                             activity_ctx.prev.schedule.departure,
                         );
-                    if arrival > interval.1 {
+                    if arrival > duration {
                         self.fail()
-                    } else if arrival < interval.0 {
-                        self.stop()
                     } else {
                         None
                     }
@@ -284,19 +282,19 @@ fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
     as_single_job(activity, |job| is_break_job(job))
 }
 
-fn get_break_interval(job: &Arc<Single>) -> Option<&(f64, f64)> {
-    job.dimens.get_value::<(f64, f64)>("interval")
+fn get_break_duration_limit(job: &Arc<Single>) -> Option<&f64> {
+    job.dimens.get_value::<f64>("duration")
 }
 
-fn get_break_interval_from_activity(activity: &Activity) -> Option<&(f64, f64)> {
-    as_break_job(activity).and_then(|break_job| get_break_interval(break_job))
+fn get_break_duration_limit_from_activity(activity: &Activity) -> Option<&f64> {
+    as_break_job(activity).and_then(|break_job| get_break_duration_limit(break_job))
 }
 
 fn is_time(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
     let tour = &rc.route.tour;
-    if let Some(interval) = get_break_interval(break_job) {
+    if let Some(&duration) = get_break_duration_limit(break_job) {
         let tour_duration = tour.end().unwrap().schedule.arrival - tour.start().unwrap().schedule.departure;
-        tour_duration > interval.1
+        tour_duration > duration
     } else {
         let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
         break_job.places.first().unwrap().times.iter().any(|t| t.start < arrival)

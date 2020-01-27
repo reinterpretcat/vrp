@@ -226,7 +226,7 @@ fn read_breaks(
                             panic!("Break without any time window does not make sense!")
                         }
                         VehicleBreakTime::TimeWindows(times) => (Some(times.clone()), None),
-                        VehicleBreakTime::DurationWindow(duration) => (None, Some(duration.clone())),
+                        VehicleBreakTime::DurationLimit(duration) => (None, Some(duration.clone())),
                     };
 
                     let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
@@ -242,7 +242,7 @@ fn read_breaks(
                     );
 
                     if let Some(duration) = duration {
-                        job.dimens.insert("interval".to_string(), Arc::new(duration));
+                        job.dimens.insert("duration".to_string(), Arc::new(duration));
                     }
 
                     (job_id, job)
