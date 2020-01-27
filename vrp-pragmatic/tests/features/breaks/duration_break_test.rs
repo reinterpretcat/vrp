@@ -3,7 +3,7 @@ use crate::json::problem::*;
 use crate::json::solution::*;
 
 #[test]
-fn can_assign_interval_break_between_jobs() {
+fn can_assign_duration_break_between_jobs() {
     let problem = Problem {
         id: "my_problem".to_string(),
         plan: Plan {
