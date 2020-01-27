@@ -9,7 +9,7 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::common::{Cost, ValueDimension};
-use vrp_core::models::problem::{Job, Single};
+use vrp_core::models::problem::{Job, Single, TransportCost};
 use vrp_core::models::solution::Activity;
 
 pub struct BreakModule {
@@ -20,12 +20,17 @@ pub struct BreakModule {
 }
 
 impl BreakModule {
-    pub fn new(code: i32, extra_break_cost: Option<Cost>, demote_breaks_from_unassigned: bool) -> Self {
+    pub fn new(
+        transport: Arc<dyn TransportCost + Send + Sync>,
+        code: i32,
+        extra_break_cost: Option<Cost>,
+        demote_breaks_from_unassigned: bool,
+    ) -> Self {
         Self {
             conditional: ConditionalJobModule::new(Some(Box::new(|ctx, job| is_required_job(ctx, job))), None),
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(BreakHardRouteConstraint { code })),
-                ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint { code })),
+                ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint { transport, code })),
                 ConstraintVariant::SoftRoute(Arc::new(BreakSoftRouteConstraint { extra_break_cost })),
             ],
             demote_breaks_from_unassigned,
@@ -65,6 +70,7 @@ impl ConstraintModule for BreakModule {
 }
 
 struct BreakHardActivityConstraint {
+    transport: Arc<dyn TransportCost + Send + Sync>,
     code: i32,
 }
 
@@ -97,21 +103,41 @@ impl BreakHardActivityConstraint {
     fn stop(&self) -> Option<ActivityConstraintViolation> {
         Some(ActivityConstraintViolation { code: self.code, stopped: false })
     }
+
+    fn fail(&self) -> Option<ActivityConstraintViolation> {
+        Some(ActivityConstraintViolation { code: self.code, stopped: true })
+    }
 }
 
 impl HardActivityConstraint for BreakHardActivityConstraint {
     fn evaluate_activity(
         &self,
-        _route_ctx: &RouteContext,
+        route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        let is_break = activity_ctx.target.job.as_ref().map_or(false, |job| is_break_job(job));
-
-        // avoid assigning break right after departure
-        if is_break && activity_ctx.prev.job.is_none() {
-            self.stop()
-        } else {
-            None
+        match as_break_job(&activity_ctx.target) {
+            Some(_) if activity_ctx.prev.job.is_none() => self.stop(),
+            Some(break_job) => {
+                if let Some(duration) = get_break_duration(break_job) {
+                    let arrival = activity_ctx.target.schedule.departure
+                        + self.transport.duration(
+                            route_ctx.route.actor.vehicle.profile,
+                            activity_ctx.prev.place.location,
+                            activity_ctx.target.place.location,
+                            activity_ctx.prev.schedule.departure,
+                        );
+                    if arrival > duration.1 {
+                        self.fail()
+                    } else if arrival < duration.0 {
+                        self.stop()
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            _ => None,
         }
     }
 }
@@ -209,6 +235,10 @@ fn is_break_job(job: &Arc<Single>) -> bool {
 
 fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
     as_single_job(activity, |job| is_break_job(job))
+}
+
+fn get_break_duration(job: &Arc<Single>) -> Option<&(f64, f64)> {
+    job.dimens.get_value::<(f64, f64)>("duration")
 }
 
 fn is_time(rc: &RouteContext, break_job: &Single) -> bool {

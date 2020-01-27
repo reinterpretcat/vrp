@@ -1,6 +1,8 @@
 use crate::helpers::{format_time, ToLocation};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::*;
+use vrp_core::models::common::{Distance, Duration, Location, Timestamp};
+use vrp_core::models::problem::TransportCost;
 
 pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
     JobVariant::Single(Job {
@@ -212,4 +214,22 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
 
 pub fn to_strings(data: Vec<&str>) -> Vec<String> {
     data.iter().map(|item| item.to_string()).collect()
+}
+
+pub struct TestTransportCost {}
+
+impl TransportCost for TestTransportCost {
+    fn duration(&self, _profile: i32, from: Location, to: Location, _departure: Timestamp) -> Duration {
+        (if to > from { to - from } else { from - to }) as f64
+    }
+
+    fn distance(&self, _profile: i32, _from: Location, _to: Location, _departure: Timestamp) -> Distance {
+        unimplemented!()
+    }
+}
+
+impl TestTransportCost {
+    pub fn new() -> Self {
+        Self {}
+    }
 }
