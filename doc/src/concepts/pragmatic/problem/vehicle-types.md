@@ -63,6 +63,9 @@ Each shift can have the following properties:
 - **start** (required) specifies vehicle start place defined via location and earliest departure time
 - **end** (optional) specifies vehicle end place defined via location and latest arrival time. When omitted, then vehicle
     ends on last job location
-- **breaks** (optional) a list of vehicle breaks. See example [here](../../../examples/pragmatic/break.md)
+- **breaks** (optional) a list of vehicle breaks. A break is specified by:
+     - time window or interval after which a break should happen (e.g. between 3 or 4 hours after start).
+     - optional location. If it is omitted then break is stick to previous job's location.
+     See example [here](../../../examples/pragmatic/break.md)
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. See examples [here](../../../examples/pragmatic/reload.md). 

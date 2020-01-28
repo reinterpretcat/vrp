@@ -1,7 +1,6 @@
 # Break
 
-This example demonstrates how to use vehicle break with omitted location.
-
+This example demonstrates how to use vehicle break with omitted location and time window.
 
 <details>
     <summary>List of problem locations</summary><p>
