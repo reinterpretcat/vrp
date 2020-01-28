@@ -170,15 +170,17 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
                 if let Some(&interval) = get_break_interval(break_job) {
                     let arrival = activity_ctx.prev.schedule.departure
                         + self.transport.duration(
-                        route_ctx.route.actor.vehicle.profile,
-                        activity_ctx.prev.place.location,
-                        activity_ctx.target.place.location,
-                        activity_ctx.prev.schedule.departure,
-                    );
+                            route_ctx.route.actor.vehicle.profile,
+                            activity_ctx.prev.place.location,
+                            activity_ctx.target.place.location,
+                            activity_ctx.prev.schedule.departure,
+                        );
                     let start_departure = route_ctx.route.tour.start().unwrap().schedule.departure;
                     if arrival > start_departure + interval.1 {
                         self.fail()
-                    } else if arrival < start_departure + interval.0 { self.stop() } else {
+                    } else if arrival < start_departure + interval.0 {
+                        self.stop()
+                    } else {
                         None
                     }
                 } else {

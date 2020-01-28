@@ -16,7 +16,7 @@ fn can_assign_interval_break_between_jobs() {
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
-                    times: VehicleBreakTime::IntervalWindow((5., 10.)),
+                    times: VehicleBreakTime::IntervalWindow(vec![5., 10.]),
                     duration: 2.0,
                     location: None,
                 }])],

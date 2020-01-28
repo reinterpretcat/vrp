@@ -242,6 +242,8 @@ fn read_breaks(
                     );
 
                     if let Some(interval) = interval {
+                        assert_eq!(interval.len(), 2);
+                        let interval = (interval.first().cloned().unwrap(), interval.last().cloned().unwrap());
                         job.dimens.insert("interval".to_string(), Arc::new(interval));
                     }
 

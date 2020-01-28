@@ -191,7 +191,7 @@ pub enum VehicleBreakTime {
     /// Break time is defined by a list of time windows with time specified in RFC3339 format.
     TimeWindows(Vec<Vec<String>>),
     /// Break time is defined by max working (shift) time before break should happen.
-    IntervalWindow((f64, f64)),
+    IntervalWindow(Vec<f64>),
 }
 
 /// Vehicle break.
