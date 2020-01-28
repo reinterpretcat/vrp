@@ -221,12 +221,12 @@ fn read_breaks(
         .flat_map(|(break_idx, place)| {
             (1..vehicle.amount + 1)
                 .map(|vehicle_index| {
-                    let (times, duration) = match &place.times {
+                    let (times, interval) = match &place.times {
                         VehicleBreakTime::TimeWindows(times) if times.is_empty() => {
                             panic!("Break without any time window does not make sense!")
                         }
                         VehicleBreakTime::TimeWindows(times) => (Some(times.clone()), None),
-                        VehicleBreakTime::DurationLimit(duration) => (None, Some(duration.clone())),
+                        VehicleBreakTime::IntervalWindow(interval) => (None, Some(interval.clone())),
                     };
 
                     let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
@@ -241,8 +241,8 @@ fn read_breaks(
                         &None,
                     );
 
-                    if let Some(duration) = duration {
-                        job.dimens.insert("duration".to_string(), Arc::new(duration));
+                    if let Some(interval) = interval {
+                        job.dimens.insert("interval".to_string(), Arc::new(interval));
                     }
 
                     (job_id, job)

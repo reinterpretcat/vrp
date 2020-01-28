@@ -3,7 +3,7 @@ use crate::json::problem::*;
 use crate::json::solution::*;
 
 #[test]
-fn can_assign_duration_break_between_jobs() {
+fn can_assign_interval_break_between_jobs() {
     let problem = Problem {
         id: "my_problem".to_string(),
         plan: Plan {
@@ -16,7 +16,7 @@ fn can_assign_duration_break_between_jobs() {
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
-                    times: VehicleBreakTime::DurationLimit(10.),
+                    times: VehicleBreakTime::IntervalWindow((5., 10.)),
                     duration: 2.0,
                     location: None,
                 }])],
