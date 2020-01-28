@@ -168,11 +168,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        // NOTE promote reload jobs to ignored and locked
-        if ctx.routes.iter().find(|rc| has_reload_index(rc)).is_none() {
-            self.conditional_inner.accept_solution_state(ctx);
-        }
-
+        self.conditional_inner.accept_solution_state(ctx);
         remove_trivial_reloads(ctx);
     }
 
