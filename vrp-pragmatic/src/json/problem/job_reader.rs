@@ -1,7 +1,7 @@
 use crate::extensions::MultiDimensionalCapacity;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
-use crate::json::problem::{JobVariant, RelationType, VehicleBreak, VehicleReload, VehicleType};
+use crate::json::problem::{JobVariant, RelationType, VehicleBreak, VehicleBreakTime, VehicleReload, VehicleType};
 use crate::json::Location;
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
@@ -221,10 +221,12 @@ fn read_breaks(
         .flat_map(|(break_idx, place)| {
             (1..vehicle.amount + 1)
                 .map(|vehicle_index| {
-                    let times = if place.times.is_empty() {
-                        panic!("Break without any time window does not make sense!")
-                    } else {
-                        Some(place.times.clone())
+                    let times = match &place.times {
+                        VehicleBreakTime::TimeWindows(times) if times.is_empty() => {
+                            panic!("Break without any time window does not make sense!")
+                        }
+                        VehicleBreakTime::TimeWindows(times) => Some(times.clone()),
+                        _ => unimplemented!(),
                     };
 
                     let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);

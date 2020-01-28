@@ -184,11 +184,21 @@ pub struct VehicleLimits {
     pub shift_time: Option<f64>,
 }
 
+/// Vehicle break time variant.
+#[derive(Clone, Deserialize)]
+#[serde(untagged)]
+pub enum VehicleBreakTime {
+    /// Break time is defined by a list of time windows with time specified in RFC3339 format.
+    TimeWindows(Vec<Vec<String>>),
+    /// Break time is defined by max working (shift) time before break should happen.
+    WorkingTime(f64),
+}
+
 /// Vehicle break.
 #[derive(Clone, Deserialize)]
 pub struct VehicleBreak {
-    /// A list of break time windows with time specified in RFC3339 format.
-    pub times: Vec<Vec<String>>,
+    /// Break time.
+    pub times: VehicleBreakTime,
     /// Break duration.
     pub duration: f64,
     /// Break location.

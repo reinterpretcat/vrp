@@ -23,7 +23,7 @@ fn can_skip_break_when_vehicle_not_used() {
                             location: vec![100., 0.].to_loc(),
                         }),
                         breaks: Some(vec![VehicleBreak {
-                            times: vec![vec![format_time(5), format_time(8)]],
+                            times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5), format_time(8)]]),
                             duration: 2.0,
                             location: Some(vec![6., 0.].to_loc()),
                         }]),
@@ -122,7 +122,7 @@ fn can_skip_break_when_jobs_completed() {
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
-                    times: vec![vec![format_time(5), format_time(8)]],
+                    times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5), format_time(8)]]),
                     duration: 2.0,
                     location: Some(vec![6., 0.].to_loc()),
                 }])],
@@ -209,12 +209,12 @@ fn can_skip_second_break_when_jobs_completed() {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![
                     VehicleBreak {
-                        times: vec![vec![format_time(5), format_time(10)]],
+                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5), format_time(10)]]),
                         duration: 2.0,
                         location: Some(vec![6., 0.].to_loc()),
                     },
                     VehicleBreak {
-                        times: vec![vec![format_time(100), format_time(120)]],
+                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(100), format_time(120)]]),
                         duration: 2.0,
                         location: None,
                     },
