@@ -14,8 +14,8 @@ use vrp_core::models::solution::Activity;
 pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,
     state_keys: Vec<i32>,
-    capacity_inner: CapacityConstraintModule<Capacity>,
-    conditional_inner: ConditionalJobModule,
+    capacity: CapacityConstraintModule<Capacity>,
+    conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
 }
 
@@ -49,11 +49,8 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 .chain(vec![HAS_RELOAD_KEY, MAX_TOUR_LOAD_KEY].iter())
                 .cloned()
                 .collect(),
-            capacity_inner: capacity_constraint,
-            conditional_inner: ConditionalJobModule::new(
-                Some(Box::new(move |_, job| !is_reload_job(job))),
-                Some(Box::new(move |_, job| is_reload_job(job))),
-            ),
+            capacity: capacity_constraint,
+            conditional: ConditionalJobModule::new(create_job_transition()),
             constraints: vec![
                 ConstraintVariant::SoftRoute(Arc::new(ReloadSoftRouteConstraint { cost: cost_reward })),
                 ConstraintVariant::HardRoute(Arc::new(ReloadHardRouteConstraint { code, hard_route_constraint })),
@@ -163,12 +160,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         if has_reload_index(ctx) {
             Self::recalculate_states(ctx);
         } else {
-            self.capacity_inner.accept_route_state(ctx);
+            self.capacity.accept_route_state(ctx);
         }
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        self.conditional_inner.accept_solution_state(ctx);
+        self.conditional.accept_solution_state(ctx);
         remove_trivial_reloads(ctx);
     }
 
@@ -305,6 +302,16 @@ fn remove_trivial_reloads(ctx: &mut SolutionContext) {
             });
         });
     }
+}
+
+/// Creates job transition which removes reload jobs from required and adds them to locked.
+fn create_job_transition() -> Box<dyn JobContextTransition + Send + Sync> {
+    Box::new(ConcreteJobContextTransition {
+        remove_required: |_, job| is_reload_job(job),
+        promote_required: |_, _| false,
+        remove_locked: |_, _| false,
+        promote_locked: |_, job| is_reload_job(job),
+    })
 }
 
 fn is_reload_single(job: &Arc<Single>) -> bool {

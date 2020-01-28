@@ -31,7 +31,7 @@ impl BreakModule {
         demote_breaks_from_unassigned: bool,
     ) -> Self {
         Self {
-            conditional: ConditionalJobModule::new(Some(Box::new(|ctx, job| is_required_job(ctx, job))), None),
+            conditional: ConditionalJobModule::new(create_job_transition()),
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(BreakHardRouteConstraint { code })),
                 ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint {
@@ -210,8 +210,18 @@ impl SoftRouteConstraint for BreakSoftRouteConstraint {
     }
 }
 
+/// Promotes break jobs from required and ignored.
+fn create_job_transition() -> Box<dyn JobContextTransition + Send + Sync> {
+    Box::new(ConcreteJobContextTransition {
+        remove_required: |ctx, job| !is_required_job(ctx, job, true),
+        promote_required: |ctx, job| is_required_job(ctx, job, false),
+        remove_locked: |_, _| false,
+        promote_locked: |_, _| false,
+    })
+}
+
 /// Mark job as ignored only if it has break type and vehicle id is not present in routes
-fn is_required_job(ctx: &SolutionContext, job: &Job) -> bool {
+fn is_required_job(ctx: &SolutionContext, job: &Job, default: bool) -> bool {
     match job {
         Job::Single(job) => {
             if is_break_job(job) {
@@ -219,10 +229,10 @@ fn is_required_job(ctx: &SolutionContext, job: &Job) -> bool {
                 let shift_index = get_shift_index(&job.dimens);
                 ctx.routes.iter().any(move |rc| is_correct_vehicle(rc, &vehicle_id, shift_index) && is_time(rc, job))
             } else {
-                true
+                default
             }
         }
-        Job::Multi(_) => true,
+        Job::Multi(_) => default,
     }
 }
 

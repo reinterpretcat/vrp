@@ -1,5 +1,5 @@
 use crate::construction::constraints::conditional::ConditionalJobModule;
-use crate::construction::constraints::ConstraintModule;
+use crate::construction::constraints::{ConcreteJobContextTransition, ConstraintModule};
 use crate::construction::states::SolutionContext;
 use crate::helpers::models::problem::{get_job_id, test_fleet, test_single_with_id};
 use crate::models::problem::Job;
@@ -34,7 +34,8 @@ fn can_promote_jobs_between_required_and_ignored_impl(
 ) {
     let required = get_jobs(required);
     let ignored = get_jobs(ignored);
-    let required_set: HashSet<String> = required_ids.iter().map(|s| s.to_string()).collect();
+    let required_set1: HashSet<String> = required_ids.iter().map(|s| s.to_string()).collect();
+    let required_set2 = required_set1.clone();
 
     let mut ctx = SolutionContext {
         required,
@@ -44,8 +45,12 @@ fn can_promote_jobs_between_required_and_ignored_impl(
         routes: Default::default(),
         registry: Registry::new(&test_fleet()),
     };
-    let conditional =
-        ConditionalJobModule::new(Some(Box::new(move |_, job| required_set.contains(get_job_id(&job)))), None);
+    let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
+        remove_required: move |_, job| !required_set1.contains(get_job_id(&job)),
+        promote_required: move |_, job| required_set2.contains(get_job_id(&job)),
+        remove_locked: |_, _| false,
+        promote_locked: |_, _| false,
+    }));
 
     conditional.accept_solution_state(&mut ctx);
 
@@ -58,7 +63,8 @@ fn can_promote_locked_jobs() {
     let jobs = get_jobs(vec!["s1", "s2", "s3", "s4", "s5"]);
     let already_locked_jobs: HashSet<String> = vec!["s1", "s2", "s3"].into_iter().map(|s| s.to_string()).collect();
     let expected_ids: Vec<String> = vec!["s1".to_string(), "s2".to_string(), "s5".to_string()];
-    let expected_locked_jobs: HashSet<String> = expected_ids.iter().cloned().collect();
+    let expected_locked_jobs1: HashSet<String> = expected_ids.iter().cloned().collect();
+    let expected_locked_jobs2 = expected_locked_jobs1.clone();
 
     let mut ctx = SolutionContext {
         required: jobs.clone(),
@@ -68,8 +74,12 @@ fn can_promote_locked_jobs() {
         routes: Default::default(),
         registry: Registry::new(&test_fleet()),
     };
-    let conditional =
-        ConditionalJobModule::new(None, Some(Box::new(move |_, job| expected_locked_jobs.contains(get_job_id(&job)))));
+    let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
+        remove_required: |_, _| false,
+        promote_required: |_, _| false,
+        remove_locked: move |_, job| !expected_locked_jobs1.contains(get_job_id(&job)),
+        promote_locked: move |_, job| expected_locked_jobs2.contains(get_job_id(&job)),
+    }));
 
     conditional.accept_solution_state(&mut ctx);
 
