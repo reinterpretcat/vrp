@@ -1,6 +1,7 @@
 use vrp_core::construction::states::InsertionContext;
 use vrp_core::models::common::{Cost, ObjectiveCost};
 use vrp_core::refinement::objectives::{Objective, PenalizeUnassigned};
+use vrp_core::refinement::RefinementContext;
 
 /// Estimates solution ignoring fixed cost.
 pub struct NoFixedCostObjective {
@@ -20,8 +21,8 @@ impl Default for NoFixedCostObjective {
 }
 
 impl Objective for NoFixedCostObjective {
-    fn estimate(&self, insertion_ctx: &InsertionContext) -> ObjectiveCost {
-        let cost = self.inner_objective.estimate(insertion_ctx);
+    fn estimate(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCost {
+        let cost = self.inner_objective.estimate(refinement_ctx, insertion_ctx);
 
         let fixed = insertion_ctx
             .solution

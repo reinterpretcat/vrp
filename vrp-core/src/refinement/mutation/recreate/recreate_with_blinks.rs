@@ -180,7 +180,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Recreate
     for RecreateWithBlinks<Capacity>
 {
-    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.random.weighted(self.weights.iter());
         let job_selector = self.job_selectors.get(index).unwrap();
         InsertionHeuristic::default().process(&job_selector, &self.job_reducer, insertion_ctx)

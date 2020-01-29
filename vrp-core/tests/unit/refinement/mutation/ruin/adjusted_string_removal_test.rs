@@ -51,7 +51,7 @@ fn can_ruin_solution_with_matrix_routes_impl(
     );
 
     let insertion_ctx =
-        AdjustedStringRemoval::default().run(&RefinementContext::new(insertion_ctx.problem.clone()), insertion_ctx);
+        AdjustedStringRemoval::default().run(&mut RefinementContext::new(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }

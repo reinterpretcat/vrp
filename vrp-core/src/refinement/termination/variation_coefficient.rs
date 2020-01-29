@@ -18,7 +18,7 @@ pub struct VariationCoefficient {
 impl Termination for VariationCoefficient {
     fn is_termination(
         &mut self,
-        refinement_ctx: &RefinementContext,
+        refinement_ctx: &mut RefinementContext,
         solution: (&InsertionContext, ObjectiveCost, bool),
     ) -> bool {
         // TODO do we need to consider penalties?

@@ -29,7 +29,11 @@ impl Default for Greedy {
 }
 
 impl Acceptance for Greedy {
-    fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (&InsertionContext, ObjectiveCost)) -> bool {
+    fn is_accepted(
+        &self,
+        refinement_ctx: &mut RefinementContext,
+        solution: (&InsertionContext, ObjectiveCost),
+    ) -> bool {
         let less_cost =
             refinement_ctx.population.all().min_by(|(_, a, _), (_, b, _)| compare_floats(a.total(), b.total()));
         let less_routes = refinement_ctx

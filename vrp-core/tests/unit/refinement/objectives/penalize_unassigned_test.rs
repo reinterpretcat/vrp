@@ -7,6 +7,7 @@ use crate::models::problem::{Job, Jobs, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
 use crate::refinement::objectives::{Objective, PenalizeUnassigned};
+use crate::refinement::RefinementContext;
 use crate::utils::DefaultRandom;
 use hashbrown::HashMap;
 use std::sync::Arc;
@@ -48,17 +49,19 @@ fn can_calculate_cost_with_penalty_properly() {
     let constraint = Arc::new(create_constraint_pipeline_with_timing());
     let mut unassigned = HashMap::new();
     unassigned.insert(Job::Single(Arc::new(test_single())), 1);
+    let problem = Arc::new(Problem {
+        fleet: fleet.clone(),
+        jobs: Arc::new(Jobs::new(&fleet, vec![], transport.as_ref())),
+        locks: vec![],
+        constraint,
+        activity,
+        transport,
+        objective: Arc::new(PenalizeUnassigned::default()),
+        extras: Arc::new(Extras::default()),
+    });
+    let mut refinement_ctx = RefinementContext::new(problem.clone());
     let insertion_ctx = InsertionContext {
-        problem: Arc::new(Problem {
-            fleet: fleet.clone(),
-            jobs: Arc::new(Jobs::new(&fleet, vec![], transport.as_ref())),
-            locks: vec![],
-            constraint,
-            activity,
-            transport,
-            objective: Arc::new(PenalizeUnassigned::default()),
-            extras: Arc::new(Extras::default()),
-        }),
+        problem,
         solution: SolutionContext {
             required: vec![],
             ignored: vec![],
@@ -86,7 +89,7 @@ fn can_calculate_cost_with_penalty_properly() {
 
     // total: (70 * 2 + 100) + (21 * 2 + 100) = 382
 
-    let result = PenalizeUnassigned::new(1000.0).estimate(&insertion_ctx);
+    let result = PenalizeUnassigned::new(1000.0).estimate(&mut refinement_ctx, &insertion_ctx);
 
     assert_eq!(result.actual, 382.0);
     assert_eq!(result.penalty, 1000.0);

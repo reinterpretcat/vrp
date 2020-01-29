@@ -5,6 +5,7 @@ mod penalize_unassigned_test;
 use crate::construction::states::InsertionContext;
 use crate::models::common::{Cost, ObjectiveCost};
 use crate::refinement::objectives::Objective;
+use crate::refinement::RefinementContext;
 
 /// An objective function which penalizes unassigned jobs.
 pub struct PenalizeUnassigned {
@@ -24,7 +25,7 @@ impl Default for PenalizeUnassigned {
 }
 
 impl Objective for PenalizeUnassigned {
-    fn estimate(&self, insertion_ctx: &InsertionContext) -> ObjectiveCost {
+    fn estimate(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCost {
         let actual = insertion_ctx.solution.routes.iter().fold(Cost::default(), |acc, rc| {
             let actor = &rc.route.actor;
 

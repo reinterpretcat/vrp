@@ -82,12 +82,12 @@ impl Solver {
         loop {
             let generation_time = Instant::now();
 
-            insertion_ctx = self.mutation.mutate(&refinement_ctx, insertion_ctx);
+            insertion_ctx = self.mutation.mutate(&mut refinement_ctx, insertion_ctx);
 
-            let cost = problem.objective.estimate(&insertion_ctx);
-            let is_accepted = self.acceptance.is_accepted(&refinement_ctx, (&insertion_ctx, cost.clone()));
+            let cost = problem.objective.estimate(&mut refinement_ctx, &insertion_ctx);
+            let is_accepted = self.acceptance.is_accepted(&mut refinement_ctx, (&insertion_ctx, cost.clone()));
             let is_terminated =
-                self.termination.is_termination(&refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
+                self.termination.is_termination(&mut refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
 
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
                 self.log_generation(
@@ -107,7 +107,7 @@ impl Solver {
                 refinement_ctx.population.add((insertion_ctx, cost, refinement_ctx.generation))
             }
 
-            insertion_ctx = self.selection.select(&refinement_ctx);
+            insertion_ctx = self.selection.select(&mut refinement_ctx);
 
             if is_terminated {
                 break;

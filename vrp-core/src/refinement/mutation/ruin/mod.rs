@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// A trait which specifies logic to destroy parts of solution.
 pub trait Ruin {
     /// Ruins given solution and returns a new one with less jobs assigned.
-    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
+    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
 mod adjusted_string_removal;
@@ -90,7 +90,7 @@ impl CompositeRuin {
 }
 
 impl Ruin for CompositeRuin {
-    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         if insertion_ctx.solution.routes.is_empty() {
             return insertion_ctx;
         }

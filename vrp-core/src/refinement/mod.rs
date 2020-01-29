@@ -13,6 +13,8 @@ use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
 use crate::models::Problem;
 
+use hashbrown::HashMap;
+use std::any::Any;
 use std::sync::Arc;
 
 /// Contains information needed to perform refinement.
@@ -22,6 +24,9 @@ pub struct RefinementContext {
 
     /// Specifies solution population.
     pub population: Box<dyn Population + Sync + Send>,
+
+    /// A collection of data associated with refinement process.
+    pub feedback: HashMap<String, Box<dyn Any>>,
 
     /// Specifies refinement generation (or iteration).
     pub generation: usize,
@@ -77,11 +82,11 @@ impl Population for SinglePopulation {
 
 impl RefinementContext {
     pub fn new(problem: Arc<Problem>) -> Self {
-        Self { problem, population: Box::new(SinglePopulation::default()), generation: 1 }
+        Self::new_with_population(problem, Box::new(SinglePopulation::default()))
     }
 
     pub fn new_with_population(problem: Arc<Problem>, population: Box<dyn Population + Sync + Send>) -> Self {
-        Self { problem, population, generation: 1 }
+        Self { problem, population, feedback: Default::default(), generation: 1 }
     }
 }
 

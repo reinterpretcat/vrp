@@ -19,7 +19,7 @@ fn can_detect_termination_impl(generation: usize, limit: usize, expected: bool) 
     refinement_ctx.generation = generation;
 
     let result = MaxGeneration::new(limit)
-        .is_termination(&refinement_ctx, (&create_empty_insertion_context(), ObjectiveCost::new(0., 0.), true));
+        .is_termination(&mut refinement_ctx, (&create_empty_insertion_context(), ObjectiveCost::new(0., 0.), true));
 
     assert_eq!(result, expected);
 }

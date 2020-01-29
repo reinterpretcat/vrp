@@ -6,7 +6,7 @@ use crate::refinement::RefinementContext;
 /// A trait which specifies logic to produce a new feasible solution from partial one.
 pub trait Recreate {
     /// Recreates a new solution from the given.
-    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
+    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
 mod recreate_with_cheapest;
@@ -53,7 +53,7 @@ impl CompositeRecreate {
 }
 
 impl Recreate for CompositeRecreate {
-    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         // NOTE always use recreate method with the larger weight for the initial generation
         let index = if refinement_ctx.generation == 1 { 0 } else { insertion_ctx.random.weighted(self.weights.iter()) };
         self.recreates.get(index).unwrap().run(refinement_ctx, insertion_ctx)

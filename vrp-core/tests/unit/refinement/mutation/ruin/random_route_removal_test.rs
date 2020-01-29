@@ -21,7 +21,7 @@ fn can_remove_whole_routes_from_context() {
     );
 
     let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2)
-        .run(&RefinementContext::new(insertion_ctx.problem.clone()), insertion_ctx);
+        .run(&mut RefinementContext::new(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.required.len(), 8);
 }
@@ -57,7 +57,7 @@ fn can_remove_parts_routes_from_context() {
     );
 
     let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2)
-        .run(&RefinementContext::new(insertion_ctx.problem.clone()), insertion_ctx);
+        .run(&mut RefinementContext::new(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(
         get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required),

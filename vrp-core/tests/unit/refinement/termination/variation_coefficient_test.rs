@@ -22,7 +22,7 @@ fn can_detect_termination_impl(capacity: usize, threshold: f64, delta: f64, expe
             let solution = create_empty_insertion_context();
             let cost = ObjectiveCost::new(1. + (i + 1) as f64 * delta, 0.);
 
-            termination.is_termination(&refinement_ctx, (&solution, cost, true))
+            termination.is_termination(&mut refinement_ctx, (&solution, cost, true))
         })
         .collect::<Vec<bool>>();
 

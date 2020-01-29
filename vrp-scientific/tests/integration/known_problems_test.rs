@@ -58,12 +58,11 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     expected: Vec<Vec<&str>>,
     cost: f64,
 ) {
-    let insertion_ctx = RecreateWithCheapest::default().run(
-        &RefinementContext::new(problem.clone()),
-        InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
-    );
+    let mut refinement_ctx = RefinementContext::new(problem.clone());
+    let insertion_ctx = RecreateWithCheapest::default()
+        .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())));
 
-    let result_cost = NoFixedCostObjective::new(1000.).estimate(&insertion_ctx);
+    let result_cost = NoFixedCostObjective::new(1000.).estimate(&mut refinement_ctx, &insertion_ctx);
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
     assert_eq!(result_cost.actual.round(), cost.round());
     assert_eq!(result_cost.penalty, 0.0);

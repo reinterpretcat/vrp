@@ -9,7 +9,7 @@ pub trait Termination {
     /// Returns true if termination condition is met.
     fn is_termination(
         &mut self,
-        refinement_ctx: &RefinementContext,
+        refinement_ctx: &mut RefinementContext,
         solution: (&InsertionContext, ObjectiveCost, bool),
     ) -> bool;
 }
@@ -44,7 +44,7 @@ impl Default for CompositeTermination {
 impl Termination for CompositeTermination {
     fn is_termination(
         &mut self,
-        refinement_ctx: &RefinementContext,
+        refinement_ctx: &mut RefinementContext,
         solution: (&InsertionContext, ObjectiveCost, bool),
     ) -> bool {
         self.terminations

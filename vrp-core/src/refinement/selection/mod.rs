@@ -6,7 +6,7 @@ use crate::refinement::RefinementContext;
 /// Provides the way to select solution for next iteration.
 pub trait Selection {
     /// Selects solution from given `refinement_ctx`.
-    fn select(&self, refinement_ctx: &RefinementContext) -> InsertionContext;
+    fn select(&self, refinement_ctx: &mut RefinementContext) -> InsertionContext;
 }
 
 mod select_best;

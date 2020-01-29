@@ -28,7 +28,11 @@ impl Default for RandomProbability {
 }
 
 impl Acceptance for RandomProbability {
-    fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (&InsertionContext, ObjectiveCost)) -> bool {
+    fn is_accepted(
+        &self,
+        refinement_ctx: &mut RefinementContext,
+        solution: (&InsertionContext, ObjectiveCost),
+    ) -> bool {
         let random = solution.0.random.clone();
 
         self.other.is_accepted(refinement_ctx, solution) || self.probability > random.uniform_real(0., 1.)

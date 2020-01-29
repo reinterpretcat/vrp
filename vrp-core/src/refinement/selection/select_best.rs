@@ -12,7 +12,7 @@ impl Default for SelectBest {
 }
 
 impl Selection for SelectBest {
-    fn select(&self, refinement_ctx: &RefinementContext) -> InsertionContext {
+    fn select(&self, refinement_ctx: &mut RefinementContext) -> InsertionContext {
         refinement_ctx.population.best().unwrap().0.deep_copy()
     }
 }

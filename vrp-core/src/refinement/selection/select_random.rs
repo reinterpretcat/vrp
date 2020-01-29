@@ -30,7 +30,7 @@ impl SelectRandom {
 }
 
 impl Selection for SelectRandom {
-    fn select(&self, refinement_ctx: &RefinementContext) -> InsertionContext {
+    fn select(&self, refinement_ctx: &mut RefinementContext) -> InsertionContext {
         let index = Self::get_index(refinement_ctx);
 
         refinement_ctx.population.all().skip(index as usize).next().unwrap().0.deep_copy()

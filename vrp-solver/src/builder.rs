@@ -5,6 +5,7 @@ use vrp_core::construction::states::InsertionContext;
 use vrp_core::models::{Problem, Solution};
 use vrp_core::refinement::acceptance::{Greedy, RandomProbability};
 use vrp_core::refinement::termination::*;
+use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::DefaultRandom;
 
 /// Provides configurable way to build solver.
@@ -116,7 +117,7 @@ impl SolverBuilder {
                 Arc::new(DefaultRandom::default()),
             );
 
-            let cost = problem.objective.estimate(&insertion_ctx);
+            let cost = problem.objective.estimate(&mut RefinementContext::new(problem.clone()), &insertion_ctx);
             self.solver.logger.deref()(format!(
                 "configured to use initial solution with cost: ({:.2},{:.2}), routes: {}",
                 cost.actual,

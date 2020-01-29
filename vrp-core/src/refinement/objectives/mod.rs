@@ -2,11 +2,12 @@
 
 use crate::construction::states::InsertionContext;
 use crate::models::common::ObjectiveCost;
+use crate::refinement::RefinementContext;
 
 /// Encapsulates objective function behaviour.
 pub trait Objective {
     /// Estimates cost for given problem and solution.
-    fn estimate(&self, insertion_ctx: &InsertionContext) -> ObjectiveCost;
+    fn estimate(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCost;
 }
 
 mod penalize_unassigned;

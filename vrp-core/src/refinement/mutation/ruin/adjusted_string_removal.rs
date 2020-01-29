@@ -54,7 +54,7 @@ impl Default for AdjustedStringRemoval {
 }
 
 impl Ruin for AdjustedStringRemoval {
-    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
         let jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::new());
         let actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());

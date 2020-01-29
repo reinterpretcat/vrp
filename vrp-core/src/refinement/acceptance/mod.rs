@@ -7,7 +7,8 @@ use crate::refinement::RefinementContext;
 /// Specifies solution acceptance logic.
 pub trait Acceptance {
     /// Returns true if solution is considered as improvement.
-    fn is_accepted(&self, refinement_ctx: &RefinementContext, solution: (&InsertionContext, ObjectiveCost)) -> bool;
+    fn is_accepted(&self, refinement_ctx: &mut RefinementContext, solution: (&InsertionContext, ObjectiveCost))
+        -> bool;
 }
 
 mod greedy;

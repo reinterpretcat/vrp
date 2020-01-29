@@ -26,7 +26,7 @@ impl Default for MaxTime {
 impl Termination for MaxTime {
     fn is_termination(
         &mut self,
-        _refinement_ctx: &RefinementContext,
+        _refinement_ctx: &mut RefinementContext,
         _: (&InsertionContext, ObjectiveCost, bool),
     ) -> bool {
         self.start.elapsed().as_secs_f64() > self.limit_in_secs

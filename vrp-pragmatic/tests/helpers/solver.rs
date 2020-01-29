@@ -10,9 +10,9 @@ use vrp_solver::SolverBuilder;
 
 pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
     let problem = Arc::new((problem, matrices).read_pragmatic().unwrap());
-    let refinement_ctx = RefinementContext::new(problem.clone());
+    let mut refinement_ctx = RefinementContext::new(problem.clone());
     let solution = RecreateWithCheapest::default()
-        .run(&refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
+        .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
         .solution
         .to_solution(problem.extras.clone());
     sort_all_data(create_solution(problem.as_ref(), &solution))

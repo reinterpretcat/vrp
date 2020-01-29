@@ -19,7 +19,7 @@ impl Default for RecreateWithCheapest {
 }
 
 impl Recreate for RecreateWithCheapest {
-    fn run(&self, _refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::default().process(&self.job_selector, &self.job_reducer, insertion_ctx)
     }
 }
