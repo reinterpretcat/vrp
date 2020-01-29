@@ -17,9 +17,9 @@ can_detect_termination! {
 fn can_detect_termination_impl(generation: usize, limit: usize, expected: bool) {
     let mut refinement_ctx = RefinementContext::new(create_empty_problem());
     refinement_ctx.generation = generation;
+    let individuum = (create_empty_insertion_context(), ObjectiveCost::new(0., 0.), generation);
 
-    let result = MaxGeneration::new(limit)
-        .is_termination(&mut refinement_ctx, (&create_empty_insertion_context(), ObjectiveCost::new(0., 0.), true));
+    let result = MaxGeneration::new(limit).is_termination(&mut refinement_ctx, (&individuum, true));
 
     assert_eq!(result, expected);
 }

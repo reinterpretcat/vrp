@@ -1,17 +1,11 @@
 //! Metaheuristic termination logic.
 
-use crate::construction::states::InsertionContext;
-use crate::models::common::ObjectiveCost;
-use crate::refinement::RefinementContext;
+use crate::refinement::{Individuum, RefinementContext};
 
 /// A trait which specifies criteria when metaheuristic should stop searching for improved solution.
 pub trait Termination {
     /// Returns true if termination condition is met.
-    fn is_termination(
-        &mut self,
-        refinement_ctx: &mut RefinementContext,
-        solution: (&InsertionContext, ObjectiveCost, bool),
-    ) -> bool;
+    fn is_termination(&self, refinement_ctx: &mut RefinementContext, solution: (&Individuum, bool)) -> bool;
 }
 
 mod max_generation;
@@ -42,13 +36,7 @@ impl Default for CompositeTermination {
 }
 
 impl Termination for CompositeTermination {
-    fn is_termination(
-        &mut self,
-        refinement_ctx: &mut RefinementContext,
-        solution: (&InsertionContext, ObjectiveCost, bool),
-    ) -> bool {
-        self.terminations
-            .iter_mut()
-            .any(|t| t.is_termination(refinement_ctx, (solution.0, solution.1.clone(), solution.2)))
+    fn is_termination(&self, refinement_ctx: &mut RefinementContext, solution: (&Individuum, bool)) -> bool {
+        self.terminations.iter().any(|t| t.is_termination(refinement_ctx, solution))
     }
 }

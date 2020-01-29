@@ -2,36 +2,49 @@
 #[path = "../../../tests/unit/refinement/termination/variation_coefficient_test.rs"]
 mod variation_coefficient_test;
 
-use crate::construction::states::InsertionContext;
-use crate::models::common::ObjectiveCost;
 use crate::refinement::termination::Termination;
-use crate::refinement::RefinementContext;
+use crate::refinement::{Individuum, RefinementContext};
 
 /// Uses coefficient of variation as termination criteria.
 pub struct VariationCoefficient {
     capacity: usize,
     threshold: f64,
-    last_cost: Option<f64>,
-    costs: Vec<f64>,
+}
+
+/// Keeps data needed to calculate variation coefficient between generations.
+struct VariationCoefficientState {
+    pub last_cost: Option<f64>,
+    pub costs: Vec<f64>,
+}
+
+impl VariationCoefficientState {
+    fn new(capacity: usize) -> Self {
+        Self { last_cost: None, costs: vec![0.; capacity] }
+    }
 }
 
 impl Termination for VariationCoefficient {
-    fn is_termination(
-        &mut self,
-        refinement_ctx: &mut RefinementContext,
-        solution: (&InsertionContext, ObjectiveCost, bool),
-    ) -> bool {
+    fn is_termination(&self, refinement_ctx: &mut RefinementContext, solution: (&Individuum, bool)) -> bool {
         // TODO do we need to consider penalties?
 
-        if solution.2 {
-            self.last_cost = Some(solution.1.actual);
+        let (individuum, is_accepted) = solution;
+
+        let mut state = refinement_ctx
+            .state
+            .entry("var_coeff".to_owned())
+            .or_insert_with(|| Box::new(VariationCoefficientState::new(self.capacity)))
+            .downcast_mut::<VariationCoefficientState>()
+            .unwrap();
+
+        if is_accepted {
+            state.last_cost = Some(individuum.1.actual);
         }
 
         let index = refinement_ctx.generation % self.capacity;
 
-        self.costs[index] = solution.1.actual;
+        state.costs[index] = individuum.1.actual;
 
-        refinement_ctx.generation >= (self.capacity - 1) && self.check_threshold()
+        refinement_ctx.generation >= (self.capacity - 1) && self.check_threshold(state)
     }
 }
 
@@ -44,22 +57,21 @@ impl Default for VariationCoefficient {
 impl VariationCoefficient {
     /// Creates a new instance of [`VariationCoefficient`].
     pub fn new(capacity: usize, threshold: f64) -> Self {
-        let costs = vec![0.; capacity];
-        Self { capacity, threshold, last_cost: None, costs }
+        Self { capacity, threshold }
     }
 
-    fn check_threshold(&self) -> bool {
-        let sum: f64 = self.costs.iter().sum();
+    fn check_threshold(&self, state: &VariationCoefficientState) -> bool {
+        let sum: f64 = state.costs.iter().sum();
         let mean = sum / self.capacity as f64;
-        let variance = self.calculate_variance(mean);
+        let variance = self.calculate_variance(state, mean);
         let sdev = variance.sqrt();
         let cv = sdev / mean;
 
         cv < self.threshold
     }
 
-    fn calculate_variance(&self, mean: f64) -> f64 {
-        let (first, second) = self.costs.iter().fold((0., 0.), |acc, v| {
+    fn calculate_variance(&self, state: &VariationCoefficientState, mean: f64) -> f64 {
+        let (first, second) = state.costs.iter().fold((0., 0.), |acc, v| {
             let dev = v - mean;
             (acc.0 + dev * dev, acc.1 + dev)
         });

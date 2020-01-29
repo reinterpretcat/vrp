@@ -9,7 +9,7 @@ use vrp_core::refinement::acceptance::{Acceptance, RandomProbability};
 use vrp_core::refinement::mutation::{Mutation, RuinAndRecreateMutation};
 use vrp_core::refinement::selection::{SelectRandom, Selection};
 use vrp_core::refinement::termination::*;
-use vrp_core::refinement::RefinementContext;
+use vrp_core::refinement::{Individuum, RefinementContext};
 use vrp_core::utils::DefaultRandom;
 
 /// A skeleton of metaheuristic with default ruin and recreate implementation.
@@ -85,18 +85,12 @@ impl Solver {
             insertion_ctx = self.mutation.mutate(&mut refinement_ctx, insertion_ctx);
 
             let cost = problem.objective.estimate(&mut refinement_ctx, &insertion_ctx);
-            let is_accepted = self.acceptance.is_accepted(&mut refinement_ctx, (&insertion_ctx, cost.clone()));
-            let is_terminated =
-                self.termination.is_termination(&mut refinement_ctx, (&insertion_ctx, cost.clone(), is_accepted));
+            let individuum = (insertion_ctx, cost, refinement_ctx.generation);
+            let is_accepted = self.acceptance.is_accepted(&mut refinement_ctx, &individuum);
+            let is_terminated = self.termination.is_termination(&mut refinement_ctx, (&individuum, is_accepted));
 
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
-                self.log_generation(
-                    &refinement_ctx,
-                    generation_time,
-                    refinement_time,
-                    (&insertion_ctx, &cost),
-                    is_accepted,
-                );
+                self.log_generation(&refinement_ctx, generation_time, refinement_time, &individuum, is_accepted);
             }
 
             if refinement_ctx.generation > 0 && refinement_ctx.generation % 1000 == 0 {
@@ -104,7 +98,7 @@ impl Solver {
             }
 
             if is_accepted {
-                refinement_ctx.population.add((insertion_ctx, cost, refinement_ctx.generation))
+                refinement_ctx.population.add(individuum)
             }
 
             insertion_ctx = self.selection.select(&mut refinement_ctx);
@@ -125,10 +119,10 @@ impl Solver {
         refinement_ctx: &RefinementContext,
         generation_time: Instant,
         refinement_time: Instant,
-        solution: (&InsertionContext, &ObjectiveCost),
+        solution: &Individuum,
         is_accepted: bool,
     ) {
-        let (insertion_ctx, cost) = solution;
+        let (insertion_ctx, cost, _) = solution;
         let (actual_change, total_change) = get_cost_change(refinement_ctx, &cost);
         self.logger.deref()(format!(
             "generation {} took {}ms (total {}s), cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, accepted: {}",

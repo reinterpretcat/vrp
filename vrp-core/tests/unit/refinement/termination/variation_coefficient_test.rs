@@ -14,15 +14,14 @@ can_detect_termination! {
 
 fn can_detect_termination_impl(capacity: usize, threshold: f64, delta: f64, expected: Vec<bool>) {
     let mut refinement_ctx = RefinementContext::new(create_empty_problem());
-    let mut termination = VariationCoefficient::new(capacity, threshold);
+    let termination = VariationCoefficient::new(capacity, threshold);
 
     let result = (0..capacity)
         .map(|i| {
             refinement_ctx.generation = i;
-            let solution = create_empty_insertion_context();
-            let cost = ObjectiveCost::new(1. + (i + 1) as f64 * delta, 0.);
+            let individuum = (create_empty_insertion_context(), ObjectiveCost::new(1. + (i + 1) as f64 * delta, 0.), i);
 
-            termination.is_termination(&mut refinement_ctx, (&solution, cost, true))
+            termination.is_termination(&mut refinement_ctx, (&individuum, true))
         })
         .collect::<Vec<bool>>();
 

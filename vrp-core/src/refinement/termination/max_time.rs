@@ -1,7 +1,5 @@
-use crate::construction::states::InsertionContext;
-use crate::models::common::ObjectiveCost;
 use crate::refinement::termination::Termination;
-use crate::refinement::RefinementContext;
+use crate::refinement::{Individuum, RefinementContext};
 use std::time::Instant;
 
 /// Stops when maximum time is passed since construction of object.
@@ -24,11 +22,7 @@ impl Default for MaxTime {
 }
 
 impl Termination for MaxTime {
-    fn is_termination(
-        &mut self,
-        _refinement_ctx: &mut RefinementContext,
-        _: (&InsertionContext, ObjectiveCost, bool),
-    ) -> bool {
+    fn is_termination(&self, _refinement_ctx: &mut RefinementContext, _: (&Individuum, bool)) -> bool {
         self.start.elapsed().as_secs_f64() > self.limit_in_secs
     }
 }

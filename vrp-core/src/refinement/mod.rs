@@ -26,7 +26,7 @@ pub struct RefinementContext {
     pub population: Box<dyn Population + Sync + Send>,
 
     /// A collection of data associated with refinement process.
-    pub feedback: HashMap<String, Box<dyn Any>>,
+    pub state: HashMap<String, Box<dyn Any>>,
 
     /// Specifies refinement generation (or iteration).
     pub generation: usize,
@@ -86,7 +86,7 @@ impl RefinementContext {
     }
 
     pub fn new_with_population(problem: Arc<Problem>, population: Box<dyn Population + Sync + Send>) -> Self {
-        Self { problem, population, feedback: Default::default(), generation: 1 }
+        Self { problem, population, state: Default::default(), generation: 1 }
     }
 }
 

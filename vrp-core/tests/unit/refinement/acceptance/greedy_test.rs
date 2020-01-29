@@ -18,8 +18,9 @@ can_identify_cheapest_solution! {
 fn can_identify_cheapest_solution_impl(new_cost: ObjectiveCost, old_cost: ObjectiveCost, expected: bool) {
     let mut refinement_ctx = RefinementContext::new(create_empty_problem());
     refinement_ctx.population.add((create_empty_insertion_context(), old_cost, 0));
+    let individuum = (create_empty_insertion_context(), new_cost, refinement_ctx.generation);
 
-    let result = Greedy::default().is_accepted(&mut refinement_ctx, (&create_empty_insertion_context(), new_cost));
+    let result = Greedy::default().is_accepted(&mut refinement_ctx, &individuum);
 
     assert_eq!(result, expected);
 }

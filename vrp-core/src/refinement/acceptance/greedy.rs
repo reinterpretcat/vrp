@@ -2,10 +2,8 @@
 #[path = "../../../tests/unit/refinement/acceptance/greedy_test.rs"]
 mod greedy_test;
 
-use crate::construction::states::InsertionContext;
-use crate::models::common::ObjectiveCost;
 use crate::refinement::acceptance::Acceptance;
-use crate::refinement::RefinementContext;
+use crate::refinement::{Individuum, RefinementContext};
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
 
@@ -29,11 +27,7 @@ impl Default for Greedy {
 }
 
 impl Acceptance for Greedy {
-    fn is_accepted(
-        &self,
-        refinement_ctx: &mut RefinementContext,
-        solution: (&InsertionContext, ObjectiveCost),
-    ) -> bool {
+    fn is_accepted(&self, refinement_ctx: &mut RefinementContext, solution: &Individuum) -> bool {
         let less_cost =
             refinement_ctx.population.all().min_by(|(_, a, _), (_, b, _)| compare_floats(a.total(), b.total()));
         let less_routes = refinement_ctx

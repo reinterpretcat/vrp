@@ -2,10 +2,8 @@
 #[path = "../../../tests/unit/refinement/acceptance/greedy_test.rs"]
 mod greedy_test;
 
-use crate::construction::states::InsertionContext;
-use crate::models::common::ObjectiveCost;
 use crate::refinement::acceptance::{Acceptance, Greedy};
-use crate::refinement::RefinementContext;
+use crate::refinement::{Individuum, RefinementContext};
 
 /// Decorates existing acceptance method by adding extra logic which accepts some solutions
 /// randomly with given probability.
@@ -28,11 +26,7 @@ impl Default for RandomProbability {
 }
 
 impl Acceptance for RandomProbability {
-    fn is_accepted(
-        &self,
-        refinement_ctx: &mut RefinementContext,
-        solution: (&InsertionContext, ObjectiveCost),
-    ) -> bool {
+    fn is_accepted(&self, refinement_ctx: &mut RefinementContext, solution: &Individuum) -> bool {
         let random = solution.0.random.clone();
 
         self.other.is_accepted(refinement_ctx, solution) || self.probability > random.uniform_real(0., 1.)
