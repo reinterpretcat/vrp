@@ -58,7 +58,7 @@ fn can_assign_interval_break_between_jobs() {
                         location: vec![5., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
-                            departure: "1970-01-01T00:00:08Z".to_string()
+                            departure: "1970-01-01T00:00:08Z".to_string(),
                         },
                         load: vec![1],
                         activities: vec![
@@ -110,4 +110,53 @@ fn can_assign_interval_break_between_jobs() {
             extras: None,
         }
     );
+}
+
+#[test]
+fn can_assign_interval_break_with_reload() {
+    let problem = Problem {
+        id: "my_problem".to_string(),
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job("job1", vec![10., 0.]),
+                create_delivery_job("job2", vec![15., 0.]),
+                create_delivery_job("job3", vec![20., 0.]),
+                create_delivery_job("job4", vec![25., 0.]),
+            ],
+            relations: Option::None,
+        },
+        fleet: Fleet {
+            types: vec![VehicleType {
+                id: "my_vehicle".to_string(),
+                profile: "car".to_string(),
+                costs: create_default_vehicle_costs(),
+                shifts: vec![VehicleShift {
+                    start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
+                    end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![0., 0.].to_loc() }),
+                    breaks: Some(vec![VehicleBreak {
+                        times: VehicleBreakTime::IntervalWindow(vec![8., 12.]),
+                        duration: 2.0,
+                        location: None,
+                    }]),
+                    reloads: Some(vec![VehicleReload {
+                        times: Some(vec![vec![format_time(0), format_time(1000)]]),
+                        location: vec![0., 0.].to_loc(),
+                        duration: 0.0,
+                        tag: None,
+                    }]),
+                }],
+                capacity: vec![2],
+                amount: 2,
+                skills: None,
+                limits: None,
+            }],
+            profiles: create_default_profiles(),
+        },
+        config: None,
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+
+    assert_eq!(solution.tours.first().unwrap().stops.first().unwrap().load, vec![2]);
 }

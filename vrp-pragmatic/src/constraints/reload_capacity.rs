@@ -137,7 +137,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         if is_reload_job(job) {
             route_ctx.state_mut().put_route_state(HAS_RELOAD_KEY, true);
             // move all unassigned reloads back to ignored
-            let jobs = get_reload_jobs(route_ctx, &solution_ctx.required);
+            let jobs = get_reload_jobs(route_ctx, &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|i| !jobs.contains(i));
             solution_ctx.ignored.extend(jobs.into_iter());
 
@@ -146,7 +146,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             self.accept_route_state(route_ctx);
             if Self::is_vehicle_full(route_ctx, &self.threshold) {
                 // move all reloads for this shift to required
-                let jobs = get_reload_jobs(route_ctx, &solution_ctx.ignored);
+                let jobs = get_reload_jobs(route_ctx, &solution_ctx.ignored)
+                    .chain(get_reload_jobs(route_ctx, &solution_ctx.required))
+                    .collect::<HashSet<_>>();
+
                 solution_ctx.ignored.retain(|i| !jobs.contains(i));
                 solution_ctx.locked.extend(jobs.iter().cloned());
                 solution_ctx.required.extend(jobs.into_iter());
@@ -324,20 +327,21 @@ fn has_reload_index(ctx: &RouteContext) -> bool {
     *ctx.state.get_route_state::<bool>(HAS_RELOAD_KEY).unwrap_or(&false)
 }
 
-fn get_reload_jobs(route_ctx: &RouteContext, collection: &Vec<Job>) -> HashSet<Job> {
+fn get_reload_jobs<'a>(route_ctx: &'a RouteContext, collection: &'a Vec<Job>) -> Box<dyn Iterator<Item = Job> + 'a> {
     let shift_index = get_shift_index(&route_ctx.route.actor.vehicle.dimens);
     let vehicle_id = route_ctx.route.actor.vehicle.dimens.get_id().unwrap();
 
-    collection
-        .iter()
-        .filter(move |job| match job {
-            Job::Single(job) => {
-                is_reload_single(&job)
-                    && get_shift_index(&job.dimens) == shift_index
-                    && get_vehicle_id_from_job(&job).unwrap() == vehicle_id
-            }
-            _ => false,
-        })
-        .cloned()
-        .collect()
+    Box::new(
+        collection
+            .iter()
+            .filter(move |job| match job {
+                Job::Single(job) => {
+                    is_reload_single(&job)
+                        && get_shift_index(&job.dimens) == shift_index
+                        && get_vehicle_id_from_job(&job).unwrap() == vehicle_id
+                }
+                _ => false,
+            })
+            .cloned(),
+    )
 }
