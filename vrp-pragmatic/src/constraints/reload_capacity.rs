@@ -294,7 +294,10 @@ fn remove_trivial_reloads(ctx: &mut SolutionContext) {
         ctx.routes.iter_mut().for_each(|rc| {
             let activities = rc.route.tour.total();
             let first_reload_idx = 1_usize;
+            let first_reload_idx = first_reload_idx + get_index_correction(rc, first_reload_idx);
+
             let last_reload_idx = if rc.route.actor.detail.end.is_some() { activities - 2 } else { activities - 1 };
+            let last_reload_idx = last_reload_idx - get_index_correction(rc, last_reload_idx);
 
             once(first_reload_idx).chain(once(last_reload_idx)).for_each(|idx| {
                 if let Some(job) = as_reload_job(rc.route.tour.get(idx).unwrap()) {
@@ -323,6 +326,21 @@ fn is_reload_single(job: &Arc<Single>) -> bool {
 
 fn is_reload_job(job: &Job) -> bool {
     job.as_single().map_or(false, |single| is_reload_single(single))
+}
+
+fn get_index_correction(route_ctx: &RouteContext, index: usize) -> usize {
+    let is_break = route_ctx
+        .route
+        .tour
+        .get(index)
+        .and_then(|a| a.job.as_ref())
+        .and_then(|job| job.dimens.get_value::<String>("type"))
+        .map_or(false, |t| t == "break");
+    if is_break {
+        1
+    } else {
+        0
+    }
 }
 
 fn as_reload_job(activity: &Activity) -> Option<&Arc<Single>> {
