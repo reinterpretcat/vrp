@@ -318,7 +318,7 @@ fn is_time(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
     let tour = &rc.route.tour;
     if let Some(&interval) = get_break_interval(break_job) {
         let tour_duration = tour.end().unwrap().schedule.arrival - tour.start().unwrap().schedule.departure;
-        tour_duration > interval.1
+        tour_duration > interval.0
     } else {
         let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
         break_job.places.first().unwrap().times.iter().any(|t| t.start < arrival)
