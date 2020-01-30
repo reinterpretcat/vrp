@@ -290,17 +290,20 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 /// Removes reloads at the start and end of tour.
 fn remove_trivial_reloads(ctx: &mut SolutionContext) {
     if ctx.required.is_empty() {
+        let mut extra_ignored = Vec::new();
         ctx.routes.iter_mut().for_each(|rc| {
             let activities = rc.route.tour.total();
             let first_reload_idx = 1_usize;
             let last_reload_idx = if rc.route.actor.detail.end.is_some() { activities - 2 } else { activities - 1 };
 
             once(first_reload_idx).chain(once(last_reload_idx)).for_each(|idx| {
-                if as_reload_job(rc.route.tour.get(idx).unwrap()).is_some() {
+                if let Some(job) = as_reload_job(rc.route.tour.get(idx).unwrap()) {
+                    extra_ignored.push(Job::Single(job.clone()));
                     rc.route_mut().tour.remove_activity_at(idx);
                 }
             });
         });
+        ctx.ignored.extend(extra_ignored.into_iter());
     }
 }
 
