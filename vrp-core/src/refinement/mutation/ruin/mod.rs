@@ -15,23 +15,18 @@ pub trait Ruin {
 }
 
 mod adjusted_string_removal;
-
 pub use self::adjusted_string_removal::AdjustedStringRemoval;
 
 mod neighbour_removal;
-
 pub use self::neighbour_removal::NeighbourRemoval;
 
 mod random_route_removal;
-
 pub use self::random_route_removal::RandomRouteRemoval;
 
 mod random_job_removal;
-
 pub use self::random_job_removal::RandomJobRemoval;
 
 mod worst_jobs_removal;
-
 pub use self::worst_jobs_removal::WorstJobRemoval;
 
 /// Provides the way to run multiple ruin methods one by one on the same solution.
@@ -71,21 +66,19 @@ impl Default for CompositeRuin {
                 50,
             ),
             (vec![(neighbour_aggressive.clone(), 1.)], 10),
-            (vec![(random_job_default.clone(), 1.), (random_route_default.clone(), 0.1)], 5),
-            (vec![(random_route_default.clone(), 1.), (random_job_default.clone(), 0.1)], 5),
-            (vec![(worst_job_default.clone(), 1.), (adjusted_string_default.clone(), 1.)], 10),
+            (vec![(worst_job_default.clone(), 1.), (adjusted_string_default.clone(), 0.1)], 10),
+            (vec![(random_job_default.clone(), 1.), (random_route_default.clone(), 0.1)], 10),
+            (vec![(random_route_default.clone(), 1.), (random_job_default.clone(), 0.1)], 10),
         ])
     }
 }
 
 impl CompositeRuin {
     pub fn new(ruins: Vec<(Vec<(Arc<dyn Ruin>, f64)>, usize)>) -> Self {
-        let mut ruins = ruins;
-        ruins.sort_by(|(_, a), (_, b)| b.cmp(&a));
-
         let weights = ruins.iter().map(|(_, weight)| *weight).collect();
+        let ruins = ruins.into_iter().map(|(ruin, _)| ruin).collect();
 
-        Self { ruins: ruins.into_iter().map(|(ruin, _)| ruin).collect(), weights }
+        Self { ruins, weights }
     }
 }
 

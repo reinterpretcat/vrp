@@ -18,10 +18,7 @@ pub struct RecreateWithRegret {
 
 impl Default for RecreateWithRegret {
     fn default() -> Self {
-        Self {
-            job_selector: Box::new(AllJobSelector::default()),
-            job_reducer: Box::new(RegretJobMapReducer::default()),
-        }
+        RecreateWithRegret::new((2, 4))
     }
 }
 
@@ -31,13 +28,22 @@ impl Recreate for RecreateWithRegret {
     }
 }
 
+impl RecreateWithRegret {
+    pub fn new(regret_range: (i32, i32)) -> Self {
+        Self {
+            job_selector: Box::new(AllJobSelector::default()),
+            job_reducer: Box::new(RegretJobMapReducer::new(regret_range)),
+        }
+    }
+}
+
 struct RegretJobMapReducer {
     regret_range: (i32, i32),
 }
 
-impl Default for RegretJobMapReducer {
-    fn default() -> Self {
-        Self { regret_range: (2, 4) }
+impl RegretJobMapReducer {
+    pub fn new(regret_range: (i32, i32)) -> Self {
+        Self { regret_range }
     }
 }
 

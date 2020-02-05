@@ -36,6 +36,7 @@ impl Default for CompositeRecreate {
             (Box::new(RecreateWithCheapest::default()), 100),
             (Box::new(RecreateWithRegret::default()), 90),
             (Box::new(RecreateWithBlinks::<i32>::default()), 30),
+            (Box::new(RecreateWithRegret::new((5, 8))), 20),
             (Box::new(RecreateWithGaps::default()), 10),
             (Box::new(RecreateWithNearestNeighbor::default()), 5),
         ])
@@ -44,17 +45,15 @@ impl Default for CompositeRecreate {
 
 impl CompositeRecreate {
     pub fn new(recreates: Vec<(Box<dyn Recreate>, usize)>) -> Self {
-        let mut recreates = recreates;
-        recreates.sort_by(|(_, a), (_, b)| b.cmp(&a));
-
         let weights = recreates.iter().map(|(_, weight)| *weight).collect();
-        Self { recreates: recreates.into_iter().map(|(recreate, _)| recreate).collect(), weights }
+        let recreates = recreates.into_iter().map(|(recreate, _)| recreate).collect();
+        Self { recreates, weights }
     }
 }
 
 impl Recreate for CompositeRecreate {
     fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        // NOTE always use recreate method with the larger weight for the initial generation
+        // NOTE always use the first recreate method for initial generation
         let index = if refinement_ctx.generation == 1 { 0 } else { insertion_ctx.random.weighted(self.weights.iter()) };
         self.recreates.get(index).unwrap().run(refinement_ctx, insertion_ctx)
     }
