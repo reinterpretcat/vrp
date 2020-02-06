@@ -1,5 +1,5 @@
 mod timing {
-    use crate::construction::constraints::ActivityConstraintViolation;
+    use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
     use crate::construction::states::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
     use crate::helpers::models::problem::*;
@@ -253,6 +253,20 @@ mod timing {
         let result = create_constraint_pipeline_with_timing().evaluate_soft_activity(&route_ctx, &activity_ctx);
 
         assert_eq!(compare_floats(result, 30.0), Ordering::Equal);
+    }
+
+    #[test]
+    fn can_stop_with_time_route_constraint() {
+        let fleet = FleetBuilder::new()
+            .add_driver(test_driver())
+            .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
+            .build();
+        let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
+        let job = SingleBuilder::new().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
+
+        let result = create_constraint_pipeline_with_timing().evaluate_hard_route(&route_ctx, &job);
+
+        assert_eq_option!(result, Some(RouteConstraintViolation { code: 1 }));
     }
 }
 

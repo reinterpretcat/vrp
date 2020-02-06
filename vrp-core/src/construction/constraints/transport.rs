@@ -5,13 +5,12 @@ mod transport_test;
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::{Cost, Distance, Duration, Profile, Timestamp};
-use crate::models::problem::{ActivityCost, Actor, Job, TransportCost};
+use crate::models::problem::{ActivityCost, Actor, Job, Single, TransportCost};
 use crate::models::solution::{Activity, TourActivity};
 use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
-// TODO add extra check that job's and actor's TWs have intersection (hard route constraint).
 // TODO revise rescheduling once routing is sensible to departure time
 
 pub type TravelLimitFunc = Arc<dyn Fn(&Actor) -> (Option<Distance>, Option<Duration>) + Send + Sync>;
@@ -72,6 +71,7 @@ impl TransportConstraintModule {
         Self {
             state_keys: vec![LATEST_ARRIVAL_KEY, WAITING_KEY],
             constraints: vec![
+                ConstraintVariant::HardRoute(Arc::new(TimeHardRouteConstraint { code: time_window_code })),
                 ConstraintVariant::SoftRoute(Arc::new(RouteCostSoftRouteConstraint {})),
                 ConstraintVariant::HardActivity(Arc::new(TimeHardActivityConstraint {
                     code: time_window_code,
@@ -185,6 +185,33 @@ impl TransportConstraintModule {
 
             ctx.state_mut().put_route_state(LIMIT_DISTANCE_KEY, total_dist);
             ctx.state_mut().put_route_state(LIMIT_DURATION_KEY, total_dur);
+        }
+    }
+}
+
+struct TimeHardRouteConstraint {
+    code: i32,
+}
+
+impl HardRouteConstraint for TimeHardRouteConstraint {
+    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+        let check_single = |single: &Arc<Single>| {
+            single
+                .places
+                .iter()
+                .flat_map(|place| place.times.iter())
+                .any(|time| time.intersects(&ctx.route.actor.detail.time))
+        };
+
+        let has_time_intersection = match job {
+            Job::Single(single) => check_single(single),
+            Job::Multi(multi) => multi.jobs.iter().all(check_single),
+        };
+
+        if has_time_intersection {
+            None
+        } else {
+            Some(RouteConstraintViolation { code: self.code })
         }
     }
 }

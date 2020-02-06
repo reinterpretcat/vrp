@@ -29,6 +29,11 @@ impl TimeWindow {
     pub fn max() -> Self {
         Self { start: 0., end: std::f64::MAX }
     }
+
+    /// Checks whether time window has intersection with another one.
+    pub fn intersects(&self, other: &Self) -> bool {
+        self.start <= other.end && other.start <= self.end
+    }
 }
 
 impl PartialEq<TimeWindow> for TimeWindow {

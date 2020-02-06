@@ -82,6 +82,11 @@ impl SingleBuilder {
         self
     }
 
+    pub fn times(&mut self, times: Vec<TimeWindow>) -> &mut Self {
+        self.single.places.first_mut().unwrap().times = times;
+        self
+    }
+
     pub fn demand(&mut self, demand: Demand<i32>) -> &mut Self {
         self.single.dimens.set_demand(demand);
         self
