@@ -3,17 +3,17 @@
 This project provides the way to solve multiple variations of **Vehicle Routing Problem**.
 
 
-# Features
+# Getting started
 
-List of features can be found [here](https://github.com/reinterpretcat/vrp).
+Documentation with examples can be found [here](https://github.com/reinterpretcat/vrp).
 
 
-# Design
+# Design goal
 
-Although performance is constantly in focus, a main idea behind design is extensibility: the project
-aims to support a very wide range of VRP variations known as Rich VRP. This is achieved through
-various extension points: custom constraints, objective functions, acceptance criteria, etc.
-More details can be found in the [docs](https://github.com/reinterpretcat/vrp).
+Although performance is constantly in focus, the main idea behind design is extensibility: the project
+aims to support a wide range of VRP variations known as Rich VRP. This is achieved through various extension
+points: custom constraints, objective functions, acceptance criteria, etc. Additionally, the project is seen as
+playground for experiments with various metaheuristic algorithms.
 
 
 # How to use
@@ -39,7 +39,7 @@ You can install vrp solver directly with `cargo install`:
 cargo install vrp-cli
 ```
 
-Ensure that your `$PATH` is properly configured to source the Crates binaries, and then run solver using the `vrp-cli` command.
+Ensure that your `$PATH` is properly configured to source the crates binaries, and then run solver using the `vrp-cli` command.
 
 ## Use from command line
 

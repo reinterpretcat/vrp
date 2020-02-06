@@ -1,7 +1,9 @@
 # Reload
 
 These examples demonstrates how to use vehicle reload feature which is designed to overcome vehicle capacity limitation.
-
+Essentially, reload is a place where vehicle can unload `static` pickups and load new `static` deliveries. Here, static
+correspond to `static demand` concept which is defined via standalone pickup or delivery jobs, not by single pickup and
+delivery job.
 
 ## Same location reload
 
@@ -40,6 +42,15 @@ In this scenario, once some jobs are delivered, the vehicle returns to the origi
 
 ```json
 {{#include ../../../../examples/json-pragmatic/data/reload.basic.solution.json}}
+```
+
+</p></details>
+
+<details>
+    <summary>Usage with cli</summary><p>
+
+```
+vrp-cli pragmatic reload.basic.problem.json -m reload.basic.matrix.json -o reload.basic.solution.json --max-generations=100
 ```
 
 </p></details>
@@ -83,6 +94,15 @@ to model _waste collection_ use case.
 
 ```json
 {{#include ../../../../examples/json-pragmatic/data/reload.multi.solution.json}}
+```
+
+</p></details>
+
+<details>
+    <summary>Usage with cli</summary><p>
+
+```
+vrp-cli pragmatic reload.multi.problem.json -m reload.multi.matrix.json -o reload.multi.solution.json --max-generations=100
 ```
 
 </p></details>

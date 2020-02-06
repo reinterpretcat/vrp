@@ -41,3 +41,12 @@ You can find more details about simple job schema on [simple job concept section
 ```
 
 </p></details>
+
+<details>
+    <summary>Usage with cli</summary><p>
+
+```
+vrp-cli pragmatic simple.basic.problem.json -m simple.basic.matrix.json -o simple.basic.solution.json --max-generations=100
+```
+
+</p></details>

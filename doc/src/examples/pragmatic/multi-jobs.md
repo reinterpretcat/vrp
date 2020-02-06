@@ -40,3 +40,12 @@ You can find more details about multi job schema on [multi job concept section](
 ```
 
 </p></details>
+
+<details>
+    <summary>Usage with cli</summary><p>
+
+```
+vrp-cli pragmatic multi-job.basic.problem.json -m multi-job.basic.matrix.json -o multi-job.basic.solution.json --max-generations=100
+```
+
+</p></details>

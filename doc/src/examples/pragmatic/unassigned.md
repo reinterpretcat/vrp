@@ -38,3 +38,12 @@ This example demonstrates one job which is unassigned due to unreachable locatio
 ```
 
 </p></details>
+
+<details>
+    <summary>Usage with cli</summary><p>
+
+```
+vrp-cli pragmatic unassigned.unreachable.problem.json -m unassigned.unreachable.matrix.json -o unassigned.unreachable.solution.json --max-generations=100
+```
+
+</p></details>

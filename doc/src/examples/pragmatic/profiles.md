@@ -48,3 +48,12 @@ This example demonstrates how to use multiple routing profiles: `car` and `truck
 ```
 
 </p></details>
+
+<details>
+    <summary>Usage with cli</summary><p>
+
+```
+vrp-cli pragmatic profiles.basic.problem.json -m profiles.basic.matrix.json -o profiles.basic.solution.json --max-generations=100
+```
+
+</p></details>

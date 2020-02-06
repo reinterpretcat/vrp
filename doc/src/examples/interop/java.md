@@ -7,4 +7,4 @@ in runtime, e.g. by copying it to `resources` directory.
 {{#include ../../../../examples/jvm-interop/src/main/java/vrp/example/java/Application.java}}
 ```
 
- Please check the repository for full example.
+You can check the project repository for complete example.

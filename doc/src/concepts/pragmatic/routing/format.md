@@ -3,7 +3,7 @@
 In general, routing matrix has the following schema:
 
 - `numOrigins` and `numDestinations` (optional): number of unique locations
-- `travelTimes` (required) is square matrix of durations in abstract time unitsrepresented via single dimensional array
+- `travelTimes` (required) is square matrix of durations in abstract time units represented via single dimensional array
 - `distances` (required) is square matrix of distances in abstract distance unit represented via single dimensional array
 - `errorCodes` (optional): must be present if there is no route between some locations. Non-zero value signalizes about
     routing error.
@@ -30,14 +30,20 @@ As single dimensional array it looks like:
 
 
 `vrp-cli` command provides a helper command to get it as well as `pragmatic` lib exposes method to get the list
-pragmatically. The output format is a simply array of geo locations:
+pragmatically:
+
+```
+vrp-cli pragmatic problem.json --get-locations -o locations.json
+```
+
+The output format is a simply array of unique geo locations:
 
 ```json
 {{#include ../../../../../examples/json-pragmatic/data/simple.basic.locations.json}}
 ```
 
 You can use it to get a routing matrix from any of routing services of your choice, but the order in resulting matrix
-should be kept without changes.
+should be kept as expected.
 
 
 Routing matrix example:

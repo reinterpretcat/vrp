@@ -38,3 +38,12 @@ This example demonstrates how to use vehicle break with omitted location and tim
 ```
 
 </p></details>
+
+<details>
+    <summary>Usage with cli</summary><p>
+
+```
+vrp-cli pragmatic break.basic.problem.json -m break.basic.matrix.json -o break.basic.solution.json --max-generations=100
+```
+
+</p></details>

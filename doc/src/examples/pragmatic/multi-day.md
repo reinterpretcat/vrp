@@ -40,3 +40,12 @@ different days and one vehicle type with two shifts on different days.
 ```
 
 </p></details>
+
+<details>
+    <summary>Usage with cli</summary><p>
+
+```
+vrp-cli pragmatic multi-day.basic.problem.json -m multi-day.basic.matrix.json -o multi-day.basic.solution.json --max-generations=100
+```
+
+</p></details>
