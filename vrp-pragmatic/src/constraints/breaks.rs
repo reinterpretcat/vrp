@@ -123,7 +123,7 @@ struct BreakHardActivityConstraint {
     code: i32,
 }
 
-/// Locks break jobs to specific vehicles
+/// Locks break jobs to specific vehicles.
 struct BreakHardRouteConstraint {
     code: i32,
 }
@@ -192,7 +192,7 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
     }
 }
 
-// TODO make soft route constraint
+/// Controls whether break is more preferable for insertion or not.
 struct BreakSoftRouteConstraint {
     /// Allows to control whether break should be preferable for insertion
     extra_break_cost: Option<Cost>,
