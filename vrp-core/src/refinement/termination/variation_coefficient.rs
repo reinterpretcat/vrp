@@ -25,8 +25,6 @@ impl VariationCoefficientState {
 
 impl Termination for VariationCoefficient {
     fn is_termination(&self, refinement_ctx: &mut RefinementContext, solution: (&Individuum, bool)) -> bool {
-        // TODO do we need to consider penalties?
-
         let (individuum, is_accepted) = solution;
 
         let mut state = refinement_ctx
@@ -37,12 +35,12 @@ impl Termination for VariationCoefficient {
             .unwrap();
 
         if is_accepted {
-            state.last_cost = Some(individuum.1.actual);
+            state.last_cost = Some(individuum.1.total());
         }
 
         let index = refinement_ctx.generation % self.capacity;
 
-        state.costs[index] = individuum.1.actual;
+        state.costs[index] = individuum.1.total();
 
         refinement_ctx.generation >= (self.capacity - 1) && self.check_threshold(state)
     }
