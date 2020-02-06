@@ -244,7 +244,7 @@ fn read_breaks(
                     if let Some(interval) = interval {
                         assert_eq!(interval.len(), 2);
                         let interval = (interval.first().cloned().unwrap(), interval.last().cloned().unwrap());
-                        job.dimens.insert("interval".to_string(), Arc::new(interval));
+                        job.dimens.set_value("interval", interval);
                     }
 
                     (job_id, job)
@@ -299,11 +299,11 @@ fn get_conditional_job(
     let (location, duration, times) = place;
     let mut single = get_single(location.as_ref().and_then(|l| Some(l)), duration, &times, coord_index);
     single.dimens.set_id(job_type);
-    single.dimens.insert("type".to_string(), Arc::new(job_type.to_string()));
-    single.dimens.insert("shift_index".to_string(), Arc::new(shift_index));
-    single.dimens.insert("vehicle_id".to_string(), Arc::new(vehicle_id.clone()));
+    single.dimens.set_value("type", job_type.to_string());
+    single.dimens.set_value("shift_index", shift_index);
+    single.dimens.set_value("vehicle_id", vehicle_id.clone());
     if let Some(tag) = tag {
-        single.dimens.insert("tag".to_string(), Arc::new(tag.clone()));
+        single.dimens.set_value("tag", tag.clone());
     }
 
     single
@@ -352,7 +352,7 @@ fn get_single_with_extras(
             delivery: (demand.delivery.0.capacity[0], demand.delivery.1.capacity[0]),
         });
     }
-    single.dimens.insert("type".to_string(), Arc::new(activity_type.to_string()));
+    single.dimens.set_value("type", activity_type.to_string());
     add_tag(&mut single.dimens, tag);
 
     single
@@ -398,7 +398,7 @@ fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor
 
 fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
     if let Some(tag) = tag {
-        dimens.insert("tag".to_string(), Arc::new(tag.clone()));
+        dimens.set_value("tag", tag.clone());
     }
 }
 

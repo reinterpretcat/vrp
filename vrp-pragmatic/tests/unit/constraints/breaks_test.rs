@@ -4,7 +4,7 @@ use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::states::{RouteContext, RouteState, SolutionContext};
-use vrp_core::models::common::{IdDimension, Location};
+use vrp_core::models::common::{IdDimension, Location, ValueDimension};
 use vrp_core::models::problem::{Fleet, SimpleActivityCost, Single};
 use vrp_core::models::solution::Registry;
 
@@ -18,8 +18,8 @@ fn create_single(id: &str) -> Arc<Single> {
 fn create_break(vehicled_id: &str, location: Option<Location>) -> Arc<Single> {
     let mut single = create_single_with_location(location);
     single.dimens.set_id("break");
-    single.dimens.insert("type".to_string(), Arc::new("break".to_string()));
-    single.dimens.insert("vehicle_id".to_string(), Arc::new(vehicled_id.to_string()));
+    single.dimens.set_value("type", "break".to_string());
+    single.dimens.set_value("vehicle_id", vehicled_id.to_string());
 
     Arc::new(single)
 }

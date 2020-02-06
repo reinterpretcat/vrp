@@ -23,7 +23,7 @@ use std::io::BufReader;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::models::common::{Cost, Dimensions, TimeWindow, Timestamp};
+use vrp_core::models::common::{Cost, Dimensions, TimeWindow, Timestamp, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::refinement::objectives::PenalizeUnassigned;
@@ -278,6 +278,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
 
 fn add_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
     if let Some(skills) = skills {
-        dimens.insert("skills".to_owned(), Arc::new(HashSet::<String>::from_iter(skills.iter().cloned())));
+        dimens.set_value("skills", HashSet::<String>::from_iter(skills.iter().cloned()));
     }
 }

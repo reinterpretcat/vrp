@@ -165,7 +165,7 @@ impl Multi {
             let weak_multi = Arc::downgrade(&multi);
             let job: Arc<SingleConstruct> = unsafe { std::mem::transmute(job.clone()) };
             let dimens = unsafe { &mut *job.dimens.get() };
-            dimens.insert("rf".to_owned(), Arc::new(weak_multi));
+            dimens.set_value("rf", weak_multi);
         });
 
         multi
@@ -173,7 +173,7 @@ impl Multi {
 
     /// Returns parent multi job for given sub-job.
     pub fn roots(single: &Single) -> Option<Arc<Multi>> {
-        single.dimens.get("rf").map(|v| v.downcast_ref::<Weak<Multi>>()).and_then(|w| w).and_then(|w| w.upgrade())
+        single.dimens.get_value::<Weak<Multi>>("rf").and_then(|w| w.upgrade())
     }
 }
 

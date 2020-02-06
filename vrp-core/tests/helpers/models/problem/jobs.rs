@@ -1,5 +1,5 @@
 use crate::construction::constraints::{Demand, DemandDimension};
-use crate::models::common::{Duration, IdDimension, Location, TimeWindow};
+use crate::models::common::{Duration, IdDimension, Location, TimeWindow, ValueDimension};
 use crate::models::problem::{FixedJobPermutation, Job, Multi, Place, Single};
 use std::sync::Arc;
 
@@ -68,7 +68,7 @@ impl SingleBuilder {
     }
 
     pub fn id(&mut self, id: &str) -> &mut Self {
-        self.single.dimens.insert("id".to_string(), Arc::new(id.to_string()));
+        self.single.dimens.set_value("id", id.to_string());
         self
     }
 

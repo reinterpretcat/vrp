@@ -83,11 +83,16 @@ pub type Dimensions = HashMap<String, Arc<dyn Any + Send + Sync>>;
 /// A trait to return arbitrary typed value by its key.
 pub trait ValueDimension {
     fn get_value<T: 'static>(&self, key: &str) -> Option<&T>;
+    fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T);
 }
 
 impl ValueDimension for Dimensions {
     fn get_value<T: 'static>(&self, key: &str) -> Option<&T> {
         self.get(key).and_then(|any| any.downcast_ref::<T>())
+    }
+
+    fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T) {
+        self.insert(key.to_owned(), Arc::new(value));
     }
 }
 
@@ -99,11 +104,11 @@ pub trait IdDimension {
 
 impl IdDimension for Dimensions {
     fn set_id(&mut self, id: &str) -> &mut Self {
-        self.insert("id".to_string(), Arc::new(id.to_string()));
+        self.set_value("id", id.to_string());
         self
     }
 
     fn get_id(&self) -> Option<&String> {
-        self.get_value::<String>("id")
+        self.get_value("id")
     }
 }

@@ -4,7 +4,7 @@ mod capacity_test;
 
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteContext, RouteState, SolutionContext};
-use crate::models::common::Dimensions;
+use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::problem::Job;
 use crate::models::solution::TourActivity;
 use std::marker::PhantomData;
@@ -204,12 +204,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     CapacityDimension<Capacity> for Dimensions
 {
     fn set_capacity(&mut self, demand: Capacity) -> &mut Self {
-        self.insert(CAPACITY_DIMENSION_KEY.to_string(), Arc::new(demand));
+        self.set_value(CAPACITY_DIMENSION_KEY, demand);
         self
     }
 
     fn get_capacity(&self) -> Option<&Capacity> {
-        self.get(CAPACITY_DIMENSION_KEY).and_then(|any| any.downcast_ref::<Capacity>())
+        self.get_value(CAPACITY_DIMENSION_KEY)
     }
 }
 
@@ -217,12 +217,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     DemandDimension<Capacity> for Dimensions
 {
     fn set_demand(&mut self, demand: Demand<Capacity>) -> &mut Self {
-        self.insert(DEMAND_DIMENSION_KEY.to_string(), Arc::new(demand));
+        self.set_value(DEMAND_DIMENSION_KEY, demand);
         self
     }
 
     fn get_demand(&self) -> Option<&Demand<Capacity>> {
-        self.get(DEMAND_DIMENSION_KEY).and_then(|any| any.downcast_ref::<Demand<Capacity>>())
+        self.get_value(DEMAND_DIMENSION_KEY)
     }
 }
 
