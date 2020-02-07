@@ -18,12 +18,15 @@ The main focus of the project is to support solving multiple variations of VRP w
      dropped off at their destination. The pick-up and drop-off must be done by the same vehicle,
      which is why the pick-up location and drop-off location must be included in the same route.
 
- - **VRP with backhauls (VRPB)**: a vehicle does deliveries as well as pick-ups in one route.
-     Some customers require deliveries (referred to as linehauls) and others require pick-ups
-     (referred to as backhauls).
+ - **VRP with backhauls (VRPB)**: a vehicle does deliveries as well as pick-ups in one route. Some customers
+     require deliveries (referred to as linehauls) and others require pick-ups (referred to as backhauls).
 
  - **Multi-Depot VRP (MDVRP)**: assumes that multiple depots are geographically spread among
      the customers
+
+ - **Multi-Trip VRP (MTVRP)** extends the VRP by adding the following constraint: routes have to be assigned
+     to M vehicles in such a way that the total cost of the routes assigned to the same vehicle does not exceed
+     a time horizon T (for instance the duration of a typical working day)
 
  - **Open VRP (OVRP)**: usually, a route beginning at a given depot must finish at this depot, but in
      this variation vehicle ends at the last served customer.
@@ -46,9 +49,9 @@ The main focus of the project is to support solving multiple variations of VRP w
  - **[multiple shifts](../examples/pragmatic/multi-day.md)** for vehicles: this allows to define multi-day planning
      scenario when vehicle can be used multiple times, but on different days.
 
- - **[multiple reloads](../examples/pragmatic/reload.md)**: this allows vehicle to return back to the depot (or any other place)
-     in order to unload/load goods during single tour. In some VRP variations this helps to significantly reduce amount
-     of used vehicles.
+ - **[multiple reloads](../examples/pragmatic/reload.md)**: this allows vehicle to return back to the depot (or any
+     other place) in order to unload/load goods during single tour (see MTVRP). In some VRP variations this helps to
+     significantly reduce amount of used vehicles.
 
  - **[multi jobs](../examples/pragmatic/multi-jobs.md)**: multi job is a job which consists of multiple sub-jobs. Multi job
      is considered as assigned only when all of sub jobs are assigned. This is useful for scenarios such as multiple
