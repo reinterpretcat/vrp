@@ -27,7 +27,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                         || MultiDimensionalCapacity::default(),
                     )?;
 
-                    Ok(acc + demand)
+                    Ok(if activity.activity_type == "pickup" { acc - demand } else { acc + demand })
                 },
             )?;
 
@@ -59,17 +59,18 @@ mod tests {
     }}
 
     can_check_load! {
-        case01: ( vec![4, 3, 1, 0, 0], Ok(())),
+        case01: ( vec![3, 2, 0, 1, 1], Ok(())),
 
-        case02_1: ( vec![4, 2, 1, 0, 0], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
-        case02_2: ( vec![4, 4, 1, 0, 0], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
-        case03_1: ( vec![4, 3, 0, 1, 0], Err("Load mismatch at stop 2 in tour 'my_vehicle_1'".to_owned())),
-        case03_2: ( vec![4, 3, 2, 1, 0], Err("Load mismatch at stop 2 in tour 'my_vehicle_1'".to_owned())),
-        case04: ( vec![4, 3, 1, 1, 0], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
-        case05: ( vec![4, 3, 1, 0, 1], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
+        case02_1: ( vec![3, 1, 0, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
+        case02_2: ( vec![3, 3, 0, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
+        case03_1: ( vec![3, 2, 1, 1, 1], Err("Load mismatch at stop 2 in tour 'my_vehicle_1'".to_owned())),
+        case04_1: ( vec![3, 2, 0, 0, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
+        case04_2: ( vec![3, 2, 0, 2, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
+        case05_1: ( vec![3, 2, 0, 1, 2], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
+        case05_2: ( vec![3, 2, 0, 1, 0], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
 
-        case06_1: ( vec![10, 3, 1, 0, 0], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-        case06_2: ( vec![4, 10, 1, 0, 0], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_1: ( vec![10, 2, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_2: ( vec![3, 10, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
     }
 
     fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>) {
@@ -80,7 +81,7 @@ mod tests {
                     create_delivery_job("job1", vec![1., 0.]),
                     create_delivery_job("job2", vec![2., 0.]),
                     create_delivery_job("job3", vec![3., 0.]),
-                    create_delivery_job("job4", vec![4., 0.]),
+                    create_pickup_job("job4", vec![4., 0.]),
                 ],
                 relations: None,
             },
@@ -158,7 +159,7 @@ mod tests {
                     },
                     create_stop_with_activity(
                         "job4",
-                        "delivery",
+                        "pickup",
                         (4., 0.),
                         *stop_loads.get(3).unwrap(),
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
