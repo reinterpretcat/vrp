@@ -4,6 +4,11 @@
 //!
 //! For list of supported variants, please refer to [documentation](getting-started/features.md)
 //!
+//!
+
+#[cfg(test)]
+#[path = "../tests/checker/mod.rs"]
+pub mod checker;
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
