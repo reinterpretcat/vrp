@@ -1,7 +1,5 @@
-use crate::checker::{ActivityType, CheckerContext};
+use crate::checker::CheckerContext;
 use crate::extensions::MultiDimensionalCapacity;
-use crate::json::problem::JobVariant;
-use crate::json::solution::*;
 
 /// Checks that vehicle load is assigned correctly. The following rules are checked:
 /// * max vehicle's capacity is not violated
@@ -20,7 +18,13 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                 MultiDimensionalCapacity::default(),
                 |acc, activity| {
                     let activity_type = context.get_activity_type(tour, to, activity)?;
-                    let demand = get_demand(activity, &activity_type)?;
+                    let demand = context.visit_job(
+                        activity,
+                        &activity_type,
+                        |job| MultiDimensionalCapacity::new(job.demand.clone()),
+                        |_, place| MultiDimensionalCapacity::new(place.demand.clone()),
+                        || MultiDimensionalCapacity::default(),
+                    )?;
 
                     Ok(acc + demand)
                 },
@@ -40,27 +44,4 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
             }
         })
     })
-}
-
-fn get_demand(activity: &Activity, activity_type: &ActivityType) -> Result<MultiDimensionalCapacity, String> {
-    match activity_type {
-        ActivityType::Job(job) => match job {
-            JobVariant::Single(job) => Some(&job.demand),
-            JobVariant::Multi(multi_job) => {
-                activity.job_tag.as_ref().ok_or(format!("Multi job activity must have tag {}", activity.job_id))?;
-
-                if activity.activity_type == "pickup" {
-                    &multi_job.places.pickups
-                } else {
-                    &multi_job.places.deliveries
-                }
-                .iter()
-                .find(|p| p.tag == activity.job_tag)
-                .map(|p| &p.demand)
-            }
-        }
-        .ok_or(format!("Cannot match activity to multi job place"))
-        .map(|demand| MultiDimensionalCapacity::new(demand.clone())),
-        _ => Ok(MultiDimensionalCapacity::default()),
-    }
 }

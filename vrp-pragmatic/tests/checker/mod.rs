@@ -122,6 +122,36 @@ impl CheckerContext {
             _ => Err(format!("Unknown activity type: '{}'", activity.activity_type)),
         }
     }
+
+    pub fn visit_job<F1, F2, F3, R>(
+        &self,
+        activity: &Activity,
+        activity_type: &ActivityType,
+        single_visitor: F1,
+        multi_visitor: F2,
+        other_visitor: F3,
+    ) -> Result<R, String>
+    where
+        F1: Fn(&Job) -> R,
+        F2: Fn(&MultiJob, &MultiJobPlace) -> R,
+        F3: Fn() -> R,
+    {
+        match activity_type {
+            ActivityType::Job(job) => match job {
+                JobVariant::Single(job) => Some(single_visitor(job)),
+                JobVariant::Multi(job) => {
+                    activity.job_tag.as_ref().ok_or(format!("Multi job activity must have tag {}", activity.job_id))?;
+
+                    if activity.activity_type == "pickup" { &job.places.pickups } else { &job.places.deliveries }
+                        .iter()
+                        .find(|p| p.tag == activity.job_tag)
+                        .map(|p| multi_visitor(job, p))
+                }
+            }
+            .ok_or(format!("Cannot match activity to job place")),
+            _ => Ok(other_visitor()),
+        }
+    }
 }
 
 fn parse_time(time: &String) -> Timestamp {
