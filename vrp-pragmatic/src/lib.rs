@@ -7,10 +7,6 @@
 //!
 
 #[cfg(test)]
-#[path = "../tests/checker/mod.rs"]
-pub mod checker;
-
-#[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
 #[macro_use]
 pub mod helpers;
@@ -18,6 +14,10 @@ pub mod helpers;
 #[cfg(test)]
 #[path = "../tests/features/mod.rs"]
 pub mod features;
+
+#[cfg(test)]
+#[path = "../tests/checker/mod.rs"]
+pub mod checker;
 
 mod constraints;
 mod extensions;

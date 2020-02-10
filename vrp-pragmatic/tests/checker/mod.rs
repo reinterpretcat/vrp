@@ -8,6 +8,7 @@ use vrp_core::models::common::{TimeWindow, Timestamp};
 /// Stores problem and solution together and provides some helper methods.
 pub struct CheckerContext {
     pub problem: Problem,
+    pub matrices: Vec<Matrix>,
     pub solution: Solution,
     job_map: HashMap<String, JobVariant>,
 }
@@ -21,7 +22,7 @@ pub enum ActivityType {
 }
 
 impl CheckerContext {
-    pub fn new(problem: Problem, solution: Solution) -> Self {
+    pub fn new(problem: Problem, matrices: Vec<Matrix>, solution: Solution) -> Self {
         let job_map = problem
             .plan
             .jobs
@@ -37,7 +38,7 @@ impl CheckerContext {
             })
             .collect();
 
-        Self { problem, solution, job_map }
+        Self { problem, matrices, solution, job_map }
     }
 
     /// Gets vehicle by its id.
