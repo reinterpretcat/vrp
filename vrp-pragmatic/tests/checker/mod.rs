@@ -87,6 +87,11 @@ impl CheckerContext {
             .ok_or_else(|| format!("Cannot find shift for tour with vehicle if: '{}'", tour.vehicle_id))
     }
 
+    /// Returns stop's activity type names.
+    pub fn get_stop_activity_types(&self, stop: &Stop) -> Vec<String> {
+        stop.activities.iter().map(|a| a.activity_type.clone()).collect()
+    }
+
     /// Gets wrapped activity type.
     pub fn get_activity_type(&self, tour: &Tour, stop: &Stop, activity: &Activity) -> Result<ActivityType, String> {
         let shift = self.get_vehicle_shift(tour)?;

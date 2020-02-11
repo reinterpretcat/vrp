@@ -6,6 +6,12 @@ use crate::extensions::MultiDimensionalCapacity;
 /// * load change is correct
 pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each(|tour| {
+        tour.stops
+            .last()
+            .and_then(|s| s.activities.last())
+            .and_then(|a| if a.activity_type == "arrival" { Some(()) } else { None })
+            .ok_or_else(|| format!("TODO: Capacity check for OVRP: vehicle '{}'", tour.vehicle_id))?;
+
         let capacity = MultiDimensionalCapacity::new(context.get_vehicle(tour.vehicle_id.as_str())?.capacity.clone());
 
         // TODO check load at departure stop
@@ -38,7 +44,13 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                 return Err(format!("Load exceeds capacity in tour '{}'", tour.vehicle_id));
             }
 
-            if new_load + change == old_load {
+            // TODO support better check for reload stop
+            if context.get_stop_activity_types(&to).first().unwrap() == "reload" {
+                return Ok(());
+            }
+
+            let new_load = new_load + change;
+            if new_load == old_load {
                 Ok(())
             } else {
                 Err(format!("Load mismatch at stop {} in tour '{}'", idx, tour.vehicle_id))
@@ -59,18 +71,16 @@ mod tests {
     }}
 
     can_check_load! {
-        case01: ( vec![3, 2, 0, 1, 1], Ok(())),
+        case01: ( vec![1, 0, 2, 0, 1, 1], Ok(())),
 
-        case02_1: ( vec![3, 1, 0, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
-        case02_2: ( vec![3, 3, 0, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
-        case03_1: ( vec![3, 2, 1, 1, 1], Err("Load mismatch at stop 2 in tour 'my_vehicle_1'".to_owned())),
-        case04_1: ( vec![3, 2, 0, 0, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
-        case04_2: ( vec![3, 2, 0, 2, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
-        case05_1: ( vec![3, 2, 0, 1, 2], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
-        case05_2: ( vec![3, 2, 0, 1, 0], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
+        case02: ( vec![1, 1, 2, 0, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
+        case03: ( vec![1, 0, 2, 1, 1, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
+        case04: ( vec![1, 0, 2, 0, 2, 1], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
+        case05: ( vec![1, 0, 2, 0, 1, 0], Err("Load mismatch at stop 5 in tour 'my_vehicle_1'".to_owned())),
 
-        case06_1: ( vec![10, 2, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-        case06_2: ( vec![3, 10, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_1: ( vec![10, 0, 2, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_2: ( vec![1, 0, 10, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_3: ( vec![1, 0, 2, 0, 10, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
     }
 
     fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>) {
@@ -90,7 +100,20 @@ mod tests {
                     id: "my_vehicle".to_string(),
                     profile: "car".to_string(),
                     costs: create_default_vehicle_costs(),
-                    shifts: vec![create_default_vehicle_shift()],
+                    shifts: vec![VehicleShift {
+                        start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
+                        end: Some(VehiclePlace {
+                            time: format_time(1000).to_string(),
+                            location: vec![0., 0.].to_loc(),
+                        }),
+                        breaks: None,
+                        reloads: Some(vec![VehicleReload {
+                            times: None,
+                            location: vec![0., 0.].to_loc(),
+                            duration: 2.0,
+                            tag: None,
+                        }]),
+                    }],
                     capacity: vec![5],
                     amount: 1,
                     skills: None,
@@ -128,20 +151,35 @@ mod tests {
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
                     ),
                     Stop {
-                        location: vec![2., 0.].to_loc(),
+                        location: vec![0., 0.].to_loc(),
                         time: Schedule {
-                            arrival: "1970-01-01T00:01:42Z".to_string(),
-                            departure: "1970-01-01T00:01:45Z".to_string(),
+                            arrival: "1970-01-01T00:00:03Z".to_string(),
+                            departure: "1970-01-01T00:00:05Z".to_string(),
                         },
                         load: vec![*stop_loads.get(2).unwrap()],
+                        activities: vec![Activity {
+                            job_id: "reload".to_string(),
+                            activity_type: "reload".to_string(),
+                            location: None,
+                            time: None,
+                            job_tag: None,
+                        }],
+                    },
+                    Stop {
+                        location: vec![2., 0.].to_loc(),
+                        time: Schedule {
+                            arrival: "1970-01-01T00:00:07Z".to_string(),
+                            departure: "1970-01-01T00:00:08Z".to_string(),
+                        },
+                        load: vec![*stop_loads.get(3).unwrap()],
                         activities: vec![
                             Activity {
                                 job_id: "job2".to_string(),
                                 activity_type: "delivery".to_string(),
                                 location: Some(vec![2., 0.].to_loc()),
                                 time: Some(Interval {
-                                    start: "1970-01-01T00:01:42Z".to_string(),
-                                    end: "1970-01-01T00:01:43Z".to_string(),
+                                    start: "1970-01-01T00:00:08Z".to_string(),
+                                    end: "1970-01-01T00:00:09Z".to_string(),
                                 }),
                                 job_tag: None,
                             },
@@ -150,8 +188,8 @@ mod tests {
                                 activity_type: "delivery".to_string(),
                                 location: Some(vec![3., 0.].to_loc()),
                                 time: Some(Interval {
-                                    start: "1970-01-01T00:01:43Z".to_string(),
-                                    end: "1970-01-01T00:01:45Z".to_string(),
+                                    start: "1970-01-01T00:00:09Z".to_string(),
+                                    end: "1970-01-01T00:00:10Z".to_string(),
                                 }),
                                 job_tag: None,
                             },
@@ -161,15 +199,15 @@ mod tests {
                         "job4",
                         "pickup",
                         (4., 0.),
-                        *stop_loads.get(3).unwrap(),
-                        ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        *stop_loads.get(4).unwrap(),
+                        ("1970-01-01T00:00:11Z", "1970-01-01T00:00:12Z"),
                     ),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",
                         (0., 0.),
-                        *stop_loads.get(4).unwrap(),
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        *stop_loads.get(5).unwrap(),
+                        ("1970-01-01T00:00:16Z", "1970-01-01T00:00:16Z"),
                     ),
                 ],
                 statistic: Statistic {
