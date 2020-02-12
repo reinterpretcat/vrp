@@ -71,10 +71,10 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                     )?;
 
                 let end_capacity = interval.iter().try_fold(start_delivery, |acc, (idx, (from, to))| {
-                    let old_load = Capacity::new(from.load.clone());
-                    let new_load = Capacity::new(to.load.clone());
+                    let from_load = Capacity::new(from.load.clone());
+                    let to_load = Capacity::new(to.load.clone());
 
-                    if old_load > capacity || new_load > capacity {
+                    if from_load > capacity || to_load > capacity {
                         return Err(format!("Load exceeds capacity in tour '{}'", tour.vehicle_id));
                     }
 
@@ -91,12 +91,21 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                         },
                     )?;
 
-                    let new_load =
-                        new_load - if is_reload_stop(context, to) { end_pickup } else { Capacity::default() };
-                    if old_load == acc && new_load == old_load + change {
-                        Ok(new_load)
+                    let to_load = to_load - if is_reload_stop(context, to) { end_pickup } else { Capacity::default() };
+
+                    let is_from_valid = from_load == acc;
+                    let is_to_valid = to_load == from_load + change;
+
+                    if is_from_valid && is_to_valid {
+                        Ok(to_load)
                     } else {
-                        Err(format!("Load mismatch at stop {} in tour '{}'", idx, tour.vehicle_id))
+                        let message = match (is_from_valid, is_to_valid) {
+                            (true, false) => format!("at stop {}", idx + 1),
+                            (false, true) => format!("at stop {}", idx),
+                            _ => format!("at stops {}, {}", idx, idx + 1),
+                        };
+
+                        Err(format!("Load mismatch {} in tour '{}'", message, tour.vehicle_id))
                     }
                 })?;
 
@@ -156,17 +165,18 @@ mod tests {
     }}
 
     can_check_load! {
-            case01: ( vec![1, 0, 2, 0, 1, 1], Ok(())),
+        case00: ( vec![1, 0, 2, 0, 1, 1], Ok(())),
 
-    //        case02: ( vec![1, 1, 2, 0, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
-    //        case03: ( vec![1, 0, 2, 1, 1, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
-    //        case04: ( vec![1, 0, 2, 0, 2, 1], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
-    //        case05: ( vec![1, 0, 2, 0, 1, 0], Err("Load mismatch at stop 5 in tour 'my_vehicle_1'".to_owned())),
-    //
-    //        case06_1: ( vec![10, 0, 2, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-    //        case06_2: ( vec![1, 0, 10, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-    //        case06_3: ( vec![1, 0, 2, 0, 10, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-        }
+        case01: ( vec![1, 1, 2, 0, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
+        case02: ( vec![1, 0, 3, 1, 1, 1], Err("Load mismatch at stop 2 in tour 'my_vehicle_1'".to_owned())),
+        case03: ( vec![1, 0, 2, 1, 1, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
+        case04: ( vec![1, 0, 2, 0, 2, 1], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
+        case05: ( vec![1, 0, 2, 0, 1, 0], Err("Load mismatch at stop 5 in tour 'my_vehicle_1'".to_owned())),
+
+        case06_1: ( vec![10, 0, 2, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_2: ( vec![1, 0, 10, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_3: ( vec![1, 0, 2, 0, 10, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+    }
 
     fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>) {
         let problem = Problem {
