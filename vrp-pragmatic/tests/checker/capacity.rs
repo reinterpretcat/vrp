@@ -165,17 +165,17 @@ mod tests {
     }}
 
     can_check_load! {
-        case00: ( vec![1, 0, 2, 0, 1, 1], Ok(())),
+        case00: ( vec![1, 1, 3, 1, 2, 1, 1], Ok(())),
 
-        case01: ( vec![1, 1, 2, 0, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
-        case02: ( vec![1, 0, 3, 1, 1, 1], Err("Load mismatch at stop 2 in tour 'my_vehicle_1'".to_owned())),
-        case03: ( vec![1, 0, 2, 1, 1, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
-        case04: ( vec![1, 0, 2, 0, 2, 1], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
-        case05: ( vec![1, 0, 2, 0, 1, 0], Err("Load mismatch at stop 5 in tour 'my_vehicle_1'".to_owned())),
+        case01: ( vec![1, 2, 3, 1, 2, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
+        case02: ( vec![1, 1, 2, 1, 2, 1, 1], Err("Load mismatch at stops 2, 3 in tour 'my_vehicle_1'".to_owned())),
+        case03: ( vec![1, 1, 3, 2, 2, 1, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
+        case04: ( vec![1, 1, 3, 1, 1, 1, 1], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
+        case05: ( vec![1, 1, 3, 1, 2, 2, 1], Err("Load mismatch at stop 5 in tour 'my_vehicle_1'".to_owned())),
 
-        case06_1: ( vec![10, 0, 2, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-        case06_2: ( vec![1, 0, 10, 0, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-        case06_3: ( vec![1, 0, 2, 0, 10, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_1: ( vec![10, 1, 3, 1, 2, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_2: ( vec![1, 1, 30, 1, 2, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_3: ( vec![1, 1, 3, 1, 20, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
     }
 
     fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>) {
@@ -187,6 +187,7 @@ mod tests {
                     create_delivery_job("job2", vec![2., 0.]),
                     create_delivery_job("job3", vec![3., 0.]),
                     create_pickup_job("job4", vec![4., 0.]),
+                    create_pickup_delivery_job("job5", vec![1., 0.], vec![5., 0.]),
                 ],
                 relations: None,
             },
@@ -238,13 +239,30 @@ mod tests {
                         *stop_loads.get(0).unwrap(),
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                     ),
-                    create_stop_with_activity(
-                        "job1",
-                        "delivery",
-                        (1., 0.),
-                        *stop_loads.get(1).unwrap(),
-                        ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                    ),
+                    Stop {
+                        location: vec![1., 0.].to_loc(),
+                        time: Schedule {
+                            arrival: "1970-01-01T00:00:03Z".to_string(),
+                            departure: "1970-01-01T00:00:05Z".to_string(),
+                        },
+                        load: vec![*stop_loads.get(1).unwrap()],
+                        activities: vec![
+                            Activity {
+                                job_id: "job1".to_string(),
+                                activity_type: "delivery".to_string(),
+                                location: None,
+                                time: None,
+                                job_tag: None,
+                            },
+                            Activity {
+                                job_id: "job5".to_string(),
+                                activity_type: "pickup".to_string(),
+                                location: None,
+                                time: None,
+                                job_tag: None,
+                            },
+                        ],
+                    },
                     Stop {
                         location: vec![0., 0.].to_loc(),
                         time: Schedule {
@@ -298,11 +316,18 @@ mod tests {
                         ("1970-01-01T00:00:11Z", "1970-01-01T00:00:12Z"),
                     ),
                     create_stop_with_activity(
+                        "job5",
+                        "delivery",
+                        (5., 0.),
+                        *stop_loads.get(5).unwrap(),
+                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
+                    ),
+                    create_stop_with_activity(
                         "arrival",
                         "arrival",
                         (0., 0.),
-                        *stop_loads.get(5).unwrap(),
-                        ("1970-01-01T00:00:16Z", "1970-01-01T00:00:16Z"),
+                        *stop_loads.get(6).unwrap(),
+                        ("1970-01-01T00:00:19Z", "1970-01-01T00:00:19Z"),
                     ),
                 ],
                 statistic: Statistic {
