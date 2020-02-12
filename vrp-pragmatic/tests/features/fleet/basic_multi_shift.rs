@@ -1,3 +1,4 @@
+use crate::format_time;
 use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
@@ -20,14 +21,20 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![
                     VehicleShift {
-                        start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
-                        end: Some(VehiclePlace { time: format_time(100).to_string(), location: vec![0., 0.].to_loc() }),
+                        start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
+                        end: Some(VehiclePlace {
+                            time: format_time(100.).to_string(),
+                            location: vec![0., 0.].to_loc(),
+                        }),
                         breaks: None,
                         reloads: None,
                     },
                     VehicleShift {
-                        start: VehiclePlace { time: format_time(100), location: vec![0., 0.].to_loc() },
-                        end: Some(VehiclePlace { time: format_time(200).to_string(), location: vec![0., 0.].to_loc() }),
+                        start: VehiclePlace { time: format_time(100.), location: vec![0., 0.].to_loc() },
+                        end: Some(VehiclePlace {
+                            time: format_time(200.).to_string(),
+                            location: vec![0., 0.].to_loc(),
+                        }),
                         breaks: None,
                         reloads: None,
                     },

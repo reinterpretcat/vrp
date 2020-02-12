@@ -1,3 +1,4 @@
+use crate::format_time;
 use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
@@ -25,8 +26,8 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
-                    start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
-                    end: Some(VehiclePlace { time: format_time(100).to_string(), location: vec![10., 0.].to_loc() }),
+                    start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
+                    end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![10., 0.].to_loc() }),
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,

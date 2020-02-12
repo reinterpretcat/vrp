@@ -3,7 +3,6 @@
 #[macro_use]
 pub mod macros;
 
-use chrono::{SecondsFormat, TimeZone, Utc};
 use std::fs::File;
 
 pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
@@ -12,10 +11,6 @@ pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
     path.push(resource_path);
 
     File::open(path)
-}
-
-pub fn format_time(time: i32) -> String {
-    Utc.timestamp(time as i64, 0).to_rfc3339_opts(SecondsFormat::Secs, true)
 }
 
 pub trait ToLocation {

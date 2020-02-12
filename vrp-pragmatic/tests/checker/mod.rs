@@ -1,3 +1,6 @@
+//! This module provides functionality to automatically check that given solution is feasible
+//! which means that there is no constraint violations.
+
 use crate::json::problem::*;
 use crate::json::solution::*;
 use crate::json::Location;

@@ -1,4 +1,5 @@
-use crate::helpers::{format_time, ToLocation};
+use crate::format_time;
+use crate::helpers::ToLocation;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::*;
 use vrp_core::models::common::{Distance, Duration, Location, Timestamp};
@@ -57,7 +58,7 @@ pub fn create_delivery_job_with_times(
         places: JobPlaces {
             pickup: Option::None,
             delivery: Some(JobPlace {
-                times: Some(times.iter().map(|tw| vec![format_time(tw.0), format_time(tw.1)]).collect()),
+                times: Some(times.iter().map(|tw| vec![format_time(tw.0 as f64), format_time(tw.1 as f64)]).collect()),
                 location: location.to_loc(),
                 duration,
                 tag: None,
@@ -134,8 +135,8 @@ pub fn create_default_vehicle_shift() -> VehicleShift {
 
 pub fn create_default_vehicle_shift_with_breaks(breaks: Vec<VehicleBreak>) -> VehicleShift {
     VehicleShift {
-        start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
-        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![0., 0.].to_loc() }),
+        start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
+        end: Some(VehiclePlace { time: format_time(1000.).to_string(), location: vec![0., 0.].to_loc() }),
         breaks: Some(breaks),
         reloads: None,
     }
@@ -143,7 +144,7 @@ pub fn create_default_vehicle_shift_with_breaks(breaks: Vec<VehicleBreak>) -> Ve
 
 pub fn create_default_open_vehicle_shift() -> VehicleShift {
     VehicleShift {
-        start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
+        start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
         end: None,
         breaks: None,
         reloads: None,
@@ -152,8 +153,8 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
 
 pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64, f64)) -> VehicleShift {
     VehicleShift {
-        start: VehiclePlace { time: format_time(0), location: vec![start.0, start.1].to_loc() },
-        end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![end.0, end.1].to_loc() }),
+        start: VehiclePlace { time: format_time(0.), location: vec![start.0, start.1].to_loc() },
+        end: Some(VehiclePlace { time: format_time(1000.).to_string(), location: vec![end.0, end.1].to_loc() }),
         breaks: None,
         reloads: None,
     }

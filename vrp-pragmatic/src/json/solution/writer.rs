@@ -3,13 +3,13 @@
 mod writer_test;
 
 use crate::extensions::MultiDimensionalCapacity;
+use crate::format_time;
 use crate::json::coord_index::CoordIndex;
 use crate::json::solution::serializer::Timing;
 use crate::json::solution::{
     serialize_solution, Activity, Extras, Interval, Statistic, Stop, Tour, UnassignedJob, UnassignedJobReason,
 };
 use crate::json::*;
-use chrono::{SecondsFormat, TimeZone, Utc};
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::{Demand, DemandDimension};
 use vrp_core::models::common::*;
@@ -248,10 +248,6 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
     tour.statistic = leg.statistic;
 
     tour
-}
-
-fn format_time(time: f64) -> String {
-    Utc.timestamp(time as i64, 0).to_rfc3339_opts(SecondsFormat::Secs, true)
 }
 
 fn format_schedule(schedule: &Schedule) -> ApiSchedule {

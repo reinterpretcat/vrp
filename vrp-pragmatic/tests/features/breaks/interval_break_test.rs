@@ -1,3 +1,4 @@
+use crate::format_time;
 use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
@@ -131,15 +132,15 @@ fn can_assign_interval_break_with_reload() {
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
-                    start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
-                    end: Some(VehiclePlace { time: format_time(1000).to_string(), location: vec![30., 0.].to_loc() }),
+                    start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
+                    end: Some(VehiclePlace { time: format_time(1000.).to_string(), location: vec![30., 0.].to_loc() }),
                     breaks: Some(vec![VehicleBreak {
                         times: VehicleBreakTime::IntervalWindow(vec![8., 12.]),
                         duration: 2.0,
                         location: None,
                     }]),
                     reloads: Some(vec![VehicleReload {
-                        times: Some(vec![vec![format_time(0), format_time(1000)]]),
+                        times: Some(vec![vec![format_time(0.), format_time(1000.)]]),
                         location: vec![0., 0.].to_loc(),
                         duration: 3.0,
                         tag: None,

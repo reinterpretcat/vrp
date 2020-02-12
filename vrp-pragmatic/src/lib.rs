@@ -12,12 +12,16 @@
 pub mod helpers;
 
 #[cfg(test)]
-#[path = "../tests/features/mod.rs"]
-pub mod features;
-
-#[cfg(test)]
 #[path = "../tests/checker/mod.rs"]
 pub mod checker;
+
+#[cfg(test)]
+#[path = "../tests/generator/mod.rs"]
+pub mod generator;
+
+#[cfg(test)]
+#[path = "../tests/features/mod.rs"]
+pub mod features;
 
 mod constraints;
 mod extensions;
@@ -28,6 +32,7 @@ pub mod json;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_problem, PragmaticProblem};
 use crate::json::solution::PragmaticSolution;
+use chrono::{SecondsFormat, TimeZone, Utc};
 use std::ffi::{CStr, CString};
 use std::io::{BufReader, BufWriter};
 use std::os::raw::c_char;
@@ -72,6 +77,10 @@ pub fn get_locations<R: Read>(problem: BufReader<R>) -> Result<String, String> {
     serde_json::to_writer_pretty(writer, &locations).map_err(|err| err.to_string())?;
 
     Ok(buffer)
+}
+
+fn format_time(time: f64) -> String {
+    Utc.timestamp(time as i64, 0).to_rfc3339_opts(SecondsFormat::Secs, true)
 }
 
 // TODO improve error propagation

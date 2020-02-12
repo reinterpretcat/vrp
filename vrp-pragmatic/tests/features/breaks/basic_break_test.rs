@@ -1,3 +1,4 @@
+use crate::format_time;
 use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
@@ -16,7 +17,7 @@ fn can_assign_break_between_jobs() {
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
-                    times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5), format_time(10)]]),
+                    times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(10.)]]),
                     duration: 2.0,
                     location: Some(vec![6., 0.].to_loc()),
                 }])],

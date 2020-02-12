@@ -1,3 +1,4 @@
+use crate::format_time;
 use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
@@ -22,8 +23,8 @@ fn can_use_reloads_with_different_locations() {
                 profile: "car".to_string(),
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
-                    start: VehiclePlace { time: format_time(0), location: vec![0., 0.].to_loc() },
-                    end: Some(VehiclePlace { time: format_time(1000), location: vec![32., 0.].to_loc() }),
+                    start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
+                    end: Some(VehiclePlace { time: format_time(1000.), location: vec![32., 0.].to_loc() }),
                     breaks: None,
                     reloads: Some(vec![
                         VehicleReload {
