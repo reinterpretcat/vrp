@@ -77,6 +77,19 @@ pub fn pickup_delivery_job_prototype(
     )
 }
 
+/// Generates jobs.
+pub fn generate_jobs(
+    job_proto: impl Strategy<Value = JobVariant>,
+    range: Range<usize>,
+) -> impl Strategy<Value = Vec<JobVariant>> {
+    prop::collection::vec(job_proto, range)
+}
+
+/// Generates job plan.
+pub fn generate_plan(jobs_proto: impl Strategy<Value = Vec<JobVariant>>) -> impl Strategy<Value = Plan> {
+    jobs_proto.prop_map(|jobs| Plan { jobs, relations: None })
+}
+
 prop_compose! {
     fn simple_job_prototype(
         pickup_proto: impl Strategy<Value = Option<JobPlace>>,
