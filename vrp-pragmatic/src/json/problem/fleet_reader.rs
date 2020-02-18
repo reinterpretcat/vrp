@@ -1,7 +1,8 @@
 use crate::extensions::{create_typed_actor_groups, MultiDimensionalCapacity};
 use crate::json::coord_index::CoordIndex;
-use crate::json::problem::reader::{add_skills, parse_time, ApiProblem, ProblemProperties};
+use crate::json::problem::reader::{add_skills, ApiProblem, ProblemProperties};
 use crate::json::problem::Matrix;
+use crate::parse_time;
 use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::constraints::CapacityDimension;

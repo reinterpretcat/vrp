@@ -15,15 +15,14 @@ use crate::json::problem::reader::fleet_reader::{create_transport_costs, read_fl
 use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_locks};
 use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
 use crate::json::*;
-use crate::StringReader;
-use chrono::DateTime;
+use crate::{parse_time, StringReader};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::models::common::{Cost, Dimensions, TimeWindow, Timestamp, ValueDimension};
+use vrp_core::models::common::{Cost, Dimensions, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::refinement::objectives::PenalizeUnassigned;
@@ -221,11 +220,6 @@ fn create_extras(problem_id: &String, props: &ProblemProperties, coord_index: Co
     extras.insert("coord_index".to_owned(), Box::new(coord_index));
 
     extras
-}
-
-fn parse_time(time: &String) -> Timestamp {
-    let time = DateTime::parse_from_rfc3339(time).unwrap();
-    time.timestamp() as Timestamp
 }
 
 fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
