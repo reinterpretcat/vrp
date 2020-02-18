@@ -1,4 +1,5 @@
 use super::*;
+use crate::json::Location;
 use crate::{format_time, parse_time};
 use std::cmp::Ordering::Less;
 use std::ops::Range;
@@ -11,10 +12,18 @@ pub fn from_hours(hours: i32) -> Duration {
 }
 
 prop_compose! {
+    /// Generates locations.
+    pub fn generate_simple_locations(range: Range<i32>)
+        (latitude in range)
+    -> Location {
+        Location::new(latitude as f64, 0.)
+    }
+}
+
+prop_compose! {
     /// Generates time window.
     fn generate_time_window_fixed_raw(day: f64, start_offsets: Vec<u64>, durations: Vec<u64>)
-        (duration in from_uints(durations.clone()))
-        (start_offset in from_uints(start_offsets.clone()), duration in Just(duration))
+        (start_offset in from_uints(start_offsets.clone()), duration in from_uints(durations.clone()))
          -> TimeWindow {
         let start = day + start_offset as f64;
         let end = start + duration as f64;

@@ -12,7 +12,7 @@ use std::io::{BufReader, Read};
 // region Plan
 
 /// Relation type.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum RelationType {
     /// Tour relation locks jobs to specific vehicle in any order.
@@ -24,7 +24,7 @@ pub enum RelationType {
 }
 
 /// Relation is the way to lock specific jobs to specific vehicles.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Relation {
     /// Relation type.
@@ -39,7 +39,7 @@ pub struct Relation {
 }
 
 /// Defines specific job place.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct JobPlace {
     /// A list of job time windows with time specified in RFC3339 format.
     pub times: Option<Vec<Vec<String>>>,
@@ -56,7 +56,7 @@ pub struct JobPlace {
 /// job's demand at the start location. If only pickup specified, then loaded good is delivered to
 /// the last location on the route. When both, pickup and delivery, are specified, then it is classical
 /// pickup and delivery job.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct JobPlaces {
     /// Pickup place.
     pub pickup: Option<JobPlace>,
@@ -65,7 +65,7 @@ pub struct JobPlaces {
 }
 
 /// Specifies single job.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct Job {
     /// Job id.
     pub id: String,
@@ -78,7 +78,7 @@ pub struct Job {
 }
 
 /// Specifies a place for sub job.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct MultiJobPlace {
     /// A list of sub job time windows with time specified in RFC3339 format.
     pub times: Option<Vec<Vec<String>>>,
@@ -94,7 +94,7 @@ pub struct MultiJobPlace {
 
 /// Specifies pickups and deliveries places of multi job.
 /// All of them should be completed or none of them. All pickups must be completed before any of deliveries.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct MultiJobPlaces {
     /// A list of pickups.
     pub pickups: Vec<MultiJobPlace>,
@@ -103,7 +103,7 @@ pub struct MultiJobPlaces {
 }
 
 /// Specifies multi job which has multiple child jobs.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct MultiJob {
     /// Multi job id.
     pub id: String,
@@ -114,7 +114,7 @@ pub struct MultiJob {
 }
 
 /// Job variant type.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum JobVariant {
     /// Single job.
@@ -124,7 +124,7 @@ pub enum JobVariant {
 }
 
 /// A plan specifies work which has to be done.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct Plan {
     /// List of jobs.
     pub jobs: Vec<JobVariant>,
@@ -137,7 +137,7 @@ pub struct Plan {
 // region Fleet
 
 /// Specifies vehicle costs.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct VehicleCosts {
     /// Fixed is cost of vehicle usage per tour.
     pub fixed: Option<f64>,
@@ -148,7 +148,7 @@ pub struct VehicleCosts {
 }
 
 /// Specifies vehicle place.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct VehiclePlace {
     /// Vehicle start or end time.
     pub time: String,
@@ -157,7 +157,7 @@ pub struct VehiclePlace {
 }
 
 /// Specifies vehicle shift.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleShift {
     /// Vehicle start place.
@@ -175,7 +175,7 @@ pub struct VehicleShift {
 pub type VehicleReload = JobPlace;
 
 /// Vehicle limits.
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleLimits {
     /// Max traveling distance per shift/tour.
@@ -185,7 +185,7 @@ pub struct VehicleLimits {
 }
 
 /// Vehicle break time variant.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum VehicleBreakTime {
     /// Break time is defined by a list of time windows with time specified in RFC3339 format.
@@ -195,7 +195,7 @@ pub enum VehicleBreakTime {
 }
 
 /// Vehicle break.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct VehicleBreak {
     /// Break time.
     pub times: VehicleBreakTime,
@@ -206,7 +206,7 @@ pub struct VehicleBreak {
 }
 
 /// Specifies a vehicle type.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct VehicleType {
     /// Vehicle type id.
     pub id: String,
@@ -227,7 +227,7 @@ pub struct VehicleType {
 }
 
 /// Specifies routing profile.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct Profile {
     /// Profile name.
     pub name: String,
@@ -237,7 +237,7 @@ pub struct Profile {
 }
 
 /// Specifies fleet.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct Fleet {
     /// Vehicle types.
     pub types: Vec<VehicleType>,
@@ -250,14 +250,14 @@ pub struct Fleet {
 // region Configuration
 
 /// Specifies extra configuration.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct Config {
     /// Features config.
     pub features: Option<Features>,
 }
 
 /// Specifies features config.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Features {
     /// Even distribution of the jobs across tours. By default, is off.
@@ -265,7 +265,7 @@ pub struct Features {
 }
 
 /// Configuration to tweak even distribution of the jobs across tours.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct EvenDistribution {
     /// Enable or disable.
     pub enabled: bool,
@@ -278,7 +278,7 @@ pub struct EvenDistribution {
 // region Common
 
 /// A VRP problem definition.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct Problem {
     /// Problem id.
     pub id: String,
@@ -291,7 +291,7 @@ pub struct Problem {
 }
 
 /// A routing matrix.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Matrix {
     /// Number of unique locations.

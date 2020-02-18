@@ -1,19 +1,121 @@
-use crate::helpers::ToLocation;
+use super::*;
 use crate::json::problem::*;
+use crate::json::Location;
+use std::ops::Range;
+use uuid::Uuid;
 
-fn delivery_job_prototype() -> Job {
-    Job {
-        id: "job".to_owned(),
-        places: JobPlaces {
-            pickup: None,
-            delivery: Some(JobPlace {
-                times: Some(vec![vec![]]),
-                location: vec![1., 0.].to_loc(),
-                duration: 1.,
-                tag: None,
-            }),
-        },
-        demand: vec![1],
-        skills: None,
+prop_compose! {
+    /// Generates durations in range.
+    pub fn generate_durations(range: Range<i32>)(duration in range) -> f64 {
+        duration as f64
+    }
+}
+
+prop_compose! {
+    /// Generates one dimensional demand in range.
+    pub fn generate_simple_demand(range: Range<i32>)(demand in range) -> Vec<i32> {
+        vec![demand]
+    }
+}
+
+prop_compose! {
+    /// Generates no tags.
+    pub fn generate_no_tags()(_ in ".*") -> Option<String> {
+        None
+    }
+}
+
+prop_compose! {
+    /// Generates no skills.
+    pub fn generate_no_skills()(_ in ".*") -> Option<Vec<String>> {
+        None
+    }
+}
+
+prop_compose! {
+    /// Generates no job place.
+    pub fn generate_no_simple_job_place()(_ in ".*") -> Option<JobPlace> {
+        None
+    }
+}
+
+/// Creates delivery job prototype.
+pub fn delivery_job_prototype(
+    delivery_proto: impl Strategy<Value = JobPlace>,
+    demand_proto: impl Strategy<Value = Vec<i32>>,
+    skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+) -> impl Strategy<Value = Job> {
+    simple_job_prototype(
+        generate_no_simple_job_place(),
+        delivery_proto.prop_map(|p| Some(p)),
+        demand_proto,
+        skills_proto,
+    )
+}
+
+/// Creates pickup job prototype.
+pub fn pickup_job_prototype(
+    pickup_proto: impl Strategy<Value = JobPlace>,
+    demand_proto: impl Strategy<Value = Vec<i32>>,
+    skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+) -> impl Strategy<Value = Job> {
+    simple_job_prototype(pickup_proto.prop_map(|p| Some(p)), generate_no_simple_job_place(), demand_proto, skills_proto)
+}
+
+/// Creates pickup and delivery job prototype.
+pub fn pickup_delivery_job_prototype(
+    pickup_proto: impl Strategy<Value = JobPlace>,
+    delivery_proto: impl Strategy<Value = JobPlace>,
+    demand_proto: impl Strategy<Value = Vec<i32>>,
+    skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+) -> impl Strategy<Value = Job> {
+    simple_job_prototype(
+        pickup_proto.prop_map(|p| Some(p)),
+        delivery_proto.prop_map(|p| Some(p)),
+        demand_proto,
+        skills_proto,
+    )
+}
+
+prop_compose! {
+    fn simple_job_prototype(
+        pickup_proto: impl Strategy<Value = Option<JobPlace>>,
+        delivery_proto: impl Strategy<Value = Option<JobPlace>>,
+        demand_proto: impl Strategy<Value = Vec<i32>>,
+        skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+    )
+    (pickup in pickup_proto,
+     delivery in delivery_proto,
+     demand in demand_proto,
+     skills in skills_proto) -> Job {
+        Job {
+            id: Uuid::new_v4().to_string(),
+            places: JobPlaces {
+                pickup,
+                delivery,
+            },
+            demand,
+            skills,
+        }
+    }
+}
+
+prop_compose! {
+    pub fn simple_job_place_prototype(
+        locations: impl Strategy<Value = Location>,
+        durations: impl Strategy<Value = f64>,
+        tags: impl Strategy<Value = Option<String>>,
+        time_windows: impl Strategy<Value = Vec<Vec<String>>>,
+    )
+    (location in locations,
+     duration in durations,
+     tag in tags,
+     times in time_windows) -> JobPlace {
+      JobPlace {
+        times: Some(times),
+        location,
+        duration,
+        tag,
+      }
     }
 }
