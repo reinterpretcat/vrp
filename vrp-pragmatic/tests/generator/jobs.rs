@@ -4,53 +4,19 @@ use crate::json::Location;
 use std::ops::Range;
 use uuid::Uuid;
 
-prop_compose! {
-    /// Generates durations in range.
-    pub fn generate_durations(range: Range<i32>)(duration in range) -> f64 {
-        duration as f64
-    }
-}
-
-prop_compose! {
-    /// Generates one dimensional demand in range.
-    pub fn generate_simple_demand(range: Range<i32>)(demand in range) -> Vec<i32> {
-        vec![demand]
-    }
-}
-
-prop_compose! {
-    /// Generates no tags.
-    pub fn generate_no_tags()(_ in ".*") -> Option<String> {
-        None
-    }
-}
-
-prop_compose! {
-    /// Generates no skills.
-    pub fn generate_no_skills()(_ in ".*") -> Option<Vec<String>> {
-        None
-    }
-}
-
-prop_compose! {
-    /// Generates no job place.
-    pub fn generate_no_simple_job_place()(_ in ".*") -> Option<JobPlace> {
-        None
-    }
-}
-
 /// Creates delivery job prototype.
 pub fn delivery_job_prototype(
     delivery_proto: impl Strategy<Value = JobPlace>,
     demand_proto: impl Strategy<Value = Vec<i32>>,
     skills_proto: impl Strategy<Value = Option<Vec<String>>>,
-) -> impl Strategy<Value = Job> {
+) -> impl Strategy<Value = JobVariant> {
     simple_job_prototype(
         generate_no_simple_job_place(),
         delivery_proto.prop_map(|p| Some(p)),
         demand_proto,
         skills_proto,
     )
+    .prop_map(JobVariant::Single)
 }
 
 /// Creates pickup job prototype.
@@ -58,8 +24,9 @@ pub fn pickup_job_prototype(
     pickup_proto: impl Strategy<Value = JobPlace>,
     demand_proto: impl Strategy<Value = Vec<i32>>,
     skills_proto: impl Strategy<Value = Option<Vec<String>>>,
-) -> impl Strategy<Value = Job> {
+) -> impl Strategy<Value = JobVariant> {
     simple_job_prototype(pickup_proto.prop_map(|p| Some(p)), generate_no_simple_job_place(), demand_proto, skills_proto)
+        .prop_map(JobVariant::Single)
 }
 
 /// Creates pickup and delivery job prototype.
@@ -68,13 +35,14 @@ pub fn pickup_delivery_job_prototype(
     delivery_proto: impl Strategy<Value = JobPlace>,
     demand_proto: impl Strategy<Value = Vec<i32>>,
     skills_proto: impl Strategy<Value = Option<Vec<String>>>,
-) -> impl Strategy<Value = Job> {
+) -> impl Strategy<Value = JobVariant> {
     simple_job_prototype(
         pickup_proto.prop_map(|p| Some(p)),
         delivery_proto.prop_map(|p| Some(p)),
         demand_proto,
         skills_proto,
     )
+    .prop_map(JobVariant::Single)
 }
 
 /// Generates jobs.
@@ -130,5 +98,26 @@ prop_compose! {
         duration,
         tag,
       }
+    }
+}
+
+prop_compose! {
+    /// Generates one dimensional demand in range.
+    pub fn generate_simple_demand(range: Range<i32>)(demand in range) -> Vec<i32> {
+        vec![demand]
+    }
+}
+
+prop_compose! {
+    /// Generates no tags.
+    pub fn generate_no_tags()(_ in ".*") -> Option<String> {
+        None
+    }
+}
+
+prop_compose! {
+    /// Generates no job place.
+    pub fn generate_no_simple_job_place()(_ in ".*") -> Option<JobPlace> {
+        None
     }
 }

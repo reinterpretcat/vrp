@@ -23,6 +23,10 @@ pub mod generator;
 #[path = "../tests/features/mod.rs"]
 pub mod features;
 
+#[cfg(test)]
+#[path = "../tests/slow/mod.rs"]
+pub mod slow;
+
 mod constraints;
 mod extensions;
 mod utils;

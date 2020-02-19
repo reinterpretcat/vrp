@@ -59,3 +59,24 @@ prop_compose! {
         time_windows.iter().map(|tw| vec![format_time(tw.start), format_time(tw.end)]).collect()
     }
 }
+
+prop_compose! {
+    /// Generates durations in range.
+    pub fn generate_durations(range: Range<i32>)(duration in range) -> f64 {
+        duration as f64
+    }
+}
+
+prop_compose! {
+    /// Generates no locations.
+    pub fn generate_no_locations()(_ in ".*") -> Option<Location> {
+        None
+    }
+}
+
+prop_compose! {
+    /// Generates no skills.
+    pub fn generate_no_skills()(_ in ".*") -> Option<Vec<String>> {
+        None
+    }
+}

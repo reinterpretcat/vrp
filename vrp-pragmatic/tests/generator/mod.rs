@@ -14,6 +14,9 @@ pub use self::jobs::*;
 mod defaults;
 pub use self::defaults::*;
 
+mod vehicles;
+pub use self::vehicles::*;
+
 prop_compose! {
     fn from_uints(vec: Vec<u64>)(index in 0..vec.len()) -> u64 {
         vec[index]
@@ -26,17 +29,8 @@ prop_compose! {
     }
 }
 
-proptest! {
-    #[test]
-    fn test_ggg(ggg in delivery_job_prototype(
-          simple_job_place_prototype(
-            generate_simple_locations(1..100),
-            generate_durations(10..20),
-            generate_no_tags(),
-            default_job_single_day_time_windows()),
-          generate_simple_demand(1..5),
-          generate_no_skills())
-        ) {
-        println!("{:?}", ggg);
+prop_compose! {
+    fn from_strings(vec: Vec<String>)(index in 0..vec.len()) -> String {
+        vec[index].clone()
     }
 }
