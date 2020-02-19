@@ -19,8 +19,13 @@ pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution
 }
 
 pub fn solve_with_metaheuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
+    solve_with_metaheuristic_and_iterations(problem, matrices, 100)
+}
+
+pub fn solve_with_metaheuristic_and_iterations(problem: Problem, matrices: Vec<Matrix>, iterations: usize) -> Solution {
     let problem = Arc::new((problem, matrices).read_pragmatic().unwrap());
-    let solution = SolverBuilder::default().with_max_generations(Some(100)).build().solve(problem.clone()).unwrap().0;
+    let solution =
+        SolverBuilder::default().with_max_generations(Some(iterations)).build().solve(problem.clone()).unwrap().0;
     sort_all_data(create_solution(problem.as_ref(), &solution))
 }
 

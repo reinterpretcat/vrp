@@ -1,4 +1,6 @@
+use crate::checker::*;
 use crate::generator::*;
+use crate::helpers::*;
 use crate::json::problem::*;
 use proptest::prelude::*;
 
@@ -31,7 +33,7 @@ prop_compose! {
 
 prop_compose! {
     fn create_problem_with_reloads()
-        (plan in generate_plan(generate_jobs(default_job_prototype(), 10..1000)),
+        (plan in generate_plan(generate_jobs(default_job_prototype(), 1..512)),
          fleet in generate_fleet(generate_vehicles(get_vehicle_type_with_reloads(), 1..4), default_profiles())
         )
         -> Problem {
@@ -45,9 +47,16 @@ prop_compose! {
 }
 
 proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
     #[test]
     #[ignore]
     fn can_solve_problem_with_reloads(problem in create_problem_with_reloads()) {
-        //println!("{:?}", problem);
+        let matrix = create_matrix_from_problem(&problem);
+        let solution = solve_with_metaheuristic_and_iterations(problem.clone(), vec![matrix.clone()], 10);
+        let ctx = CheckerContext::new(problem, vec![matrix], solution);
+
+        let result = check_vehicle_load(&ctx);
+
+        assert_eq!(result, Ok(()));
     }
 }
