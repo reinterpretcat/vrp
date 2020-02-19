@@ -1,6 +1,7 @@
 //! This module provides functionality to automatically check that given solution is feasible
 //! which means that there is no constraint violations.
 
+use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
 use crate::json::Location;
@@ -22,6 +23,18 @@ pub enum ActivityType {
     Job(JobVariant),
     Break(VehicleBreak),
     Reload(VehicleReload),
+}
+
+/// Solves problem and checks results.
+pub fn solve_and_check(problem: Problem) -> Result<(), String> {
+    let matrix = create_matrix_from_problem(&problem);
+    let solution = solve_with_metaheuristic_and_iterations(problem.clone(), vec![matrix.clone()], 10);
+
+    let ctx = CheckerContext::new(problem, vec![matrix], solution);
+
+    check_vehicle_load(&ctx)?;
+
+    Ok(())
 }
 
 impl CheckerContext {

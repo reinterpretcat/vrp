@@ -62,10 +62,8 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                             let demand = get_demand(context, &activity, &activity_type)?;
                             Ok(match demand {
                                 (DemandType::StaticDelivery, demand) => (acc.0 + demand, acc.1),
-                                (DemandType::DynamicDelivery, demand) => (acc.0, acc.1 - demand),
-                                (DemandType::StaticPickup, demand) | (DemandType::DynamicPickup, demand) => {
-                                    (acc.0, acc.1 + demand)
-                                }
+                                (DemandType::StaticPickup, demand) => (acc.0, acc.1 + demand),
+                                _ => acc,
                             })
                         },
                     )?;
@@ -95,8 +93,6 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                         },
                     )?;
 
-                    let to_load = to_load - if is_reload_stop(context, to) { end_pickup } else { Capacity::default() };
-
                     let is_from_valid = from_load == acc;
                     let is_to_valid = to_load == from_load + change;
 
@@ -113,7 +109,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                     }
                 })?;
 
-                Ok(end_capacity)
+                Ok(end_capacity - end_pickup)
             })
             .map(|_| ())
     })
@@ -170,17 +166,17 @@ mod tests {
     }}
 
     can_check_load! {
-        case00: ( vec![1, 1, 3, 1, 2, 1, 1], Ok(())),
+        case00: ( vec![1, 1, 3, 1, 2, 1, 0], Ok(())),
 
-        case01: ( vec![1, 2, 3, 1, 2, 1, 1], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
-        case02: ( vec![1, 1, 2, 1, 2, 1, 1], Err("Load mismatch at stops 2, 3 in tour 'my_vehicle_1'".to_owned())),
-        case03: ( vec![1, 1, 3, 2, 2, 1, 1], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
-        case04: ( vec![1, 1, 3, 1, 1, 1, 1], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
-        case05: ( vec![1, 1, 3, 1, 2, 2, 1], Err("Load mismatch at stop 5 in tour 'my_vehicle_1'".to_owned())),
+        case01: ( vec![1, 2, 3, 1, 2, 1, 0], Err("Load mismatch at stop 1 in tour 'my_vehicle_1'".to_owned())),
+        case02: ( vec![1, 1, 2, 1, 2, 1, 0], Err("Load mismatch at stops 2, 3 in tour 'my_vehicle_1'".to_owned())),
+        case03: ( vec![1, 1, 3, 2, 2, 1, 0], Err("Load mismatch at stop 3 in tour 'my_vehicle_1'".to_owned())),
+        case04: ( vec![1, 1, 3, 1, 1, 1, 0], Err("Load mismatch at stop 4 in tour 'my_vehicle_1'".to_owned())),
+        case05: ( vec![1, 1, 3, 1, 2, 2, 0], Err("Load mismatch at stop 5 in tour 'my_vehicle_1'".to_owned())),
 
-        case06_1: ( vec![10, 1, 3, 1, 2, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-        case06_2: ( vec![1, 1, 30, 1, 2, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
-        case06_3: ( vec![1, 1, 3, 1, 20, 1, 1], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_1: ( vec![10, 1, 3, 1, 2, 1, 0], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_2: ( vec![1, 1, 30, 1, 2, 1, 0], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
+        case06_3: ( vec![1, 1, 3, 1, 20, 1, 0], Err("Load exceeds capacity in tour 'my_vehicle_1'".to_owned())),
     }
 
     fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>) {

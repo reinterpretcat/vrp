@@ -1,7 +1,7 @@
-use crate::checker::*;
+use crate::checker::solve_and_check;
 use crate::generator::*;
-use crate::helpers::*;
 use crate::json::problem::*;
+
 use proptest::prelude::*;
 
 fn get_reloads() -> impl Strategy<Value = Option<Vec<VehicleReload>>> {
@@ -51,11 +51,7 @@ proptest! {
     #[test]
     #[ignore]
     fn can_solve_problem_with_reloads(problem in create_problem_with_reloads()) {
-        let matrix = create_matrix_from_problem(&problem);
-        let solution = solve_with_metaheuristic_and_iterations(problem.clone(), vec![matrix.clone()], 10);
-        let ctx = CheckerContext::new(problem, vec![matrix], solution);
-
-        let result = check_vehicle_load(&ctx);
+        let result = solve_and_check(problem);
 
         assert_eq!(result, Ok(()));
     }
