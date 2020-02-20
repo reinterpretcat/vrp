@@ -1,6 +1,5 @@
 use crate::constraints::*;
 use std::collections::HashSet;
-use std::iter::once;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::slice::Iter;
@@ -145,6 +144,38 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
         activity.job.as_ref().and_then(|job| job.dimens.get_demand())
     }
+
+    /// Removes reloads at the start and end of tour.
+    fn remove_trivial_reloads(ctx: &mut SolutionContext) {
+        if ctx.required.is_empty() {
+            let mut extra_ignored = Vec::new();
+            ctx.routes.iter_mut().for_each(|rc| {
+                let demands = (0..)
+                    .zip(rc.route.tour.all_activities())
+                    .filter_map(|(idx, activity)| Self::get_demand(activity).map(|_| idx))
+                    .collect::<Vec<_>>();
+
+                let (start, end) = (
+                    demands.first().cloned().unwrap_or(0),
+                    demands.last().cloned().unwrap_or(rc.route.tour.total() - 1),
+                );
+
+                (0..)
+                    .zip(rc.route.tour.all_activities())
+                    .filter_map(|(idx, activity)| as_reload_job(activity).map(|_| idx))
+                    .filter(|&idx| idx < start || idx > end)
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .for_each(|idx| {
+                        let job = as_reload_job(rc.route.tour.get(idx).unwrap()).unwrap();
+                        extra_ignored.push(Job::Single(job.clone()));
+                        rc.route_mut().tour.remove_activity_at(idx);
+                    });
+            });
+            ctx.ignored.extend(extra_ignored.into_iter());
+        }
+    }
 }
 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
@@ -172,7 +203,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             }
         }
 
-        remove_trivial_reloads(solution_ctx);
+        Self::remove_trivial_reloads(solution_ctx);
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
@@ -224,7 +255,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
-        remove_trivial_reloads(ctx);
+        Self::remove_trivial_reloads(ctx);
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -328,31 +359,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-/// Removes reloads at the start and end of tour.
-fn remove_trivial_reloads(ctx: &mut SolutionContext) {
-    if ctx.required.is_empty() {
-        let mut extra_ignored = Vec::new();
-        ctx.routes.iter_mut().for_each(|rc| {
-            // TODO refactor this:
-            //   scan for index of first and last jobs with demand
-            let activities = rc.route.tour.total();
-            let first_reload_idx = 1_usize;
-            let first_reload_idx = first_reload_idx + get_index_correction(rc, first_reload_idx);
-
-            let last_reload_idx = if rc.route.actor.detail.end.is_some() { activities - 2 } else { activities - 1 };
-            let last_reload_idx = last_reload_idx - get_index_correction(rc, last_reload_idx);
-
-            once(first_reload_idx).chain(once(last_reload_idx)).for_each(|idx| {
-                if let Some(job) = as_reload_job(rc.route.tour.get(idx).unwrap()) {
-                    extra_ignored.push(Job::Single(job.clone()));
-                    rc.route_mut().tour.remove_activity_at(idx);
-                }
-            });
-        });
-        ctx.ignored.extend(extra_ignored.into_iter());
-    }
-}
-
 /// Creates job transition which removes reload jobs from required and adds them to locked.
 fn create_job_transition() -> Box<dyn JobContextTransition + Send + Sync> {
     Box::new(ConcreteJobContextTransition {
@@ -369,21 +375,6 @@ fn is_reload_single(job: &Arc<Single>) -> bool {
 
 fn is_reload_job(job: &Job) -> bool {
     job.as_single().map_or(false, |single| is_reload_single(single))
-}
-
-fn get_index_correction(route_ctx: &RouteContext, index: usize) -> usize {
-    let is_break = route_ctx
-        .route
-        .tour
-        .get(index)
-        .and_then(|a| a.job.as_ref())
-        .and_then(|job| job.dimens.get_value::<String>("type"))
-        .map_or(false, |t| t == "break");
-    if is_break {
-        1
-    } else {
-        0
-    }
 }
 
 fn as_reload_job(activity: &Activity) -> Option<&Arc<Single>> {
