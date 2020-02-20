@@ -9,7 +9,7 @@ use vrp_core::construction::constraints::*;
 use vrp_core::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::common::{Cost, IdDimension, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
-use vrp_core::models::solution::Activity;
+use vrp_core::models::solution::{Activity, Route};
 
 pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,
@@ -17,6 +17,21 @@ pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Def
     capacity: CapacityConstraintModule<Capacity>,
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
+}
+
+/// Returns intervals between depots and reload points.
+pub fn reload_intervals(route: &Route) -> Vec<(usize, usize)> {
+    let last_idx = route.tour.total() - 1;
+    (0_usize..).zip(route.tour.all_activities()).fold(Vec::<(usize, usize)>::default(), |mut acc, (idx, a)| {
+        if as_reload_job(a).is_some() || idx == last_idx {
+            let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
+            let end_idx = if idx == last_idx { last_idx } else { idx - 1 };
+
+            acc.push((start_idx, end_idx));
+        }
+
+        acc
+    })
 }
 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>

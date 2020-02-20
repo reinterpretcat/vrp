@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/json/solution/writer_test.rs"]
 mod writer_test;
 
+use crate::constraints::reload_intervals;
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format_time;
 use crate::json::coord_index::CoordIndex;
@@ -94,142 +95,127 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
         statistic: Statistic::default(),
     };
 
-    let last_idx = route.tour.total() - 1;
-    let mut leg = (0_usize..)
-        .zip(route.tour.all_activities())
-        .fold(Vec::<(usize, usize)>::default(), |mut acc, (idx, a)| {
-            if get_activity_type(&a).map_or(false, |t| t == "reload") || idx == route.tour.total() - 1 {
-                let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
-                let end_idx = if idx == last_idx { last_idx } else { idx - 1 };
+    let mut leg = reload_intervals(route).into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
+        let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+            (leg.load.unwrap_or_else(|| MultiDimensionalCapacity::default()), MultiDimensionalCapacity::default()),
+            |acc, activity| {
+                let (delivery, pickup) = activity
+                    .job
+                    .as_ref()
+                    .and_then(|job| {
+                        get_capacity(&job.dimens, is_multi_dimen).and_then(|d| Some((d.delivery.0, d.pickup.0)))
+                    })
+                    .unwrap_or((MultiDimensionalCapacity::default(), MultiDimensionalCapacity::default()));
+                (acc.0 + delivery, acc.1 + pickup)
+            },
+        );
 
-                acc.push((start_idx, end_idx));
-            }
+        let (start_idx, start) = if start_idx == 0 {
+            let start = route.tour.start().unwrap();
+            tour.stops.push(Stop {
+                location: coord_index.get_by_idx(&start.place.location).unwrap(),
+                time: format_schedule(&start.schedule),
+                load: start_delivery.as_vec(),
+                activities: vec![Activity {
+                    job_id: "departure".to_string(),
+                    activity_type: "departure".to_string(),
+                    location: None,
+                    time: None,
+                    job_tag: None,
+                }],
+            });
+            (start_idx + 1, start)
+        } else {
+            (start_idx, route.tour.get(start_idx - 1).unwrap())
+        };
 
-            acc
-        })
-        .into_iter()
-        .fold(Leg::empty(), |leg, (start_idx, end_idx)| {
-            let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                (leg.load.unwrap_or_else(|| MultiDimensionalCapacity::default()), MultiDimensionalCapacity::default()),
-                |acc, activity| {
-                    let (delivery, pickup) = activity
-                        .job
-                        .as_ref()
-                        .and_then(|job| {
-                            get_capacity(&job.dimens, is_multi_dimen).and_then(|d| Some((d.delivery.0, d.pickup.0)))
-                        })
-                        .unwrap_or((MultiDimensionalCapacity::default(), MultiDimensionalCapacity::default()));
-                    (acc.0 + delivery, acc.1 + pickup)
-                },
-            );
+        let mut leg = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+            Leg::new(Some((start.place.location, start.schedule.departure)), Some(start_delivery), leg.statistic),
+            |leg, act| {
+                let activity_type = get_activity_type(act).cloned();
+                let (prev_location, prev_departure) = leg.last_detail.unwrap();
+                let prev_load = if activity_type.is_some() {
+                    leg.load.unwrap()
+                } else {
+                    // NOTE arrival must have zero load
+                    let dimen_size = leg.load.unwrap().size;
+                    MultiDimensionalCapacity::new(vec![0; dimen_size])
+                };
 
-            let (start_idx, start) = if start_idx == 0 {
-                let start = route.tour.start().unwrap();
-                tour.stops.push(Stop {
-                    location: coord_index.get_by_idx(&start.place.location).unwrap(),
-                    time: format_schedule(&start.schedule),
-                    load: start_delivery.as_vec(),
-                    activities: vec![Activity {
-                        job_id: "departure".to_string(),
-                        activity_type: "departure".to_string(),
-                        location: None,
-                        time: None,
-                        job_tag: None,
-                    }],
-                });
-                (start_idx + 1, start)
-            } else {
-                (start_idx, route.tour.get(start_idx - 1).unwrap())
-            };
+                let activity_type = activity_type.unwrap_or_else(|| "arrival".to_string());
+                let is_break = activity_type == "break";
 
-            let mut leg = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                Leg::new(Some((start.place.location, start.schedule.departure)), Some(start_delivery), leg.statistic),
-                |leg, act| {
-                    let activity_type = get_activity_type(act).cloned();
-                    let (prev_location, prev_departure) = leg.last_detail.unwrap();
-                    let prev_load = if activity_type.is_some() {
-                        leg.load.unwrap()
-                    } else {
-                        // NOTE arrival must have zero load
-                        let dimen_size = leg.load.unwrap().size;
-                        MultiDimensionalCapacity::new(vec![0; dimen_size])
-                    };
-
-                    let activity_type = activity_type.unwrap_or_else(|| "arrival".to_string());
-                    let is_break = activity_type == "break";
-
-                    let job_tag = act.job.as_ref().and_then(|job| job.dimens.get_value::<String>("tag").cloned());
-                    let job_id = match activity_type.as_str() {
-                        "pickup" | "delivery" => {
-                            let single = act.job.as_ref().unwrap();
-                            let id = single.dimens.get_id().cloned();
-                            id.unwrap_or_else(|| Multi::roots(&single).unwrap().dimens.get_id().unwrap().clone())
-                        }
-                        _ => activity_type.clone(),
-                    };
-
-                    let driving =
-                        problem.transport.duration(vehicle.profile, prev_location, act.place.location, prev_departure);
-                    let arrival = prev_departure + driving;
-                    let start = act.schedule.arrival.max(act.place.time.start);
-                    let waiting = start - act.schedule.arrival;
-                    let serving = problem.activity.duration(route.actor.as_ref(), act, act.schedule.arrival);
-                    let departure = start + serving;
-
-                    if prev_location != act.place.location {
-                        tour.stops.push(Stop {
-                            location: coord_index.get_by_idx(&act.place.location).unwrap(),
-                            time: format_as_schedule(&(arrival, departure)),
-                            load: prev_load.as_vec(),
-                            activities: vec![],
-                        });
+                let job_tag = act.job.as_ref().and_then(|job| job.dimens.get_value::<String>("tag").cloned());
+                let job_id = match activity_type.as_str() {
+                    "pickup" | "delivery" => {
+                        let single = act.job.as_ref().unwrap();
+                        let id = single.dimens.get_id().cloned();
+                        id.unwrap_or_else(|| Multi::roots(&single).unwrap().dimens.get_id().unwrap().clone())
                     }
+                    _ => activity_type.clone(),
+                };
 
-                    let load = calculate_load(prev_load, act, is_multi_dimen);
+                let driving =
+                    problem.transport.duration(vehicle.profile, prev_location, act.place.location, prev_departure);
+                let arrival = prev_departure + driving;
+                let start = act.schedule.arrival.max(act.place.time.start);
+                let waiting = start - act.schedule.arrival;
+                let serving = problem.activity.duration(route.actor.as_ref(), act, act.schedule.arrival);
+                let departure = start + serving;
 
-                    let last = tour.stops.len() - 1;
-                    let mut last = tour.stops.get_mut(last).unwrap();
-
-                    last.time.departure = format_time(departure);
-                    last.load = load.as_vec();
-                    last.activities.push(Activity {
-                        job_id,
-                        activity_type,
-                        location: Some(coord_index.get_by_idx(&act.place.location).unwrap()),
-                        time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
-                        job_tag,
+                if prev_location != act.place.location {
+                    tour.stops.push(Stop {
+                        location: coord_index.get_by_idx(&act.place.location).unwrap(),
+                        time: format_as_schedule(&(arrival, departure)),
+                        load: prev_load.as_vec(),
+                        activities: vec![],
                     });
+                }
 
-                    let cost = problem.activity.cost(actor, act, act.schedule.arrival)
-                        + problem.transport.cost(actor, prev_location, act.place.location, prev_departure);
+                let load = calculate_load(prev_load, act, is_multi_dimen);
 
-                    let distance =
-                        problem.transport.distance(vehicle.profile, prev_location, act.place.location, prev_departure)
-                            as i32;
+                let last = tour.stops.len() - 1;
+                let mut last = tour.stops.get_mut(last).unwrap();
 
-                    Leg {
-                        last_detail: Some((act.place.location, act.schedule.departure)),
-                        statistic: Statistic {
-                            cost: leg.statistic.cost + cost,
-                            distance: leg.statistic.distance + distance,
-                            duration: leg.statistic.duration + departure as i32 - prev_departure as i32,
-                            times: Timing {
-                                driving: leg.statistic.times.driving + driving as i32,
-                                serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i32 }),
-                                waiting: leg.statistic.times.waiting + waiting as i32,
-                                break_time: leg.statistic.times.break_time
-                                    + (if is_break { serving as i32 } else { 0 }),
-                            },
+                last.time.departure = format_time(departure);
+                last.load = load.as_vec();
+                last.activities.push(Activity {
+                    job_id,
+                    activity_type,
+                    location: Some(coord_index.get_by_idx(&act.place.location).unwrap()),
+                    time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
+                    job_tag,
+                });
+
+                let cost = problem.activity.cost(actor, act, act.schedule.arrival)
+                    + problem.transport.cost(actor, prev_location, act.place.location, prev_departure);
+
+                let distance =
+                    problem.transport.distance(vehicle.profile, prev_location, act.place.location, prev_departure)
+                        as i32;
+
+                Leg {
+                    last_detail: Some((act.place.location, act.schedule.departure)),
+                    statistic: Statistic {
+                        cost: leg.statistic.cost + cost,
+                        distance: leg.statistic.distance + distance,
+                        duration: leg.statistic.duration + departure as i32 - prev_departure as i32,
+                        times: Timing {
+                            driving: leg.statistic.times.driving + driving as i32,
+                            serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i32 }),
+                            waiting: leg.statistic.times.waiting + waiting as i32,
+                            break_time: leg.statistic.times.break_time + (if is_break { serving as i32 } else { 0 }),
                         },
-                        load: Some(load),
-                    }
-                },
-            );
+                    },
+                    load: Some(load),
+                }
+            },
+        );
 
-            leg.load = Some(leg.load.unwrap() - end_pickup);
+        leg.load = Some(leg.load.unwrap() - end_pickup);
 
-            leg
-        });
+        leg
+    });
 
     // NOTE remove redundant info
     tour.stops

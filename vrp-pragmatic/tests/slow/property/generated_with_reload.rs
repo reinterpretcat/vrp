@@ -33,7 +33,7 @@ prop_compose! {
 
 prop_compose! {
     fn create_problem_with_reloads()
-        (plan in generate_plan(generate_jobs(default_job_prototype(), 1..512)),
+        (plan in generate_plan(generate_jobs(default_job_prototype(), 1..256)),
          fleet in generate_fleet(generate_vehicles(get_vehicle_type_with_reloads(), 1..4), default_profiles())
         )
         -> Problem {
@@ -47,7 +47,7 @@ prop_compose! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(100))]
+    #![proptest_config(ProptestConfig::with_cases(256))]
     #[test]
     #[ignore]
     fn can_solve_problem_with_reloads(problem in create_problem_with_reloads()) {

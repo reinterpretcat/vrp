@@ -28,21 +28,17 @@ fn is_correct_vehicle(rc: &RouteContext, target_id: &String, target_shift: usize
 }
 
 mod breaks;
-
 pub use self::breaks::BreakModule;
 
 mod even_dist;
-
 pub use self::even_dist::EvenDistributionModule;
 
 mod reload_capacity;
-
+pub use self::reload_capacity::reload_intervals;
 pub use self::reload_capacity::ReloadCapacityConstraintModule;
 
 mod reachable;
-
 pub use self::reachable::ReachableModule;
 
 mod skills;
-
 pub use self::skills::SkillsModule;

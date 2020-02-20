@@ -41,7 +41,7 @@ pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = JobVariant> 
     pickup_delivery_job_prototype(
         default_job_place_prototype(),
         default_job_place_prototype(),
-        generate_simple_demand(1..5),
+        generate_simple_demand(1..4),
         generate_no_skills(),
     )
 }
