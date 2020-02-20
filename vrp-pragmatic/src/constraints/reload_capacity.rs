@@ -217,11 +217,9 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
                 (acc, Capacity::default()),
                 |acc, activity| {
-                    let (delivery, pickup) = Self::get_demand(activity)
-                        .and_then(|demand| Some((demand.delivery.0, demand.pickup.0)))
-                        .unwrap_or_else(|| (Capacity::default(), Capacity::default()));
-
-                    (acc.0 + delivery, acc.1 + pickup)
+                    Self::get_demand(activity)
+                        .and_then(|demand| Some((acc.0 + demand.delivery.0, acc.1 + demand.pickup.0)))
+                        .unwrap_or_else(|| acc)
                 },
             );
 
