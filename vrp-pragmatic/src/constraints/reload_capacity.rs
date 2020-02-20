@@ -226,14 +226,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             );
 
             // determine actual load at each activity and max discovered in the past
-            let (current, _) = (start_idx..).zip(route.tour.activities_slice(start_idx, end_idx)).fold(
+            let (current, _) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
                 (start_delivery, Capacity::default()),
-                |(current, max), (activity_idx, activity)| {
+                |(current, max), activity| {
                     let change =
                         Self::get_demand(activity).map(|demand| demand.change()).unwrap_or_else(|| Capacity::default());
 
-                    let current =
-                        current + change - if activity_idx == end_idx { end_pickup } else { Capacity::default() };
+                    let current = current + change;
                     let max = std::cmp::max(max, current);
 
                     state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
@@ -249,7 +248,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 max
             });
 
-            current
+            current - end_pickup
         });
     }
 

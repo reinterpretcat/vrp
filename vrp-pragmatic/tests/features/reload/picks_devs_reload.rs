@@ -10,10 +10,10 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
         plan: Plan {
             jobs: vec![
                 create_delivery_job("d1", vec![1., 0.]),
-                create_delivery_job("d2", vec![3., 0.]),
-                create_delivery_job("d3", vec![3., 0.]),
+                create_delivery_job("d2", vec![4., 0.]),
+                create_delivery_job("d3", vec![10., 0.]),
                 create_pickup_job("p1", vec![2., 0.]),
-                create_pickup_job("p2", vec![4., 0.]),
+                create_pickup_job("p2", vec![5., 0.]),
             ],
             relations: None,
         },
@@ -24,11 +24,11 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
                     start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
-                    end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![0., 0.].to_loc() }),
+                    end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![6., 0.].to_loc() }),
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
-                        location: vec![0., 0.].to_loc(),
+                        location: vec![3., 0.].to_loc(),
                         duration: 2.0,
                         tag: None,
                     }]),
@@ -44,17 +44,17 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_heuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, vec![matrix]);
 
     assert_eq!(
         solution,
         Solution {
             problem_id: "my_problem".to_string(),
             statistic: Statistic {
-                cost: 40.,
-                distance: 12,
-                duration: 18,
-                times: Timing { driving: 12, serving: 6, waiting: 0, break_time: 0 },
+                cost: 28.,
+                distance: 6,
+                duration: 12,
+                times: Timing { driving: 6, serving: 6, waiting: 0, break_time: 0 },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -84,37 +84,37 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                     create_stop_with_activity(
                         "reload",
                         "reload",
-                        (0., 0.),
+                        (3., 0.),
                         1,
-                        ("1970-01-01T00:00:06Z", "1970-01-01T00:00:08Z"),
+                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
                     ),
                     create_stop_with_activity(
                         "d2",
                         "delivery",
-                        (3., 0.),
+                        (4., 0.),
                         0,
-                        ("1970-01-01T00:00:11Z", "1970-01-01T00:00:12Z"),
+                        ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
                     ),
                     create_stop_with_activity(
                         "p2",
                         "pickup",
-                        (4., 0.),
+                        (5., 0.),
                         1,
-                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
+                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
                     ),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",
-                        (0., 0.),
+                        (6., 0.),
                         0,
-                        ("1970-01-01T00:00:18Z", "1970-01-01T00:00:18Z"),
+                        ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
                     ),
                 ],
                 statistic: Statistic {
-                    cost: 40.,
-                    distance: 12,
-                    duration: 18,
-                    times: Timing { driving: 12, serving: 6, waiting: 0, break_time: 0 },
+                    cost: 28.,
+                    distance: 6,
+                    duration: 12,
+                    times: Timing { driving: 6, serving: 6, waiting: 0, break_time: 0 },
                 },
             }],
             unassigned: vec![UnassignedJob {
