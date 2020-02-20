@@ -1,4 +1,3 @@
-use crate::constraints::MAX_TOUR_LOAD_KEY;
 use std::marker::PhantomData;
 use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
@@ -65,12 +64,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 {
     fn estimate_job(&self, ctx: &RouteContext, _job: &Job) -> f64 {
         let capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
+        // TODO make it work better with reloads
         let max_load = ctx
             .state
-            .get_route_state::<Capacity>(MAX_TOUR_LOAD_KEY)
-            .or_else(|| {
-                ctx.state.get_activity_state::<Capacity>(MAX_FUTURE_CAPACITY_KEY, ctx.route.tour.start().unwrap())
-            })
+            .get_activity_state::<Capacity>(MAX_FUTURE_CAPACITY_KEY, ctx.route.tour.start().unwrap())
             .unwrap_or_else(|| &self.default_capacity);
 
         let load_ratio = self.load_func.deref()(max_load, capacity);

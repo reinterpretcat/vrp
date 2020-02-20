@@ -6,15 +6,14 @@ use std::ops::{Add, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::states::{ActivityContext, RouteContext, SolutionContext};
+use vrp_core::construction::states::{ActivityContext, RouteContext, RouteState, SolutionContext};
 use vrp_core::models::common::{Cost, IdDimension, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
-use vrp_core::models::solution::{Activity, Route};
+use vrp_core::models::solution::{Activity, Route, TourActivity};
 
 pub struct ReloadCapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,
     state_keys: Vec<i32>,
-    capacity: CapacityConstraintModule<Capacity>,
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
 }
@@ -38,40 +37,18 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     ReloadCapacityConstraintModule<Capacity>
 {
     pub fn new(code: i32, cost_reward: Cost, threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>) -> Self {
-        let capacity_constraint = CapacityConstraintModule::<Capacity>::new(code);
-        let hard_route_constraint = capacity_constraint
-            .get_constraints()
-            .filter_map(|c| match c {
-                ConstraintVariant::HardRoute(c) => Some(c.clone()),
-                _ => None,
-            })
-            .next()
-            .unwrap();
-
-        let hard_activity_constraint = capacity_constraint
-            .get_constraints()
-            .filter_map(|c| match c {
-                ConstraintVariant::HardActivity(c) => Some(c.clone()),
-                _ => None,
-            })
-            .next()
-            .unwrap();
-
         Self {
             threshold,
-            state_keys: capacity_constraint
-                .state_keys()
-                .chain(vec![HAS_RELOAD_KEY, MAX_TOUR_LOAD_KEY].iter())
-                .cloned()
-                .collect(),
-            capacity: capacity_constraint,
+            state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],
             conditional: ConditionalJobModule::new(create_job_transition()),
             constraints: vec![
                 ConstraintVariant::SoftRoute(Arc::new(ReloadSoftRouteConstraint { cost: cost_reward })),
-                ConstraintVariant::HardRoute(Arc::new(ReloadHardRouteConstraint { code, hard_route_constraint })),
+                ConstraintVariant::HardRoute(Arc::new(ReloadHardRouteConstraint::<Capacity> {
+                    code,
+                    phantom: PhantomData,
+                })),
                 ConstraintVariant::HardActivity(Arc::new(ReloadHardActivityConstraint::<Capacity> {
                     code,
-                    hard_activity_constraint,
                     phantom: PhantomData,
                 })),
             ],
@@ -83,10 +60,9 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         let state = &rc.state;
 
         if let Some(end) = tour.end() {
-            let empty_capacity = Capacity::default();
             let max_capacity = threshold(rc.route.actor.vehicle.dimens.get_capacity().unwrap());
-
-            let load = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).unwrap_or_else(|| &empty_capacity);
+            let load =
+                state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_else(|| Capacity::default());
 
             load >= max_capacity
         } else {
@@ -94,51 +70,80 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
-    fn recalculate_states(ctx: &mut RouteContext) {
-        let (route, state) = ctx.as_mut();
-        let demand = Demand::<Capacity>::default();
+    /// Checks whether demand can be handled at interval starts at given pivot activity.
+    fn can_handle_demand(
+        state: &RouteState,
+        pivot: &TourActivity,
+        capacity: Option<&Capacity>,
+        demand: Option<&Demand<Capacity>>,
+        stopped: bool,
+    ) -> Option<bool> {
+        if let Some(demand) = demand {
+            if let Some(&capacity) = capacity {
+                let default = Capacity::default();
 
-        let last_idx = route.tour.total() - 1;
-        let (_, _, starts) = (0_usize..).zip(route.tour.all_activities()).fold(
-            (Capacity::default(), Capacity::default(), Vec::<(usize, usize, Capacity)>::new()),
-            |(start_total, end_total, mut acc), (idx, a)| {
-                let demand = CapacityConstraintModule::<Capacity>::get_demand(a).unwrap_or(&demand);
-                let (start_total, end_total) = if as_reload_job(a).is_some() || idx == last_idx {
-                    let start_idx = acc.last().map_or(0_usize, |item| item.1 + 1);
-                    let end_idx = if idx == last_idx { last_idx } else { idx - 1 };
+                // cannot handle more static deliveries
+                if demand.delivery.0 > default {
+                    let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&default);
+                    if past + demand.delivery.0 > capacity {
+                        return Some(stopped);
+                    }
+                }
 
-                    acc.push((start_idx, end_idx, start_total));
+                let change = demand.change();
 
-                    (end_total, Capacity::default())
+                // cannot handle more pickups
+                if change > default {
+                    let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&default);
+                    if future + change > capacity {
+                        return Some(stopped);
+                    }
+                }
+
+                // can load more at current
+                let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&default);
+
+                if current + change <= capacity {
+                    None
                 } else {
-                    (start_total + demand.delivery.0, end_total + demand.pickup.1 - demand.delivery.1)
-                };
+                    Some(false)
+                }
+            } else {
+                Some(stopped)
+            }
+        } else {
+            None
+        }
+    }
 
-                (start_total, end_total, acc)
-            },
-        );
+    fn can_handle_demand_on_intervals(ctx: &RouteContext, demand: Option<&Demand<Capacity>>) -> bool {
+        let can_handle_demand = |activity: &TourActivity| {
+            ReloadCapacityConstraintModule::<Capacity>::can_handle_demand(
+                &ctx.state,
+                activity,
+                ctx.route.actor.vehicle.dimens.get_capacity(),
+                demand,
+                true,
+            )
+        };
 
-        let ends = starts.iter().cloned().fold(vec![], |mut acc, (start_idx, end_idx, total)| {
-            let (current, _) =
-                route.tour.activities_slice(start_idx, end_idx).iter().fold((total, total), |(current, max), a| {
-                    CapacityConstraintModule::<Capacity>::store_max_past_current_state(state, a, current, max)
-                });
+        ctx.state
+            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS)
+            .map(|intervals| {
+                intervals
+                    .iter()
+                    .any(|(start_idx, _)| can_handle_demand(ctx.route.tour.get(*start_idx).unwrap()).is_none())
+            })
+            .unwrap_or_else(|| {
+                can_handle_demand(
+                    ctx.route.tour.start().unwrap_or_else(|| unimplemented!("Optional start is not yet implemented.")),
+                )
+                .is_none()
+            })
+    }
 
-            acc.push(current);
-
-            acc
-        });
-
-        state.put_route_state::<Capacity>(MAX_TOUR_LOAD_KEY, *ends.iter().max().unwrap());
-
-        starts.into_iter().zip(ends.into_iter()).for_each(|((start_idx, end_idx, _), end)| {
-            route
-                .tour
-                .activities_slice(start_idx, end_idx)
-                .iter()
-                .rev()
-                .fold(end, |max, a| CapacityConstraintModule::<Capacity>::store_max_future_state(state, a, max));
-        });
+    fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
+        activity.job.as_ref().and_then(|job| job.dimens.get_demand())
     }
 }
 
@@ -147,10 +152,9 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Job) {
         if is_reload_job(job) {
-            route_ctx.state_mut().put_route_state(HAS_RELOAD_KEY, true);
             // move all unassigned reloads back to ignored
             let jobs = get_reload_jobs(route_ctx, &solution_ctx.required).collect::<HashSet<_>>();
-            solution_ctx.required.retain(|i| !jobs.contains(i));
+            solution_ctx.required.retain(|job| !jobs.contains(job));
             solution_ctx.ignored.extend(jobs.into_iter());
 
             self.accept_route_state(route_ctx);
@@ -162,7 +166,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                     .chain(get_reload_jobs(route_ctx, &solution_ctx.required))
                     .collect::<HashSet<_>>();
 
-                solution_ctx.ignored.retain(|i| !jobs.contains(i));
+                solution_ctx.ignored.retain(|job| !jobs.contains(job));
                 solution_ctx.locked.extend(jobs.iter().cloned());
                 solution_ctx.required.extend(jobs.into_iter());
             }
@@ -172,11 +176,50 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        if has_reload_index(ctx) {
-            Self::recalculate_states(ctx);
-        } else {
-            self.capacity.accept_route_state(ctx);
-        }
+        let (route, state) = ctx.as_mut();
+
+        let intervals = reload_intervals(route);
+        state.put_route_state(RELOAD_INTERVALS, intervals.clone());
+
+        intervals.into_iter().fold(Capacity::default(), |acc, (start_idx, end_idx)| {
+            // determine static deliveries loaded at the begin and static pickups brought to the end
+            let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                (acc, Capacity::default()),
+                |acc, activity| {
+                    let (delivery, pickup) = Self::get_demand(activity)
+                        .and_then(|demand| Some((demand.delivery.0, demand.pickup.0)))
+                        .unwrap_or_else(|| (Capacity::default(), Capacity::default()));
+
+                    (acc.0 + delivery, acc.1 + pickup)
+                },
+            );
+
+            // determine actual load at each activity and max discovered in the past
+            let (current, _) = (start_idx..).zip(route.tour.activities_slice(start_idx, end_idx)).fold(
+                (start_delivery, Capacity::default()),
+                |(current, max), (activity_idx, activity)| {
+                    let change =
+                        Self::get_demand(activity).map(|demand| demand.change()).unwrap_or_else(|| Capacity::default());
+
+                    let current =
+                        current + change - if activity_idx == end_idx { end_pickup } else { Capacity::default() };
+                    let max = std::cmp::max(max, current);
+
+                    state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
+                    state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity, max);
+
+                    (current, max)
+                },
+            );
+
+            route.tour.activities_slice(start_idx, end_idx).iter().rev().fold(current, |max, activity| {
+                let max = std::cmp::max(max, *state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
+                state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
+                max
+            });
+
+            current
+        });
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
@@ -208,12 +251,14 @@ impl SoftRouteConstraint for ReloadSoftRouteConstraint {
 }
 
 /// Locks reload jobs to specific vehicles
-struct ReloadHardRouteConstraint {
+struct ReloadHardRouteConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     code: i32,
-    hard_route_constraint: Arc<dyn HardRouteConstraint + Send + Sync>,
+    phantom: PhantomData<Capacity>,
 }
 
-impl HardRouteConstraint for ReloadHardRouteConstraint {
+impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
+    HardRouteConstraint for ReloadHardRouteConstraint<Capacity>
+{
     fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if is_reload_job(job) {
             let job = job.to_single();
@@ -225,21 +270,27 @@ impl HardRouteConstraint for ReloadHardRouteConstraint {
             } else {
                 None
             };
-        }
+        };
 
-        if has_reload_index(ctx) {
-            // TODO we need to check all ranges to avoid going into full scan when vehicle is full
-            //  store reload jobs in route state and call tour.index to scan each reload range?
+        let can_handle = match job {
+            Job::Single(job) => {
+                ReloadCapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand())
+            }
+            Job::Multi(job) => job.jobs.iter().any(|job| {
+                ReloadCapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand())
+            }),
+        };
+
+        if can_handle {
             None
         } else {
-            self.hard_route_constraint.evaluate_job(ctx, job)
+            Some(RouteConstraintViolation { code: self.code })
         }
     }
 }
 
 struct ReloadHardActivityConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     code: i32,
-    hard_activity_constraint: Arc<dyn HardActivityConstraint + Send + Sync>,
     phantom: PhantomData<Capacity>,
 }
 
@@ -253,7 +304,6 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     ) -> Option<ActivityConstraintViolation> {
         if let Some(_) = as_reload_job(activity_ctx.target) {
             // NOTE insert reload job in route only as last
-
             let is_first = activity_ctx.prev.job.is_none();
             let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
 
@@ -262,39 +312,15 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             } else {
                 None
             };
-        }
+        };
 
-        let has_reload = has_reload_index(route_ctx);
-
-        if has_reload {
-            let multi = activity_ctx.target.retrieve_job().and_then(|job| match &job {
-                Job::Multi(multi) => Some((job.clone(), multi.jobs.len())),
-                _ => None,
-            });
-
-            if let Some((job, singles)) = multi {
-                let processed_activities = route_ctx.route.tour.job_activities(&job).count();
-                // NOTE check capacity violation for reloads
-                // we allow temporary overload when pickups are inserted, but delivery should fix it later
-                if processed_activities == singles - 1 {
-                    let capacity: Capacity = *route_ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
-                    let index = route_ctx.route.tour.activity_index(activity_ctx.prev).unwrap();
-
-                    // TODO optimize this?
-                    let has_violation = route_ctx.route.tour.activities_slice(0, index).iter().rev().any(|a| {
-                        *route_ctx.state.get_activity_state::<Capacity>(MAX_PAST_CAPACITY_KEY, a).unwrap() > capacity
-                    });
-
-                    if has_violation {
-                        return Some(ActivityConstraintViolation { code: self.code, stopped: false });
-                    }
-                }
-            }
-        }
-
-        // TODO optimize: we should skip activity range till next reload if "stopped:true" is returned
-        if let Some(result) = self.hard_activity_constraint.evaluate_activity(route_ctx, activity_ctx) {
-            let stopped = result.stopped && !has_reload;
+        if let Some(stopped) = ReloadCapacityConstraintModule::<Capacity>::can_handle_demand(
+            &route_ctx.state,
+            activity_ctx.prev,
+            route_ctx.route.actor.vehicle.dimens.get_capacity(),
+            CapacityConstraintModule::<Capacity>::get_demand(activity_ctx.target),
+            !has_reloads(route_ctx),
+        ) {
             Some(ActivityConstraintViolation { code: self.code, stopped })
         } else {
             None
@@ -307,6 +333,8 @@ fn remove_trivial_reloads(ctx: &mut SolutionContext) {
     if ctx.required.is_empty() {
         let mut extra_ignored = Vec::new();
         ctx.routes.iter_mut().for_each(|rc| {
+            // TODO refactor this:
+            //   scan for index of first and last jobs with demand
             let activities = rc.route.tour.total();
             let first_reload_idx = 1_usize;
             let first_reload_idx = first_reload_idx + get_index_correction(rc, first_reload_idx);
@@ -362,8 +390,11 @@ fn as_reload_job(activity: &Activity) -> Option<&Arc<Single>> {
     as_single_job(activity, |job| is_reload_single(job))
 }
 
-fn has_reload_index(ctx: &RouteContext) -> bool {
-    *ctx.state.get_route_state::<bool>(HAS_RELOAD_KEY).unwrap_or(&false)
+fn has_reloads(ctx: &RouteContext) -> bool {
+    ctx.state
+        .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS)
+        .map(|intervals| intervals.len() > 1)
+        .unwrap_or(false)
 }
 
 fn get_reload_jobs<'a>(route_ctx: &'a RouteContext, collection: &'a Vec<Job>) -> Box<dyn Iterator<Item = Job> + 'a> {

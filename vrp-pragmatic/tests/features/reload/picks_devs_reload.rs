@@ -44,7 +44,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_heuristic(problem, vec![matrix]);
 
     assert_eq!(
         solution,

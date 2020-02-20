@@ -80,11 +80,12 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                         Capacity::default(),
                         |acc, activity| {
                             let activity_type = context.get_activity_type(tour, to, activity)?;
-                            let (demand_type, demand) = if activity.activity_type == "arrival" {
-                                (DemandType::StaticDelivery, end_pickup)
-                            } else {
-                                get_demand(context, &activity, &activity_type)?
-                            };
+                            let (demand_type, demand) =
+                                if activity.activity_type == "arrival" || activity.activity_type == "reload" {
+                                    (DemandType::StaticDelivery, end_pickup)
+                                } else {
+                                    get_demand(context, &activity, &activity_type)?
+                                };
 
                             Ok(match demand_type {
                                 DemandType::StaticDelivery | DemandType::DynamicDelivery => acc - demand,

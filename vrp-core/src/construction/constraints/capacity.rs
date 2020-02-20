@@ -27,7 +27,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     Demand<Capacity>
 {
     /// Returns capacity change as difference between pickup and delivery.
-    fn change(&self) -> Capacity {
+    pub fn change(&self) -> Capacity {
         self.pickup.0 + self.pickup.1 - self.delivery.0 - self.delivery.1
     }
 }

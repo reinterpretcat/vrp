@@ -4,8 +4,7 @@ use vrp_core::models::common::{Dimensions, IdDimension, ValueDimension};
 use vrp_core::models::problem::Single;
 use vrp_core::models::solution::Activity;
 
-pub const HAS_RELOAD_KEY: i32 = 101;
-pub const MAX_TOUR_LOAD_KEY: i32 = 102;
+pub const RELOAD_INTERVALS: i32 = 102;
 
 fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
 where
