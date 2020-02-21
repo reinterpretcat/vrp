@@ -128,13 +128,9 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     fn recalculate_states(&self, ctx: &mut RouteContext) {
-        let (route, state) = ctx.as_mut();
+        self.actualize_intervals(ctx).into_iter().fold(Capacity::default(), |acc, (start_idx, end_idx)| {
+            let (route, state) = ctx.as_mut();
 
-        let multi_trip = self.multi_trip.clone();
-        let intervals = route_intervals(route, Box::new(move |a| multi_trip.get_reload(a).is_some()));
-        state.put_route_state(RELOAD_INTERVALS, intervals.clone());
-
-        intervals.into_iter().fold(Capacity::default(), |acc, (start_idx, end_idx)| {
             // determine static deliveries loaded at the begin and static pickups brought to the end
             let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
                 (acc, Capacity::default()),
@@ -170,6 +166,17 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
             current - end_pickup
         });
+    }
+
+    fn actualize_intervals(&self, route_ctx: &mut RouteContext) -> Vec<(usize, usize)> {
+        let (route, state) = route_ctx.as_mut();
+        let intervals = route_intervals(route, {
+            let multi_trip = self.multi_trip.clone();
+            Box::new(move |a| multi_trip.get_reload(a).is_some())
+        });
+        state.put_route_state(RELOAD_INTERVALS, intervals.clone());
+
+        intervals
     }
 
     fn is_vehicle_full(&self, ctx: &RouteContext) -> bool {
@@ -215,6 +222,8 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                         extra_ignored.push(Job::Single(job.clone()));
                         rc.route_mut().tour.remove_activity_at(idx);
                     });
+
+                self.actualize_intervals(rc);
             });
             ctx.ignored.extend(extra_ignored.into_iter());
         }
