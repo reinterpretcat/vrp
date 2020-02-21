@@ -136,7 +136,7 @@ impl HardRouteConstraint for BreakHardRouteConstraint {
                 let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
                 let shift_index = get_shift_index(&job.dimens);
 
-                return if !is_correct_vehicle(ctx, vehicle_id, shift_index) {
+                return if !is_correct_vehicle(&ctx.route, vehicle_id, shift_index) {
                     Some(RouteConstraintViolation { code: self.code })
                 } else {
                     None
@@ -227,7 +227,9 @@ fn is_required_job(ctx: &SolutionContext, job: &Job, default: bool) -> bool {
             if is_break_job(job) {
                 let vehicle_id = get_vehicle_id_from_job(job).unwrap();
                 let shift_index = get_shift_index(&job.dimens);
-                ctx.routes.iter().any(move |rc| is_correct_vehicle(rc, &vehicle_id, shift_index) && is_time(rc, job))
+                ctx.routes
+                    .iter()
+                    .any(move |rc| is_correct_vehicle(&rc.route, &vehicle_id, shift_index) && is_time(rc, job))
             } else {
                 default
             }

@@ -158,31 +158,26 @@ fn create_constraint_pipeline(
 }
 
 fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
-    if props.has_reload {
+    constraint.add_module(if props.has_reload {
         let threshold = 0.9;
         if props.has_multi_dimen_capacity {
-            // TODO
-            constraint.add_module(Box::new(ReloadCapacityConstraintModule::<MultiDimensionalCapacity>::new(
+            Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new_with_multi_trip(
                 CAPACITY_CONSTRAINT_CODE,
-                100.,
-                Box::new(|capacity| *capacity * 0.9),
-            )));
+                Arc::new(ReloadMultiTrip::new(Box::new(|capacity| *capacity * 0.9))),
+            ))
         } else {
-            constraint.add_module(Box::new(ReloadCapacityConstraintModule::<i32>::new(
+            Box::new(CapacityConstraintModule::<i32>::new_with_multi_trip(
                 CAPACITY_CONSTRAINT_CODE,
-                100.,
-                Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32),
-            )));
+                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32))),
+            ))
         }
     } else {
         if props.has_multi_dimen_capacity {
-            constraint.add_module(Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(
-                CAPACITY_CONSTRAINT_CODE,
-            )));
+            Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(CAPACITY_CONSTRAINT_CODE))
         } else {
-            constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(CAPACITY_CONSTRAINT_CODE)));
+            Box::new(CapacityConstraintModule::<i32>::new(CAPACITY_CONSTRAINT_CODE))
         }
-    }
+    });
 }
 
 fn add_even_dist_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {

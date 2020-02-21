@@ -2,7 +2,6 @@
 #[path = "../../../tests/unit/json/solution/writer_test.rs"]
 mod writer_test;
 
-use crate::constraints::reload_intervals;
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format_time;
 use crate::json::coord_index::CoordIndex;
@@ -12,7 +11,7 @@ use crate::json::solution::{
 };
 use crate::json::*;
 use std::io::{BufWriter, Write};
-use vrp_core::construction::constraints::{Demand, DemandDimension};
+use vrp_core::construction::constraints::{route_intervals, Demand, DemandDimension};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Multi};
 use vrp_core::models::solution::{Route, TourActivity};
@@ -95,7 +94,9 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
         statistic: Statistic::default(),
     };
 
-    let mut leg = reload_intervals(route).into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
+    let intervals = route_intervals(route, Box::new(|a| get_activity_type(a).map_or(false, |t| t == "reload")));
+
+    let mut leg = intervals.into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
         let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
             (leg.load.unwrap_or_else(|| MultiDimensionalCapacity::default()), MultiDimensionalCapacity::default()),
             |acc, activity| {
