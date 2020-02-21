@@ -44,7 +44,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     fn is_reload_needed(&self, current: &Capacity, max_capacity: &Capacity) -> bool {
-        *current > self.threshold.deref()(max_capacity)
+        *current >= self.threshold.deref()(max_capacity)
     }
 
     fn has_reloads(&self, route_ctx: &RouteContext) -> bool {
