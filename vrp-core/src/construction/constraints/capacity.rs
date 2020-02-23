@@ -199,7 +199,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn remove_trivial_reloads(&self, ctx: &mut SolutionContext) {
         if ctx.required.is_empty() {
             let mut extra_ignored = Vec::new();
-            ctx.routes.iter_mut().for_each(|rc| {
+            ctx.routes.iter_mut().filter(|ctx| self.multi_trip.has_reloads(ctx)).for_each(|rc| {
                 let demands = (0..)
                     .zip(rc.route.tour.all_activities())
                     .filter_map(|(idx, activity)| Self::get_demand(activity).map(|_| idx))
@@ -229,7 +229,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
-    fn can_handle_demand(
+    fn has_demand_violation(
         state: &RouteState,
         pivot: &TourActivity,
         capacity: Option<&Capacity>,
@@ -273,9 +273,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
-    fn can_handle_demand_on_intervals(ctx: &RouteContext, demand: Option<&Demand<Capacity>>) -> bool {
-        let can_handle_demand = |activity: &TourActivity| {
-            CapacityConstraintModule::<Capacity>::can_handle_demand(
+    fn can_handle_demand_on_intervals(
+        ctx: &RouteContext,
+        demand: Option<&Demand<Capacity>>,
+        insert_idx: Option<usize>,
+    ) -> bool {
+        let has_demand_violation = |activity: &TourActivity| {
+            CapacityConstraintModule::<Capacity>::has_demand_violation(
                 &ctx.state,
                 activity,
                 ctx.route.actor.vehicle.dimens.get_capacity(),
@@ -287,16 +291,17 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         ctx.state
             .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS)
             .map(|intervals| {
-                intervals
-                    .iter()
-                    .any(|(start_idx, _)| can_handle_demand(ctx.route.tour.get(*start_idx).unwrap()).is_none())
+                if let Some(insert_idx) = insert_idx {
+                    intervals.iter().filter(|(_, end_idx)| insert_idx > *end_idx).all(|interval| {
+                        has_demand_violation(ctx.route.tour.get(insert_idx.max(interval.0)).unwrap()).is_none()
+                    })
+                } else {
+                    intervals
+                        .iter()
+                        .any(|(start_idx, _)| has_demand_violation(ctx.route.tour.get(*start_idx).unwrap()).is_none())
+                }
             })
-            .unwrap_or_else(|| {
-                can_handle_demand(
-                    ctx.route.tour.start().unwrap_or_else(|| unimplemented!("Optional start is not yet implemented.")),
-                )
-                .is_none()
-            })
+            .unwrap_or_else(|| has_demand_violation(ctx.route.tour.get(insert_idx.unwrap_or(0)).unwrap()).is_none())
     }
 
     fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
@@ -331,7 +336,9 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             }
         }
 
-        self.remove_trivial_reloads(solution_ctx);
+        if solution_ctx.required.is_empty() {
+            self.accept_solution_state(solution_ctx);
+        }
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
@@ -341,6 +348,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
         self.remove_trivial_reloads(ctx);
+
+        ctx.routes.iter_mut().for_each(|route_ctx| {
+            self.recalculate_states(route_ctx);
+        })
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -388,10 +399,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
         let can_handle = match job {
             Job::Single(job) => {
-                CapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand())
+                CapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand(), None)
             }
             Job::Multi(job) => job.jobs.iter().any(|job| {
-                CapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand())
+                CapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand(), None)
             }),
         };
 
@@ -428,13 +439,30 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             };
         };
 
-        if let Some(stopped) = CapacityConstraintModule::<Capacity>::can_handle_demand(
-            &route_ctx.state,
-            activity_ctx.prev,
-            route_ctx.route.actor.vehicle.dimens.get_capacity(),
-            CapacityConstraintModule::<Capacity>::get_demand(activity_ctx.target),
-            !self.multi_trip.has_reloads(route_ctx),
-        ) {
+        let demand = CapacityConstraintModule::<Capacity>::get_demand(activity_ctx.target);
+
+        let violation = if activity_ctx.target.retrieve_job().map_or(false, |job| job.as_multi().is_some()) {
+            // NOTE multi job has dynamic demand which can go in another interval
+            if CapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(
+                route_ctx,
+                demand,
+                Some(activity_ctx.index),
+            ) {
+                None
+            } else {
+                Some(false)
+            }
+        } else {
+            CapacityConstraintModule::<Capacity>::has_demand_violation(
+                &route_ctx.state,
+                activity_ctx.prev,
+                route_ctx.route.actor.vehicle.dimens.get_capacity(),
+                demand,
+                !self.multi_trip.has_reloads(route_ctx),
+            )
+        };
+
+        if let Some(stopped) = violation {
             Some(ActivityConstraintViolation { code: self.code, stopped })
         } else {
             None
