@@ -292,7 +292,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS)
             .map(|intervals| {
                 if let Some(insert_idx) = insert_idx {
-                    intervals.iter().filter(|(_, end_idx)| insert_idx > *end_idx).all(|interval| {
+                    intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {
                         has_demand_violation(ctx.route.tour.get(insert_idx.max(interval.0)).unwrap()).is_none()
                     })
                 } else {

@@ -2,6 +2,8 @@ use crate::format_time;
 use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
+use crate::json::Location;
+use crate::checker::solve_and_check;
 
 #[test]
 fn can_serve_multi_job_and_delivery_with_reload() {
@@ -141,4 +143,91 @@ fn can_serve_multi_job_and_delivery_with_reload() {
             extras: None,
         }
     );
+}
+
+#[test]
+fn can_properly_handle_load_without_capacity_violation() {
+    let problem = Problem {
+        id: "generated_problem_with_reloads".to_string(),
+        plan: Plan {
+            jobs: vec![
+                JobVariant::Single(Job {
+                    id: "a6b5a049-248e-43c8-9916-5075dce4d172".to_string(),
+                    places: JobPlaces {
+                        pickup: Some(JobPlace {
+                            times: None,
+                            location: Location { lat: 52.0, lng: 0.0 },
+                            duration: 10.0,
+                            tag: None,
+                        }),
+                        delivery: Some(JobPlace {
+                            times: None,
+                            location: Location { lat: 1.0, lng: 0.0 },
+                            duration: 12.0,
+                            tag: None,
+                        }),
+                    },
+                    demand: vec![2],
+                    skills: None,
+                }),
+                JobVariant::Single(Job {
+                    id: "79e70361-ec7c-42ca-9112-cf8578374be6".to_string(),
+                    places: JobPlaces {
+                        pickup: Some(JobPlace {
+                            times: None,
+                            location: Location { lat: 67.0, lng: 0.0 },
+                            duration: 16.0,
+                            tag: None,
+                        }),
+                        delivery: None,
+                    },
+                    demand: vec![2],
+                    skills: None,
+                }),
+            ],
+            relations: None,
+        },
+        fleet: Fleet {
+            types: vec![VehicleType {
+                id: "55094085-ee1e-4ffd-8395-ebbc71eb8535".to_string(),
+                profile: "car".to_string(),
+                costs: VehicleCosts { fixed: Some(20.0), distance: 0.002, time: 0.003 },
+                shifts: vec![VehicleShift {
+                    start: VehiclePlace {
+                        time: "2020-07-04T09:00:00Z".to_string(),
+                        location: Location { lat: 0.0, lng: 0.0 },
+                    },
+                    end: Some(VehiclePlace {
+                        time: "2020-07-04T18:00:00Z".to_string(),
+                        location: Location { lat: 0.0, lng: 0.0 },
+                    }),
+                    breaks: None,
+                    reloads: Some(vec![
+                        JobPlace {
+                            times: None,
+                            location: Location { lat: 0.0, lng: 0.0 },
+                            duration: 2620.0,
+                            tag: None,
+                        },
+                        JobPlace {
+                            times: None,
+                            location: Location { lat: 0.0, lng: 0.0 },
+                            duration: 2874.0,
+                            tag: None,
+                        },
+                    ]),
+                }],
+                capacity: vec![2],
+                amount: 1,
+                skills: None,
+                limits: None,
+            }],
+            profiles: vec![Profile { name: "car".to_string(), profile_type: "car".to_string() }],
+        },
+        config: None,
+    };
+
+    let result = solve_and_check(problem);
+
+    assert_eq!(result, Ok(()));
 }
