@@ -17,6 +17,10 @@ pub trait Random {
 
     /// Produces real random value, uniformly distributed on the closed interval [min, max)
     fn uniform_real(&self, min: f64, max: f64) -> f64 {
+        if min == max {
+            return min;
+        }
+
         assert!(min < max);
         rand::thread_rng().gen_range(min, max)
     }
