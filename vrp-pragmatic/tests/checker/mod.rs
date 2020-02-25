@@ -25,12 +25,16 @@ pub enum ActivityType {
     Reload(VehicleReload),
 }
 
-/// Solves problem and checks results.
-pub fn solve_and_check(problem: Problem) -> Result<(), String> {
+pub fn create_checker_context(problem: Problem) -> CheckerContext {
     let matrix = create_matrix_from_problem(&problem);
     let solution = solve_with_metaheuristic_and_iterations(problem.clone(), vec![matrix.clone()], 10);
 
-    let ctx = CheckerContext::new(problem, vec![matrix], solution);
+    CheckerContext::new(problem, vec![matrix], solution)
+}
+
+/// Solves problem and checks results.
+pub fn solve_and_check(problem: Problem) -> Result<(), String> {
+    let ctx = create_checker_context(problem);
 
     check_vehicle_load(&ctx)?;
     check_relations(&ctx)?;

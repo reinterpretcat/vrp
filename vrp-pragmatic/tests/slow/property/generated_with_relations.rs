@@ -1,4 +1,4 @@
-use crate::checker::solve_and_check;
+use crate::checker::*;
 use crate::generator::*;
 use crate::json::problem::*;
 
@@ -42,9 +42,11 @@ prop_compose! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(256))]
     #[test]
-    //#[ignore]
+    #[ignore]
     fn can_solve_problem_with_relations(problem in create_problem_with_relations()) {
-        let result = solve_and_check(problem);
+        let ctx = create_checker_context(problem);
+
+        let result = check_relations(&ctx);
 
         assert_eq!(result, Ok(()));
     }
