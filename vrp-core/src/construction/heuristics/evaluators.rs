@@ -344,9 +344,8 @@ impl MultiContext {
 
     /// Creates failed insertion context within reason code.
     fn fail(err_ctx: SingleContext, other_ctx: MultiContext) -> Result<Self, Self> {
-        let (code, stopped) = err_ctx.violation.map_or((0, false), |v| {
-            (v.code, v.stopped && other_ctx.activities.is_none())
-        });
+        let (code, stopped) =
+            err_ctx.violation.map_or((0, false), |v| (v.code, v.stopped && other_ctx.activities.is_none()));
 
         Result::Err(Self {
             violation: Some(ActivityConstraintViolation { code, stopped }),

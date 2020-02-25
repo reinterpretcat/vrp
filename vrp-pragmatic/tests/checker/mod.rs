@@ -189,3 +189,6 @@ fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
 
 mod capacity;
 pub use self::capacity::*;
+
+mod relations;
+pub use self::relations::*;

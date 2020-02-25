@@ -1,9 +1,9 @@
+use crate::checker::solve_and_check;
 use crate::format_time;
 use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
 use crate::json::Location;
-use crate::checker::solve_and_check;
 
 #[test]
 fn can_serve_multi_job_and_delivery_with_reload() {
