@@ -17,12 +17,9 @@ pub fn generate_relations(
     // NOTE this is done to reduce rejections by proptest
     let max = total_relation_amount.end.min(jobs.len() / jobs_per_relation.end).max(1);
     let min = max.min(total_relation_amount.start).max(0);
+    let max = if min == max { max + 1 } else { max };
 
-    prop::collection::vec(
-        generate_relation(job_ids.clone(), vehicle_ids.clone(), jobs_per_relation.clone())
-            .prop_filter("Relation with no job ids", move |relation| relation.jobs.len() > jobs_per_relation.start),
-        min..max,
-    )
+    prop::collection::vec(generate_relation(job_ids.clone(), vehicle_ids.clone(), jobs_per_relation.clone()), min..max)
 }
 
 prop_compose! {
@@ -63,5 +60,8 @@ fn get_job_ids(jobs: &Vec<JobVariant>) -> Vec<String> {
 }
 
 fn get_vehicle_ids(vehicles: &Vec<VehicleType>) -> Vec<String> {
-    vehicles.iter().map(|vehicle| vehicle.id.clone()).collect()
+    vehicles
+        .iter()
+        .flat_map(|vehicle| (1..=vehicle.amount).map(|idx| format!("{}_{}", vehicle.id, idx)).collect::<Vec<_>>())
+        .collect()
 }

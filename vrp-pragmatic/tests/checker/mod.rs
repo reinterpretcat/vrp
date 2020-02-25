@@ -30,11 +30,10 @@ pub fn solve_and_check(problem: Problem) -> Result<(), String> {
     let matrix = create_matrix_from_problem(&problem);
     let solution = solve_with_metaheuristic_and_iterations(problem.clone(), vec![matrix.clone()], 10);
 
-    //println!("{:?}", solution);
-
     let ctx = CheckerContext::new(problem, vec![matrix], solution);
 
     check_vehicle_load(&ctx)?;
+    check_relations(&ctx)?;
 
     Ok(())
 }
