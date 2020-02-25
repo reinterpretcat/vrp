@@ -80,3 +80,10 @@ prop_compose! {
         None
     }
 }
+
+prop_compose! {
+    /// Generates no time windows.
+    pub fn generate_no_time_windows()(_ in ".*") -> Option<Vec<Vec<String>>> {
+        None
+    }
+}

@@ -4,13 +4,22 @@ use crate::json::problem::*;
 
 use proptest::prelude::*;
 
-fn simple_job_prototype() -> impl Strategy<Value = JobVariant> {
-    prop_oneof![default_delivery_prototype(), default_pickup_prototype()]
+pub fn relation_job_prototype() -> impl Strategy<Value = JobVariant> {
+    delivery_job_prototype(
+        simple_job_place_prototype(
+            generate_simple_locations(1..100),
+            generate_durations(10..20),
+            generate_no_tags(),
+            generate_no_time_windows(),
+        ),
+        generate_simple_demand(1..2),
+        generate_no_skills(),
+    )
 }
 
 prop_compose! {
     fn create_problem_with_relations()
-        (plan in generate_plan(generate_jobs(simple_job_prototype(), 1..256)),
+        (plan in generate_plan(generate_jobs(relation_job_prototype(), 1..256)),
          fleet in generate_fleet(generate_vehicles(default_vehicle_type_prototype(), 1..4), default_profiles())
         )
         (relations in generate_relations(&plan.jobs, &fleet.types, 1..10, 2..20), plan in Just(plan), fleet in Just(fleet))
@@ -33,7 +42,7 @@ prop_compose! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(256))]
     #[test]
-    #[ignore]
+    //#[ignore]
     fn can_solve_problem_with_relations(problem in create_problem_with_relations()) {
         let result = solve_and_check(problem);
 

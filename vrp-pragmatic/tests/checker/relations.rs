@@ -8,15 +8,18 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
     (0_usize..)
         .zip(context.problem.plan.relations.as_ref().map_or(vec![].iter(), |relations| relations.iter()))
         .try_for_each(|(idx, relation)| {
-            let tour = get_tour_by_vehicle_id(&relation.vehicle_id, relation.shift_index, &context.solution)?;
-            let activity_ids = tour
-                .stops
-                .iter()
-                .flat_map(|stop| {
-                    // TODO consider job tags within multi jobs
-                    stop.activities.iter().map(|a| a.job_id.clone())
-                })
-                .collect::<Vec<_>>();
+            let tour = get_tour_by_vehicle_id(&relation.vehicle_id, relation.shift_index, &context.solution);
+            // NOTE tour can be absent for tour relation
+            let tour = if tour.is_err() {
+                return match relation.type_field {
+                    RelationType::Tour => Ok(()),
+                    _ => tour.map(|_| ()),
+                };
+            } else {
+                tour.unwrap()
+            };
+
+            let activity_ids = get_activity_ids(&tour);
 
             let relation_ids = relation.jobs.iter().collect::<HashSet<_>>();
             if relation_ids.len() != relation.jobs.len() {
@@ -47,13 +50,15 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
                     }
                 }
                 RelationType::Tour => {
-                    let ids =
-                        activity_ids.iter().filter(|id| relation_ids.contains(id)).cloned().collect::<HashSet<_>>();
-                    if ids.len() != relation_ids.len() {
-                        Err(format!(
-                            "Relation {} does not follow tour rule: expected {:?}, got {:?}, common: {:?}",
-                            idx, relation.jobs, activity_ids, ids
-                        ))
+                    let has_wrong_assignment = context
+                        .solution
+                        .tours
+                        .iter()
+                        .filter(|other| tour.vehicle_id != other.vehicle_id)
+                        .any(|tour| get_activity_ids(tour).iter().any(|id| relation_ids.contains(id)));
+
+                    if has_wrong_assignment {
+                        Err(format!("Relation {} has jobs assigned to another tour", idx))
                     } else {
                         Ok(())
                     }
@@ -74,6 +79,16 @@ fn get_tour_by_vehicle_id(vehicle_id: &str, shift_index: Option<usize>, solution
         .find(|tour| tour.vehicle_id == vehicle_id)
         .cloned()
         .ok_or_else(|| format!("Cannot find tour for '{}'", vehicle_id))
+}
+
+fn get_activity_ids(tour: &Tour) -> Vec<String> {
+    tour.stops
+        .iter()
+        .flat_map(|stop| {
+            // TODO consider job tags within multi jobs
+            stop.activities.iter().map(|a| a.job_id.clone())
+        })
+        .collect()
 }
 
 fn intersection<T>(left: Vec<T>, right: Vec<T>) -> Vec<T>

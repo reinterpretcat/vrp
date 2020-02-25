@@ -10,7 +10,7 @@ fn get_reloads() -> impl Strategy<Value = Option<Vec<VehicleReload>>> {
             Just(default_vehicle_location()),
             generate_durations(300..3600),
             generate_no_tags(),
-            default_job_single_day_time_windows().prop_map(|tws| Some(tws)),
+            default_job_single_day_time_windows(),
         ),
         1..4,
     )

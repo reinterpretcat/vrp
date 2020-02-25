@@ -86,18 +86,13 @@ prop_compose! {
         locations: impl Strategy<Value = Location>,
         durations: impl Strategy<Value = f64>,
         tags: impl Strategy<Value = Option<String>>,
-        time_windows: impl Strategy<Value = Vec<Vec<String>>>,
+        time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
     )
     (location in locations,
      duration in durations,
      tag in tags,
      times in time_windows) -> JobPlace {
-      JobPlace {
-        times: Some(times),
-        location,
-        duration,
-        tag,
-      }
+      JobPlace { times, location, duration, tag}
     }
 }
 

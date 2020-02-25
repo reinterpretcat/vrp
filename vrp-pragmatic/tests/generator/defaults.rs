@@ -5,19 +5,20 @@ use crate::json::problem::*;
 use crate::json::Location;
 use crate::{format_time, parse_time};
 
-const START_DAY: &str = "2020-07-04T00:00:00Z";
+pub const START_DAY: &str = "2020-07-04T00:00:00Z";
 
 pub fn default_time_plus_offset(offset: i32) -> String {
     format_time(parse_time(&START_DAY.to_string()) + from_hours(offset).as_secs_f64())
 }
 
-pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Vec<Vec<String>>> {
+pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Option<Vec<Vec<String>>>> {
     generate_multiple_time_windows_fixed(
         START_DAY,
         vec![from_hours(9), from_hours(14)],
         vec![from_hours(2), from_hours(4)],
         1..3,
     )
+    .prop_map(|tw| Some(tw))
 }
 
 pub fn default_job_place_prototype() -> impl Strategy<Value = JobPlace> {
