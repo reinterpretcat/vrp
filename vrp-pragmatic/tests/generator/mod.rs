@@ -11,6 +11,9 @@ pub use self::common::*;
 mod jobs;
 pub use self::jobs::*;
 
+mod relations;
+pub use self::relations::*;
+
 mod defaults;
 pub use self::defaults::*;
 
