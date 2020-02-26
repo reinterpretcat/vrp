@@ -9,14 +9,8 @@ fn can_limit_one_job_by_shift_time() {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![100., 0.])], relations: Option::None },
         fleet: Fleet {
             types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
-                shifts: vec![create_default_vehicle_shift()],
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
                 limits: Some(VehicleLimits { max_distance: None, shift_time: Some(99.) }),
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },
@@ -71,14 +65,8 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
-                shifts: vec![create_default_vehicle_shift()],
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
                 limits: Some(VehicleLimits { max_distance: None, shift_time: Some(40.) }),
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },

@@ -13,9 +13,6 @@ fn can_use_two_breaks() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![
                     VehicleBreak {
                         times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(10.)]]),
@@ -28,10 +25,7 @@ fn can_use_two_breaks() {
                         location: None,
                     },
                 ])],
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
-                limits: None,
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },

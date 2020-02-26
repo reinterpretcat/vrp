@@ -17,18 +17,12 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
                     times: VehicleBreakTime::TimeWindows(vec![vec![format_time(0.), format_time(1000.)]]),
                     duration: 2.0,
                     location: Some(vec![3., 0.].to_loc()),
                 }])],
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
-                limits: None,
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },

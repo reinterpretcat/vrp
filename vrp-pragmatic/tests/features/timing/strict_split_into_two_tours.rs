@@ -17,16 +17,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
-                shifts: vec![create_default_vehicle_shift()],
-                capacity: vec![10],
-                amount: 2,
-                skills: None,
-                limits: None,
-            }],
+            types: vec![VehicleType { amount: 2, ..create_default_vehicle_type() }],
             profiles: create_default_profiles(),
         },
         config: None,

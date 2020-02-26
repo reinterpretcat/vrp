@@ -12,14 +12,10 @@ fn can_even_dist_jobs() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_open_vehicle_shift()],
                 capacity: vec![2],
                 amount: 2,
-                skills: None,
-                limits: None,
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },

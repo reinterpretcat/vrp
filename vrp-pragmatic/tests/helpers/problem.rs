@@ -164,6 +164,10 @@ pub fn create_default_vehicle_costs() -> VehicleCosts {
     VehicleCosts { fixed: Some(10.), distance: 1., time: 1. }
 }
 
+pub fn create_default_vehicle_type() -> VehicleType {
+    create_default_vehicle("my_vehicle")
+}
+
 pub fn create_default_vehicle(id: &str) -> VehicleType {
     create_vehicle_with_capacity(id, vec![10])
 }

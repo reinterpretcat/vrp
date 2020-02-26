@@ -14,9 +14,6 @@ fn can_skip_break_when_vehicle_not_used() {
         fleet: Fleet {
             types: vec![
                 VehicleType {
-                    id: "my_vehicle".to_string(),
-                    profile: "car".to_string(),
-                    costs: create_default_vehicle_costs(),
                     shifts: vec![VehicleShift {
                         start: VehiclePlace { time: format_time(0.), location: vec![100., 0.].to_loc() },
                         end: Some(VehiclePlace {
@@ -30,10 +27,7 @@ fn can_skip_break_when_vehicle_not_used() {
                         }]),
                         reloads: None,
                     }],
-                    capacity: vec![10],
-                    amount: 1,
-                    skills: None,
-                    limits: None,
+                    ..create_default_vehicle_type()
                 },
                 create_default_vehicle("vehicle_without_break"),
             ],
@@ -124,18 +118,12 @@ fn can_skip_break_when_jobs_completed() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
                     times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(8.)]]),
                     duration: 2.0,
                     location: Some(vec![6., 0.].to_loc()),
                 }])],
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
-                limits: None,
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },
@@ -214,9 +202,6 @@ fn can_skip_second_break_when_jobs_completed() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
                 shifts: vec![create_default_vehicle_shift_with_breaks(vec![
                     VehicleBreak {
                         times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(10.)]]),
@@ -229,10 +214,7 @@ fn can_skip_second_break_when_jobs_completed() {
                         location: None,
                     },
                 ])],
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
-                limits: None,
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },

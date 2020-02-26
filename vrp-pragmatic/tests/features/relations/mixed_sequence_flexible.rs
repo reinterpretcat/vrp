@@ -31,19 +31,7 @@ fn can_use_sequence_and_flexible_relation_for_one_vehicle() {
                 },
             ]),
         },
-        fleet: Fleet {
-            types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
-                shifts: vec![create_default_vehicle_shift()],
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
-                limits: None,
-            }],
-            profiles: create_default_profiles(),
-        },
+        fleet: Fleet { types: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
         config: None,
     };
     let matrix = create_matrix_from_problem(&problem);

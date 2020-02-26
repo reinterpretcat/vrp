@@ -16,9 +16,6 @@ fn can_use_multiple_times_from_vehicle_and_job() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
                 shifts: vec![
                     VehicleShift {
                         start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
@@ -26,8 +23,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             time: format_time(100.).to_string(),
                             location: vec![0., 0.].to_loc(),
                         }),
-                        breaks: None,
-                        reloads: None,
+                        ..create_default_vehicle_shift()
                     },
                     VehicleShift {
                         start: VehiclePlace { time: format_time(100.), location: vec![0., 0.].to_loc() },
@@ -35,14 +31,11 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             time: format_time(200.).to_string(),
                             location: vec![0., 0.].to_loc(),
                         }),
-                        breaks: None,
-                        reloads: None,
+                        ..create_default_vehicle_shift()
                     },
                 ],
                 capacity: vec![1],
-                amount: 1,
-                skills: None,
-                limits: None,
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },

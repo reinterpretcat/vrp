@@ -7,19 +7,7 @@ fn can_use_vehicle_with_open_end() {
     let problem = Problem {
         id: "my_problem".to_string(),
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![1., 0.])], relations: Option::None },
-        fleet: Fleet {
-            types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
-                shifts: vec![create_default_open_vehicle_shift()],
-                capacity: vec![10],
-                amount: 1,
-                skills: None,
-                limits: None,
-            }],
-            profiles: create_default_profiles(),
-        },
+        fleet: Fleet { types: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
         config: None,
     };
     let matrix = Matrix {
