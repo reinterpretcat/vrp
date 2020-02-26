@@ -5,13 +5,13 @@
 In order to solve VRP, you need to specify at least one routing profile in `fleet.profiles`:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:109:114}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:108:113}}
 ```
 
 The `name` must be unique for each profile and it should referenced by `profile` property defined on vehicle:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:75:80}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:74:79}}
 ```
 
 ## Multiple profiles

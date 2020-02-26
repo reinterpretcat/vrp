@@ -6,7 +6,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_multi_dim_capacity() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job_with_demand("job1", vec![1., 0.], vec![1, 1]),
@@ -41,7 +40,6 @@ fn can_use_multi_dim_capacity() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 26.,
                 distance: 6,

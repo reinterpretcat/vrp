@@ -37,7 +37,7 @@ There are multiple strict constraints that should be matched on jobs and vehicle
 
 Each job should have `demand` property which models a _good_ size in abstract integral units:
 
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:26:28}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:25:27}}
 
 It is required, but you can set demand to zero in case it is not needed. It can be multidimensional array.
 
@@ -48,13 +48,13 @@ type based on accumulated demand value. Total demand should not exceed capacity 
 
 Optionally, each job can have one or more time window:
 
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:13:22}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:12:21}}
 
 Time windows are strict: if no vehicle can visit a job in given time ranges, then the job is considered as unassigned. 
 
 Vehicle time is limited per each shift and has required start optional end time:
 
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:85:101}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:84:100}}
 
 More details about `shift` property can be found in [vehicle type section](./vehicle-types.md).
 

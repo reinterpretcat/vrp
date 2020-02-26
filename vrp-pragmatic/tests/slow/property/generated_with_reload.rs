@@ -38,7 +38,6 @@ prop_compose! {
         )
         -> Problem {
         Problem {
-            id: "generated_problem_with_reloads".to_string(),
             plan,
             fleet,
             config: None

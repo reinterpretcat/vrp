@@ -280,8 +280,6 @@ pub struct EvenDistribution {
 /// A VRP problem definition.
 #[derive(Clone, Deserialize, Debug)]
 pub struct Problem {
-    /// Problem id.
-    pub id: String,
     /// Problem plan: customers to serve.
     pub plan: Plan,
     /// Problem resources: vehicles to be used, routing info.

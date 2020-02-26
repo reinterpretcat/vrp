@@ -95,7 +95,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect();
     let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
-    let extras = create_extras(&api_problem.id, &problem_props, coord_index);
+    let extras = create_extras(&problem_props, coord_index);
     let constraint =
         create_constraint_pipeline(&fleet, activity.clone(), transport.clone(), problem_props, &locks, limits);
 
@@ -205,9 +205,8 @@ fn add_even_dist_module(constraint: &mut ConstraintPipeline, props: &ProblemProp
     }
 }
 
-fn create_extras(problem_id: &String, props: &ProblemProperties, coord_index: CoordIndex) -> Extras {
+fn create_extras(props: &ProblemProperties, coord_index: CoordIndex) -> Extras {
     let mut extras = Extras::default();
-    extras.insert("problem_id".to_string(), Box::new(problem_id.clone()));
     extras.insert(
         "capacity_type".to_string(),
         Box::new((if props.has_multi_dimen_capacity { "multi" } else { "single" }).to_string()),

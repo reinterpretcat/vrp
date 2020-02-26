@@ -6,7 +6,6 @@ use crate::json::solution::*;
 #[test]
 fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("simple", vec![1., 0.]),
@@ -45,7 +44,6 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 46.,
                 distance: 16,

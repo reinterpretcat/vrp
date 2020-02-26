@@ -8,7 +8,6 @@ use crate::json::Location;
 #[test]
 fn can_serve_multi_job_and_delivery_with_reload() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("simple1", vec![1., 0.]),
@@ -49,7 +48,6 @@ fn can_serve_multi_job_and_delivery_with_reload() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 46.,
                 distance: 14,
@@ -153,7 +151,6 @@ fn can_serve_multi_job_and_delivery_with_reload() {
 #[test]
 fn can_properly_handle_load_without_capacity_violation() {
     let problem = Problem {
-        id: "generated_problem_with_reloads".to_string(),
         plan: Plan {
             jobs: vec![
                 JobVariant::Single(Job {

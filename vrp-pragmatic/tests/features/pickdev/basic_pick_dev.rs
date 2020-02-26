@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_one_pickup_delivery_job_with_one_vehicle() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan { jobs: vec![create_pickup_delivery_job("job1", vec![1., 0.], vec![2., 0.])], relations: None },
         fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
         config: None,
@@ -17,7 +16,6 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 20.,
                 distance: 4,

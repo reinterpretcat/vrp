@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_handle_limited_capacity() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_multi_job(
@@ -34,7 +33,6 @@ fn can_handle_limited_capacity() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 88.,
                 distance: 36,

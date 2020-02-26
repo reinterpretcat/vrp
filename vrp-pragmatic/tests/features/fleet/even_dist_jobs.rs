@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_even_dist_jobs() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![1., 0.])],
             relations: None,
@@ -32,7 +31,6 @@ fn can_even_dist_jobs() {
     assert_vehicle_agnostic(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 26.,
                 distance: 2,

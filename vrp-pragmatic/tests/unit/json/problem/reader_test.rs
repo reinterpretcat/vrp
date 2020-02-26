@@ -73,7 +73,6 @@ fn can_read_minimal_problem() {
 #[test]
 fn can_read_complex_problem() {
     let problem = Problem {
-        id: "problem_id".to_string(),
         plan: Plan {
             jobs: vec![
                 JobVariant::Single(Job {

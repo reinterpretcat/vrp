@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("job1", vec![1., 0.]),
@@ -36,7 +35,6 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 19.,
                 distance: 3,

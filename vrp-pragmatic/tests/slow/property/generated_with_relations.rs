@@ -28,7 +28,6 @@ prop_compose! {
         let relations = relations.into_iter().filter(|r| !r.jobs.is_empty()).collect();
 
         Problem {
-            id: "generated_problem_with_relations".to_string(),
             plan: Plan {
                 relations: Some(relations),
                 ..plan

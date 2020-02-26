@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_limit_by_max_distance() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![100., 0.])], relations: Option::None },
         fleet: Fleet {
             types: vec![VehicleType {
@@ -29,7 +28,6 @@ fn can_limit_by_max_distance() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 0.,
                 distance: 0,

@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_limit_one_job_by_shift_time() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![100., 0.])], relations: Option::None },
         fleet: Fleet {
             types: vec![VehicleType {
@@ -29,7 +28,6 @@ fn can_limit_one_job_by_shift_time() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 0.,
                 distance: 0,
@@ -52,7 +50,6 @@ fn can_limit_one_job_by_shift_time() {
 #[test]
 fn can_skip_job_from_multiple_because_of_shift_time() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job_with_duration("job1", vec![1., 0.], 10.),
@@ -79,7 +76,6 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 52.,
                 distance: 6,

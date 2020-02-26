@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_two_sequence_relations_with_two_vehicles_with_new_jobs() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("job1", vec![1., 0.]),
@@ -47,7 +46,6 @@ fn can_use_two_sequence_relations_with_two_vehicles_with_new_jobs() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 114.,
                 distance: 42,

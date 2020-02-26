@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_create_solution() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
             relations: Option::None,
@@ -20,7 +19,6 @@ fn can_create_solution() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 52.,
                 distance: 20,
@@ -81,7 +79,6 @@ fn can_create_solution() {
 #[test]
 fn can_merge_activities_in_one_stop() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![5., 0.])],
             relations: Option::None,
@@ -96,7 +93,6 @@ fn can_merge_activities_in_one_stop() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 32.,
                 distance: 10,

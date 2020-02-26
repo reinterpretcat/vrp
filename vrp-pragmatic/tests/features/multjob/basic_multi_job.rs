@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_assign_multi_and_single_job_as_pickups_specified() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("simple", vec![1., 0.]),
@@ -30,7 +29,6 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 46.,
                 distance: 16,
@@ -110,7 +108,6 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
 #[test]
 fn can_assign_multi_job_in_pickup_effective_way() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_multi_job(
                 "multi",
@@ -132,7 +129,6 @@ fn can_assign_multi_job_in_pickup_effective_way() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 37.,
                 distance: 12,

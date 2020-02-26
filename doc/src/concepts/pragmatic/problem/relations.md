@@ -15,7 +15,7 @@ You can use more than one relation per vehicle.
 A `tour` relation is used to lock specific jobs to certain vehicle in any order:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/relation-tour.basic.problem.json:67:71}}
+{{#include ../../../../../examples/json-pragmatic/data/relation-tour.basic.problem.json:66:70}}
 ```
 
 ## Fixed type
@@ -28,7 +28,7 @@ between.
 In contrast to `fixed` relation, `sequence` locks jobs to certain vehicle without ability to insert new jobs in between:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/relation-strict.basic.problem.json:67:71}}
+{{#include ../../../../../examples/json-pragmatic/data/relation-strict.basic.problem.json:66:70}}
 ```
 
 

@@ -6,7 +6,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_vehicle_with_pickups_and_deliveries() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("d1", vec![1., 0.]),
@@ -44,7 +43,6 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 28.,
                 distance: 6,

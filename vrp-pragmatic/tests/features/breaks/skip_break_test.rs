@@ -6,7 +6,6 @@ use crate::json::solution::*;
 #[test]
 fn can_skip_break_when_vehicle_not_used() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
             relations: Option::None,
@@ -42,7 +41,6 @@ fn can_skip_break_when_vehicle_not_used() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 52.,
                 distance: 20,
@@ -103,7 +101,6 @@ fn can_skip_break_when_vehicle_not_used() {
 #[test]
 fn can_skip_break_when_jobs_completed() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![JobVariant::Single(Job {
                 id: "job1".to_string(),
@@ -136,7 +133,6 @@ fn can_skip_break_when_jobs_completed() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 24.,
                 distance: 2,
@@ -195,7 +191,6 @@ fn can_skip_break_when_jobs_completed() {
 #[test]
 fn can_skip_second_break_when_jobs_completed() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
             relations: Option::None,
@@ -227,7 +222,6 @@ fn can_skip_second_break_when_jobs_completed() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 54.,
                 distance: 20,

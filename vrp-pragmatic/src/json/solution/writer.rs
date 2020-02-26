@@ -63,13 +63,6 @@ pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
         .and_then(|s| s.downcast_ref::<CoordIndex>())
         .unwrap_or_else(|| panic!("Cannot get coord index!"));
 
-    let problem_id = solution
-        .extras
-        .get("problem_id")
-        .and_then(|s| s.downcast_ref::<String>())
-        .unwrap_or_else(|| panic!("Cannot get problem id!"))
-        .clone();
-
     let tours = solution.routes.iter().map(|r| create_tour(problem, r, coord_index)).collect::<Vec<Tour>>();
 
     let statistic = tours.iter().fold(Statistic::default(), |acc, tour| acc + tour.statistic.clone());
@@ -78,7 +71,7 @@ pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
 
     let extras = create_extras(solution);
 
-    ApiSolution { problem_id, statistic, tours, unassigned, extras }
+    ApiSolution { statistic, tours, unassigned, extras }
 }
 
 fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> Tour {

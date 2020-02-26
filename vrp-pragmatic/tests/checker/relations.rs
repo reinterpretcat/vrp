@@ -182,7 +182,6 @@ mod tests {
 
         fn can_check_relations_impl(relations: Option<Vec<Relation>>, expected_result: Result<(), ()>) {
             let problem = Problem {
-                id: "my_problem".to_string(),
                 plan: Plan {
                     jobs: vec![
                         create_delivery_job("job1", vec![1., 0.]),
@@ -227,7 +226,6 @@ mod tests {
             };
             let matrix = create_matrix_from_problem(&problem);
             let solution = Solution {
-                problem_id: "my_problem".to_string(),
                 statistic: Statistic {
                     cost: 51.,
                     distance: 16,

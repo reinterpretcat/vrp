@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_split_into_two_tours_because_of_strict_times() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job_with_times("job1", vec![10., 0.], vec![(70, 80)], 10.),
@@ -29,7 +28,6 @@ fn can_split_into_two_tours_because_of_strict_times() {
     assert_vehicle_agnostic(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 360.,
                 distance: 140,

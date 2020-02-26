@@ -4,12 +4,12 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 
 - **id** (required): a vehicle id
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:78}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:77}}
 ```
 
 - **profile** (required): a name of routing profile
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:79}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:78}}
 ```
 
 - **costs** (required): specifies how expensive is vehicle usage. It has three properties:
@@ -22,18 +22,18 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 
 - **capacity** (required): specifies vehicle capacity symmetric to job demand
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:103:105}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:102:104}}
 ```
 
 - **amount** (required): amount of available vehicles of this type
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:106}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:105}}
 ```
 
 - **skills** (optional): vehicle skills needed by some jobs
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/skills.basic.problem.json:37:39}}
+{{#include ../../../../../examples/json-pragmatic/data/skills.basic.problem.json:36:38}}
 ```
 
 - **limits** (optional): vehicle limits. There are two:
@@ -44,7 +44,7 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 An example:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:80:84}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:79:83}}
 ``` 
 
 ## Shift
@@ -52,7 +52,7 @@ An example:
 Essentially, shift specifies vehicle constraints such as time, start/end locations, etc.:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:86:101}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:85:100}}
 ```
 
 At least one shift has to be specified. More than one vehicle shift with different times means that this vehicle can be

@@ -5,7 +5,6 @@ use crate::json::solution::*;
 
 fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
             relations: Some(vec![Relation {
@@ -48,7 +47,6 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 26.,
                 distance: 6,
@@ -129,7 +127,6 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 26.,
                 distance: 6,

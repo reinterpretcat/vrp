@@ -30,7 +30,6 @@ can_use_vehicle_with_two_tours_and_two_jobs! {
 
 fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<JobVariant>, unassigned: Vec<UnassignedJob>) {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan { jobs, relations: Option::None },
         fleet: Fleet {
             types: vec![VehicleType {
@@ -59,7 +58,6 @@ fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<JobVariant>, unass
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 26.,
                 distance: 6,

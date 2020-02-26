@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_unassign_multi_job_due_to_capacity() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_multi_job(
                 "multi",
@@ -27,7 +26,6 @@ fn can_unassign_multi_job_due_to_capacity() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 0.,
                 distance: 0,

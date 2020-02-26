@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_sequence_and_tour_relation_for_one_vehicle() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("job1", vec![1., 0.]),
@@ -41,7 +40,6 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 53.,
                 distance: 18,

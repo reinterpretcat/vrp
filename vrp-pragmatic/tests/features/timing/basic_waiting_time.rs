@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_wait_for_job_start() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job_with_times("job1", vec![1., 0.], vec![(0, 1)], 0.),
@@ -23,7 +22,6 @@ fn can_wait_for_job_start() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 26.,
                 distance: 4,
@@ -84,7 +82,6 @@ fn can_wait_for_job_start() {
 #[test]
 fn can_skip_initial_waiting() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(10, 20)], 10.)],
             relations: Option::None,
@@ -99,7 +96,6 @@ fn can_skip_initial_waiting() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 24.,
                 distance: 2,

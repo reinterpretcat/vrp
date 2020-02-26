@@ -6,7 +6,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_one_vehicle_with_reload_instead_of_two() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
             relations: Option::None,
@@ -39,7 +38,6 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
     assert_vehicle_agnostic(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 26.,
                 distance: 6,

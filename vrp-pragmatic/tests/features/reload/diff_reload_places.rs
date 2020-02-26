@@ -6,7 +6,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_reloads_with_different_locations() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("job1", vec![10., 0.]),
@@ -52,7 +51,6 @@ fn can_use_reloads_with_different_locations() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 95.,
                 distance: 38,

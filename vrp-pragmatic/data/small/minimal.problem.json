@@ -1,5 +1,4 @@
 {
-  "id": "Minimal problem with 2 jobs, 1 vehicle, 4 locations",
   "plan": {
     "jobs": [
       {

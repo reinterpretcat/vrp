@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_wait_for_job_start() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job_with_skills("job1", vec![1., 0.], vec!["unique_skill".to_string()])],
             relations: Option::None,
@@ -31,7 +30,6 @@ fn can_wait_for_job_start() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 47.,
                 distance: 18,

@@ -6,7 +6,6 @@ use crate::json::solution::*;
 #[test]
 fn can_assign_interval_break_between_jobs() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![15., 0.])],
             relations: Option::None,
@@ -31,7 +30,6 @@ fn can_assign_interval_break_between_jobs() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 74.,
                 distance: 30,
@@ -115,7 +113,6 @@ fn can_assign_interval_break_between_jobs() {
 #[test]
 fn can_assign_interval_break_with_reload() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job("job1", vec![10., 0.]),
@@ -156,7 +153,6 @@ fn can_assign_interval_break_with_reload() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 139.,
                 distance: 60,

@@ -26,7 +26,6 @@ fn can_deserialize_problem() {
 
     let problem = deserialize_problem(BufReader::new(file)).unwrap();
 
-    assert_eq!(problem.id, "Minimal problem with 2 jobs, 1 vehicle, 4 locations");
     assert_eq!(problem.plan.jobs.len(), 2);
     assert_eq!(problem.fleet.types.len(), 1);
     assert!(problem.plan.relations.is_none());

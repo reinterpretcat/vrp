@@ -182,7 +182,6 @@ mod tests {
 
     fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>) {
         let problem = Problem {
-            id: "my_problem".to_string(),
             plan: Plan {
                 jobs: vec![
                     create_delivery_job("job1", vec![1., 0.]),
@@ -223,7 +222,6 @@ mod tests {
         };
         let matrix = create_matrix_from_problem(&problem);
         let solution = Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 13.,
                 distance: 1,

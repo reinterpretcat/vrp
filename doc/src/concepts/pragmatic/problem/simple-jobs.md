@@ -8,7 +8,7 @@ A simple job is a job which has single `job.demand` property specified. There ar
 Pickup job is a job with only `job.places.pickup` property specified:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:5:29}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:4:28}}
 ```
 
 The vehicle picks some `good` at pickup location, which leads to capacity growth according to `job.demand` value,
@@ -20,7 +20,7 @@ and brings it till the end of the tour.
 Delivery job is a job with only `job.places.delivery` property specified: 
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:30:50}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:29:49}}
 ```
 
 The vehicle picks some `good` at the start stop, which leads to initial capacity growth, and brings it to job's location,
@@ -32,7 +32,7 @@ where capacity is decreased based on `job.demand` value.
 Pickup and delivery job is a job with both `job.places.pickup` and `job.places.delivery` properties specified:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:51:72}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:50:71}}
 ```
 
 The vehicle picks some `good` at `job.pickup.location`, which leads to capacity growth, and brings it to the `job.delivery.location`.

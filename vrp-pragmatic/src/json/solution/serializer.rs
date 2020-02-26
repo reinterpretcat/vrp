@@ -145,8 +145,6 @@ pub struct Extras {
 #[derive(Clone, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Solution {
-    /// A VRP problem id.
-    pub problem_id: String,
     /// Total statistic.
     pub statistic: Statistic,
     /// List of tours.

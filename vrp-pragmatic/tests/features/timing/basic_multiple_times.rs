@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_multiple_times() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job_with_times("job1", vec![10., 0.], vec![(0, 10)], 0.),
@@ -26,7 +25,6 @@ fn can_use_multiple_times() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 240.,
                 distance: 100,

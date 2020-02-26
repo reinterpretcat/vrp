@@ -5,7 +5,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_two_dimensions() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![
                 create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, 1]),
@@ -30,7 +29,6 @@ fn can_use_two_dimensions() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 16.,
                 distance: 2,
@@ -83,7 +81,6 @@ fn can_use_two_dimensions() {
 #[test]
 fn can_unassign_due_to_dimension_mismatch() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan { jobs: vec![create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, 1])], relations: None },
         fleet: Fleet {
             types: vec![VehicleType {
@@ -107,7 +104,6 @@ fn can_unassign_due_to_dimension_mismatch() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 0.,
                 distance: 0,

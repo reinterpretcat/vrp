@@ -6,7 +6,6 @@ use crate::json::solution::*;
 #[test]
 fn can_use_two_breaks() {
     let problem = Problem {
-        id: "my_problem".to_string(),
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![99., 0.])],
             relations: Option::None,
@@ -38,7 +37,6 @@ fn can_use_two_breaks() {
     assert_eq!(
         solution,
         Solution {
-            problem_id: "my_problem".to_string(),
             statistic: Statistic {
                 cost: 412.,
                 distance: 198,
