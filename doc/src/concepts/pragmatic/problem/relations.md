@@ -6,7 +6,7 @@ has the following properties:
 - **type** (required): one of three relation types: tour, fixed, or sequence. See description below.
 - **vehicleId** (required): a specific vehicle id
 - **jobs** (required): list of job ids including reserved: `departure`, `arrival`, `break` and `reload`
-- **shiftIndex** (optional): a vehicle shift index.
+- **shiftIndex** (optional): a vehicle shift index. If not specified, a first, zero indexed, shift assumed
 
 You can use more than one relation per vehicle.
 
@@ -31,6 +31,16 @@ In contrast to `fixed` relation, `sequence` locks jobs to certain vehicle withou
 {{#include ../../../../../examples/json-pragmatic/data/relation-strict.basic.problem.json:66:70}}
 ```
 
+In this example, new jobs can be inserted only after job with id `job1`.
+
+## Important notes
+
+Please consider the following notes:
+
+* jobs specified in `fixed` and `sequence` are not checked for constraint violations. This might lead to
+non-feasible solutions (e.g. routes with capacity or time window violation).
+
+* relation with `multi-job` are not yet supported
 
 ## Examples
 

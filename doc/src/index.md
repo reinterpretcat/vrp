@@ -1,6 +1,6 @@
 # Introduction
 
-This project is about solving Vehicle Routing Problem which is common task in transportation planning.
+This project is about solving Vehicle Routing Problem which is common task in transportation planning and logistics.
 
  ## Vehicle Routing Problem
  From wiki:
@@ -18,6 +18,6 @@ This project is about solving Vehicle Routing Problem which is common task in tr
 
 Although performance is constantly in focus, a main idea behind projects' design is extensibility:
 the project aims to support a very wide range of VRP variations known as Rich VRP. This is achieved
-through  various extension points: custom constraints, objective functions, acceptance criteria, etc.
+through various extension points: custom constraints, objective functions, acceptance criteria, etc.
 
 More details can be found in [concepts chapter](concepts/index.md).
