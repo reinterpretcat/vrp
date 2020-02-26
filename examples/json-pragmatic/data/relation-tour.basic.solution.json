@@ -15,6 +15,7 @@
     {
       "vehicleId": "vehicle_2",
       "typeId": "vehicle",
+      "shiftIndex": 0,
       "stops": [
         {
           "location": {

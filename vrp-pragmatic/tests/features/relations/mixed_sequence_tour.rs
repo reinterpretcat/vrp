@@ -63,6 +63,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",

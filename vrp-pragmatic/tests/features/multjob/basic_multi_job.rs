@@ -40,6 +40,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",
@@ -135,6 +136,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",

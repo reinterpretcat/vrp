@@ -90,6 +90,8 @@ pub struct Tour {
     pub vehicle_id: String,
     /// Vehicle type id.
     pub type_id: String,
+    /// Shift index.
+    pub shift_index: usize,
     /// List of stops.
     pub stops: Vec<Stop>,
     /// Tour statistic.

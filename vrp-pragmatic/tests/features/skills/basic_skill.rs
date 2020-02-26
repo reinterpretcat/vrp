@@ -45,6 +45,7 @@ fn can_wait_for_job_start() {
             tours: vec![Tour {
                 vehicle_id: "vehicle_with_skill_1".to_string(),
                 type_id: "vehicle_with_skill".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",

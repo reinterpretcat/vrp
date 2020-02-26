@@ -70,13 +70,10 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
 }
 
 fn get_tour_by_vehicle_id(vehicle_id: &str, shift_index: Option<usize>, solution: &Solution) -> Result<Tour, String> {
-    // TODO consider shift index
-    assert!(shift_index.is_none());
-
     solution
         .tours
         .iter()
-        .find(|tour| tour.vehicle_id == vehicle_id)
+        .find(|tour| tour.vehicle_id == vehicle_id && tour.shift_index == shift_index.unwrap_or(0))
         .cloned()
         .ok_or_else(|| format!("Cannot find tour for '{}'", vehicle_id))
 }
@@ -134,10 +131,19 @@ mod tests {
 
         fn create_relation_with_wrong_id(vehicle_id: &str) -> Relation {
             Relation {
-                type_field: Tour,
+                type_field: Flexible,
                 jobs: vec!["job1".to_string()],
                 vehicle_id: vehicle_id.to_string(),
                 shift_index: None,
+            }
+        }
+
+        fn create_relation_with_wrong_shift() -> Relation {
+            Relation {
+                type_field: Flexible,
+                jobs: vec!["job1".to_string()],
+                vehicle_id: "my_vehicle_1".to_string(),
+                shift_index: Some(1),
             }
         }
 
@@ -164,13 +170,14 @@ mod tests {
             case_tour_01:     (Some(vec![create_relation(vec!["departure", "job1", "job3"], Tour)]), Ok(())),
             case_tour_02:     (Some(vec![create_relation(vec!["job1", "job2"], Tour)]), Ok(())),
             case_tour_03:     (Some(vec![create_relation(vec!["job2", "job3"], Tour)]), Ok(())),
-            case_tour_04:     (Some(vec![create_relation(vec!["job2", "job6"], Tour)]), Err(())),
+            case_tour_04:     (Some(vec![create_relation(vec!["job2", "job6"], Tour)]), Ok(())),
 
             case_mixed_01:    (Some(vec![create_relation(vec!["departure", "job1"], Sequence),
                                          create_relation(vec!["job3", "job4"], Flexible)]), Ok(())),
 
             case_wrong_vehicle_01: (Some(vec![create_relation_with_wrong_id("my_vehicle_2")]), Err(())),
             case_wrong_vehicle_02: (Some(vec![create_relation_with_wrong_id("my_vehicle_x")]), Err(())),
+            case_wrong_vehicle_03: (Some(vec![create_relation_with_wrong_shift()]), Err(())),
         }
 
         fn can_check_relations_impl(relations: Option<Vec<Relation>>, expected_result: Result<(), ()>) {
@@ -231,6 +238,7 @@ mod tests {
                     VehicleTour {
                         vehicle_id: "my_vehicle_1".to_string(),
                         type_id: "my_vehicle".to_string(),
+                        shift_index: 0,
                         stops: vec![
                             create_stop_with_activity(
                                 "departure",
@@ -316,6 +324,7 @@ mod tests {
                     VehicleTour {
                         vehicle_id: "my_vehicle_2".to_string(),
                         type_id: "my_vehicle".to_string(),
+                        shift_index: 0,
                         stops: vec![],
                         statistic: Default::default(),
                     },

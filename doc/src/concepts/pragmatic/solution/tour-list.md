@@ -13,7 +13,7 @@ List of tours is essentially individual vehicle routes. Each tour consists of th
 * **stops**: list of stops. See stop structure below
 * **statistic**: statistic of the tour.
     ```json
-    {{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json:135:145}}
+    {{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json:136:146}}
     ```
 
 ## Stop structure
@@ -40,10 +40,10 @@ An activity specifies work to be done and has the following structure:
 
 An example of stop with one activity:
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json:19:37}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json:20:38}}
 ```
 
 An example of stop with two activities:
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json:57:95}}
+{{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json:58:96}}
 ```

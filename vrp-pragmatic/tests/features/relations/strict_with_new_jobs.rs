@@ -67,6 +67,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_with_new_jobs() {
                 Tour {
                     vehicle_id: "my_vehicle_1".to_string(),
                     type_id: "my_vehicle".to_string(),
+                    shift_index: 0,
                     stops: vec![
                         create_stop_with_activity(
                             "departure",
@@ -128,6 +129,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_with_new_jobs() {
                 Tour {
                     vehicle_id: "my_vehicle_2".to_string(),
                     type_id: "my_vehicle".to_string(),
+                    shift_index: 0,
                     stops: vec![
                         create_stop_with_activity(
                             "departure",

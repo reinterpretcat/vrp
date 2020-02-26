@@ -66,6 +66,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 Tour {
                     vehicle_id: "my_vehicle_1".to_string(),
                     type_id: "my_vehicle".to_string(),
+                    shift_index: 0,
                     stops: vec![
                         create_stop_with_activity(
                             "departure",
@@ -99,6 +100,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 Tour {
                     vehicle_id: "my_vehicle_1".to_string(),
                     type_id: "my_vehicle".to_string(),
+                    shift_index: 1,
                     stops: vec![
                         create_stop_with_activity(
                             "departure",

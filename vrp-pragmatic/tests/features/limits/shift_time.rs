@@ -101,6 +101,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",

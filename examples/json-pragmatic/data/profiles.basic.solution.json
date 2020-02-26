@@ -15,6 +15,7 @@
     {
       "vehicleId": "my_car_1",
       "typeId": "my_car",
+      "shiftIndex": 0,
       "stops": [
         {
           "location": {
@@ -89,6 +90,7 @@
     {
       "vehicleId": "my_truck_1",
       "typeId": "my_truck",
+      "shiftIndex": 0,
       "stops": [
         {
           "location": {

@@ -15,6 +15,7 @@
     {
       "vehicleId": "vehicle_with_fridge_1",
       "typeId": "vehicle_with_fridge",
+      "shiftIndex": 0,
       "stops": [
         {
           "location": {
@@ -89,6 +90,7 @@
     {
       "vehicleId": "vehicle_with_handyman_1",
       "typeId": "vehicle_with_handyman",
+      "shiftIndex": 0,
       "stops": [
         {
           "location": {

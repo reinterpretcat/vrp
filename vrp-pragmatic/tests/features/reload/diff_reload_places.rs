@@ -67,6 +67,7 @@ fn can_use_reloads_with_different_locations() {
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",

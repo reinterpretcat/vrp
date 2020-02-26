@@ -64,6 +64,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",
@@ -139,6 +140,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",

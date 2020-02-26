@@ -58,6 +58,7 @@ fn can_skip_break_when_vehicle_not_used() {
             tours: vec![Tour {
                 vehicle_id: "vehicle_without_break_1".to_string(),
                 type_id: "vehicle_without_break".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",
@@ -153,6 +154,7 @@ fn can_skip_break_when_jobs_completed() {
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",
@@ -246,6 +248,7 @@ fn can_skip_second_break_when_jobs_completed() {
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
+                shift_index: 0,
                 stops: vec![
                     create_stop_with_activity(
                         "departure",

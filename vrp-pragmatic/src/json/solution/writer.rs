@@ -90,6 +90,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
     let mut tour = Tour {
         vehicle_id: vehicle.dimens.get_id().unwrap().clone(),
         type_id: vehicle.dimens.get_value::<String>("type_id").unwrap().to_string(),
+        shift_index: *vehicle.dimens.get_value::<usize>("shift_index").unwrap(),
         stops: vec![],
         statistic: Statistic::default(),
     };
