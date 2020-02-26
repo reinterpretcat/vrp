@@ -53,6 +53,7 @@ fn can_use_two_dimensions() {
                         (0., 0.),
                         vec![1, 1],
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity_md(
                         "job1",
@@ -60,6 +61,7 @@ fn can_use_two_dimensions() {
                         (1., 0.),
                         vec![1, 0],
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        1
                     ),
                     create_stop_with_activity_md(
                         "job2",
@@ -67,6 +69,7 @@ fn can_use_two_dimensions() {
                         (2., 0.),
                         vec![0, 0],
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
+                        2
                     )
                 ],
                 statistic: Statistic {

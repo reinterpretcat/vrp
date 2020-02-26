@@ -67,6 +67,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         (0., 0.),
                         1,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "d1",
@@ -74,6 +75,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        1
                     ),
                     create_stop_with_activity(
                         "p1",
@@ -81,6 +83,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         (2., 0.),
                         1,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
+                        2
                     ),
                     create_stop_with_activity(
                         "reload",
@@ -88,6 +91,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         (3., 0.),
                         1,
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
+                        3
                     ),
                     create_stop_with_activity(
                         "d2",
@@ -95,6 +99,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         (4., 0.),
                         0,
                         ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
+                        4
                     ),
                     create_stop_with_activity(
                         "p2",
@@ -102,6 +107,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         (5., 0.),
                         1,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                        5
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -109,6 +115,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         (6., 0.),
                         0,
                         ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
+                        6
                     ),
                 ],
                 statistic: Statistic {

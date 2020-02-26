@@ -109,6 +109,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                         (0., 0.),
                         3,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job3",
@@ -116,6 +117,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                         (3., 0.),
                         2,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:13Z"),
+                        3
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -123,6 +125,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                         (2., 0.),
                         1,
                         ("1970-01-01T00:00:14Z", "1970-01-01T00:00:24Z"),
+                        4
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -130,6 +133,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:25Z", "1970-01-01T00:00:35Z"),
+                        5
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -137,6 +141,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:36Z", "1970-01-01T00:00:36Z"),
+                        6
                     )
                 ],
                 statistic: Statistic {

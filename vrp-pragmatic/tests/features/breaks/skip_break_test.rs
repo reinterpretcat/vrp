@@ -66,6 +66,7 @@ fn can_skip_break_when_vehicle_not_used() {
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -73,6 +74,7 @@ fn can_skip_break_when_vehicle_not_used() {
                         (10., 0.),
                         1,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                        10
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -80,6 +82,7 @@ fn can_skip_break_when_vehicle_not_used() {
                         (5., 0.),
                         0,
                         ("1970-01-01T00:00:16Z", "1970-01-01T00:00:17Z"),
+                        15
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -87,6 +90,7 @@ fn can_skip_break_when_vehicle_not_used() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:22Z", "1970-01-01T00:00:22Z"),
+                        20
                     )
                 ],
                 statistic: Statistic {
@@ -162,6 +166,7 @@ fn can_skip_break_when_jobs_completed() {
                         (0., 0.),
                         1,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -169,6 +174,7 @@ fn can_skip_break_when_jobs_completed() {
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:11Z"),
+                        1
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -176,6 +182,7 @@ fn can_skip_break_when_jobs_completed() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
+                        2
                     )
                 ],
                 statistic: Statistic {
@@ -256,6 +263,7 @@ fn can_skip_second_break_when_jobs_completed() {
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -263,6 +271,7 @@ fn can_skip_second_break_when_jobs_completed() {
                         (5., 0.),
                         1,
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
+                        5
                     ),
                     create_stop_with_activity(
                         "break",
@@ -270,6 +279,7 @@ fn can_skip_second_break_when_jobs_completed() {
                         (6., 0.),
                         1,
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
+                        6
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -277,6 +287,7 @@ fn can_skip_second_break_when_jobs_completed() {
                         (10., 0.),
                         0,
                         ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
+                        10
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -284,6 +295,7 @@ fn can_skip_second_break_when_jobs_completed() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:24Z", "1970-01-01T00:00:24Z"),
+                        20
                     )
                 ],
                 statistic: Statistic {

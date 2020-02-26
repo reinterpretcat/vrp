@@ -72,6 +72,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -79,6 +80,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
                         (1., 0.),
                         1,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        1
                     ),
                     create_stop_with_activity(
                         "break",
@@ -86,6 +88,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
                         (3., 0.),
                         1,
                         ("1970-01-01T00:00:04Z", "1970-01-01T00:00:06Z"),
+                        3
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -93,6 +96,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
                         (2., 0.),
                         0,
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
+                        4
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -100,6 +104,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
+                        6
                     )
                 ],
                 statistic: Statistic {
@@ -148,6 +153,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -155,6 +161,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                         (1., 0.),
                         1,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        1
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -162,6 +169,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                         (2., 0.),
                         0,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
+                        2
                     ),
                     create_stop_with_activity(
                         "break",
@@ -169,6 +177,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                         (3., 0.),
                         0,
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
+                        3
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -176,6 +185,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
+                        6
                     )
                 ],
                 statistic: Statistic {

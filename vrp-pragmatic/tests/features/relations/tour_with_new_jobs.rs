@@ -59,6 +59,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                         (0., 0.),
                         3,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -66,6 +67,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                         (1., 0.),
                         2,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        1
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -73,6 +75,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                         (2., 0.),
                         1,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
+                        2
                     ),
                     create_stop_with_activity(
                         "job3",
@@ -80,6 +83,7 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                         (3., 0.),
                         0,
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
+                        3
                     )
                 ],
                 statistic: Statistic {

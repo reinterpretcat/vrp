@@ -55,6 +55,7 @@ fn can_assign_interval_break_between_jobs() {
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     Stop {
                         location: vec![5., 0.].to_loc(),
@@ -62,6 +63,7 @@ fn can_assign_interval_break_between_jobs() {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
                             departure: "1970-01-01T00:00:08Z".to_string(),
                         },
+                        distance: 5,
                         load: vec![1],
                         activities: vec![
                             Activity {
@@ -92,6 +94,7 @@ fn can_assign_interval_break_between_jobs() {
                         (15., 0.),
                         0,
                         ("1970-01-01T00:00:18Z", "1970-01-01T00:00:19Z"),
+                        15
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -99,6 +102,7 @@ fn can_assign_interval_break_between_jobs() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:34Z", "1970-01-01T00:00:34Z"),
+                        30
                     )
                 ],
                 statistic: Statistic {
@@ -181,6 +185,7 @@ fn can_assign_interval_break_with_reload() {
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     Stop {
                         location: vec![10., 0.].to_loc(),
@@ -188,6 +193,7 @@ fn can_assign_interval_break_with_reload() {
                             arrival: "1970-01-01T00:00:10Z".to_string(),
                             departure: "1970-01-01T00:00:13Z".to_string(),
                         },
+                        distance: 10,
                         load: vec![1],
                         activities: vec![
                             Activity {
@@ -218,6 +224,7 @@ fn can_assign_interval_break_with_reload() {
                         (15., 0.),
                         0,
                         ("1970-01-01T00:00:18Z", "1970-01-01T00:00:19Z"),
+                        15
                     ),
                     create_stop_with_activity(
                         "reload",
@@ -225,6 +232,7 @@ fn can_assign_interval_break_with_reload() {
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:34Z", "1970-01-01T00:00:37Z"),
+                        30
                     ),
                     create_stop_with_activity(
                         "job3",
@@ -232,6 +240,7 @@ fn can_assign_interval_break_with_reload() {
                         (20., 0.),
                         1,
                         ("1970-01-01T00:00:57Z", "1970-01-01T00:00:58Z"),
+                        50
                     ),
                     create_stop_with_activity(
                         "job4",
@@ -239,6 +248,7 @@ fn can_assign_interval_break_with_reload() {
                         (25., 0.),
                         0,
                         ("1970-01-01T00:01:03Z", "1970-01-01T00:01:04Z"),
+                        55
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -246,6 +256,7 @@ fn can_assign_interval_break_with_reload() {
                         (30., 0.),
                         0,
                         ("1970-01-01T00:01:09Z", "1970-01-01T00:01:09Z"),
+                        60
                     )
                 ],
                 statistic: Statistic {

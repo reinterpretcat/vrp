@@ -241,6 +241,7 @@ mod tests {
                         (0., 0.),
                         *stop_loads.get(0).unwrap(),
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0,
                     ),
                     Stop {
                         location: vec![1., 0.].to_loc(),
@@ -248,6 +249,7 @@ mod tests {
                             arrival: "1970-01-01T00:00:03Z".to_string(),
                             departure: "1970-01-01T00:00:05Z".to_string(),
                         },
+                        distance: 1,
                         load: vec![*stop_loads.get(1).unwrap()],
                         activities: vec![
                             Activity {
@@ -272,6 +274,7 @@ mod tests {
                             arrival: "1970-01-01T00:00:03Z".to_string(),
                             departure: "1970-01-01T00:00:05Z".to_string(),
                         },
+                        distance: 1,
                         load: vec![*stop_loads.get(2).unwrap()],
                         activities: vec![Activity {
                             job_id: "reload".to_string(),
@@ -287,6 +290,7 @@ mod tests {
                             arrival: "1970-01-01T00:00:07Z".to_string(),
                             departure: "1970-01-01T00:00:08Z".to_string(),
                         },
+                        distance: 3,
                         load: vec![*stop_loads.get(3).unwrap()],
                         activities: vec![
                             Activity {
@@ -317,6 +321,7 @@ mod tests {
                         (4., 0.),
                         *stop_loads.get(4).unwrap(),
                         ("1970-01-01T00:00:11Z", "1970-01-01T00:00:12Z"),
+                        5,
                     ),
                     create_stop_with_activity(
                         "job5",
@@ -324,6 +329,7 @@ mod tests {
                         (5., 0.),
                         *stop_loads.get(5).unwrap(),
                         ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
+                        6,
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -331,6 +337,7 @@ mod tests {
                         (0., 0.),
                         *stop_loads.get(6).unwrap(),
                         ("1970-01-01T00:00:19Z", "1970-01-01T00:00:19Z"),
+                        11,
                     ),
                 ],
                 statistic: Statistic {

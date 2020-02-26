@@ -246,6 +246,7 @@ mod tests {
                                 (0., 0.),
                                 2,
                                 ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                                0,
                             ),
                             create_stop_with_activity(
                                 "job1",
@@ -253,6 +254,7 @@ mod tests {
                                 (1., 0.),
                                 1,
                                 ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                                1,
                             ),
                             Stop {
                                 location: vec![2., 0.].to_loc(),
@@ -260,6 +262,7 @@ mod tests {
                                     arrival: "1970-01-01T00:00:03Z".to_string(),
                                     departure: "1970-01-01T00:00:06Z".to_string(),
                                 },
+                                distance: 2,
                                 load: vec![0],
                                 activities: vec![
                                     Activity {
@@ -284,6 +287,7 @@ mod tests {
                                 (3., 0.),
                                 1,
                                 ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
+                                3,
                             ),
                             create_stop_with_activity(
                                 "reload",
@@ -291,6 +295,7 @@ mod tests {
                                 (0., 0.),
                                 1,
                                 ("1970-01-01T00:00:11Z", "1970-01-01T00:00:13Z"),
+                                6,
                             ),
                             create_stop_with_activity(
                                 "job4",
@@ -298,6 +303,7 @@ mod tests {
                                 (4., 0.),
                                 0,
                                 ("1970-01-01T00:00:17Z", "1970-01-01T00:00:18Z"),
+                                10,
                             ),
                             create_stop_with_activity(
                                 "job5",
@@ -305,6 +311,7 @@ mod tests {
                                 (5., 0.),
                                 1,
                                 ("1970-01-01T00:00:19Z", "1970-01-01T00:00:20Z"),
+                                11,
                             ),
                             create_stop_with_activity(
                                 "arrival",
@@ -312,6 +319,7 @@ mod tests {
                                 (0., 0.),
                                 0,
                                 ("1970-01-01T00:00:25Z", "1970-01-01T00:00:25Z"),
+                                16,
                             ),
                         ],
                         statistic: Statistic {

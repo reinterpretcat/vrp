@@ -1,11 +1,11 @@
 {
   "problemId": "A basic show case of unassigned job due to unreachable location",
   "statistic": {
-    "cost": 43.248002,
-    "distance": 13316,
-    "duration": 3867,
+    "cost": 43.091514000000004,
+    "distance": 13687,
+    "duration": 3819,
     "times": {
-      "driving": 3267,
+      "driving": 3219,
       "serving": 600,
       "waiting": 0,
       "break": 0
@@ -26,6 +26,7 @@
             "arrival": "2019-07-04T09:00:00Z",
             "departure": "2019-07-04T09:00:00Z"
           },
+          "distance": 0,
           "load": [
             2
           ],
@@ -38,34 +39,16 @@
         },
         {
           "location": {
-            "lat": 52.52599,
-            "lng": 13.45413
-          },
-          "time": {
-            "arrival": "2019-07-04T09:19:24Z",
-            "departure": "2019-07-04T09:24:24Z"
-          },
-          "load": [
-            1
-          ],
-          "activities": [
-            {
-              "jobId": "job1",
-              "type": "delivery"
-            }
-          ]
-        },
-        {
-          "location": {
             "lat": 52.5165,
             "lng": 13.3808
           },
           "time": {
-            "arrival": "2019-07-04T09:46:40Z",
-            "departure": "2019-07-04T09:51:40Z"
+            "arrival": "2019-07-04T09:12:41Z",
+            "departure": "2019-07-04T09:17:41Z"
           },
+          "distance": 2641,
           "load": [
-            0
+            1
           ],
           "activities": [
             {
@@ -76,13 +59,34 @@
         },
         {
           "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T09:38:22Z",
+            "departure": "2019-07-04T09:43:22Z"
+          },
+          "distance": 8404,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
             "lat": 52.5316,
             "lng": 13.3884
           },
           "time": {
-            "arrival": "2019-07-04T10:04:27Z",
-            "departure": "2019-07-04T10:04:27Z"
+            "arrival": "2019-07-04T10:03:39Z",
+            "departure": "2019-07-04T10:03:39Z"
           },
+          "distance": 13687,
           "load": [
             0
           ],
@@ -95,11 +99,11 @@
         }
       ],
       "statistic": {
-        "cost": 43.248002,
-        "distance": 13316,
-        "duration": 3867,
+        "cost": 43.091514000000004,
+        "distance": 13687,
+        "duration": 3819,
         "times": {
-          "driving": 3267,
+          "driving": 3219,
           "serving": 600,
           "waiting": 0,
           "break": 0

@@ -37,28 +37,32 @@ fn can_create_solution() {
                         "departure",
                         (0., 0.),
                         2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z")
+                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job2",
                         "delivery",
                         (10., 0.),
                         1,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z")
+                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                        10
                     ),
                     create_stop_with_activity(
                         "job1",
                         "delivery",
                         (5., 0.),
                         0,
-                        ("1970-01-01T00:00:16Z", "1970-01-01T00:00:17Z")
+                        ("1970-01-01T00:00:16Z", "1970-01-01T00:00:17Z"),
+                        15
                     ),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",
                         (0., 0.),
                         0,
-                        ("1970-01-01T00:00:22Z", "1970-01-01T00:00:22Z")
+                        ("1970-01-01T00:00:22Z", "1970-01-01T00:00:22Z"),
+                        20
                     )
                 ],
                 statistic: Statistic {
@@ -109,7 +113,8 @@ fn can_merge_activities_in_one_stop() {
                         "departure",
                         (0., 0.),
                         2,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z")
+                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     Stop {
                         location: vec![5., 0.].to_loc(),
@@ -117,6 +122,7 @@ fn can_merge_activities_in_one_stop() {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
                             departure: "1970-01-01T00:00:07Z".to_string()
                         },
+                        distance: 5,
                         load: vec![0],
                         activities: vec![
                             Activity {
@@ -146,7 +152,8 @@ fn can_merge_activities_in_one_stop() {
                         "arrival",
                         (0., 0.),
                         0,
-                        ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z")
+                        ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
+                        10
                     )
                 ],
                 statistic: Statistic {

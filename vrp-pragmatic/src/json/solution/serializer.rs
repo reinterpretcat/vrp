@@ -76,6 +76,8 @@ pub struct Stop {
     pub location: Location,
     /// Stop schedule.
     pub time: Schedule,
+    /// Distance traveled since departure from start.
+    pub distance: i32,
     /// Vehicle load after departure from this stop.
     pub load: Vec<i32>,
     /// Activities performed at the stop.

@@ -35,6 +35,7 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -42,6 +43,7 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
                         (1., 0.),
                         1,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        1
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -49,6 +51,7 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
                         (2., 0.),
                         0,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
+                        2
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -56,6 +59,7 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:06Z", "1970-01-01T00:00:06Z"),
+                        4
                     )
                 ],
                 statistic: Statistic {

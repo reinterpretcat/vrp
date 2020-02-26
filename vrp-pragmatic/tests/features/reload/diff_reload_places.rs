@@ -75,6 +75,7 @@ fn can_use_reloads_with_different_locations() {
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -82,6 +83,7 @@ fn can_use_reloads_with_different_locations() {
                         (10., 0.),
                         1,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                        10
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -89,6 +91,7 @@ fn can_use_reloads_with_different_locations() {
                         (11., 0.),
                         0,
                         ("1970-01-01T00:00:12Z", "1970-01-01T00:00:13Z"),
+                        11
                     ),
                     create_stop_with_activity_with_tag(
                         "reload",
@@ -96,6 +99,7 @@ fn can_use_reloads_with_different_locations() {
                         (12., 0.),
                         2,
                         ("1970-01-01T00:00:14Z", "1970-01-01T00:00:16Z"),
+                        12,
                         "close"
                     ),
                     create_stop_with_activity(
@@ -104,6 +108,7 @@ fn can_use_reloads_with_different_locations() {
                         (20., 0.),
                         1,
                         ("1970-01-01T00:00:24Z", "1970-01-01T00:00:25Z"),
+                        20
                     ),
                     create_stop_with_activity(
                         "job4",
@@ -111,6 +116,7 @@ fn can_use_reloads_with_different_locations() {
                         (21., 0.),
                         0,
                         ("1970-01-01T00:00:26Z", "1970-01-01T00:00:27Z"),
+                        21
                     ),
                     create_stop_with_activity_with_tag(
                         "reload",
@@ -118,6 +124,7 @@ fn can_use_reloads_with_different_locations() {
                         (33., 0.),
                         1,
                         ("1970-01-01T00:00:39Z", "1970-01-01T00:00:41Z"),
+                        33,
                         "far"
                     ),
                     create_stop_with_activity(
@@ -126,6 +133,7 @@ fn can_use_reloads_with_different_locations() {
                         (30., 0.),
                         0,
                         ("1970-01-01T00:00:44Z", "1970-01-01T00:00:45Z"),
+                        36
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -133,6 +141,7 @@ fn can_use_reloads_with_different_locations() {
                         (32., 0.),
                         0,
                         ("1970-01-01T00:00:47Z", "1970-01-01T00:00:47Z"),
+                        38
                     ),
                 ],
                 statistic: Statistic {

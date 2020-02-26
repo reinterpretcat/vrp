@@ -73,6 +73,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (0., 0.),
                             4,
                             ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                            0
                         ),
                         create_stop_with_activity(
                             "job1",
@@ -80,6 +81,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (1., 0.),
                             3,
                             ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                            1
                         ),
                         create_stop_with_activity(
                             "job6",
@@ -87,6 +89,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (6., 0.),
                             2,
                             ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
+                            6
                         ),
                         create_stop_with_activity(
                             "job4",
@@ -94,6 +97,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (4., 0.),
                             1,
                             ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                            8
                         ),
                         create_stop_with_activity(
                             "job8",
@@ -101,6 +105,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (8., 0.),
                             0,
                             ("1970-01-01T00:00:15Z", "1970-01-01T00:00:16Z"),
+                            12
                         ),
                         create_stop_with_activity(
                             "arrival",
@@ -108,6 +113,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (0., 0.),
                             0,
                             ("1970-01-01T00:00:24Z", "1970-01-01T00:00:24Z"),
+                            20
                         )
                     ],
                     statistic: Statistic {
@@ -128,6 +134,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (0., 0.),
                             4,
                             ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                            0
                         ),
                         create_stop_with_activity(
                             "job2",
@@ -135,6 +142,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (2., 0.),
                             3,
                             ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
+                            2
                         ),
                         create_stop_with_activity(
                             "job3",
@@ -142,6 +150,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (3., 0.),
                             2,
                             ("1970-01-01T00:00:04Z", "1970-01-01T00:00:05Z"),
+                            3
                         ),
                         create_stop_with_activity(
                             "job5",
@@ -149,6 +158,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (5., 0.),
                             1,
                             ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
+                            5
                         ),
                         create_stop_with_activity(
                             "job7",
@@ -156,6 +166,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (7., 0.),
                             0,
                             ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                            7
                         ),
                         create_stop_with_activity(
                             "arrival",
@@ -163,6 +174,7 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
                             (0., 0.),
                             0,
                             ("1970-01-01T00:00:18Z", "1970-01-01T00:00:18Z"),
+                            14
                         )
                     ],
                     statistic: Statistic {

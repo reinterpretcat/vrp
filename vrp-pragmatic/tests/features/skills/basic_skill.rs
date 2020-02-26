@@ -53,6 +53,7 @@ fn can_wait_for_job_start() {
                         (10., 0.),
                         1,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -60,6 +61,7 @@ fn can_wait_for_job_start() {
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:09Z", "1970-01-01T00:00:10Z"),
+                        9
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -67,6 +69,7 @@ fn can_wait_for_job_start() {
                         (10., 0.),
                         0,
                         ("1970-01-01T00:00:19Z", "1970-01-01T00:00:19Z"),
+                        18
                     )
                 ],
                 statistic: Statistic {

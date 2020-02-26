@@ -57,6 +57,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (0., 0.),
                             3,
                             ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                            0,
                         ),
                         create_stop_with_activity(
                             "job4",
@@ -64,6 +65,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (40., 0.),
                             2,
                             ("1970-01-01T00:00:40Z", "1970-01-01T00:00:50Z"),
+                            40,
                         ),
                         create_stop_with_activity(
                             "job5",
@@ -71,6 +73,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (50., 0.),
                             1,
                             ("1970-01-01T00:01:00Z", "1970-01-01T00:01:10Z"),
+                            50,
                         ),
                         create_stop_with_activity(
                             "job3",
@@ -78,6 +81,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (30., 0.),
                             0,
                             ("1970-01-01T00:01:30Z", "1970-01-01T00:01:50Z"),
+                            70,
                         ),
                         create_stop_with_activity(
                             "arrival",
@@ -85,6 +89,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (0., 0.),
                             0,
                             ("1970-01-01T00:02:20Z", "1970-01-01T00:02:20Z"),
+                            100,
                         ),
                     ],
                     statistic: Statistic {
@@ -105,6 +110,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (0., 0.),
                             2,
                             ("1970-01-01T00:00:00Z", "1970-01-01T00:00:30Z"),
+                            0,
                         ),
                         create_stop_with_activity(
                             "job2",
@@ -112,6 +118,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (20., 0.),
                             1,
                             ("1970-01-01T00:00:50Z", "1970-01-01T00:01:00Z"),
+                            20,
                         ),
                         create_stop_with_activity(
                             "job1",
@@ -119,6 +126,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (10., 0.),
                             0,
                             ("1970-01-01T00:01:10Z", "1970-01-01T00:01:20Z"),
+                            30,
                         ),
                         create_stop_with_activity(
                             "arrival",
@@ -126,6 +134,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                             (0., 0.),
                             0,
                             ("1970-01-01T00:01:30Z", "1970-01-01T00:01:30Z"),
+                            40,
                         ),
                     ],
                     statistic: Statistic {

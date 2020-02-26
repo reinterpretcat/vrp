@@ -58,6 +58,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                         (10., 0.),
                         0,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -65,6 +66,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                         (20., 0.),
                         1,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                        10
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -72,6 +74,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                         (5., 0.),
                         2,
                         ("1970-01-01T00:00:26Z", "1970-01-01T00:00:27Z"),
+                        25
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -79,6 +82,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                         (15., 0.),
                         1,
                         ("1970-01-01T00:00:37Z", "1970-01-01T00:00:38Z"),
+                        35
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -86,6 +90,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                         (20., 0.),
                         0,
                         ("1970-01-01T00:00:43Z", "1970-01-01T00:00:44Z"),
+                        40
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -93,6 +98,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                         (10., 0.),
                         0,
                         ("1970-01-01T00:00:54Z", "1970-01-01T00:00:54Z"),
+                        50
                     )
                 ],
                 statistic: Statistic {

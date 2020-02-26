@@ -61,6 +61,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                         (0., 0.),
                         1,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0,
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -68,6 +69,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        1,
                     ),
                     create_stop_with_activity(
                         "reload",
@@ -75,6 +77,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                         (0., 0.),
                         1,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:05Z"),
+                        2,
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -82,6 +85,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                         (2., 0.),
                         0,
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
+                        4,
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -89,6 +93,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
+                        6,
                     ),
                 ],
                 statistic: Statistic {

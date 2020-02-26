@@ -26,6 +26,7 @@
             "arrival": "2019-07-04T09:00:00Z",
             "departure": "2019-07-04T09:00:00Z"
           },
+          "distance": 0,
           "load": [
             2
           ],
@@ -45,6 +46,7 @@
             "arrival": "2019-07-04T09:21:41Z",
             "departure": "2019-07-04T09:26:41Z"
           },
+          "distance": 8996,
           "load": [
             1
           ],
@@ -64,6 +66,7 @@
             "arrival": "2019-07-04T09:41:26Z",
             "departure": "2019-07-04T09:45:26Z"
           },
+          "distance": 14028,
           "load": [
             0
           ],
@@ -83,6 +86,7 @@
             "arrival": "2019-07-04T10:18:32Z",
             "departure": "2019-07-04T10:18:32Z"
           },
+          "distance": 27524,
           "load": [
             0
           ],
@@ -109,6 +113,7 @@
     {
       "vehicleId": "vehicle_1",
       "typeId": "vehicle",
+      "shiftIndex": 0,
       "stops": [
         {
           "location": {
@@ -119,6 +124,7 @@
             "arrival": "2019-07-04T09:00:00Z",
             "departure": "2019-07-04T09:00:00Z"
           },
+          "distance": 0,
           "load": [
             2
           ],
@@ -138,6 +144,7 @@
             "arrival": "2019-07-04T09:41:15Z",
             "departure": "2019-07-04T09:46:15Z"
           },
+          "distance": 19648,
           "load": [
             1
           ],
@@ -157,6 +164,7 @@
             "arrival": "2019-07-04T10:02:31Z",
             "departure": "2019-07-04T10:07:31Z"
           },
+          "distance": 25642,
           "load": [
             0
           ],
@@ -176,6 +184,7 @@
             "arrival": "2019-07-04T10:35:49Z",
             "departure": "2019-07-04T10:35:49Z"
           },
+          "distance": 36981,
           "load": [
             0
           ],

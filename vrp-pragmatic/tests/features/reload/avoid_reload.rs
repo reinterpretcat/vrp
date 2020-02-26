@@ -68,6 +68,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
                         (0., 0.),
                         1,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "simple",
@@ -75,6 +76,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                        1
                     ),
                     create_stop_with_activity_with_tag(
                         "multi",
@@ -82,6 +84,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
                         (2., 0.),
                         1,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
+                        2,
                         "1"
                     ),
                     create_stop_with_activity_with_tag(
@@ -90,6 +93,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
                         (8., 0.),
                         2,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                        8,
                         "2"
                     ),
                     create_stop_with_activity_with_tag(
@@ -98,6 +102,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
                         (6., 0.),
                         0,
                         ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
+                        10,
                         "1"
                     ),
                     create_stop_with_activity(
@@ -106,6 +111,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:20Z", "1970-01-01T00:00:20Z"),
+                        16
                     )
                 ],
                 statistic: Statistic {

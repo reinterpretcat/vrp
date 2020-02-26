@@ -118,6 +118,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 location: coord_index.get_by_idx(&start.place.location).unwrap(),
                 time: format_schedule(&start.schedule),
                 load: start_delivery.as_vec(),
+                distance: 0,
                 activities: vec![Activity {
                     job_id: "departure".to_string(),
                     activity_type: "departure".to_string(),
@@ -165,11 +166,20 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let serving = problem.activity.duration(route.actor.as_ref(), act, act.schedule.arrival);
                 let departure = start + serving;
 
+                // total cost and distance
+                let cost = leg.statistic.cost
+                    + problem.activity.cost(actor, act, act.schedule.arrival)
+                    + problem.transport.cost(actor, prev_location, act.place.location, prev_departure);
+                let distance = leg.statistic.distance
+                    + problem.transport.distance(vehicle.profile, prev_location, act.place.location, prev_departure)
+                        as i32;
+
                 if prev_location != act.place.location {
                     tour.stops.push(Stop {
                         location: coord_index.get_by_idx(&act.place.location).unwrap(),
                         time: format_as_schedule(&(arrival, departure)),
                         load: prev_load.as_vec(),
+                        distance,
                         activities: vec![],
                     });
                 }
@@ -189,18 +199,11 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     job_tag,
                 });
 
-                let cost = problem.activity.cost(actor, act, act.schedule.arrival)
-                    + problem.transport.cost(actor, prev_location, act.place.location, prev_departure);
-
-                let distance =
-                    problem.transport.distance(vehicle.profile, prev_location, act.place.location, prev_departure)
-                        as i32;
-
                 Leg {
                     last_detail: Some((act.place.location, act.schedule.departure)),
                     statistic: Statistic {
-                        cost: leg.statistic.cost + cost,
-                        distance: leg.statistic.distance + distance,
+                        cost,
+                        distance,
                         duration: leg.statistic.duration + departure as i32 - prev_departure as i32,
                         times: Timing {
                             driving: leg.statistic.times.driving + driving as i32,

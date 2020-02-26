@@ -55,6 +55,7 @@ fn can_even_dist_jobs() {
                             (0., 0.),
                             1,
                             ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                            0,
                         ),
                         create_stop_with_activity(
                             "job1",
@@ -62,6 +63,7 @@ fn can_even_dist_jobs() {
                             (1., 0.),
                             0,
                             ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                            1,
                         ),
                     ],
                     statistic: Statistic {
@@ -82,6 +84,7 @@ fn can_even_dist_jobs() {
                             (0., 0.),
                             1,
                             ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                            0,
                         ),
                         create_stop_with_activity(
                             "job2",
@@ -89,6 +92,7 @@ fn can_even_dist_jobs() {
                             (1., 0.),
                             0,
                             ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                            1,
                         ),
                     ],
                     statistic: Statistic {

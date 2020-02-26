@@ -71,6 +71,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (0., 0.),
                         7,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job4",
@@ -78,6 +79,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (4., 0.),
                         6,
                         ("1970-01-01T00:00:04Z", "1970-01-01T00:00:05Z"),
+                        4
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -85,6 +87,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (2., 0.),
                         5,
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
+                        6
                     ),
                     create_stop_with_activity(
                         "job6",
@@ -92,6 +95,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (6., 0.),
                         4,
                         ("1970-01-01T00:00:12Z", "1970-01-01T00:00:13Z"),
+                        10
                     ),
                     create_stop_with_activity(
                         "job7",
@@ -99,6 +103,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (7., 0.),
                         3,
                         ("1970-01-01T00:00:14Z", "1970-01-01T00:00:15Z"),
+                        11
                     ),
                     create_stop_with_activity(
                         "job5",
@@ -106,6 +111,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (5., 0.),
                         2,
                         ("1970-01-01T00:00:17Z", "1970-01-01T00:00:18Z"),
+                        13
                     ),
                     create_stop_with_activity(
                         "job3",
@@ -113,6 +119,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (3., 0.),
                         1,
                         ("1970-01-01T00:00:20Z", "1970-01-01T00:00:21Z"),
+                        15
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -120,6 +127,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:23Z", "1970-01-01T00:00:24Z"),
+                        17
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -127,6 +135,7 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:25Z", "1970-01-01T00:00:25Z"),
+                        18
                     )
                 ],
                 statistic: Statistic {

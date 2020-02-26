@@ -41,6 +41,7 @@ fn can_wait_for_job_start() {
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -48,6 +49,7 @@ fn can_wait_for_job_start() {
                         (1., 0.),
                         1,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:01Z"),
+                        1
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -55,6 +57,7 @@ fn can_wait_for_job_start() {
                         (2., 0.),
                         0,
                         ("1970-01-01T00:00:02Z", "1970-01-01T00:00:10Z"),
+                        2
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -62,6 +65,7 @@ fn can_wait_for_job_start() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
+                        4
                     )
                 ],
                 statistic: Statistic {
@@ -113,6 +117,7 @@ fn can_skip_initial_waiting() {
                         (0., 0.),
                         1,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:09Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -120,6 +125,7 @@ fn can_skip_initial_waiting() {
                         (1., 0.),
                         0,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:20Z"),
+                        1
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -127,6 +133,7 @@ fn can_skip_initial_waiting() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:00:21Z", "1970-01-01T00:00:21Z"),
+                        2
                     )
                 ],
                 statistic: Statistic {

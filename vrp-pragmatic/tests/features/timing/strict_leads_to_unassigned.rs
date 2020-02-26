@@ -44,6 +44,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                         (0., 0.),
                         4,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                        0
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -51,6 +52,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                         (10., 0.),
                         3,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:10Z"),
+                        10
                     ),
                     create_stop_with_activity(
                         "job2",
@@ -58,6 +60,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                         (20., 0.),
                         2,
                         ("1970-01-01T00:00:20Z", "1970-01-01T00:00:20Z"),
+                        20
                     ),
                     create_stop_with_activity(
                         "job3",
@@ -65,6 +68,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                         (30., 0.),
                         1,
                         ("1970-01-01T00:00:30Z", "1970-01-01T00:00:30Z"),
+                        30
                     ),
                     create_stop_with_activity(
                         "job4",
@@ -72,6 +76,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                         (40., 0.),
                         0,
                         ("1970-01-01T00:00:40Z", "1970-01-01T00:00:40Z"),
+                        40
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -79,6 +84,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:01:20Z", "1970-01-01T00:01:20Z"),
+                        80
                     ),
                 ],
                 statistic: Statistic {
