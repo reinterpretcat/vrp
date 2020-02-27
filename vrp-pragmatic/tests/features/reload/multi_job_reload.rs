@@ -170,6 +170,7 @@ fn can_properly_handle_load_without_capacity_violation() {
                         }),
                     },
                     demand: vec![2],
+                    priority: None,
                     skills: None,
                 }),
                 JobVariant::Single(Job {
@@ -184,6 +185,7 @@ fn can_properly_handle_load_without_capacity_violation() {
                         delivery: None,
                     },
                     demand: vec![2],
+                    priority: None,
                     skills: None,
                 }),
             ],

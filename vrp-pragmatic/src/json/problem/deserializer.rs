@@ -73,6 +73,8 @@ pub struct Job {
     pub places: JobPlaces,
     /// Job demand.
     pub demand: Vec<i32>,
+    /// Job priority, bigger value - less important.
+    pub priority: Option<i32>,
     /// Job skills.
     pub skills: Option<Vec<String>>,
 }
@@ -109,6 +111,8 @@ pub struct MultiJob {
     pub id: String,
     /// Multi job places.
     pub places: MultiJobPlaces,
+    /// Job priority, bigger value - less important.
+    pub priority: Option<i32>,
     /// Multi job skills.
     pub skills: Option<Vec<String>>,
 }
@@ -262,6 +266,8 @@ pub struct Config {
 pub struct Features {
     /// Even distribution of the jobs across tours. By default, is off.
     pub even_distribution: Option<EvenDistribution>,
+    /// Tweaks priority weight. Default value is 100.
+    pub priority: Option<Priority>,
 }
 
 /// Configuration to tweak even distribution of the jobs across tours.
@@ -271,6 +277,13 @@ pub struct EvenDistribution {
     pub enabled: bool,
     /// A fraction of this cost is applied when jobs are assigned to the tour.
     pub extra_cost: Option<f64>,
+}
+
+/// Configuration to tweak even distribution of the jobs across tours.
+#[derive(Clone, Deserialize, Debug)]
+pub struct Priority {
+    /// A cost for formula: `extra_cost = (priority - 1) * weight_cost`.
+    pub weight_cost: f64,
 }
 
 // endregion

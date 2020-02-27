@@ -90,6 +90,7 @@ fn can_read_complex_problem() {
                         }),
                     },
                     demand: vec![0, 1],
+                    priority: None,
                     skills: Some(vec!["unique".to_string()]),
                 }),
                 JobVariant::Single(Job {
@@ -115,6 +116,7 @@ fn can_read_complex_problem() {
                         }),
                     },
                     demand: vec![2],
+                    priority: None,
                     skills: None,
                 }),
                 JobVariant::Single(Job {
@@ -132,6 +134,7 @@ fn can_read_complex_problem() {
                         delivery: Option::None,
                     },
                     demand: vec![3],
+                    priority: None,
                     skills: Some(vec!["unique2".to_string()]),
                 }),
             ],

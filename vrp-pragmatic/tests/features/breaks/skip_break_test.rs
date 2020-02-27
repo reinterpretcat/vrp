@@ -109,6 +109,7 @@ fn can_skip_break_when_jobs_completed() {
                     delivery: Some(JobPlace { times: None, location: vec![1., 0.].to_loc(), duration: 10., tag: None }),
                 },
                 demand: vec![1],
+                priority: None,
                 skills: None,
             })],
             relations: Option::None,

@@ -13,6 +13,7 @@ pub fn relation_job_prototype() -> impl Strategy<Value = JobVariant> {
             generate_no_time_windows(),
         ),
         generate_simple_demand(1..2),
+        generate_no_priority(),
         generate_no_skills(),
     )
 }

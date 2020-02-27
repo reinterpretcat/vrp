@@ -10,6 +10,7 @@ pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
         id: id.to_string(),
         places: JobPlaces { pickup: Option::None, delivery: Some(create_job_place(location)) },
         demand: vec![1],
+        priority: None,
         skills: None,
     })
 }
@@ -19,6 +20,7 @@ pub fn create_delivery_job_with_demand(id: &str, location: Vec<f64>, demand: Vec
         id: id.to_string(),
         places: JobPlaces { pickup: Option::None, delivery: Some(create_job_place(location)) },
         demand,
+        priority: None,
         skills: None,
     })
 }
@@ -31,6 +33,7 @@ pub fn create_delivery_job_with_duration(id: &str, location: Vec<f64>, duration:
             delivery: Some(JobPlace { times: None, location: location.to_loc(), duration, tag: None }),
         },
         demand: vec![1],
+        priority: None,
         skills: None,
     })
 }
@@ -43,6 +46,7 @@ pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: Vec
             delivery: Some(JobPlace { times: None, location: location.to_loc(), duration: 1., tag: None }),
         },
         demand: vec![1],
+        priority: None,
         skills: Some(skills),
     })
 }
@@ -65,6 +69,7 @@ pub fn create_delivery_job_with_times(
             }),
         },
         demand: vec![1],
+        priority: None,
         skills: None,
     })
 }
@@ -74,6 +79,7 @@ pub fn create_pickup_job(id: &str, location: Vec<f64>) -> JobVariant {
         id: id.to_string(),
         places: JobPlaces { pickup: Some(create_job_place(location)), delivery: Option::None },
         demand: vec![1],
+        priority: None,
         skills: None,
     })
 }
@@ -86,6 +92,7 @@ pub fn create_pickup_delivery_job(id: &str, pickup_location: Vec<f64>, delivery_
             delivery: Some(create_job_place(delivery_location)),
         },
         demand: vec![1],
+        priority: None,
         skills: None,
     })
 }
@@ -121,6 +128,7 @@ pub fn create_multi_job(
                 })
                 .collect(),
         },
+        priority: None,
         skills: Option::None,
     })
 }
