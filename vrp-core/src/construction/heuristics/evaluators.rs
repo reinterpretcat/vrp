@@ -90,14 +90,13 @@ fn evaluate_single(
         position,
         single,
         &mut activity,
-        route_costs,
         SingleContext::new(best_known_cost, 0),
     );
 
     if result.is_success() {
         activity.place = result.place;
         let activities = vec![(activity, result.index)];
-        InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
+        InsertionResult::make_success(result.cost.unwrap() + route_costs, job.clone(), activities, route_ctx.clone())
     } else {
         InsertionResult::make_failure_with_code(result.violation.unwrap().code, Some(job.clone()))
     }
@@ -136,7 +135,6 @@ fn evaluate_multi(
                         position,
                         service,
                         &mut activity,
-                        0.0,
                         SingleContext::new(None, in1.next_index),
                     );
 
@@ -144,10 +142,7 @@ fn evaluate_multi(
                         activity.place = srv_res.place;
                         let activity = shadow.insert(activity, srv_res.index);
                         let activities = concat_activities(in1.activities, (activity, srv_res.index));
-                        return MultiContext::success(
-                            in1.cost.unwrap_or(route_costs) + srv_res.cost.unwrap(),
-                            activities,
-                        );
+                        return MultiContext::success(in1.cost.unwrap_or(0.) + srv_res.cost.unwrap(), activities);
                     }
 
                     MultiContext::fail(srv_res, in1)
@@ -162,7 +157,7 @@ fn evaluate_multi(
 
     if result.is_success() {
         let activities = result.activities.unwrap();
-        InsertionResult::make_success(result.cost.unwrap(), job.clone(), activities, route_ctx.clone())
+        InsertionResult::make_success(result.cost.unwrap() + route_costs, job.clone(), activities, route_ctx.clone())
     } else {
         InsertionResult::make_failure_with_code(
             if let Some(violation) = result.violation { violation.code } else { 0 },
@@ -178,16 +173,18 @@ fn analyze_insertion_in_route(
     position: InsertionPosition,
     single: &Single,
     target: &mut Box<Activity>,
-    extra_costs: Cost,
     init: SingleContext,
 ) -> SingleContext {
     unwrap_from_result(match position {
-        InsertionPosition::Any => route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
-            analyze_insertion_in_route_leg(ctx, route_ctx, leg, single, target, extra_costs, out)
-        }),
+        InsertionPosition::Any => route_ctx
+            .route
+            .tour
+            .legs()
+            .skip(init.index)
+            .try_fold(init, |out, leg| analyze_insertion_in_route_leg(ctx, route_ctx, leg, single, target, out)),
         InsertionPosition::Last => {
             if let Some(last_leg) = route_ctx.route.tour.legs().last() {
-                analyze_insertion_in_route_leg(ctx, route_ctx, last_leg, single, target, extra_costs, init)
+                analyze_insertion_in_route_leg(ctx, route_ctx, last_leg, single, target, init)
             } else {
                 Ok(init)
             }
@@ -202,7 +199,6 @@ fn analyze_insertion_in_route_leg<'a>(
     leg: (&'a [TourActivity], usize),
     single: &Single,
     target: &mut Box<Activity>,
-    extra_costs: Cost,
     out: SingleContext,
 ) -> Result<SingleContext, SingleContext> {
     let (items, index) = leg;
@@ -227,7 +223,7 @@ fn analyze_insertion_in_route_leg<'a>(
                 return SingleContext::fail(violation, in2);
             }
 
-            let costs = extra_costs + ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
+            let costs = ctx.problem.constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
 
             if costs < in2.cost.unwrap_or(std::f64::MAX) {
                 SingleContext::success(activity_ctx.index, costs, target.place.clone())
