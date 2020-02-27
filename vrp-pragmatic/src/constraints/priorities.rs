@@ -1,7 +1,7 @@
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::states::{RouteContext, SolutionContext};
+use vrp_core::construction::states::{ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::common::Cost;
 use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::Job;
@@ -13,9 +13,12 @@ pub struct PriorityModule {
 }
 
 impl PriorityModule {
-    pub fn new(extra_cost: Cost) -> Self {
+    pub fn new(extra_cost: Cost, code: i32) -> Self {
         Self {
-            constraints: vec![ConstraintVariant::SoftRoute(Arc::new(PrioritySoftRouteConstraint { extra_cost }))],
+            constraints: vec![
+                ConstraintVariant::SoftRoute(Arc::new(PrioritySoftRouteConstraint { extra_cost })),
+                ConstraintVariant::HardActivity(Arc::new(PriorityHardActivityConstraint { code })),
+            ],
             keys: vec![],
         }
     }
@@ -43,10 +46,51 @@ struct PrioritySoftRouteConstraint {
 
 impl SoftRouteConstraint for PrioritySoftRouteConstraint {
     fn estimate_job(&self, _: &RouteContext, job: &Job) -> f64 {
-        match job {
-            Job::Single(job) => job.dimens.get_value::<i32>("priority"),
-            Job::Multi(job) => job.dimens.get_value::<i32>("priority"),
-        }
-        .map_or(0., |priority| ((priority - 1) as f64 * self.extra_cost.max(0.)))
+        get_priority(job).map_or(0., |priority| ((priority - 1) as f64 * self.extra_cost.max(0.)))
     }
+}
+
+struct PriorityHardActivityConstraint {
+    code: i32,
+}
+
+impl PriorityHardActivityConstraint {
+    fn check_priorities(&self, first: &Job, second: &Job, stopped: bool) -> Option<ActivityConstraintViolation> {
+        let result = get_priority(first).unwrap_or(1) <= get_priority(second).unwrap_or(1);
+
+        if result {
+            None
+        } else {
+            Some(ActivityConstraintViolation { code: self.code, stopped })
+        }
+    }
+}
+
+impl HardActivityConstraint for PriorityHardActivityConstraint {
+    fn evaluate_activity(
+        &self,
+        _: &RouteContext,
+        activity_ctx: &ActivityContext,
+    ) -> Option<ActivityConstraintViolation> {
+        let prev = activity_ctx.prev.retrieve_job();
+        let target = activity_ctx.target.retrieve_job();
+        let next = activity_ctx.next.and_then(|next| next.retrieve_job());
+
+        // TODO last patterns don't work in all cases with with break/reloads?
+
+        match (prev, target, next) {
+            (_, None, _) => None,
+            (None, Some(_), None) => None,
+            (Some(prev), Some(target), _) => self.check_priorities(&prev, &target, false),
+            (_, Some(target), Some(next)) => self.check_priorities(&target, &next, true),
+        }
+    }
+}
+
+fn get_priority(job: &Job) -> Option<i32> {
+    match job {
+        Job::Single(job) => job.dimens.get_value::<i32>("priority"),
+        Job::Multi(job) => job.dimens.get_value::<i32>("priority"),
+    }
+    .cloned()
 }

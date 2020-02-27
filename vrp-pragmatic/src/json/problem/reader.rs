@@ -148,7 +148,7 @@ fn create_constraint_pipeline(
     }
 
     if let Some(priority_cost) = props.priority {
-        constraint.add_module(Box::new(PriorityModule::new(priority_cost)));
+        constraint.add_module(Box::new(PriorityModule::new(priority_cost, PRIORITY_CONSTRAINT_CODE)));
     }
 
     if !locks.is_empty() {

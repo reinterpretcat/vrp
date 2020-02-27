@@ -264,6 +264,7 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
             SKILLS_CONSTRAINT_CODE => (1, "cannot serve required skill"),
             REACHABLE_CONSTRAINT_CODE => (100, "location unreachable"),
             BREAK_CONSTRAINT_CODE => (101, "break is not assignable"),
+            PRIORITY_CONSTRAINT_CODE => (103, "cannot be served due to priority"),
             _ => (0, "unknown"),
         };
         let dimens = match unassigned.0 {

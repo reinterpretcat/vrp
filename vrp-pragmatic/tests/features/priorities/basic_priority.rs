@@ -30,10 +30,10 @@ fn can_follow_priorities() {
         solution,
         Solution {
             statistic: Statistic {
-                cost: 58.,
-                distance: 22,
-                duration: 26,
-                times: Timing { driving: 22, serving: 3, waiting: 0, break_time: 0 },
+                cost: 53.,
+                distance: 20,
+                duration: 23,
+                times: Timing { driving: 20, serving: 3, waiting: 0, break_time: 0 },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -61,31 +61,31 @@ fn can_follow_priorities() {
                         "delivery",
                         (5., 0.),
                         1,
-                        ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
-                        11
+                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                        9
                     ),
                     create_stop_with_activity(
                         "job1",
                         "delivery",
                         (2., 0.),
                         0,
-                        ("1970-01-01T00:00:17Z", "1970-01-01T00:00:18Z"),
-                        14
+                        ("1970-01-01T00:00:14Z", "1970-01-01T00:00:15Z"),
+                        12
                     ),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",
                         (10., 0.),
                         0,
-                        ("1970-01-01T00:00:26Z", "1970-01-01T00:00:26Z"),
-                        22
+                        ("1970-01-01T00:00:23Z", "1970-01-01T00:00:23Z"),
+                        20
                     )
                 ],
                 statistic: Statistic {
-                    cost: 58.,
-                    distance: 22,
-                    duration: 26,
-                    times: Timing { driving: 22, serving: 3, waiting: 0, break_time: 0 },
+                    cost: 53.,
+                    distance: 20,
+                    duration: 23,
+                    times: Timing { driving: 20, serving: 3, waiting: 0, break_time: 0 },
                 },
             }],
             unassigned: vec![],
