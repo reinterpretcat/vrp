@@ -64,3 +64,8 @@ More details about `shift` property can be found in [vehicle type section](./veh
 An optional `skills` property is a set of unique tags which should be matched on job and vehicle to be used. It is useful
 to model some specific job requirements to assigned vehicle (e.g. should have fridge or driver should be a handyman).
 See [skills example](../../../examples/pragmatic/skills.md).
+
+### Priority
+
+An optional `priority` property allows you to force some jobs being served before other. Priority is represented as integer in range [1, MAX_INT]
+where the lower value means higher priority. By default value is set to 1.

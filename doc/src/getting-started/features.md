@@ -66,6 +66,8 @@ The main focus of the project is to support solving multiple variations of VRP w
 - **[skills](../examples/pragmatic/skills.md)**: allows to specify various skills (which is simple some tag) on vehicle
      and customer. Customer with specific skills can be visited only if these skills are present on vehicle.
 
+- **job priorities**: allows you to force some jobs being served before others.
+
  - **[relations](../examples/pragmatic/relations.md)**: allows to specify relations which locks jobs to specific vehicles
      in customizable way.
 
