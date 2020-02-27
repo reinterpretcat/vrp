@@ -5,50 +5,40 @@ use crate::json::problem::*;
 use vrp_core::models::common::{Distance, Duration, Location, Timestamp};
 use vrp_core::models::problem::TransportCost;
 
-pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
-    JobVariant::Single(Job {
+fn create_delivery_simple_job(id: &str, location: Vec<f64>) -> Job {
+    Job {
         id: id.to_string(),
         places: JobPlaces { pickup: Option::None, delivery: Some(create_job_place(location)) },
         demand: vec![1],
         priority: None,
         skills: None,
-    })
+    }
+}
+
+pub fn create_delivery_job(id: &str, location: Vec<f64>) -> JobVariant {
+    JobVariant::Single(create_delivery_simple_job(id, location))
+}
+
+pub fn create_delivery_job_with_priority(id: &str, location: Vec<f64>, priority: i32) -> JobVariant {
+    JobVariant::Single(Job { priority: Some(priority), ..create_delivery_simple_job(id, location) })
 }
 
 pub fn create_delivery_job_with_demand(id: &str, location: Vec<f64>, demand: Vec<i32>) -> JobVariant {
-    JobVariant::Single(Job {
-        id: id.to_string(),
-        places: JobPlaces { pickup: Option::None, delivery: Some(create_job_place(location)) },
-        demand,
-        priority: None,
-        skills: None,
-    })
+    JobVariant::Single(Job { demand, ..create_delivery_simple_job(id, location) })
 }
 
 pub fn create_delivery_job_with_duration(id: &str, location: Vec<f64>, duration: f64) -> JobVariant {
     JobVariant::Single(Job {
-        id: id.to_string(),
         places: JobPlaces {
             pickup: Option::None,
             delivery: Some(JobPlace { times: None, location: location.to_loc(), duration, tag: None }),
         },
-        demand: vec![1],
-        priority: None,
-        skills: None,
+        ..create_delivery_simple_job(id, location)
     })
 }
 
 pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: Vec<String>) -> JobVariant {
-    JobVariant::Single(Job {
-        id: id.to_string(),
-        places: JobPlaces {
-            pickup: Option::None,
-            delivery: Some(JobPlace { times: None, location: location.to_loc(), duration: 1., tag: None }),
-        },
-        demand: vec![1],
-        priority: None,
-        skills: Some(skills),
-    })
+    JobVariant::Single(Job { skills: Some(skills), ..create_delivery_simple_job(id, location) })
 }
 
 pub fn create_delivery_job_with_times(

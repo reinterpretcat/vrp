@@ -29,6 +29,9 @@ pub use self::breaks::BreakModule;
 mod even_dist;
 pub use self::even_dist::EvenDistributionModule;
 
+mod priorities;
+pub use self::priorities::PriorityModule;
+
 mod reloads;
 pub use self::reloads::ReloadMultiTrip;
 

@@ -5,6 +5,7 @@ mod fleet;
 mod limits;
 mod multjob;
 mod pickdev;
+mod priorities;
 mod relations;
 mod reload;
 mod skills;

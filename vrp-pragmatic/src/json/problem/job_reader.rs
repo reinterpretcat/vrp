@@ -135,10 +135,10 @@ fn read_required_jobs(
 
             let problem_job = match (pickup, delivery) {
                 (Some(pickup), Some(delivery)) => {
-                    get_multi_job(&job.id, &job.skills, vec![Arc::new(pickup), Arc::new(delivery)], 1)
+                    get_multi_job(&job.id, &job.priority, &job.skills, vec![Arc::new(pickup), Arc::new(delivery)], 1)
                 }
-                (Some(pickup), None) => get_single_job(&job.id, pickup, &job.skills),
-                (None, Some(delivery)) => get_single_job(&job.id, delivery, &job.skills),
+                (Some(pickup), None) => get_single_job(&job.id, pickup, &job.priority, &job.skills),
+                (None, Some(delivery)) => get_single_job(&job.id, delivery, &job.priority, &job.skills),
                 (None, None) => panic!("Single job should contain pickup and/or delivery."),
             };
 
@@ -178,7 +178,7 @@ fn read_required_jobs(
                 ))
             }));
 
-            let problem_job = get_multi_job(&job.id, &job.skills, singles, job.places.pickups.len());
+            let problem_job = get_multi_job(&job.id, &job.priority, &job.skills, singles, job.places.pickups.len());
             job_index.insert(job.id.clone(), problem_job.clone());
             jobs.push(problem_job)
         }
@@ -358,9 +358,11 @@ fn get_single_with_extras(
     single
 }
 
-fn get_single_job(id: &String, single: Single, skills: &Option<Vec<String>>) -> Job {
+fn get_single_job(id: &String, single: Single, priority: &Option<i32>, skills: &Option<Vec<String>>) -> Job {
     let mut single = single;
     single.dimens.set_id(id.as_str());
+
+    add_priority(&mut single.dimens, priority);
     add_skills(&mut single.dimens, skills);
 
     Job::Single(Arc::new(single))
@@ -368,13 +370,16 @@ fn get_single_job(id: &String, single: Single, skills: &Option<Vec<String>>) -> 
 
 fn get_multi_job(
     id: &String,
+    priority: &Option<i32>,
     skills: &Option<Vec<String>>,
     singles: Vec<Arc<Single>>,
     deliveries_start_index: usize,
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id.as_str());
+    add_priority(&mut dimens, priority);
     add_skills(&mut dimens, skills);
+
     let multi = if singles.len() == 2 && deliveries_start_index == 1 {
         Multi::new(singles, dimens)
     } else {
@@ -399,6 +404,12 @@ fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor
 fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
     if let Some(tag) = tag {
         dimens.set_value("tag", tag.clone());
+    }
+}
+
+fn add_priority(dimens: &mut Dimensions, priority: &Option<i32>) {
+    if let Some(priority) = priority {
+        dimens.set_value("priority", *priority);
     }
 }
 

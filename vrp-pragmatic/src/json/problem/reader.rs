@@ -73,6 +73,7 @@ pub struct ProblemProperties {
     has_skills: bool,
     has_unreachable_locations: bool,
     has_reload: bool,
+    priority: Option<Cost>,
     even_dist: Option<Cost>,
 }
 
@@ -144,6 +145,10 @@ fn create_constraint_pipeline(
 
     if props.has_skills {
         constraint.add_module(Box::new(SkillsModule::new(SKILLS_CONSTRAINT_CODE)));
+    }
+
+    if let Some(priority_cost) = props.priority {
+        constraint.add_module(Box::new(PriorityModule::new(priority_cost)));
     }
 
     if !locks.is_empty() {
@@ -254,12 +259,34 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         .and_then(|f| f.even_distribution.as_ref())
         .and_then(|ed| ed.extra_cost.clone());
 
+    let priority = api_problem
+        .plan
+        .jobs
+        .iter()
+        .filter_map(|job| match job {
+            JobVariant::Single(job) => job.priority,
+            JobVariant::Multi(job) => job.priority,
+        })
+        .any(|priority| priority > 1);
+
+    let priority = if priority {
+        api_problem
+            .config
+            .as_ref()
+            .and_then(|c| c.features.as_ref())
+            .and_then(|features| features.priority.as_ref().map(|priority| priority.weight_cost))
+            .or(Some(100.))
+    } else {
+        None
+    };
+
     ProblemProperties {
         has_multi_dimen_capacity,
         has_breaks,
         has_skills,
         has_unreachable_locations,
         has_reload,
+        priority,
         even_dist,
     }
 }
