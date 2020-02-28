@@ -205,8 +205,8 @@ pub struct VehicleBreak {
     pub times: VehicleBreakTime,
     /// Break duration.
     pub duration: f64,
-    /// Break location.
-    pub location: Option<Location>,
+    /// Break locations.
+    pub locations: Option<Vec<Location>>,
 }
 
 /// Specifies a vehicle type.

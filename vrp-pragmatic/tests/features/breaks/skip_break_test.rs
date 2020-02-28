@@ -22,7 +22,7 @@ fn can_skip_break_when_vehicle_not_used() {
                         breaks: Some(vec![VehicleBreak {
                             times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(8.)]]),
                             duration: 2.0,
-                            location: Some(vec![6., 0.].to_loc()),
+                            locations: Some(vec![vec![6., 0.].to_loc()]),
                         }]),
                         reloads: None,
                     }],
@@ -116,11 +116,14 @@ fn can_skip_break_when_jobs_completed() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
-                    times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(8.)]]),
-                    duration: 2.0,
-                    location: Some(vec![6., 0.].to_loc()),
-                }])],
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![VehicleBreak {
+                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(8.)]]),
+                        duration: 2.0,
+                        locations: Some(vec![vec![6., 0.].to_loc()]),
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
                 ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
@@ -198,18 +201,21 @@ fn can_skip_second_break_when_jobs_completed() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                shifts: vec![create_default_vehicle_shift_with_breaks(vec![
-                    VehicleBreak {
-                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(10.)]]),
-                        duration: 2.0,
-                        location: Some(vec![6., 0.].to_loc()),
-                    },
-                    VehicleBreak {
-                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(100.), format_time(120.)]]),
-                        duration: 2.0,
-                        location: None,
-                    },
-                ])],
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![
+                        VehicleBreak {
+                            times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(10.)]]),
+                            duration: 2.0,
+                            locations: Some(vec![vec![6., 0.].to_loc()]),
+                        },
+                        VehicleBreak {
+                            times: VehicleBreakTime::TimeWindows(vec![vec![format_time(100.), format_time(120.)]]),
+                            duration: 2.0,
+                            locations: None,
+                        },
+                    ]),
+                    ..create_default_vehicle_shift()
+                }],
                 ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),

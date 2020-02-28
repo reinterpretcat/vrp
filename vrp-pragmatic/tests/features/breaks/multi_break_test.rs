@@ -12,18 +12,21 @@ fn can_use_two_breaks() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                shifts: vec![create_default_vehicle_shift_with_breaks(vec![
-                    VehicleBreak {
-                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(10.)]]),
-                        duration: 2.0,
-                        location: Some(vec![6., 0.].to_loc()),
-                    },
-                    VehicleBreak {
-                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(100.), format_time(120.)]]),
-                        duration: 2.0,
-                        location: None,
-                    },
-                ])],
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![
+                        VehicleBreak {
+                            times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(10.)]]),
+                            duration: 2.0,
+                            locations: Some(vec![vec![6., 0.].to_loc()]),
+                        },
+                        VehicleBreak {
+                            times: VehicleBreakTime::TimeWindows(vec![vec![format_time(100.), format_time(120.)]]),
+                            duration: 2.0,
+                            locations: None,
+                        },
+                    ]),
+                    ..create_default_vehicle_shift()
+                }],
                 ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
@@ -54,7 +57,7 @@ fn can_use_two_breaks() {
                         (0., 0.),
                         2,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
+                        0,
                     ),
                     create_stop_with_activity(
                         "job1",
@@ -62,7 +65,7 @@ fn can_use_two_breaks() {
                         (5., 0.),
                         1,
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
-                        5
+                        5,
                     ),
                     create_stop_with_activity(
                         "break",
@@ -70,13 +73,13 @@ fn can_use_two_breaks() {
                         (6., 0.),
                         1,
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
-                        6
+                        6,
                     ),
                     Stop {
                         location: vec![99., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:01:42Z".to_string(),
-                            departure: "1970-01-01T00:01:45Z".to_string()
+                            departure: "1970-01-01T00:01:45Z".to_string(),
                         },
                         distance: 99,
                         load: vec![0],
@@ -109,7 +112,7 @@ fn can_use_two_breaks() {
                         (0., 0.),
                         0,
                         ("1970-01-01T00:03:24Z", "1970-01-01T00:03:24Z"),
-                        198
+                        198,
                     )
                 ],
                 statistic: Statistic {

@@ -110,10 +110,8 @@ fn read_required_jobs(
 
             let pickup = job.places.pickup.as_ref().map(|pickup| {
                 get_single_with_extras(
-                    &pickup.location,
-                    pickup.duration,
+                    vec![(Some(pickup.location.clone()), pickup.duration, &pickup.times)],
                     Demand { pickup: demand, delivery: (empty(), empty()) },
-                    &pickup.times,
                     &pickup.tag,
                     "pickup",
                     props.has_multi_dimen_capacity,
@@ -122,10 +120,8 @@ fn read_required_jobs(
             });
             let delivery = job.places.delivery.as_ref().map(|delivery| {
                 get_single_with_extras(
-                    &delivery.location,
-                    delivery.duration,
+                    vec![(Some(delivery.location.clone()), delivery.duration, &delivery.times)],
                     Demand { pickup: (empty(), empty()), delivery: demand },
-                    &delivery.times,
                     &delivery.tag,
                     "delivery",
                     props.has_multi_dimen_capacity,
@@ -153,10 +149,8 @@ fn read_required_jobs(
                 .map(|pickup| {
                     let demand = MultiDimensionalCapacity::new(pickup.demand.clone());
                     Arc::new(get_single_with_extras(
-                        &pickup.location,
-                        pickup.duration,
+                        vec![(Some(pickup.location.clone()), pickup.duration, &pickup.times)],
                         Demand { pickup: (empty(), demand), delivery: (empty(), empty()) },
-                        &pickup.times,
                         &pickup.tag,
                         "pickup",
                         props.has_multi_dimen_capacity,
@@ -167,10 +161,8 @@ fn read_required_jobs(
             singles.extend(job.places.deliveries.iter().map(|delivery| {
                 let demand = MultiDimensionalCapacity::new(delivery.demand.clone());
                 Arc::new(get_single_with_extras(
-                    &delivery.location,
-                    delivery.duration,
+                    vec![(Some(delivery.location.clone()), delivery.duration, &delivery.times)],
                     Demand { pickup: (empty(), empty()), delivery: (empty(), demand) },
-                    &delivery.times,
                     &delivery.tag,
                     "delivery",
                     props.has_multi_dimen_capacity,
@@ -231,15 +223,15 @@ fn read_breaks(
 
                     let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
                     let job_id = format!("{}_break_{}", vehicle_id, break_idx);
+                    let places = if let Some(locations) = &place.locations {
+                        assert!(!locations.is_empty());
+                        locations.into_iter().map(|location| (Some(location.clone()), place.duration, &times)).collect()
+                    } else {
+                        vec![(None, place.duration, &times)]
+                    };
 
-                    let mut job = get_conditional_job(
-                        coord_index,
-                        vehicle_id.clone(),
-                        "break",
-                        shift_index,
-                        (&place.location, place.duration, &times),
-                        &None,
-                    );
+                    let mut job =
+                        get_conditional_job(coord_index, vehicle_id.clone(), "break", shift_index, places, &None);
 
                     if let Some(interval) = interval {
                         assert_eq!(interval.len(), 2);
@@ -275,7 +267,7 @@ fn read_reloads(
                         vehicle_id.clone(),
                         "reload",
                         shift_index,
-                        (&Some(reload.location.clone()), reload.duration, &reload.times),
+                        vec![(Some(reload.location.clone()), reload.duration, &reload.times)],
                         &reload.tag,
                     );
 
@@ -293,11 +285,10 @@ fn get_conditional_job(
     vehicle_id: String,
     job_type: &str,
     shift_index: usize,
-    place: (&Option<Location>, Duration, &Option<Vec<Vec<String>>>),
+    places: Vec<(Option<Location>, Duration, &Option<Vec<Vec<String>>>)>,
     tag: &Option<String>,
 ) -> Single {
-    let (location, duration, times) = place;
-    let mut single = get_single(location.as_ref().and_then(|l| Some(l)), duration, &times, coord_index);
+    let mut single = get_single(places, coord_index);
     single.dimens.set_id(job_type);
     single.dimens.set_value("type", job_type.to_string());
     single.dimens.set_value("shift_index", shift_index);
@@ -316,34 +307,33 @@ fn add_conditional_job(job_index: &mut JobIndex, jobs: &mut Vec<Job>, job_id: St
 }
 
 fn get_single(
-    location: Option<&Location>,
-    duration: Duration,
-    times: &Option<Vec<Vec<String>>>,
+    places: Vec<(Option<Location>, Duration, &Option<Vec<Vec<String>>>)>,
     coord_index: &CoordIndex,
 ) -> Single {
     Single {
-        places: vec![Place {
-            location: location.as_ref().and_then(|l| coord_index.get_by_loc(l)),
-            duration,
-            times: times
-                .as_ref()
-                .map_or(vec![TimeWindow::max()], |tws| tws.iter().map(|tw| parse_time_window(tw)).collect()),
-        }],
+        places: places
+            .iter()
+            .map(|(location, duration, times)| Place {
+                location: location.as_ref().and_then(|l| coord_index.get_by_loc(l)),
+                duration: *duration,
+                times: times
+                    .as_ref()
+                    .map_or(vec![TimeWindow::max()], |tws| tws.iter().map(|tw| parse_time_window(tw)).collect()),
+            })
+            .collect(),
         dimens: Default::default(),
     }
 }
 
 fn get_single_with_extras(
-    location: &Location,
-    duration: Duration,
+    places: Vec<(Option<Location>, Duration, &Option<Vec<Vec<String>>>)>,
     demand: Demand<MultiDimensionalCapacity>,
-    times: &Option<Vec<Vec<String>>>,
     tag: &Option<String>,
     activity_type: &str,
     has_multi_dimens: bool,
     coord_index: &CoordIndex,
 ) -> Single {
-    let mut single = get_single(Some(location), duration, times, coord_index);
+    let mut single = get_single(places, coord_index);
     if has_multi_dimens {
         single.dimens.set_demand(demand);
     } else {

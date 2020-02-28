@@ -160,7 +160,7 @@ fn can_read_complex_problem() {
                             vec!["1970-01-01T00:01:00Z".to_string(), "1970-01-01T00:03:00Z".to_string()],
                         ]),
                         duration: 100.0,
-                        location: Some(vec![52.48315, 13.4330].to_loc()),
+                        locations: Some(vec![vec![52.48315, 13.4330].to_loc()]),
                     }]),
                     reloads: None,
                 }],

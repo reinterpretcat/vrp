@@ -206,7 +206,7 @@ mod tests {
                             breaks: Some(vec![VehicleBreak {
                                 times: VehicleBreakTime::TimeWindows(vec![vec![format_time(0.), format_time(1000.)]]),
                                 duration: 2.0,
-                                location: None,
+                                locations: None,
                             }]),
                             reloads: Some(vec![VehicleReload {
                                 times: None,

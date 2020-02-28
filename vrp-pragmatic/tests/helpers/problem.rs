@@ -131,15 +131,6 @@ pub fn create_default_vehicle_shift() -> VehicleShift {
     create_default_vehicle_shift_with_locations((0., 0.), (0., 0.))
 }
 
-pub fn create_default_vehicle_shift_with_breaks(breaks: Vec<VehicleBreak>) -> VehicleShift {
-    VehicleShift {
-        start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
-        end: Some(VehiclePlace { time: format_time(1000.).to_string(), location: vec![0., 0.].to_loc() }),
-        breaks: Some(breaks),
-        reloads: None,
-    }
-}
-
 pub fn create_default_open_vehicle_shift() -> VehicleShift {
     VehicleShift {
         start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },

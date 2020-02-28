@@ -267,8 +267,9 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
                 let current = activity.place.location;
 
                 if let Some(break_job) = as_break_job(activity) {
-                    // TODO support multiple places for break
-                    assert_eq!(break_job.places.len(), 1);
+                    // NOTE break should have location defined for all places or for none of them
+                    let location_count = break_job.places.iter().map(|p| p.location.is_some()).count();
+                    assert!(location_count == 0 || location_count == break_job.places.len());
 
                     if prev != current && break_job.places.first().and_then(|p| p.location).is_none() {
                         // NOTE remove break with removed job location

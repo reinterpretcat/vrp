@@ -67,7 +67,7 @@ prop_compose! {
         VehicleBreak {
             times: VehicleBreakTime::TimeWindows(times),
             duration,
-            location,
+            locations: location.map_or(None, |l| Some(vec![l])),
         }
     }
 }

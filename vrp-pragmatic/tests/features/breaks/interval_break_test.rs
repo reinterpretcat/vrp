@@ -12,11 +12,14 @@ fn can_assign_interval_break_between_jobs() {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
-                    times: VehicleBreakTime::IntervalWindow(vec![5., 10.]),
-                    duration: 2.0,
-                    location: None,
-                }])],
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![VehicleBreak {
+                        times: VehicleBreakTime::IntervalWindow(vec![5., 10.]),
+                        duration: 2.0,
+                        locations: None,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
                 ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
@@ -130,7 +133,7 @@ fn can_assign_interval_break_with_reload() {
                     breaks: Some(vec![VehicleBreak {
                         times: VehicleBreakTime::IntervalWindow(vec![8., 12.]),
                         duration: 2.0,
-                        location: None,
+                        locations: None,
                     }]),
                     reloads: Some(vec![VehicleReload {
                         times: Some(vec![vec![format_time(0.), format_time(1000.)]]),

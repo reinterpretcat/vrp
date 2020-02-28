@@ -16,11 +16,14 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
         },
         fleet: Fleet {
             types: vec![VehicleType {
-                shifts: vec![create_default_vehicle_shift_with_breaks(vec![VehicleBreak {
-                    times: VehicleBreakTime::TimeWindows(vec![vec![format_time(0.), format_time(1000.)]]),
-                    duration: 2.0,
-                    location: Some(vec![3., 0.].to_loc()),
-                }])],
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![VehicleBreak {
+                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(0.), format_time(1000.)]]),
+                        duration: 2.0,
+                        locations: Some(vec![vec![3., 0.].to_loc()]),
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
                 ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
