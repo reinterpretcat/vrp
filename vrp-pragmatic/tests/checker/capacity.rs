@@ -133,8 +133,8 @@ fn get_demand(
         activity,
         &activity_type,
         |job, task| {
-            let is_dynamic = job.requirement.pickups.as_ref().map_or(false, |p| p.len() > 0)
-                && job.requirement.deliveries.as_ref().map_or(false, |p| p.len() > 0);
+            let is_dynamic = job.pickups.as_ref().map_or(false, |p| p.len() > 0)
+                && job.deliveries.as_ref().map_or(false, |p| p.len() > 0);
             (is_dynamic, Capacity::new(task.demand.clone()))
         },
         || (false, Capacity::default()),

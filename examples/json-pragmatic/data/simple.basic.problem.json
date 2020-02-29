@@ -3,98 +3,92 @@
     "jobs": [
       {
         "id": "job1",
-        "requirement": {
-          "deliveries": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.52599,
-                    "lng": 13.45413
-                  },
-                  "duration": 300.0,
-                  "times": [
-                    [
-                      "2019-07-04T09:00:00Z",
-                      "2019-07-04T18:00:00Z"
-                    ],
-                    [
-                      "2019-07-05T09:00:00Z",
-                      "2019-07-05T18:00:00Z"
-                    ]
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.52599,
+                  "lng": 13.45413
+                },
+                "duration": 300.0,
+                "times": [
+                  [
+                    "2019-07-04T09:00:00Z",
+                    "2019-07-04T18:00:00Z"
+                  ],
+                  [
+                    "2019-07-05T09:00:00Z",
+                    "2019-07-05T18:00:00Z"
                   ]
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ]
-        }
+                ]
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
       },
       {
         "id": "job2",
-        "requirement": {
-          "pickups": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5225,
-                    "lng": 13.4095
-                  },
-                  "duration": 240.0,
-                  "times": [
-                    [
-                      "2019-07-04T10:00:00Z",
-                      "2019-07-04T16:00:00Z"
-                    ]
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5225,
+                  "lng": 13.4095
+                },
+                "duration": 240.0,
+                "times": [
+                  [
+                    "2019-07-04T10:00:00Z",
+                    "2019-07-04T16:00:00Z"
                   ]
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ]
-        }
+                ]
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
       },
       {
         "id": "job3",
-        "requirement": {
-          "pickups": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5225,
-                    "lng": 13.4095
-                  },
-                  "duration": 300.0
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ],
-          "deliveries": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5165,
-                    "lng": 13.3808
-                  },
-                  "duration": 300.0
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ]
-        }
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5225,
+                  "lng": 13.4095
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ],
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5165,
+                  "lng": 13.3808
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
       }
     ]
   },

@@ -10,11 +10,7 @@ pub fn delivery_job_prototype(
     priority_proto: impl Strategy<Value = Option<i32>>,
     skills_proto: impl Strategy<Value = Option<Vec<String>>>,
 ) -> impl Strategy<Value = Job> {
-    job_prototype(
-        job_requirement_prototype(generate_no_job_tasks(), task_proto.prop_map(|p| Some(vec![p]))),
-        priority_proto,
-        skills_proto,
-    )
+    job_prototype(generate_no_job_tasks(), task_proto.prop_map(|p| Some(vec![p])), priority_proto, skills_proto)
 }
 
 /// Creates pickup job prototype.
@@ -23,11 +19,7 @@ pub fn pickup_job_prototype(
     priority_proto: impl Strategy<Value = Option<i32>>,
     skills_proto: impl Strategy<Value = Option<Vec<String>>>,
 ) -> impl Strategy<Value = Job> {
-    job_prototype(
-        job_requirement_prototype(task_proto.prop_map(|p| Some(vec![p])), generate_no_job_tasks()),
-        priority_proto,
-        skills_proto,
-    )
+    job_prototype(task_proto.prop_map(|p| Some(vec![p])), generate_no_job_tasks(), priority_proto, skills_proto)
 }
 
 prop_compose! {
@@ -46,14 +38,12 @@ prop_compose! {
     -> Job {
        Job {
             id: Uuid::new_v4().to_string(),
-            requirement: JobRequirement {
-                pickups: Some(vec![
-                 JobTask { places: vec![pickup], demand: demand.clone(), tag: None}
-                ]),
-                deliveries: Some(vec![
-                 JobTask { places: vec![delivery], demand: demand.clone(), tag: None}
-                ])
-            },
+            pickups: Some(vec![
+             JobTask { places: vec![pickup], demand: demand.clone(), tag: None}
+            ]),
+            deliveries: Some(vec![
+             JobTask { places: vec![delivery], demand: demand.clone(), tag: None}
+            ]),
             priority,
             skills,
         }
@@ -72,31 +62,23 @@ pub fn generate_plan(jobs_proto: impl Strategy<Value = Vec<Job>>) -> impl Strate
 
 prop_compose! {
    fn job_prototype(
-        requirement_proto: impl Strategy<Value = JobRequirement>,
+        pickups_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
+        deliveries_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         priority_proto: impl Strategy<Value = Option<i32>>,
         skills_proto: impl Strategy<Value = Option<Vec<String>>>,
     )
-    (requirement in requirement_proto,
+    (pickups in pickups_proto,
+     deliveries in deliveries_proto,
      priority in priority_proto,
      skills in skills_proto) -> Job {
         Job {
             id: Uuid::new_v4().to_string(),
-            requirement,
+            pickups,
+            deliveries,
             priority,
             skills,
         }
      }
-}
-
-prop_compose! {
-    fn job_requirement_prototype(
-       pickups_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
-       deliveries_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
-    )
-    (pickups in pickups_proto,
-     deliveries in deliveries_proto) -> JobRequirement {
-       JobRequirement { pickups, deliveries }
-    }
 }
 
 prop_compose! {

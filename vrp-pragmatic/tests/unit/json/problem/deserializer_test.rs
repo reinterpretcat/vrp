@@ -33,11 +33,11 @@ fn can_deserialize_problem() {
     // validate jobs
     let job = problem.plan.jobs.first().unwrap();
     assert_eq!(job.id, "single_job");
-    assert!(job.requirement.pickups.is_none());
-    assert!(job.requirement.deliveries.is_some());
+    assert!(job.pickups.is_none());
+    assert!(job.deliveries.is_some());
     assert!(job.skills.is_none());
 
-    let deliveries = job.requirement.deliveries.as_ref().unwrap();
+    let deliveries = job.deliveries.as_ref().unwrap();
     assert_eq!(deliveries.len(), 1);
     let delivery = deliveries.first().unwrap();
     assert_demand(&delivery.demand, 1);
@@ -52,8 +52,8 @@ fn can_deserialize_problem() {
     let job = problem.plan.jobs.last().unwrap();
     assert_eq!(job.id, "multi_job");
     assert!(job.skills.is_none());
-    assert_eq!(job.requirement.pickups.as_ref().unwrap().len(), 2);
-    assert_eq!(job.requirement.deliveries.as_ref().unwrap().len(), 1);
+    assert_eq!(job.pickups.as_ref().unwrap().len(), 2);
+    assert_eq!(job.deliveries.as_ref().unwrap().len(), 1);
 }
 
 #[test]

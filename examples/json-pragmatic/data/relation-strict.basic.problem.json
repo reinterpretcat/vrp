@@ -3,87 +3,79 @@
     "jobs": [
       {
         "id": "job1",
-        "requirement": {
-          "deliveries": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.52599,
-                    "lng": 13.45413
-                  },
-                  "duration": 300.0
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ]
-        }
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.52599,
+                  "lng": 13.45413
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
       },
       {
         "id": "job2",
-        "requirement": {
-          "deliveries": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5225,
-                    "lng": 13.4095
-                  },
-                  "duration": 240.0
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ]
-        }
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5225,
+                  "lng": 13.4095
+                },
+                "duration": 240.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
       },
       {
         "id": "job3",
-        "requirement": {
-          "deliveries": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5165,
-                    "lng": 13.3808
-                  },
-                  "duration": 300.0
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ]
-        }
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5165,
+                  "lng": 13.3808
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
       },
       {
         "id": "job4",
-        "requirement": {
-          "deliveries": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5145,
-                    "lng": 13.3513
-                  },
-                  "duration": 300.0
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ]
-        }
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5145,
+                  "lng": 13.3513
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
       }
     ],
     "relations": [

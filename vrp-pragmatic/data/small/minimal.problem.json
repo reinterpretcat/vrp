@@ -3,84 +3,80 @@
     "jobs": [
       {
         "id": "single_job",
-        "requirement": {
-          "deliveries": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5622847,
-                    "lng": 13.4023099
-                  },
-                  "duration": 240.0,
-                  "times": [
-                    [
-                      "2019-07-04T10:00:00Z",
-                      "2019-07-04T16:00:00Z"
-                    ]
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5622847,
+                  "lng": 13.4023099
+                },
+                "duration": 240.0,
+                "times": [
+                  [
+                    "2019-07-04T10:00:00Z",
+                    "2019-07-04T16:00:00Z"
                   ]
-                }
-              ],
-              "demand": [
-                1
-              ]
-            }
-          ]
-        }
+                ]
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
       },
       {
         "id": "multi_job",
-        "requirement": {
-          "pickups": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5622847,
-                    "lng": 13.4023099
-                  },
-                  "duration": 240.0
-                }
-              ],
-              "demand": [
-                1
-              ],
-              "tag": "p1"
-            },
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5330881,
-                    "lng": 13.3973059
-                  },
-                  "duration": 240.0
-                }
-              ],
-              "demand": [
-                1
-              ],
-              "tag": "p2"
-            }
-          ],
-          "deliveries": [
-            {
-              "places": [
-                {
-                  "location": {
-                    "lat": 52.5252832,
-                    "lng": 13.4188422
-                  },
-                  "duration": 240.0
-                }
-              ],
-              "demand": [
-                2
-              ],
-              "tag": "d1"
-            }
-          ]
-        }
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5622847,
+                  "lng": 13.4023099
+                },
+                "duration": 240.0
+              }
+            ],
+            "demand": [
+              1
+            ],
+            "tag": "p1"
+          },
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5330881,
+                  "lng": 13.3973059
+                },
+                "duration": 240.0
+              }
+            ],
+            "demand": [
+              1
+            ],
+            "tag": "p2"
+          }
+        ],
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5252832,
+                  "lng": 13.4188422
+                },
+                "duration": 240.0
+              }
+            ],
+            "demand": [
+              2
+            ],
+            "tag": "d1"
+          }
+        ]
       }
     ]
   },

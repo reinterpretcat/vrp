@@ -150,28 +150,20 @@ impl CheckerContext {
     {
         match activity_type {
             ActivityType::Job(job) => {
-                let pickups = job.requirement.pickups.as_ref().map_or(0, |p| p.len());
-                let deliveries = job.requirement.deliveries.as_ref().map_or(0, |p| p.len());
+                let pickups = job.pickups.as_ref().map_or(0, |p| p.len());
+                let deliveries = job.deliveries.as_ref().map_or(0, |p| p.len());
 
                 if pickups < 2 && deliveries < 2 {
-                    if activity.activity_type == "pickup" {
-                        &job.requirement.pickups
-                    } else {
-                        &job.requirement.deliveries
-                    }
-                    .as_ref()
-                    .and_then(|task| task.first())
+                    if activity.activity_type == "pickup" { &job.pickups } else { &job.deliveries }
+                        .as_ref()
+                        .and_then(|task| task.first())
                 } else {
                     activity.job_tag.as_ref().ok_or(format!("Multi job activity must have tag {}", activity.job_id))?;
 
-                    if activity.activity_type == "pickup" {
-                        &job.requirement.pickups
-                    } else {
-                        &job.requirement.deliveries
-                    }
-                    .iter()
-                    .flat_map(|tasks| tasks.iter())
-                    .find(|task| task.tag == activity.job_tag)
+                    if activity.activity_type == "pickup" { &job.pickups } else { &job.deliveries }
+                        .iter()
+                        .flat_map(|tasks| tasks.iter())
+                        .find(|task| task.tag == activity.job_tag)
                 }
                 .map(|task| job_visitor(job, task))
             }

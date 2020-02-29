@@ -60,24 +60,18 @@ pub struct JobTask {
     pub tag: Option<String>,
 }
 
-/// Specifies pickups and deliveries tasks of a job. The task list follows these rules:
+/// A customer job model. Actual tasks of the job specified by list of pickups and deliveries
+/// which follows these rules:
 /// * all of them should be completed or none of them.
 /// * all pickups must be completed before any of deliveries.
-#[derive(Clone, Deserialize, Debug)]
-pub struct JobRequirement {
-    /// A list of pickup tasks.
-    pub pickups: Option<Vec<JobTask>>,
-    /// A list of delivery tasks.
-    pub deliveries: Option<Vec<JobTask>>,
-}
-
-/// A customer job model.
 #[derive(Clone, Deserialize, Debug)]
 pub struct Job {
     /// A job id.
     pub id: String,
-    /// A job requirement.
-    pub requirement: JobRequirement,
+    /// A list of pickup tasks.
+    pub pickups: Option<Vec<JobTask>>,
+    /// A list of delivery tasks.
+    pub deliveries: Option<Vec<JobTask>>,
     /// Job priority, bigger value - less important.
     pub priority: Option<i32>,
     /// A set of skills required to serve a job.

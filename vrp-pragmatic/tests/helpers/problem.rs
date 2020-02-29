@@ -13,24 +13,12 @@ fn create_task(location: Vec<f64>) -> JobTask {
     JobTask { places: vec![create_job_place(location)], demand: vec![1], tag: None }
 }
 
-fn create_requirements(location: Vec<f64>) -> JobRequirement {
-    JobRequirement {
-        pickups: Some(vec![create_task(location.clone())]),
-        deliveries: Some(vec![create_task(location.clone())]),
-    }
-}
-
 fn create_job(id: &str) -> Job {
-    Job {
-        id: id.to_string(),
-        requirement: JobRequirement { pickups: None, deliveries: None },
-        priority: None,
-        skills: None,
-    }
+    Job { id: id.to_string(), pickups: None, deliveries: None, priority: None, skills: None }
 }
 
 pub fn create_delivery_job(id: &str, location: Vec<f64>) -> Job {
-    Job { requirement: JobRequirement { pickups: None, ..create_requirements(location) }, ..create_job(id) }
+    Job { deliveries: Some(vec![create_task(location.clone())]), ..create_job(id) }
 }
 
 pub fn create_delivery_job_with_priority(id: &str, location: Vec<f64>, priority: i32) -> Job {
@@ -42,63 +30,43 @@ pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: Vec
 }
 
 pub fn create_delivery_job_with_demand(id: &str, location: Vec<f64>, demand: Vec<i32>) -> Job {
-    Job {
-        requirement: JobRequirement {
-            pickups: None,
-            deliveries: Some(vec![JobTask { demand, ..create_task(location) }]),
-        },
-        ..create_job(id)
-    }
+    Job { deliveries: Some(vec![JobTask { demand, ..create_task(location) }]), ..create_job(id) }
 }
 
 pub fn create_delivery_job_with_duration(id: &str, location: Vec<f64>, duration: f64) -> Job {
     Job {
-        requirement: JobRequirement {
-            pickups: None,
-            deliveries: Some(vec![JobTask {
-                places: vec![JobPlace { duration, ..create_job_place(location) }],
-                demand: vec![1],
-                tag: None,
-            }]),
-        },
+        deliveries: Some(vec![JobTask {
+            places: vec![JobPlace { duration, ..create_job_place(location) }],
+            demand: vec![1],
+            tag: None,
+        }]),
         ..create_job(id)
     }
 }
 
 pub fn create_delivery_job_with_times(id: &str, location: Vec<f64>, times: Vec<(i32, i32)>, duration: f64) -> Job {
     Job {
-        requirement: JobRequirement {
-            pickups: None,
-            deliveries: Some(vec![JobTask {
-                places: vec![JobPlace { duration, times: convert_times(&times), ..create_job_place(location) }],
-                demand: vec![1],
-                tag: None,
-            }]),
-        },
+        deliveries: Some(vec![JobTask {
+            places: vec![JobPlace { duration, times: convert_times(&times), ..create_job_place(location) }],
+            demand: vec![1],
+            tag: None,
+        }]),
         ..create_job(id)
     }
 }
 
 pub fn create_pickup_job(id: &str, location: Vec<f64>) -> Job {
-    Job { requirement: JobRequirement { deliveries: None, ..create_requirements(location) }, ..create_job(id) }
+    Job { pickups: Some(vec![create_task(location.clone())]), ..create_job(id) }
 }
 
 pub fn create_pickup_job_with_demand(id: &str, location: Vec<f64>, demand: Vec<i32>) -> Job {
-    Job {
-        requirement: JobRequirement {
-            pickups: Some(vec![JobTask { demand, ..create_task(location) }]),
-            deliveries: None,
-        },
-        ..create_job(id)
-    }
+    Job { pickups: Some(vec![JobTask { demand, ..create_task(location) }]), ..create_job(id) }
 }
 
 pub fn create_pickup_delivery_job(id: &str, pickup_location: Vec<f64>, delivery_location: Vec<f64>) -> Job {
     Job {
-        requirement: JobRequirement {
-            pickups: Some(vec![create_task(pickup_location.clone())]),
-            deliveries: Some(vec![create_task(delivery_location.clone())]),
-        },
+        pickups: Some(vec![create_task(pickup_location.clone())]),
+        deliveries: Some(vec![create_task(delivery_location.clone())]),
         ..create_job(id)
     }
 }
@@ -110,26 +78,25 @@ pub fn create_pickup_delivery_job_with_params(
     delivery: (Vec<f64>, f64, Vec<(i32, i32)>),
 ) -> Job {
     Job {
-        requirement: JobRequirement {
-            pickups: Some(vec![JobTask {
-                places: vec![JobPlace {
-                    duration: pickup.1,
-                    times: convert_times(&pickup.2),
-                    ..create_job_place(pickup.0.clone())
-                }],
-                demand: demand.clone(),
-                tag: None,
-            }]),
-            deliveries: Some(vec![JobTask {
-                places: vec![JobPlace {
-                    duration: delivery.1,
-                    times: convert_times(&delivery.2),
-                    ..create_job_place(delivery.0.clone())
-                }],
-                demand: demand.clone(),
-                tag: None,
-            }]),
-        },
+        pickups: Some(vec![JobTask {
+            places: vec![JobPlace {
+                duration: pickup.1,
+                times: convert_times(&pickup.2),
+                ..create_job_place(pickup.0.clone())
+            }],
+            demand: demand.clone(),
+            tag: None,
+        }]),
+        deliveries: Some(vec![JobTask {
+            places: vec![JobPlace {
+                duration: delivery.1,
+                times: convert_times(&delivery.2),
+                ..create_job_place(delivery.0.clone())
+            }],
+            demand: demand.clone(),
+            tag: None,
+        }]),
+
         ..create_job(id)
     }
 }
@@ -157,10 +124,7 @@ pub fn create_multi_job(
         }
     };
 
-    Job {
-        requirement: JobRequirement { pickups: create_tasks(pickups), deliveries: create_tasks(deliveries) },
-        ..create_job(id)
-    }
+    Job { pickups: create_tasks(pickups), deliveries: create_tasks(deliveries), ..create_job(id) }
 }
 
 pub fn create_default_vehicle_shift() -> VehicleShift {

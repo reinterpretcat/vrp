@@ -18,10 +18,9 @@ impl CoordIndex {
 
         // process plan
         problem.plan.jobs.iter().for_each(|job| {
-            job.requirement
-                .pickups
+            job.pickups
                 .iter()
-                .chain(job.requirement.deliveries.iter())
+                .chain(job.deliveries.iter())
                 .flat_map(|tasks| tasks.iter().flat_map(|task| task.places.iter()))
                 .for_each(|place| {
                     index.add(&place.location);

@@ -121,20 +121,18 @@ fn read_required_jobs(
     };
 
     api_problem.plan.jobs.iter().for_each(|job| {
-        let pickups = job.requirement.pickups.as_ref().map_or(0, |p| p.len());
-        let deliveries = job.requirement.deliveries.as_ref().map_or(0, |p| p.len());
+        let pickups = job.pickups.as_ref().map_or(0, |p| p.len());
+        let deliveries = job.deliveries.as_ref().map_or(0, |p| p.len());
         let is_static_demand = pickups == 0 || deliveries == 0;
         assert!(pickups > 0 || deliveries > 0);
 
         let singles = job
-            .requirement
             .pickups
             .as_ref()
             .iter()
             .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, true, is_static_demand)))
             .chain(
-                job.requirement
-                    .deliveries
+                job.deliveries
                     .as_ref()
                     .iter()
                     .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, false, is_static_demand))),
@@ -142,7 +140,7 @@ fn read_required_jobs(
             .collect::<Vec<_>>();
 
         let problem_job = if singles.len() > 1 {
-            get_multi_job(&job.id, &job.priority, &job.skills, singles, job.requirement.pickups.as_ref().unwrap().len())
+            get_multi_job(&job.id, &job.priority, &job.skills, singles, job.pickups.as_ref().unwrap().len())
         } else {
             get_single_job(&job.id, singles.into_iter().next().unwrap(), &job.priority, &job.skills)
         };

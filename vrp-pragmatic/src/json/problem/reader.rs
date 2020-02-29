@@ -230,10 +230,9 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
     let has_unreachable_locations = matrices.iter().any(|m| m.error_codes.is_some());
     let has_multi_dimen_capacity = api_problem.fleet.vehicles.iter().any(|t| t.capacity.len() > 1)
         || api_problem.plan.jobs.iter().any(|job| {
-            job.requirement
-                .pickups
+            job.pickups
                 .iter()
-                .chain(job.requirement.deliveries.iter())
+                .chain(job.deliveries.iter())
                 .flat_map(|tasks| tasks.iter())
                 .any(|task| task.demand.len() > 1)
         });
