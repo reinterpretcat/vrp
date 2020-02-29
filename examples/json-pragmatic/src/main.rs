@@ -67,7 +67,7 @@ mod test {
 
     #[test]
     fn can_run_examples() {
-        run_examples("/home/builuk/playground/vrp-rst/examples/json-pragmatic/data");
+        run_examples("../json-pragmatic/data");
     }
 }
 
