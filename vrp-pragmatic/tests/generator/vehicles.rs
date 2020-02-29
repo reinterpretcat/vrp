@@ -22,13 +22,14 @@ prop_compose! {
      limits in limits_proto,
      shifts in shifts_proto)
     -> VehicleType {
+        let type_id = Uuid::new_v4().to_string();
         VehicleType {
-            id: Uuid::new_v4().to_string(),
+            type_id: type_id.clone(),
+            vehicle_ids: (1..=amount).map(|seq| format!("{}_{}", type_id, seq)).collect(),
             profile,
             costs,
             shifts,
             capacity,
-            amount,
             skills,
             limits,
         }
@@ -111,9 +112,9 @@ prop_compose! {
     /// Generates fleet.
     pub fn generate_fleet(vehicles_proto: impl Strategy<Value = Vec<VehicleType>>,
                           profiles_proto: impl Strategy<Value = Vec<Profile>>)
-       (types in vehicles_proto,
+       (vehicles in vehicles_proto,
         profiles in profiles_proto) -> Fleet {
-        Fleet { types, profiles }
+        Fleet { vehicles, profiles }
     }
 }
 

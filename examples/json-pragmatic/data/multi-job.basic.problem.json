@@ -3,25 +3,33 @@
     "jobs": [
       {
         "id": "multi_job1",
-        "places": {
+        "requirement": {
           "pickups": [
             {
-              "location": {
-                "lat": 52.5622847,
-                "lng": 13.4023099
-              },
-              "duration": 240,
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.5622847,
+                    "lng": 13.4023099
+                  },
+                  "duration": 240.0
+                }
+              ],
               "demand": [
                 1
               ],
               "tag": "p1"
             },
             {
-              "location": {
-                "lat": 52.5330881,
-                "lng": 13.3973059
-              },
-              "duration": 240,
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.5330881,
+                    "lng": 13.3973059
+                  },
+                  "duration": 240.0
+                }
+              ],
               "demand": [
                 1
               ],
@@ -30,11 +38,15 @@
           ],
           "deliveries": [
             {
-              "location": {
-                "lat": 52.5252832,
-                "lng": 13.4188422
-              },
-              "duration": 240,
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.5252832,
+                    "lng": 13.4188422
+                  },
+                  "duration": 240.0
+                }
+              ],
               "demand": [
                 2
               ],
@@ -45,14 +57,18 @@
       },
       {
         "id": "multi_job2",
-        "places": {
+        "requirement": {
           "pickups": [
             {
-              "location": {
-                "lat": 52.52599,
-                "lng": 13.45413
-              },
-              "duration": 240,
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.52599,
+                    "lng": 13.45413
+                  },
+                  "duration": 240.0
+                }
+              ],
               "demand": [
                 2
               ],
@@ -61,22 +77,30 @@
           ],
           "deliveries": [
             {
-              "location": {
-                "lat": 52.4928,
-                "lng": 13.4597
-              },
-              "duration": 240,
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.4928,
+                    "lng": 13.4597
+                  },
+                  "duration": 240.0
+                }
+              ],
               "demand": [
                 1
               ],
               "tag": "d1"
             },
             {
-              "location": {
-                "lat": 52.4989,
-                "lng": 13.3917
-              },
-              "duration": 240,
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.4989,
+                    "lng": 13.3917
+                  },
+                  "duration": 240.0
+                }
+              ],
               "demand": [
                 1
               ],
@@ -88,14 +112,17 @@
     ]
   },
   "fleet": {
-    "types": [
+    "vehicles": [
       {
-        "id": "vehicle",
+        "type_id": "vehicle",
+        "vehicle_ids": [
+          "vehicle_1"
+        ],
         "profile": "normal_car",
         "costs": {
+          "fixed": 22.0,
           "distance": 0.0002,
-          "time": 0.004806,
-          "fixed": 22
+          "time": 0.004806
         },
         "shifts": [
           {
@@ -117,8 +144,7 @@
         ],
         "capacity": [
           10
-        ],
-        "amount": 1
+        ]
       }
     ],
     "profiles": [

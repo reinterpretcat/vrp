@@ -15,12 +15,12 @@ use std::io::{BufReader, Read};
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum RelationType {
-    /// Tour relation locks jobs to specific vehicle in any order.
-    Tour,
-    /// Flexible relation locks jobs in specific order allowing insertion of other jobs in between.
-    Flexible,
-    /// Sequence relation locks jobs in strict order, no insertions in between are allowed.
+    /// Relation type which  locks jobs to specific vehicle in any order.
+    Any,
+    /// Relation type which  locks jobs in specific order allowing insertion of other jobs in between.
     Sequence,
+    /// Relation type which locks jobs in strict order, no insertions in between are allowed.
+    Strict,
 }
 
 /// Relation is the way to lock specific jobs to specific vehicles.
@@ -38,100 +38,57 @@ pub struct Relation {
     pub shift_index: Option<usize>,
 }
 
-/// Defines specific job place.
-#[derive(Clone, Deserialize, Debug)]
-pub struct JobPlace {
-    /// A list of job time windows with time specified in RFC3339 format.
-    pub times: Option<Vec<Vec<String>>>,
-    /// Job location.
-    pub location: Location,
-    /// Job duration (service time).
-    pub duration: f64,
-    /// An tag which will be propagated back within corresponding activity in solution.
-    pub tag: Option<String>,
-}
-
-/// Specifies pickup and delivery places of the job.
-/// At least one place should be specified. If only delivery specified, then vehicle is loaded with
-/// job's demand at the start location. If only pickup specified, then loaded good is delivered to
-/// the last location on the route. When both, pickup and delivery, are specified, then it is classical
-/// pickup and delivery job.
-#[derive(Clone, Deserialize, Debug)]
-pub struct JobPlaces {
-    /// Pickup place.
-    pub pickup: Option<JobPlace>,
-    /// Delivery place.
-    pub delivery: Option<JobPlace>,
-}
-
-/// Specifies single job.
-#[derive(Clone, Deserialize, Debug)]
-pub struct Job {
-    /// Job id.
-    pub id: String,
-    /// Job places.
-    pub places: JobPlaces,
-    /// Job demand.
-    pub demand: Vec<i32>,
-    /// Job priority, bigger value - less important.
-    pub priority: Option<i32>,
-    /// Job skills.
-    pub skills: Option<Vec<String>>,
-}
-
 /// Specifies a place for sub job.
 #[derive(Clone, Deserialize, Debug)]
-pub struct MultiJobPlace {
-    /// A list of sub job time windows with time specified in RFC3339 format.
-    pub times: Option<Vec<Vec<String>>>,
-    /// Sub job location.
+pub struct JobPlace {
+    /// A job place location.
     pub location: Location,
-    /// Sub job duration (service time).
+    /// A job place duration (service time).
     pub duration: f64,
-    /// Sub job demand.
+    /// A list of job place time windows with time specified in RFC3339 format.
+    pub times: Option<Vec<Vec<String>>>,
+}
+
+/// Specifies a job task.
+#[derive(Clone, Deserialize, Debug)]
+pub struct JobTask {
+    /// A list of possible places where given task can be performed.
+    pub places: Vec<JobPlace>,
+    /// Job place demand.
     pub demand: Vec<i32>,
     /// An tag which will be propagated back within corresponding activity in solution.
     pub tag: Option<String>,
 }
 
-/// Specifies pickups and deliveries places of multi job.
-/// All of them should be completed or none of them. All pickups must be completed before any of deliveries.
+/// Specifies pickups and deliveries tasks of a job. The task list follows these rules:
+/// * all of them should be completed or none of them.
+/// * all pickups must be completed before any of deliveries.
 #[derive(Clone, Deserialize, Debug)]
-pub struct MultiJobPlaces {
-    /// A list of pickups.
-    pub pickups: Vec<MultiJobPlace>,
-    /// A list of deliveries.
-    pub deliveries: Vec<MultiJobPlace>,
+pub struct JobRequirement {
+    /// A list of pickup tasks.
+    pub pickups: Option<Vec<JobTask>>,
+    /// A list of delivery tasks.
+    pub deliveries: Option<Vec<JobTask>>,
 }
 
-/// Specifies multi job which has multiple child jobs.
+/// A customer job model.
 #[derive(Clone, Deserialize, Debug)]
-pub struct MultiJob {
-    /// Multi job id.
+pub struct Job {
+    /// A job id.
     pub id: String,
-    /// Multi job places.
-    pub places: MultiJobPlaces,
+    /// A job requirement.
+    pub requirement: JobRequirement,
     /// Job priority, bigger value - less important.
     pub priority: Option<i32>,
-    /// Multi job skills.
+    /// A set of skills required to serve a job.
     pub skills: Option<Vec<String>>,
-}
-
-/// Job variant type.
-#[derive(Clone, Deserialize, Debug)]
-#[serde(untagged)]
-pub enum JobVariant {
-    /// Single job.
-    Single(Job),
-    /// Multi job.
-    Multi(MultiJob),
 }
 
 /// A plan specifies work which has to be done.
 #[derive(Clone, Deserialize, Debug)]
 pub struct Plan {
     /// List of jobs.
-    pub jobs: Vec<JobVariant>,
+    pub jobs: Vec<Job>,
     /// List of relations between jobs and vehicles.
     pub relations: Option<Vec<Relation>>,
 }
@@ -175,8 +132,18 @@ pub struct VehicleShift {
     pub reloads: Option<Vec<VehicleReload>>,
 }
 
-/// Vehicle reload.
-pub type VehicleReload = JobPlace;
+/// Specifies a place for reload.
+#[derive(Clone, Deserialize, Debug)]
+pub struct VehicleReload {
+    /// A reload location.
+    pub location: Location,
+    /// A reload duration (service time).
+    pub duration: f64,
+    /// A list of reload time windows with time specified in RFC3339 format.
+    pub times: Option<Vec<Vec<String>>>,
+    /// An tag which will be propagated back within corresponding activity in solution.
+    pub tag: Option<String>,
+}
 
 /// Vehicle limits.
 #[derive(Clone, Deserialize, Debug)]
@@ -213,7 +180,9 @@ pub struct VehicleBreak {
 #[derive(Clone, Deserialize, Debug)]
 pub struct VehicleType {
     /// Vehicle type id.
-    pub id: String,
+    pub type_id: String,
+    /// Concrete vehicle ids.
+    pub vehicle_ids: Vec<String>,
     /// Vehicle profile name.
     pub profile: String,
     /// Vehicle costs.
@@ -222,8 +191,6 @@ pub struct VehicleType {
     pub shifts: Vec<VehicleShift>,
     /// Vehicle capacity.
     pub capacity: Vec<i32>,
-    /// Vehicle amount.
-    pub amount: i32,
     /// Vehicle skills.
     pub skills: Option<Vec<String>>,
     /// Vehicle limits.
@@ -244,7 +211,7 @@ pub struct Profile {
 #[derive(Clone, Deserialize, Debug)]
 pub struct Fleet {
     /// Vehicle types.
-    pub types: Vec<VehicleType>,
+    pub vehicles: Vec<VehicleType>,
     /// Routing profiles.
     pub profiles: Vec<Profile>,
 }

@@ -3,7 +3,7 @@ use crate::json::problem::*;
 use crate::json::solution::*;
 
 #[test]
-fn can_use_sequence_and_flexible_relation_for_one_vehicle() {
+fn can_use_strict_and_sequence_relation_for_one_vehicle() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -17,20 +17,20 @@ fn can_use_sequence_and_flexible_relation_for_one_vehicle() {
             ],
             relations: Some(vec![
                 Relation {
-                    type_field: RelationType::Sequence,
+                    type_field: RelationType::Strict,
                     jobs: to_strings(vec!["departure", "job4", "job2", "job6"]),
                     vehicle_id: "my_vehicle_1".to_string(),
                     shift_index: None,
                 },
                 Relation {
-                    type_field: RelationType::Flexible,
+                    type_field: RelationType::Sequence,
                     jobs: to_strings(vec!["job1", "job3"]),
                     vehicle_id: "my_vehicle_1".to_string(),
                     shift_index: None,
                 },
             ]),
         },
-        fleet: Fleet { types: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
         config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -138,7 +138,7 @@ fn can_use_sequence_and_flexible_relation_for_one_vehicle() {
 }
 
 #[test]
-fn can_use_sequence_and_flexible_relation_for_two_vehicles() {
+fn can_use_strict_and_sequence_relation_for_two_vehicles() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -153,25 +153,25 @@ fn can_use_sequence_and_flexible_relation_for_two_vehicles() {
             ],
             relations: Some(vec![
                 Relation {
-                    type_field: RelationType::Sequence,
+                    type_field: RelationType::Strict,
                     jobs: to_strings(vec!["departure", "job1", "job6"]),
                     vehicle_id: "my_vehicle_1".to_string(),
                     shift_index: None,
                 },
                 Relation {
-                    type_field: RelationType::Flexible,
+                    type_field: RelationType::Sequence,
                     jobs: to_strings(vec!["job3", "job7"]),
                     vehicle_id: "my_vehicle_1".to_string(),
                     shift_index: None,
                 },
                 Relation {
-                    type_field: RelationType::Sequence,
+                    type_field: RelationType::Strict,
                     jobs: to_strings(vec!["departure", "job2", "job8"]),
                     vehicle_id: "my_vehicle_2".to_string(),
                     shift_index: None,
                 },
                 Relation {
-                    type_field: RelationType::Flexible,
+                    type_field: RelationType::Sequence,
                     jobs: to_strings(vec!["job4", "job5"]),
                     vehicle_id: "my_vehicle_2".to_string(),
                     shift_index: None,
@@ -179,15 +179,11 @@ fn can_use_sequence_and_flexible_relation_for_two_vehicles() {
             ]),
         },
         fleet: Fleet {
-            types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                 shifts: vec![create_default_open_vehicle_shift()],
                 capacity: vec![5],
-                amount: 2,
-                skills: None,
-                limits: None,
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },

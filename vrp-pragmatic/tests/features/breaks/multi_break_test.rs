@@ -11,7 +11,7 @@ fn can_use_two_breaks() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![
                         VehicleBreak {

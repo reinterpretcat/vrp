@@ -21,7 +21,7 @@ fn can_handle_limited_capacity() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
+            vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
             profiles: create_default_profiles(),
         },
         config: None,

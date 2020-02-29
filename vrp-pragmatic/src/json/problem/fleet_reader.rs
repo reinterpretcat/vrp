@@ -42,7 +42,7 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
     let profiles = get_profile_map(api_problem);
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 
-    api_problem.fleet.types.iter().for_each(|vehicle| {
+    api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         let costs = Costs {
             fixed: vehicle.costs.fixed.unwrap_or(0.),
             per_distance: vehicle.costs.distance,
@@ -72,11 +72,11 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
                 time: Some(TimeWindow::new(start.1, end.map_or(std::f64::MAX, |end| end.1))),
             }];
 
-            (1..vehicle.amount + 1).for_each(|number| {
+            vehicle.vehicle_ids.iter().for_each(|vehicle_id| {
                 let mut dimens: Dimensions = Default::default();
-                dimens.set_value("type_id", vehicle.id.clone());
+                dimens.set_value("type_id", vehicle.type_id.clone());
                 dimens.set_value("shift_index", shift_index);
-                dimens.set_id(format!("{}_{}", vehicle.id, number.to_string()).as_str());
+                dimens.set_id(vehicle_id);
 
                 if props.has_multi_dimen_capacity {
                     dimens.set_capacity(MultiDimensionalCapacity::new(vehicle.capacity.clone()));
@@ -106,11 +106,11 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
 }
 
 pub fn read_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
-    let limits = api_problem.fleet.types.iter().filter(|vehicle| vehicle.limits.is_some()).fold(
+    let limits = api_problem.fleet.vehicles.iter().filter(|vehicle| vehicle.limits.is_some()).fold(
         HashMap::new(),
         |mut acc, vehicle| {
             let limits = vehicle.limits.as_ref().unwrap().clone();
-            acc.insert(vehicle.id.clone(), (limits.max_distance, limits.shift_time));
+            acc.insert(vehicle.type_id.clone(), (limits.max_distance, limits.shift_time));
             acc
         },
     );

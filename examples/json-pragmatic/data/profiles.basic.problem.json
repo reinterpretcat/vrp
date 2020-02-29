@@ -3,45 +3,60 @@
     "jobs": [
       {
         "id": "job1",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.52599,
-              "lng": 13.45413
-            },
-            "duration": 240
-          }
-        },
-        "demand": [
-          1
-        ]
+        "requirement": {
+          "deliveries": [
+            {
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.52599,
+                    "lng": 13.45413
+                  },
+                  "duration": 240.0
+                }
+              ],
+              "demand": [
+                1
+              ]
+            }
+          ]
+        }
       },
       {
         "id": "job2",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.5225,
-              "lng": 13.4095
-            },
-            "duration": 600
-          }
-        },
-        "demand": [
-          10
-        ]
+        "requirement": {
+          "deliveries": [
+            {
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.5225,
+                    "lng": 13.4095
+                  },
+                  "duration": 600.0
+                }
+              ],
+              "demand": [
+                10
+              ]
+            }
+          ]
+        }
       }
     ]
   },
   "fleet": {
-    "types": [
+    "vehicles": [
       {
-        "id": "my_car",
+        "type_id": "my_car",
+        "vehicle_ids": [
+          "my_car_1"
+        ],
         "profile": "normal_car",
         "costs": {
+          "fixed": 22.0,
           "distance": 0.0002,
-          "time": 0.004806,
-          "fixed": 22
+          "time": 0.004806
         },
         "shifts": [
           {
@@ -63,16 +78,18 @@
         ],
         "capacity": [
           1
-        ],
-        "amount": 1
+        ]
       },
       {
-        "id": "my_truck",
+        "type_id": "my_truck",
+        "vehicle_ids": [
+          "my_truck_1"
+        ],
         "profile": "normal_truck",
         "costs": {
+          "fixed": 44.0,
           "distance": 0.0003,
-          "time": 0.005,
-          "fixed": 44
+          "time": 0.005
         },
         "shifts": [
           {
@@ -94,8 +111,7 @@
         ],
         "capacity": [
           10
-        ],
-        "amount": 1
+        ]
       }
     ],
     "profiles": [

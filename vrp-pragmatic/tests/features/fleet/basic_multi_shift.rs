@@ -14,7 +14,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![
                     VehicleShift {
                         start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },

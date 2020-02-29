@@ -7,7 +7,7 @@ fn can_limit_by_max_distance() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![100., 0.])], relations: Option::None },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 limits: Some(VehicleLimits { max_distance: Some(99.), shift_time: None }),
                 ..create_default_vehicle_type()
             }],

@@ -27,37 +27,33 @@ fn can_deserialize_problem() {
     let problem = deserialize_problem(BufReader::new(file)).unwrap();
 
     assert_eq!(problem.plan.jobs.len(), 2);
-    assert_eq!(problem.fleet.types.len(), 1);
+    assert_eq!(problem.fleet.vehicles.len(), 1);
     assert!(problem.plan.relations.is_none());
 
     // validate jobs
-    match problem.plan.jobs.first().unwrap() {
-        JobVariant::Single(job) => {
-            assert_eq!(job.id, "single_job");
-            assert!(job.places.pickup.is_none());
-            assert!(job.places.delivery.is_some());
-            assert!(job.skills.is_none());
-            assert_demand(&job.demand, 1);
+    let job = problem.plan.jobs.first().unwrap();
+    assert_eq!(job.id, "single_job");
+    assert!(job.requirement.pickups.is_none());
+    assert!(job.requirement.deliveries.is_some());
+    assert!(job.skills.is_none());
 
-            let delivery = job.places.delivery.as_ref().unwrap();
-            assert_eq!(delivery.duration, 240.);
-            assert!(delivery.tag.is_none());
-            assert_location(&delivery.location, (52.5622847f64, 13.4023099f64));
-            assert_time_windows(&delivery.times, ("2019-07-04T10:00:00Z", "2019-07-04T16:00:00Z"));
-        }
-        _ => panic!("Wrong job type"),
-    };
-    match problem.plan.jobs.last().unwrap() {
-        JobVariant::Multi(job) => {
-            assert_eq!(job.id, "multi_job");
-            assert!(job.skills.is_none());
-            assert_eq!(job.places.pickups.len(), 2);
-            assert_eq!(job.places.deliveries.len(), 1);
-        }
-        _ => panic!("Wrong job type"),
-    };
+    let deliveries = job.requirement.deliveries.as_ref().unwrap();
+    assert_eq!(deliveries.len(), 1);
+    let delivery = deliveries.first().unwrap();
+    assert_demand(&delivery.demand, 1);
+    assert!(delivery.tag.is_none());
 
-    // validate vehicle
+    assert_eq!(delivery.places.len(), 1);
+    let place = delivery.places.first().unwrap();
+    assert_eq!(place.duration, 240.);
+    assert_location(&place.location, (52.5622847f64, 13.4023099f64));
+    assert_time_windows(&place.times, ("2019-07-04T10:00:00Z", "2019-07-04T16:00:00Z"));
+
+    let job = problem.plan.jobs.last().unwrap();
+    assert_eq!(job.id, "multi_job");
+    assert!(job.skills.is_none());
+    assert_eq!(job.requirement.pickups.as_ref().unwrap().len(), 2);
+    assert_eq!(job.requirement.deliveries.as_ref().unwrap().len(), 1);
 }
 
 #[test]

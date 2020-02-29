@@ -12,7 +12,7 @@ fn can_wait_for_job_start() {
             ],
             relations: Option::None,
         },
-        fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
         config: None,
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -86,7 +86,7 @@ fn can_skip_initial_waiting() {
             jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(10, 20)], 10.)],
             relations: Option::None,
         },
-        fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
         config: None,
     };
     let matrix = create_matrix_from_problem(&problem);

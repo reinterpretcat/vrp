@@ -6,7 +6,7 @@ use std::sync::RwLock;
 
 /// Generate relations.
 pub fn generate_relations(
-    jobs: &Vec<JobVariant>,
+    jobs: &Vec<Job>,
     vehicles: &Vec<VehicleType>,
     total_relation_amount: Range<usize>,
     jobs_per_relation: Range<usize>,
@@ -47,21 +47,13 @@ prop_compose! {
 }
 
 fn get_relation_type() -> impl Strategy<Value = RelationType> {
-    prop_oneof![Just(RelationType::Sequence), Just(RelationType::Flexible), Just(RelationType::Tour)]
+    prop_oneof![Just(RelationType::Strict), Just(RelationType::Sequence), Just(RelationType::Any)]
 }
 
-fn get_job_ids(jobs: &Vec<JobVariant>) -> Vec<String> {
-    jobs.iter()
-        .map(|job| match job {
-            JobVariant::Single(job) => job.id.clone(),
-            _ => todo!("Multi job in relation generator is not yet supported."),
-        })
-        .collect()
+fn get_job_ids(jobs: &Vec<Job>) -> Vec<String> {
+    jobs.iter().map(|job| job.id.clone()).collect()
 }
 
 fn get_vehicle_ids(vehicles: &Vec<VehicleType>) -> Vec<String> {
-    vehicles
-        .iter()
-        .flat_map(|vehicle| (1..=vehicle.amount).map(|idx| format!("{}_{}", vehicle.id, idx)).collect::<Vec<_>>())
-        .collect()
+    vehicles.iter().flat_map(|vehicle| vehicle.vehicle_ids.iter().cloned()).collect()
 }

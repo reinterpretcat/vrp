@@ -15,7 +15,7 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
             }]),
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak {
                         times: VehicleBreakTime::TimeWindows(vec![vec![format_time(0.), format_time(1000.)]]),
@@ -40,8 +40,8 @@ parameterized_test! {can_use_break_between_two_jobs_in_relation, relation_type, 
 }}
 
 can_use_break_between_two_jobs_in_relation! {
-    case_01: RelationType::Flexible,
-    case_02: RelationType::Sequence,
+    case_01: RelationType::Sequence,
+    case_02: RelationType::Strict,
 }
 
 fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
@@ -120,8 +120,8 @@ parameterized_test! {can_use_break_last_in_relation, relation_type, {
 }}
 
 can_use_break_last_in_relation! {
-    case_01: RelationType::Flexible,
-    case_02: RelationType::Sequence,
+    case_01: RelationType::Sequence,
+    case_02: RelationType::Strict,
 }
 
 fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {

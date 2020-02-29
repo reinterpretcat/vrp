@@ -6,107 +6,122 @@ use uuid::Uuid;
 
 /// Creates delivery job prototype.
 pub fn delivery_job_prototype(
-    delivery_proto: impl Strategy<Value = JobPlace>,
-    demand_proto: impl Strategy<Value = Vec<i32>>,
+    task_proto: impl Strategy<Value = JobTask>,
     priority_proto: impl Strategy<Value = Option<i32>>,
     skills_proto: impl Strategy<Value = Option<Vec<String>>>,
-) -> impl Strategy<Value = JobVariant> {
-    simple_job_prototype(
-        generate_no_simple_job_place(),
-        delivery_proto.prop_map(|p| Some(p)),
-        demand_proto,
+) -> impl Strategy<Value = Job> {
+    job_prototype(
+        job_requirement_prototype(generate_no_job_tasks(), task_proto.prop_map(|p| Some(vec![p]))),
         priority_proto,
         skills_proto,
     )
-    .prop_map(JobVariant::Single)
 }
 
 /// Creates pickup job prototype.
 pub fn pickup_job_prototype(
-    pickup_proto: impl Strategy<Value = JobPlace>,
-    demand_proto: impl Strategy<Value = Vec<i32>>,
+    task_proto: impl Strategy<Value = JobTask>,
     priority_proto: impl Strategy<Value = Option<i32>>,
     skills_proto: impl Strategy<Value = Option<Vec<String>>>,
-) -> impl Strategy<Value = JobVariant> {
-    simple_job_prototype(
-        pickup_proto.prop_map(|p| Some(p)),
-        generate_no_simple_job_place(),
-        demand_proto,
+) -> impl Strategy<Value = Job> {
+    job_prototype(
+        job_requirement_prototype(task_proto.prop_map(|p| Some(vec![p])), generate_no_job_tasks()),
         priority_proto,
         skills_proto,
     )
-    .prop_map(JobVariant::Single)
-}
-
-/// Creates pickup and delivery job prototype.
-pub fn pickup_delivery_job_prototype(
-    pickup_proto: impl Strategy<Value = JobPlace>,
-    delivery_proto: impl Strategy<Value = JobPlace>,
-    demand_proto: impl Strategy<Value = Vec<i32>>,
-    priority_proto: impl Strategy<Value = Option<i32>>,
-    skills_proto: impl Strategy<Value = Option<Vec<String>>>,
-) -> impl Strategy<Value = JobVariant> {
-    simple_job_prototype(
-        pickup_proto.prop_map(|p| Some(p)),
-        delivery_proto.prop_map(|p| Some(p)),
-        demand_proto,
-        priority_proto,
-        skills_proto,
-    )
-    .prop_map(JobVariant::Single)
-}
-
-/// Generates jobs.
-pub fn generate_jobs(
-    job_proto: impl Strategy<Value = JobVariant>,
-    range: Range<usize>,
-) -> impl Strategy<Value = Vec<JobVariant>> {
-    prop::collection::vec(job_proto, range)
-}
-
-/// Generates job plan.
-pub fn generate_plan(jobs_proto: impl Strategy<Value = Vec<JobVariant>>) -> impl Strategy<Value = Plan> {
-    jobs_proto.prop_map(|jobs| Plan { jobs, relations: None })
 }
 
 prop_compose! {
-    fn simple_job_prototype(
-        pickup_proto: impl Strategy<Value = Option<JobPlace>>,
-        delivery_proto: impl Strategy<Value = Option<JobPlace>>,
+    pub fn pickup_delivery_prototype(
+        pickup_place: impl Strategy<Value = JobPlace>,
+        delivery_place: impl Strategy<Value = JobPlace>,
         demand_proto: impl Strategy<Value = Vec<i32>>,
         priority_proto: impl Strategy<Value = Option<i32>>,
-        skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+        skills_proto: impl Strategy<Value = Option<Vec<String>>>
     )
-    (pickup in pickup_proto,
-     delivery in delivery_proto,
+    (pickup in pickup_place,
+     delivery in delivery_place,
      demand in demand_proto,
      priority in priority_proto,
-     skills in skills_proto) -> Job {
-        Job {
+     skills in skills_proto)
+    -> Job {
+       Job {
             id: Uuid::new_v4().to_string(),
-            places: JobPlaces {
-                pickup,
-                delivery,
+            requirement: JobRequirement {
+                pickups: Some(vec![
+                 JobTask { places: vec![pickup], demand: demand.clone(), tag: None}
+                ]),
+                deliveries: Some(vec![
+                 JobTask { places: vec![delivery], demand: demand.clone(), tag: None}
+                ])
             },
-            demand,
             priority,
             skills,
         }
     }
 }
 
+/// Generates jobs.
+pub fn generate_jobs(job_proto: impl Strategy<Value = Job>, range: Range<usize>) -> impl Strategy<Value = Vec<Job>> {
+    prop::collection::vec(job_proto, range)
+}
+
+/// Generates job plan.
+pub fn generate_plan(jobs_proto: impl Strategy<Value = Vec<Job>>) -> impl Strategy<Value = Plan> {
+    jobs_proto.prop_map(|jobs| Plan { jobs, relations: None })
+}
+
 prop_compose! {
-    pub fn simple_job_place_prototype(
+   fn job_prototype(
+        requirement_proto: impl Strategy<Value = JobRequirement>,
+        priority_proto: impl Strategy<Value = Option<i32>>,
+        skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+    )
+    (requirement in requirement_proto,
+     priority in priority_proto,
+     skills in skills_proto) -> Job {
+        Job {
+            id: Uuid::new_v4().to_string(),
+            requirement,
+            priority,
+            skills,
+        }
+     }
+}
+
+prop_compose! {
+    fn job_requirement_prototype(
+       pickups_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
+       deliveries_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
+    )
+    (pickups in pickups_proto,
+     deliveries in deliveries_proto) -> JobRequirement {
+       JobRequirement { pickups, deliveries }
+    }
+}
+
+prop_compose! {
+    pub fn job_task_prototype(
+        places: impl Strategy<Value = JobPlace>,
+        demand_proto: impl Strategy<Value = Vec<i32>>,
+        tags: impl Strategy<Value = Option<String>>,
+    )
+    (place in places,
+     demand in demand_proto,
+     tag in tags) -> JobTask {
+       JobTask { places: vec![place], demand, tag}
+    }
+}
+
+prop_compose! {
+    pub fn job_place_prototype(
         locations: impl Strategy<Value = Location>,
         durations: impl Strategy<Value = f64>,
-        tags: impl Strategy<Value = Option<String>>,
         time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
     )
     (location in locations,
      duration in durations,
-     tag in tags,
      times in time_windows) -> JobPlace {
-      JobPlace { times, location, duration, tag}
+      JobPlace { times, location, duration}
     }
 }
 
@@ -126,7 +141,7 @@ prop_compose! {
 
 prop_compose! {
     /// Generates no job place.
-    pub fn generate_no_simple_job_place()(_ in ".*") -> Option<JobPlace> {
+    pub fn generate_no_job_tasks()(_ in ".*") -> Option<Vec<JobTask>> {
         None
     }
 }

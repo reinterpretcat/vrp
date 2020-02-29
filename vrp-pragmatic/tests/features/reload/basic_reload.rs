@@ -28,11 +28,11 @@ can_use_vehicle_with_two_tours_and_two_jobs! {
              ]),
 }
 
-fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<JobVariant>, unassigned: Vec<UnassignedJob>) {
+fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: Vec<UnassignedJob>) {
     let problem = Problem {
         plan: Plan { jobs, relations: Option::None },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
                     end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![0., 0.].to_loc() }),

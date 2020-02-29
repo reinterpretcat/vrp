@@ -17,7 +17,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
             relations: None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
                     end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![6., 0.].to_loc() }),

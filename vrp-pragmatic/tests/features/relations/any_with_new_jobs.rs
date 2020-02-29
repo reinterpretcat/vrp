@@ -3,7 +3,7 @@ use crate::json::problem::*;
 use crate::json::solution::*;
 
 #[test]
-fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
+fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -12,14 +12,14 @@ fn can_use_tour_relation_with_new_job_for_one_vehicle_with_open_end() {
                 create_delivery_job("job3", vec![3., 0.]),
             ],
             relations: Some(vec![Relation {
-                type_field: RelationType::Tour,
+                type_field: RelationType::Any,
                 jobs: to_strings(vec!["job1", "job3"]),
                 vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: None,
             }]),
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![create_default_open_vehicle_shift()],
                 capacity: vec![3],
                 ..create_default_vehicle_type()

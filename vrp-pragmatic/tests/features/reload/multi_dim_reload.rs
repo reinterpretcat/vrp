@@ -14,7 +14,7 @@ fn can_use_multi_dim_capacity() {
             relations: None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
                     end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![0., 0.].to_loc() }),

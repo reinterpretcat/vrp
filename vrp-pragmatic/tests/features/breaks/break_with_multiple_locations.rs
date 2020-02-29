@@ -11,7 +11,7 @@ fn can_assign_break_using_second_location() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
                     end: Some(VehiclePlace { time: format_time(1000.).to_string(), location: vec![30., 0.].to_loc() }),

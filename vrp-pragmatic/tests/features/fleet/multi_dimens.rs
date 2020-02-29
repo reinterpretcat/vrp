@@ -13,7 +13,7 @@ fn can_use_two_dimensions() {
             relations: None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![create_default_open_vehicle_shift()],
                 capacity: vec![1, 1],
                 ..create_default_vehicle_type()
@@ -83,15 +83,10 @@ fn can_unassign_due_to_dimension_mismatch() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, 1])], relations: None },
         fleet: Fleet {
-            types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
-                profile: "car".to_string(),
-                costs: create_default_vehicle_costs(),
+            vehicles: vec![VehicleType {
                 shifts: vec![create_default_open_vehicle_shift()],
                 capacity: vec![1],
-                amount: 1,
-                skills: None,
-                limits: None,
+                ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },

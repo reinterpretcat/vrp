@@ -12,7 +12,7 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
             // NOTE tour can be absent for tour relation
             let tour = if tour.is_err() {
                 return match relation.type_field {
-                    RelationType::Tour => Ok(()),
+                    RelationType::Any => Ok(()),
                     _ => tour.map(|_| ()),
                 };
             } else {
@@ -27,29 +27,29 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
             }
 
             match relation.type_field {
-                RelationType::Sequence => {
+                RelationType::Strict => {
                     let common = intersection(activity_ids.clone(), relation.jobs.clone());
                     if common != relation.jobs {
                         Err(format!(
-                            "Relation {} does not follow sequence rule: expected {:?}, got {:?}, common: {:?}",
+                            "Relation {} does not follow strict rule: expected {:?}, got {:?}, common: {:?}",
                             idx, relation.jobs, activity_ids, common
                         ))
                     } else {
                         Ok(())
                     }
                 }
-                RelationType::Flexible => {
+                RelationType::Sequence => {
                     let ids = activity_ids.iter().filter(|id| relation_ids.contains(id)).cloned().collect::<Vec<_>>();
                     if ids != relation.jobs {
                         Err(format!(
-                            "Relation {} does not follow flexible rule: expected {:?}, got {:?}, common: {:?}",
+                            "Relation {} does not follow sequence rule: expected {:?}, got {:?}, common: {:?}",
                             idx, relation.jobs, activity_ids, ids
                         ))
                     } else {
                         Ok(())
                     }
                 }
-                RelationType::Tour => {
+                RelationType::Any => {
                     let has_wrong_assignment = context
                         .solution
                         .tours
@@ -118,7 +118,7 @@ mod tests {
     mod single {
         use super::*;
         use crate::json::solution::Tour as VehicleTour;
-        use RelationType::{Flexible, Sequence, Tour};
+        use RelationType::{Any, Sequence, Strict};
 
         fn create_relation(job_ids: Vec<&str>, relation_type: RelationType) -> Relation {
             Relation {
@@ -131,7 +131,7 @@ mod tests {
 
         fn create_relation_with_wrong_id(vehicle_id: &str) -> Relation {
             Relation {
-                type_field: Flexible,
+                type_field: Sequence,
                 jobs: vec!["job1".to_string()],
                 vehicle_id: vehicle_id.to_string(),
                 shift_index: None,
@@ -140,7 +140,7 @@ mod tests {
 
         fn create_relation_with_wrong_shift() -> Relation {
             Relation {
-                type_field: Flexible,
+                type_field: Sequence,
                 jobs: vec!["job1".to_string()],
                 vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: Some(1),
@@ -152,28 +152,28 @@ mod tests {
         }}
 
         can_check_relations! {
-            case_sequence_01: (Some(vec![create_relation(vec!["departure", "job1", "job2"], Sequence)]), Ok(())),
-            case_sequence_02: (Some(vec![create_relation(vec!["job1", "job2"], Sequence)]), Ok(())),
-            case_sequence_03: (Some(vec![create_relation(vec!["job1", "job2"], Sequence),
-                                         create_relation(vec!["job4", "job5"], Sequence)]), Ok(())),
-            case_sequence_04: (Some(vec![create_relation(vec!["departure", "job1"], Sequence),
-                                         create_relation(vec!["job3", "reload"], Sequence)]), Ok(())),
-            case_sequence_05: (Some(vec![create_relation(vec!["departure", "job2", "job1"], Sequence)]), Err(())),
-            case_sequence_06: (Some(vec![create_relation(vec!["departure", "job1", "job1"], Sequence)]), Err(())),
-            case_sequence_07: (Some(vec![create_relation(vec!["departure", "job1", "job3"], Sequence)]), Err(())),
-            case_sequence_08: (Some(vec![create_relation(vec!["job1", "job2", "job7"], Sequence)]), Err(())),
+            case_sequence_01: (Some(vec![create_relation(vec!["departure", "job1", "job2"], Strict)]), Ok(())),
+            case_sequence_02: (Some(vec![create_relation(vec!["job1", "job2"], Strict)]), Ok(())),
+            case_sequence_03: (Some(vec![create_relation(vec!["job1", "job2"], Strict),
+                                         create_relation(vec!["job4", "job5"], Strict)]), Ok(())),
+            case_sequence_04: (Some(vec![create_relation(vec!["departure", "job1"], Strict),
+                                         create_relation(vec!["job3", "reload"], Strict)]), Ok(())),
+            case_sequence_05: (Some(vec![create_relation(vec!["departure", "job2", "job1"], Strict)]), Err(())),
+            case_sequence_06: (Some(vec![create_relation(vec!["departure", "job1", "job1"], Strict)]), Err(())),
+            case_sequence_07: (Some(vec![create_relation(vec!["departure", "job1", "job3"], Strict)]), Err(())),
+            case_sequence_08: (Some(vec![create_relation(vec!["job1", "job2", "job7"], Strict)]), Err(())),
 
-            case_flexible_01: (Some(vec![create_relation(vec!["departure", "job1", "job3"], Flexible)]), Ok(())),
-            case_flexible_02: (Some(vec![create_relation(vec!["job1", "job3"], Flexible)]), Ok(())),
-            case_flexible_03: (Some(vec![create_relation(vec!["departure", "job2", "job1"], Flexible)]), Err(())),
+            case_flexible_01: (Some(vec![create_relation(vec!["departure", "job1", "job3"], Sequence)]), Ok(())),
+            case_flexible_02: (Some(vec![create_relation(vec!["job1", "job3"], Sequence)]), Ok(())),
+            case_flexible_03: (Some(vec![create_relation(vec!["departure", "job2", "job1"], Sequence)]), Err(())),
 
-            case_tour_01:     (Some(vec![create_relation(vec!["departure", "job1", "job3"], Tour)]), Ok(())),
-            case_tour_02:     (Some(vec![create_relation(vec!["job1", "job2"], Tour)]), Ok(())),
-            case_tour_03:     (Some(vec![create_relation(vec!["job2", "job3"], Tour)]), Ok(())),
-            case_tour_04:     (Some(vec![create_relation(vec!["job2", "job6"], Tour)]), Ok(())),
+            case_tour_01:     (Some(vec![create_relation(vec!["departure", "job1", "job3"], Any)]), Ok(())),
+            case_tour_02:     (Some(vec![create_relation(vec!["job1", "job2"], Any)]), Ok(())),
+            case_tour_03:     (Some(vec![create_relation(vec!["job2", "job3"], Any)]), Ok(())),
+            case_tour_04:     (Some(vec![create_relation(vec!["job2", "job6"], Any)]), Ok(())),
 
-            case_mixed_01:    (Some(vec![create_relation(vec!["departure", "job1"], Sequence),
-                                         create_relation(vec!["job3", "job4"], Flexible)]), Ok(())),
+            case_mixed_01:    (Some(vec![create_relation(vec!["departure", "job1"], Strict),
+                                         create_relation(vec!["job3", "job4"], Sequence)]), Ok(())),
 
             case_wrong_vehicle_01: (Some(vec![create_relation_with_wrong_id("my_vehicle_2")]), Err(())),
             case_wrong_vehicle_02: (Some(vec![create_relation_with_wrong_id("my_vehicle_x")]), Err(())),
@@ -193,8 +193,9 @@ mod tests {
                     relations,
                 },
                 fleet: Fleet {
-                    types: vec![VehicleType {
-                        id: "my_vehicle".to_string(),
+                    vehicles: vec![VehicleType {
+                        type_id: "my_vehicle".to_string(),
+                        vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                         profile: "car".to_string(),
                         costs: create_default_vehicle_costs(),
                         shifts: vec![VehicleShift {
@@ -216,7 +217,6 @@ mod tests {
                             }]),
                         }],
                         capacity: vec![5],
-                        amount: 2,
                         skills: None,
                         limits: None,
                     }],

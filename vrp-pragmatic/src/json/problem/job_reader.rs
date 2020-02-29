@@ -1,7 +1,7 @@
 use crate::extensions::MultiDimensionalCapacity;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
-use crate::json::problem::{JobVariant, RelationType, VehicleBreak, VehicleBreakTime, VehicleReload, VehicleType};
+use crate::json::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleReload, VehicleType};
 use crate::json::Location;
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
@@ -48,9 +48,9 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
         let condition = create_condition(vehicle_id_copy, shift_index);
         let details = rels.iter().fold(vec![], |mut acc, rel| {
             let order = match rel.type_field {
-                RelationType::Tour => LockOrder::Any,
-                RelationType::Flexible => LockOrder::Sequence,
-                RelationType::Sequence => LockOrder::Strict,
+                RelationType::Any => LockOrder::Any,
+                RelationType::Sequence => LockOrder::Sequence,
+                RelationType::Strict => LockOrder::Strict,
             };
 
             let position = match (rel.jobs.first().map(|s| s.as_str()), rel.jobs.last().map(|s| s.as_str())) {
@@ -102,78 +102,53 @@ fn read_required_jobs(
     job_index: &mut JobIndex,
 ) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
-    api_problem.plan.jobs.iter().for_each(|job| match job {
-        JobVariant::Single(job) => {
-            let demand = MultiDimensionalCapacity::new(job.demand.clone());
-            let is_shipment = job.places.pickup.is_some() && job.places.delivery.is_some();
-            let demand = if is_shipment { (empty(), demand) } else { (demand, empty()) };
+    let has_multi_dimens = props.has_multi_dimen_capacity;
 
-            let pickup = job.places.pickup.as_ref().map(|pickup| {
-                get_single_with_extras(
-                    vec![(Some(pickup.location.clone()), pickup.duration, &pickup.times)],
-                    Demand { pickup: demand, delivery: (empty(), empty()) },
-                    &pickup.tag,
-                    "pickup",
-                    props.has_multi_dimen_capacity,
-                    &coord_index,
-                )
-            });
-            let delivery = job.places.delivery.as_ref().map(|delivery| {
-                get_single_with_extras(
-                    vec![(Some(delivery.location.clone()), delivery.duration, &delivery.times)],
-                    Demand { pickup: (empty(), empty()), delivery: demand },
-                    &delivery.tag,
-                    "delivery",
-                    props.has_multi_dimen_capacity,
-                    &coord_index,
-                )
-            });
+    let get_single_from_task = |task: &JobTask, is_pickup: bool, is_static_demand: bool| {
+        let absent = (empty(), empty());
+        let capacity = MultiDimensionalCapacity::new(task.demand.clone());
+        let demand = if is_static_demand { (capacity, empty()) } else { (empty(), capacity) };
+        let demand = if is_pickup {
+            Demand { pickup: demand, delivery: absent }
+        } else {
+            Demand { pickup: absent, delivery: demand }
+        };
 
-            let problem_job = match (pickup, delivery) {
-                (Some(pickup), Some(delivery)) => {
-                    get_multi_job(&job.id, &job.priority, &job.skills, vec![Arc::new(pickup), Arc::new(delivery)], 1)
-                }
-                (Some(pickup), None) => get_single_job(&job.id, pickup, &job.priority, &job.skills),
-                (None, Some(delivery)) => get_single_job(&job.id, delivery, &job.priority, &job.skills),
-                (None, None) => panic!("Single job should contain pickup and/or delivery."),
-            };
+        let places = task.places.iter().map(|p| (Some(p.location.clone()), p.duration, &p.times)).collect();
+        let activity_type = if is_pickup { "pickup" } else { "delivery" };
 
-            job_index.insert(job.id.clone(), problem_job.clone());
-            jobs.push(problem_job);
-        }
-        JobVariant::Multi(job) => {
-            let mut singles = job
-                .places
-                .pickups
-                .iter()
-                .map(|pickup| {
-                    let demand = MultiDimensionalCapacity::new(pickup.demand.clone());
-                    Arc::new(get_single_with_extras(
-                        vec![(Some(pickup.location.clone()), pickup.duration, &pickup.times)],
-                        Demand { pickup: (empty(), demand), delivery: (empty(), empty()) },
-                        &pickup.tag,
-                        "pickup",
-                        props.has_multi_dimen_capacity,
-                        &coord_index,
-                    ))
-                })
-                .collect::<Vec<Arc<Single>>>();
-            singles.extend(job.places.deliveries.iter().map(|delivery| {
-                let demand = MultiDimensionalCapacity::new(delivery.demand.clone());
-                Arc::new(get_single_with_extras(
-                    vec![(Some(delivery.location.clone()), delivery.duration, &delivery.times)],
-                    Demand { pickup: (empty(), empty()), delivery: (empty(), demand) },
-                    &delivery.tag,
-                    "delivery",
-                    props.has_multi_dimen_capacity,
-                    &coord_index,
-                ))
-            }));
+        get_single_with_extras(places, demand, &task.tag, activity_type, has_multi_dimens, &coord_index)
+    };
 
-            let problem_job = get_multi_job(&job.id, &job.priority, &job.skills, singles, job.places.pickups.len());
-            job_index.insert(job.id.clone(), problem_job.clone());
-            jobs.push(problem_job)
-        }
+    api_problem.plan.jobs.iter().for_each(|job| {
+        let pickups = job.requirement.pickups.as_ref().map_or(0, |p| p.len());
+        let deliveries = job.requirement.deliveries.as_ref().map_or(0, |p| p.len());
+        let is_static_demand = pickups == 0 || deliveries == 0;
+        assert!(pickups > 0 || deliveries > 0);
+
+        let singles = job
+            .requirement
+            .pickups
+            .as_ref()
+            .iter()
+            .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, true, is_static_demand)))
+            .chain(
+                job.requirement
+                    .deliveries
+                    .as_ref()
+                    .iter()
+                    .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, false, is_static_demand))),
+            )
+            .collect::<Vec<_>>();
+
+        let problem_job = if singles.len() > 1 {
+            get_multi_job(&job.id, &job.priority, &job.skills, singles, job.requirement.pickups.as_ref().unwrap().len())
+        } else {
+            get_single_job(&job.id, singles.into_iter().next().unwrap(), &job.priority, &job.skills)
+        };
+
+        job_index.insert(job.id.clone(), problem_job.clone());
+        jobs.push(problem_job);
     });
 
     (jobs, vec![])
@@ -185,7 +160,7 @@ fn read_conditional_jobs(
     job_index: &mut JobIndex,
 ) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
-    api_problem.fleet.types.iter().for_each(|vehicle| {
+    api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             if let Some(breaks) = &shift.breaks {
                 read_breaks(coord_index, job_index, &mut jobs, vehicle, shift_index, breaks);
@@ -211,8 +186,10 @@ fn read_breaks(
     (1..)
         .zip(breaks.iter())
         .flat_map(|(break_idx, place)| {
-            (1..vehicle.amount + 1)
-                .map(|vehicle_index| {
+            vehicle
+                .vehicle_ids
+                .iter()
+                .map(|vehicle_id| {
                     let (times, interval) = match &place.times {
                         VehicleBreakTime::TimeWindows(times) if times.is_empty() => {
                             panic!("Break without any time window does not make sense!")
@@ -221,7 +198,6 @@ fn read_breaks(
                         VehicleBreakTime::IntervalWindow(interval) => (None, Some(interval.clone())),
                     };
 
-                    let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
                     let job_id = format!("{}_break_{}", vehicle_id, break_idx);
                     let places = if let Some(locations) = &place.locations {
                         assert!(!locations.is_empty());
@@ -257,9 +233,10 @@ fn read_reloads(
     (1..)
         .zip(reloads.iter())
         .flat_map(|(reload_idx, reload)| {
-            (1..vehicle.amount + 1)
-                .map(|vehicle_index| {
-                    let vehicle_id = format!("{}_{}", vehicle.id, vehicle_index);
+            vehicle
+                .vehicle_ids
+                .iter()
+                .map(|vehicle_id| {
                     let job_id = format!("{}_reload_{}", vehicle_id, reload_idx);
 
                     let job = get_conditional_job(
@@ -362,13 +339,15 @@ fn get_multi_job(
     id: &String,
     priority: &Option<i32>,
     skills: &Option<Vec<String>>,
-    singles: Vec<Arc<Single>>,
+    singles: Vec<Single>,
     deliveries_start_index: usize,
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id.as_str());
     add_priority(&mut dimens, priority);
     add_skills(&mut dimens, skills);
+
+    let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
 
     let multi = if singles.len() == 2 && deliveries_start_index == 1 {
         Multi::new(singles, dimens)

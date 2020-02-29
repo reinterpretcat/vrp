@@ -14,7 +14,7 @@ fn can_follow_priorities() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![create_default_vehicle_shift_with_locations((0., 0.), (10., 0.))],
                 ..create_default_vehicle_type()
             }],

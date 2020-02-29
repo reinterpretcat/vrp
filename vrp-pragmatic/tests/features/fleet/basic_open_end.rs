@@ -7,7 +7,7 @@ fn can_use_vehicle_with_open_end() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![1., 0.])], relations: Option::None },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![create_default_open_vehicle_shift()],
                 ..create_default_vehicle_type()
             }],

@@ -132,11 +132,11 @@ fn get_demand(
     let (is_dynamic, demand) = context.visit_job(
         activity,
         &activity_type,
-        |job| {
-            let is_dynamic = job.places.pickup.is_some() && job.places.delivery.is_some();
-            (is_dynamic, Capacity::new(job.demand.clone()))
+        |job, task| {
+            let is_dynamic = job.requirement.pickups.as_ref().map_or(false, |p| p.len() > 0)
+                && job.requirement.deliveries.as_ref().map_or(false, |p| p.len() > 0);
+            (is_dynamic, Capacity::new(task.demand.clone()))
         },
-        |_, place| (true, Capacity::new(place.demand.clone())),
         || (false, Capacity::default()),
     )?;
 
@@ -193,10 +193,7 @@ mod tests {
                 relations: None,
             },
             fleet: Fleet {
-                types: vec![VehicleType {
-                    id: "my_vehicle".to_string(),
-                    profile: "car".to_string(),
-                    costs: create_default_vehicle_costs(),
+                vehicles: vec![VehicleType {
                     shifts: vec![VehicleShift {
                         start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
                         end: Some(VehiclePlace {
@@ -212,9 +209,7 @@ mod tests {
                         }]),
                     }],
                     capacity: vec![5],
-                    amount: 1,
-                    skills: None,
-                    limits: None,
+                    ..create_default_vehicle_type()
                 }],
                 profiles: create_default_profiles(),
             },

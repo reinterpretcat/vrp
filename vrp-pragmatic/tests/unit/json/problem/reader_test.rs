@@ -75,74 +75,84 @@ fn can_read_complex_problem() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                JobVariant::Single(Job {
+                Job {
                     id: "delivery_job".to_string(),
-                    places: JobPlaces {
-                        pickup: Option::None,
-                        delivery: Some(JobPlace {
-                            times: Some(vec![
-                                vec!["1970-01-01T00:00:00Z".to_string(), "1970-01-01T00:01:40Z".to_string()],
-                                vec!["1970-01-01T00:01:50Z".to_string(), "1970-01-01T00:02:00Z".to_string()],
-                            ]),
-                            location: vec![52.48325, 13.4436].to_loc(),
-                            duration: 100.0,
+                    requirement: JobRequirement {
+                        pickups: None,
+                        deliveries: Some(vec![JobTask {
+                            places: vec![JobPlace {
+                                times: Some(vec![
+                                    vec!["1970-01-01T00:00:00Z".to_string(), "1970-01-01T00:01:40Z".to_string()],
+                                    vec!["1970-01-01T00:01:50Z".to_string(), "1970-01-01T00:02:00Z".to_string()],
+                                ]),
+                                location: vec![52.48325, 13.4436].to_loc(),
+                                duration: 100.0,
+                            }],
+                            demand: vec![0, 1],
                             tag: Some("my_delivery".to_string()),
-                        }),
+                        }]),
                     },
-                    demand: vec![0, 1],
                     priority: None,
                     skills: Some(vec!["unique".to_string()]),
-                }),
-                JobVariant::Single(Job {
+                },
+                Job {
                     id: "shipment_job".to_string(),
-                    places: JobPlaces {
-                        pickup: Some(JobPlace {
-                            times: Some(vec![vec![
-                                "1970-01-01T00:00:10Z".to_string(),
-                                "1970-01-01T00:00:30Z".to_string(),
-                            ]]),
-                            location: vec![52.48300, 13.4420].to_loc(),
-                            duration: 110.0,
+                    requirement: JobRequirement {
+                        pickups: Some(vec![JobTask {
+                            places: vec![JobPlace {
+                                times: Some(vec![vec![
+                                    "1970-01-01T00:00:10Z".to_string(),
+                                    "1970-01-01T00:00:30Z".to_string(),
+                                ]]),
+                                location: vec![52.48300, 13.4420].to_loc(),
+                                duration: 110.0,
+                            }],
+                            demand: vec![2],
                             tag: None,
-                        }),
-                        delivery: Some(JobPlace {
-                            times: Some(vec![vec![
-                                "1970-01-01T00:00:50Z".to_string(),
-                                "1970-01-01T00:01:00Z".to_string(),
-                            ]]),
-                            location: vec![52.48325, 13.4436].to_loc(),
-                            duration: 120.0,
+                        }]),
+                        deliveries: Some(vec![JobTask {
+                            places: vec![JobPlace {
+                                times: Some(vec![vec![
+                                    "1970-01-01T00:00:50Z".to_string(),
+                                    "1970-01-01T00:01:00Z".to_string(),
+                                ]]),
+                                location: vec![52.48325, 13.4436].to_loc(),
+                                duration: 120.0,
+                            }],
+                            demand: vec![2],
                             tag: None,
-                        }),
+                        }]),
                     },
-                    demand: vec![2],
                     priority: None,
                     skills: None,
-                }),
-                JobVariant::Single(Job {
+                },
+                Job {
                     id: "pickup_job".to_string(),
-                    places: JobPlaces {
-                        pickup: Some(JobPlace {
-                            times: Some(vec![vec![
-                                "1970-01-01T00:00:10Z".to_string(),
-                                "1970-01-01T00:01:10Z".to_string(),
-                            ]]),
-                            location: vec![52.48321, 13.4438].to_loc(),
-                            duration: 90.0,
+                    requirement: JobRequirement {
+                        pickups: Some(vec![JobTask {
+                            places: vec![JobPlace {
+                                times: Some(vec![vec![
+                                    "1970-01-01T00:00:10Z".to_string(),
+                                    "1970-01-01T00:01:10Z".to_string(),
+                                ]]),
+                                location: vec![52.48321, 13.4438].to_loc(),
+                                duration: 90.0,
+                            }],
+                            demand: vec![3],
                             tag: None,
-                        }),
-                        delivery: Option::None,
+                        }]),
+                        deliveries: None,
                     },
-                    demand: vec![3],
                     priority: None,
                     skills: Some(vec!["unique2".to_string()]),
-                }),
+                },
             ],
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
-                id: "my_vehicle".to_string(),
+            vehicles: vec![VehicleType {
+                type_id: "my_vehicle".to_string(),
+                vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                 profile: "car".to_string(),
                 costs: VehicleCosts { fixed: Some(100.), distance: 1., time: 2. },
                 shifts: vec![VehicleShift {
@@ -165,7 +175,6 @@ fn can_read_complex_problem() {
                     reloads: None,
                 }],
                 capacity: vec![10, 1],
-                amount: 2,
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),
                 limits: Some(VehicleLimits { max_distance: Some(123.1), shift_time: Some(100.) }),
             }],

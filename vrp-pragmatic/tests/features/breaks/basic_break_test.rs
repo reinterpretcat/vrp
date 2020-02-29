@@ -11,7 +11,7 @@ fn can_assign_break_between_jobs() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak {

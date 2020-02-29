@@ -11,7 +11,7 @@ fn can_assign_interval_break_between_jobs() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak {
                         times: VehicleBreakTime::IntervalWindow(vec![5., 10.]),
@@ -126,7 +126,7 @@ fn can_assign_interval_break_with_reload() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
                     end: Some(VehiclePlace { time: format_time(1000.).to_string(), location: vec![30., 0.].to_loc() }),

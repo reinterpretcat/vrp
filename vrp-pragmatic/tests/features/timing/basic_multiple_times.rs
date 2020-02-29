@@ -15,7 +15,7 @@ fn can_use_multiple_times() {
             ],
             relations: Option::None,
         },
-        fleet: Fleet { types: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
         config: None,
     };
     let matrix = create_matrix_from_problem(&problem);

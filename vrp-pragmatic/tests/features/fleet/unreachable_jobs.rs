@@ -6,7 +6,7 @@ use crate::json::solution::*;
 fn can_use_vehicle_with_open_end() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![1., 0.])], relations: Option::None },
-        fleet: Fleet { types: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
         config: None,
     };
     let matrix = Matrix {

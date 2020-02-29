@@ -13,7 +13,7 @@ use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::fleet_reader::{create_transport_costs, read_fleet, read_limits};
 use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_locks};
-use crate::json::problem::{deserialize_matrix, deserialize_problem, JobVariant, Matrix};
+use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::json::*;
 use crate::{parse_time, StringReader};
 use std::collections::{HashMap, HashSet};
@@ -228,27 +228,25 @@ fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
 
 fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> ProblemProperties {
     let has_unreachable_locations = matrices.iter().any(|m| m.error_codes.is_some());
-    let has_multi_dimen_capacity = api_problem.fleet.types.iter().any(|t| t.capacity.len() > 1)
-        || api_problem.plan.jobs.iter().any(|j| match j {
-            JobVariant::Single(job) => job.demand.len() > 1,
-            JobVariant::Multi(job) => {
-                job.places.pickups.iter().any(|p| p.demand.len() > 1)
-                    || job.places.deliveries.iter().any(|p| p.demand.len() > 1)
-            }
+    let has_multi_dimen_capacity = api_problem.fleet.vehicles.iter().any(|t| t.capacity.len() > 1)
+        || api_problem.plan.jobs.iter().any(|job| {
+            job.requirement
+                .pickups
+                .iter()
+                .chain(job.requirement.deliveries.iter())
+                .flat_map(|tasks| tasks.iter())
+                .any(|task| task.demand.len() > 1)
         });
     let has_breaks = api_problem
         .fleet
-        .types
+        .vehicles
         .iter()
         .flat_map(|t| &t.shifts)
         .any(|shift| shift.breaks.as_ref().map_or(false, |b| b.len() > 0));
-    let has_skills = api_problem.plan.jobs.iter().any(|j| match j {
-        JobVariant::Single(job) => job.skills.is_some(),
-        JobVariant::Multi(job) => job.skills.is_some(),
-    });
+    let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
     let has_reload = api_problem
         .fleet
-        .types
+        .vehicles
         .iter()
         .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
@@ -259,15 +257,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         .and_then(|f| f.even_distribution.as_ref())
         .and_then(|ed| ed.extra_cost.clone());
 
-    let priority = api_problem
-        .plan
-        .jobs
-        .iter()
-        .filter_map(|job| match job {
-            JobVariant::Single(job) => job.priority,
-            JobVariant::Multi(job) => job.priority,
-        })
-        .any(|priority| priority > 1);
+    let priority = api_problem.plan.jobs.iter().filter_map(|job| job.priority).any(|priority| priority > 1);
 
     let priority = if priority {
         api_problem

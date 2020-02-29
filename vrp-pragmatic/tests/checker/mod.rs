@@ -14,13 +14,13 @@ pub struct CheckerContext {
     pub problem: Problem,
     pub matrices: Vec<Matrix>,
     pub solution: Solution,
-    job_map: HashMap<String, JobVariant>,
+    job_map: HashMap<String, Job>,
 }
 
 /// Represents all possible activity types.
 pub enum ActivityType {
     Terminal,
-    Job(JobVariant),
+    Job(Job),
     Break(VehicleBreak),
     Reload(VehicleReload),
 }
@@ -44,20 +44,7 @@ pub fn solve_and_check(problem: Problem) -> Result<(), String> {
 
 impl CheckerContext {
     pub fn new(problem: Problem, matrices: Vec<Matrix>, solution: Solution) -> Self {
-        let job_map = problem
-            .plan
-            .jobs
-            .iter()
-            .map(|job| {
-                (
-                    match job {
-                        JobVariant::Single(job) => job.id.clone(),
-                        JobVariant::Multi(job) => job.id.clone(),
-                    },
-                    job.clone(),
-                )
-            })
-            .collect();
+        let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
 
         Self { problem, matrices, solution, job_map }
     }
@@ -66,9 +53,9 @@ impl CheckerContext {
     pub fn get_vehicle(&self, vehicle_id: &str) -> Result<&VehicleType, String> {
         self.problem
             .fleet
-            .types
+            .vehicles
             .iter()
-            .find(|v| vehicle_id.starts_with(v.id.as_str()))
+            .find(|v| vehicle_id.starts_with(v.type_id.as_str()))
             .ok_or(format!("Cannot find vehicle with id '{}'", vehicle_id))
     }
 
@@ -150,32 +137,45 @@ impl CheckerContext {
         }
     }
 
-    pub fn visit_job<F1, F2, F3, R>(
+    pub fn visit_job<F1, F2, R>(
         &self,
         activity: &Activity,
         activity_type: &ActivityType,
-        single_visitor: F1,
-        multi_visitor: F2,
-        other_visitor: F3,
+        job_visitor: F1,
+        other_visitor: F2,
     ) -> Result<R, String>
     where
-        F1: Fn(&Job) -> R,
-        F2: Fn(&MultiJob, &MultiJobPlace) -> R,
-        F3: Fn() -> R,
+        F1: Fn(&Job, &JobTask) -> R,
+        F2: Fn() -> R,
     {
         match activity_type {
-            ActivityType::Job(job) => match job {
-                JobVariant::Single(job) => Some(single_visitor(job)),
-                JobVariant::Multi(job) => {
+            ActivityType::Job(job) => {
+                let pickups = job.requirement.pickups.as_ref().map_or(0, |p| p.len());
+                let deliveries = job.requirement.deliveries.as_ref().map_or(0, |p| p.len());
+
+                if pickups < 2 && deliveries < 2 {
+                    if activity.activity_type == "pickup" {
+                        &job.requirement.pickups
+                    } else {
+                        &job.requirement.deliveries
+                    }
+                    .as_ref()
+                    .and_then(|task| task.first())
+                } else {
                     activity.job_tag.as_ref().ok_or(format!("Multi job activity must have tag {}", activity.job_id))?;
 
-                    if activity.activity_type == "pickup" { &job.places.pickups } else { &job.places.deliveries }
-                        .iter()
-                        .find(|p| p.tag == activity.job_tag)
-                        .map(|p| multi_visitor(job, p))
+                    if activity.activity_type == "pickup" {
+                        &job.requirement.pickups
+                    } else {
+                        &job.requirement.deliveries
+                    }
+                    .iter()
+                    .flat_map(|tasks| tasks.iter())
+                    .find(|task| task.tag == activity.job_tag)
                 }
+                .map(|task| job_visitor(job, task))
             }
-            .ok_or(format!("Cannot match activity to job place")),
+            .ok_or("Cannot match activity to job place".to_string()),
             _ => Ok(other_visitor()),
         }
     }
@@ -191,7 +191,9 @@ fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
 }
 
 mod capacity;
+
 pub use self::capacity::*;
 
 mod relations;
+
 pub use self::relations::*;

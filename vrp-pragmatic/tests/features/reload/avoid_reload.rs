@@ -18,7 +18,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
                     end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![0., 0.].to_loc() }),

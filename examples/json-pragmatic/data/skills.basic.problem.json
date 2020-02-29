@@ -3,36 +3,48 @@
     "jobs": [
       {
         "id": "job1",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.52599,
-              "lng": 13.45413
-            },
-            "duration": 300
-          }
+        "requirement": {
+          "deliveries": [
+            {
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.52599,
+                    "lng": 13.45413
+                  },
+                  "duration": 300.0
+                }
+              ],
+              "demand": [
+                1
+              ]
+            }
+          ]
         },
-        "demand": [
-          1
-        ],
         "skills": [
           "fridge"
         ]
       },
       {
         "id": "job2",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.5225,
-              "lng": 13.4095
-            },
-            "duration": 240
-          }
+        "requirement": {
+          "deliveries": [
+            {
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.5225,
+                    "lng": 13.4095
+                  },
+                  "duration": 240.0
+                }
+              ],
+              "demand": [
+                1
+              ]
+            }
+          ]
         },
-        "demand": [
-          1
-        ],
         "skills": [
           "handyman"
         ]
@@ -40,14 +52,17 @@
     ]
   },
   "fleet": {
-    "types": [
+    "vehicles": [
       {
-        "id": "vehicle_with_fridge",
+        "type_id": "vehicle_with_fridge",
+        "vehicle_ids": [
+          "vehicle_with_fridge_1"
+        ],
         "profile": "normal_car",
         "costs": {
+          "fixed": 22.0,
           "distance": 0.0002,
-          "time": 0.004806,
-          "fixed": 22
+          "time": 0.004806
         },
         "shifts": [
           {
@@ -70,16 +85,20 @@
         "capacity": [
           2
         ],
-        "amount": 1,
-        "skills": ["fridge"]
+        "skills": [
+          "fridge"
+        ]
       },
       {
-        "id": "vehicle_with_handyman",
+        "type_id": "vehicle_with_handyman",
+        "vehicle_ids": [
+          "vehicle_with_handyman_1"
+        ],
         "profile": "normal_car",
         "costs": {
+          "fixed": 22.0,
           "distance": 0.0002,
-          "time": 0.004806,
-          "fixed": 22
+          "time": 0.004806
         },
         "shifts": [
           {
@@ -102,8 +121,9 @@
         "capacity": [
           2
         ],
-        "amount": 1,
-        "skills": ["handyman"]
+        "skills": [
+          "handyman"
+        ]
       }
     ],
     "profiles": [

@@ -22,34 +22,31 @@ pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Option<Vec
 }
 
 pub fn default_job_place_prototype() -> impl Strategy<Value = JobPlace> {
-    simple_job_place_prototype(
+    job_place_prototype(
         generate_simple_locations(1..100),
         generate_durations(10..20),
-        generate_no_tags(),
         default_job_single_day_time_windows(),
     )
 }
 
-pub fn default_delivery_prototype() -> impl Strategy<Value = JobVariant> {
+pub fn default_delivery_prototype() -> impl Strategy<Value = Job> {
     delivery_job_prototype(
-        default_job_place_prototype(),
-        generate_simple_demand(1..5),
+        job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_tags()),
         generate_no_priority(),
         generate_no_skills(),
     )
 }
 
-pub fn default_pickup_prototype() -> impl Strategy<Value = JobVariant> {
+pub fn default_pickup_prototype() -> impl Strategy<Value = Job> {
     pickup_job_prototype(
-        default_job_place_prototype(),
-        generate_simple_demand(1..5),
+        job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_tags()),
         generate_no_priority(),
         generate_no_skills(),
     )
 }
 
-pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = JobVariant> {
-    pickup_delivery_job_prototype(
+pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = Job> {
+    pickup_delivery_prototype(
         default_job_place_prototype(),
         default_job_place_prototype(),
         generate_simple_demand(1..4),
@@ -58,7 +55,7 @@ pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = JobVariant> 
     )
 }
 
-pub fn default_job_prototype() -> impl Strategy<Value = JobVariant> {
+pub fn default_job_prototype() -> impl Strategy<Value = Job> {
     prop_oneof![default_delivery_prototype(), default_pickup_prototype(), default_pickup_delivery_prototype()]
 }
 

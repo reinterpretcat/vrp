@@ -3,7 +3,7 @@ use crate::json::problem::*;
 use crate::json::solution::*;
 
 #[test]
-fn can_use_sequence_and_tour_relation_for_one_vehicle() {
+fn can_use_strict_and_any_relation_for_one_vehicle() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -17,20 +17,20 @@ fn can_use_sequence_and_tour_relation_for_one_vehicle() {
             ],
             relations: Some(vec![
                 Relation {
-                    type_field: RelationType::Sequence,
+                    type_field: RelationType::Strict,
                     jobs: to_strings(vec!["departure", "job4", "job2", "job6"]),
                     vehicle_id: "my_vehicle_1".to_string(),
                     shift_index: None,
                 },
                 Relation {
-                    type_field: RelationType::Tour,
+                    type_field: RelationType::Any,
                     jobs: to_strings(vec!["job1", "job3"]),
                     vehicle_id: "my_vehicle_1".to_string(),
                     shift_index: None,
                 },
             ]),
         },
-        fleet: Fleet { types: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
         config: None,
     };
     let matrix = create_matrix_from_problem(&problem);

@@ -3,7 +3,7 @@ use crate::json::problem::*;
 use crate::json::solution::*;
 
 #[test]
-fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
+fn can_use_two_strict_relations_with_two_vehicles_without_new_jobs() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -18,13 +18,13 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
             ],
             relations: Some(vec![
                 Relation {
-                    type_field: RelationType::Sequence,
+                    type_field: RelationType::Strict,
                     jobs: to_strings(vec!["departure", "job1", "job6", "job4", "job8", "arrival"]),
                     vehicle_id: "my_vehicle_1".to_string(),
                     shift_index: None,
                 },
                 Relation {
-                    type_field: RelationType::Sequence,
+                    type_field: RelationType::Strict,
                     jobs: to_strings(vec!["departure", "job2", "job3", "job5", "job7", "arrival"]),
                     vehicle_id: "my_vehicle_2".to_string(),
                     shift_index: None,
@@ -32,7 +32,11 @@ fn can_use_two_sequence_relations_with_two_vehicles_without_new_jobs() {
             ]),
         },
         fleet: Fleet {
-            types: vec![VehicleType { capacity: vec![5], amount: 2, ..create_default_vehicle_type() }],
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
+                capacity: vec![5],
+                ..create_default_vehicle_type()
+            }],
             profiles: create_default_profiles(),
         },
         config: None,

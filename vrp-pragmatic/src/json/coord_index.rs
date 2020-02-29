@@ -1,6 +1,6 @@
 //! A helper module for processing geo coordinates in problem and solution.
 
-use crate::json::problem::{JobVariant, Problem};
+use crate::json::problem::Problem;
 use crate::json::Location;
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
@@ -17,27 +17,19 @@ impl CoordIndex {
         let mut index = Self { direct_index: Default::default(), reverse_index: Default::default() };
 
         // process plan
-        problem.plan.jobs.iter().for_each(|job| match &job {
-            JobVariant::Single(job) => {
-                if let Some(pickup) = &job.places.pickup {
-                    index.add(&pickup.location);
-                }
-                if let Some(delivery) = &job.places.delivery {
-                    index.add(&delivery.location);
-                }
-            }
-            JobVariant::Multi(job) => {
-                job.places.pickups.iter().for_each(|pickup| {
-                    index.add(&pickup.location);
+        problem.plan.jobs.iter().for_each(|job| {
+            job.requirement
+                .pickups
+                .iter()
+                .chain(job.requirement.deliveries.iter())
+                .flat_map(|tasks| tasks.iter().flat_map(|task| task.places.iter()))
+                .for_each(|place| {
+                    index.add(&place.location);
                 });
-                job.places.deliveries.iter().for_each(|delivery| {
-                    index.add(&delivery.location);
-                });
-            }
         });
 
         // process fleet
-        problem.fleet.types.iter().for_each(|vehicle| {
+        problem.fleet.vehicles.iter().for_each(|vehicle| {
             vehicle.shifts.iter().for_each(|shift| {
                 index.add(&shift.start.location);
 

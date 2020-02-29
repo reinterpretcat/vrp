@@ -10,10 +10,11 @@ fn can_wait_for_job_start() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![
+            vehicles: vec![
                 create_default_vehicle("vehicle_without_skill"),
                 VehicleType {
-                    id: "vehicle_with_skill".to_string(),
+                    type_id: "vehicle_with_skill".to_string(),
+                    vehicle_ids: vec!["vehicle_with_skill_1".to_string()],
                     shifts: vec![create_default_vehicle_shift_with_locations((10., 0.), (10., 0.))],
                     skills: Some(vec!["unique_skill".to_string()]),
                     ..create_default_vehicle_type()

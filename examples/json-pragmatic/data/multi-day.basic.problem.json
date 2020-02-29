@@ -3,103 +3,130 @@
     "jobs": [
       {
         "id": "job1",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.52599,
-              "lng": 13.45413
-            },
-            "times": [
-              [
-                "2019-07-04T09:00:00Z",
-                "2019-07-04T18:00:00Z"
+        "requirement": {
+          "deliveries": [
+            {
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.52599,
+                    "lng": 13.45413
+                  },
+                  "duration": 300.0,
+                  "times": [
+                    [
+                      "2019-07-04T09:00:00Z",
+                      "2019-07-04T18:00:00Z"
+                    ],
+                    [
+                      "2019-07-05T09:00:00Z",
+                      "2019-07-05T18:00:00Z"
+                    ]
+                  ]
+                }
               ],
-              [
-                "2019-07-05T09:00:00Z",
-                "2019-07-05T18:00:00Z"
+              "demand": [
+                1
               ]
-            ],
-            "duration": 300
-          }
-        },
-        "demand": [
-          1
-        ]
+            }
+          ]
+        }
       },
       {
         "id": "job2",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.5225,
-              "lng": 13.4095
-            },
-            "times": [
-              [
-                "2019-07-04T10:00:00Z",
-                "2019-07-04T16:00:00Z"
+        "requirement": {
+          "deliveries": [
+            {
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.5225,
+                    "lng": 13.4095
+                  },
+                  "duration": 240.0,
+                  "times": [
+                    [
+                      "2019-07-04T10:00:00Z",
+                      "2019-07-04T16:00:00Z"
+                    ]
+                  ]
+                }
+              ],
+              "demand": [
+                1
               ]
-            ],
-            "duration": 240
-          }
-        },
-        "demand": [
-          1
-        ]
+            }
+          ]
+        }
       },
       {
         "id": "job3",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.5165,
-              "lng": 13.3808
-            },
-            "times": [
-              [
-                "2019-07-04T10:00:00Z",
-                "2019-07-04T16:00:00Z"
+        "requirement": {
+          "deliveries": [
+            {
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.5165,
+                    "lng": 13.3808
+                  },
+                  "duration": 300.0,
+                  "times": [
+                    [
+                      "2019-07-04T10:00:00Z",
+                      "2019-07-04T16:00:00Z"
+                    ]
+                  ]
+                }
+              ],
+              "demand": [
+                1
               ]
-            ],
-            "duration": 300
-          }
-        },
-        "demand": [
-          1
-        ]
+            }
+          ]
+        }
       },
       {
         "id": "job4",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.5145,
-              "lng": 13.3513
-            },
-            "times": [
-              [
-                "2019-07-05T10:00:00Z",
-                "2019-07-05T16:00:00Z"
+        "requirement": {
+          "deliveries": [
+            {
+              "places": [
+                {
+                  "location": {
+                    "lat": 52.5145,
+                    "lng": 13.3513
+                  },
+                  "duration": 300.0,
+                  "times": [
+                    [
+                      "2019-07-05T10:00:00Z",
+                      "2019-07-05T16:00:00Z"
+                    ]
+                  ]
+                }
+              ],
+              "demand": [
+                1
               ]
-            ],
-            "duration": 300
-          }
-        },
-        "demand": [
-          1
-        ]
+            }
+          ]
+        }
       }
     ]
   },
   "fleet": {
-    "types": [
+    "vehicles": [
       {
-        "id": "vehicle",
+        "type_id": "vehicle",
+        "vehicle_ids": [
+          "vehicle_1"
+        ],
         "profile": "normal_car",
         "costs": {
+          "fixed": 22.0,
           "distance": 0.0002,
-          "time": 0.004806,
-          "fixed": 22
+          "time": 0.004806
         },
         "shifts": [
           {
@@ -137,8 +164,7 @@
         ],
         "capacity": [
           2
-        ],
-        "amount": 1
+        ]
       }
     ],
     "profiles": [

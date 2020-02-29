@@ -11,7 +11,8 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
             relations: Option::None,
         },
         fleet: Fleet {
-            types: vec![VehicleType {
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                 shifts: vec![VehicleShift {
                     start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
                     end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![0., 0.].to_loc() }),
@@ -24,7 +25,6 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                     }]),
                 }],
                 capacity: vec![1],
-                amount: 2,
                 ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
