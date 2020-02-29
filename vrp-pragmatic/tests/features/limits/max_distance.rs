@@ -15,13 +15,7 @@ fn can_limit_by_max_distance() {
         },
         config: None,
     };
-    let matrix = Matrix {
-        num_origins: 2,
-        num_destinations: 2,
-        travel_times: vec![1, 1, 1, 1],
-        distances: vec![1, 100, 100, 1],
-        error_codes: Option::None,
-    };
+    let matrix = Matrix { travel_times: vec![1, 1, 1, 1], distances: vec![1, 100, 100, 1], error_codes: Option::None };
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

@@ -266,10 +266,6 @@ pub struct Problem {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Matrix {
-    /// Number of unique locations.
-    pub num_origins: i32,
-    /// Number of unique locations.
-    pub num_destinations: i32,
     /// Travel distances.
     pub travel_times: Vec<i64>,
     /// Travel durations.

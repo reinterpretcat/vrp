@@ -183,13 +183,7 @@ pub fn create_matrix(data: Vec<i64>) -> Matrix {
 
     assert_eq!((size * size) as usize, data.len());
 
-    Matrix {
-        num_origins: size,
-        num_destinations: size,
-        travel_times: data.clone(),
-        distances: data.clone(),
-        error_codes: None,
-    }
+    Matrix { travel_times: data.clone(), distances: data.clone(), error_codes: None }
 }
 
 pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
