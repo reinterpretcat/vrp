@@ -10,25 +10,25 @@ has the following properties:
 
 You can use more than one relation per vehicle.
 
-## Tour type
+## Any type
 
-A `tour` relation is used to lock specific jobs to certain vehicle in any order:
+A `any` relation is used to lock specific jobs to certain vehicle in any order:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/relation-tour.basic.problem.json:66:70}}
+{{#include ../../../../../examples/json-pragmatic/data/relation-any.basic.problem.json:82:89}}
 ```
-
-## Fixed type
-
-A `fixed` relation is used to lock specific jobs to certain vehicle in fixed order allowing insertion of new jobs in
-between.
 
 ## Sequence type
 
-In contrast to `fixed` relation, `sequence` locks jobs to certain vehicle without ability to insert new jobs in between:
+A `sequence` relation is used to lock specific jobs to certain vehicle in fixed order allowing insertion of new jobs in
+between.
+
+## Strict type
+
+In contrast to `sequence` relation, `strict` locks jobs to certain vehicle without ability to insert new jobs in between:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/relation-strict.basic.problem.json:66:70}}
+{{#include ../../../../../examples/json-pragmatic/data/relation-strict.basic.problem.json:82:89}}
 ```
 
 In this example, new jobs can be inserted only after job with id `job1`.
@@ -37,10 +37,10 @@ In this example, new jobs can be inserted only after job with id `job1`.
 
 Please consider the following notes:
 
-* jobs specified in `fixed` and `sequence` are not checked for constraint violations. This might lead to
+* jobs specified in `sequence` and `strict` are not checked for constraint violations. This might lead to
 non-feasible solutions (e.g. routes with capacity or time window violation).
 
-* relation with `multi-job` are not yet supported
+* relation with jobs which have multiple pickups or deliveries are not yet supported
 
 ## Examples
 

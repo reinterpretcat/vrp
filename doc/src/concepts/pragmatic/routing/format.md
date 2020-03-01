@@ -2,7 +2,6 @@
 
 In general, routing matrix has the following schema:
 
-- `numOrigins` and `numDestinations` (optional): number of unique locations
 - `travelTimes` (required) is square matrix of durations in abstract time units represented via single dimensional array
 - `distances` (required) is square matrix of distances in abstract distance unit represented via single dimensional array
 - `errorCodes` (optional): must be present if there is no route between some locations. Non-zero value signalizes about
