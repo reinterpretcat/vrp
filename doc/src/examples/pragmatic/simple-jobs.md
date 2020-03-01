@@ -3,7 +3,7 @@
 This example demonstrates how to use simple jobs. It has one delivery, one pickup, and one pickup and delivery job with
 one dimensional demand. 
 
-You can find more details about simple job schema on [simple job concept section](../../concepts/pragmatic/problem/simple-jobs.md).
+You can find more details about job schema on [simple job concept section](../../concepts/pragmatic/problem/jobs.md).
 
 <details>
     <summary>List of problem locations</summary><p>

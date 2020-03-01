@@ -2,7 +2,7 @@
 
 This example demonstrates how to use multi jobs. There are two multi jobs with slightly different parameters.
 
-You can find more details about multi job schema on [multi job concept section](../../concepts/pragmatic/problem/multi-jobs.md).
+You can find more details about job schema on [multi job concept section](../../concepts/pragmatic/problem/jobs.md).
 
 <details>
     <summary>List of problem locations</summary><p>
