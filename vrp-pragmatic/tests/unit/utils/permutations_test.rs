@@ -30,6 +30,12 @@ fn can_generate_split_permutations() {
         assert_eq!(left, 2);
         assert_eq!(right, 3);
     });
+
+    let job_permutations = get_split_permutations(3, 0, 10);
+    assert_eq!(job_permutations.len(), 6);
+
+    let job_permutations = get_split_permutations(3, 3, 10);
+    assert_eq!(job_permutations.len(), 6);
 }
 
 #[test]

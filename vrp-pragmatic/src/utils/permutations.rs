@@ -78,19 +78,25 @@ fn generate_sample_permutations(start: usize, end: usize, sample_size: usize) ->
 
 fn get_split_permutations(size: usize, split_start_index: usize, sample_size: usize) -> Vec<Vec<usize>> {
     // TODO make it memory efficient somehow
-    assert!(size > split_start_index);
 
-    let first = generate_sample_permutations(0, split_start_index - 1, sample_size);
-    let second = generate_sample_permutations(split_start_index, size - 1, sample_size);
+    match split_start_index {
+        x if x == 0 || x == size => generate_sample_permutations(0, size - 1, sample_size),
+        _ => {
+            assert!(size > split_start_index);
 
-    first
-        .iter()
-        .flat_map(|a| {
-            second
+            let first = generate_sample_permutations(0, split_start_index - 1, sample_size);
+            let second = generate_sample_permutations(split_start_index, size - 1, sample_size);
+
+            first
                 .iter()
-                .map(|b| a.iter().chain(b.iter()).cloned().collect::<Vec<usize>>())
-                .collect::<Vec<Vec<usize>>>()
-        })
-        .take(sample_size)
-        .collect()
+                .flat_map(|a| {
+                    second
+                        .iter()
+                        .map(|b| a.iter().chain(b.iter()).cloned().collect::<Vec<usize>>())
+                        .collect::<Vec<Vec<usize>>>()
+                })
+                .take(sample_size)
+                .collect()
+        }
+    }
 }

@@ -140,7 +140,7 @@ fn read_required_jobs(
             .collect::<Vec<_>>();
 
         let problem_job = if singles.len() > 1 {
-            get_multi_job(&job.id, &job.priority, &job.skills, singles, job.pickups.as_ref().unwrap().len())
+            get_multi_job(&job.id, &job.priority, &job.skills, singles, job.pickups.as_ref().map_or(0, |p| p.len()))
         } else {
             get_single_job(&job.id, singles.into_iter().next().unwrap(), &job.priority, &job.skills)
         };

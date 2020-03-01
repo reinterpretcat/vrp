@@ -22,7 +22,7 @@ fn run_examples(base_path: &str) {
         "multi-day.basic",
         "multi-job.basic",
         "relation-strict.basic",
-        "relation-tour.basic",
+        "relation-any.basic",
         "reload.basic",
         "reload.multi",
         "simple.basic",
