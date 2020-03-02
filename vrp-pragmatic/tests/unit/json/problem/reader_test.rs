@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Demand, DemandDimension};
-use vrp_core::models::common::{Dimensions, IdDimension, TimeWindow};
+use vrp_core::models::common::{Dimensions, IdDimension, TimeSpan, TimeWindow};
 use vrp_core::models::problem::{Jobs, Multi, Place, Single};
 
 fn get_job(index: usize, jobs: &Jobs) -> vrp_core::models::problem::Job {
@@ -29,10 +29,10 @@ fn assert_time_window(tw: &TimeWindow, expected: &(f64, f64)) {
     assert_eq!(tw.end, expected.1);
 }
 
-fn assert_time_windows(tws: &Vec<TimeWindow>, expected: Vec<(f64, f64)>) {
+fn assert_time_spans(tws: &Vec<TimeSpan>, expected: Vec<(f64, f64)>) {
     assert_eq!(tws.len(), expected.len());
     (0..tws.len()).for_each(|index| {
-        assert_time_window(tws.get(index).unwrap(), expected.get(index).unwrap());
+        assert_time_window(&tws.get(index).and_then(|tw| tw.as_time_window()).unwrap(), expected.get(index).unwrap());
     });
 }
 
@@ -201,7 +201,7 @@ fn can_read_complex_problem() {
             delivery: (MultiDimensionalCapacity::new(vec![0, 1]), MultiDimensionalCapacity::default()),
         },
     );
-    assert_time_windows(&place.times, vec![(0., 100.), (110., 120.)]);
+    assert_time_spans(&place.times, vec![(0., 100.), (110., 120.)]);
     assert_skills(&job.dimens, Some(vec!["unique".to_string()]));
 
     // shipment
@@ -214,14 +214,14 @@ fn can_read_complex_problem() {
     assert_eq!(place.duration, 110.);
     assert_eq!(place.location.unwrap(), 1);
     assert_demand(pickup.dimens.get_demand().unwrap(), &single_demand_as_multi((0, 2), (0, 0)));
-    assert_time_windows(&place.times, vec![(10., 30.)]);
+    assert_time_spans(&place.times, vec![(10., 30.)]);
 
     let delivery = job.jobs.last().unwrap().clone();
     let place = get_single_place(delivery.as_ref());
     assert_eq!(place.duration, 120.);
     assert_eq!(place.location.unwrap(), 0);
     assert_demand(delivery.dimens.get_demand().unwrap(), &single_demand_as_multi((0, 0), (0, 2)));
-    assert_time_windows(&place.times, vec![(50., 60.)]);
+    assert_time_spans(&place.times, vec![(50., 60.)]);
 
     // pickup
     let job = get_single_job(2, problem.jobs.as_ref());
@@ -230,7 +230,7 @@ fn can_read_complex_problem() {
     assert_eq!(place.duration, 90.);
     assert_eq!(place.location.unwrap(), 2);
     assert_demand(job.dimens.get_demand().unwrap(), &single_demand_as_multi((3, 0), (0, 0)));
-    assert_time_windows(&place.times, vec![(10., 70.)]);
+    assert_time_spans(&place.times, vec![(10., 70.)]);
     assert_skills(&job.dimens, Some(vec!["unique2".to_string()]));
 
     // fleet

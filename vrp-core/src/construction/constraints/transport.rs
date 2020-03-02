@@ -195,12 +195,13 @@ struct TimeHardRouteConstraint {
 
 impl HardRouteConstraint for TimeHardRouteConstraint {
     fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+        let date = ctx.route.tour.start().unwrap().schedule.departure;
         let check_single = |single: &Arc<Single>| {
             single
                 .places
                 .iter()
                 .flat_map(|place| place.times.iter())
-                .any(|time| time.intersects(&ctx.route.actor.detail.time))
+                .any(|time| time.intersects(date, &ctx.route.actor.detail.time))
         };
 
         let has_time_intersection = match job {

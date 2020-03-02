@@ -5,7 +5,7 @@ use crate::helpers::construction::states::{create_insertion_context, create_test
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_test_registry;
 use crate::helpers::models::solution::ActivityBuilder;
-use crate::models::common::{Cost, Location, Schedule, TimeWindow, Timestamp};
+use crate::models::common::{Cost, Location, Schedule, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Place, Registry, TourActivity};
 use crate::utils::compare_floats;
@@ -18,7 +18,7 @@ type JobPlace = crate::models::problem::Place;
 fn create_tour_activity_at(loc_and_time: usize) -> TourActivity {
     Box::new(
         ActivityBuilder::new()
-            .place(Place { location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_WINDOW.clone() })
+            .place(Place { location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0.) })
             .schedule(Schedule { arrival: loc_and_time as Timestamp, departure: loc_and_time as Timestamp })
             .build(),
     )
@@ -58,21 +58,22 @@ mod single {
 
     can_insert_job_with_location_into_tour_with_two_activities_and_variations! {
         // vary times
-        case01: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
-        case02: (vec![JobPlace { location: Some(8), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 8, 1),
-        case03: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeWindow {start: 15.0, end: 20.0}] }], 7, 2),
-        case04: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeWindow {start: 15.0, end: 20.0}, TimeWindow {start: 7.0, end: 8.0}] }], 7, 1),
+        case01: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 3, 0),
+        case02: (vec![JobPlace { location: Some(8), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 8, 1),
+        case03: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(15.0, 20.0))] }], 7, 2),
+        case04: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(15.0, 20.0)),
+                                                                               TimeSpan::Window(TimeWindow::new(7.0, 8.0))] }], 7, 1),
 
         // vary locations
-        case05: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
-        case06: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] },
-                     JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 3, 0),
+        case05: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 3, 0),
+        case06: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
+                     JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 3, 0),
 
         // vary locations and times
-        case07: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] },
-                      JobPlace { location: Some(3), duration: 0.0, times: vec![TimeWindow {start: 0.0, end: 2.0}] }], 20, 1),
-        case08: (vec![JobPlace { location: Some(12), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] },
-                      JobPlace { location: Some(11), duration: 0.0, times: vec![DEFAULT_JOB_TIME_WINDOW] }], 11, 1),
+        case07: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
+                      JobPlace { location: Some(3), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(0.0, 2.0))] }], 20, 1),
+        case08: (vec![JobPlace { location: Some(12), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
+                      JobPlace { location: Some(11), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 11, 1),
     }
 
     fn can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(

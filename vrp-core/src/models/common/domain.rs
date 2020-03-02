@@ -19,6 +19,20 @@ pub struct TimeWindow {
     pub end: Timestamp,
 }
 
+/// Represents a time offset.
+#[derive(Clone, Debug)]
+pub struct TimeOffset {
+    pub start: Timestamp,
+    pub end: Timestamp,
+}
+
+/// A enum for various time definitions.
+#[derive(Clone, Debug)]
+pub enum TimeSpan {
+    Window(TimeWindow),
+    Offset(TimeOffset),
+}
+
 impl TimeWindow {
     /// Creates a new [`TimeWindow`].
     pub fn new(start: Timestamp, end: Timestamp) -> Self {
@@ -52,6 +66,27 @@ impl Hash for TimeWindow {
 
         start.hash(state);
         end.hash(state);
+    }
+}
+
+impl TimeSpan {
+    /// Converts given time span into time window.
+    pub fn to_time_window(&self, date: Timestamp) -> TimeWindow {
+        match &self {
+            TimeSpan::Window(window) => window.clone(),
+            TimeSpan::Offset(offset) => TimeWindow::new(date + offset.start, date + offset.end),
+        }
+    }
+
+    pub fn intersects(&self, date: Timestamp, other: &TimeWindow) -> bool {
+        self.to_time_window(date).intersects(other)
+    }
+
+    pub fn as_time_window(&self) -> Option<TimeWindow> {
+        match &self {
+            TimeSpan::Window(window) => Some(window.clone()),
+            _ => None,
+        }
     }
 }
 

@@ -199,7 +199,7 @@ mod timing {
             .build();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
         let target = Box::new(Activity {
-            place: Place { location: 5, duration: 1.0, time: DEFAULT_JOB_TIME_WINDOW },
+            place: Place { location: 5, duration: 1.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
             job: None,
         });
@@ -227,7 +227,7 @@ mod timing {
             vec![
                 Box::new(
                     ActivityBuilder::new()
-                        .place(Place { location: 10, duration: 0.0, time: DEFAULT_JOB_TIME_WINDOW.clone() })
+                        .place(Place { location: 10, duration: 0.0, time: DEFAULT_ACTIVITY_TIME_WINDOW.clone() })
                         .schedule(Schedule { arrival: 0.0, departure: 10.0 })
                         .build(),
                 ),
@@ -239,7 +239,7 @@ mod timing {
             ],
         );
         let target = Box::new(Activity {
-            place: Place { location: 30, duration: 10.0, time: DEFAULT_JOB_TIME_WINDOW },
+            place: Place { location: 30, duration: 10.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
             job: None,
         });

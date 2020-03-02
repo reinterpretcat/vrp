@@ -7,7 +7,7 @@ use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Demand, DemandDimension};
-use vrp_core::models::common::{Dimensions, Duration, IdDimension, TimeWindow, ValueDimension};
+use vrp_core::models::common::{Dimensions, Duration, IdDimension, TimeSpan, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
 
@@ -291,9 +291,9 @@ fn get_single(
             .map(|(location, duration, times)| Place {
                 location: location.as_ref().and_then(|l| coord_index.get_by_loc(l)),
                 duration: *duration,
-                times: times
-                    .as_ref()
-                    .map_or(vec![TimeWindow::max()], |tws| tws.iter().map(|tw| parse_time_window(tw)).collect()),
+                times: times.as_ref().map_or(vec![TimeSpan::Window(TimeWindow::max())], |tws| {
+                    tws.iter().map(|tw| TimeSpan::Window(parse_time_window(tw))).collect()
+                }),
             })
             .collect(),
         dimens: Default::default(),

@@ -319,12 +319,15 @@ fn get_break_interval_from_activity(activity: &Activity) -> Option<&(f64, f64)> 
 
 fn is_time(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
     let tour = &rc.route.tour;
+    let departure = tour.start().unwrap().schedule.departure;
     if let Some(&interval) = get_break_interval(break_job) {
-        let tour_duration = tour.end().unwrap().schedule.arrival - tour.start().unwrap().schedule.departure;
+        let tour_duration = tour.end().unwrap().schedule.arrival - departure;
         tour_duration > interval.0
     } else {
         let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
-        break_job.places.first().unwrap().times.iter().any(|t| t.start < arrival)
+        let place = break_job.places.first().unwrap();
+
+        place.times.iter().map(|span| span.to_time_window(departure)).any(|tw| tw.start < arrival)
     }
 }
 

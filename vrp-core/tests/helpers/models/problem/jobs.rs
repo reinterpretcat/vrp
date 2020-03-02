@@ -1,14 +1,15 @@
 use crate::construction::constraints::{Demand, DemandDimension};
-use crate::models::common::{Duration, IdDimension, Location, TimeWindow, ValueDimension};
+use crate::models::common::{Duration, IdDimension, Location, TimeSpan, TimeWindow, ValueDimension};
 use crate::models::problem::{FixedJobPermutation, Job, Multi, Place, Single};
 use std::sync::Arc;
 
 pub const DEFAULT_JOB_LOCATION: Location = 0;
 pub const DEFAULT_JOB_DURATION: Duration = 0.0;
-pub const DEFAULT_JOB_TIME_WINDOW: TimeWindow = TimeWindow { start: 0.0, end: 1000.0 };
+pub const DEFAULT_JOB_TIME_SPAN: TimeSpan = TimeSpan::Window(TimeWindow { start: 0., end: 1000. });
+pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end: 1000. };
 
 pub fn test_place_with_location(location: Option<Location>) -> Place {
-    Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_WINDOW] }
+    Place { location, duration: DEFAULT_JOB_DURATION, times: vec![DEFAULT_JOB_TIME_SPAN] }
 }
 
 pub fn test_single() -> Single {
@@ -83,7 +84,7 @@ impl SingleBuilder {
     }
 
     pub fn times(&mut self, times: Vec<TimeWindow>) -> &mut Self {
-        self.single.places.first_mut().unwrap().times = times;
+        self.single.places.first_mut().unwrap().times = times.into_iter().map(|t| TimeSpan::Window(t)).collect();
         self
     }
 
@@ -98,7 +99,7 @@ impl SingleBuilder {
             .map(|p| Place {
                 location: p.0,
                 duration: p.1,
-                times: p.2.into_iter().map(|(start, end)| TimeWindow::new(start, end)).collect(),
+                times: p.2.into_iter().map(|(start, end)| TimeSpan::Window(TimeWindow::new(start, end))).collect(),
             })
             .collect();
 

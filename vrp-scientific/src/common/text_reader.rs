@@ -158,7 +158,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                         place: vrp_core::models::solution::Place {
                             location: place.location.unwrap(),
                             duration: place.duration,
-                            time: place.times.first().unwrap().clone(),
+                            time: place.times.first().and_then(|span| span.as_time_window()).unwrap(),
                         },
                         schedule: Schedule::new(0.0, 0.0),
                         job: Some(single.clone()),

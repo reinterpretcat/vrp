@@ -395,7 +395,7 @@ fn create_route(fleet: &Fleet, vehicle: &str, activities: Vec<ActivityWithJob>) 
                     place: ActivityPlace {
                         location: place.location.unwrap(),
                         duration: place.duration,
-                        time: place.times.get(tw_idx).cloned().unwrap(),
+                        time: place.times.get(tw_idx).unwrap().as_time_window().unwrap(),
                     },
                     schedule: Schedule::new(0., 0.),
                     job: Some(single),

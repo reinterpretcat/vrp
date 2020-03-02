@@ -207,6 +207,7 @@ fn analyze_insertion_in_route_leg<'a>(
         [prev, next] => (prev, Some(next)),
         _ => panic!("Unexpected route leg configuration."),
     };
+    let start_time = route_ctx.route.tour.start().unwrap().schedule.departure;
     // analyze service details
     single.places.iter().try_fold(out, |in1, detail| {
         // analyze detail time windows
@@ -214,7 +215,7 @@ fn analyze_insertion_in_route_leg<'a>(
             target.place = Place {
                 location: detail.location.unwrap_or(prev.place.location),
                 duration: detail.duration,
-                time: time.clone(),
+                time: time.to_time_window(start_time),
             };
 
             let activity_ctx = ActivityContext { index, prev, target: &target, next };

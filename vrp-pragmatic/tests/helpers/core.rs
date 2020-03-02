@@ -10,7 +10,8 @@ const DEFAULT_VEHICLE_COSTS: Costs =
     Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
 pub const DEFAULT_JOB_LOCATION: Location = 0;
 pub const DEFAULT_JOB_DURATION: Duration = 0.0;
-pub const DEFAULT_JOB_TIME_WINDOW: TimeWindow = TimeWindow { start: 0.0, end: 1000.0 };
+pub const DEFAULT_JOB_TIME_SPAN: TimeSpan = TimeSpan::Window(TimeWindow { start: 0., end: 1000. });
+pub const DEFAULT_ACTIVITY_TIME_WINDOW: TimeWindow = TimeWindow { start: 0., end: 1000. };
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
 
 pub fn test_driver() -> Driver {
@@ -48,7 +49,7 @@ pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location
         place: vrp_core::models::solution::Place {
             location,
             duration: DEFAULT_JOB_DURATION,
-            time: DEFAULT_JOB_TIME_WINDOW,
+            time: DEFAULT_ACTIVITY_TIME_WINDOW,
         },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: Some(job),
@@ -60,7 +61,7 @@ pub fn create_single_with_location(location: Option<Location>) -> Single {
         places: vec![vrp_core::models::problem::Place {
             location,
             duration: DEFAULT_JOB_DURATION,
-            times: vec![DEFAULT_JOB_TIME_WINDOW],
+            times: vec![DEFAULT_JOB_TIME_SPAN],
         }],
         dimens: Default::default(),
     }

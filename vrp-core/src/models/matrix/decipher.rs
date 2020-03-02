@@ -241,7 +241,9 @@ fn try_match_activity_place(activity: &TourActivity, places: &Vec<Place>) -> Opt
             if place.location.map_or(true, |location| location == activity.place.location) {
                 if activity.place.duration == place.duration {
                     for (tw_idx, tw) in place.times.iter().enumerate() {
-                        if &activity.place.time == tw {
+                        // NOTE tw offset is considered as match
+                        let is_correct = tw.as_time_window().map_or(true, |tw| activity.place.time == tw);
+                        if is_correct {
                             return Some((place_idx, tw_idx));
                         }
                     }

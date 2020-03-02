@@ -13,7 +13,7 @@ pub fn test_activity() -> Activity {
 
 pub fn test_activity_with_location(location: Location) -> Activity {
     Activity {
-        place: Place { location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
+        place: Place { location, duration: DEFAULT_JOB_DURATION, time: DEFAULT_ACTIVITY_TIME_WINDOW },
         schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
         job: Some(test_single_with_location(Some(location))),
     }
@@ -21,7 +21,7 @@ pub fn test_activity_with_location(location: Location) -> Activity {
 
 pub fn test_activity_with_location_and_duration(location: Location, duration: Duration) -> Activity {
     Activity {
-        place: Place { location, duration, time: DEFAULT_JOB_TIME_WINDOW },
+        place: Place { location, duration, time: DEFAULT_ACTIVITY_TIME_WINDOW },
         schedule: Schedule::new(location as f64, location as f64 + DEFAULT_JOB_DURATION),
         job: Some(test_single_with_location(Some(location))),
     }
@@ -37,7 +37,11 @@ pub fn test_activity_with_location_and_tw(location: Location, tw: TimeWindow) ->
 
 pub fn test_activity_with_schedule(schedule: Schedule) -> Activity {
     Activity {
-        place: Place { location: DEFAULT_JOB_LOCATION, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
+        place: Place {
+            location: DEFAULT_JOB_LOCATION,
+            duration: DEFAULT_JOB_DURATION,
+            time: DEFAULT_ACTIVITY_TIME_WINDOW,
+        },
         schedule,
         job: None,
     }
@@ -45,7 +49,11 @@ pub fn test_activity_with_schedule(schedule: Schedule) -> Activity {
 
 pub fn test_activity_with_job(job: Arc<Single>) -> Activity {
     Activity {
-        place: Place { location: DEFAULT_JOB_LOCATION, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
+        place: Place {
+            location: DEFAULT_JOB_LOCATION,
+            duration: DEFAULT_JOB_DURATION,
+            time: DEFAULT_ACTIVITY_TIME_WINDOW,
+        },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: Some(job),
     }
@@ -53,7 +61,11 @@ pub fn test_activity_with_job(job: Arc<Single>) -> Activity {
 
 pub fn test_activity_without_job() -> Activity {
     Activity {
-        place: Place { location: DEFAULT_JOB_LOCATION, duration: DEFAULT_JOB_DURATION, time: DEFAULT_JOB_TIME_WINDOW },
+        place: Place {
+            location: DEFAULT_JOB_LOCATION,
+            duration: DEFAULT_JOB_DURATION,
+            time: DEFAULT_ACTIVITY_TIME_WINDOW,
+        },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: None,
     }

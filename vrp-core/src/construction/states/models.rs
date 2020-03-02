@@ -93,12 +93,15 @@ impl InsertionContext {
 
                     let place = single.places.first().unwrap();
                     let time = single.places.first().unwrap().times.first().unwrap();
+                    let time = time
+                        .as_time_window()
+                        .unwrap_or_else(|| panic!("Job with no time window is not supported in locks"));
 
                     Activity {
                         place: Place {
                             location: place.location.unwrap_or(previous_location),
                             duration: place.duration,
-                            time: time.clone(),
+                            time,
                         },
                         schedule: Schedule { arrival: 0.0, departure: 0.0 },
                         job: Some(single),

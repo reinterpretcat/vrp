@@ -44,7 +44,15 @@ pub fn get_job_time_windows(problem: &Problem) -> Vec<(f64, f64)> {
         .jobs
         .all()
         .map(|j| match j {
-            Job::Single(j) => j.places.first().unwrap().times.first().map(|tw| (tw.start, tw.end)).unwrap(),
+            Job::Single(j) => j
+                .places
+                .first()
+                .unwrap()
+                .times
+                .first()
+                .map(|span| span.as_time_window().unwrap())
+                .map(|tw| (tw.start, tw.end))
+                .unwrap(),
             _ => panic!(),
         })
         .collect()

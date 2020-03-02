@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Demand, DemandDimension};
-use vrp_core::models::common::TimeWindow;
+use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::problem::*;
 use vrp_core::models::Problem;
 use vrp_core::utils::TryCollect;
@@ -127,7 +127,7 @@ impl<R: Read> LilimReader<R> {
             places: vec![Place {
                 location: Some(self.matrix.collect(customer.location)),
                 duration: customer.service as f64,
-                times: vec![customer.tw.clone()],
+                times: vec![TimeSpan::Window(customer.tw.clone())],
             }],
             dimens: Default::default(),
         })

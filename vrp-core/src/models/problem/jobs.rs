@@ -62,8 +62,8 @@ pub struct Place {
     pub location: Option<Location>,
     /// Time has to be spend performing work.
     pub duration: Duration,
-    /// Time windows when work can be started.
-    pub times: Vec<TimeWindow>,
+    /// Time data which specifies when work can be started.
+    pub times: Vec<TimeSpan>,
 }
 
 /// Represents a job which should be performed once but actual place/time might vary.
