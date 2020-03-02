@@ -3,44 +3,19 @@ use super::*;
 /// Checks that breaks are properly assigned.
 pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each(|tour| {
-        tour.stops.iter().try_for_each(|stop| {
-            stop.activities.windows(2).flat_map(|leg| as_leg_with_break(context, tour, stop, leg)).try_for_each(
-                |(from, to, vehicle_break)| {
+        let vehicle_shift = context.get_vehicle_shift(tour)?;
+        let actual_break_count = tour.stops.iter().try_fold(0, |acc, stop| {
+            stop.activities.windows(2).flat_map(|leg| as_leg_with_break(context, tour, stop, leg)).try_fold(
+                acc,
+                |acc, (from, to, vehicle_break)| {
                     // check time
                     let visit_time = get_time_window(stop, to);
-                    match &vehicle_break.times {
-                        VehicleBreakTime::TimeWindows(windows) => {
-                            let times = parse_time_windows(windows);
-                            let is_proper = times.iter().any(|tw| tw.intersects(&visit_time));
-
-                            if !is_proper {
-                                return Err(format!(
-                                    "Break visit time '{:?}' is invalid: expected is tws in '{:?}'",
-                                    visit_time, times
-                                ));
-                            }
-                        }
-                        VehicleBreakTime::TimeOffset(offset) => {
-                            if offset.len() != 2 {
-                                return Err(format!("Invalid offset break for tour: '{}'", tour.vehicle_id));
-                            }
-
-                            let departure =
-                                tour.stops.first().map(|stop| parse_time(&stop.time.departure)).ok_or_else(|| {
-                                    format!("Cannot get departure time for tour: '{}'", tour.vehicle_id)
-                                })?;
-                            let time = TimeWindow::new(
-                                departure + *offset.first().unwrap(),
-                                departure + *offset.last().unwrap(),
-                            );
-
-                            if !visit_time.intersects(&time) {
-                                return Err(format!(
-                                    "Break visit time '{:?}' is invalid: expected is offset in '{:?}'",
-                                    visit_time, time
-                                ));
-                            }
-                        }
+                    let break_time_windows = get_break_time_windows(tour, &vehicle_break)?;
+                    if !break_time_windows.iter().any(|tw| tw.intersects(&visit_time)) {
+                        return Err(format!(
+                            "Break visit time '{:?}' is invalid: expected is in '{:?}'",
+                            visit_time, break_time_windows
+                        ));
                     }
 
                     // check location
@@ -68,10 +43,41 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                         }
                     }
 
-                    Ok(())
+                    Ok(acc + 1)
                 },
             )
-        })
+        })?;
+
+        let arrival = tour
+            .stops
+            .last()
+            .map(|stop| parse_time(&stop.time.arrival))
+            .ok_or_else(|| format!("Cannot get arrival for tour '{}'", tour.vehicle_id))?;
+
+        let expected_break_count =
+            vehicle_shift.breaks.iter().flat_map(|breaks| breaks.iter()).fold(0, |acc, vehicle_break| {
+                // NOTE might not work properly if there are time window intersections between
+                // different breaks, but this should be handled by validation
+                let is_assignable = get_break_time_windows(tour, vehicle_break)
+                    .expect("Cannot get break time windows")
+                    .iter()
+                    .any(|tw| tw.start < arrival);
+
+                if is_assignable {
+                    acc + 1
+                } else {
+                    acc
+                }
+            });
+
+        if expected_break_count != actual_break_count {
+            Err(format!(
+                "Amount of breaks does not match, expected: '{}', got '{}'",
+                expected_break_count, actual_break_count
+            ))
+        } else {
+            Ok(())
+        }
     })
 }
 
@@ -89,4 +95,22 @@ fn as_leg_with_break<'a>(
         }
     }
     None
+}
+
+fn get_break_time_windows(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<Vec<TimeWindow>, String> {
+    match &vehicle_break.times {
+        VehicleBreakTime::TimeWindows(windows) => Ok(parse_time_windows(windows)),
+        VehicleBreakTime::TimeOffset(offset) => {
+            if offset.len() != 2 {
+                return Err(format!("Invalid offset break for tour: '{}'", tour.vehicle_id));
+            }
+
+            let departure = tour
+                .stops
+                .first()
+                .map(|stop| parse_time(&stop.time.departure))
+                .ok_or_else(|| format!("Cannot get departure time for tour: '{}'", tour.vehicle_id))?;
+            Ok(vec![TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap())])
+        }
+    }
 }
