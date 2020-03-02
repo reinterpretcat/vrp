@@ -187,8 +187,32 @@ fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
     TimeWindow::new(parse_time(tw.first().unwrap()), parse_time(tw.last().unwrap()))
 }
 
+fn parse_time_windows(tws: &Vec<Vec<String>>) -> Vec<TimeWindow> {
+    tws.iter().map(|tw| parse_time_window(tw)).collect()
+}
+
+fn get_time_window(stop: &Stop, activity: &Activity) -> TimeWindow {
+    let (start, end) = activity
+        .time
+        .as_ref()
+        .map_or_else(|| (&stop.time.arrival, &stop.time.departure), |interval| (&interval.start, &interval.end));
+
+    TimeWindow::new(parse_time(start), parse_time(end))
+}
+
+fn get_location(stop: &Stop, activity: &Activity) -> Location {
+    activity.location.as_ref().unwrap_or_else(|| &stop.location).clone()
+}
+
+fn same_locations(left: &Location, right: &Location) -> bool {
+    left.lat == right.lat && left.lng == right.lng
+}
+
 mod capacity;
 pub use self::capacity::*;
+
+mod breaks;
+pub use self::breaks::*;
 
 mod relations;
 pub use self::relations::*;
