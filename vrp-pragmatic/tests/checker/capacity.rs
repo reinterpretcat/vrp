@@ -1,6 +1,5 @@
-use crate::checker::{ActivityType, CheckerContext};
+use super::*;
 use crate::extensions::MultiDimensionalCapacity as Capacity;
-use crate::json::solution::{Activity, Stop};
 use std::iter::once;
 
 /// Checks that vehicle load is assigned correctly. The following rules are checked:
@@ -158,9 +157,6 @@ fn is_reload_stop(context: &CheckerContext, stop: &Stop) -> bool {
 mod tests {
     use super::*;
     use crate::format_time;
-    use crate::helpers::*;
-    use crate::json::problem::*;
-    use crate::json::solution::*;
 
     parameterized_test! {can_check_load, (stop_loads, expected_result), {
         can_check_load_impl(stop_loads, expected_result);

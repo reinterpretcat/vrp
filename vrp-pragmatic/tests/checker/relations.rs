@@ -1,6 +1,4 @@
-use crate::checker::CheckerContext;
-use crate::json::problem::*;
-use crate::json::solution::*;
+use super::*;
 use std::collections::HashSet;
 
 /// Checks relation rules.
@@ -113,7 +111,6 @@ where
 mod tests {
     use super::*;
     use crate::format_time;
-    use crate::helpers::*;
 
     mod single {
         use super::*;
