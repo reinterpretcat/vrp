@@ -120,7 +120,12 @@ impl CheckerContext {
                         VehicleBreakTime::TimeWindows(times) => {
                             times.iter().any(|t| parse_time_window(t).intersects(&time))
                         }
-                        VehicleBreakTime::IntervalWindow(_) => todo!("Interval break analysis is not yet implemented"),
+                        VehicleBreakTime::TimeOffset(offset) => {
+                            assert_eq!(offset.len(), 2);
+                            let departure = parse_time(&tour.stops.first().unwrap().time.departure);
+                            TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap())
+                                .intersects(&time)
+                        }
                     })
                 })
                 .map(|b| ActivityType::Break(b.clone()))
@@ -183,9 +188,7 @@ fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
 }
 
 mod capacity;
-
 pub use self::capacity::*;
 
 mod relations;
-
 pub use self::relations::*;

@@ -14,7 +14,7 @@ fn can_assign_interval_break_between_jobs() {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak {
-                        times: VehicleBreakTime::IntervalWindow(vec![5., 10.]),
+                        times: VehicleBreakTime::TimeOffset(vec![5., 10.]),
                         duration: 2.0,
                         locations: None,
                     }]),
@@ -131,7 +131,7 @@ fn can_assign_interval_break_with_reload() {
                     start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
                     end: Some(VehiclePlace { time: format_time(1000.).to_string(), location: vec![30., 0.].to_loc() }),
                     breaks: Some(vec![VehicleBreak {
-                        times: VehicleBreakTime::IntervalWindow(vec![8., 12.]),
+                        times: VehicleBreakTime::TimeOffset(vec![8., 12.]),
                         duration: 2.0,
                         locations: None,
                     }]),

@@ -69,6 +69,13 @@ impl Hash for TimeWindow {
     }
 }
 
+impl TimeOffset {
+    /// Creates a new [`TimeOffset`].
+    pub fn new(start: Timestamp, end: Timestamp) -> Self {
+        Self { start, end }
+    }
+}
+
 impl TimeSpan {
     /// Converts given time span into time window.
     pub fn to_time_window(&self, date: Timestamp) -> TimeWindow {

@@ -134,13 +134,7 @@ fn create_constraint_pipeline(
     add_even_dist_module(&mut constraint, &props);
 
     if props.has_breaks {
-        constraint.add_module(Box::new(BreakModule::new(
-            activity.clone(),
-            transport.clone(),
-            BREAK_CONSTRAINT_CODE,
-            Some(-100.),
-            false,
-        )));
+        constraint.add_module(Box::new(BreakModule::new(BREAK_CONSTRAINT_CODE, Some(-100.), false)));
     }
 
     if props.has_skills {

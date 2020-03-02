@@ -7,7 +7,7 @@ use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Demand, DemandDimension};
-use vrp_core::models::common::{Dimensions, Duration, IdDimension, TimeSpan, TimeWindow, ValueDimension};
+use vrp_core::models::common::{Dimensions, Duration, IdDimension, TimeOffset, TimeSpan, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
 
@@ -114,7 +114,8 @@ fn read_required_jobs(
             Demand { pickup: absent, delivery: demand }
         };
 
-        let places = task.places.iter().map(|p| (Some(p.location.clone()), p.duration, &p.times)).collect();
+        let places =
+            task.places.iter().map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times))).collect();
         let activity_type = if is_pickup { "pickup" } else { "delivery" };
 
         get_single_with_extras(places, demand, &task.tag, activity_type, has_multi_dimens, &coord_index)
@@ -188,30 +189,31 @@ fn read_breaks(
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let (times, interval) = match &place.times {
+                    let times = match &place.times {
                         VehicleBreakTime::TimeWindows(times) if times.is_empty() => {
                             panic!("Break without any time window does not make sense!")
                         }
-                        VehicleBreakTime::TimeWindows(times) => (Some(times.clone()), None),
-                        VehicleBreakTime::IntervalWindow(interval) => (None, Some(interval.clone())),
+                        VehicleBreakTime::TimeOffset(offsets) if offsets.len() != 2 => {
+                            panic!("Break with invalid offset specified: must have start and end!")
+                        }
+                        VehicleBreakTime::TimeWindows(times) => parse_times(&Some(times.clone())),
+                        VehicleBreakTime::TimeOffset(offset) => {
+                            vec![TimeSpan::Offset(TimeOffset::new(*offset.first().unwrap(), *offset.last().unwrap()))]
+                        }
                     };
 
                     let job_id = format!("{}_break_{}", vehicle_id, break_idx);
                     let places = if let Some(locations) = &place.locations {
                         assert!(!locations.is_empty());
-                        locations.into_iter().map(|location| (Some(location.clone()), place.duration, &times)).collect()
+                        locations
+                            .into_iter()
+                            .map(|location| (Some(location.clone()), place.duration, times.clone()))
+                            .collect()
                     } else {
-                        vec![(None, place.duration, &times)]
+                        vec![(None, place.duration, times)]
                     };
 
-                    let mut job =
-                        get_conditional_job(coord_index, vehicle_id.clone(), "break", shift_index, places, &None);
-
-                    if let Some(interval) = interval {
-                        assert_eq!(interval.len(), 2);
-                        let interval = (interval.first().cloned().unwrap(), interval.last().cloned().unwrap());
-                        job.dimens.set_value("interval", interval);
-                    }
+                    let job = get_conditional_job(coord_index, vehicle_id.clone(), "break", shift_index, places, &None);
 
                     (job_id, job)
                 })
@@ -236,13 +238,14 @@ fn read_reloads(
                 .iter()
                 .map(|vehicle_id| {
                     let job_id = format!("{}_reload_{}", vehicle_id, reload_idx);
+                    let times = parse_times(&reload.times);
 
                     let job = get_conditional_job(
                         coord_index,
                         vehicle_id.clone(),
                         "reload",
                         shift_index,
-                        vec![(Some(reload.location.clone()), reload.duration, &reload.times)],
+                        vec![(Some(reload.location.clone()), reload.duration, times)],
                         &reload.tag,
                     );
 
@@ -260,7 +263,7 @@ fn get_conditional_job(
     vehicle_id: String,
     job_type: &str,
     shift_index: usize,
-    places: Vec<(Option<Location>, Duration, &Option<Vec<Vec<String>>>)>,
+    places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>,
     tag: &Option<String>,
 ) -> Single {
     let mut single = get_single(places, coord_index);
@@ -281,19 +284,14 @@ fn add_conditional_job(job_index: &mut JobIndex, jobs: &mut Vec<Job>, job_id: St
     jobs.push(job);
 }
 
-fn get_single(
-    places: Vec<(Option<Location>, Duration, &Option<Vec<Vec<String>>>)>,
-    coord_index: &CoordIndex,
-) -> Single {
+fn get_single(places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>, coord_index: &CoordIndex) -> Single {
     Single {
         places: places
-            .iter()
+            .into_iter()
             .map(|(location, duration, times)| Place {
                 location: location.as_ref().and_then(|l| coord_index.get_by_loc(l)),
-                duration: *duration,
-                times: times.as_ref().map_or(vec![TimeSpan::Window(TimeWindow::max())], |tws| {
-                    tws.iter().map(|tw| TimeSpan::Window(parse_time_window(tw))).collect()
-                }),
+                duration,
+                times,
             })
             .collect(),
         dimens: Default::default(),
@@ -301,7 +299,7 @@ fn get_single(
 }
 
 fn get_single_with_extras(
-    places: Vec<(Option<Location>, Duration, &Option<Vec<Vec<String>>>)>,
+    places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>,
     demand: Demand<MultiDimensionalCapacity>,
     tag: &Option<String>,
     activity_type: &str,
@@ -382,4 +380,10 @@ fn add_priority(dimens: &mut Dimensions, priority: &Option<i32>) {
 
 fn empty() -> MultiDimensionalCapacity {
     MultiDimensionalCapacity::default()
+}
+
+fn parse_times(times: &Option<Vec<Vec<String>>>) -> Vec<TimeSpan> {
+    times.as_ref().map_or(vec![TimeSpan::Window(TimeWindow::max())], |tws| {
+        tws.iter().map(|tw| TimeSpan::Window(parse_time_window(tw))).collect()
+    })
 }
