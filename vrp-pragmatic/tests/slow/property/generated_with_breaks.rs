@@ -11,7 +11,7 @@ fn get_test_locations() -> impl Strategy<Value = Location> {
 }
 
 fn get_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
-    prop::collection::vec(generate_break(get_break_locations(), generate_durations(10..100), get_break_times()), 1..4)
+    prop::collection::vec(generate_break(get_break_locations(), generate_durations(10..100), get_break_times()), 1..2)
         .prop_map(|reloads| Some(reloads))
 }
 
@@ -21,6 +21,22 @@ fn get_break_locations() -> impl Strategy<Value = Option<Vec<Location>>> {
         Just(Some(vec![default_vehicle_location()])),
         prop::collection::vec(get_test_locations(), 1..5).prop_map(|locations| Some(locations))
     ]
+}
+
+pub fn job_prototype() -> impl Strategy<Value = Job> {
+    delivery_job_prototype(
+        job_task_prototype(
+            job_place_prototype(
+                generate_simple_locations(1..30000),
+                generate_durations(1..10),
+                generate_no_time_windows(),
+            ),
+            generate_simple_demand(1..5),
+            generate_no_tags(),
+        ),
+        generate_no_priority(),
+        generate_no_skills(),
+    )
 }
 
 fn get_break_times() -> impl Strategy<Value = VehicleBreakTime> {
@@ -61,7 +77,7 @@ prop_compose! {
 
 prop_compose! {
     fn get_problem_with_breaks()
-        (plan in generate_plan(generate_jobs(default_job_prototype(), 1..256)),
+        (plan in generate_plan(generate_jobs(job_prototype(), 1..256)),
          fleet in generate_fleet(generate_vehicles(get_vehicle_type_with_breaks(), 1..4), default_profiles())
         )
         -> Problem {

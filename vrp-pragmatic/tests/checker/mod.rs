@@ -122,9 +122,12 @@ impl CheckerContext {
                         }
                         VehicleBreakTime::TimeOffset(offset) => {
                             assert_eq!(offset.len(), 2);
-                            let departure = parse_time(&tour.stops.first().unwrap().time.departure);
-                            TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap())
-                                .intersects(&time)
+                            // NOTE make expected time window wider due to reschedule departure
+                            let stops = &tour.stops;
+                            let start = parse_time(&stops.first().unwrap().time.arrival) + *offset.first().unwrap();
+                            let end = parse_time(&stops.first().unwrap().time.departure) + *offset.last().unwrap();
+
+                            TimeWindow::new(start, end).intersects(&time)
                         }
                     })
                 })

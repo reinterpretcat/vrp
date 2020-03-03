@@ -12,6 +12,8 @@ use vrp_core::models::common::{Cost, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Activity;
 
+/// Implements break functionality with variable location and time.
+/// NOTE known issue: rescheduling departure might affect break with time offset.
 pub struct BreakModule {
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
@@ -178,12 +180,13 @@ fn demote_unassigned_breaks(ctx: &mut SolutionContext) {
 
 /// Removes breaks which conditions are violated after ruin:
 /// * break without location served separately when original job is removed, but break is kept.
-/// * interval break outside of its interval
+/// * break is assigned right after departure
 fn remove_orphan_breaks(ctx: &mut SolutionContext) {
     let breaks_set = ctx.routes.iter_mut().fold(HashSet::new(), |mut acc, rc: &mut RouteContext| {
         // NOTE assume that first activity is never break (should be always departure)
-        let (_, breaks_set) =
-            rc.route.tour.all_activities().fold((0, HashSet::new()), |(prev, mut breaks), activity| {
+        let (_, breaks_set) = (0..).zip(rc.route.tour.all_activities()).fold(
+            (0, HashSet::new()),
+            |(prev, mut breaks), (idx, activity)| {
                 let current = activity.place.location;
 
                 if let Some(break_job) = as_break_job(activity) {
@@ -191,14 +194,18 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
                     let location_count = break_job.places.iter().map(|p| p.location.is_some()).count();
                     assert!(location_count == 0 || location_count == break_job.places.len());
 
-                    if prev != current && break_job.places.first().and_then(|p| p.location).is_none() {
+                    let is_orphan = prev != current && break_job.places.first().and_then(|p| p.location).is_none();
+                    let is_dummy = idx == 1;
+
+                    if is_orphan || is_dummy {
                         // NOTE remove break with removed job location
                         breaks.insert(Job::Single(activity.job.as_ref().unwrap().clone()));
                     }
                 }
 
                 (current, breaks)
-            });
+            },
+        );
 
         breaks_set.iter().for_each(|break_job| {
             rc.route_mut().tour.remove(break_job);
