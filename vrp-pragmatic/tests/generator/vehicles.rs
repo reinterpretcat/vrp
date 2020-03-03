@@ -58,17 +58,17 @@ prop_compose! {
 
 prop_compose! {
     pub fn generate_break(
-      locations: impl Strategy<Value = Option<Location>>,
+      locations_proto: impl Strategy<Value = Option<Vec<Location>>>,
       durations: impl Strategy<Value = f64>,
-      time_windows: impl Strategy<Value = Vec<Vec<String>>>,
+      times_proto: impl Strategy<Value = VehicleBreakTime>,
     )
-    (location in locations,
+    (locations in locations_proto,
      duration in durations,
-     times in time_windows) -> VehicleBreak {
+     times in times_proto) -> VehicleBreak {
         VehicleBreak {
-            times: VehicleBreakTime::TimeWindows(times),
+            times,
             duration,
-            locations: location.map_or(None, |l| Some(vec![l])),
+            locations,
         }
     }
 }

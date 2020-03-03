@@ -23,8 +23,9 @@ prop_compose! {
 prop_compose! {
     /// Generates time window.
     fn generate_time_window_fixed_raw(day: f64, start_offsets: Vec<u64>, durations: Vec<u64>)
-        (start_offset in from_uints(start_offsets.clone()), duration in from_uints(durations.clone()))
-         -> TimeWindow {
+        (start_offset in from_uints(start_offsets.clone()),
+         duration in from_uints(durations.clone())) -> TimeWindow {
+
         let start = day + start_offset as f64;
         let end = start + duration as f64;
 

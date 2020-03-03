@@ -23,8 +23,8 @@ pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Option<Vec
 
 pub fn default_job_place_prototype() -> impl Strategy<Value = JobPlace> {
     job_place_prototype(
-        generate_simple_locations(1..100),
-        generate_durations(10..20),
+        generate_simple_locations(1..30000),
+        generate_durations(1..10),
         default_job_single_day_time_windows(),
     )
 }
