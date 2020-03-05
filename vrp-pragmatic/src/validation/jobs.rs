@@ -3,7 +3,7 @@ use crate::extensions::MultiDimensionalCapacity;
 use std::collections::HashSet;
 
 /// Checks that plan has no jobs with duplicate ids (E1000).
-fn check_e1000_no_jobs_with_duplicate_ids(ctx: ValidationContext) -> Result<(), String> {
+fn check_e1000_no_jobs_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), String> {
     let mut jobs = HashSet::<_>::default();
     let duplicated_ids = ctx
         .jobs()
@@ -19,7 +19,7 @@ fn check_e1000_no_jobs_with_duplicate_ids(ctx: ValidationContext) -> Result<(), 
 }
 
 /// Checks that sum of pickup/delivery demand should be equal (E1001).
-fn check_e1001_multiple_pickups_deliveries_demand(ctx: ValidationContext) -> Result<(), String> {
+fn check_e1001_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Result<(), String> {
     let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| tasks.len() > 0);
     let get_demand = |tasks: &Option<Vec<JobTask>>| {
         if let Some(tasks) = tasks {
@@ -40,5 +40,21 @@ fn check_e1001_multiple_pickups_deliveries_demand(ctx: ValidationContext) -> Res
         Ok(())
     } else {
         Err(format!("E1001: Invalid demand in jobs with {}", ids.join(",")))
+    }
+}
+
+/// Validates jobs.
+pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<String>> {
+    let errors = check_e1000_no_jobs_with_duplicate_ids(ctx)
+        .err()
+        .iter()
+        .cloned()
+        .chain(check_e1001_multiple_pickups_deliveries_demand(ctx).err().iter().cloned())
+        .collect::<Vec<_>>();
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
     }
 }

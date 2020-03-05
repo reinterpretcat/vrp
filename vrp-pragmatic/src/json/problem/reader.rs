@@ -15,6 +15,7 @@ use crate::json::problem::reader::fleet_reader::{create_transport_costs, read_fl
 use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_locks};
 use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::json::*;
+use crate::validation::ValidationContext;
 use crate::{parse_time, StringReader};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -78,6 +79,8 @@ pub struct ProblemProperties {
 }
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
+    ValidationContext::new(&api_problem, Some(&matrices)).validate()?;
+
     let problem_props = get_problem_properties(&api_problem, &matrices);
 
     let coord_index = CoordIndex::new(&api_problem);
