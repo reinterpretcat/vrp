@@ -3,6 +3,7 @@
 mod multi_dim_capacity_test;
 
 use std::cmp::Ordering;
+use std::iter::Sum;
 use std::ops::{Add, Mul, Sub};
 
 const CAPACITY_DIMENSION_SIZE: usize = 8;
@@ -139,5 +140,11 @@ impl Mul<f64> for MultiDimensionalCapacity {
         });
 
         dimens
+    }
+}
+
+impl Sum for MultiDimensionalCapacity {
+    fn sum<I: Iterator<Item = MultiDimensionalCapacity>>(iter: I) -> Self {
+        iter.fold(MultiDimensionalCapacity::default(), |acc, item| item + acc)
     }
 }
