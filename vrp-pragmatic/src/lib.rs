@@ -37,7 +37,7 @@ pub mod json;
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_problem, PragmaticProblem};
 use crate::json::solution::PragmaticSolution;
-use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
+use chrono::{DateTime, ParseError, SecondsFormat, TimeZone, Utc};
 use std::ffi::{CStr, CString};
 use std::io::{BufReader, BufWriter};
 use std::os::raw::c_char;
@@ -89,8 +89,11 @@ fn format_time(time: f64) -> String {
 }
 
 fn parse_time(time: &String) -> f64 {
-    let time = DateTime::parse_from_rfc3339(time).unwrap();
-    time.timestamp() as f64
+    parse_time_safe(time).unwrap()
+}
+
+fn parse_time_safe(time: &String) -> Result<f64, ParseError> {
+    DateTime::parse_from_rfc3339(time).map(|time| time.timestamp() as f64)
 }
 
 // TODO improve error propagation

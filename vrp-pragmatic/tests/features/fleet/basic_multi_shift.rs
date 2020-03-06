@@ -18,10 +18,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 shifts: vec![
                     VehicleShift {
                         start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
-                        end: Some(VehiclePlace {
-                            time: format_time(100.).to_string(),
-                            location: vec![0., 0.].to_loc(),
-                        }),
+                        end: Some(VehiclePlace { time: format_time(99.).to_string(), location: vec![0., 0.].to_loc() }),
                         ..create_default_vehicle_shift()
                     },
                     VehicleShift {

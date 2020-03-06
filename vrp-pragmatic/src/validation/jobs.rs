@@ -1,24 +1,14 @@
+use super::common::get_duplicates;
 use super::*;
 use crate::extensions::MultiDimensionalCapacity;
-use std::collections::HashSet;
 
-/// Checks that plan has no jobs with duplicate ids (E1000).
+/// Checks that plan has no jobs with duplicate ids.
 fn check_e1000_no_jobs_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), String> {
-    let mut jobs = HashSet::<_>::default();
-    let duplicated_ids = ctx
-        .jobs()
-        .map(|job| &job.id)
-        .filter_map(move |id| if jobs.insert(id) { None } else { Some(id.clone()) })
-        .collect::<HashSet<_>>();
-
-    if duplicated_ids.is_empty() {
-        Ok(())
-    } else {
-        Err(format!("E1000: Duplicated job ids: {:?}", duplicated_ids))
-    }
+    get_duplicates(ctx.jobs().map(|job| &job.id))
+        .map_or(Ok(()), |ids| Err(format!("E1000: Duplicated job ids: {}", ids.join(", "))))
 }
 
-/// Checks that sum of pickup/delivery demand should be equal (E1001).
+/// Checks that sum of pickup/delivery demand should be equal.
 fn check_e1001_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Result<(), String> {
     let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| tasks.len() > 0);
     let get_demand = |tasks: &Option<Vec<JobTask>>| {
@@ -39,17 +29,43 @@ fn check_e1001_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Re
     if ids.is_empty() {
         Ok(())
     } else {
-        Err(format!("E1001: Invalid demand in jobs with {}", ids.join(",")))
+        Err(format!("E1001: Invalid demand in jobs: {}", ids.join(", ")))
     }
 }
 
-/// Validates jobs.
+/// Checks that job's time windows are correct.
+fn check_e1002_time_window_correctness(ctx: &ValidationContext) -> Result<(), String> {
+    let has_invalid_tws = |tasks: &Option<Vec<JobTask>>| {
+        tasks.as_ref().map_or(false, |tasks| {
+            tasks
+                .iter()
+                .flat_map(|task| task.places.iter())
+                .filter_map(|place| place.times.as_ref())
+                .any(|tws| !check_time_windows(tws))
+        })
+    };
+
+    let ids = ctx
+        .jobs()
+        .filter(|job| has_invalid_tws(&job.pickups) || has_invalid_tws(&job.deliveries))
+        .map(|job| job.id.clone())
+        .collect::<Vec<_>>();
+
+    if ids.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("E1002: Invalid time windows in jobs: {}", ids.join(", ")))
+    }
+}
+
+/// Validates jobs from the plan.
 pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<String>> {
     let errors = check_e1000_no_jobs_with_duplicate_ids(ctx)
         .err()
         .iter()
         .cloned()
         .chain(check_e1001_multiple_pickups_deliveries_demand(ctx).err().iter().cloned())
+        .chain(check_e1002_time_window_correctness(ctx).err().iter().cloned())
         .collect::<Vec<_>>();
 
     if errors.is_empty() {

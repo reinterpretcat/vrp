@@ -24,6 +24,7 @@
       * [Tour list](concepts/pragmatic/solution/tour-list.md)
       * [Statistic](concepts/pragmatic/solution/statistic.md)
       * [Unassigned jobs](concepts/pragmatic/solution/unassigned-jobs.md)
+    * [Error index](concepts/pragmatic/errors/index.md)
   * [Scientific formats](concepts/scientific/index.md)
     * [Solomon benchmark](concepts/scientific/solomon.md)
     * [Li&Lim benchmark](concepts/scientific/lilim.md)
@@ -42,5 +43,3 @@
   * [Language interop](examples/interop/index.md)
     * [Java](examples/interop/java.md)
     * [Kotlin](examples/interop/kotlin.md)
-
-* [Errors](errors/index.md)

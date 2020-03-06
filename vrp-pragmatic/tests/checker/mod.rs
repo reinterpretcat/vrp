@@ -5,9 +5,8 @@ use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
 use crate::json::Location;
-use chrono::DateTime;
 use std::collections::HashMap;
-use vrp_core::models::common::{TimeWindow, Timestamp};
+use vrp_core::models::common::TimeWindow;
 
 /// Stores problem and solution together and provides some helper methods.
 pub struct CheckerContext {
@@ -181,11 +180,6 @@ impl CheckerContext {
     }
 }
 
-fn parse_time(time: &String) -> Timestamp {
-    let time = DateTime::parse_from_rfc3339(time).unwrap();
-    time.timestamp() as Timestamp
-}
-
 fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
     TimeWindow::new(parse_time(tw.first().unwrap()), parse_time(tw.last().unwrap()))
 }
@@ -219,3 +213,4 @@ pub use self::breaks::*;
 
 mod relations;
 pub use self::relations::*;
+use crate::parse_time;
