@@ -155,4 +155,35 @@ Please note that vehicle id should be unique across all vehicle types.
 
 ### E1005
 
-This error is returned when vehicle has shift times violating one of time windows rules defined for jobs in E1002. 
+This error is returned when vehicle has start/end shift times violating one of time windows rules defined for jobs in E1002.
+
+
+### E1006
+
+This error is returned when vehicle has invalid time window of a break. List of break should follow time window rules
+defined for jobs in E1002. Additionally, break time should be inside vehicle shift it is specified:
+
+```json
+ {
+    "start": {
+      "time": "2019-07-04T08:00:00Z",
+      /** omitted **/
+    },
+    "end": {
+        "time": "2019-07-04T15:00:00Z",
+        /** omitted **/
+    },
+    "breaks": [
+        {
+          /** Error: break is outside of vehicle shift times **/
+          "times": [
+            [
+              "2019-07-04T17:00:00Z",
+              "2019-07-04T18:00:00Z"
+            ]
+          ],
+          "duration": 3600.0
+        }
+      ]
+}
+```

@@ -4,25 +4,17 @@ use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
 
 /// Check time window rules.
-pub fn check_time_windows(tws: &Vec<Vec<String>>) -> bool {
-    let tws = tws
-        .iter()
-        .map(|tw| {
-            if tw.len() != 2 {
-                (None, None)
-            } else {
-                let start = parse_time_safe(tw.first().unwrap());
-                let end = parse_time_safe(tw.last().unwrap());
-                (start.ok(), end.ok())
-            }
-        })
-        .collect::<Vec<_>>();
+pub fn check_raw_time_windows(tws: &Vec<Vec<String>>) -> bool {
+    let tws = get_time_windows(tws);
+    check_time_windows(&tws)
+}
 
-    if tws.iter().any(|(start, end)| start.is_none() || end.is_none()) {
+/// Check time window rules.
+pub fn check_time_windows(tws: &Vec<Option<TimeWindow>>) -> bool {
+    if tws.iter().any(|tw| tw.is_none()) {
         false
     } else {
-        let mut tws =
-            tws.into_iter().map(|(start, end)| TimeWindow::new(start.unwrap(), end.unwrap())).collect::<Vec<_>>();
+        let mut tws = tws.into_iter().map(|tw| tw.clone().unwrap()).collect::<Vec<_>>();
         if let &[a] = &tws.as_slice() {
             a.start <= a.end
         } else {
@@ -36,6 +28,24 @@ pub fn check_time_windows(tws: &Vec<Vec<String>>) -> bool {
             })
         }
     }
+}
+
+pub fn get_time_window(start: &String, end: &String) -> Option<TimeWindow> {
+    let start = parse_time_safe(start);
+    let end = parse_time_safe(end);
+
+    if let (Some(start), Some(end)) = (start.ok(), end.ok()) {
+        Some(TimeWindow::new(start, end))
+    } else {
+        None
+    }
+}
+
+/// Get time windows.
+pub fn get_time_windows(tws: &Vec<Vec<String>>) -> Vec<Option<TimeWindow>> {
+    tws.iter()
+        .map(|tw| if tw.len() != 2 { None } else { get_time_window(tw.first().unwrap(), tw.last().unwrap()) })
+        .collect::<Vec<_>>()
 }
 
 /// Returns a duplicates

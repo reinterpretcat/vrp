@@ -48,6 +48,16 @@ impl TimeWindow {
     pub fn intersects(&self, other: &Self) -> bool {
         self.start <= other.end && other.start <= self.end
     }
+
+    /// Checks whether time window has intersection with all others.
+    pub fn intersects_all(&self, others: &Vec<Self>) -> bool {
+        others.iter().all(|other| other.intersects(self))
+    }
+
+    /// Checks whether time window has intersection with any of others.
+    pub fn intersects_any(&self, others: &Vec<Self>) -> bool {
+        others.iter().any(|other| other.intersects(self))
+    }
 }
 
 impl PartialEq<TimeWindow> for TimeWindow {

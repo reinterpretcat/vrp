@@ -163,7 +163,7 @@ fn can_read_complex_problem() {
                     breaks: Some(vec![VehicleBreak {
                         times: VehicleBreakTime::TimeWindows(vec![
                             vec!["1970-01-01T00:00:10Z".to_string(), "1970-01-01T00:01:20Z".to_string()],
-                            vec!["1970-01-01T00:01:00Z".to_string(), "1970-01-01T00:03:00Z".to_string()],
+                            vec!["1970-01-01T00:01:30Z".to_string(), "1970-01-01T00:03:00Z".to_string()],
                         ]),
                         duration: 100.0,
                         locations: Some(vec![vec![52.48315, 13.4330].to_loc()]),

@@ -1,4 +1,3 @@
-use super::common::get_duplicates;
 use super::*;
 use crate::extensions::MultiDimensionalCapacity;
 
@@ -41,7 +40,7 @@ fn check_e1002_time_window_correctness(ctx: &ValidationContext) -> Result<(), St
                 .iter()
                 .flat_map(|task| task.places.iter())
                 .filter_map(|place| place.times.as_ref())
-                .any(|tws| !check_time_windows(tws))
+                .any(|tws| !check_raw_time_windows(tws))
         })
     };
 
