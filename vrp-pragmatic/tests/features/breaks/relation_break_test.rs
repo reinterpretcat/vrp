@@ -18,7 +18,7 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak {
-                        times: VehicleBreakTime::TimeWindows(vec![vec![format_time(0.), format_time(1000.)]]),
+                        time: VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)]),
                         duration: 2.0,
                         locations: Some(vec![vec![3., 0.].to_loc()]),
                     }]),

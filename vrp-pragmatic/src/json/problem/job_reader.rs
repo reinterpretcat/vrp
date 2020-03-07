@@ -189,14 +189,14 @@ fn read_breaks(
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let times = match &place.times {
-                        VehicleBreakTime::TimeWindows(times) if times.is_empty() => {
-                            panic!("Break without any time window does not make sense!")
+                    let times = match &place.time {
+                        VehicleBreakTime::TimeWindow(time) if time.len() != 2 => {
+                            panic!("Break with invalid time window specified: must have start and end!")
                         }
                         VehicleBreakTime::TimeOffset(offsets) if offsets.len() != 2 => {
                             panic!("Break with invalid offset specified: must have start and end!")
                         }
-                        VehicleBreakTime::TimeWindows(times) => parse_times(&Some(times.clone())),
+                        VehicleBreakTime::TimeWindow(time) => vec![TimeSpan::Window(parse_time_window(time))],
                         VehicleBreakTime::TimeOffset(offset) => {
                             vec![TimeSpan::Offset(TimeOffset::new(*offset.first().unwrap(), *offset.last().unwrap()))]
                         }

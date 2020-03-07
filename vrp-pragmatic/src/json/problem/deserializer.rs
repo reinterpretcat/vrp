@@ -153,8 +153,8 @@ pub struct VehicleLimits {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum VehicleBreakTime {
-    /// Break time is defined by a list of time windows with time specified in RFC3339 format.
-    TimeWindows(Vec<Vec<String>>),
+    /// Break time is defined by a time window with time specified in RFC3339 format.
+    TimeWindow(Vec<String>),
     /// Break time is defined by a time offset range.
     TimeOffset(Vec<f64>),
 }
@@ -163,7 +163,7 @@ pub enum VehicleBreakTime {
 #[derive(Clone, Deserialize, Debug)]
 pub struct VehicleBreak {
     /// Break time.
-    pub times: VehicleBreakTime,
+    pub time: VehicleBreakTime,
     /// Break duration.
     pub duration: f64,
     /// Break locations.

@@ -57,7 +57,7 @@ pub fn get_break_time_windows() -> impl Strategy<Value = VehicleBreakTime> {
         vec![from_hours(2), from_hours(4)],
         1..2,
     )
-    .prop_map(|tws| VehicleBreakTime::TimeWindows(tws))
+    .prop_map(|tws| VehicleBreakTime::TimeWindow(tws.first().unwrap().clone()))
 }
 
 prop_compose! {

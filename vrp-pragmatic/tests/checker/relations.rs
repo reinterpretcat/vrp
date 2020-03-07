@@ -202,7 +202,7 @@ mod tests {
                                 location: vec![0., 0.].to_loc(),
                             }),
                             breaks: Some(vec![VehicleBreak {
-                                times: VehicleBreakTime::TimeWindows(vec![vec![format_time(0.), format_time(1000.)]]),
+                                time: VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)]),
                                 duration: 2.0,
                                 locations: None,
                             }]),

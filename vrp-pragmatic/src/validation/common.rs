@@ -42,10 +42,17 @@ pub fn get_time_window(start: &String, end: &String) -> Option<TimeWindow> {
 }
 
 /// Get time windows.
+pub fn get_time_window_from_vec(tw: &Vec<String>) -> Option<TimeWindow> {
+    if tw.len() != 2 {
+        None
+    } else {
+        get_time_window(tw.first().unwrap(), tw.last().unwrap())
+    }
+}
+
+/// Get time windows.
 pub fn get_time_windows(tws: &Vec<Vec<String>>) -> Vec<Option<TimeWindow>> {
-    tws.iter()
-        .map(|tw| if tw.len() != 2 { None } else { get_time_window(tw.first().unwrap(), tw.last().unwrap()) })
-        .collect::<Vec<_>>()
+    tws.iter().map(get_time_window_from_vec).collect::<Vec<_>>()
 }
 
 /// Returns a duplicates

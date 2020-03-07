@@ -15,12 +15,12 @@ fn can_use_two_breaks() {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![
                         VehicleBreak {
-                            times: VehicleBreakTime::TimeWindows(vec![vec![format_time(5.), format_time(10.)]]),
+                            time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
                             duration: 2.0,
                             locations: Some(vec![vec![6., 0.].to_loc()]),
                         },
                         VehicleBreak {
-                            times: VehicleBreakTime::TimeWindows(vec![vec![format_time(100.), format_time(120.)]]),
+                            time: VehicleBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
                             duration: 2.0,
                             locations: None,
                         },

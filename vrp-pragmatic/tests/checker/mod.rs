@@ -115,10 +115,8 @@ impl CheckerContext {
                 .breaks
                 .as_ref()
                 .and_then(|breaks| {
-                    breaks.iter().find(|b| match &b.times {
-                        VehicleBreakTime::TimeWindows(times) => {
-                            times.iter().any(|t| parse_time_window(t).intersects(&time))
-                        }
+                    breaks.iter().find(|b| match &b.time {
+                        VehicleBreakTime::TimeWindow(tw) => parse_time_window(tw).intersects(&time),
                         VehicleBreakTime::TimeOffset(offset) => {
                             assert_eq!(offset.len(), 2);
                             // NOTE make expected time window wider due to reschedule departure
@@ -182,10 +180,6 @@ impl CheckerContext {
 
 fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
     TimeWindow::new(parse_time(tw.first().unwrap()), parse_time(tw.last().unwrap()))
-}
-
-fn parse_time_windows(tws: &Vec<Vec<String>>) -> Vec<TimeWindow> {
-    tws.iter().map(|tw| parse_time_window(tw)).collect()
 }
 
 fn get_time_window(stop: &Stop, activity: &Activity) -> TimeWindow {

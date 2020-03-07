@@ -10,11 +10,11 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                 |acc, (from, to, vehicle_break)| {
                     // check time
                     let visit_time = get_time_window(stop, to);
-                    let break_time_windows = get_break_time_windows(tour, &vehicle_break)?;
-                    if !break_time_windows.iter().any(|tw| tw.intersects(&visit_time)) {
+                    let break_time_window = get_break_time_window(tour, &vehicle_break)?;
+                    if !visit_time.intersects(&break_time_window) {
                         return Err(format!(
                             "Break visit time '{:?}' is invalid: expected is in '{:?}'",
-                            visit_time, break_time_windows
+                            visit_time, break_time_window
                         ));
                     }
 
@@ -56,12 +56,9 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
 
         let expected_break_count =
             vehicle_shift.breaks.iter().flat_map(|breaks| breaks.iter()).fold(0, |acc, vehicle_break| {
-                let is_assignable = get_break_time_windows(tour, vehicle_break)
-                    .expect("Cannot get break time windows")
-                    .iter()
-                    .any(|tw| tw.start < arrival);
+                let break_time = get_break_time_window(tour, vehicle_break).expect("Cannot get break time windows");
 
-                if is_assignable {
+                if break_time.start < arrival {
                     acc + 1
                 } else {
                     acc
@@ -95,9 +92,9 @@ fn as_leg_with_break<'a>(
     None
 }
 
-fn get_break_time_windows(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<Vec<TimeWindow>, String> {
-    match &vehicle_break.times {
-        VehicleBreakTime::TimeWindows(windows) => Ok(parse_time_windows(windows)),
+fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<TimeWindow, String> {
+    match &vehicle_break.time {
+        VehicleBreakTime::TimeWindow(tw) => Ok(parse_time_window(tw)),
         VehicleBreakTime::TimeOffset(offset) => {
             if offset.len() != 2 {
                 return Err(format!("Invalid offset break for tour: '{}'", tour.vehicle_id));
@@ -108,7 +105,7 @@ fn get_break_time_windows(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<V
                 .first()
                 .map(|stop| parse_time(&stop.time.departure))
                 .ok_or_else(|| format!("Cannot get departure time for tour: '{}'", tour.vehicle_id))?;
-            Ok(vec![TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap())])
+            Ok(TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap()))
         }
     }
 }
@@ -128,11 +125,11 @@ mod tests {
         case03: (VehicleBreakTime::TimeOffset(vec![0., 1.]),  Err("Amount of breaks does not match, expected: '1', got '0'".to_owned())),
         case04: (VehicleBreakTime::TimeOffset(vec![7., 10.]), Err("Amount of breaks does not match, expected: '1', got '0'".to_owned())),
 
-        case05: (VehicleBreakTime::TimeWindows(vec![vec![format_time(2.), format_time(5.)]]), Ok(())),
-        case06: (VehicleBreakTime::TimeWindows(vec![vec![format_time(3.), format_time(6.)]]), Ok(())),
-        case07: (VehicleBreakTime::TimeWindows(vec![vec![format_time(0.), format_time(1.)]]),
+        case05: (VehicleBreakTime::TimeWindow(vec![format_time(2.), format_time(5.)]), Ok(())),
+        case06: (VehicleBreakTime::TimeWindow(vec![format_time(3.), format_time(6.)]), Ok(())),
+        case07: (VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1.)]),
                  Err("Amount of breaks does not match, expected: '1', got '0'".to_owned())),
-        case08: (VehicleBreakTime::TimeWindows(vec![vec![format_time(7.), format_time(10.)]]),
+        case08: (VehicleBreakTime::TimeWindow(vec![format_time(7.), format_time(10.)]),
                  Err("Amount of breaks does not match, expected: '1', got '0'".to_owned())),
     }
 
@@ -150,7 +147,7 @@ mod tests {
                             time: format_time(1000.).to_string(),
                             location: vec![0., 0.].to_loc(),
                         }),
-                        breaks: Some(vec![VehicleBreak { times: break_times, duration: 0.0, locations: None }]),
+                        breaks: Some(vec![VehicleBreak { time: break_times, duration: 0.0, locations: None }]),
                         reloads: None,
                     }],
                     capacity: vec![5],

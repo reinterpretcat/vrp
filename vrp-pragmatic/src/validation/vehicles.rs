@@ -56,11 +56,10 @@ fn check_e1006_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
                 .map(|breaks| {
                     let tws = breaks
                         .iter()
-                        .filter_map(|b| match &b.times {
-                            VehicleBreakTime::TimeWindows(tws) => Some(get_time_windows(tws)),
+                        .filter_map(|b| match &b.time {
+                            VehicleBreakTime::TimeWindow(tw) => Some(get_time_window_from_vec(tw)),
                             _ => None,
                         })
-                        .flatten()
                         .collect::<Vec<_>>();
 
                     check_shift_time_windows(shift_time, tws, false)
