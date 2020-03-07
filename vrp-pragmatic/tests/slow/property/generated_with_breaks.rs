@@ -4,7 +4,6 @@ use crate::json::problem::*;
 
 use crate::json::Location;
 use proptest::prelude::*;
-use std::time::Duration;
 
 fn get_test_locations() -> impl Strategy<Value = Location> {
     generate_simple_locations(1..30000)
@@ -54,8 +53,8 @@ prop_compose! {
 pub fn get_break_time_windows() -> impl Strategy<Value = VehicleBreakTime> {
     generate_multiple_time_windows_fixed(
         START_DAY,
-        vec![Duration::from_secs(100), Duration::from_secs(400)],
-        vec![Duration::from_secs(20), Duration::from_secs(80)],
+        vec![from_hours(11), from_hours(13)],
+        vec![from_hours(2), from_hours(4)],
         1..2,
     )
     .prop_map(|tws| VehicleBreakTime::TimeWindows(tws))
