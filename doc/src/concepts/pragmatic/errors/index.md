@@ -187,3 +187,35 @@ defined for jobs in E1002. Additionally, break time should be inside vehicle shi
       ]
 }
 ```
+
+### E1007
+
+This error is returned when vehicle has invalid time window of a reload. Reload list should follow time window rules
+defined for jobs in E1002 except multiple reloads can have time window intersections. Additionally, reload time should
+be inside vehicle shift it is specified:
+
+```json
+ {
+    "start": {
+      "time": "2019-07-04T08:00:00Z",
+      /** omitted **/
+    },
+    "end": {
+        "time": "2019-07-04T15:00:00Z",
+        /** omitted **/
+    },
+    "reloads": [
+        {
+          /** Error: reload is outside of vehicle shift times **/
+          "times": [
+            [
+              "2019-07-04T17:00:00Z",
+              "2019-07-04T18:00:00Z"
+            ]
+          ],
+          "location": { /** omitted **/ },
+          "duration": 3600.0
+        }
+      ]
+}
+```

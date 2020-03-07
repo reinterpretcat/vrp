@@ -1,5 +1,6 @@
 use super::*;
 use crate::validation::common::get_time_windows;
+use std::ops::Deref;
 use vrp_core::models::common::TimeWindow;
 
 /// Checks that fleet has no vehicle with duplicate type ids.
@@ -29,7 +30,7 @@ fn check_e1005_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), String>
                     ]
                 })
                 .collect::<Vec<_>>();
-            if check_raw_time_windows(&tws) {
+            if check_raw_time_windows(&tws, false) {
                 None
             } else {
                 Some(vehicle.type_id.to_string())
@@ -46,32 +47,72 @@ fn check_e1005_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), String>
 
 /// Checks that break time window is correct.
 fn check_e1006_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result<(), String> {
-    let type_ids = ctx
-        .vehicles()
-        .filter_map(|vehicle| {
-            let all_correct = vehicle.shifts.iter().all(|shift| {
-                let shift_time = get_shift_time_window(shift);
-                shift
-                    .breaks
-                    .as_ref()
-                    .map(|breaks| {
-                        let tws = breaks
-                            .iter()
-                            .filter_map(|b| match &b.times {
-                                VehicleBreakTime::TimeWindows(tws) => Some(get_time_windows(tws)),
-                                _ => None,
-                            })
-                            .flatten()
-                            .collect::<Vec<_>>();
+    let type_ids = get_invalid_type_ids(
+        ctx,
+        Box::new(|shift, shift_time| {
+            shift
+                .breaks
+                .as_ref()
+                .map(|breaks| {
+                    let tws = breaks
+                        .iter()
+                        .filter_map(|b| match &b.times {
+                            VehicleBreakTime::TimeWindows(tws) => Some(get_time_windows(tws)),
+                            _ => None,
+                        })
+                        .flatten()
+                        .collect::<Vec<_>>();
 
-                        tws.is_empty()
-                            || (check_time_windows(&tws)
-                                && shift_time.as_ref().map_or(true, |shift_time| {
-                                    tws.into_iter().map(|tw| tw.unwrap()).all(|tw| tw.intersects(shift_time))
-                                }))
-                    })
-                    .unwrap_or(true)
-            });
+                    check_shift_time_windows(shift_time, tws, false)
+                })
+                .unwrap_or(true)
+        }),
+    );
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("E1006: Invalid break time windows in vehicle shifts: {}", type_ids.join(", ")))
+    }
+}
+
+/// Checks that reload time windows are correct.
+fn check_e1007_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result<(), String> {
+    let type_ids = get_invalid_type_ids(
+        ctx,
+        Box::new(|shift, shift_time| {
+            shift
+                .reloads
+                .as_ref()
+                .map(|reloads| {
+                    let tws = reloads
+                        .iter()
+                        .filter_map(|reload| reload.times.as_ref())
+                        .map(|tws| get_time_windows(tws))
+                        .flatten()
+                        .collect::<Vec<_>>();
+
+                    check_shift_time_windows(shift_time, tws, true)
+                })
+                .unwrap_or(true)
+        }),
+    );
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("E1007: Invalid reload time windows in vehicle shifts: {}", type_ids.join(", ")))
+    }
+}
+
+fn get_invalid_type_ids(
+    ctx: &ValidationContext,
+    check_shift: Box<dyn Fn(&VehicleShift, Option<TimeWindow>) -> bool>,
+) -> Vec<String> {
+    ctx.vehicles()
+        .filter_map(|vehicle| {
+            let all_correct =
+                vehicle.shifts.iter().all(|shift| check_shift.deref()(shift, get_shift_time_window(shift)));
 
             if all_correct {
                 None
@@ -79,13 +120,19 @@ fn check_e1006_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
                 Some(vehicle.type_id.clone())
             }
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+}
 
-    if type_ids.is_empty() {
-        Ok(())
-    } else {
-        Err(format!("E1006: Invalid break time windows in vehicle shifts: {}", type_ids.join(", ")))
-    }
+fn check_shift_time_windows(
+    shift_time: Option<TimeWindow>,
+    tws: Vec<Option<TimeWindow>>,
+    skip_intersection_check: bool,
+) -> bool {
+    tws.is_empty()
+        || (check_time_windows(&tws, skip_intersection_check)
+            && shift_time
+                .as_ref()
+                .map_or(true, |shift_time| tws.into_iter().map(|tw| tw.unwrap()).all(|tw| tw.intersects(shift_time))))
 }
 
 fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
@@ -104,6 +151,7 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<String>> {
         .chain(check_e1004_no_vehicle_types_with_duplicate_ids(ctx).err().iter().cloned())
         .chain(check_e1005_vehicle_shift_time(ctx).err().iter().cloned())
         .chain(check_e1006_vehicle_breaks_time_is_correct(ctx).err().iter().cloned())
+        .chain(check_e1007_vehicle_reload_time_is_correct(ctx).err().iter().cloned())
         .collect::<Vec<_>>();
 
     if errors.is_empty() {

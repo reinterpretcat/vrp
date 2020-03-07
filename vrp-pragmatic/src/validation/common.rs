@@ -4,13 +4,13 @@ use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
 
 /// Check time window rules.
-pub fn check_raw_time_windows(tws: &Vec<Vec<String>>) -> bool {
+pub fn check_raw_time_windows(tws: &Vec<Vec<String>>, skip_intersection_check: bool) -> bool {
     let tws = get_time_windows(tws);
-    check_time_windows(&tws)
+    check_time_windows(&tws, skip_intersection_check)
 }
 
 /// Check time window rules.
-pub fn check_time_windows(tws: &Vec<Option<TimeWindow>>) -> bool {
+pub fn check_time_windows(tws: &Vec<Option<TimeWindow>>, skip_intersection_check: bool) -> bool {
     if tws.iter().any(|tw| tw.is_none()) {
         false
     } else {
@@ -21,7 +21,7 @@ pub fn check_time_windows(tws: &Vec<Option<TimeWindow>>) -> bool {
             tws.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap_or(Less));
             tws.windows(2).any(|pair| {
                 if let &[a, b] = &pair {
-                    a.start <= a.end && b.start <= b.end && !a.intersects(b)
+                    a.start <= a.end && b.start <= b.end && (skip_intersection_check || !a.intersects(b))
                 } else {
                     false
                 }
