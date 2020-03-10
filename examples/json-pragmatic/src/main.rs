@@ -21,6 +21,7 @@ fn run_examples(base_path: &str) {
         "break.basic",
         "multi-day.basic",
         "multi-job.basic",
+        "multi-job.mixed",
         "relation-strict.basic",
         "relation-any.basic",
         "reload.basic",

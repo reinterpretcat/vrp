@@ -1,0 +1,164 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "simple_replacement_job",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5622847,
+                  "lng": 13.4023099
+                },
+                "duration": 3600.0,
+                "times": [
+                  [
+                    "2019-07-04T09:00:00Z",
+                    "2019-07-04T18:00:00Z"
+                  ]
+                ]
+              }
+            ],
+            "demand": [
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "id": "simple_service_job",
+        "services": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5330881,
+                  "lng": 13.3973059
+                },
+                "duration": 3600.0,
+                "times": [
+                  [
+                    "2019-07-04T08:00:00Z",
+                    "2019-07-04T12:00:00Z"
+                  ],
+                  [
+                    "2019-07-04T14:00:00Z",
+                    "2019-07-04T18:00:00Z"
+                  ]
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mixed_job",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5252832,
+                  "lng": 13.4188422
+                },
+                "duration": 240.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ],
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.52599,
+                  "lng": 13.45413
+                },
+                "duration": 240.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ],
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.4928,
+                  "lng": 13.4597
+                },
+                "duration": 2400.0
+              }
+            ],
+            "demand": [
+              2
+            ]
+          }
+        ],
+        "services": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.4989,
+                  "lng": 13.3917
+                },
+                "duration": 1800.0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "type_id": "vehicle",
+        "vehicle_ids": [
+          "vehicle_1"
+        ],
+        "profile": "normal_car",
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "time": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            },
+            "end": {
+              "time": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car",
+        "type": "car"
+      }
+    ]
+  }
+}

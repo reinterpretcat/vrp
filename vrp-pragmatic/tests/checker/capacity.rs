@@ -62,6 +62,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                             Ok(match demand {
                                 (DemandType::StaticDelivery, demand) => (acc.0 + demand, acc.1),
                                 (DemandType::StaticPickup, demand) => (acc.0, acc.1 + demand),
+                                (DemandType::StaticPickupDelivery, demand) => (acc.0 + demand.clone(), acc.1 + demand),
                                 _ => acc,
                             })
                         },
@@ -89,6 +90,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                             Ok(match demand_type {
                                 DemandType::StaticDelivery | DemandType::DynamicDelivery => acc - demand,
                                 DemandType::StaticPickup | DemandType::DynamicPickup => acc + demand,
+                                DemandType::None | DemandType::StaticPickupDelivery => acc,
                             })
                         },
                     )?;
@@ -116,8 +118,10 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
 }
 
 enum DemandType {
+    None,
     StaticPickup,
     StaticDelivery,
+    StaticPickupDelivery,
     DynamicPickup,
     DynamicDelivery,
 }
@@ -127,23 +131,26 @@ fn get_demand(
     activity: &Activity,
     activity_type: &ActivityType,
 ) -> Result<(DemandType, Capacity), String> {
-    let is_pickup = activity.activity_type == "pickup";
     let (is_dynamic, demand) = context.visit_job(
         activity,
         &activity_type,
         |job, task| {
             let is_dynamic = job.pickups.as_ref().map_or(false, |p| p.len() > 0)
                 && job.deliveries.as_ref().map_or(false, |p| p.len() > 0);
-            (is_dynamic, Capacity::new(task.demand.clone()))
+            let demand = task.demand.clone().map_or_else(|| Capacity::default(), |d| Capacity::new(d));
+
+            (is_dynamic, demand)
         },
         || (false, Capacity::default()),
     )?;
 
-    let demand_type = match (is_dynamic, is_pickup) {
-        (true, true) => DemandType::DynamicPickup,
-        (true, false) => DemandType::DynamicDelivery,
-        (false, true) => DemandType::StaticPickup,
-        (false, false) => DemandType::StaticDelivery,
+    let demand_type = match (is_dynamic, activity.activity_type.as_ref()) {
+        (_, "replacement") => DemandType::StaticPickupDelivery,
+        (true, "pickup") => DemandType::DynamicPickup,
+        (true, "delivery") => DemandType::DynamicDelivery,
+        (false, "pickup") => DemandType::StaticPickup,
+        (false, "delivery") => DemandType::StaticDelivery,
+        _ => DemandType::None,
     };
 
     Ok((demand_type, demand))

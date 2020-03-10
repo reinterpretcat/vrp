@@ -15,7 +15,8 @@ fn assert_location(actual: &Location, expected: (f64, f64)) {
     assert_eq!(actual.lng, expected.1);
 }
 
-fn assert_demand(actual: &Vec<i32>, expected: i32) {
+fn assert_demand(actual: &Option<Vec<i32>>, expected: i32) {
+    let actual = actual.as_ref().expect("Empty demand!");
     assert_eq!(actual.len(), 1);
     assert_eq!(*actual.first().unwrap(), expected);
 }

@@ -21,6 +21,8 @@ impl CoordIndex {
             job.pickups
                 .iter()
                 .chain(job.deliveries.iter())
+                .chain(job.replacements.iter())
+                .chain(job.services.iter())
                 .flat_map(|tasks| tasks.iter().flat_map(|task| task.places.iter()))
                 .for_each(|place| {
                     index.add(&place.location);

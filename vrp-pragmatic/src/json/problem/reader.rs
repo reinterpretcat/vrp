@@ -231,7 +231,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
                 .iter()
                 .chain(job.deliveries.iter())
                 .flat_map(|tasks| tasks.iter())
-                .any(|task| task.demand.len() > 1)
+                .any(|task| task.demand.as_ref().map_or(false, |d| d.len() > 1))
         });
     let has_breaks = api_problem
         .fleet

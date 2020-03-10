@@ -87,14 +87,16 @@ fn can_read_complex_problem() {
                             location: vec![52.48325, 13.4436].to_loc(),
                             duration: 100.0,
                         }],
-                        demand: vec![0, 1],
+                        demand: Some(vec![0, 1]),
                         tag: Some("my_delivery".to_string()),
                     }]),
+                    replacements: None,
+                    services: None,
                     priority: None,
                     skills: Some(vec!["unique".to_string()]),
                 },
                 Job {
-                    id: "shipment_job".to_string(),
+                    id: "pickup_delivery_job".to_string(),
                     pickups: Some(vec![JobTask {
                         places: vec![JobPlace {
                             times: Some(vec![vec![
@@ -104,7 +106,7 @@ fn can_read_complex_problem() {
                             location: vec![52.48300, 13.4420].to_loc(),
                             duration: 110.0,
                         }],
-                        demand: vec![2],
+                        demand: Some(vec![2]),
                         tag: None,
                     }]),
                     deliveries: Some(vec![JobTask {
@@ -116,10 +118,11 @@ fn can_read_complex_problem() {
                             location: vec![52.48325, 13.4436].to_loc(),
                             duration: 120.0,
                         }],
-                        demand: vec![2],
+                        demand: Some(vec![2]),
                         tag: None,
                     }]),
-
+                    replacements: None,
+                    services: None,
                     priority: None,
                     skills: None,
                 },
@@ -135,10 +138,12 @@ fn can_read_complex_problem() {
                             location: vec![52.48321, 13.4438].to_loc(),
                             duration: 90.0,
                         }],
-                        demand: vec![3],
+                        demand: Some(vec![3]),
                         tag: None,
                     }]),
                     deliveries: None,
+                    replacements: None,
+                    services: None,
                     priority: None,
                     skills: Some(vec!["unique2".to_string()]),
                 },
@@ -206,7 +211,7 @@ fn can_read_complex_problem() {
 
     // shipment
     let job = get_multi_job(1, problem.jobs.as_ref());
-    assert_eq!(job.dimens.get_id().unwrap(), "shipment_job");
+    assert_eq!(job.dimens.get_id().unwrap(), "pickup_delivery_job");
     assert_skills(&job.dimens, None);
 
     let pickup = job.jobs.first().unwrap().clone();

@@ -143,7 +143,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
                 let job_tag = act.job.as_ref().and_then(|job| job.dimens.get_value::<String>("tag").cloned());
                 let job_id = match activity_type.as_str() {
-                    "pickup" | "delivery" => {
+                    "pickup" | "delivery" | "replacement" | "service" => {
                         let single = act.job.as_ref().unwrap();
                         let id = single.dimens.get_id().cloned();
                         id.unwrap_or_else(|| Multi::roots(&single).unwrap().dimens.get_id().unwrap().clone())

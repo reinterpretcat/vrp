@@ -55,7 +55,7 @@ pub struct JobTask {
     /// A list of possible places where given task can be performed.
     pub places: Vec<JobPlace>,
     /// Job place demand.
-    pub demand: Vec<i32>,
+    pub demand: Option<Vec<i32>>,
     /// An tag which will be propagated back within corresponding activity in solution.
     pub tag: Option<String>,
 }
@@ -72,6 +72,10 @@ pub struct Job {
     pub pickups: Option<Vec<JobTask>>,
     /// A list of delivery tasks.
     pub deliveries: Option<Vec<JobTask>>,
+    /// A list of replacement tasks.
+    pub replacements: Option<Vec<JobTask>>,
+    /// A list of service tasks.
+    pub services: Option<Vec<JobTask>>,
     /// Job priority, bigger value - less important.
     pub priority: Option<i32>,
     /// A set of skills required to serve a job.

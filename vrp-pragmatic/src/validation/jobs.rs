@@ -12,7 +12,15 @@ fn check_e1001_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Re
     let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| tasks.len() > 0);
     let get_demand = |tasks: &Option<Vec<JobTask>>| {
         if let Some(tasks) = tasks {
-            tasks.iter().map(|task| MultiDimensionalCapacity::new(task.demand.clone())).sum()
+            tasks
+                .iter()
+                .map(|task| {
+                    task.demand.clone().map_or_else(
+                        || MultiDimensionalCapacity::default(),
+                        |demand| MultiDimensionalCapacity::new(demand),
+                    )
+                })
+                .sum()
         } else {
             MultiDimensionalCapacity::default()
         }

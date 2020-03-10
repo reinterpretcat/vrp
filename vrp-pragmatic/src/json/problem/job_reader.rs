@@ -104,19 +104,21 @@ fn read_required_jobs(
     let mut jobs = vec![];
     let has_multi_dimens = props.has_multi_dimen_capacity;
 
-    let get_single_from_task = |task: &JobTask, is_pickup: bool, is_static_demand: bool| {
+    let get_single_from_task = |task: &JobTask, activity_type: &str, is_static_demand: bool| {
         let absent = (empty(), empty());
-        let capacity = MultiDimensionalCapacity::new(task.demand.clone());
+        let capacity = task.demand.clone().map_or_else(|| empty(), |d| MultiDimensionalCapacity::new(d));
         let demand = if is_static_demand { (capacity, empty()) } else { (empty(), capacity) };
-        let demand = if is_pickup {
-            Demand { pickup: demand, delivery: absent }
-        } else {
-            Demand { pickup: absent, delivery: demand }
+
+        let demand = match activity_type {
+            "pickup" => Demand { pickup: demand, delivery: absent },
+            "delivery" => Demand { pickup: absent, delivery: demand },
+            "replacement" => Demand { pickup: demand.clone(), delivery: demand },
+            "service" => Demand { pickup: demand, delivery: demand },
+            _ => panic!("Invalid activity type."),
         };
 
         let places =
             task.places.iter().map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times))).collect();
-        let activity_type = if is_pickup { "pickup" } else { "delivery" };
 
         get_single_with_extras(places, demand, &task.tag, activity_type, has_multi_dimens, &coord_index)
     };
@@ -125,20 +127,30 @@ fn read_required_jobs(
         let pickups = job.pickups.as_ref().map_or(0, |p| p.len());
         let deliveries = job.deliveries.as_ref().map_or(0, |p| p.len());
         let is_static_demand = pickups == 0 || deliveries == 0;
-        assert!(pickups > 0 || deliveries > 0);
 
-        let singles = job
-            .pickups
-            .as_ref()
-            .iter()
-            .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, true, is_static_demand)))
-            .chain(
-                job.deliveries
-                    .as_ref()
-                    .iter()
-                    .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, false, is_static_demand))),
-            )
-            .collect::<Vec<_>>();
+        let singles =
+            job.pickups
+                .as_ref()
+                .iter()
+                .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, "pickup", is_static_demand)))
+                .chain(job.deliveries.as_ref().iter().flat_map(|tasks| {
+                    tasks.iter().map(|task| get_single_from_task(task, "delivery", is_static_demand))
+                }))
+                .chain(
+                    job.replacements
+                        .as_ref()
+                        .iter()
+                        .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, "replacement", true))),
+                )
+                .chain(
+                    job.services
+                        .as_ref()
+                        .iter()
+                        .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, "service", false))),
+                )
+                .collect::<Vec<_>>();
+
+        assert!(singles.len() > 0);
 
         let problem_job = if singles.len() > 1 {
             get_multi_job(&job.id, &job.priority, &job.skills, singles, job.pickups.as_ref().map_or(0, |p| p.len()))
