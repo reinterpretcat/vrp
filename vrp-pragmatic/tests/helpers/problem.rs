@@ -76,7 +76,7 @@ pub fn create_replacement_job(id: &str, location: Vec<f64>) -> Job {
 }
 
 pub fn create_service_job(id: &str, location: Vec<f64>) -> Job {
-    Job { services: Some(vec![create_task(location.clone())]), ..create_job(id) }
+    Job { services: Some(vec![JobTask { demand: None, ..create_task(location.clone()) }]), ..create_job(id) }
 }
 
 pub fn create_pickup_delivery_job(id: &str, pickup_location: Vec<f64>, delivery_location: Vec<f64>) -> Job {
