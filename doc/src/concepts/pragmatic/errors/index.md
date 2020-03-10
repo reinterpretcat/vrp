@@ -28,8 +28,33 @@ This error is returned when `plan.jobs` has jobs with the same ids.
 }
 ```
 
-
 ### E1001
+
+This error is returned when job has invalid demand: `pickup`, `delivery`, `replacement` job types should have demand
+specified on each job task, `service` type should have no demand specified.
+
+```json
+{
+  "id": "job1",
+  "deliveries": [
+   {
+     /** omitted **/
+     /** Error: delivery task should have demand set**/
+    "demand": null
+  }
+ ],
+ "services": [
+  {
+     /** omitted **/
+     /** Error: service task should have no demand specified**/
+    "demand": [1]
+  }
+ ]
+}
+```
+
+
+### E1002
 
 This error code is returned when job has both pickups and deliveries, but the sum of pickups demand does not match to
 the sum of deliveries demand.
@@ -44,22 +69,21 @@ the sum of deliveries demand.
       },
       {
        "places": [/** omitted **/],
-       "demand": [1],
+       "demand": [1]
       },
     ],
     "deliveries": [
       {
        "places": [/** omitted **/],
-        "demand": [
-          /** Error: should be 2 as the sum of pickups is 2 **/
-          1
-        ],
+        /** Error: should be 2 as the sum of pickups is 2 **/
+        "demand": [1]
       }
     ]
 }
 ```
 
-### E1002
+
+### E1003
 
 This error is returned when there is a job which has invalid time windows, e.g.:
 
@@ -94,7 +118,7 @@ the second - as end
 ]
 ```
 
-### E1003
+### E1004
 
 This error is returned when `fleet.vehicles` has vehicle types with the same `type_id`.
 
@@ -117,7 +141,7 @@ This error is returned when `fleet.vehicles` has vehicle types with the same `ty
 }
 ```
 
-### E1004
+### E1005
 
 This error is returned when `fleet.vehicles` has vehicle types with the same `vehicle_ids`.
 
@@ -153,15 +177,15 @@ This error is returned when `fleet.vehicles` has vehicle types with the same `ve
 Please note that vehicle id should be unique across all vehicle types.
 
 
-### E1005
+### E1006
 
 This error is returned when vehicle has start/end shift times violating one of time windows rules defined for jobs in E1002.
 
 
-### E1006
+### E1007
 
 This error is returned when vehicle has invalid time window of a break. List of break should follow time window rules
-defined for jobs in E1002. Additionally, break time should be inside vehicle shift it is specified:
+defined for jobs in E1003. Additionally, break time should be inside vehicle shift it is specified:
 
 ```json
  {
@@ -188,10 +212,10 @@ defined for jobs in E1002. Additionally, break time should be inside vehicle shi
 }
 ```
 
-### E1007
+### E1008
 
 This error is returned when vehicle has invalid time window of a reload. Reload list should follow time window rules
-defined for jobs in E1002 except multiple reloads can have time window intersections. Additionally, reload time should
+defined for jobs in E1003 except multiple reloads can have time window intersections. Additionally, reload time should
 be inside vehicle shift it is specified:
 
 ```json
