@@ -10,7 +10,7 @@ fn can_create_solution() {
             relations: Option::None,
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -84,7 +84,7 @@ fn can_merge_activities_in_one_stop() {
             relations: Option::None,
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

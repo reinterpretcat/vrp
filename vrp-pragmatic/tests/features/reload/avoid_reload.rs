@@ -35,7 +35,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

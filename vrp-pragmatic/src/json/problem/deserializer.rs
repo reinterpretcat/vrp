@@ -253,6 +253,50 @@ pub struct Priority {
 
 // endregion
 
+// region Objective
+
+/// Specifies objective functions.
+#[derive(Clone, Deserialize, Debug)]
+pub struct Objectives {
+    /// A list of primary objective functions. An accepted solution should not
+    /// be worse of any of these.
+    pub primary: Vec<Objective>,
+    /// A list of secondary objective functions. An accepted solution can be worse
+    /// by the secondary objective if it improves the primary one.
+    pub secondary: Option<Vec<Objective>>,
+}
+
+/// Type of objective function.
+#[derive(Clone, Deserialize, Debug)]
+pub enum ObjectiveType {
+    Min,
+    Max,
+    MinMax,
+}
+
+/// Objective function target.
+#[derive(Clone, Deserialize, Debug)]
+pub enum ObjectiveTarget {
+    Routes,
+    Cost,
+    Duration,
+    Distance,
+    Activities,
+}
+
+/// Specifies objective function.
+#[derive(Clone, Deserialize, Debug)]
+pub struct Objective {
+    /// Type of objective.
+    #[serde(rename(deserialize = "type"))]
+    pub objective_type: ObjectiveType,
+
+    /// Target objective.
+    pub target: ObjectiveTarget,
+}
+
+// endregion
+
 // region Common
 
 /// A VRP problem definition.
@@ -262,6 +306,8 @@ pub struct Problem {
     pub plan: Plan,
     /// Problem resources: vehicles to be used, routing info.
     pub fleet: Fleet,
+    /// Specifies objective functions.
+    pub objectives: Option<Objective>,
     /// Extra configuration.
     pub config: Option<Config>,
 }

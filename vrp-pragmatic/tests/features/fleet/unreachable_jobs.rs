@@ -7,7 +7,7 @@ fn can_use_vehicle_with_open_end() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![1., 0.])], relations: Option::None },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix =
         Matrix { travel_times: vec![0, 1, 1, 0], distances: vec![0, 1, 1, 0], error_codes: Some(vec![0, 1, 1, 1]) };

@@ -39,7 +39,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -188,7 +188,7 @@ fn can_properly_handle_load_without_capacity_violation() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
 
     let result = solve_and_check(problem);

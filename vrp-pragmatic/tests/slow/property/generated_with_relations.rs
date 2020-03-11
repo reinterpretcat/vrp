@@ -36,6 +36,7 @@ prop_compose! {
                 ..plan
             },
             fleet,
+            objectives: None,
             config: None
         }
     }

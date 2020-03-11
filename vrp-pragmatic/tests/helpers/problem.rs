@@ -194,6 +194,15 @@ pub fn create_default_profiles() -> Vec<Profile> {
     vec![Profile { name: "car".to_string(), profile_type: "car".to_string() }]
 }
 
+pub fn create_empty_problem() -> Problem {
+    Problem {
+        plan: Plan { jobs: vec![], relations: None },
+        fleet: Fleet { vehicles: vec![], profiles: vec![] },
+        objectives: None,
+        config: None,
+    }
+}
+
 pub fn create_matrix(data: Vec<i64>) -> Matrix {
     let size = (data.len() as f64).sqrt() as i32;
 

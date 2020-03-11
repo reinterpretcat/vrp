@@ -29,7 +29,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

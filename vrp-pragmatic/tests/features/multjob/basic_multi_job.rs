@@ -20,7 +20,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
             vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -120,7 +120,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
             vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

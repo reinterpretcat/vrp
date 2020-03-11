@@ -26,7 +26,7 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

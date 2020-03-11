@@ -18,6 +18,7 @@ fn can_even_dist_jobs() {
             }],
             profiles: create_default_profiles(),
         },
+        objectives: None,
         config: Some(Config {
             features: Some(Features {
                 even_distribution: Some(EvenDistribution { enabled: true, extra_cost: Some(1000.0) }),

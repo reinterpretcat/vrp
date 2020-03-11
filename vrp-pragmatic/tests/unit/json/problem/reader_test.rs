@@ -181,6 +181,7 @@ fn can_read_complex_problem() {
             }],
             profiles: create_default_profiles(),
         },
+        objectives: None,
         config: None,
     };
     let matrix = Matrix {

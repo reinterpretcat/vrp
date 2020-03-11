@@ -83,7 +83,8 @@ prop_compose! {
         Problem {
             plan,
             fleet,
-            config: None
+            objectives: None,
+            config: None,
         }
     }
 }

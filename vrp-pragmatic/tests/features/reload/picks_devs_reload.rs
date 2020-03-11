@@ -34,7 +34,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

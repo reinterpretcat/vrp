@@ -35,7 +35,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

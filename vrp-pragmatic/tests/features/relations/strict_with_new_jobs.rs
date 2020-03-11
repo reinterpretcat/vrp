@@ -41,7 +41,7 @@ fn can_use_two_strict_relations_with_two_vehicles_with_new_jobs() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

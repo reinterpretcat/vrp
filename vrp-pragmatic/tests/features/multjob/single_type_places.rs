@@ -17,7 +17,7 @@ fn can_use_only_deliveries_as_static_demand() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 
@@ -94,7 +94,7 @@ fn can_use_only_pickups_as_static_demand() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 

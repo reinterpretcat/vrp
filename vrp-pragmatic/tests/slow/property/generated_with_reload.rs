@@ -40,6 +40,7 @@ prop_compose! {
         Problem {
             plan,
             fleet,
+            objectives: None,
             config: None
         }
     }

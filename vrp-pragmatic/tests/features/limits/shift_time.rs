@@ -13,7 +13,7 @@ fn can_limit_one_job_by_shift_time() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = Matrix { travel_times: vec![1, 100, 100, 1], distances: vec![1, 1, 1, 1], error_codes: Option::None };
 
@@ -61,7 +61,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
             }],
             profiles: create_default_profiles(),
         },
-        config: None,
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 
