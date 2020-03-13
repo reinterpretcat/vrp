@@ -24,7 +24,7 @@ pub fn can_read_init_solution() {
                 &mut RefinementContext::new(problem.clone()),
                 &InsertionContext::new_from_solution(problem, (solution, None), Arc::new(DefaultRandom::default()))
             )
-            .total()
+            .value()
             .round(),
         828.936f64.round()
     );

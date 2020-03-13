@@ -5,7 +5,7 @@ use crate::models::common::IdDimension;
 use crate::models::problem::{Job, Jobs};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
-use crate::refinement::objectives::PenalizeUnassigned;
+use crate::refinement::objectives::MultiObjective;
 use crate::utils::DefaultRandom;
 use std::borrow::Borrow;
 use std::sync::Arc;
@@ -21,7 +21,7 @@ pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> A
         constraint: Arc::new(constraint),
         activity: Arc::new(TestActivityCost::new()),
         transport,
-        objective: Arc::new(PenalizeUnassigned::default()),
+        objective: Arc::new(MultiObjective::default()),
         extras: Arc::new(Default::default()),
     })
 }

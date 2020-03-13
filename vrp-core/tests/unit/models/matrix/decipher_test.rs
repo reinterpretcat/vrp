@@ -6,11 +6,11 @@ use crate::models::common::{IdDimension, Schedule};
 use crate::models::matrix::SparseMatrix;
 use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, VehicleDetail};
 use crate::models::solution::{Activity, Registry};
-use crate::refinement::objectives::PenalizeUnassigned;
 
 use crate::construction::constraints::Demand;
 use crate::models::solution::Place as ActivityPlace;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
+use crate::refinement::objectives::MultiObjective;
 
 #[test]
 fn can_create_adjacency_matrix_decipher() {
@@ -366,7 +366,7 @@ fn create_diverse_problem_unwrapped() -> Problem {
         constraint: Arc::new(create_constraint_pipeline_with_simple_capacity()),
         activity: Arc::new(SimpleActivityCost::default()),
         transport,
-        objective: Arc::new(PenalizeUnassigned::default()),
+        objective: Arc::new(MultiObjective::default()),
         extras: Arc::new(Default::default()),
     }
 }

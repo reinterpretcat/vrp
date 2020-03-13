@@ -6,7 +6,7 @@ use crate::models::problem::{Job, Jobs, MatrixTransportCost};
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::refinement::mutation::{Recreate, RecreateWithCheapest};
-use crate::refinement::objectives::PenalizeUnassigned;
+use crate::refinement::objectives::MultiObjective;
 use crate::refinement::RefinementContext;
 use crate::utils::Random;
 use std::sync::Arc;
@@ -64,7 +64,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         constraint: Arc::new(create_constraint_pipeline_with_timing()),
         activity: Arc::new(TestActivityCost::new()),
         transport,
-        objective: Arc::new(PenalizeUnassigned::default()),
+        objective: Arc::new(MultiObjective::default()),
         extras: Arc::new(Default::default()),
     };
 

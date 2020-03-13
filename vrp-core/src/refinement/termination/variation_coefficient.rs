@@ -35,12 +35,12 @@ impl Termination for VariationCoefficient {
             .unwrap();
 
         if is_accepted {
-            state.last_cost = Some(individuum.1.total());
+            state.last_cost = Some(individuum.1.value());
         }
 
         let index = refinement_ctx.generation % self.capacity;
 
-        state.costs[index] = individuum.1.total();
+        state.costs[index] = individuum.1.value();
 
         refinement_ctx.generation >= (self.capacity - 1) && self.check_threshold(state)
     }

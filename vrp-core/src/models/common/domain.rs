@@ -12,6 +12,9 @@ pub type Location = usize;
 /// Represents a routing profile.
 pub type Profile = i32;
 
+/// Specifies cost value.
+pub type Cost = f64;
+
 /// Represents a time window.
 #[derive(Clone, Debug)]
 pub struct TimeWindow {

@@ -3,7 +3,6 @@ use std::ops::Deref;
 use std::sync::Arc;
 use vrp_core::construction::states::InsertionContext;
 use vrp_core::models::{Problem, Solution};
-use vrp_core::refinement::acceptance::{Greedy, RandomProbability};
 use vrp_core::refinement::termination::*;
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::DefaultRandom;
@@ -11,7 +10,6 @@ use vrp_core::utils::DefaultRandom;
 /// Provides configurable way to build solver.
 pub struct SolverBuilder {
     solver: Solver,
-    minimize_routes: Option<bool>,
 
     max_generations: Option<usize>,
     variation_coefficient: Option<(usize, f64)>,
@@ -24,7 +22,6 @@ impl Default for SolverBuilder {
     fn default() -> Self {
         Self {
             solver: Solver::default(),
-            minimize_routes: None,
             max_generations: None,
             variation_coefficient: None,
             max_time: None,
@@ -34,13 +31,6 @@ impl Default for SolverBuilder {
 }
 
 impl SolverBuilder {
-    /// Sets whether route minimization should be preferred over cost.
-    /// Default is false.
-    pub fn with_minimize_routes(&mut self, value: bool) -> &mut Self {
-        self.minimize_routes = Some(value);
-        self
-    }
-
     /// Sets max generations to be run.
     /// Default is 2000.
     pub fn with_max_generations(&mut self, limit: Option<usize>) -> &mut Self {
@@ -104,12 +94,6 @@ impl SolverBuilder {
             },
         ));
 
-        if let Some(value) = self.minimize_routes {
-            self.solver.logger.deref()(format!("configured to use minimize routes: {}", value));
-            self.solver.acceptance = Box::new(RandomProbability::new(Box::new(Greedy::new(value)), 0.001));
-            self.solver.settings.minimize_routes = value;
-        }
-
         if let Some((problem, solution)) = &self.init_solution {
             let insertion_ctx = InsertionContext::new_from_solution(
                 problem.clone(),
@@ -119,13 +103,12 @@ impl SolverBuilder {
 
             let cost = problem.objective.estimate(&mut RefinementContext::new(problem.clone()), &insertion_ctx);
             self.solver.logger.deref()(format!(
-                "configured to use initial solution with cost: ({:.2},{:.2}), routes: {}",
-                cost.actual,
-                cost.penalty,
+                "configured to use initial solution with cost: {:.2}, routes: {}",
+                cost.value(),
                 solution.routes.len()
             ));
 
-            self.solver.settings.init_insertion_ctx = Some((insertion_ctx, cost));
+            self.solver.initial = Some(insertion_ctx);
         }
         std::mem::replace(&mut self.solver, Solver::default())
     }

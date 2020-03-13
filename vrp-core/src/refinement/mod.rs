@@ -10,9 +10,9 @@
 extern crate rand;
 
 use crate::construction::states::InsertionContext;
-use crate::models::common::ObjectiveCost;
 use crate::models::Problem;
 
+use crate::refinement::objectives::ObjectiveCost;
 use hashbrown::HashMap;
 use std::any::Any;
 use std::sync::Arc;
@@ -33,7 +33,7 @@ pub struct RefinementContext {
 }
 
 /// Represents solution in population defined as actual solution, its cost, and generation
-pub type Individuum = (InsertionContext, ObjectiveCost, usize);
+pub type Individuum = (InsertionContext, Box<dyn ObjectiveCost + Send + Sync>, usize);
 
 /// Represents a solution population.
 pub trait Population {

@@ -6,14 +6,14 @@ use crate::models::common::Schedule;
 use crate::models::problem::{Job, Jobs, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
-use crate::refinement::objectives::{Objective, PenalizeUnassigned};
+use crate::refinement::objectives::{MultiObjective, Objective, TotalTransportCost};
 use crate::refinement::RefinementContext;
 use crate::utils::DefaultRandom;
 use hashbrown::HashMap;
 use std::sync::Arc;
 
 #[test]
-fn can_calculate_cost_with_penalty_properly() {
+fn can_calculate_transport_cost() {
     let fleet = Arc::new(
         FleetBuilder::new()
             .add_driver(test_driver())
@@ -56,7 +56,7 @@ fn can_calculate_cost_with_penalty_properly() {
         constraint,
         activity,
         transport,
-        objective: Arc::new(PenalizeUnassigned::default()),
+        objective: Arc::new(MultiObjective::default()),
         extras: Arc::new(Extras::default()),
     });
     let mut refinement_ctx = RefinementContext::new(problem.clone());
@@ -89,8 +89,7 @@ fn can_calculate_cost_with_penalty_properly() {
 
     // total: (70 * 2 + 100) + (21 * 2 + 100) = 382
 
-    let result = PenalizeUnassigned::new(1000.0).estimate(&mut refinement_ctx, &insertion_ctx);
+    let result = TotalTransportCost::default().estimate(&mut refinement_ctx, &insertion_ctx);
 
-    assert_eq!(result.actual, 382.0);
-    assert_eq!(result.penalty, 1000.0);
+    assert_eq!(result.value(), 382.0);
 }

@@ -1,31 +1,27 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/refinement/objectives/penalize_unassigned_test.rs"]
-mod penalize_unassigned_test;
+#[path = "../../../tests/unit/refinement/objectives/total_transport_cost_test.rs"]
+mod total_transport_cost_test;
 
 use crate::construction::states::InsertionContext;
-use crate::models::common::{Cost, ObjectiveCost};
-use crate::refinement::objectives::Objective;
+use crate::models::common::Cost;
+use crate::refinement::objectives::{MeasurableObjectiveCost, Objective, ObjectiveCost};
 use crate::refinement::RefinementContext;
 
-/// An objective function which penalizes unassigned jobs.
-pub struct PenalizeUnassigned {
-    penalty: Cost,
-}
+/// An objective function which calculate total cost.
+pub struct TotalTransportCost {}
 
-impl PenalizeUnassigned {
-    pub fn new(penalty: Cost) -> Self {
-        Self { penalty }
-    }
-}
-
-impl Default for PenalizeUnassigned {
+impl Default for TotalTransportCost {
     fn default() -> Self {
-        Self::new(1E6)
+        Self {}
     }
 }
 
-impl Objective for PenalizeUnassigned {
-    fn estimate(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCost {
+impl Objective for TotalTransportCost {
+    fn estimate(
+        &self,
+        _: &mut RefinementContext,
+        insertion_ctx: &InsertionContext,
+    ) -> Box<dyn ObjectiveCost + Send + Sync> {
         let actual = insertion_ctx.solution.routes.iter().fold(Cost::default(), |acc, rc| {
             let actor = &rc.route.actor;
 
@@ -51,8 +47,6 @@ impl Objective for PenalizeUnassigned {
             })
         });
 
-        let penalty = insertion_ctx.solution.unassigned.len() as f64 * self.penalty;
-
-        ObjectiveCost { actual, penalty }
+        Box::new(MeasurableObjectiveCost::new(actual))
     }
 }

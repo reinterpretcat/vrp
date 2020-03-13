@@ -1,12 +1,12 @@
-use crate::population::DiversePopulation;
+use crate::population::SimplePopulation;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Instant;
 use vrp_core::construction::states::InsertionContext;
-use vrp_core::models::common::ObjectiveCost;
 use vrp_core::models::{Problem, Solution};
 use vrp_core::refinement::acceptance::{Acceptance, RandomProbability};
 use vrp_core::refinement::mutation::{Mutation, RuinAndRecreateMutation};
+use vrp_core::refinement::objectives::ObjectiveCost;
 use vrp_core::refinement::selection::{SelectRandom, Selection};
 use vrp_core::refinement::termination::*;
 use vrp_core::refinement::{Individuum, RefinementContext};
@@ -18,23 +18,8 @@ pub struct Solver {
     pub mutation: Box<dyn Mutation>,
     pub acceptance: Box<dyn Acceptance>,
     pub termination: Box<dyn Termination>,
-    pub settings: SolverSettings,
+    pub initial: Option<InsertionContext>,
     pub logger: Box<dyn Fn(String) -> ()>,
-}
-
-/// A solver settings.
-pub struct SolverSettings {
-    /// A flag which is used to check whether route minimization should be preferred over cost.
-    /// Default is false.
-    pub minimize_routes: bool,
-    /// An initial solution within cost.
-    pub init_insertion_ctx: Option<(InsertionContext, ObjectiveCost)>,
-}
-
-impl Default for SolverSettings {
-    fn default() -> Self {
-        Self { minimize_routes: false, init_insertion_ctx: None }
-    }
 }
 
 impl Default for Solver {
@@ -44,7 +29,7 @@ impl Default for Solver {
             Box::new(RuinAndRecreateMutation::default()),
             Box::new(RandomProbability::default()),
             Box::new(CompositeTermination::default()),
-            SolverSettings::default(),
+            None,
             Box::new(|msg| println!("{}", msg)),
         )
     }
@@ -57,23 +42,23 @@ impl Solver {
         mutation: Box<dyn Mutation>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
-        settings: SolverSettings,
+        initial: Option<InsertionContext>,
         logger: Box<dyn Fn(String) -> ()>,
     ) -> Self {
-        Self { selection, mutation, acceptance, termination, settings, logger }
+        Self { selection, mutation, acceptance, termination, initial, logger }
     }
 
     /// Solves given problem and returns solution, its cost and generation when it is found.
     /// Return None if no solution found.
-    pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, ObjectiveCost, usize)> {
-        let mut refinement_ctx = RefinementContext::new_with_population(
-            problem.clone(),
-            Box::new(DiversePopulation::new(self.settings.minimize_routes, 5)),
-        );
-        let mut insertion_ctx = match &self.settings.init_insertion_ctx {
-            Some((ctx, cost)) => {
-                refinement_ctx.population.add((ctx.deep_copy(), cost.clone(), 1));
-                ctx.deep_copy()
+    pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, Box<dyn ObjectiveCost + Send + Sync>, usize)> {
+        let mut refinement_ctx =
+            RefinementContext::new_with_population(problem.clone(), Box::new(SimplePopulation::new(5)));
+
+        let mut insertion_ctx = match std::mem::replace(&mut self.initial, None) {
+            Some(ctx) => {
+                let cost = problem.objective.estimate(&mut RefinementContext::new(problem.clone()), &ctx);
+                refinement_ctx.population.add((ctx.deep_copy(), cost, 1));
+                ctx
             }
             None => InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
         };
@@ -123,17 +108,16 @@ impl Solver {
         is_accepted: bool,
     ) {
         let (insertion_ctx, cost, _) = solution;
-        let (actual_change, total_change) = get_cost_change(refinement_ctx, &cost);
+        let cost_change = get_cost_change(refinement_ctx, &cost);
         self.logger.deref()(format!(
-            "generation {} took {}ms (total {}s), cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, accepted: {}",
+            "generation {} took {}ms (total {}s), cost: {:.2}:{:.3}%, routes: {}, unassigned: {}, accepted: {}",
             refinement_ctx.generation,
             generation_time.elapsed().as_millis(),
             refinement_time.elapsed().as_secs(),
-            cost.actual,
-            cost.penalty,
-            actual_change,
-            total_change,
+            cost.value(),
+            cost_change,
             insertion_ctx.solution.routes.len(),
+            insertion_ctx.solution.unassigned.len(),
             is_accepted
         ));
     }
@@ -145,15 +129,14 @@ impl Solver {
             refinement_ctx.generation as f64 / refinement_time.elapsed().as_secs_f64(),
         ));
         refinement_ctx.population.all().enumerate().for_each(|(idx, (insertion_ctx, cost, generation))| {
-            let (actual_change, total_change) = get_cost_change(refinement_ctx, cost);
+            let cost_change = get_cost_change(refinement_ctx, cost);
             self.logger.deref()(format!(
-                "\t\t{} cost: ({:.2},{:.2}): ({:.3}%, {:.3}%), routes: {}, discovered at: {}",
+                "\t\t{} cost: {:.2}:{:.3}%, routes: {}, unassigned: {}, discovered at: {}",
                 idx,
-                cost.actual,
-                cost.penalty,
-                actual_change,
-                total_change,
+                cost.value(),
+                cost_change,
                 insertion_ctx.solution.routes.len(),
+                insertion_ctx.solution.unassigned.len(),
                 generation
             ))
         });
@@ -169,24 +152,27 @@ impl Solver {
         ));
     }
 
-    fn get_result(&self, refinement_ctx: RefinementContext) -> Option<(Solution, ObjectiveCost, usize)> {
+    fn get_result(
+        &self,
+        refinement_ctx: RefinementContext,
+    ) -> Option<(Solution, Box<dyn ObjectiveCost + Send + Sync>, usize)> {
         if let Some((ctx, cost, generation)) = refinement_ctx.population.best() {
             self.logger.deref()(format!(
                 "Best solution within cost {} discovered at {} generation",
-                cost.total(),
+                cost.value(),
                 generation
             ));
-            Some((ctx.solution.to_solution(refinement_ctx.problem.extras.clone()), cost.clone(), *generation))
+            Some((ctx.solution.to_solution(refinement_ctx.problem.extras.clone()), cost.clone_box(), *generation))
         } else {
             None
         }
     }
 }
 
-fn get_cost_change(refinement_ctx: &RefinementContext, cost: &ObjectiveCost) -> (f64, f64) {
+fn get_cost_change(refinement_ctx: &RefinementContext, new_cost: &Box<dyn ObjectiveCost + Send + Sync>) -> f64 {
     refinement_ctx
         .population
         .best()
-        .map(|(_, c, _)| ((cost.actual - c.actual) / c.actual * 100., (cost.total() - c.total()) / c.total() * 100.))
-        .unwrap_or((100., 100.))
+        .map(|(_, best_cost, _)| (new_cost.value() - best_cost.value()) / best_cost.value() * 100.)
+        .unwrap_or(100.)
 }

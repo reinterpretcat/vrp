@@ -7,7 +7,7 @@ pub const MATRIX_ARG_NAME: &str = "routing-matrix";
 pub const GENERATIONS_ARG_NAME: &str = "max-generations";
 pub const TIME_ARG_NAME: &str = "max-time";
 pub const VARIATION_COEFFICIENT_ARG_NAME: &str = "variation-coefficient";
-pub const MINIMIZE_ROUTES_ARG_NAME: &str = "minimize-routes";
+
 pub const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
 pub const OUT_RESULT_ARG_NAME: &str = "out-result";
 pub const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
@@ -47,15 +47,6 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
                 .short("v")
                 .long(VARIATION_COEFFICIENT_ARG_NAME)
                 .required(false)
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name(MINIMIZE_ROUTES_ARG_NAME)
-                .help("Prefer less routes over total cost")
-                .short("r")
-                .long(MINIMIZE_ROUTES_ARG_NAME)
-                .required(false)
-                .default_value("true")
                 .takes_value(true),
         )
         .arg(

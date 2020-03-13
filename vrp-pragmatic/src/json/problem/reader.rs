@@ -26,7 +26,7 @@ use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{Cost, Dimensions, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
-use vrp_core::refinement::objectives::PenalizeUnassigned;
+use vrp_core::refinement::objectives::MultiObjective;
 
 pub type ApiProblem = crate::json::problem::Problem;
 pub type JobIndex = HashMap<String, Job>;
@@ -110,7 +110,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         constraint: Arc::new(constraint),
         activity,
         transport,
-        objective: Arc::new(PenalizeUnassigned::default()),
+        objective: Arc::new(MultiObjective::default()),
         extras: Arc::new(extras),
     })
 }

@@ -51,10 +51,6 @@ fn main() {
             })
             .collect()
     });
-    let minimize_routes = matches.value_of(MINIMIZE_ROUTES_ARG_NAME).unwrap().parse::<bool>().unwrap_or_else(|err| {
-        eprintln!("Cannot get minimize routes: '{}'", err.to_string());
-        process::exit(1);
-    });
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let matrix_files = matches
         .values_of(MATRIX_ARG_NAME)
@@ -82,7 +78,6 @@ fn main() {
                         let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
                         let solution = SolverBuilder::default()
                             .with_init_solution(solution.map(|s| (problem.clone(), Arc::new(s))))
-                            .with_minimize_routes(minimize_routes)
                             .with_max_generations(max_generations)
                             .with_variation_coefficient(variation_coefficient)
                             .with_max_time(max_time)
