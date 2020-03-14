@@ -3,8 +3,11 @@
 use crate::construction::states::InsertionContext;
 use crate::models::common::Cost;
 use crate::refinement::RefinementContext;
+use std::any::Any;
 use std::cmp::Ordering;
 use std::cmp::Ordering::{Equal, Greater, Less};
+use std::ops::Deref;
+use std::sync::Arc;
 
 /// Specifies objective cost type.
 pub trait ObjectiveCost {
@@ -62,9 +65,6 @@ pub use self::total_transport_cost::TotalTransportCost;
 
 mod total_unassigned_jobs;
 pub use self::total_unassigned_jobs::TotalUnassignedJobs;
-use std::any::Any;
-use std::ops::Deref;
-use std::sync::Arc;
 
 impl ObjectiveCost for MeasurableObjectiveCost {
     fn value(&self) -> f64 {

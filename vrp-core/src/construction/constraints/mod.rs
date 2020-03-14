@@ -81,3 +81,6 @@ pub use self::locking::*;
 
 mod conditional;
 pub use self::conditional::*;
+
+mod fleet_usage;
+pub use self::fleet_usage::*;

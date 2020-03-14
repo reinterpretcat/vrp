@@ -1,10 +1,9 @@
 use crate::common::text_reader::read_init_solution;
-use crate::common::NoFixedCostObjective;
 use crate::helpers::{create_c101_100_problem, get_test_resource};
 use std::io::BufReader;
 use std::sync::Arc;
 use vrp_core::construction::states::InsertionContext;
-use vrp_core::refinement::objectives::Objective;
+use vrp_core::refinement::objectives::{MultiObjective, Objective};
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::DefaultRandom;
 
@@ -19,7 +18,7 @@ pub fn can_read_init_solution() {
     let solution = Arc::new(result.unwrap());
     assert_eq!(solution.routes.len(), 10);
     assert_eq!(
-        NoFixedCostObjective::default()
+        MultiObjective::default()
             .estimate(
                 &mut RefinementContext::new(problem.clone()),
                 &InsertionContext::new_from_solution(problem, (solution, None), Arc::new(DefaultRandom::default()))

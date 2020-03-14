@@ -204,6 +204,8 @@ fn add_even_dist_module(constraint: &mut ConstraintPipeline, props: &ProblemProp
                 Box::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
             )));
         }
+    } else {
+        constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
     }
 }
 
