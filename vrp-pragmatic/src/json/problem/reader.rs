@@ -136,7 +136,6 @@ fn create_constraint_pipeline(
     )));
 
     add_capacity_module(&mut constraint, &props);
-    add_work_balance_module(&mut constraint, &props);
 
     if props.has_breaks {
         constraint.add_module(Box::new(BreakModule::new(BREAK_CONSTRAINT_CODE, Some(-100.), false)));
@@ -224,6 +223,7 @@ fn create_objective(
                     core_objectives.push(Box::new(TotalTransportCost::default()));
                 }
                 Objective::MinimizeTours => {
+                    constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
                     core_objectives.push(Box::new(TotalRoutes::default()));
                 }
                 Objective::MinimizeUnassignedJobs => {
