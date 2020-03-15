@@ -13,7 +13,7 @@ use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::fleet_reader::{create_transport_costs, read_fleet, read_limits};
 use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_locks};
-use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix};
+use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix, Objective};
 use crate::json::*;
 use crate::validation::ValidationContext;
 use crate::{parse_time, StringReader};
@@ -26,7 +26,8 @@ use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{Cost, Dimensions, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
-use vrp_core::refinement::objectives::MultiObjective;
+use vrp_core::refinement::objectives::Objective as CoreObjective;
+use vrp_core::refinement::objectives::{MultiObjective, TotalRoutes, TotalTransportCost, TotalUnassignedJobs};
 
 pub type ApiProblem = crate::json::problem::Problem;
 pub type JobIndex = HashMap<String, Job>;
@@ -75,7 +76,6 @@ pub struct ProblemProperties {
     has_unreachable_locations: bool,
     has_reload: bool,
     priority: Option<Cost>,
-    even_dist: Option<Cost>,
 }
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
@@ -99,9 +99,11 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect();
     let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
-    let extras = create_extras(&problem_props, coord_index);
-    let constraint =
-        create_constraint_pipeline(&fleet, activity.clone(), transport.clone(), problem_props, &locks, limits);
+    let extras = Arc::new(create_extras(&problem_props, coord_index));
+    let mut constraint =
+        create_constraint_pipeline(&fleet, activity.clone(), transport.clone(), &problem_props, &locks, limits);
+
+    let objective = Arc::new(create_objective(&api_problem, &mut constraint, &problem_props));
 
     Ok(Problem {
         fleet: Arc::new(fleet),
@@ -110,8 +112,8 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         constraint: Arc::new(constraint),
         activity,
         transport,
-        objective: Arc::new(MultiObjective::default()),
-        extras: Arc::new(extras),
+        objective,
+        extras,
     })
 }
 
@@ -119,7 +121,7 @@ fn create_constraint_pipeline(
     fleet: &Fleet,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    props: ProblemProperties,
+    props: &ProblemProperties,
     locks: &Vec<Arc<Lock>>,
     limits: TravelLimitFunc,
 ) -> ConstraintPipeline {
@@ -183,29 +185,75 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
 }
 
 fn add_work_balance_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
-    if let Some(even_dist_penalty) = props.even_dist {
-        if props.has_multi_dimen_capacity {
-            constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<MultiDimensionalCapacity>(
-                even_dist_penalty,
-                Box::new(|loaded, total| {
-                    let mut max_ratio = 0_f64;
+    // TODO do not use hard coded penalty
+    let balance_penalty = 1000.;
+    if props.has_multi_dimen_capacity {
+        constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<MultiDimensionalCapacity>(
+            balance_penalty,
+            Box::new(|loaded, total| {
+                let mut max_ratio = 0_f64;
 
-                    for (idx, value) in total.capacity.iter().enumerate() {
-                        let ratio = loaded.capacity[idx] as f64 / *value as f64;
-                        max_ratio = max_ratio.max(ratio);
-                    }
+                for (idx, value) in total.capacity.iter().enumerate() {
+                    let ratio = loaded.capacity[idx] as f64 / *value as f64;
+                    max_ratio = max_ratio.max(ratio);
+                }
 
-                    max_ratio
-                }),
-            )));
-        } else {
-            constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<i32>(
-                even_dist_penalty,
-                Box::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
-            )));
-        }
+                max_ratio
+            }),
+        )));
+    } else {
+        constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<i32>(
+            balance_penalty,
+            Box::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
+        )));
+    }
+}
+
+fn create_objective(
+    api_problem: &ApiProblem,
+    constraint: &mut ConstraintPipeline,
+    props: &ProblemProperties,
+) -> MultiObjective {
+    if let Some(objectives) = &api_problem.objectives {
+        let mut map_objectives = |objectives: &Vec<Objective>| {
+            let mut core_objectives: Vec<Box<dyn CoreObjective + Send + Sync>> = vec![];
+            let mut cost_idx = None;
+            objectives.iter().enumerate().for_each(|(idx, objective)| match objective {
+                Objective::MinimizeCost => {
+                    cost_idx = Some(idx);
+                    core_objectives.push(Box::new(TotalTransportCost::default()));
+                }
+                Objective::MinimizeTours => {
+                    core_objectives.push(Box::new(TotalRoutes::default()));
+                }
+                Objective::MinimizeUnassignedJobs => {
+                    core_objectives.push(Box::new(TotalUnassignedJobs::default()));
+                }
+                Objective::BalanceMaxLoad => {
+                    add_work_balance_module(constraint, props);
+                }
+                Objective::BalanceActivities => todo!("Balance activities is not yet implemented"),
+            });
+            (core_objectives, cost_idx)
+        };
+
+        let (primary, primary_cost_idx) = map_objectives(&objectives.primary);
+        let (secondary, secondary_cost_idx) = map_objectives(&objectives.secondary.clone().unwrap_or_else(|| vec![]));
+
+        MultiObjective::new(
+            primary,
+            secondary,
+            Arc::new(move |primary, secondary| {
+                primary_cost_idx
+                    .map(|idx| primary.get(idx).unwrap())
+                    .or(secondary_cost_idx.map(|idx| secondary.get(idx).unwrap()))
+                    .expect("Cannot get cost value objective")
+                    .value()
+            }),
+        )
     } else {
         constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
+        MultiObjective::default()
     }
 }
 
@@ -248,13 +296,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         .iter()
         .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
-    let even_dist = api_problem
-        .config
-        .as_ref()
-        .and_then(|c| c.features.as_ref())
-        .and_then(|f| f.even_distribution.as_ref())
-        .and_then(|ed| ed.extra_cost.clone());
-
     let priority = api_problem.plan.jobs.iter().filter_map(|job| job.priority).any(|priority| priority > 1);
 
     let priority = if priority {
@@ -275,7 +316,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         has_unreachable_locations,
         has_reload,
         priority,
-        even_dist,
     }
 }
 

@@ -162,6 +162,7 @@ impl MultiObjective {
         secondary_objectives: Vec<Box<dyn Objective + Send + Sync>>,
         value_func: ObjectiveCostValueFn,
     ) -> Self {
+        assert!(!primary_objectives.is_empty() || !secondary_objectives.is_empty());
         Self { primary_objectives, secondary_objectives, value_func }
     }
 }

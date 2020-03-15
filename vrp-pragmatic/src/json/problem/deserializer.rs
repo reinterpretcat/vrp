@@ -229,19 +229,8 @@ pub struct Config {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Features {
-    /// Even distribution of the jobs across tours. By default, is off.
-    pub even_distribution: Option<EvenDistribution>,
     /// Tweaks priority weight. Default value is 100.
     pub priority: Option<Priority>,
-}
-
-/// Configuration to tweak even distribution of the jobs across tours.
-#[derive(Clone, Deserialize, Debug)]
-pub struct EvenDistribution {
-    /// Enable or disable.
-    pub enabled: bool,
-    /// A fraction of this cost is applied when jobs are assigned to the tour.
-    pub extra_cost: Option<f64>,
 }
 
 /// Configuration to tweak even distribution of the jobs across tours.
@@ -255,7 +244,7 @@ pub struct Priority {
 
 // region Objective
 
-/// Specifies objective functions.
+/// Specifies a group of objective functions.
 #[derive(Clone, Deserialize, Debug)]
 pub struct Objectives {
     /// A list of primary objective functions. An accepted solution should not
@@ -266,33 +255,19 @@ pub struct Objectives {
     pub secondary: Option<Vec<Objective>>,
 }
 
-/// Type of objective function.
-#[derive(Clone, Deserialize, Debug)]
-pub enum ObjectiveType {
-    Min,
-    Max,
-    MinMax,
-}
-
-/// Objective function target.
-#[derive(Clone, Deserialize, Debug)]
-pub enum ObjectiveTarget {
-    Routes,
-    Cost,
-    Duration,
-    Distance,
-    Activities,
-}
-
-/// Specifies objective function.
-#[derive(Clone, Deserialize, Debug)]
-pub struct Objective {
-    /// Type of objective.
-    #[serde(rename(deserialize = "type"))]
-    pub objective_type: ObjectiveType,
-
-    /// Target objective.
-    pub target: ObjectiveTarget,
+/// Specifies objective function types.
+#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+pub enum Objective {
+    /// An objective to minimize total cost.
+    MinimizeCost,
+    /// An objective to minimize total tour amount.
+    MinimizeTours,
+    /// An objective to minimize amount of unassigned jobs.
+    MinimizeUnassignedJobs,
+    /// An objective to balance max load across all tours.
+    BalanceMaxLoad,
+    /// An objective to balance activities across all tours.
+    BalanceActivities,
 }
 
 // endregion
@@ -307,7 +282,7 @@ pub struct Problem {
     /// Problem resources: vehicles to be used, routing info.
     pub fleet: Fleet,
     /// Specifies objective functions.
-    pub objectives: Option<Objective>,
+    pub objectives: Option<Objectives>,
     /// Extra configuration.
     pub config: Option<Config>,
 }

@@ -1,9 +1,10 @@
 use crate::helpers::*;
+use crate::json::problem::Objective::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
 
 #[test]
-fn can_even_dist_jobs() {
+fn can_balance_max_load() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![1., 0.])],
@@ -18,13 +19,8 @@ fn can_even_dist_jobs() {
             }],
             profiles: create_default_profiles(),
         },
-        objectives: None,
-        config: Some(Config {
-            features: Some(Features {
-                even_distribution: Some(EvenDistribution { enabled: true, extra_cost: Some(1000.0) }),
-                priority: None,
-            }),
-        }),
+        objectives: Some(Objectives { primary: vec![BalanceMaxLoad], secondary: Some(vec![MinimizeCost]) }),
+        ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
 
