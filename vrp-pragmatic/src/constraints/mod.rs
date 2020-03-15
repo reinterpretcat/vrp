@@ -26,8 +26,8 @@ fn is_correct_vehicle(route: &Route, target_id: &String, target_shift: usize) ->
 mod breaks;
 pub use self::breaks::BreakModule;
 
-mod even_dist;
-pub use self::even_dist::EvenDistributionModule;
+mod work_balance;
+pub use self::work_balance::*;
 
 mod priorities;
 pub use self::priorities::PriorityModule;

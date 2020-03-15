@@ -134,7 +134,7 @@ fn create_constraint_pipeline(
     )));
 
     add_capacity_module(&mut constraint, &props);
-    add_even_dist_module(&mut constraint, &props);
+    add_work_balance_module(&mut constraint, &props);
 
     if props.has_breaks {
         constraint.add_module(Box::new(BreakModule::new(BREAK_CONSTRAINT_CODE, Some(-100.), false)));
@@ -182,10 +182,10 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
     });
 }
 
-fn add_even_dist_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
+fn add_work_balance_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
     if let Some(even_dist_penalty) = props.even_dist {
         if props.has_multi_dimen_capacity {
-            constraint.add_module(Box::new(EvenDistributionModule::<MultiDimensionalCapacity>::new(
+            constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<MultiDimensionalCapacity>(
                 even_dist_penalty,
                 Box::new(|loaded, total| {
                     let mut max_ratio = 0_f64;
@@ -199,7 +199,7 @@ fn add_even_dist_module(constraint: &mut ConstraintPipeline, props: &ProblemProp
                 }),
             )));
         } else {
-            constraint.add_module(Box::new(EvenDistributionModule::<i32>::new(
+            constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<i32>(
                 even_dist_penalty,
                 Box::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
             )));
