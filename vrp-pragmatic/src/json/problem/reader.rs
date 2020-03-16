@@ -8,12 +8,16 @@ mod job_reader;
 #[path = "./fleet_reader.rs"]
 mod fleet_reader;
 
+#[path = "./objective_reader.rs"]
+mod objective_reader;
+
+use self::fleet_reader::{create_transport_costs, read_fleet, read_limits};
+use self::job_reader::{read_jobs_with_extra_locks, read_locks};
+use self::objective_reader::create_objective;
 use crate::constraints::*;
 use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
-use crate::json::problem::reader::fleet_reader::{create_transport_costs, read_fleet, read_limits};
-use crate::json::problem::reader::job_reader::{read_jobs_with_extra_locks, read_locks};
-use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix, Objective};
+use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::json::*;
 use crate::validation::ValidationContext;
 use crate::{parse_time, StringReader};
@@ -26,8 +30,6 @@ use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{Cost, Dimensions, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
-use vrp_core::refinement::objectives::Objective as CoreObjective;
-use vrp_core::refinement::objectives::{MultiObjective, TotalRoutes, TotalTransportCost, TotalUnassignedJobs};
 
 pub type ApiProblem = crate::json::problem::Problem;
 pub type JobIndex = HashMap<String, Job>;
@@ -181,80 +183,6 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
             Box::new(CapacityConstraintModule::<i32>::new(CAPACITY_CONSTRAINT_CODE))
         }
     });
-}
-
-fn add_work_balance_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
-    // TODO do not use hard coded penalty
-    let balance_penalty = 1000.;
-    if props.has_multi_dimen_capacity {
-        constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<MultiDimensionalCapacity>(
-            balance_penalty,
-            Box::new(|loaded, total| {
-                let mut max_ratio = 0_f64;
-
-                for (idx, value) in total.capacity.iter().enumerate() {
-                    let ratio = loaded.capacity[idx] as f64 / *value as f64;
-                    max_ratio = max_ratio.max(ratio);
-                }
-
-                max_ratio
-            }),
-        )));
-    } else {
-        constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<i32>(
-            balance_penalty,
-            Box::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
-        )));
-    }
-}
-
-fn create_objective(
-    api_problem: &ApiProblem,
-    constraint: &mut ConstraintPipeline,
-    props: &ProblemProperties,
-) -> MultiObjective {
-    if let Some(objectives) = &api_problem.objectives {
-        let mut map_objectives = |objectives: &Vec<Objective>| {
-            let mut core_objectives: Vec<Box<dyn CoreObjective + Send + Sync>> = vec![];
-            let mut cost_idx = None;
-            objectives.iter().enumerate().for_each(|(idx, objective)| match objective {
-                Objective::MinimizeCost { goal: _ } => {
-                    cost_idx = Some(idx);
-                    core_objectives.push(Box::new(TotalTransportCost::default()));
-                }
-                Objective::MinimizeTours { goal: _ } => {
-                    constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
-                    core_objectives.push(Box::new(TotalRoutes::default()));
-                }
-                Objective::MinimizeUnassignedJobs { goal: _ } => {
-                    core_objectives.push(Box::new(TotalUnassignedJobs::default()));
-                }
-                Objective::BalanceMaxLoad { threshold: _ } => {
-                    add_work_balance_module(constraint, props);
-                }
-                Objective::BalanceActivities { threshold: _ } => todo!("Balance activities is not yet implemented"),
-            });
-            (core_objectives, cost_idx)
-        };
-
-        let (primary, primary_cost_idx) = map_objectives(&objectives.primary);
-        let (secondary, secondary_cost_idx) = map_objectives(&objectives.secondary.clone().unwrap_or_else(|| vec![]));
-
-        MultiObjective::new(
-            primary,
-            secondary,
-            Arc::new(move |primary, secondary| {
-                primary_cost_idx
-                    .map(|idx| primary.get(idx).unwrap())
-                    .or(secondary_cost_idx.map(|idx| secondary.get(idx).unwrap()))
-                    .expect("Cannot get cost value objective")
-                    .value()
-            }),
-        )
-    } else {
-        constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
-        MultiObjective::default()
-    }
 }
 
 fn create_extras(props: &ProblemProperties, coord_index: CoordIndex) -> Extras {
