@@ -8,6 +8,9 @@ pub trait Termination {
     fn is_termination(&self, refinement_ctx: &mut RefinementContext, solution: (&Individuum, bool)) -> bool;
 }
 
+mod goal_satisfied;
+pub use self::goal_satisfied::GoalSatisfied;
+
 mod max_generation;
 pub use self::max_generation::MaxGeneration;
 
