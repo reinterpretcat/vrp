@@ -56,7 +56,7 @@ impl Solver {
 
         let mut insertion_ctx = match std::mem::replace(&mut self.initial, None) {
             Some(ctx) => {
-                let cost = problem.objective.estimate(&mut RefinementContext::new(problem.clone()), &ctx);
+                let cost = problem.objective.estimate_cost(&mut RefinementContext::new(problem.clone()), &ctx);
                 refinement_ctx.population.add((ctx.deep_copy(), cost, 1));
                 ctx
             }
@@ -69,7 +69,7 @@ impl Solver {
 
             insertion_ctx = self.mutation.mutate(&mut refinement_ctx, insertion_ctx);
 
-            let cost = problem.objective.estimate(&mut refinement_ctx, &insertion_ctx);
+            let cost = problem.objective.estimate_cost(&mut refinement_ctx, &insertion_ctx);
             let individuum = (insertion_ctx, cost, refinement_ctx.generation);
             let is_accepted = self.acceptance.is_accepted(&mut refinement_ctx, &individuum);
             let is_terminated = self.termination.is_termination(&mut refinement_ctx, (&individuum, is_accepted));

@@ -21,7 +21,7 @@ fn can_balance_max_load() {
         },
         objectives: Some(Objectives {
             primary: vec![BalanceMaxLoad { threshold: None }],
-            secondary: Some(vec![MinimizeCost { termination: None }]),
+            secondary: Some(vec![MinimizeCost { goal: None }]),
         }),
         ..create_empty_problem()
     };

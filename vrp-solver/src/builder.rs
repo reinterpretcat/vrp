@@ -101,7 +101,7 @@ impl SolverBuilder {
                 Arc::new(DefaultRandom::default()),
             );
 
-            let cost = problem.objective.estimate(&mut RefinementContext::new(problem.clone()), &insertion_ctx);
+            let cost = problem.objective.estimate_cost(&mut RefinementContext::new(problem.clone()), &insertion_ctx);
             self.solver.logger.deref()(format!(
                 "configured to use initial solution with cost: {:.2}, routes: {}",
                 cost.value(),

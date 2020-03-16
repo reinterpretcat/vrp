@@ -218,15 +218,15 @@ fn create_objective(
             let mut core_objectives: Vec<Box<dyn CoreObjective + Send + Sync>> = vec![];
             let mut cost_idx = None;
             objectives.iter().enumerate().for_each(|(idx, objective)| match objective {
-                Objective::MinimizeCost { termination: _ } => {
+                Objective::MinimizeCost { goal: _ } => {
                     cost_idx = Some(idx);
                     core_objectives.push(Box::new(TotalTransportCost::default()));
                 }
-                Objective::MinimizeTours { termination: _ } => {
+                Objective::MinimizeTours { goal: _ } => {
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
                     core_objectives.push(Box::new(TotalRoutes::default()));
                 }
-                Objective::MinimizeUnassignedJobs { termination: _ } => {
+                Objective::MinimizeUnassignedJobs { goal: _ } => {
                     core_objectives.push(Box::new(TotalUnassignedJobs::default()));
                 }
                 Objective::BalanceMaxLoad { threshold: _ } => {

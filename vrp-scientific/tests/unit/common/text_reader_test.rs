@@ -19,7 +19,7 @@ pub fn can_read_init_solution() {
     assert_eq!(solution.routes.len(), 10);
     assert_eq!(
         MultiObjective::default()
-            .estimate(
+            .estimate_cost(
                 &mut RefinementContext::new(problem.clone()),
                 &InsertionContext::new_from_solution(problem, (solution, None), Arc::new(DefaultRandom::default()))
             )

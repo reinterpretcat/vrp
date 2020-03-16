@@ -18,14 +18,29 @@ pub trait ObjectiveCost {
     fn as_any(&self) -> &dyn Any;
 }
 
+/// A short alias for boxed `ObjectiveCost`.
+pub type ObjectiveCostType = Box<dyn ObjectiveCost + Send + Sync>;
+/// Specifies collection of objective costs.
+pub type ObjectiveCosts = Vec<ObjectiveCostType>;
+/// Specifies function which returns actual cost from multiple objective costs.
+pub type ObjectiveCostValueFn = Arc<dyn Fn(&ObjectiveCosts, &ObjectiveCosts) -> f64 + Send + Sync>;
+
 /// Encapsulates objective function behaviour.
 pub trait Objective {
     /// Estimates cost for given problem and solution.
-    fn estimate(
+    fn estimate_cost(
         &self,
         refinement_ctx: &mut RefinementContext,
         insertion_ctx: &InsertionContext,
-    ) -> Box<dyn ObjectiveCost + Send + Sync>;
+    ) -> ObjectiveCostType;
+
+    /// Checks whether given solution satisfies objective.
+    /// Returns `None` if objective goal is not set.
+    fn is_goal_satisfied(
+        &self,
+        refinement_ctx: &mut RefinementContext,
+        insertion_ctx: &InsertionContext,
+    ) -> Option<bool>;
 }
 
 /// An objective cost with measurable value.
@@ -39,11 +54,6 @@ pub struct MultiObjectiveCost {
     secondary_costs: ObjectiveCosts,
     value_func: ObjectiveCostValueFn,
 }
-
-/// Specifies collection of objective costs.
-pub type ObjectiveCosts = Vec<Box<dyn ObjectiveCost + Send + Sync>>;
-/// Specifies function which returns actual cost from multiple objective costs.
-pub type ObjectiveCostValueFn = Arc<dyn Fn(&ObjectiveCosts, &ObjectiveCosts) -> f64 + Send + Sync>;
 
 /// Encapsulates objective which has multiple objectives.
 pub struct MultiObjective {
@@ -71,11 +81,11 @@ impl ObjectiveCost for MeasurableObjectiveCost {
         self.cost
     }
 
-    fn cmp(&self, other: &Box<dyn ObjectiveCost + Send + Sync>) -> Ordering {
+    fn cmp(&self, other: &ObjectiveCostType) -> Ordering {
         self.cost.partial_cmp(&other.value()).unwrap_or(Less)
     }
 
-    fn clone_box(&self) -> Box<dyn ObjectiveCost + Send + Sync> {
+    fn clone_box(&self) -> ObjectiveCostType {
         Box::new(Self { cost: self.cost })
     }
 
@@ -95,7 +105,7 @@ impl ObjectiveCost for MultiObjectiveCost {
         self.value_func.deref()(&self.primary_costs, &self.secondary_costs)
     }
 
-    fn cmp(&self, other: &Box<dyn ObjectiveCost + Send + Sync>) -> Ordering {
+    fn cmp(&self, other: &ObjectiveCostType) -> Ordering {
         let (primary_costs, secondary_costs) = self.get_costs(other);
 
         match Self::analyze(&self.primary_costs, primary_costs) {
@@ -104,7 +114,7 @@ impl ObjectiveCost for MultiObjectiveCost {
         }
     }
 
-    fn clone_box(&self) -> Box<dyn ObjectiveCost + Send + Sync> {
+    fn clone_box(&self) -> ObjectiveCostType {
         Box::new(Self {
             primary_costs: self.primary_costs.iter().map(|c| c.clone_box()).collect(),
             secondary_costs: self.secondary_costs.iter().map(|c| c.clone_box()).collect(),
@@ -127,10 +137,7 @@ impl MultiObjectiveCost {
         Self { primary_costs, secondary_costs, value_func }
     }
 
-    fn get_costs<'a>(
-        &self,
-        other: &'a Box<dyn ObjectiveCost + Send + Sync>,
-    ) -> (&'a Vec<Box<dyn ObjectiveCost + Send + Sync>>, &'a Vec<Box<dyn ObjectiveCost + Send + Sync>>) {
+    fn get_costs<'a>(&self, other: &'a ObjectiveCostType) -> (&'a Vec<ObjectiveCostType>, &'a Vec<ObjectiveCostType>) {
         let other = other.as_any().downcast_ref::<MultiObjectiveCost>().expect("Expecting MultiObjectiveCost");
 
         let primary_costs = &other.primary_costs;
@@ -142,10 +149,7 @@ impl MultiObjectiveCost {
         (primary_costs, secondary_costs)
     }
 
-    fn analyze(
-        left: &Vec<Box<dyn ObjectiveCost + Send + Sync>>,
-        right: &Vec<Box<dyn ObjectiveCost + Send + Sync>>,
-    ) -> Ordering {
+    fn analyze(left: &Vec<ObjectiveCostType>, right: &Vec<ObjectiveCostType>) -> Ordering {
         left.iter().zip(right.iter()).fold(Equal, |acc, (a, b)| match (acc, a.cmp(b)) {
             (Equal, new @ _) => new,
             (Less, Greater) => Greater,
@@ -178,16 +182,37 @@ impl Default for MultiObjective {
 }
 
 impl Objective for MultiObjective {
-    fn estimate(
+    fn estimate_cost(
         &self,
         refinement_ctx: &mut RefinementContext,
         insertion_ctx: &InsertionContext,
-    ) -> Box<dyn ObjectiveCost + Send + Sync> {
+    ) -> ObjectiveCostType {
         let primary_costs =
-            self.primary_objectives.iter().map(|o| o.estimate(refinement_ctx, insertion_ctx)).collect::<Vec<_>>();
-        let secondary_costs =
-            self.secondary_objectives.iter().map(|o| o.estimate(refinement_ctx, insertion_ctx)).collect::<Vec<_>>();
+            self.primary_objectives.iter().map(|o| o.estimate_cost(refinement_ctx, insertion_ctx)).collect::<Vec<_>>();
+        let secondary_costs = self
+            .secondary_objectives
+            .iter()
+            .map(|o| o.estimate_cost(refinement_ctx, insertion_ctx))
+            .collect::<Vec<_>>();
 
         Box::new(MultiObjectiveCost::new(primary_costs, secondary_costs, self.value_func.clone()))
+    }
+
+    fn is_goal_satisfied(
+        &self,
+        refinement_ctx: &mut RefinementContext,
+        insertion_ctx: &InsertionContext,
+    ) -> Option<bool> {
+        let results = self
+            .primary_objectives
+            .iter()
+            .filter_map(|o| o.is_goal_satisfied(refinement_ctx, insertion_ctx))
+            .collect::<Vec<_>>();
+
+        if results.is_empty() {
+            None
+        } else {
+            Some(results.iter().all(|&goal_satisfied| goal_satisfied))
+        }
     }
 }

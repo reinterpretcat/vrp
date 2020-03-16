@@ -89,7 +89,7 @@ fn can_calculate_transport_cost() {
 
     // total: (70 * 2 + 100) + (21 * 2 + 100) = 382
 
-    let result = TotalTransportCost::default().estimate(&mut refinement_ctx, &insertion_ctx);
+    let result = TotalTransportCost::default().estimate_cost(&mut refinement_ctx, &insertion_ctx);
 
     assert_eq!(result.value(), 382.0);
 }

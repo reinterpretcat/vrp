@@ -261,18 +261,18 @@ pub struct Objectives {
 pub enum Objective {
     /// An objective to minimize total cost.
     MinimizeCost {
-        /// A termination criteria parameters.
-        termination: Option<TerminationCriteria<f64>>,
+        /// A goal defined by satisfaction criteria parameters.
+        goal: Option<GoalSatisfactionCriteria<f64>>,
     },
     /// An objective to minimize total tour amount.
     MinimizeTours {
-        /// A termination criteria parameters.
-        termination: Option<TerminationCriteria<usize>>,
+        /// A goal defined by satisfaction criteria parameters.
+        goal: Option<GoalSatisfactionCriteria<usize>>,
     },
     /// An objective to minimize amount of unassigned jobs.
     MinimizeUnassignedJobs {
-        /// A termination criteria parameters.
-        termination: Option<TerminationCriteria<usize>>,
+        /// A goal defined by satisfaction criteria parameters.
+        goal: Option<GoalSatisfactionCriteria<usize>>,
     },
     /// An objective to balance max load across all tours.
     BalanceMaxLoad {
@@ -286,12 +286,12 @@ pub enum Objective {
     },
 }
 
-/// Specifies termination criteria options.
+/// Specifies goal satisfaction criteria options.
 #[derive(Clone, Deserialize, Debug)]
-pub struct TerminationCriteria<T> {
-    /// An absolute value threshold.
+pub struct GoalSatisfactionCriteria<T> {
+    /// A goal as an absolute value.
     pub value: Option<T>,
-    /// A variation coefficient threshold.
+    /// A goal as a change ratio defined by variation coefficient.
     pub variation: Option<VariationCoefficient>,
 }
 
