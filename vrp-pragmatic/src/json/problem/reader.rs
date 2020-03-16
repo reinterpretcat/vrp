@@ -218,21 +218,21 @@ fn create_objective(
             let mut core_objectives: Vec<Box<dyn CoreObjective + Send + Sync>> = vec![];
             let mut cost_idx = None;
             objectives.iter().enumerate().for_each(|(idx, objective)| match objective {
-                Objective::MinimizeCost => {
+                Objective::MinimizeCost { termination: _ } => {
                     cost_idx = Some(idx);
                     core_objectives.push(Box::new(TotalTransportCost::default()));
                 }
-                Objective::MinimizeTours => {
+                Objective::MinimizeTours { termination: _ } => {
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
                     core_objectives.push(Box::new(TotalRoutes::default()));
                 }
-                Objective::MinimizeUnassignedJobs => {
+                Objective::MinimizeUnassignedJobs { termination: _ } => {
                     core_objectives.push(Box::new(TotalUnassignedJobs::default()));
                 }
-                Objective::BalanceMaxLoad => {
+                Objective::BalanceMaxLoad { threshold: _ } => {
                     add_work_balance_module(constraint, props);
                 }
-                Objective::BalanceActivities => todo!("Balance activities is not yet implemented"),
+                Objective::BalanceActivities { threshold: _ } => todo!("Balance activities is not yet implemented"),
             });
             (core_objectives, cost_idx)
         };

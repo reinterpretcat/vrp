@@ -256,18 +256,52 @@ pub struct Objectives {
 }
 
 /// Specifies objective function types.
-#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Debug)]
+#[serde(tag = "type")]
 pub enum Objective {
     /// An objective to minimize total cost.
-    MinimizeCost,
+    MinimizeCost {
+        /// A termination criteria parameters.
+        termination: Option<TerminationCriteria<f64>>,
+    },
     /// An objective to minimize total tour amount.
-    MinimizeTours,
+    MinimizeTours {
+        /// A termination criteria parameters.
+        termination: Option<TerminationCriteria<usize>>,
+    },
     /// An objective to minimize amount of unassigned jobs.
-    MinimizeUnassignedJobs,
+    MinimizeUnassignedJobs {
+        /// A termination criteria parameters.
+        termination: Option<TerminationCriteria<usize>>,
+    },
     /// An objective to balance max load across all tours.
-    BalanceMaxLoad,
+    BalanceMaxLoad {
+        /// A relative load in single tour before balancing takes place.
+        threshold: Option<f64>,
+    },
     /// An objective to balance activities across all tours.
-    BalanceActivities,
+    BalanceActivities {
+        /// A minimum amount of activities in single tour before balancing takes place.
+        threshold: Option<usize>,
+    },
+}
+
+/// Specifies termination criteria options.
+#[derive(Clone, Deserialize, Debug)]
+pub struct TerminationCriteria<T> {
+    /// An absolute value threshold.
+    pub value: Option<T>,
+    /// A variation coefficient threshold.
+    pub variation: Option<VariationCoefficient>,
+}
+
+/// Specifies parameters for variation coefficient calculations.
+#[derive(Clone, Deserialize, Debug)]
+pub struct VariationCoefficient {
+    /// A sample size of refinement generations.
+    pub sample: usize,
+    /// A variation coefficient in percents.
+    pub variation: f64,
 }
 
 // endregion
