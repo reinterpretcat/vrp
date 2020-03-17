@@ -1,15 +1,15 @@
 use super::*;
 
 /// A termination criteria which stops when objective goal is satisfied.
-pub struct GoalSatisfied {}
+pub struct GoalSatisfaction {}
 
-impl Default for GoalSatisfied {
+impl Default for GoalSatisfaction {
     fn default() -> Self {
         Self {}
     }
 }
 
-impl Termination for GoalSatisfied {
+impl Termination for GoalSatisfaction {
     fn is_termination(&self, refinement_ctx: &mut RefinementContext, solution: (&Individuum, bool)) -> bool {
         let problem = refinement_ctx.problem.clone();
         let (insertion_ctx, _, _) = &solution.0;

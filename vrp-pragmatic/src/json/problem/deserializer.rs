@@ -305,7 +305,7 @@ pub struct GoalSatisfactionCriteria<T> {
 pub struct VariationCoefficient {
     /// A sample size of refinement generations.
     pub sample: usize,
-    /// A variation coefficient in percents.
+    /// A variation ratio.
     pub variation: f64,
 }
 
