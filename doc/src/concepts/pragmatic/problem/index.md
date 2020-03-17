@@ -1,10 +1,11 @@
 # Problem model 
 
-In general a pragmatic problem is split into two required parts:
+In general a pragmatic problem is split into two required and one optional parts:
 
-* `plan` models a work to be performed by vehicles taking into account all related constraints, such as time windows,
+* `plan` (required) models a work to be performed by vehicles taking into account all related constraints, such as time windows,
   demand, skills, etc.
-* `fleet` models available resources defined by vehicle types.
+* `fleet` (required) models available resources defined by vehicle types.
+* `objectives` (optional) defines objective functions as goal of whole optimization.
 
 
 ## Modeling jobs
