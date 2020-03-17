@@ -260,26 +260,31 @@ pub struct Objectives {
 #[serde(tag = "type")]
 pub enum Objective {
     /// An objective to minimize total cost.
+    #[serde(rename(deserialize = "minimize-cost"))]
     MinimizeCost {
         /// A goal defined by satisfaction criteria parameters.
         goal: Option<GoalSatisfactionCriteria<f64>>,
     },
     /// An objective to minimize total tour amount.
+    #[serde(rename(deserialize = "minimize-tours"))]
     MinimizeTours {
         /// A goal defined by satisfaction criteria parameters.
         goal: Option<GoalSatisfactionCriteria<usize>>,
     },
     /// An objective to minimize amount of unassigned jobs.
+    #[serde(rename(deserialize = "minimize-unassigned"))]
     MinimizeUnassignedJobs {
         /// A goal defined by satisfaction criteria parameters.
         goal: Option<GoalSatisfactionCriteria<usize>>,
     },
     /// An objective to balance max load across all tours.
+    #[serde(rename(deserialize = "balance-max-load"))]
     BalanceMaxLoad {
         /// A relative load in single tour before balancing takes place.
         threshold: Option<f64>,
     },
     /// An objective to balance activities across all tours.
+    #[serde(rename(deserialize = "balance-activities"))]
     BalanceActivities {
         /// A minimum amount of activities in single tour before balancing takes place.
         threshold: Option<usize>,
