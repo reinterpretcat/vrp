@@ -48,18 +48,10 @@ Generation is one refinement step and it can be limited via _max-generations_ pa
 
     vrp-cli pragmatic problem.json -m routing_matrix.json -o solution.json --max-generations=1000
 
-### Variation coefficient
-
-Variation coefficient termination criteria is useful to stop algorithm when it is not enough improving:
-
-    vrp-cli pragmatic problem.json -m routing_matrix.json -o solution.json --variation-coefficient=100,0.01
-
-Here first part specifies amount of generations (_sample_) and second is ratio of improvement.
-
 
 ### Default behavior
 
-By default termination criteria is max 2000 generations.
+By default termination criteria is max 2000 generations or 300 seconds.
 
 
 ## Writing solution to file
@@ -72,9 +64,3 @@ in std out.
 
 List of unique locations can be received via `-l` or `--get-locations` setting. This list can be used to request routing
 matrices.
-
-
-## Objective function settings
-
-By default, solver tries to minimize amount of routes over total cost. This behavior can be disabled by setting
-`-r` or `--minimize-routes` to false.

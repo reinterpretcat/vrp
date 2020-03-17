@@ -65,7 +65,7 @@ The main focus of the project is to support solving multiple variations of VRP w
      is considered as assigned only when all of sub jobs are assigned. This is useful for scenarios such as multiple
      pickups, but single delivery, or other way round.
 
- - **[multiple objectives](../examples/pragmatic/objectives.md))**: this extends application from scientific domain to real
+ - **[multiple objectives](../examples/pragmatic/objectives.md)**: this extends application from scientific domain to real
      life scenarios where solver should consider multiple optimization parameters simultaneously.
 
  - **[vehicle profiles](../examples/pragmatic/profiles.md)**: allows to use different routing matrix profiles for different
