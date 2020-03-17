@@ -17,9 +17,6 @@ pub use self::max_generation::MaxGeneration;
 mod max_time;
 pub use self::max_time::MaxTime;
 
-mod variation_coefficient;
-pub use self::variation_coefficient::VariationCoefficient;
-
 /// A trait which encapsulates multiple termination criteria.
 pub struct CompositeTermination {
     terminations: Vec<Box<dyn Termination>>,
@@ -34,7 +31,7 @@ impl CompositeTermination {
 
 impl Default for CompositeTermination {
     fn default() -> Self {
-        Self::new(vec![Box::new(MaxGeneration::default()), Box::new(VariationCoefficient::default())])
+        Self::new(vec![Box::new(MaxGeneration::default()), Box::new(MaxTime::default())])
     }
 }
 

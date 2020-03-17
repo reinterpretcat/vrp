@@ -41,16 +41,6 @@ fn main() {
             process::exit(1);
         })
     });
-    let variation_coefficient = matches.value_of(VARIATION_COEFFICIENT_ARG_NAME).map(|args| {
-        args.split(',')
-            .map(|line| {
-                line.parse::<f64>().unwrap_or_else(|err| {
-                    eprintln!("Cannot get variation coefficient: '{}'", err.to_string());
-                    process::exit(1);
-                })
-            })
-            .collect()
-    });
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let matrix_files = matches
         .values_of(MATRIX_ARG_NAME)
@@ -79,7 +69,6 @@ fn main() {
                         let solution = SolverBuilder::default()
                             .with_init_solution(solution.map(|s| (problem.clone(), Arc::new(s))))
                             .with_max_generations(max_generations)
-                            .with_variation_coefficient(variation_coefficient)
                             .with_max_time(max_time)
                             .build()
                             .solve(problem.clone());

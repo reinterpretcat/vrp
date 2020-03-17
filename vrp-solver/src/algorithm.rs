@@ -73,8 +73,10 @@ impl Solver {
             let individuum = (insertion_ctx, cost, refinement_ctx.generation);
             let is_accepted = self.acceptance.is_accepted(&mut refinement_ctx, &individuum);
             let is_terminated = self.termination.is_termination(&mut refinement_ctx, (&individuum, is_accepted));
+            let is_goal_satisfied =
+                problem.objective.is_goal_satisfied(&mut refinement_ctx, &individuum.0).unwrap_or(false);
 
-            if refinement_ctx.generation % 100 == 0 || is_terminated || is_accepted {
+            if refinement_ctx.generation % 100 == 0 || is_terminated || is_goal_satisfied || is_accepted {
                 self.log_generation(&refinement_ctx, generation_time, refinement_time, &individuum, is_accepted);
             }
 
@@ -88,7 +90,11 @@ impl Solver {
 
             insertion_ctx = self.selection.select(&mut refinement_ctx);
 
-            if is_terminated {
+            if is_terminated || is_goal_satisfied {
+                self.logger.deref()(format!(
+                    "Stopped due to termination ({}) or goal satisfaction ({})",
+                    is_terminated, is_goal_satisfied
+                ));
                 break;
             }
 

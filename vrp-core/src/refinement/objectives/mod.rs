@@ -68,12 +68,15 @@ pub struct MultiObjective {
 }
 
 mod total_routes;
+
 pub use self::total_routes::TotalRoutes;
 
 mod total_transport_cost;
+
 pub use self::total_transport_cost::TotalTransportCost;
 
 mod total_unassigned_jobs;
+
 pub use self::total_unassigned_jobs::TotalUnassignedJobs;
 
 impl ObjectiveCost for MeasurableObjectiveCost {
@@ -203,11 +206,15 @@ impl Objective for MultiObjective {
         refinement_ctx: &mut RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<bool> {
-        let results = self
-            .primary_objectives
-            .iter()
-            .filter_map(|o| o.is_goal_satisfied(refinement_ctx, insertion_ctx))
-            .collect::<Vec<_>>();
+        let mut get_satisfaction = |objectives: &Vec<Box<dyn Objective + Send + Sync>>| {
+            objectives.iter().filter_map(|o| o.is_goal_satisfied(refinement_ctx, insertion_ctx)).collect::<Vec<_>>()
+        };
+
+        let mut results = get_satisfaction(&self.primary_objectives);
+
+        if results.is_empty() {
+            results.extend(get_satisfaction(&self.secondary_objectives).into_iter())
+        }
 
         if results.is_empty() {
             None

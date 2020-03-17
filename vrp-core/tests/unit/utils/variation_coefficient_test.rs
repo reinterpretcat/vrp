@@ -1,7 +1,7 @@
 use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_problem};
 use crate::refinement::objectives::{MeasurableObjectiveCost, ObjectiveCost};
-use crate::refinement::termination::{Termination, VariationCoefficient};
 use crate::refinement::RefinementContext;
+use crate::utils::variation_coefficient::VariationCoefficient;
 
 parameterized_test! {can_detect_termination, (capacity, threshold, delta, expected), {
     can_detect_termination_impl(capacity, threshold, delta, expected);
@@ -14,7 +14,7 @@ can_detect_termination! {
 
 fn can_detect_termination_impl(capacity: usize, threshold: f64, delta: f64, expected: Vec<bool>) {
     let mut refinement_ctx = RefinementContext::new(create_empty_problem());
-    let termination = VariationCoefficient::new(capacity, threshold);
+    let termination = VariationCoefficient::new(capacity, threshold, "test_cv");
 
     let result = (0..capacity)
         .map(|i| {
@@ -23,7 +23,7 @@ fn can_detect_termination_impl(capacity: usize, threshold: f64, delta: f64, expe
                 Box::new(MeasurableObjectiveCost::new(1. + (i + 1) as f64 * delta));
             let individuum = (create_empty_insertion_context(), cost, i);
 
-            termination.is_termination(&mut refinement_ctx, (&individuum, true))
+            termination.update_and_check(&mut refinement_ctx, &individuum)
         })
         .collect::<Vec<bool>>();
 
