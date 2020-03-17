@@ -2,25 +2,31 @@
 #[path = "../../../tests/unit/refinement/objectives/total_transport_cost_test.rs"]
 mod total_transport_cost_test;
 
+use super::*;
 use crate::construction::states::InsertionContext;
 use crate::models::common::Cost;
-use crate::refinement::objectives::{MeasurableObjectiveCost, Objective, ObjectiveCostType};
 use crate::refinement::RefinementContext;
+use crate::utils::VariationCoefficient;
 
 /// An objective function which calculate total cost.
 pub struct TotalTransportCost {
-    goal: Option<f64>,
+    cost_goal: Option<(f64, bool)>,
+    variation_goal: Option<VariationCoefficient>,
 }
 
 impl Default for TotalTransportCost {
     fn default() -> Self {
-        Self { goal: None }
+        Self { cost_goal: None, variation_goal: None }
     }
 }
 
 impl TotalTransportCost {
-    pub fn new(desired_cost: Cost) -> Self {
-        Self { goal: Some(desired_cost) }
+    pub fn new(cost_goal: Option<Cost>, variation_goal: Option<(usize, f64)>) -> Self {
+        Self {
+            cost_goal: cost_goal.map(|cost| (cost, true)),
+            variation_goal: variation_goal
+                .map(|(sample, threshold)| VariationCoefficient::new(sample, threshold, "cost_vc")),
+        }
     }
 
     fn get_actual_cost(&self, insertion_ctx: &InsertionContext) -> Cost {
@@ -56,7 +62,13 @@ impl Objective for TotalTransportCost {
         Box::new(MeasurableObjectiveCost::new(self.get_actual_cost(insertion_ctx)))
     }
 
-    fn is_goal_satisfied(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> Option<bool> {
-        self.goal.map(|cost| cost <= self.get_actual_cost(insertion_ctx)).or(None)
+    fn is_goal_satisfied(
+        &self,
+        refinement_ctx: &mut RefinementContext,
+        insertion_ctx: &InsertionContext,
+    ) -> Option<bool> {
+        let actual_cost = self.get_actual_cost(insertion_ctx);
+
+        check_value_variation_goals(refinement_ctx, actual_cost, &self.cost_goal, &self.variation_goal)
     }
 }

@@ -1,5 +1,4 @@
-use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_problem};
-use crate::refinement::objectives::{MeasurableObjectiveCost, ObjectiveCost};
+use crate::helpers::models::domain::create_empty_problem;
 use crate::refinement::RefinementContext;
 use crate::utils::variation_coefficient::VariationCoefficient;
 
@@ -19,11 +18,9 @@ fn can_detect_termination_impl(capacity: usize, threshold: f64, delta: f64, expe
     let result = (0..capacity)
         .map(|i| {
             refinement_ctx.generation = i;
-            let cost: Box<dyn ObjectiveCost + Send + Sync> =
-                Box::new(MeasurableObjectiveCost::new(1. + (i + 1) as f64 * delta));
-            let individuum = (create_empty_insertion_context(), cost, i);
+            let cost = 1. + (i + 1) as f64 * delta;
 
-            termination.update_and_check(&mut refinement_ctx, &individuum)
+            termination.update_and_check(&mut refinement_ctx, cost)
         })
         .collect::<Vec<bool>>();
 

@@ -116,7 +116,7 @@ impl Solver {
         let (insertion_ctx, cost, _) = solution;
         let cost_change = get_cost_change(refinement_ctx, &cost);
         self.logger.deref()(format!(
-            "generation {} took {}ms (total {}s), cost: {:.2}:{:.3}%, routes: {}, unassigned: {}, accepted: {}",
+            "generation {} took {}ms (total {}s), cost: {:.2} ({:.3}%), routes: {}, unassigned: {}, accepted: {}",
             refinement_ctx.generation,
             generation_time.elapsed().as_millis(),
             refinement_time.elapsed().as_secs(),
@@ -137,7 +137,7 @@ impl Solver {
         refinement_ctx.population.all().enumerate().for_each(|(idx, (insertion_ctx, cost, generation))| {
             let cost_change = get_cost_change(refinement_ctx, cost);
             self.logger.deref()(format!(
-                "\t\t{} cost: {:.2}:{:.3}%, routes: {}, unassigned: {}, discovered at: {}",
+                "\t\t{} cost: {:.2} ({:.3}%), routes: {}, unassigned: {}, discovered at: {}",
                 idx,
                 cost.value(),
                 cost_change,

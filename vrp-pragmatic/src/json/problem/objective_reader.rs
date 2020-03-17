@@ -21,44 +21,37 @@ pub fn create_objective(
                 MinimizeCost { goal } => {
                     cost_idx = Some(idx);
                     core_objectives.push(Box::new(match goal {
-                        Some(GoalSatisfactionCriteria { value: Some(value), variation: Some(_variation) }) => {
-                            TotalTransportCost::new(*value)
-                        }
-                        Some(GoalSatisfactionCriteria { value: None, variation: Some(_variation) }) => {
+                        Some(GoalSatisfactionCriteria { value: None, variation: None }) => {
                             TotalTransportCost::default()
                         }
-                        Some(GoalSatisfactionCriteria { value: Some(value), variation: None }) => {
-                            TotalTransportCost::new(*value)
-                        }
+                        Some(GoalSatisfactionCriteria { value, variation }) => TotalTransportCost::new(
+                            value.clone(),
+                            variation.as_ref().map(|vc| (vc.sample, vc.variation)),
+                        ),
                         _ => TotalTransportCost::default(),
                     }));
                 }
                 MinimizeTours { goal } => {
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
                     core_objectives.push(Box::new(match goal {
-                        Some(GoalSatisfactionCriteria { value: Some(value), variation: Some(_variation) }) => {
-                            TotalRoutes::new(*value, true)
-                        }
-                        Some(GoalSatisfactionCriteria { value: None, variation: Some(_variation) }) => {
-                            TotalRoutes::default()
-                        }
-                        Some(GoalSatisfactionCriteria { value: Some(value), variation: None }) => {
-                            TotalRoutes::new(*value, true)
-                        }
+                        Some(GoalSatisfactionCriteria { value: None, variation: None }) => TotalRoutes::default(),
+                        Some(GoalSatisfactionCriteria { value, variation }) => TotalRoutes::new(
+                            value.clone(),
+                            variation.as_ref().map(|vc| (vc.sample, vc.variation)),
+                            true,
+                        ),
                         _ => TotalRoutes::default(),
                     }));
                 }
                 MinimizeUnassignedJobs { goal } => {
                     core_objectives.push(Box::new(match goal {
-                        Some(GoalSatisfactionCriteria { value: Some(value), variation: Some(_variation) }) => {
-                            TotalUnassignedJobs::new(*value)
-                        }
-                        Some(GoalSatisfactionCriteria { value: None, variation: Some(_variation) }) => {
+                        Some(GoalSatisfactionCriteria { value: None, variation: None }) => {
                             TotalUnassignedJobs::default()
                         }
-                        Some(GoalSatisfactionCriteria { value: Some(value), variation: None }) => {
-                            TotalUnassignedJobs::new(*value)
-                        }
+                        Some(GoalSatisfactionCriteria { value, variation }) => TotalUnassignedJobs::new(
+                            value.clone(),
+                            variation.as_ref().map(|vc| (vc.sample, vc.variation)),
+                        ),
                         _ => TotalUnassignedJobs::default(),
                     }));
                 }

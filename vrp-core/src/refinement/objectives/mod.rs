@@ -78,6 +78,7 @@ pub use self::total_transport_cost::TotalTransportCost;
 mod total_unassigned_jobs;
 
 pub use self::total_unassigned_jobs::TotalUnassignedJobs;
+use crate::utils::VariationCoefficient;
 
 impl ObjectiveCost for MeasurableObjectiveCost {
     fn value(&self) -> f64 {
@@ -222,4 +223,23 @@ impl Objective for MultiObjective {
             Some(results.iter().all(|&goal_satisfied| goal_satisfied))
         }
     }
+}
+
+fn check_value_variation_goals(
+    refinement_ctx: &mut RefinementContext,
+    actual_value: f64,
+    value_goal: &Option<(f64, bool)>,
+    variation_goal: &Option<VariationCoefficient>,
+) -> Option<bool> {
+    let variation =
+        variation_goal.as_ref().map(|variation_goal| variation_goal.update_and_check(refinement_ctx, actual_value));
+    let value = value_goal.as_ref().map(|&(desired_value, is_minimization)| {
+        if is_minimization {
+            actual_value <= desired_value
+        } else {
+            actual_value >= desired_value
+        }
+    });
+
+    variation.map(|variation| variation || value.unwrap_or(false)).or(value)
 }

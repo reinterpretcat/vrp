@@ -1,22 +1,30 @@
 use crate::construction::states::InsertionContext;
 use crate::models::common::Cost;
-use crate::refinement::objectives::{MeasurableObjectiveCost, Objective, ObjectiveCostType};
+use crate::refinement::objectives::{
+    check_value_variation_goals, MeasurableObjectiveCost, Objective, ObjectiveCostType,
+};
 use crate::refinement::RefinementContext;
+use crate::utils::VariationCoefficient;
 
 /// An objective function which counts total amount of routes.
 pub struct TotalRoutes {
-    goal: Option<(usize, bool)>,
+    route_goal: Option<(f64, bool)>,
+    variation_goal: Option<VariationCoefficient>,
 }
 
 impl Default for TotalRoutes {
     fn default() -> Self {
-        Self { goal: None }
+        Self { route_goal: None, variation_goal: None }
     }
 }
 
 impl TotalRoutes {
-    pub fn new(desired_routes: usize, is_minimization: bool) -> Self {
-        Self { goal: Some((desired_routes, is_minimization)) }
+    pub fn new(route_goal: Option<usize>, variation_goal: Option<(usize, f64)>, is_minimization: bool) -> Self {
+        Self {
+            route_goal: route_goal.map(|routes| (routes as f64, is_minimization)),
+            variation_goal: variation_goal
+                .map(|(sample, threshold)| VariationCoefficient::new(sample, threshold, "routes_vc")),
+        }
     }
 }
 
@@ -25,19 +33,13 @@ impl Objective for TotalRoutes {
         Box::new(MeasurableObjectiveCost::new(insertion_ctx.solution.routes.len() as Cost))
     }
 
-    fn is_goal_satisfied(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> Option<bool> {
-        let total_routes = insertion_ctx.solution.routes.len();
+    fn is_goal_satisfied(
+        &self,
+        refinement_ctx: &mut RefinementContext,
+        insertion_ctx: &InsertionContext,
+    ) -> Option<bool> {
+        let actual_routes = insertion_ctx.solution.routes.len() as f64;
 
-        self.goal
-            .map(
-                |(desired_routes, is_minimization)| {
-                    if is_minimization {
-                        total_routes <= desired_routes
-                    } else {
-                        total_routes >= desired_routes
-                    }
-                },
-            )
-            .or(None)
+        check_value_variation_goals(refinement_ctx, actual_routes, &self.route_goal, &self.variation_goal)
     }
 }
