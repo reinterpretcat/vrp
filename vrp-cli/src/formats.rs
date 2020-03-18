@@ -13,7 +13,7 @@ pub struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Probl
 
 pub struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Option<Solution>>);
 
-pub struct SolutionWriter(pub Box<dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>) -> Result<(), String>>);
+pub struct SolutionWriter(pub Box<dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>, bool) -> Result<(), String>>);
 
 pub struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<(), String>>);
 
@@ -27,7 +27,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                     problem.read_solomon()
                 })),
                 InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
-                SolutionWriter(Box::new(|_, solution, writer| solution.write_solomon(writer))),
+                SolutionWriter(Box::new(|_, solution, writer, _| solution.write_solomon(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         ),
@@ -39,7 +39,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                     problem.read_lilim()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|_, solution, writer| solution.write_lilim(writer))),
+                SolutionWriter(Box::new(|_, solution, writer, _| solution.write_lilim(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         ),
@@ -51,7 +51,13 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                     (problem, matrices.unwrap()).read_pragmatic()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|problem, solution, writer| solution.write_pragmatic_json(problem, writer))),
+                SolutionWriter(Box::new(|problem, solution, writer, use_geojson| {
+                    if use_geojson {
+                        solution.write_geo_json(problem, writer)
+                    } else {
+                        solution.write_pragmatic_json(problem, writer)
+                    }
+                })),
                 LocationWriter(Box::new(|problem, writer| {
                     let mut writer = writer;
                     vrp_pragmatic::get_locations(BufReader::new(problem))

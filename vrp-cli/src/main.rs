@@ -47,6 +47,7 @@ fn main() {
         .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect());
     let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
     let is_get_locations_set = matches.is_present(GET_LOCATIONS_ARG_NAME);
+    let use_geojson = matches.is_present(GEO_JSON_ARG_NAME);
 
     match formats.get(problem_format) {
         Some((problem_reader, init_reader, solution_writer, locations_writer)) => {
@@ -73,7 +74,7 @@ fn main() {
                             .build()
                             .solve(problem.clone());
                         match solution {
-                            Some(solution) => solution_writer.0(&problem, solution.0, out_buffer).unwrap(),
+                            Some(solution) => solution_writer.0(&problem, solution.0, out_buffer, use_geojson).unwrap(),
                             None => println!("Cannot find any solution"),
                         };
                     }
