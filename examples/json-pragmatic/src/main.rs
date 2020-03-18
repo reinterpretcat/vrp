@@ -18,22 +18,26 @@ fn main() {
 
 fn run_examples(base_path: &str) {
     let names = vec![
-        "break.basic",
-        "multi-day.basic",
-        "multi-job.basic",
-        "multi-job.mixed",
-        "relation-strict.basic",
-        "relation-any.basic",
-        "reload.basic",
-        "reload.multi",
-        "simple.basic",
-        "skills.basic",
-        "unassigned.unreachable",
+        ("break.basic", None, true),
+        ("multi-day.basic", None, true),
+        ("multi-job.basic", None, true),
+        ("multi-job.mixed", None, true),
+        //("multi-objective.balance-activities", Some("simple.basic"), false),
+        ("multi-objective.balance-load", Some("simple.basic"), false),
+        ("multi-objective.default", Some("simple.basic"), false),
+        ("multi-objective.goal", Some("simple.basic"), false),
+        ("relation-strict.basic", None, true),
+        ("relation-any.basic", None, true),
+        ("reload.basic", None, true),
+        ("reload.multi", None, true),
+        ("simple.basic", None, true),
+        ("skills.basic", None, true),
+        ("unassigned.unreachable", None, true),
     ];
 
-    for name in names {
+    for (name, matrix, has_existing_solution) in names {
         let problem = open_file(format!["{}/{}.problem.json", base_path, name].as_str());
-        let matrices = vec![open_file(format!["{}/{}.matrix.json", base_path, name].as_str())];
+        let matrices = vec![open_file(format!["{}/{}.matrix.json", base_path, matrix.unwrap_or(name)].as_str())];
 
         let problem = Arc::new((problem, matrices).read_pragmatic().unwrap_or_else(|err| {
             eprintln!("Cannot read pragmatic problem: '{}'", err);
@@ -50,7 +54,9 @@ fn run_examples(base_path: &str) {
 
         let solution = Arc::new(solution);
 
-        validate_with_existing(&problem, &solution, base_path, name);
+        if has_existing_solution {
+            validate_with_existing(&problem, &solution, base_path, name);
+        }
         validate_with_matrix(&problem, &solution);
     }
 }
