@@ -3,9 +3,10 @@ use clap::{App, Arg, ArgMatches};
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";
 pub const PROBLEM_ARG_NAME: &str = "PROBLEM";
-pub const MATRIX_ARG_NAME: &str = "routing-matrix";
+pub const MATRIX_ARG_NAME: &str = "matrix";
 pub const GENERATIONS_ARG_NAME: &str = "max-generations";
 pub const TIME_ARG_NAME: &str = "max-time";
+pub const GEO_JSON_ARG_NAME: &str = "geo-json";
 
 pub const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
 pub const OUT_RESULT_ARG_NAME: &str = "out-result";
@@ -26,8 +27,8 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
         .arg(Arg::with_name(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
         .arg(
             Arg::with_name(GENERATIONS_ARG_NAME)
-                .help("Specifies maximum amount of generations")
-                .short("g")
+                .help("Specifies maximum number of generations")
+                .short("n")
                 .long(GENERATIONS_ARG_NAME)
                 .required(false)
                 .takes_value(true),
@@ -43,7 +44,7 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
         .arg(
             Arg::with_name(INIT_SOLUTION_ARG_NAME)
                 .help("Specifies path to file with initial solution")
-                .short("s")
+                .short("i")
                 .long(INIT_SOLUTION_ARG_NAME)
                 .required(false)
                 .takes_value(true),
@@ -67,9 +68,16 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
         )
         .arg(
             Arg::with_name(GET_LOCATIONS_ARG_NAME)
-                .help("Specifies whether list of unique locations should be returned")
+                .help("Returns list of unique locations")
                 .short("l")
                 .long(GET_LOCATIONS_ARG_NAME)
+                .required(false),
+        )
+        .arg(
+            Arg::with_name(GEO_JSON_ARG_NAME)
+                .help("Returns solution in geo json format")
+                .short("g")
+                .long(GEO_JSON_ARG_NAME)
                 .required(false),
         )
         .get_matches()
