@@ -81,7 +81,7 @@ mod test {
 fn validate_with_existing(problem: &Arc<Problem>, solution: &Arc<Solution>, base_path: &str, name: &str) {
     let mut solution_serialized = String::new();
     let writer = unsafe { BufWriter::new(solution_serialized.as_mut_vec()) };
-    solution.write_pragmatic(&problem, writer).ok().unwrap();
+    solution.write_pragmatic_json(&problem, writer).ok().unwrap();
 
     let solution_expected = fs::read_to_string(format!["{}/{}.solution.json", base_path, name].as_str())
         .unwrap_or_else(|err| {

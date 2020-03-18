@@ -24,14 +24,22 @@ type DomainExtras = vrp_core::models::Extras;
 
 /// A trait to serialize solution in pragmatic format.
 pub trait PragmaticSolution<W: Write> {
-    fn write_pragmatic(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
+    /// Serializes solution in pragmatic json format.
+    fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
+
+    /// Serializes solution in pragmatic geo json format.
+    fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
 }
 
 impl<W: Write> PragmaticSolution<W> for Solution {
-    fn write_pragmatic(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+    fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
         let solution = create_solution(problem, &self);
         serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
         Ok(())
+    }
+
+    fn write_geo_json(&self, _problem: &Problem, _writer: BufWriter<W>) -> Result<(), String> {
+        unimplemented!()
     }
 }
 

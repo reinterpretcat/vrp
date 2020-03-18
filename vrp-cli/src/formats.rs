@@ -51,7 +51,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                     (problem, matrices.unwrap()).read_pragmatic()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|problem, solution, writer| solution.write_pragmatic(problem, writer))),
+                SolutionWriter(Box::new(|problem, solution, writer| solution.write_pragmatic_json(problem, writer))),
                 LocationWriter(Box::new(|problem, writer| {
                     let mut writer = writer;
                     vrp_pragmatic::get_locations(BufReader::new(problem))

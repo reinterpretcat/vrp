@@ -140,7 +140,7 @@ extern "C" fn solve(
 
         let mut buffer = String::new();
         let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-        solution.write_pragmatic(&problem, writer).ok();
+        solution.write_pragmatic_json(&problem, writer).ok();
 
         buffer
     });
