@@ -1,6 +1,7 @@
 use crate::construction::constraints::*;
 use crate::construction::states::{ActivityContext, RouteState};
 use crate::helpers::construction::constraints::*;
+use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{Job, Vehicle};
@@ -72,10 +73,11 @@ can_evaluate_demand_on_route! {
 
 fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraintViolation>) {
     let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
-    let ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
+    let solution_ctx = create_empty_solution_context();
+    let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
     let job = Job::Single(test_single_with_simple_demand(create_simple_demand(size)));
 
-    let result = create_constraint_pipeline_with_simple_capacity().evaluate_hard_route(&ctx, &job);
+    let result = create_constraint_pipeline_with_simple_capacity().evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
     assert_eq_option!(result, expected);
 }

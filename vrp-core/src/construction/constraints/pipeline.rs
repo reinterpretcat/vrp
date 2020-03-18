@@ -13,7 +13,12 @@ use std::sync::Arc;
 pub trait HardRouteConstraint {
     /// Estimates activity insertion in specific route.
     /// Returns violation error if constraint is violated.
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation>;
+    fn evaluate_job(
+        &self,
+        solution_ctx: &SolutionContext,
+        ctx: &RouteContext,
+        job: &Job,
+    ) -> Option<RouteConstraintViolation>;
 }
 
 /// Specifies soft constraint which operates on route level.
@@ -21,7 +26,7 @@ pub trait SoftRouteConstraint {
     /// Estimates activity insertion in specific route.
     /// Returns non-zero penalty if constraint is violated: positive makes insertion less attractive,
     /// negative - more.
-    fn estimate_job(&self, ctx: &RouteContext, job: &Job) -> Cost;
+    fn estimate_job(&self, solution_ctx: &SolutionContext, ctx: &RouteContext, job: &Job) -> Cost;
 }
 
 /// Specifies hard constraint which operates on activity level.
@@ -152,8 +157,13 @@ impl ConstraintPipeline {
 
     /// Checks whether all hard route constraints are fulfilled.
     /// Returns result of first failed constraint or empty value.
-    pub fn evaluate_hard_route(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
-        self.hard_route_constraints.iter().find_map(|c| c.evaluate_job(ctx, job))
+    pub fn evaluate_hard_route(
+        &self,
+        solution_ctx: &SolutionContext,
+        route_ctx: &RouteContext,
+        job: &Job,
+    ) -> Option<RouteConstraintViolation> {
+        self.hard_route_constraints.iter().find_map(|c| c.evaluate_job(solution_ctx, route_ctx, job))
     }
 
     /// Checks whether all activity route constraints are fulfilled.
@@ -167,8 +177,8 @@ impl ConstraintPipeline {
     }
 
     /// Checks soft route constraints and aggregates associated actual and penalty costs.
-    pub fn evaluate_soft_route(&self, ctx: &RouteContext, job: &Job) -> Cost {
-        self.soft_route_constraints.iter().map(|c| c.estimate_job(ctx, job)).sum()
+    pub fn evaluate_soft_route(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, job: &Job) -> Cost {
+        self.soft_route_constraints.iter().map(|c| c.estimate_job(solution_ctx, route_ctx, job)).sum()
     }
 
     /// Checks soft route constraints and aggregates associated actual and penalty costs.

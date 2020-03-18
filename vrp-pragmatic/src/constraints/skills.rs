@@ -41,7 +41,7 @@ struct SkillsHardRouteConstraint {
 }
 
 impl HardRouteConstraint for SkillsHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+    fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if let Some(requirement) = job.dimens().get_value::<HashSet<String>>("skills") {
             if let Some(skills) = ctx.route.actor.vehicle.dimens.get_value::<HashSet<String>>("skills") {
                 if requirement.is_subset(skills) {

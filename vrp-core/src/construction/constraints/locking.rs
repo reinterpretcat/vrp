@@ -83,7 +83,7 @@ struct StrictLockingHardRouteConstraint {
 }
 
 impl HardRouteConstraint for StrictLockingHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+    fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if let Some(condition) = self.conditions.get(job) {
             if !(condition)(&ctx.route.actor) {
                 return Some(RouteConstraintViolation { code: self.code });

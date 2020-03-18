@@ -194,7 +194,7 @@ struct TimeHardRouteConstraint {
 }
 
 impl HardRouteConstraint for TimeHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+    fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         let date = ctx.route.tour.start().unwrap().schedule.departure;
         let check_single = |single: &Arc<Single>| {
             single
@@ -398,7 +398,7 @@ fn has_travel_limits(limit_func: &TravelLimitFunc, route_ctx: &RouteContext) -> 
 struct RouteCostSoftRouteConstraint {}
 
 impl SoftRouteConstraint for RouteCostSoftRouteConstraint {
-    fn estimate_job(&self, ctx: &RouteContext, _job: &Job) -> f64 {
+    fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, _job: &Job) -> f64 {
         if ctx.route.tour.job_count() == 0 {
             ctx.route.actor.driver.costs.fixed + ctx.route.actor.vehicle.costs.fixed
         } else {

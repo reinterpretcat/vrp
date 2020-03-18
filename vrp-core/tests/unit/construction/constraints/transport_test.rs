@@ -2,6 +2,7 @@ mod timing {
     use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
     use crate::construction::states::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
+    use crate::helpers::models::domain::create_empty_solution_context;
     use crate::helpers::models::problem::*;
     use crate::helpers::models::solution::*;
     use crate::models::common::{Location, Schedule, TimeWindow, Timestamp};
@@ -261,10 +262,11 @@ mod timing {
             .add_driver(test_driver())
             .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
             .build();
+        let solution_ctx = create_empty_solution_context();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
         let job = SingleBuilder::new().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
 
-        let result = create_constraint_pipeline_with_timing().evaluate_hard_route(&route_ctx, &job);
+        let result = create_constraint_pipeline_with_timing().evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
         assert_eq_option!(result, Some(RouteConstraintViolation { code: 1 }));
     }

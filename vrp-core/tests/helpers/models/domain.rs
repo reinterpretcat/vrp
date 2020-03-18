@@ -39,17 +39,21 @@ pub fn create_empty_solution() -> Solution {
     }
 }
 
+pub fn create_empty_solution_context() -> SolutionContext {
+    SolutionContext {
+        required: vec![],
+        ignored: vec![],
+        unassigned: Default::default(),
+        locked: Default::default(),
+        routes: vec![],
+        registry: Registry::new(&test_fleet()),
+    }
+}
+
 pub fn create_empty_insertion_context() -> InsertionContext {
     InsertionContext {
         problem: create_empty_problem(),
-        solution: SolutionContext {
-            required: vec![],
-            ignored: vec![],
-            unassigned: Default::default(),
-            locked: Default::default(),
-            routes: vec![],
-            registry: Registry::new(&test_fleet()),
-        },
+        solution: create_empty_solution_context(),
         random: Arc::new(DefaultRandom::default()),
     }
 }

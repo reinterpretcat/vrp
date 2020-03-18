@@ -370,7 +370,7 @@ struct CapacitySoftRouteConstraint<Capacity: Add + Sub + Ord + Copy + Default + 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     SoftRouteConstraint for CapacitySoftRouteConstraint<Capacity>
 {
-    fn estimate_job(&self, ctx: &RouteContext, job: &Job) -> f64 {
+    fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> f64 {
         if self.multi_trip.is_reload_job(job) {
             0. - ctx.route.actor.vehicle.costs.fixed.max(1000.)
         } else {
@@ -388,7 +388,7 @@ struct CapacityHardRouteConstraint<Capacity: Add + Sub + Ord + Copy + Default + 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     HardRouteConstraint for CapacityHardRouteConstraint<Capacity>
 {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+    fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if self.multi_trip.is_reload_job(job) {
             return if self.multi_trip.is_assignable(&ctx.route, job) {
                 None

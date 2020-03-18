@@ -44,14 +44,14 @@ pub fn evaluate_job_insertion_in_route(
 ) -> InsertionResult {
     let alternative = alternative.map_or_else(|| InsertionResult::make_failure(), |r| r);
 
-    if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&route_ctx, job) {
+    if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&ctx.solution, &route_ctx, job) {
         return InsertionResult::choose_best_result(
             alternative,
             InsertionResult::make_failure_with_code(violation.code, Some(job.clone())),
         );
     }
 
-    let route_costs = ctx.problem.constraint.evaluate_soft_route(&route_ctx, &job);
+    let route_costs = ctx.problem.constraint.evaluate_soft_route(&ctx.solution, &route_ctx, &job);
     let best_known_cost = match &alternative {
         InsertionResult::Success(success) => Some(success.cost),
         _ => None,

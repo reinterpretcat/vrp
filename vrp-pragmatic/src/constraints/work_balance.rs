@@ -60,7 +60,7 @@ struct LoadBalanceSoftRouteConstraint<Capacity: Add + Sub + Ord + Copy + Default
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     SoftRouteConstraint for LoadBalanceSoftRouteConstraint<Capacity>
 {
-    fn estimate_job(&self, ctx: &RouteContext, _job: &Job) -> f64 {
+    fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, _job: &Job) -> f64 {
         let capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
 
         let intervals =

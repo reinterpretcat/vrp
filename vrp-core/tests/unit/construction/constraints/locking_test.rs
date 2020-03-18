@@ -2,6 +2,7 @@ use crate::construction::constraints::locking::StrictLockingModule;
 use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
 use crate::construction::states::ActivityContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
+use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{Job, Single};
@@ -29,10 +30,11 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Ro
         Arc::new(move |actor| get_vehicle_id(actor.vehicle.as_ref()) == locked.as_str()),
         vec![LockDetail::new(LockOrder::Any, LockPosition::Any, vec![job.clone()])],
     ))];
+    let solution_ctx = create_empty_solution_context();
     let route_ctx = create_route_context_with_activities(&fleet, used.as_str(), vec![]);
     let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, locks, 1)));
 
-    let result = pipeline.evaluate_hard_route(&route_ctx, &job);
+    let result = pipeline.evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
     assert_eq_option!(result, expected);
 }

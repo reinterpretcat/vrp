@@ -45,7 +45,7 @@ struct PrioritySoftRouteConstraint {
 }
 
 impl SoftRouteConstraint for PrioritySoftRouteConstraint {
-    fn estimate_job(&self, _: &RouteContext, job: &Job) -> f64 {
+    fn estimate_job(&self, _: &SolutionContext, _: &RouteContext, job: &Job) -> f64 {
         get_priority(job).map_or(0., |priority| ((priority - 1) as f64 * self.extra_cost.max(0.)))
     }
 }

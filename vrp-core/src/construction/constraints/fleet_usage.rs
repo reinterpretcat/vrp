@@ -52,7 +52,7 @@ struct FleetCostSoftRouteConstraint {
 }
 
 impl SoftRouteConstraint for FleetCostSoftRouteConstraint {
-    fn estimate_job(&self, ctx: &RouteContext, _job: &Job) -> Cost {
+    fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, _job: &Job) -> Cost {
         if ctx.route.tour.job_count() == 0 {
             self.extra_cost
         } else {

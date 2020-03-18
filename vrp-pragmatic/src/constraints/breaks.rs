@@ -76,7 +76,7 @@ struct BreakHardRouteConstraint {
 }
 
 impl HardRouteConstraint for BreakHardRouteConstraint {
-    fn evaluate_job(&self, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+    fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if let Some(single) = job.as_single() {
             if is_break_job(single) {
                 let job = job.to_single();
@@ -121,7 +121,7 @@ struct BreakSoftRouteConstraint {
 }
 
 impl SoftRouteConstraint for BreakSoftRouteConstraint {
-    fn estimate_job(&self, _ctx: &RouteContext, job: &Job) -> f64 {
+    fn estimate_job(&self, _: &SolutionContext, _ctx: &RouteContext, job: &Job) -> f64 {
         if let Some(cost) = self.extra_break_cost {
             if let Some(single) = job.as_single() {
                 return if is_break_job(single) { cost } else { 0. };
