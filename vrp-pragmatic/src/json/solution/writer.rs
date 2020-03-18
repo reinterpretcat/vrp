@@ -5,9 +5,10 @@ mod writer_test;
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format_time;
 use crate::json::coord_index::CoordIndex;
-use crate::json::solution::serializer::Timing;
+use crate::json::solution::default_serializer::Timing;
 use crate::json::solution::{
-    serialize_solution, Activity, Extras, Interval, Statistic, Stop, Tour, UnassignedJob, UnassignedJobReason,
+    serialize_solution, serialize_solution_as_geojson, Activity, Extras, Interval, Statistic, Stop, Tour,
+    UnassignedJob, UnassignedJobReason,
 };
 use crate::json::*;
 use std::io::{BufWriter, Write};
@@ -17,8 +18,8 @@ use vrp_core::models::problem::{Job, Multi};
 use vrp_core::models::solution::{Route, TourActivity};
 use vrp_core::models::{Problem, Solution};
 
-type ApiSolution = crate::json::solution::serializer::Solution;
-type ApiSchedule = crate::json::solution::serializer::Schedule;
+type ApiSolution = crate::json::solution::default_serializer::Solution;
+type ApiSchedule = crate::json::solution::default_serializer::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
 
@@ -38,8 +39,10 @@ impl<W: Write> PragmaticSolution<W> for Solution {
         Ok(())
     }
 
-    fn write_geo_json(&self, _problem: &Problem, _writer: BufWriter<W>) -> Result<(), String> {
-        unimplemented!()
+    fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+        let solution = create_solution(problem, &self);
+        serialize_solution_as_geojson(writer, &solution).map_err(|err| err.to_string())?;
+        Ok(())
     }
 }
 

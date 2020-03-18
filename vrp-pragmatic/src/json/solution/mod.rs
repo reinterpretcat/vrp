@@ -1,7 +1,10 @@
 //! Specifies logic to create a "pragmatic" solution and write it into json format.
 
-mod serializer;
-pub use self::serializer::*;
+mod default_serializer;
+pub use self::default_serializer::*;
+
+mod geo_serializer;
+pub use self::geo_serializer::serialize_solution_as_geojson;
 
 mod extensions;
 
