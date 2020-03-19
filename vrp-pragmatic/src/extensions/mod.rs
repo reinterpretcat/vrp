@@ -1,3 +1,6 @@
+mod approximated_transport_cost;
+pub use self::approximated_transport_cost::ApproximatedTransportCost;
+
 mod multi_dim_capacity;
 pub use self::multi_dim_capacity::MultiDimensionalCapacity;
 
