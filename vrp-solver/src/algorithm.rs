@@ -92,7 +92,7 @@ impl Solver {
 
             if is_terminated || is_goal_satisfied {
                 self.logger.deref()(format!(
-                    "Stopped due to termination ({}) or goal satisfaction ({})",
+                    "stopped due to termination ({}) or goal satisfaction ({})",
                     is_terminated, is_goal_satisfied
                 ));
                 break;
@@ -151,8 +151,8 @@ impl Solver {
     fn log_speed(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
         let elapsed = refinement_time.elapsed();
         self.logger.deref()(format!(
-            "Solving took {} ms, total generations: {}, speed: {:.2} gen/sec",
-            elapsed.as_millis(),
+            "solving took {}s, total generations: {}, speed: {:.2} gen/sec",
+            elapsed.as_secs(),
             refinement_ctx.generation,
             refinement_ctx.generation as f64 / elapsed.as_secs_f64()
         ));
@@ -164,7 +164,7 @@ impl Solver {
     ) -> Option<(Solution, Box<dyn ObjectiveCost + Send + Sync>, usize)> {
         if let Some((ctx, cost, generation)) = refinement_ctx.population.best() {
             self.logger.deref()(format!(
-                "Best solution within cost {} discovered at {} generation",
+                "best solution within cost {} discovered at {} generation",
                 cost.value(),
                 generation
             ));

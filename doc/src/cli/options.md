@@ -34,7 +34,7 @@ If you have multiple, simply specify them one by one, in the order of `fleet.pro
 ## Termination criteria
 
 Termination criteria defines when refinement algorithm should stop and return best known solution. At the moment, there
-are three types.
+are two types.
 
 ### Max time
 
@@ -65,4 +65,4 @@ Pragmatic format supports option `-g` or `--geo-json` which writes solution in s
 ## Get unique locations list
 
 List of unique locations can be received via `-l` or `--get-locations` setting. This list can be used to request routing
-matrices.
+matrices needed by `pragmatic` format.

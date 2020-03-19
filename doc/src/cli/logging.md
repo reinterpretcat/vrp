@@ -2,24 +2,26 @@
 
 CLI tool logs to std out some information about refinement progress:
 
+    configured to use single approximated routing matrix
+    configured to use default max-generations (2000) and max-time (300secs)
+    generation 1 took 6085ms (total 6s), cost: 4161.71 (100.000%), routes: 52, unassigned: 0, accepted: true
+    generation 14 took 3ms (total 6s), cost: 4161.58 (-0.003%), routes: 52, unassigned: 0, accepted: true
+    generation 15 took 3ms (total 6s), cost: 4161.15 (-0.010%), routes: 52, unassigned: 0, accepted: true
     ....
-    generation 19500 took 165ms (total 582s), cost: (25330.77,100000000.00): (-0.418%, 143.813%), routes: 47, accepted: false
-    generation 19600 took 8ms (total 584s), cost: (25459.05,53000000.00): (0.086%, 29.250%), routes: 47, accepted: false
-    generation 19691 took 4ms (total 587s), cost: (25419.88,41000000.00): (-0.068%, -0.000%), routes: 47, accepted: true
-    generation 19700 took 22ms (total 587s), cost: (25350.87,48000000.00): (-0.271%, 17.062%), routes: 47, accepted: false
-    generation 19800 took 48ms (total 590s), cost: (25484.83,63000000.00): (0.256%, 53.625%), routes: 47, accepted: false
-    generation 19900 took 8ms (total 592s), cost: (25516.30,42000000.00): (0.379%, 2.438%), routes: 47, accepted: false
-    generation 20000 took 16ms (total 595s), cost: (25494.75,42000000.00): (0.295%, 2.438%), routes: 47, accepted: false
-            population state after 595s (speed: 33.59 gen/sec):
-                    0 cost: (25419.88,41000000.00): (0.000%, 0.000%), routes: 47, discovered at: 19691
-                    1 cost: (25437.19,41000000.00): (0.068%, 0.000%), routes: 47, discovered at: 19268
-                    2 cost: (25463.49,41000000.00): (0.172%, 0.000%), routes: 47, discovered at: 19072
-                    3 cost: (25477.97,41000000.00): (0.229%, 0.000%), routes: 47, discovered at: 15460
-                    4 cost: (25478.78,41000000.00): (0.232%, 0.000%), routes: 47, discovered at: 15341
-                    5 cost: (25419.88,41000000.00): (0.000%, 0.000%), routes: 47, discovered at: 19691
-                    6 cost: (25419.88,41000000.00): (0.000%, 0.000%), routes: 47, discovered at: 19691
-                    7 cost: (25437.19,41000000.00): (0.068%, 0.000%), routes: 47, discovered at: 19268
-    Solving took 595482 ms, total generations: 20000, speed: 33.59 gen/sec
-    Best solution within cost 41025419.87973632 discovered at 19691 generation
+    generation 977 took 5ms (total 33s), cost: 4081.29 (-0.020%), routes: 52, unassigned: 0, accepted: true
+    generation 996 took 10ms (total 34s), cost: 4081.04 (-0.006%), routes: 52, unassigned: 0, accepted: true
+    generation 1000 took 5ms (total 34s), cost: 4084.25 (0.079%), routes: 52, unassigned: 0, accepted: false
+           population state after 34s (speed: 28.82 gen/sec):
+                   0 cost: 4081.04 (0.000%), routes: 52, unassigned: 0, discovered at: 996
+                   1 cost: 4081.29 (0.006%), routes: 52, unassigned: 0, discovered at: 977
+                   2 cost: 4082.12 (0.027%), routes: 52, unassigned: 0, discovered at: 969
+                   3 cost: 4082.37 (0.033%), routes: 52, unassigned: 0, discovered at: 966
+                   4 cost: 4082.43 (0.034%), routes: 52, unassigned: 0, discovered at: 947
+    generation 1032 took 7ms (total 35s), cost: 4080.87 (-0.004%), routes: 52, unassigned: 0, accepted: true
+    generation 1054 took 6ms (total 36s), cost: 4080.32 (-0.014%), routes: 52, unassigned: 0, accepted: true
+    ...
+    stopped due to termination (true) or goal satisfaction (false)
+    solving took 64s, total generations: 2000, speed: 31.37 gen/sec
+    best solution within cost 4051.2276 discovered at 1998 generation
 
 This log contains information about the costs, amount of routes, time, etc.

@@ -8,8 +8,8 @@
   * [First Steps with CLI](getting-started/first-steps.md)
 
 * [Command Line Tool](cli/index.md)
-    * [Options](cli/options.md)
-    * [Experiments](cli/experiments.md)
+    * [Available options](cli/options.md)
+    * [Prototyping and experimenting](cli/experiments.md)
     * [Logging](cli/logging.md)
 
 * [Concepts](concepts/index.md)
