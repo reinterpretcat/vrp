@@ -51,8 +51,12 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
             "pragmatic",
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
-                    assert!(matrices.is_some());
-                    (problem, matrices.unwrap()).read_pragmatic()
+                    if let Some(matrices) = matrices {
+                        (problem, matrices).read_pragmatic()
+                    } else {
+                        println!("configured to use single approximated routing matrix");
+                        problem.read_pragmatic()
+                    }
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
                 SolutionWriter(Box::new(|problem, solution, default_writer, geojson_writer| {
@@ -62,7 +66,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                 })),
                 LocationWriter(Box::new(|problem, writer| {
                     let mut writer = writer;
-                    vrp_pragmatic::get_locations(BufReader::new(problem))
+                    vrp_pragmatic::get_locations_serialized(BufReader::new(problem))
                         .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
                 })),
             ),

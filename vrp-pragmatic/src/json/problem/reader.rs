@@ -19,8 +19,9 @@ use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
 use crate::json::coord_index::CoordIndex;
 use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::json::*;
+use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
-use crate::{parse_time, StringReader};
+use crate::{get_locations, parse_time, StringReader};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
@@ -52,6 +53,13 @@ impl PragmaticProblem for (File, Vec<File>) {
     }
 }
 
+impl PragmaticProblem for File {
+    fn read_pragmatic(self) -> Result<Problem, String> {
+        let problem = deserialize_problem(BufReader::new(&self)).map_err(|err| err.to_string())?;
+        map_to_problem_with_approx(problem)
+    }
+}
+
 impl PragmaticProblem for (String, Vec<String>) {
     fn read_pragmatic(self) -> Result<Problem, String> {
         let problem = deserialize_problem(BufReader::new(StringReader::new(&self.0))).map_err(|err| err.to_string())?;
@@ -65,9 +73,23 @@ impl PragmaticProblem for (String, Vec<String>) {
     }
 }
 
+impl PragmaticProblem for String {
+    fn read_pragmatic(self) -> Result<Problem, String> {
+        let problem = deserialize_problem(BufReader::new(StringReader::new(&self))).map_err(|err| err.to_string())?;
+
+        map_to_problem_with_approx(problem)
+    }
+}
+
 impl PragmaticProblem for (ApiProblem, Vec<Matrix>) {
     fn read_pragmatic(self) -> Result<Problem, String> {
         map_to_problem(self.0, self.1)
+    }
+}
+
+impl PragmaticProblem for ApiProblem {
+    fn read_pragmatic(self) -> Result<Problem, String> {
+        map_to_problem_with_approx(self)
     }
 }
 
@@ -78,6 +100,21 @@ pub struct ProblemProperties {
     has_unreachable_locations: bool,
     has_reload: bool,
     priority: Option<Cost>,
+}
+
+fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, String> {
+    let locations = get_locations(&problem);
+    let (durations, distances) = get_approx_transportation(&locations, 10.);
+
+    let matrix = Matrix {
+        travel_times: durations.into_iter().map(|d| d.round() as i64).collect(),
+        distances: distances.into_iter().map(|d| d.round() as i64).collect(),
+        error_codes: None,
+    };
+
+    let matrices = problem.fleet.profiles.iter().map(|_| matrix.clone()).collect();
+
+    map_to_problem(problem, matrices)
 }
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
