@@ -9,6 +9,7 @@
 
 * [Command Line Tool](cli/index.md)
     * [Options](cli/options.md)
+    * [Experiments](cli/experiments.md)
     * [Logging](cli/logging.md)
 
 * [Concepts](concepts/index.md)

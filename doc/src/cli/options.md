@@ -59,6 +59,8 @@ By default termination criteria is max 2000 generations or 300 seconds.
 Writing solution into file is controlled by `-o` or `--out-result` setting. When it is omitted, then solution is written
 in std out.
 
+Pragmatic format supports option `-g` or `--geo-json` which writes solution in separate file in geojson format.
+
 
 ## Get unique locations list
 
