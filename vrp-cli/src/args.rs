@@ -75,10 +75,11 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
         )
         .arg(
             Arg::with_name(GEO_JSON_ARG_NAME)
-                .help("Returns solution in geo json format")
+                .help("Specifies path to solution output in geo json format")
                 .short("g")
                 .long(GEO_JSON_ARG_NAME)
-                .required(false),
+                .required(false)
+                .takes_value(true),
         )
         .get_matches()
 }

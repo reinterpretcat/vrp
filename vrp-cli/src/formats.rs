@@ -13,7 +13,11 @@ pub struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Probl
 
 pub struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Option<Solution>>);
 
-pub struct SolutionWriter(pub Box<dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>, bool) -> Result<(), String>>);
+pub struct SolutionWriter(
+    pub  Box<
+        dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>, Option<BufWriter<Box<dyn Write>>>) -> Result<(), String>,
+    >,
+);
 
 pub struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<(), String>>);
 
@@ -51,12 +55,10 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                     (problem, matrices.unwrap()).read_pragmatic()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|problem, solution, writer, use_geojson| {
-                    if use_geojson {
-                        solution.write_geo_json(problem, writer)
-                    } else {
-                        solution.write_pragmatic_json(problem, writer)
-                    }
+                SolutionWriter(Box::new(|problem, solution, default_writer, geojson_writer| {
+                    geojson_writer
+                        .map_or(Ok(()), |geojson_writer| solution.write_geo_json(problem, geojson_writer))
+                        .and_then(|_| solution.write_pragmatic_json(problem, default_writer))
                 })),
                 LocationWriter(Box::new(|problem, writer| {
                     let mut writer = writer;

@@ -46,16 +46,13 @@ fn main() {
         .values_of(MATRIX_ARG_NAME)
         .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect());
     let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
+    let out_geojson = matches.value_of(GEO_JSON_ARG_NAME).map(|path| create_file(path, "out geojson"));
     let is_get_locations_set = matches.is_present(GET_LOCATIONS_ARG_NAME);
-    let use_geojson = matches.is_present(GEO_JSON_ARG_NAME);
 
     match formats.get(problem_format) {
         Some((problem_reader, init_reader, solution_writer, locations_writer)) => {
-            let out_buffer: BufWriter<Box<dyn Write>> = if let Some(out_result) = out_result {
-                BufWriter::new(Box::new(out_result))
-            } else {
-                BufWriter::new(Box::new(stdout()))
-            };
+            let out_buffer = create_write_buffer(out_result);
+            let geo_buffer = out_geojson.map(|geojson| create_write_buffer(Some(geojson)));
 
             if is_get_locations_set {
                 locations_writer.0(problem_file, out_buffer).unwrap_or_else(|err| {
@@ -74,7 +71,7 @@ fn main() {
                             .build()
                             .solve(problem.clone());
                         match solution {
-                            Some(solution) => solution_writer.0(&problem, solution.0, out_buffer, use_geojson).unwrap(),
+                            Some(solution) => solution_writer.0(&problem, solution.0, out_buffer, geo_buffer).unwrap(),
                             None => println!("Cannot find any solution"),
                         };
                     }
@@ -104,4 +101,12 @@ fn create_file(path: &str, description: &str) -> File {
         eprintln!("Cannot create {} file '{}': '{}'", description, path, err.to_string());
         process::exit(1);
     })
+}
+
+fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn Write>> {
+    if let Some(out_file) = out_file {
+        BufWriter::new(Box::new(out_file))
+    } else {
+        BufWriter::new(Box::new(stdout()))
+    }
 }
