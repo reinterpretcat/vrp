@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use vrp_core::construction::states::InsertionContext;
 use vrp_core::models::{Problem, Solution};
-use vrp_core::refinement::acceptance::{Acceptance, RandomProbability};
+use vrp_core::refinement::acceptance::{Acceptance, Greedy};
 use vrp_core::refinement::mutation::{Mutation, RuinAndRecreateMutation};
 use vrp_core::refinement::objectives::ObjectiveCost;
 use vrp_core::refinement::selection::{SelectRandom, Selection};
@@ -27,7 +27,7 @@ impl Default for Solver {
         Solver::new(
             Box::new(SelectRandom::default()),
             Box::new(RuinAndRecreateMutation::default()),
-            Box::new(RandomProbability::default()),
+            Box::new(Greedy::default()),
             Box::new(CompositeTermination::default()),
             None,
             Box::new(|msg| println!("{}", msg)),
