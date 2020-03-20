@@ -1,10 +1,10 @@
-use crate::constraints::WorkBalanceModule;
+use crate::constraints::WorkBalance;
 use crate::extensions::MultiDimensionalCapacity;
 use crate::json::problem::reader::{ApiProblem, ProblemProperties};
 use crate::json::problem::Objective::*;
 use crate::json::problem::*;
 use std::sync::Arc;
-use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
+use vrp_core::construction::constraints::{ConstraintModule, ConstraintPipeline, FleetUsageConstraintModule};
 use vrp_core::refinement::objectives::Objective as CoreObjective;
 use vrp_core::refinement::objectives::*;
 
@@ -55,8 +55,18 @@ pub fn create_objective(
                         _ => TotalUnassignedJobs::default(),
                     }));
                 }
-                BalanceMaxLoad { threshold: _ } => add_load_balance_module(constraint, props),
-                BalanceActivities { threshold: _ } => add_activity_balance_module(constraint),
+                BalanceMaxLoad { threshold: _ } => {
+                    let (module, objective) = get_load_balance(props);
+                    constraint.add_module(module);
+                    core_objectives.push(objective);
+                }
+                BalanceActivities { threshold: _ } => {
+                    // TODO do not use hard coded penalty
+                    let balance_penalty = 1000.;
+                    let (module, objective) = WorkBalance::new_activity_balanced(balance_penalty);
+                    constraint.add_module(module);
+                    core_objectives.push(objective);
+                }
             });
             (core_objectives, cost_idx)
         };
@@ -81,13 +91,15 @@ pub fn create_objective(
     }
 }
 
-fn add_load_balance_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
+fn get_load_balance(
+    props: &ProblemProperties,
+) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn CoreObjective + Send + Sync>) {
     // TODO do not use hard coded penalty
     let balance_penalty = 1000.;
     if props.has_multi_dimen_capacity {
-        constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<MultiDimensionalCapacity>(
+        WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(
             balance_penalty,
-            Box::new(|loaded, total| {
+            Arc::new(|loaded, total| {
                 let mut max_ratio = 0_f64;
 
                 for (idx, value) in total.capacity.iter().enumerate() {
@@ -97,17 +109,11 @@ fn add_load_balance_module(constraint: &mut ConstraintPipeline, props: &ProblemP
 
                 max_ratio
             }),
-        )));
+        )
     } else {
-        constraint.add_module(Box::new(WorkBalanceModule::new_load_balanced::<i32>(
+        WorkBalance::new_load_balanced::<i32>(
             balance_penalty,
-            Box::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
-        )));
+            Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
+        )
     }
-}
-
-fn add_activity_balance_module(constraint: &mut ConstraintPipeline) {
-    // TODO do not use hard coded penalty
-    let balance_penalty = 1000.;
-    constraint.add_module(Box::new(WorkBalanceModule::new_activity_balanced(balance_penalty)));
 }

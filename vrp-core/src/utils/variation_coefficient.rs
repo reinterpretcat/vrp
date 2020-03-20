@@ -4,6 +4,7 @@ mod variation_coefficient_test;
 
 use crate::models::common::Cost;
 use crate::refinement::RefinementContext;
+use crate::utils::get_cv;
 
 /// Uses coefficient of variation as termination criteria.
 pub struct VariationCoefficient {
@@ -33,21 +34,6 @@ impl VariationCoefficient {
     }
 
     fn check_threshold(&self, costs: &Vec<f64>) -> bool {
-        let sum: f64 = costs.iter().sum();
-        let mean = sum / self.sample as f64;
-        let variance = self.calculate_variance(costs, mean);
-        let sdev = variance.sqrt();
-        let cv = sdev / mean;
-
-        cv < self.threshold
-    }
-
-    fn calculate_variance(&self, costs: &Vec<f64>, mean: f64) -> f64 {
-        let (first, second) = costs.iter().fold((0., 0.), |acc, v| {
-            let dev = v - mean;
-            (acc.0 + dev * dev, acc.1 + dev)
-        });
-
-        (first - (second * second / self.sample as f64)) / (self.sample as f64 - 1.)
+        get_cv(costs) < self.threshold
     }
 }

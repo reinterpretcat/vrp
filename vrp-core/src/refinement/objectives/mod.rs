@@ -3,6 +3,7 @@
 use crate::construction::states::InsertionContext;
 use crate::models::common::Cost;
 use crate::refinement::RefinementContext;
+use crate::utils::VariationCoefficient;
 use std::any::Any;
 use std::cmp::Ordering;
 use std::cmp::Ordering::{Equal, Greater, Less};
@@ -68,17 +69,13 @@ pub struct MultiObjective {
 }
 
 mod total_routes;
-
 pub use self::total_routes::TotalRoutes;
 
 mod total_transport_cost;
-
 pub use self::total_transport_cost::TotalTransportCost;
 
 mod total_unassigned_jobs;
-
 pub use self::total_unassigned_jobs::TotalUnassignedJobs;
-use crate::utils::VariationCoefficient;
 
 impl ObjectiveCost for MeasurableObjectiveCost {
     fn value(&self) -> f64 {

@@ -11,6 +11,9 @@ mod random;
 pub use self::random::DefaultRandom;
 pub use self::random::Random;
 
+mod statistics;
+pub use self::statistics::*;
+
 mod variation_coefficient;
 pub use self::variation_coefficient::*;
 
