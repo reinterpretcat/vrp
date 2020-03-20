@@ -4,8 +4,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::states::{InsertionContext, RouteContext, SolutionContext};
-use vrp_core::models::common::Cost;
-use vrp_core::models::problem::Job;
+use vrp_core::models::problem::{Costs, Job};
 use vrp_core::refinement::objectives::{MeasurableObjectiveCost, Objective, ObjectiveCostType};
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::get_stdev;
@@ -15,7 +14,6 @@ pub struct WorkBalance {}
 impl WorkBalance {
     /// Creates `WorkBalanceModule` which balances max load across all tours.
     pub fn new_load_balanced<Capacity>(
-        extra_cost: Cost,
         load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
     ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>)
     where
@@ -23,7 +21,6 @@ impl WorkBalance {
     {
         let create_balance = || MaxLoadBalance::<Capacity> {
             load_func: load_func.clone(),
-            extra_cost,
             default_capacity: Capacity::default(),
             default_intervals: vec![(0_usize, 0_usize)],
         };
@@ -38,15 +35,13 @@ impl WorkBalance {
     }
 
     /// Creates `WorkBalanceModule` which balances activities across all tours.
-    pub fn new_activity_balanced(
-        extra_cost: Cost,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+    pub fn new_activity_balanced() -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
         (
             Box::new(WorkBalanceModule {
-                constraints: vec![ConstraintVariant::SoftRoute(Arc::new(ActivityBalance { extra_cost }))],
+                constraints: vec![ConstraintVariant::SoftRoute(Arc::new(ActivityBalance {}))],
                 keys: vec![],
             }),
-            Box::new(ActivityBalance { extra_cost }),
+            Box::new(ActivityBalance {}),
         )
     }
 }
@@ -75,7 +70,6 @@ impl ConstraintModule for WorkBalanceModule {
 
 struct MaxLoadBalance<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
-    extra_cost: Cost,
     default_capacity: Capacity,
     default_intervals: Vec<(usize, usize)>,
 }
@@ -106,10 +100,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     SoftRouteConstraint for MaxLoadBalance<Capacity>
 {
-    fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, _job: &Job) -> f64 {
-        let max_load_ratio = self.get_max_load_ratio(ctx);
+    fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
+        let max_load_ratio = self.get_max_load_ratio(route_ctx);
+        let max_cost = get_max_cost(solution_ctx);
 
-        (self.extra_cost + ctx.route.actor.vehicle.costs.fixed) * max_load_ratio
+        max_cost * max_load_ratio
     }
 }
 
@@ -127,23 +122,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-struct ActivityBalance {
-    extra_cost: Cost,
-}
+struct ActivityBalance {}
 
 impl SoftRouteConstraint for ActivityBalance {
     fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
-        let has_less_activities = solution_ctx
-            .routes
-            .iter()
-            .filter(|rc| rc.route.actor != route_ctx.route.actor)
-            .any(|rc| route_ctx.route.tour.activity_count() > rc.route.tour.activity_count());
+        let max_cost = get_max_cost(solution_ctx);
 
-        if has_less_activities {
-            self.extra_cost
-        } else {
-            0.
-        }
+        route_ctx.route.tour.activity_count() as f64 * max_cost
     }
 }
 
@@ -157,4 +142,25 @@ impl Objective for ActivityBalance {
     fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {
         None
     }
+}
+
+fn get_max_cost(solution_ctx: &SolutionContext) -> f64 {
+    let get_total_cost = |costs: &Costs, distance: f64, duration: f64| {
+        costs.fixed
+            + costs.per_distance * distance
+            + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
+    };
+
+    solution_ctx
+        .routes
+        .iter()
+        .map(|rc| {
+            let distance = rc.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+            let duration = rc.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
+
+            get_total_cost(&rc.route.actor.vehicle.costs, distance, duration)
+                + get_total_cost(&rc.route.actor.driver.costs, distance, duration)
+        })
+        .max_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
+        .unwrap_or(0.)
 }

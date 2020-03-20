@@ -61,9 +61,7 @@ pub fn create_objective(
                     core_objectives.push(objective);
                 }
                 BalanceActivities { threshold: _ } => {
-                    // TODO do not use hard coded penalty
-                    let balance_penalty = 1000.;
-                    let (module, objective) = WorkBalance::new_activity_balanced(balance_penalty);
+                    let (module, objective) = WorkBalance::new_activity_balanced();
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
@@ -94,26 +92,18 @@ pub fn create_objective(
 fn get_load_balance(
     props: &ProblemProperties,
 ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn CoreObjective + Send + Sync>) {
-    // TODO do not use hard coded penalty
-    let balance_penalty = 1000.;
     if props.has_multi_dimen_capacity {
-        WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(
-            balance_penalty,
-            Arc::new(|loaded, total| {
-                let mut max_ratio = 0_f64;
+        WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(Arc::new(|loaded, total| {
+            let mut max_ratio = 0_f64;
 
-                for (idx, value) in total.capacity.iter().enumerate() {
-                    let ratio = loaded.capacity[idx] as f64 / *value as f64;
-                    max_ratio = max_ratio.max(ratio);
-                }
+            for (idx, value) in total.capacity.iter().enumerate() {
+                let ratio = loaded.capacity[idx] as f64 / *value as f64;
+                max_ratio = max_ratio.max(ratio);
+            }
 
-                max_ratio
-            }),
-        )
+            max_ratio
+        }))
     } else {
-        WorkBalance::new_load_balanced::<i32>(
-            balance_penalty,
-            Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
-        )
+        WorkBalance::new_load_balanced::<i32>(Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64))
     }
 }
