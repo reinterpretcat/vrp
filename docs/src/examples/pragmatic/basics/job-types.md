@@ -25,8 +25,6 @@ In this example, there is one delivery, one pickup, and one pickup and delivery 
 {{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json}}
 ```
 
-As problem has two job task places with exactly same location, solution contains one stop with two activities.
-
 </p></details>
 
 </br>
@@ -36,6 +34,8 @@ As problem has two job task places with exactly same location, solution contains
 </div>
 
 <div id="map"></div>
+
+As problem has two job task places with exactly same location, solution contains one stop with two activities.
  
  
 ## Multiple pickups and deliveries

@@ -17,7 +17,7 @@ if (geojson) {
         },
         pointToLayer: function (feature, latlng) {
             return L.circleMarker(latlng, {
-                radius: 12,
+                radius: (feature.properties["marker-symbol"] === "warehouse" ? 16 : 12),
                 fillColor: feature.properties["marker-color"],
                 fillOpacity: 0.75,
                 weight: 2,

@@ -53,3 +53,8 @@ to model _waste collection_ use case.
 
 </p></details>
 
+<div id="geojson" hidden>
+{{#include ../../../../../examples/json-pragmatic/data/basics/reload.multi.solution.geojson}}
+</div>
+
+<div id="map"></div>

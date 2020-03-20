@@ -1,10 +1,10 @@
 {
   "statistic": {
-    "cost": 66.71670800000001,
-    "distance": 30911,
-    "duration": 8018,
+    "cost": 52.38156800000001,
+    "distance": 23876,
+    "duration": 5328,
     "times": {
-      "driving": 5078,
+      "driving": 2388,
       "serving": 2940,
       "waiting": 0,
       "break": 0
@@ -42,10 +42,10 @@
             "lng": 13.4095
           },
           "time": {
-            "arrival": "2019-07-04T09:07:50Z",
-            "departure": "2019-07-04T09:11:50Z"
+            "arrival": "2019-07-04T09:02:55Z",
+            "departure": "2019-07-04T09:06:55Z"
           },
-          "distance": 2470,
+          "distance": 1752,
           "load": [
             1
           ],
@@ -62,10 +62,10 @@
             "lng": 13.3808
           },
           "time": {
-            "arrival": "2019-07-04T09:18:04Z",
-            "departure": "2019-07-04T09:23:04Z"
+            "arrival": "2019-07-04T09:10:21Z",
+            "departure": "2019-07-04T09:15:21Z"
           },
-          "distance": 4624,
+          "distance": 3808,
           "load": [
             2
           ],
@@ -82,10 +82,10 @@
             "lng": 13.3898
           },
           "time": {
-            "arrival": "2019-07-04T09:28:37Z",
-            "departure": "2019-07-04T09:38:37Z"
+            "arrival": "2019-07-04T09:16:53Z",
+            "departure": "2019-07-04T09:26:53Z"
           },
-          "distance": 6173,
+          "distance": 4729,
           "load": [
             0
           ],
@@ -93,86 +93,6 @@
             {
               "jobId": "reload",
               "type": "reload"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 52.52599,
-            "lng": 13.45413
-          },
-          "time": {
-            "arrival": "2019-07-04T09:53:00Z",
-            "departure": "2019-07-04T09:58:00Z"
-          },
-          "distance": 11576,
-          "load": [
-            1
-          ],
-          "activities": [
-            {
-              "jobId": "job1",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 52.4922,
-            "lng": 13.4593
-          },
-          "time": {
-            "arrival": "2019-07-04T10:11:51Z",
-            "departure": "2019-07-04T10:16:51Z"
-          },
-          "distance": 16675,
-          "load": [
-            2
-          ],
-          "activities": [
-            {
-              "jobId": "job5",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 52.5043,
-            "lng": 13.4091
-          },
-          "time": {
-            "arrival": "2019-07-04T10:29:32Z",
-            "departure": "2019-07-04T10:39:32Z"
-          },
-          "distance": 21162,
-          "load": [
-            0
-          ],
-          "activities": [
-            {
-              "jobId": "reload",
-              "type": "reload"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 52.4989,
-            "lng": 13.3917
-          },
-          "time": {
-            "arrival": "2019-07-04T10:43:51Z",
-            "departure": "2019-07-04T10:48:51Z"
-          },
-          "distance": 22737,
-          "load": [
-            1
-          ],
-          "activities": [
-            {
-              "jobId": "job6",
-              "type": "pickup"
             }
           ]
         },
@@ -182,12 +102,12 @@
             "lng": 13.3513
           },
           "time": {
-            "arrival": "2019-07-04T10:57:40Z",
-            "departure": "2019-07-04T11:02:40Z"
+            "arrival": "2019-07-04T09:31:18Z",
+            "departure": "2019-07-04T09:36:18Z"
           },
-          "distance": 26794,
+          "distance": 7379,
           "load": [
-            2
+            1
           ],
           "activities": [
             {
@@ -198,14 +118,94 @@
         },
         {
           "location": {
+            "lat": 52.4989,
+            "lng": 13.3917
+          },
+          "time": {
+            "arrival": "2019-07-04T09:41:42Z",
+            "departure": "2019-07-04T09:46:42Z"
+          },
+          "distance": 10621,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job6",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5043,
+            "lng": 13.4091
+          },
+          "time": {
+            "arrival": "2019-07-04T09:48:54Z",
+            "departure": "2019-07-04T09:58:54Z"
+          },
+          "distance": 11944,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "reload",
+              "type": "reload"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4922,
+            "lng": 13.4593
+          },
+          "time": {
+            "arrival": "2019-07-04T10:05:00Z",
+            "departure": "2019-07-04T10:10:00Z"
+          },
+          "distance": 15603,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job5",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T10:16:18Z",
+            "departure": "2019-07-04T10:21:18Z"
+          },
+          "distance": 19381,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
             "lat": 52.5316,
             "lng": 13.3884
           },
           "time": {
-            "arrival": "2019-07-04T11:13:38Z",
-            "departure": "2019-07-04T11:13:38Z"
+            "arrival": "2019-07-04T10:28:48Z",
+            "departure": "2019-07-04T10:28:48Z"
           },
-          "distance": 30911,
+          "distance": 23876,
           "load": [
             0
           ],
@@ -218,11 +218,11 @@
         }
       ],
       "statistic": {
-        "cost": 66.71670800000001,
-        "distance": 30911,
-        "duration": 8018,
+        "cost": 52.38156800000001,
+        "distance": 23876,
+        "duration": 5328,
         "times": {
-          "driving": 5078,
+          "driving": 2388,
           "serving": 2940,
           "waiting": 0,
           "break": 0
