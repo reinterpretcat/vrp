@@ -17,4 +17,4 @@ The `name` must be unique for each profile and it should referenced by `profile`
 ## Multiple profiles
 
 In general, you're not limited to one single routing profile. You can define multiple and pass them to the solver in the
-order they are defined in `fleet.profiles`. See [multiple profiles example](../../../examples/pragmatic/profiles.md).
+order they are defined in `fleet.profiles`. See [multiple profiles example](../../../examples/pragmatic/basics/profiles.md).

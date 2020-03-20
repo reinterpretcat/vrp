@@ -51,37 +51,37 @@ The main focus of the project is to support solving multiple variations of VRP w
 
  This list describes some of supported features, exposed by `pragmatic` format, in informal way:
 
- - **[multiple breaks](../examples/pragmatic/break.md)** with multiple time windows or interval time and optional
+ - **[multiple breaks](../examples/pragmatic/basics/break.md)** with multiple time windows or interval time and optional
      location for vehicles.
 
- - **[multiple shifts](../examples/pragmatic/multi-day.md)** for vehicles: this allows to define multi-day planning
+ - **[multiple shifts](../examples/pragmatic/basics/multi-day.md)** for vehicles: this allows to define multi-day planning
      scenario when vehicle can be used multiple times, but on different days.
 
- - **[multiple reloads](../examples/pragmatic/reload.md)**: this allows vehicle to return back to the depot (or any
+ - **[multiple reloads](../examples/pragmatic/basics/reload.md)**: this allows vehicle to return back to the depot (or any
      other place) in order to unload/load goods during single tour (see MTVRP). In some VRP variations this helps to
      significantly reduce amount of used vehicles.
 
- - **[multi jobs](../examples/pragmatic/multi-jobs.md)**: multi job is a job which consists of multiple sub-jobs. Multi job
+ - **[multi jobs](../examples/pragmatic/basics/job-types.md)**: multi job is a job which consists of multiple sub-jobs. Multi job
      is considered as assigned only when all of sub jobs are assigned. This is useful for scenarios such as multiple
      pickups, but single delivery, or other way round.
 
- - **[multiple objectives](../examples/pragmatic/objectives.md)**: this extends application from scientific domain to real
+ - **[multiple objectives](../examples/pragmatic/objectives/index.md)**: this extends application from scientific domain to real
      life scenarios where solver should consider multiple optimization parameters simultaneously.
 
- - **[vehicle profiles](../examples/pragmatic/profiles.md)**: allows to use different routing matrix profiles for different
+ - **[vehicle profiles](../examples/pragmatic/basics/profiles.md)**: allows to use different routing matrix profiles for different
      vehicle types, e.g. truck and car.
 
  - **multidimensional demand**: allows you to use multiple dimensions to set different types of capacity/demand
      simultaneously.
 
-- **[skills](../examples/pragmatic/skills.md)**: allows to specify various skills (which is simple some tag) on vehicle
+- **[skills](../examples/pragmatic/basics/skills.md)**: allows to specify various skills (which is simple some tag) on vehicle
      and customer. Customer with specific skills can be visited only if these skills are present on vehicle.
 
 - **different job types**: allows to model pickups, deliveries, replacements, services, and their combinations.
 
 - **job priorities**: allows you to force some jobs being served before others.
 
- - **[relations](../examples/pragmatic/relations.md)**: allows to specify relations which locks jobs to specific vehicles
+ - **[relations](../examples/pragmatic/basics/relations.md)**: allows to specify relations which locks jobs to specific vehicles
      in customizable way.
 
  - **limits**: allows to specify limits on vehicle such as max traveling distance or time.

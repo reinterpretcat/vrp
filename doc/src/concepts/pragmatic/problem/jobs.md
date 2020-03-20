@@ -73,7 +73,7 @@ them to one or many `job.deliveries.location`. The job has the following rules:
 A good example of such job is a job with more than two places with variable demand:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-job.basic.problem.json:4:55}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.basic.problem.json:4:55}}
 ```
 
 This job contains two pickups and one delivery. Interpretation of such job can be "bring two parcels from two different
@@ -82,7 +82,7 @@ places to one single customer".
 Another example is one pickup and two deliveries:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-job.basic.problem.json:56:107}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.basic.problem.json:56:107}}
 ```
 
 
@@ -91,7 +91,7 @@ Another example is one pickup and two deliveries:
 A replacement job is a job with `job.replacement` property specified:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-job.mixed.problem.json:4:28}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.mixed.problem.json:4:28}}
 ```
 
 It models an use case when something big has to be replaced at the customer's location. This task requires a new `good`
@@ -103,7 +103,7 @@ to be loaded at the beginning of the journey and old replaced one brought to jou
 A service job is a job with `job.service` property specified:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-job.mixed.problem.json:29:54}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.mixed.problem.json:29:54}}
 ```
 
 This job models some work without demand (e.g. handyman visit).
@@ -114,7 +114,7 @@ This job models some work without demand (e.g. handyman visit).
 You can specify multiple tasks properties to get some mixed job:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-job.mixed.problem.json:55:118}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.mixed.problem.json:55:118}}
 ```
 
 Similar pickup and delivery job, all these tasks has to be executed or none of them. The order is not specified except
@@ -123,5 +123,5 @@ pickups must be scheduled before any delivery, replacement or service.
 
 ## Examples
 
-Please refer to [multi jobs example](../../../examples/pragmatic/multi-jobs.md) to see how to specify problem with multiple
-pickups and deliveries and for [simple jobs example](../../../examples/pragmatic/simple-jobs.md) to see simple case.
+Please refer to [basic job usage examples](../../../examples/pragmatic/basics/job-types.md) to see how to specify problem with
+different job types.

@@ -32,7 +32,7 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 
 - **skills** (optional): vehicle skills needed by some jobs
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/skills.basic.problem.json:120:122}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/skills.basic.problem.json:120:122}}
 ```
 
 - **limits** (optional): vehicle limits. There are two:
@@ -55,7 +55,7 @@ Essentially, shift specifies vehicle constraints such as time, start/end locatio
 ```
 
 At least one shift has to be specified. More than one vehicle shift with different times means that this vehicle can be
-used more than once. This is useful for multi day scenarios. An example can be found [here](../../../examples/pragmatic/multi-day.md).
+used more than once. This is useful for multi day scenarios. An example can be found [here](../../../examples/pragmatic/basics/multi-day.md).
 
 Each shift can have the following properties:
 
@@ -67,7 +67,7 @@ Each shift can have the following properties:
      - duration of the break
      - optional locations. When present, one of locations is used for break. If it is omitted then break is stick to
        location of job served before break.
-    See example [here](../../../examples/pragmatic/break.md)
+    See example [here](../../../examples/pragmatic/basics/break.md)
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. It can be used to model multi trip routes.
-    See examples [here](../../../examples/pragmatic/reload.md).
+    See examples [here](../../../examples/pragmatic/basics/reload.md).

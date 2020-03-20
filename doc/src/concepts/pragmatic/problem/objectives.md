@@ -30,7 +30,7 @@ following characteristics:
 For value-based objectives, it is possible to specify an optimization goal:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-objective.goal.problem.json:150:156}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-objective.goal.problem.json:150:156}}
 ```
 
 Goal consists of two optional properties:
@@ -47,7 +47,7 @@ refinement algorithm stops.
 For balancing objective, an optional threshold specifies a value when it has to be applied:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-objective.balance-load.problem.json:140:143}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-objective.balance-load.problem.json:140:143}}
 ```
 
 
@@ -61,7 +61,7 @@ The solver already provides some built-in objectives.
 An objective with `minimize-cost` type minimizes total transport cost calculated for all routes:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-objective.goal.problem.json:148:157}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-objective.goal.problem.json:148:157}}
 ```
 
 The objective has `goal` with `value` and `variation` specifying desired total cost and variation coefficient.
@@ -72,7 +72,7 @@ The objective has `goal` with `value` and `variation` specifying desired total c
 An objective with `minimize-tours` type minimizes total amount of tours present in solution:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-objective.goal.problem.json:140:142}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-objective.goal.problem.json:140:142}}
 ```
 
 The objective has `goal` with `value` and `variation` specifying desired tour amount and variation coefficient.
@@ -88,7 +88,7 @@ constraints such as time windows.
 In order to use this objective specify `minimize-unassigned` type:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-objective.goal.problem.json:143:145}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-objective.goal.problem.json:143:145}}
 ```
 
 The objective has `goal` with `value` and `variation` specifying desired amount of unassigned and variation coefficient.
@@ -99,7 +99,7 @@ By default, decision maker minimizes amount of routes, unassigned jobs and total
 definition:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/multi-objective.default.problem.json:138:152}}
+{{#include ../../../../../examples/json-pragmatic/data/basics/multi-objective.default.problem.json:138:152}}
 ```
 
 Here, cost minimization is a secondary objective which corresponds to a classical hierarchical objective used
@@ -118,6 +118,6 @@ Most of objectives are conflicting to each other, so there are some suggestions:
 
 ## Examples
 
-Please refer to [examples section](../../../examples/pragmatic/objectives.md) to see more.
+Please refer to [examples section](../../../examples/pragmatic/objectives/index.md) to see more.
 
 

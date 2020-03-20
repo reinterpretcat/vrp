@@ -5,3 +5,12 @@ language = "en"
 multilingual = false
 src = "src"
 title = "A Vehicle Routing Problem Solver Documentation"
+
+[output.html]
+additional-css = [
+    "resources/leaflet.css"
+]
+additional-js = [
+    "resources/leaflet.js",
+    "resources/map.js"
+]

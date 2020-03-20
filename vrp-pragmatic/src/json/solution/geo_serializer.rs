@@ -100,7 +100,7 @@ fn get_color(idx: usize) -> String {
 
     let idx = idx % COLOR_LIST.len();
 
-    COLOR_LIST.get(idx).as_ref().unwrap().1.to_owned()
+    COLOR_LIST.get(idx).as_ref().unwrap().to_string()
 }
 
 fn get_color_inverse(idx: usize) -> String {
@@ -108,50 +108,15 @@ fn get_color_inverse(idx: usize) -> String {
 
     let idx = (COLOR_LIST.len() - idx) % COLOR_LIST.len();
 
-    COLOR_LIST.get(idx).as_ref().unwrap().1.to_owned()
+    COLOR_LIST.get(idx).as_ref().unwrap().to_string()
 }
 
-type ColorList = &'static [(&'static str, &'static str); 37];
+type ColorList = &'static [&'static str; 15];
 
 /// Returns list of human distinguishable colors.
 const fn get_color_list() -> ColorList {
     &[
-        ("aqua", "#00ffff"),
-        ("black", "#000000"),
-        ("brown", "#a52a2a"),
-        ("darkblue", "#00008b"),
-        ("darkcyan", "#008b8b"),
-        ("darkgrey", "#a9a9a9"),
-        ("darkgreen", "#006400"),
-        ("darkkhaki", "#bdb76b"),
-        ("darkmagenta", "#8b008b"),
-        ("darkolivegreen", "#556b2f"),
-        ("darkorange", "#ff8c00"),
-        ("darkorchid", "#9932cc"),
-        ("darkred", "#8b0000"),
-        ("darksalmon", "#e9967a"),
-        ("darkviolet", "#9400d3"),
-        ("fuchsia", "#ff00ff"),
-        ("gold", "#ffd700"),
-        ("green", "#008000"),
-        ("indigo", "#4b0082"),
-        ("khaki", "#f0e68c"),
-        ("lightblue", "#add8e6"),
-        ("lightcyan", "#e0ffff"),
-        ("lightgreen", "#90ee90"),
-        ("lightgrey", "#d3d3d3"),
-        ("lightpink", "#ffb6c1"),
-        ("lightyellow", "#ffffe0"),
-        ("lime", "#00ff00"),
-        ("magenta", "#ff00ff"),
-        ("maroon", "#800000"),
-        ("navy", "#000080"),
-        ("olive", "#808000"),
-        ("orange", "#ffa500"),
-        ("pink", "#ffc0cb"),
-        ("purple", "#800080"),
-        ("red", "#ff0000"),
-        ("silver", "#c0c0c0"),
-        ("yellow", "#ffff00"),
+        "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#008080", "#e6beff",
+        "#9a6324", "#800000", "#808000", "#000075", "#808080",
     ]
 }

@@ -1,4 +1,4 @@
-# Prototyping and experimenting
+# Tips and tricks
 
 As it is already mentioned, the project supports multiple VRP variants for real life scenarios. However,
 it might be difficult to start using the solver due to missing routing information or tool for result analysis.
@@ -18,6 +18,13 @@ To use this feature, simply omit `-m` parameter for routing matrix files.
 ## Geojson visualization
 
 Analyzing VRP solution might be a difficult task. `pragmatic` format supports output in [geojson](https://en.wikipedia.org/wiki/GeoJSON)
-format which can be simply visualized in numerous web based front ends, e.g. [geojson.io](http://geojson.io/).
+format which can be simply visualized in numerous web based front ends, e.g. [geojson.io](http://geojson.io/) or using
+open source tools such as `leaflet`:
+
+<div id="geojson" hidden>
+{{#include ../../../examples/json-pragmatic/data/objectives/berlin.default.solution.geojson}}
+</div>
+
+<div id="map"></div>
 
 To return solution in `geojson` format, use `-g` or `--geo-json` option.
