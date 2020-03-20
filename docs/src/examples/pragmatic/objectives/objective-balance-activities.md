@@ -26,7 +26,7 @@
 
 <div id="map"></div>
 
-This objective balances amount of activities and minimizes fleet usage ta the same tim:
+This objective balances amount of activities and minimizes fleet usage at the same time:
 
 ```json
 {{#include ../../../../../examples/json-pragmatic/data/objectives/berlin.balance-activities.problem.json:1003:1020}}
