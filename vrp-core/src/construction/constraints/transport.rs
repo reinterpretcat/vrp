@@ -38,7 +38,7 @@ impl ConstraintModule for TransportConstraintModule {
         if has_travel_limits(&self.limit_func, ctx) {
             self.reschedule_departure(ctx)
         }
-        self.update_limits(ctx);
+        self.update_statistics(ctx);
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
@@ -46,7 +46,7 @@ impl ConstraintModule for TransportConstraintModule {
             self.update_route_schedules(route_ctx);
             self.update_route_states(route_ctx);
             self.reschedule_departure(route_ctx);
-            self.update_limits(route_ctx);
+            self.update_statistics(route_ctx);
         })
     }
 
@@ -168,24 +168,22 @@ impl TransportConstraintModule {
         None
     }
 
-    fn update_limits(&self, ctx: &mut RouteContext) {
-        if has_travel_limits(&self.limit_func, &ctx) {
-            let start = ctx.route.tour.start().unwrap();
-            let end = ctx.route.tour.end().unwrap();
+    fn update_statistics(&self, ctx: &mut RouteContext) {
+        let start = ctx.route.tour.start().unwrap();
+        let end = ctx.route.tour.end().unwrap();
 
-            let total_dur = end.schedule.arrival - start.schedule.departure;
+        let total_dur = end.schedule.arrival - start.schedule.departure;
 
-            let init = (start.place.location, start.schedule.departure, Distance::default());
-            let (_, _, total_dist) = ctx.route.tour.all_activities().skip(1).fold(init, |(loc, dep, total_dist), a| {
-                let total_dist =
-                    total_dist + self.transport.distance(ctx.route.actor.vehicle.profile, loc, a.place.location, dep);
+        let init = (start.place.location, start.schedule.departure, Distance::default());
+        let (_, _, total_dist) = ctx.route.tour.all_activities().skip(1).fold(init, |(loc, dep, total_dist), a| {
+            let total_dist =
+                total_dist + self.transport.distance(ctx.route.actor.vehicle.profile, loc, a.place.location, dep);
 
-                (a.place.location, a.schedule.departure, total_dist)
-            });
+            (a.place.location, a.schedule.departure, total_dist)
+        });
 
-            ctx.state_mut().put_route_state(LIMIT_DISTANCE_KEY, total_dist);
-            ctx.state_mut().put_route_state(LIMIT_DURATION_KEY, total_dur);
-        }
+        ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, total_dist);
+        ctx.state_mut().put_route_state(TOTAL_DURATION_KEY, total_dur);
     }
 }
 
@@ -324,8 +322,8 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
         if limit.0.is_some() || limit.1.is_some() {
             let (change_distance, change_duration) = self.calculate_travel(route_ctx, activity_ctx);
 
-            let curr_dis = route_ctx.state.get_route_state(LIMIT_DISTANCE_KEY).cloned().unwrap_or(0.);
-            let curr_dur = route_ctx.state.get_route_state(LIMIT_DURATION_KEY).cloned().unwrap_or(0.);
+            let curr_dis = route_ctx.state.get_route_state(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+            let curr_dur = route_ctx.state.get_route_state(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
 
             let total_distance = curr_dis + change_distance;
             let total_duration = curr_dur + change_duration;

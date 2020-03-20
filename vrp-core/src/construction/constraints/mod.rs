@@ -57,8 +57,8 @@
 
 pub const LATEST_ARRIVAL_KEY: i32 = 1;
 pub const WAITING_KEY: i32 = 2;
-pub const LIMIT_DISTANCE_KEY: i32 = 3;
-pub const LIMIT_DURATION_KEY: i32 = 4;
+pub const TOTAL_DISTANCE_KEY: i32 = 3;
+pub const TOTAL_DURATION_KEY: i32 = 4;
 
 pub const CURRENT_CAPACITY_KEY: i32 = 11;
 pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
