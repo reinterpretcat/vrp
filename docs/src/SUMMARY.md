@@ -45,6 +45,7 @@
     * [Objective usage](examples/pragmatic/objectives/index.md)
         * [Default behavior](examples/pragmatic/objectives/objective-default.md)
         * [Balance max load](examples/pragmatic/objectives/objective-balance-max-load.md)
+        * [Balance activities](examples/pragmatic/objectives/objective-balance-activities.md)
   * [Language interop](examples/interop/index.md)
     * [Java](examples/interop/java.md)
     * [Kotlin](examples/interop/kotlin.md)

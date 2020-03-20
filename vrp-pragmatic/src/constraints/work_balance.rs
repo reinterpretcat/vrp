@@ -32,6 +32,16 @@ impl WorkBalanceModule {
             keys: vec![],
         }
     }
+
+    /// Creates `WorkBalanceModule` which balances activities across all tours.
+    pub fn new_activity_balanced(extra_cost: Cost) -> Self {
+        Self {
+            constraints: vec![ConstraintVariant::SoftRoute(Arc::new(ActivityBalanceSoftRouteConstraint {
+                extra_cost,
+            }))],
+            keys: vec![],
+        }
+    }
 }
 
 impl ConstraintModule for WorkBalanceModule {
@@ -79,5 +89,25 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             .unwrap_or(0_f64);
 
         (self.extra_cost + ctx.route.actor.vehicle.costs.fixed) * max_load_ratio
+    }
+}
+
+struct ActivityBalanceSoftRouteConstraint {
+    extra_cost: Cost,
+}
+
+impl SoftRouteConstraint for ActivityBalanceSoftRouteConstraint {
+    fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
+        let has_less_activities = solution_ctx
+            .routes
+            .iter()
+            .filter(|rc| rc != &route_ctx)
+            .any(|rc| route_ctx.route.tour.activity_count() > rc.route.tour.activity_count());
+
+        if has_less_activities {
+            self.extra_cost
+        } else {
+            0.
+        }
     }
 }

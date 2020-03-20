@@ -55,10 +55,8 @@ pub fn create_objective(
                         _ => TotalUnassignedJobs::default(),
                     }));
                 }
-                BalanceMaxLoad { threshold: _ } => {
-                    add_work_balance_module(constraint, props);
-                }
-                BalanceActivities { threshold: _ } => todo!("Balance activities is not yet implemented"),
+                BalanceMaxLoad { threshold: _ } => add_load_balance_module(constraint, props),
+                BalanceActivities { threshold: _ } => add_activity_balance_module(constraint),
             });
             (core_objectives, cost_idx)
         };
@@ -83,7 +81,7 @@ pub fn create_objective(
     }
 }
 
-fn add_work_balance_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
+fn add_load_balance_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
     // TODO do not use hard coded penalty
     let balance_penalty = 1000.;
     if props.has_multi_dimen_capacity {
@@ -106,4 +104,10 @@ fn add_work_balance_module(constraint: &mut ConstraintPipeline, props: &ProblemP
             Box::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
         )));
     }
+}
+
+fn add_activity_balance_module(constraint: &mut ConstraintPipeline) {
+    // TODO do not use hard coded penalty
+    let balance_penalty = 1000.;
+    constraint.add_module(Box::new(WorkBalanceModule::new_activity_balanced(balance_penalty)));
 }

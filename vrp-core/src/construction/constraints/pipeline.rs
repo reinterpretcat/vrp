@@ -26,7 +26,7 @@ pub trait SoftRouteConstraint {
     /// Estimates activity insertion in specific route.
     /// Returns non-zero penalty if constraint is violated: positive makes insertion less attractive,
     /// negative - more.
-    fn estimate_job(&self, solution_ctx: &SolutionContext, ctx: &RouteContext, job: &Job) -> Cost;
+    fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, job: &Job) -> Cost;
 }
 
 /// Specifies hard constraint which operates on activity level.
