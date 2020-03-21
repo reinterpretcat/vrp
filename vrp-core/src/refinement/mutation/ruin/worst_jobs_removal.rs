@@ -94,12 +94,11 @@ impl WorstJobRemoval {
 }
 
 fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, RouteContext> {
-    solution.routes.iter().fold(HashMap::default(), |acc, rc| {
-        rc.route.tour.jobs().fold(acc, |mut acc, job| {
-            acc.insert(job, rc.clone());
-            acc
-        })
-    })
+    solution
+        .routes
+        .iter()
+        .flat_map(|rc| rc.route.tour.jobs().collect::<Vec<_>>().into_iter().map(move |job| (job, rc.clone())))
+        .collect()
 }
 
 fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Job, Cost)>)> {
