@@ -171,17 +171,17 @@ struct SimpleValueBalance {
 
 impl SoftRouteConstraint for SimpleValueBalance {
     fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
-        let max_cost = self.max_value_func.deref()(solution_ctx);
+        let max_value = self.max_value_func.deref()(solution_ctx);
 
-        route_ctx.route.tour.activity_count() as f64 * max_cost
+        route_ctx.route.tour.activity_count() as f64 * max_value
     }
 }
 
 impl Objective for SimpleValueBalance {
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
-        let activities = self.values_func.deref()(insertion_ctx);
+        let values = self.values_func.deref()(insertion_ctx);
 
-        Box::new(MeasurableObjectiveCost::new(get_stdev(&activities)))
+        Box::new(MeasurableObjectiveCost::new(get_stdev(&values)))
     }
 
     fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {
