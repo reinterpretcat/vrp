@@ -151,7 +151,7 @@ fn select_seed_job<'a>(routes: &'a [RouteContext], random: &Arc<dyn Random + Sen
         if rc.route.tour.has_jobs() {
             let job = select_random_job(rc, random);
             if let Some(job) = job {
-                return Some((route_index, job));
+                return Some((ri, job));
             }
         }
 

@@ -70,8 +70,9 @@ impl Ruin for WorstJobRemoval {
                             // NOTE job can be absent if it is unassigned
                             if let Some(rc) = route_jobs.get_mut(&job) {
                                 // NOTE actual insertion context modification via route mut
-                                rc.route_mut().tour.remove(&job);
-                                removed_jobs.write().unwrap().insert(job);
+                                if rc.route_mut().tour.remove(&job) {
+                                    removed_jobs.write().unwrap().insert(job);
+                                }
                             }
                         });
                 }
