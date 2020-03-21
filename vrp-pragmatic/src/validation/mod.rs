@@ -13,8 +13,13 @@ use self::common::*;
 mod jobs;
 use self::jobs::validate_jobs;
 
+mod objectives;
+use self::objectives::validate_objectives;
+
 mod vehicles;
 use self::vehicles::validate_vehicles;
+
+const VALIDATION_MESSAGE_PREFIX: &str = "Problem has the following validation errors:\n";
 
 impl<'a> ValidationContext<'a> {
     /// Creates an instance of `ValidationContext`.
@@ -28,13 +33,14 @@ impl<'a> ValidationContext<'a> {
             .err()
             .into_iter()
             .chain(validate_vehicles(&self).err().into_iter())
+            .chain(validate_objectives(&self).err().into_iter())
             .flatten()
             .collect::<Vec<_>>();
 
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(format!("Problem has the following validation errors:\n{}", errors.join("\n")))
+            Err(format!("{}{}", VALIDATION_MESSAGE_PREFIX, errors.join("\n")))
         }
     }
 
