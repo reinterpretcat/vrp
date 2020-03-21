@@ -128,11 +128,11 @@ Most of objectives are conflicting to each other, so there are some suggestions:
 * use common sense when mixing multiple objectives.
 
 
-## Related error codes
+## Related errors
 
-* [E1009](../errors/index.md#e1009)
-* [E1010](../errors/index.md#e1010)
-* [E1011](../errors/index.md#e1011)
+* [E1009 An empty objective specified](../errors/index.md#e1009)
+* [E1010 Duplicate objective specified](../errors/index.md#e1010)
+* [E1011 Missing cost objective](../errors/index.md#e1011)
 
 
 ## Examples

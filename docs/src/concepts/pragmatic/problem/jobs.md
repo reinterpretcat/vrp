@@ -121,6 +121,14 @@ Similar pickup and delivery job, all these tasks has to be executed or none of t
 pickups must be scheduled before any delivery, replacement or service.
 
 
+## Related errors
+
+* [E1000 Duplicated job ids](../errors/index.md#e1000)
+* [E1001 Invalid job demand](../errors/index.md#e1001)
+* [E1002 Invalid pickup and delivery demand](../errors/index.md#e1002)
+* [E1003 Invalid time windows](../errors/index.md#e1003)
+
+
 ## Examples
 
 Please refer to [basic job usage examples](../../../examples/pragmatic/basics/job-types.md) to see how to specify problem with

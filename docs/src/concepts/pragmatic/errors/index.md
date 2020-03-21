@@ -7,7 +7,7 @@ Errors with E1xxx mask are used by validation engine which checks logical correc
 
 ### E1000
 
-This error is returned when `plan.jobs` has jobs with the same ids.
+`Duplicated job ids` error is returned when `plan.jobs` has jobs with the same ids:
 
 ```json
 {
@@ -30,8 +30,8 @@ This error is returned when `plan.jobs` has jobs with the same ids.
 
 ### E1001
 
-This error is returned when job has invalid demand: `pickup`, `delivery`, `replacement` job types should have demand
-specified on each job task, `service` type should have no demand specified.
+`Invalid job demand` error is returned when job has invalid demand: `pickup`, `delivery`, `replacement` job types should
+have demand specified on each job task, `service` type should have no demand specified:
 
 ```json
 {
@@ -56,8 +56,8 @@ specified on each job task, `service` type should have no demand specified.
 
 ### E1002
 
-This error code is returned when job has both pickups and deliveries, but the sum of pickups demand does not match to
-the sum of deliveries demand.
+`Invalid pickup and delivery demand` error code is returned when job has both pickups and deliveries, but the sum of
+pickups demand does not match to the sum of deliveries demand:
 
 ```json
 {
@@ -85,7 +85,7 @@ the sum of deliveries demand.
 
 ### E1003
 
-This error is returned when there is a job which has invalid time windows, e.g.:
+`Invalid time windows` error is returned when there is a job which has invalid time windows, e.g.:
 
 ```json
 /** Error: end time is one hour earlier than start time**/
@@ -120,7 +120,7 @@ the second - as end
 
 ### E1004
 
-This error is returned when `fleet.vehicles` has vehicle types with the same `type_id`.
+`Duplicated vehicle type ids` error is returned when `fleet.vehicles` has vehicle types with the same `type_id`:
 
 ```json
 {
@@ -143,7 +143,7 @@ This error is returned when `fleet.vehicles` has vehicle types with the same `ty
 
 ### E1005
 
-This error is returned when `fleet.vehicles` has vehicle types with the same `vehicle_ids`.
+`Duplicated vehicle ids` error is returned when `fleet.vehicles` has vehicle types with the same `vehicle_ids`:
 
 ```json
 {
@@ -179,13 +179,15 @@ Please note that vehicle id should be unique across all vehicle types.
 
 ### E1006
 
-This error is returned when vehicle has start/end shift times violating one of time windows rules defined for jobs in E1002.
+`Invalid start or end times in vehicle shifts` error is returned when vehicle has start/end shift times violating one of
+time windows rules defined for jobs in E1002.
 
 
 ### E1007
 
-This error is returned when vehicle has invalid time window of a break. List of break should follow time window rules
-defined for jobs in E1003. Additionally, break time should be inside vehicle shift it is specified:
+`Invalid break time windows in vehicle shifts` error is returned when vehicle has invalid time window of a break. List of
+break should follow time window rules defined for jobs in E1003. Additionally, break time should be inside vehicle shift
+it is specified:
 
 ```json
  {
@@ -214,9 +216,9 @@ defined for jobs in E1003. Additionally, break time should be inside vehicle shi
 
 ### E1008
 
-This error is returned when vehicle has invalid time window of a reload. Reload list should follow time window rules
-defined for jobs in E1003 except multiple reloads can have time window intersections. Additionally, reload time should
-be inside vehicle shift it is specified:
+`Invalid reload time windows in vehicle shifts` error is returned when vehicle has invalid time window of a reload. Reload
+list should follow time window rules defined for jobs in E1003 except multiple reloads can have time window intersections.
+Additionally, reload time should be inside vehicle shift it is specified:
 
 ```json
  {
@@ -246,7 +248,8 @@ be inside vehicle shift it is specified:
 
 ### E1009
 
-This error is returned when objective property is present in the problem, but no single objective is set, e.g.:
+`An empty objective specified` error is returned when objective property is present in the problem, but no single
+objective is set, e.g.:
 
 ```json
 {
@@ -261,7 +264,7 @@ This error is returned when objective property is present in the problem, but no
 
 ### E1010
 
-This error is returned when objective of specific type specified more than once:
+`Duplicate objective specified` error is returned when objective of specific type specified more than once:
 
 ```json
 {
@@ -286,7 +289,7 @@ This error is returned when objective of specific type specified more than once:
 
 ### E1011
 
-This error is returned when no cost objective specified (at the moment, only `minimize-cost` supported):
+`Missing cost objective` error is returned when no cost objective specified (at the moment, only `minimize-cost` supported):
 
 ```json
 {

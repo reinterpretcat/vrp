@@ -71,3 +71,12 @@ Each shift can have the following properties:
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. It can be used to model multi trip routes.
     See examples [here](../../../examples/pragmatic/basics/reload.md).
+
+
+## Related errors
+
+* [E1004 Duplicated vehicle type ids](../errors/index.md#e1004)
+* [E1005 Duplicated vehicle ids](../errors/index.md#e1005)
+* [E1006 Invalid start or end times in vehicle shifts](../errors/index.md#e1006)
+* [E1007 Invalid break time windows in vehicle shifts](../errors/index.md#e1007)
+* [E1008 Invalid reload time windows in vehicle shifts](../errors/index.md#e1008)
