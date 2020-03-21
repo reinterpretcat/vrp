@@ -47,8 +47,21 @@ fn check_e1010_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), 
     }
 }
 
-fn check_e1011_no_cost_value_objective(_objectives: &Vec<&Objective>) -> Result<(), String> {
-    Ok(())
+/// Checks that cost objective is specified.
+fn check_e1011_no_cost_value_objective(objectives: &Vec<&Objective>) -> Result<(), String> {
+    let min_costs = objectives
+        .iter()
+        .filter(|objective| match objective {
+            MinimizeCost { goal: _ } => true,
+            _ => false,
+        })
+        .count();
+
+    if min_costs == 0 {
+        Err("E1011: Missing cost objective".to_string())
+    } else {
+        Ok(())
+    }
 }
 
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
