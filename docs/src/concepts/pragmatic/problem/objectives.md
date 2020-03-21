@@ -93,6 +93,17 @@ In order to use this objective specify `minimize-unassigned` type:
 
 The objective has `goal` with `value` and `variation` specifying desired amount of unassigned and variation coefficient.
 
+
+### Work balance objectives
+
+There are four work balance objectives available:
+
+* `balance-max-load`: balances max load in tour
+* `balance-activites`: balances amount of activities performed in tour
+* `balance-distance`: balances travelled distance per tour
+* `balance-duration`: balances tour durations
+
+
 ## Default behaviour
 
 By default, decision maker minimizes amount of routes, unassigned jobs and total cost which is equal to the following

@@ -65,6 +65,16 @@ pub fn create_objective(
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
+                BalanceDistance { threshold: _ } => {
+                    let (module, objective) = WorkBalance::new_distance_balanced();
+                    constraint.add_module(module);
+                    core_objectives.push(objective);
+                }
+                BalanceDuration { threshold: _ } => {
+                    let (module, objective) = WorkBalance::new_duration_balanced();
+                    constraint.add_module(module);
+                    core_objectives.push(objective);
+                }
             });
             (core_objectives, cost_idx)
         };

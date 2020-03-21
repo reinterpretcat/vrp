@@ -1,0 +1,1306 @@
+{
+  "statistic": {
+    "cost": 273.0455999999999,
+    "distance": 182928,
+    "duration": 27292,
+    "times": {
+      "driving": 18292,
+      "serving": 9000,
+      "waiting": 0,
+      "break": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T00:00:00Z",
+            "departure": "1970-01-01T00:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            10
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4960479,
+            "lng": 13.3915876
+          },
+          "time": {
+            "arrival": "1970-01-01T00:13:38Z",
+            "departure": "1970-01-01T00:16:38Z"
+          },
+          "distance": 8175,
+          "load": [
+            9
+          ],
+          "activities": [
+            {
+              "jobId": "job6",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5090143,
+            "lng": 13.4368189
+          },
+          "time": {
+            "arrival": "1970-01-01T00:22:17Z",
+            "departure": "1970-01-01T00:25:17Z"
+          },
+          "distance": 11563,
+          "load": [
+            8
+          ],
+          "activities": [
+            {
+              "jobId": "job26",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5261554,
+            "lng": 13.5062954
+          },
+          "time": {
+            "arrival": "1970-01-01T00:33:45Z",
+            "departure": "1970-01-01T00:36:45Z"
+          },
+          "distance": 16641,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "job24",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5276784,
+            "lng": 13.546564
+          },
+          "time": {
+            "arrival": "1970-01-01T00:41:18Z",
+            "departure": "1970-01-01T00:44:18Z"
+          },
+          "distance": 19373,
+          "load": [
+            6
+          ],
+          "activities": [
+            {
+              "jobId": "job19",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5060419,
+            "lng": 13.5152641
+          },
+          "time": {
+            "arrival": "1970-01-01T00:49:39Z",
+            "departure": "1970-01-01T00:52:39Z"
+          },
+          "distance": 22582,
+          "load": [
+            5
+          ],
+          "activities": [
+            {
+              "jobId": "job2",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4989511,
+            "lng": 13.4740528
+          },
+          "time": {
+            "arrival": "1970-01-01T00:57:29Z",
+            "departure": "1970-01-01T01:00:29Z"
+          },
+          "distance": 25484,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "job11",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4945572,
+            "lng": 13.4698049
+          },
+          "time": {
+            "arrival": "1970-01-01T01:01:26Z",
+            "departure": "1970-01-01T01:04:26Z"
+          },
+          "distance": 26052,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "job10",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4828453,
+            "lng": 13.4363713
+          },
+          "time": {
+            "arrival": "1970-01-01T01:08:47Z",
+            "departure": "1970-01-01T01:11:47Z"
+          },
+          "distance": 28667,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job22",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4742821,
+            "lng": 13.3628588
+          },
+          "time": {
+            "arrival": "1970-01-01T01:20:14Z",
+            "departure": "1970-01-01T01:23:14Z"
+          },
+          "distance": 33741,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job14",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4711004,
+            "lng": 13.3321906
+          },
+          "time": {
+            "arrival": "1970-01-01T01:26:45Z",
+            "departure": "1970-01-01T01:29:45Z"
+          },
+          "distance": 35851,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job41",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T01:35:34Z",
+            "departure": "1970-01-01T01:35:34Z"
+          },
+          "distance": 39345,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 56.538999999999994,
+        "distance": 39345,
+        "duration": 5734,
+        "times": {
+          "driving": 3934,
+          "serving": 1800,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_5",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T00:00:00Z",
+            "departure": "1970-01-01T00:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            10
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5146285,
+            "lng": 13.2852959
+          },
+          "time": {
+            "arrival": "1970-01-01T00:08:57Z",
+            "departure": "1970-01-01T00:11:57Z"
+          },
+          "distance": 5373,
+          "load": [
+            9
+          ],
+          "activities": [
+            {
+              "jobId": "job47",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5192039,
+            "lng": 13.304444
+          },
+          "time": {
+            "arrival": "1970-01-01T00:14:16Z",
+            "departure": "1970-01-01T00:17:16Z"
+          },
+          "distance": 6767,
+          "load": [
+            8
+          ],
+          "activities": [
+            {
+              "jobId": "job20",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5632095,
+            "lng": 13.2940051
+          },
+          "time": {
+            "arrival": "1970-01-01T00:25:31Z",
+            "departure": "1970-01-01T00:28:31Z"
+          },
+          "distance": 11716,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "job46",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5650163,
+            "lng": 13.3027992
+          },
+          "time": {
+            "arrival": "1970-01-01T00:29:34Z",
+            "departure": "1970-01-01T00:32:34Z"
+          },
+          "distance": 12344,
+          "load": [
+            6
+          ],
+          "activities": [
+            {
+              "jobId": "job15",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5473416,
+            "lng": 13.3327894
+          },
+          "time": {
+            "arrival": "1970-01-01T00:37:17Z",
+            "departure": "1970-01-01T00:40:17Z"
+          },
+          "distance": 15171,
+          "load": [
+            5
+          ],
+          "activities": [
+            {
+              "jobId": "job18",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5685168,
+            "lng": 13.369072
+          },
+          "time": {
+            "arrival": "1970-01-01T00:45:57Z",
+            "departure": "1970-01-01T00:48:57Z"
+          },
+          "distance": 18575,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "job13",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5697304,
+            "lng": 13.3848221
+          },
+          "time": {
+            "arrival": "1970-01-01T00:50:44Z",
+            "departure": "1970-01-01T00:53:44Z"
+          },
+          "distance": 19649,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5492619,
+            "lng": 13.369356
+          },
+          "time": {
+            "arrival": "1970-01-01T00:57:55Z",
+            "departure": "1970-01-01T01:00:55Z"
+          },
+          "distance": 22156,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job39",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5291335,
+            "lng": 13.3668934
+          },
+          "time": {
+            "arrival": "1970-01-01T01:04:40Z",
+            "departure": "1970-01-01T01:07:40Z"
+          },
+          "distance": 24403,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job23",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5065998,
+            "lng": 13.3689955
+          },
+          "time": {
+            "arrival": "1970-01-01T01:11:51Z",
+            "departure": "1970-01-01T01:14:51Z"
+          },
+          "distance": 26915,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job28",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T01:27:15Z",
+            "departure": "1970-01-01T01:27:15Z"
+          },
+          "distance": 34357,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 53.0464,
+        "distance": 34357,
+        "duration": 5235,
+        "times": {
+          "driving": 3435,
+          "serving": 1800,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_4",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T00:00:00Z",
+            "departure": "1970-01-01T00:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            10
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.547349,
+            "lng": 13.3733163
+          },
+          "time": {
+            "arrival": "1970-01-01T00:18:16Z",
+            "departure": "1970-01-01T00:21:16Z"
+          },
+          "distance": 10957,
+          "load": [
+            9
+          ],
+          "activities": [
+            {
+              "jobId": "job29",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5404107,
+            "lng": 13.3914127
+          },
+          "time": {
+            "arrival": "1970-01-01T00:23:41Z",
+            "departure": "1970-01-01T00:26:41Z"
+          },
+          "distance": 12405,
+          "load": [
+            8
+          ],
+          "activities": [
+            {
+              "jobId": "job38",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5429597,
+            "lng": 13.3989552
+          },
+          "time": {
+            "arrival": "1970-01-01T00:27:39Z",
+            "departure": "1970-01-01T00:30:39Z"
+          },
+          "distance": 12989,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "job8",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5614441,
+            "lng": 13.4194712
+          },
+          "time": {
+            "arrival": "1970-01-01T00:34:47Z",
+            "departure": "1970-01-01T00:37:47Z"
+          },
+          "distance": 15471,
+          "load": [
+            6
+          ],
+          "activities": [
+            {
+              "jobId": "job43",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5678751,
+            "lng": 13.4231417
+          },
+          "time": {
+            "arrival": "1970-01-01T00:39:03Z",
+            "departure": "1970-01-01T00:42:03Z"
+          },
+          "distance": 16229,
+          "load": [
+            5
+          ],
+          "activities": [
+            {
+              "jobId": "job9",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5496702,
+            "lng": 13.4286263
+          },
+          "time": {
+            "arrival": "1970-01-01T00:45:29Z",
+            "departure": "1970-01-01T00:48:29Z"
+          },
+          "distance": 18289,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "job16",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5431264,
+            "lng": 13.4416407
+          },
+          "time": {
+            "arrival": "1970-01-01T00:50:23Z",
+            "departure": "1970-01-01T00:53:23Z"
+          },
+          "distance": 19432,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "job34",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5425207,
+            "lng": 13.4139155
+          },
+          "time": {
+            "arrival": "1970-01-01T00:56:31Z",
+            "departure": "1970-01-01T00:59:31Z"
+          },
+          "distance": 21310,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job45",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5372914,
+            "lng": 13.3996298
+          },
+          "time": {
+            "arrival": "1970-01-01T01:01:24Z",
+            "departure": "1970-01-01T01:04:24Z"
+          },
+          "distance": 22439,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job7",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5189653,
+            "lng": 13.3890068
+          },
+          "time": {
+            "arrival": "1970-01-01T01:08:00Z",
+            "departure": "1970-01-01T01:11:00Z"
+          },
+          "distance": 24602,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job25",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T01:26:36Z",
+            "departure": "1970-01-01T01:26:36Z"
+          },
+          "distance": 33959,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 52.77179999999999,
+        "distance": 33959,
+        "duration": 5196,
+        "times": {
+          "driving": 3396,
+          "serving": 1800,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_2",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T00:00:00Z",
+            "departure": "1970-01-01T00:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            10
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4661617,
+            "lng": 13.322692
+          },
+          "time": {
+            "arrival": "1970-01-01T00:04:41Z",
+            "departure": "1970-01-01T00:07:41Z"
+          },
+          "distance": 2811,
+          "load": [
+            9
+          ],
+          "activities": [
+            {
+              "jobId": "job32",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4708241,
+            "lng": 13.3598752
+          },
+          "time": {
+            "arrival": "1970-01-01T00:11:58Z",
+            "departure": "1970-01-01T00:14:58Z"
+          },
+          "distance": 5385,
+          "load": [
+            8
+          ],
+          "activities": [
+            {
+              "jobId": "job36",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4737341,
+            "lng": 13.38667
+          },
+          "time": {
+            "arrival": "1970-01-01T00:18:03Z",
+            "departure": "1970-01-01T00:21:03Z"
+          },
+          "distance": 7231,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "job37",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4658835,
+            "lng": 13.4461224
+          },
+          "time": {
+            "arrival": "1970-01-01T00:27:56Z",
+            "departure": "1970-01-01T00:30:56Z"
+          },
+          "distance": 11356,
+          "load": [
+            6
+          ],
+          "activities": [
+            {
+              "jobId": "job12",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4629002,
+            "lng": 13.4757055
+          },
+          "time": {
+            "arrival": "1970-01-01T00:34:19Z",
+            "departure": "1970-01-01T00:37:19Z"
+          },
+          "distance": 13390,
+          "load": [
+            5
+          ],
+          "activities": [
+            {
+              "jobId": "job5",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4695374,
+            "lng": 13.4914662
+          },
+          "time": {
+            "arrival": "1970-01-01T00:39:29Z",
+            "departure": "1970-01-01T00:42:29Z"
+          },
+          "distance": 14689,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "job30",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4871049,
+            "lng": 13.5423247
+          },
+          "time": {
+            "arrival": "1970-01-01T00:49:05Z",
+            "departure": "1970-01-01T00:52:05Z"
+          },
+          "distance": 18653,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "job42",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4917198,
+            "lng": 13.5251532
+          },
+          "time": {
+            "arrival": "1970-01-01T00:54:12Z",
+            "departure": "1970-01-01T00:57:12Z"
+          },
+          "distance": 19925,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job33",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5058684,
+            "lng": 13.475099
+          },
+          "time": {
+            "arrival": "1970-01-01T01:03:26Z",
+            "departure": "1970-01-01T01:06:26Z"
+          },
+          "distance": 23665,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job17",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4855438,
+            "lng": 13.3832067
+          },
+          "time": {
+            "arrival": "1970-01-01T01:17:29Z",
+            "departure": "1970-01-01T01:20:29Z"
+          },
+          "distance": 30291,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job48",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T01:32:32Z",
+            "departure": "1970-01-01T01:32:32Z"
+          },
+          "distance": 37524,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 55.264799999999994,
+        "distance": 37524,
+        "duration": 5552,
+        "times": {
+          "driving": 3752,
+          "serving": 1800,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_3",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T00:00:00Z",
+            "departure": "1970-01-01T00:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            10
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4827319,
+            "lng": 13.3157235
+          },
+          "time": {
+            "arrival": "1970-01-01T00:04:56Z",
+            "departure": "1970-01-01T00:07:56Z"
+          },
+          "distance": 2960,
+          "load": [
+            9
+          ],
+          "activities": [
+            {
+              "jobId": "job40",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4868236,
+            "lng": 13.3353656
+          },
+          "time": {
+            "arrival": "1970-01-01T00:10:17Z",
+            "departure": "1970-01-01T00:13:17Z"
+          },
+          "distance": 4367,
+          "load": [
+            8
+          ],
+          "activities": [
+            {
+              "jobId": "job31",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4959052,
+            "lng": 13.3539713
+          },
+          "time": {
+            "arrival": "1970-01-01T00:15:59Z",
+            "departure": "1970-01-01T00:18:59Z"
+          },
+          "distance": 5983,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "job50",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5228904,
+            "lng": 13.4418623
+          },
+          "time": {
+            "arrival": "1970-01-01T00:30:06Z",
+            "departure": "1970-01-01T00:33:06Z"
+          },
+          "distance": 12653,
+          "load": [
+            6
+          ],
+          "activities": [
+            {
+              "jobId": "job21",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5243421,
+            "lng": 13.4619776
+          },
+          "time": {
+            "arrival": "1970-01-01T00:35:23Z",
+            "departure": "1970-01-01T00:38:23Z"
+          },
+          "distance": 14025,
+          "load": [
+            5
+          ],
+          "activities": [
+            {
+              "jobId": "job4",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5426716,
+            "lng": 13.5161692
+          },
+          "time": {
+            "arrival": "1970-01-01T00:45:23Z",
+            "departure": "1970-01-01T00:48:23Z"
+          },
+          "distance": 18224,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "job35",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5421315,
+            "lng": 13.5189513
+          },
+          "time": {
+            "arrival": "1970-01-01T00:48:43Z",
+            "departure": "1970-01-01T00:51:43Z"
+          },
+          "distance": 18422,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "job3",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5414557,
+            "lng": 13.527639
+          },
+          "time": {
+            "arrival": "1970-01-01T00:52:42Z",
+            "departure": "1970-01-01T00:55:42Z"
+          },
+          "distance": 19015,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "job44",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5279215,
+            "lng": 13.4995315
+          },
+          "time": {
+            "arrival": "1970-01-01T00:59:45Z",
+            "departure": "1970-01-01T01:02:45Z"
+          },
+          "distance": 21442,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job49",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4940454,
+            "lng": 13.3788834
+          },
+          "time": {
+            "arrival": "1970-01-01T01:17:45Z",
+            "departure": "1970-01-01T01:20:45Z"
+          },
+          "distance": 30444,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job27",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "1970-01-01T01:32:55Z",
+            "departure": "1970-01-01T01:32:55Z"
+          },
+          "distance": 37743,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 55.42359999999999,
+        "distance": 37743,
+        "duration": 5575,
+        "times": {
+          "driving": 3775,
+          "serving": 1800,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    }
+  ],
+  "unassigned": []
+}

@@ -265,28 +265,46 @@ pub enum Objective {
         /// A goal defined by satisfaction criteria parameters.
         goal: Option<GoalSatisfactionCriteria<f64>>,
     },
+
     /// An objective to minimize total tour amount.
     #[serde(rename(deserialize = "minimize-tours"))]
     MinimizeTours {
         /// A goal defined by satisfaction criteria parameters.
         goal: Option<GoalSatisfactionCriteria<usize>>,
     },
+
     /// An objective to minimize amount of unassigned jobs.
     #[serde(rename(deserialize = "minimize-unassigned"))]
     MinimizeUnassignedJobs {
         /// A goal defined by satisfaction criteria parameters.
         goal: Option<GoalSatisfactionCriteria<usize>>,
     },
+
     /// An objective to balance max load across all tours.
     #[serde(rename(deserialize = "balance-max-load"))]
     BalanceMaxLoad {
         /// A relative load in single tour before balancing takes place.
         threshold: Option<f64>,
     },
+
     /// An objective to balance activities across all tours.
     #[serde(rename(deserialize = "balance-activities"))]
     BalanceActivities {
-        /// A minimum amount of activities in single tour before balancing takes place.
+        /// A minimum amount of activities in a tour before it considered for balancing.
+        threshold: Option<usize>,
+    },
+
+    /// An objective to balance distance across all tours.
+    #[serde(rename(deserialize = "balance-distance"))]
+    BalanceDistance {
+        /// A minimum duration of a tour before it considered for balancing.
+        threshold: Option<usize>,
+    },
+
+    /// An objective to balance duration across all tours.
+    #[serde(rename(deserialize = "balance-duration"))]
+    BalanceDuration {
+        /// A minimum duration of a tour before it considered for balancing.
         threshold: Option<usize>,
     },
 }

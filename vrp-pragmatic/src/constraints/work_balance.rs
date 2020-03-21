@@ -9,6 +9,7 @@ use vrp_core::refinement::objectives::{MeasurableObjectiveCost, Objective, Objec
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::get_stdev;
 
+/// Provides functionality needed to balance work across all routes.
 pub struct WorkBalance {}
 
 impl WorkBalance {
@@ -36,12 +37,52 @@ impl WorkBalance {
 
     /// Creates `WorkBalanceModule` which balances activities across all tours.
     pub fn new_activity_balanced() -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+        let activity_balance = SimpleValueBalance {
+            max_value_func: Arc::new(|ctx| get_max_cost(ctx)),
+            values_func: Arc::new(|ctx| {
+                ctx.solution.routes.iter().map(|rc| rc.route.tour.activity_count() as f64).collect()
+            }),
+        };
+
         (
             Box::new(WorkBalanceModule {
-                constraints: vec![ConstraintVariant::SoftRoute(Arc::new(ActivityBalance {}))],
+                constraints: vec![ConstraintVariant::SoftRoute(Arc::new(activity_balance.clone()))],
                 keys: vec![],
             }),
-            Box::new(ActivityBalance {}),
+            Box::new(activity_balance),
+        )
+    }
+
+    /// Creates `WorkBalanceModule` which balances travelled distances across all tours.
+    pub fn new_distance_balanced() -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+        Self::new_transport_balanced(TOTAL_DISTANCE_KEY)
+    }
+
+    /// Creates `WorkBalanceModule` which balances travelled durations across all tours.
+    pub fn new_duration_balanced() -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+        Self::new_transport_balanced(TOTAL_DURATION_KEY)
+    }
+
+    fn new_transport_balanced(
+        state_key: i32,
+    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+        let transport_balance = SimpleValueBalance {
+            max_value_func: Arc::new(move |ctx| get_max_transport_value(ctx, state_key)),
+            values_func: Arc::new(move |ctx| {
+                ctx.solution
+                    .routes
+                    .iter()
+                    .map(|rc| rc.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.))
+                    .collect()
+            }),
+        };
+
+        (
+            Box::new(WorkBalanceModule {
+                constraints: vec![ConstraintVariant::SoftRoute(Arc::new(transport_balance.clone()))],
+                keys: vec![],
+            }),
+            Box::new(transport_balance),
         )
     }
 }
@@ -122,19 +163,23 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-struct ActivityBalance {}
+#[derive(Clone)]
+struct SimpleValueBalance {
+    max_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
+    values_func: Arc<dyn Fn(&InsertionContext) -> Vec<f64> + Send + Sync>,
+}
 
-impl SoftRouteConstraint for ActivityBalance {
+impl SoftRouteConstraint for SimpleValueBalance {
     fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
-        let max_cost = get_max_cost(solution_ctx);
+        let max_cost = self.max_value_func.deref()(solution_ctx);
 
         route_ctx.route.tour.activity_count() as f64 * max_cost
     }
 }
 
-impl Objective for ActivityBalance {
+impl Objective for SimpleValueBalance {
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
-        let activities = insertion_ctx.solution.routes.iter().map(|rc| rc.route.tour.activity_count() as f64).collect();
+        let activities = self.values_func.deref()(insertion_ctx);
 
         Box::new(MeasurableObjectiveCost::new(get_stdev(&activities)))
     }
@@ -142,6 +187,16 @@ impl Objective for ActivityBalance {
     fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {
         None
     }
+}
+
+fn get_max_transport_value(solution_ctx: &SolutionContext, state_key: i32) -> f64 {
+    assert!(state_key == TOTAL_DISTANCE_KEY || state_key == TOTAL_DURATION_KEY);
+    solution_ctx
+        .routes
+        .iter()
+        .map(|rc| rc.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.))
+        .max_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
+        .unwrap_or(0.)
 }
 
 fn get_max_cost(solution_ctx: &SolutionContext) -> f64 {
