@@ -127,6 +127,14 @@ Most of objectives are conflicting to each other, so there are some suggestions:
 * goals, defined on secondary objectives, are ignored if there is at least one goal on primary objective.
 * use common sense when mixing multiple objectives.
 
+
+## Related error codes
+
+* [E1009](../errors/index.md#e1009)
+* [E1010](../errors/index.md#e1010)
+* [E1011](../errors/index.md#e1011)
+
+
 ## Examples
 
 Please refer to [examples section](../../../examples/pragmatic/objectives/index.md) to see more.

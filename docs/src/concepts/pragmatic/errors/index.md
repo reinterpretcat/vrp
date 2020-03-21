@@ -243,3 +243,61 @@ be inside vehicle shift it is specified:
       ]
 }
 ```
+
+### E1009
+
+This error is returned when objective property is present in the problem, but no single objective is set, e.g.:
+
+```json
+{
+  "objectives": {
+    "primary":[]
+   }
+}
+```
+
+`objectives` property is optional, just remove it to fix the problem and use default objectives.
+
+
+### E1010
+
+This error is returned when objective of specific type specified more than once:
+
+```json
+{
+" objectives": {
+    "primary": [
+      {
+        "type": "minimize-unassigned"
+      },
+      {
+        "type": "minimize-unassigned"
+      }
+    ],
+    "secondary": [
+      {
+        "type": "minimize-cost"
+      }
+    ]
+  }
+}
+```
+
+
+### E1011
+
+This error is returned when no cost objective specified (at the moment, only `minimize-cost` supported):
+
+```json
+{
+" objectives": {
+    "primary": [
+      {
+        "type": "minimize-unassigned"
+      }
+    ]
+  }
+}
+```
+
+This objective is used to calculate final costs, so it is required to be specified.
