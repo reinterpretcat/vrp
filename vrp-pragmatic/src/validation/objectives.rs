@@ -3,6 +3,8 @@
 mod objectives_test;
 
 use super::*;
+use crate::json::problem::Objective::*;
+use std::collections::HashMap;
 
 /// Checks that objective is not empty when specified.
 fn check_e1009_empty_objective(objectives: &Vec<&Objective>) -> Result<(), String> {
@@ -14,8 +16,35 @@ fn check_e1009_empty_objective(objectives: &Vec<&Objective>) -> Result<(), Strin
 }
 
 /// Checks that each objective type specified only once.
-fn check_e1010_duplicate_objectives(_objectives: &Vec<&Objective>) -> Result<(), String> {
-    Ok(())
+fn check_e1010_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), String> {
+    let mut duplicates = objectives
+        .iter()
+        .fold(HashMap::new(), |mut acc, objective| {
+            match objective {
+                MinimizeCost { goal: _ } => acc.entry("minimize-cost"),
+                MinimizeTours { goal: _ } => acc.entry("minimize-tours"),
+                MinimizeUnassignedJobs { goal: _ } => acc.entry("minimize-unassigned"),
+                BalanceMaxLoad { threshold: _ } => acc.entry("balance-max-load"),
+                BalanceActivities { threshold: _ } => acc.entry("balance-activities"),
+                BalanceDistance { threshold: _ } => acc.entry("balance-distance"),
+                BalanceDuration { threshold: _ } => acc.entry("balance-duration"),
+            }
+            .and_modify(|count| *count += 1)
+            .or_insert(1_usize);
+
+            acc
+        })
+        .iter()
+        .filter_map(|(name, count)| if *count > 1 { Some(name.to_string()) } else { None })
+        .collect::<Vec<_>>();
+
+    duplicates.sort();
+
+    if duplicates.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("E1010: Duplicate objective specified: {}", duplicates.join(",")))
+    }
 }
 
 fn check_e1011_no_cost_value_objective(_objectives: &Vec<&Objective>) -> Result<(), String> {
