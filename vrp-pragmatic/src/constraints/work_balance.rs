@@ -23,21 +23,47 @@ impl WorkBalance {
     where
         Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
     {
-        let create_balance = || MaxLoadBalance::<Capacity> {
+        let default_capacity = Capacity::default();
+        let default_intervals = vec![(0_usize, 0_usize)];
+
+        let get_load_ratio = Arc::new(move |ctx: &RouteContext| {
+            let capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
+            let intervals =
+                ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS).unwrap_or(&default_intervals);
+
+            intervals
+                .iter()
+                .map(|(start, _)| ctx.route.tour.get(*start).unwrap())
+                .map(|activity| {
+                    ctx.state
+                        .get_activity_state::<Capacity>(MAX_FUTURE_CAPACITY_KEY, activity)
+                        .unwrap_or_else(|| &default_capacity)
+                })
+                .map(|max_load| load_func.deref()(max_load, capacity))
+                .max_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
+                .unwrap_or(0_f64)
+        });
+
+        let load_balance = WorkBalanceObjectives {
             threshold,
             solution_tolerance,
             route_tolerance,
-            load_func: load_func.clone(),
-            default_capacity: Capacity::default(),
-            default_intervals: vec![(0_usize, 0_usize)],
+            value_func: Arc::new({
+                let get_load_ratio = get_load_ratio.clone();
+                move |rc| get_load_ratio(rc)
+            }),
+            values_func: Arc::new({
+                let get_load_ratio = get_load_ratio.clone();
+                move |ctx| ctx.routes.iter().map(|rc| get_load_ratio(rc)).collect()
+            }),
         };
 
         (
             Box::new(WorkBalanceModule {
-                constraints: vec![ConstraintVariant::SoftRoute(Arc::new(create_balance()))],
+                constraints: vec![ConstraintVariant::SoftRoute(Arc::new(load_balance.clone()))],
                 keys: vec![],
             }),
-            Box::new(create_balance()),
+            Box::new(load_balance),
         )
     }
 
@@ -47,7 +73,7 @@ impl WorkBalance {
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
     ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
-        let activity_balance = SimpleValueBalance {
+        let activity_balance = WorkBalanceObjectives {
             threshold: threshold.map(|t| t as f64),
             solution_tolerance,
             route_tolerance,
@@ -88,7 +114,7 @@ impl WorkBalance {
         route_tolerance: Option<f64>,
         state_key: i32,
     ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
-        let transport_balance = SimpleValueBalance {
+        let transport_balance = WorkBalanceObjectives {
             threshold,
             solution_tolerance,
             route_tolerance,
@@ -130,65 +156,8 @@ impl ConstraintModule for WorkBalanceModule {
     }
 }
 
-struct MaxLoadBalance<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    threshold: Option<f64>,
-    solution_tolerance: Option<f64>,
-    route_tolerance: Option<f64>,
-    load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
-    default_capacity: Capacity,
-    default_intervals: Vec<(usize, usize)>,
-}
-
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    MaxLoadBalance<Capacity>
-{
-    fn get_max_load_ratio(&self, ctx: &RouteContext) -> f64 {
-        let capacity = ctx.route.actor.vehicle.dimens.get_capacity().unwrap();
-
-        let intervals =
-            ctx.state.get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS).unwrap_or(&self.default_intervals);
-
-        intervals
-            .iter()
-            .map(|(start, _)| ctx.route.tour.get(*start).unwrap())
-            .map(|activity| {
-                ctx.state
-                    .get_activity_state::<Capacity>(MAX_FUTURE_CAPACITY_KEY, activity)
-                    .unwrap_or_else(|| &self.default_capacity)
-            })
-            .map(|max_load| self.load_func.deref()(max_load, capacity))
-            .max_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
-            .unwrap_or(0_f64)
-    }
-}
-
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    SoftRouteConstraint for MaxLoadBalance<Capacity>
-{
-    fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
-        let max_load_ratio = self.get_max_load_ratio(route_ctx);
-        let max_cost = get_max_cost(solution_ctx);
-
-        max_cost * max_load_ratio
-    }
-}
-
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Objective
-    for MaxLoadBalance<Capacity>
-{
-    fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
-        let max_loads = insertion_ctx.solution.routes.iter().map(|rc| self.get_max_load_ratio(rc)).collect();
-
-        Box::new(MeasurableObjectiveCost::new_with_tolerance(get_stdev(&max_loads), self.solution_tolerance.clone()))
-    }
-
-    fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {
-        None
-    }
-}
-
 #[derive(Clone)]
-struct SimpleValueBalance {
+struct WorkBalanceObjectives {
     threshold: Option<f64>,
     solution_tolerance: Option<f64>,
     route_tolerance: Option<f64>,
@@ -196,7 +165,7 @@ struct SimpleValueBalance {
     values_func: Arc<dyn Fn(&SolutionContext) -> Vec<f64> + Send + Sync>,
 }
 
-impl SoftRouteConstraint for SimpleValueBalance {
+impl SoftRouteConstraint for WorkBalanceObjectives {
     fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
         let value = self.value_func.deref()(route_ctx);
         let values = self.values_func.deref()(solution_ctx);
@@ -212,7 +181,7 @@ impl SoftRouteConstraint for SimpleValueBalance {
     }
 }
 
-impl Objective for SimpleValueBalance {
+impl Objective for WorkBalanceObjectives {
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
         let values = self.values_func.deref()(&insertion_ctx.solution);
 
