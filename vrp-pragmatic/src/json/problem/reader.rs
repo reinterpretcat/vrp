@@ -103,10 +103,10 @@ pub struct ProblemProperties {
     priority: Option<Cost>,
 }
 
-/// A validation error.
+/// A format error.
 #[derive(Clone)]
 pub struct FormatError {
-    /// A documentation error code.
+    /// An error code in registry.
     pub code: String,
     /// A possible error cause.
     pub cause: String,
@@ -115,7 +115,7 @@ pub struct FormatError {
 }
 
 impl FormatError {
-    /// Creates a new instance of `ValidationError` action.
+    /// Creates a new instance of `FormatError` action.
     pub fn new(code: String, cause: String, action: String) -> Self {
         Self { code, cause, action }
     }
