@@ -4,7 +4,7 @@ mod deserializer_test;
 
 extern crate serde_json;
 
-use self::serde_json::Error;
+use crate::json::problem::FormatError;
 use crate::json::Location;
 use serde::Deserialize;
 use std::io::{BufReader, Read};
@@ -378,11 +378,13 @@ pub struct Matrix {
 // endregion
 
 /// Deserializes problem in json format from [`BufReader`].
-pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Error> {
+pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec<FormatError>> {
     serde_json::from_reader(reader)
+        .map_err(|err| vec![FormatError::new("E0000".to_string(), err.to_string(), "Check input json".to_string())])
 }
 
 /// Deserializes routing matrix in json format from [`BufReader`].
-pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Error> {
+pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<FormatError>> {
     serde_json::from_reader(reader)
+        .map_err(|err| vec![FormatError::new("E0001".to_string(), err.to_string(), "Check input json".to_string())])
 }

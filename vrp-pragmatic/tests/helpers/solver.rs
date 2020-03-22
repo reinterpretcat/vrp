@@ -9,7 +9,7 @@ use vrp_core::utils::DefaultRandom;
 use vrp_solver::SolverBuilder;
 
 pub fn solve_with_heuristic(problem: Problem, matrices: Vec<Matrix>) -> Solution {
-    let problem = Arc::new((problem, matrices).read_pragmatic().unwrap());
+    let problem = Arc::new((problem, matrices).read_pragmatic().ok().unwrap());
     let mut refinement_ctx = RefinementContext::new(problem.clone());
     let solution = RecreateWithCheapest::default()
         .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
@@ -23,7 +23,7 @@ pub fn solve_with_metaheuristic(problem: Problem, matrices: Vec<Matrix>) -> Solu
 }
 
 pub fn solve_with_metaheuristic_and_iterations(problem: Problem, matrices: Vec<Matrix>, iterations: usize) -> Solution {
-    let problem = Arc::new((problem, matrices).read_pragmatic().unwrap());
+    let problem = Arc::new((problem, matrices).read_pragmatic().ok().unwrap());
     let solution =
         SolverBuilder::default().with_max_generations(Some(iterations)).build().solve(problem.clone()).unwrap().0;
     sort_all_data(create_solution(problem.as_ref(), &solution))

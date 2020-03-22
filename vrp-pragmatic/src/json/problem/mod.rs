@@ -6,4 +6,5 @@ mod deserializer;
 pub use self::deserializer::*;
 
 mod reader;
+pub use self::reader::FormatError;
 pub use self::reader::PragmaticProblem;

@@ -81,7 +81,13 @@ pub fn get_locations(problem: &Problem) -> Vec<Location> {
 /// Returns serialized into json list of unique locations from serialized `problem` in order used
 /// by routing matrix.
 pub fn get_locations_serialized<R: Read>(problem: BufReader<R>) -> Result<String, String> {
-    let problem = deserialize_problem(problem).map_err(|err| err.to_string())?;
+    let problem = deserialize_problem(problem).map_err(|errors| {
+        format!(
+            "Problem has the following errors:\n{}",
+            errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n")
+        )
+    })?;
+
     let locations = get_locations(&problem);
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
@@ -141,7 +147,7 @@ extern "C" fn solve(
         let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
         let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
 
-        let problem = Arc::new((problem, matrices).read_pragmatic().unwrap());
+        let problem = Arc::new((problem, matrices).read_pragmatic().ok().unwrap());
 
         let (solution, _, _) = SolverBuilder::default().build().solve(problem.clone()).unwrap();
 

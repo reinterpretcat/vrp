@@ -44,8 +44,11 @@ fn run_examples(base_path: &str) {
             } else {
                 problem.read_pragmatic()
             }
-            .unwrap_or_else(|err| {
-                eprintln!("Cannot read pragmatic problem: '{}'", err);
+            .unwrap_or_else(|errors| {
+                eprintln!(
+                    "Cannot read pragmatic problem:\n{}",
+                    errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n")
+                );
                 process::exit(1);
             }),
         );

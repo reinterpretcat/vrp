@@ -1,8 +1,22 @@
 # Error Index
 
+## E0xxx Error
+
+Errors from E0xxx range are generic.
+
+### E0000
+
+This error is returned when input problem cannot be deserialized from json stream.
+
+
+### E0001
+
+This error is returned when routing matrix cannot be deserialized from json stream.
+
+
 ## E1xxx: Validation errors
 
-Errors with E1xxx mask are used by validation engine which checks logical correctness of the VRP definition.
+Errors from E1xxx range are used by validation engine which checks logical correctness of the VRP definition.
 
 
 ### E1000

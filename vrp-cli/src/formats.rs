@@ -57,6 +57,7 @@ pub fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader,
                         println!("configured to use single approximated routing matrix");
                         problem.read_pragmatic()
                     }
+                    .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
                 SolutionWriter(Box::new(|problem, solution, default_writer, geojson_writer| {

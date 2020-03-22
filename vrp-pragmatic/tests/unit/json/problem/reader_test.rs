@@ -58,7 +58,7 @@ fn can_read_minimal_problem() {
     let problem = get_test_resource("../data/small/minimal.problem.json").unwrap();
     let matrix = get_test_resource("../data/small/minimal.matrix.json").unwrap();
 
-    let problem = (problem, vec![matrix]).read_pragmatic().unwrap();
+    let problem = (problem, vec![matrix]).read_pragmatic().ok().unwrap();
 
     assert_eq!(problem.fleet.vehicles.len(), 1);
     assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 2);
@@ -190,7 +190,7 @@ fn can_read_complex_problem() {
         error_codes: Option::None,
     };
 
-    let problem = (problem, vec![matrix]).read_pragmatic().unwrap();
+    let problem = (problem, vec![matrix]).read_pragmatic().ok().unwrap();
 
     assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 3 + 2);
 

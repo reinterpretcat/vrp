@@ -25,7 +25,7 @@ fn assert_demand(actual: &Option<Vec<i32>>, expected: i32) {
 fn can_deserialize_problem() {
     let file = get_test_resource("../data/small/minimal.problem.json").unwrap();
 
-    let problem = deserialize_problem(BufReader::new(file)).unwrap();
+    let problem = deserialize_problem(BufReader::new(file)).ok().unwrap();
 
     assert_eq!(problem.plan.jobs.len(), 2);
     assert_eq!(problem.fleet.vehicles.len(), 1);
@@ -61,7 +61,7 @@ fn can_deserialize_problem() {
 fn can_deserialize_matrix() {
     let file = get_test_resource("../data/small/minimal.matrix.json").unwrap();
 
-    let matrix = deserialize_matrix(BufReader::new(file)).unwrap();
+    let matrix = deserialize_matrix(BufReader::new(file)).ok().unwrap();
 
     assert_eq!(matrix.distances.len(), 16);
     assert_eq!(matrix.travel_times.len(), 16);

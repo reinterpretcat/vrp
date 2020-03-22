@@ -7,9 +7,9 @@ use crate::json::problem::Objective::*;
 use std::collections::HashMap;
 
 /// Checks that objective is not empty when specified.
-fn check_e1009_empty_objective(objectives: &Vec<&Objective>) -> Result<(), ValidationError> {
+fn check_e1009_empty_objective(objectives: &Vec<&Objective>) -> Result<(), FormatError> {
     if objectives.is_empty() {
-        Err(ValidationError::new(
+        Err(FormatError::new(
             "E1009".to_string(),
             "an empty objective specified".to_string(),
             "remove objectives property completely to use default".to_string(),
@@ -20,7 +20,7 @@ fn check_e1009_empty_objective(objectives: &Vec<&Objective>) -> Result<(), Valid
 }
 
 /// Checks that each objective type specified only once.
-fn check_e1010_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), ValidationError> {
+fn check_e1010_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), FormatError> {
     let mut duplicates = objectives
         .iter()
         .fold(HashMap::new(), |mut acc, objective| {
@@ -47,7 +47,7 @@ fn check_e1010_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), 
     if duplicates.is_empty() {
         Ok(())
     } else {
-        Err(ValidationError::new(
+        Err(FormatError::new(
             "E1010".to_string(),
             "duplicate objective specified".to_string(),
             "remove duplicate objectives".to_string(),
@@ -56,7 +56,7 @@ fn check_e1010_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), 
 }
 
 /// Checks that cost objective is specified.
-fn check_e1011_no_cost_value_objective(objectives: &Vec<&Objective>) -> Result<(), ValidationError> {
+fn check_e1011_no_cost_value_objective(objectives: &Vec<&Objective>) -> Result<(), FormatError> {
     let min_costs = objectives
         .iter()
         .filter(|objective| match objective {
@@ -66,7 +66,7 @@ fn check_e1011_no_cost_value_objective(objectives: &Vec<&Objective>) -> Result<(
         .count();
 
     if min_costs == 0 {
-        Err(ValidationError::new(
+        Err(FormatError::new(
             "E1011".to_string(),
             "missing cost objective".to_string(),
             "specify `minimize-cost` objective".to_string(),
@@ -86,7 +86,7 @@ fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> 
     })
 }
 
-pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<ValidationError>> {
+pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     let errors = if let Some(objectives) = get_objectives(ctx) {
         check_e1009_empty_objective(&objectives)
             .err()

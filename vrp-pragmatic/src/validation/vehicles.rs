@@ -4,9 +4,9 @@ use std::ops::Deref;
 use vrp_core::models::common::TimeWindow;
 
 /// Checks that fleet has no vehicle with duplicate type ids.
-fn check_e1004_no_vehicle_types_with_duplicate_type_ids(ctx: &ValidationContext) -> Result<(), ValidationError> {
+fn check_e1004_no_vehicle_types_with_duplicate_type_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
     get_duplicates(ctx.vehicles().map(|vehicle| &vehicle.type_id)).map_or(Ok(()), |ids| {
-        Err(ValidationError::new(
+        Err(FormatError::new(
             "E1004".to_string(),
             format!("duplicated vehicle type ids: {}", ids.join(", ")),
             "remove duplicated vehicle type ids".to_string(),
@@ -15,9 +15,9 @@ fn check_e1004_no_vehicle_types_with_duplicate_type_ids(ctx: &ValidationContext)
 }
 
 /// Checks that fleet has no vehicle with duplicate ids.
-fn check_e1005_no_vehicle_types_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), ValidationError> {
+fn check_e1005_no_vehicle_types_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
     get_duplicates(ctx.vehicles().flat_map(|vehicle| vehicle.vehicle_ids.iter())).map_or(Ok(()), |ids| {
-        Err(ValidationError::new(
+        Err(FormatError::new(
             "E1005".to_string(),
             format!("duplicated vehicle ids: {}", ids.join(", ")),
             "remove duplicated vehicle ids".to_string(),
@@ -26,7 +26,7 @@ fn check_e1005_no_vehicle_types_with_duplicate_ids(ctx: &ValidationContext) -> R
 }
 
 /// Checks that vehicle shift time is correct.
-fn check_e1006_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), ValidationError> {
+fn check_e1006_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = ctx
         .vehicles()
         .filter_map(|vehicle| {
@@ -51,7 +51,7 @@ fn check_e1006_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), Validat
     if type_ids.is_empty() {
         Ok(())
     } else {
-        Err(ValidationError::new(
+        Err(FormatError::new(
             "E1006".to_string(),
             format!("invalid start or end times in vehicle shifts: {}", type_ids.join(", ")),
             "ensure that start and end time conform shift time rules".to_string(),
@@ -60,7 +60,7 @@ fn check_e1006_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), Validat
 }
 
 /// Checks that break time window is correct.
-fn check_e1007_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result<(), ValidationError> {
+fn check_e1007_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|shift, shift_time| {
@@ -85,7 +85,7 @@ fn check_e1007_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
     if type_ids.is_empty() {
         Ok(())
     } else {
-        Err(ValidationError::new(
+        Err(FormatError::new(
             "E1007".to_string(),
             format!("invalid break time windows in vehicle shifts: {}", type_ids.join(", ")),
             "ensure that break conform rules".to_string(),
@@ -94,7 +94,7 @@ fn check_e1007_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
 }
 
 /// Checks that reload time windows are correct.
-fn check_e1008_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result<(), ValidationError> {
+fn check_e1008_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|shift, shift_time| {
@@ -118,7 +118,7 @@ fn check_e1008_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
     if type_ids.is_empty() {
         Ok(())
     } else {
-        Err(ValidationError::new(
+        Err(FormatError::new(
             "E1008".to_string(),
             format!("invalid reload time windows in vehicle shifts: {}", type_ids.join(", ")),
             "ensure that reload conform rules".to_string(),
@@ -164,7 +164,7 @@ fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
 }
 
 /// Validates vehicles from the fleet.
-pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<ValidationError>> {
+pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     let errors = check_e1004_no_vehicle_types_with_duplicate_type_ids(ctx)
         .err()
         .iter()

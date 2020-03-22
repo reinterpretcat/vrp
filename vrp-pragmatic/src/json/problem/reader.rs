@@ -37,58 +37,59 @@ pub type JobIndex = HashMap<String, Job>;
 
 /// Reads specific problem definition from various sources.
 pub trait PragmaticProblem {
-    fn read_pragmatic(self) -> Result<Problem, String>;
+    fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>>;
 }
 
 impl PragmaticProblem for (File, Vec<File>) {
-    fn read_pragmatic(self) -> Result<Problem, String> {
-        let problem = deserialize_problem(BufReader::new(&self.0)).map_err(|err| err.to_string())?;
+    fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
+        let problem = deserialize_problem(BufReader::new(&self.0))?;
 
-        let matrices = self.1.iter().fold(vec![], |mut acc, matrix| {
-            acc.push(deserialize_matrix(BufReader::new(matrix)).unwrap());
-            acc
-        });
+        let mut matrices = vec![];
+        for matrix in self.1 {
+            matrices.push(deserialize_matrix(BufReader::new(matrix))?);
+        }
 
         map_to_problem(problem, matrices)
     }
 }
 
 impl PragmaticProblem for File {
-    fn read_pragmatic(self) -> Result<Problem, String> {
-        let problem = deserialize_problem(BufReader::new(&self)).map_err(|err| err.to_string())?;
+    fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
+        let problem = deserialize_problem(BufReader::new(&self))?;
+
         map_to_problem_with_approx(problem)
     }
 }
 
 impl PragmaticProblem for (String, Vec<String>) {
-    fn read_pragmatic(self) -> Result<Problem, String> {
-        let problem = deserialize_problem(BufReader::new(StringReader::new(&self.0))).map_err(|err| err.to_string())?;
+    fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
+        let problem = deserialize_problem(BufReader::new(StringReader::new(&self.0)))?;
 
-        let matrices = self.1.iter().fold(vec![], |mut acc, matrix| {
-            acc.push(deserialize_matrix(BufReader::new(StringReader::new(matrix))).unwrap());
-            acc
-        });
+        let mut matrices = vec![];
+        for matrix in self.1 {
+            matrices.push(deserialize_matrix(BufReader::new(StringReader::new(&matrix)))?);
+        }
 
         map_to_problem(problem, matrices)
     }
 }
 
 impl PragmaticProblem for String {
-    fn read_pragmatic(self) -> Result<Problem, String> {
-        let problem = deserialize_problem(BufReader::new(StringReader::new(&self))).map_err(|err| err.to_string())?;
+    fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
+        let problem = deserialize_problem(BufReader::new(StringReader::new(&self)))?;
 
         map_to_problem_with_approx(problem)
     }
 }
 
 impl PragmaticProblem for (ApiProblem, Vec<Matrix>) {
-    fn read_pragmatic(self) -> Result<Problem, String> {
+    fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
         map_to_problem(self.0, self.1)
     }
 }
 
 impl PragmaticProblem for ApiProblem {
-    fn read_pragmatic(self) -> Result<Problem, String> {
+    fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
         map_to_problem_with_approx(self)
     }
 }
@@ -102,7 +103,31 @@ pub struct ProblemProperties {
     priority: Option<Cost>,
 }
 
-fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, String> {
+/// A validation error.
+#[derive(Clone)]
+pub struct FormatError {
+    /// A documentation error code.
+    pub code: String,
+    /// A possible error cause.
+    pub cause: String,
+    /// An action to take in order to recover from error.
+    pub action: String,
+}
+
+impl FormatError {
+    /// Creates a new instance of `ValidationError` action.
+    pub fn new(code: String, cause: String, action: String) -> Self {
+        Self { code, cause, action }
+    }
+}
+
+impl std::fmt::Display for FormatError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}, cause: '{}', action: '{}'.", self.code, self.cause, self.action)
+    }
+}
+
+fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<FormatError>> {
     let locations = get_locations(&problem);
     let (durations, distances) = get_approx_transportation(&locations, 10.);
 
@@ -117,13 +142,8 @@ fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, String> {
     map_to_problem(problem, matrices)
 }
 
-fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
-    ValidationContext::new(&api_problem, Some(&matrices)).validate().map_err(|errors| {
-        format!(
-            "Problem has the following validation errors:\n{}",
-            errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n")
-        )
-    })?;
+fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, Vec<FormatError>> {
+    ValidationContext::new(&api_problem, Some(&matrices)).validate()?;
 
     let problem_props = get_problem_properties(&api_problem, &matrices);
 
