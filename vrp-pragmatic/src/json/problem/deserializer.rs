@@ -285,9 +285,9 @@ pub enum Objective {
     BalanceMaxLoad {
         /// A relative load in single tour before balancing takes place.
         threshold: Option<f64>,
-        /// A variance specifies how much two objective values should differ
-        /// to be considered as non Equal.
-        variance: Option<f64>,
+        /// A comparison tolerance, whereby two costs are considered equal
+        /// if they fall within this tolerance.
+        tolerance: Option<f64>,
     },
 
     /// An objective to balance activities across all tours.
@@ -295,9 +295,9 @@ pub enum Objective {
     BalanceActivities {
         /// A minimum amount of activities in a tour before it considered for balancing.
         threshold: Option<usize>,
-        /// A variance specifies how much two objective values should differ
-        /// to be considered as non Equal.
-        variance: Option<f64>,
+        /// A comparison tolerance, whereby two costs are considered equal
+        /// if they fall within this tolerance.
+        tolerance: Option<f64>,
     },
 
     /// An objective to balance distance across all tours.
@@ -305,9 +305,9 @@ pub enum Objective {
     BalanceDistance {
         /// A minimum duration of a tour before it considered for balancing.
         threshold: Option<f64>,
-        /// A variance specifies how much two objective values should differ
-        /// to be considered as non Equal.
-        variance: Option<f64>,
+        /// A comparison tolerance, whereby two costs are considered equal
+        /// if they fall within this tolerance.
+        tolerance: Option<f64>,
     },
 
     /// An objective to balance duration across all tours.
@@ -315,9 +315,9 @@ pub enum Objective {
     BalanceDuration {
         /// A minimum duration of a tour before it considered for balancing.
         threshold: Option<f64>,
-        /// A variance specifies how much two objective values should differ
-        /// to be considered as non Equal.
-        variance: Option<f64>,
+        /// A comparison tolerance, whereby two costs are considered equal
+        /// if they fall within this tolerance.
+        tolerance: Option<f64>,
     },
 }
 

@@ -16,7 +16,7 @@ impl WorkBalance {
     /// Creates `WorkBalanceModule` which balances max load across all tours.
     pub fn new_load_balanced<Capacity>(
         threshold: Option<f64>,
-        variance: Option<f64>,
+        tolerance: Option<f64>,
         load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
     ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>)
     where
@@ -24,7 +24,7 @@ impl WorkBalance {
     {
         let create_balance = || MaxLoadBalance::<Capacity> {
             threshold,
-            variance,
+            tolerance,
             load_func: load_func.clone(),
             default_capacity: Capacity::default(),
             default_intervals: vec![(0_usize, 0_usize)],
@@ -42,11 +42,11 @@ impl WorkBalance {
     /// Creates `WorkBalanceModule` which balances activities across all tours.
     pub fn new_activity_balanced(
         threshold: Option<usize>,
-        variance: Option<f64>,
+        tolerance: Option<f64>,
     ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
         let activity_balance = SimpleValueBalance {
             threshold: threshold.map(|t| t as f64),
-            variance,
+            tolerance,
             max_value_func: Arc::new(|ctx| get_max_cost(ctx)),
             values_func: Arc::new(|ctx| {
                 ctx.solution.routes.iter().map(|rc| rc.route.tour.activity_count() as f64).collect()
@@ -65,27 +65,27 @@ impl WorkBalance {
     /// Creates `WorkBalanceModule` which balances travelled distances across all tours.
     pub fn new_distance_balanced(
         threshold: Option<f64>,
-        variance: Option<f64>,
+        tolerance: Option<f64>,
     ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
-        Self::new_transport_balanced(threshold, variance, TOTAL_DISTANCE_KEY)
+        Self::new_transport_balanced(threshold, tolerance, TOTAL_DISTANCE_KEY)
     }
 
     /// Creates `WorkBalanceModule` which balances travelled durations across all tours.
     pub fn new_duration_balanced(
         threshold: Option<f64>,
-        variance: Option<f64>,
+        tolerance: Option<f64>,
     ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
-        Self::new_transport_balanced(threshold, variance, TOTAL_DURATION_KEY)
+        Self::new_transport_balanced(threshold, tolerance, TOTAL_DURATION_KEY)
     }
 
     fn new_transport_balanced(
         threshold: Option<f64>,
-        variance: Option<f64>,
+        tolerance: Option<f64>,
         state_key: i32,
     ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
         let transport_balance = SimpleValueBalance {
             threshold,
-            variance,
+            tolerance,
             max_value_func: Arc::new(move |ctx| get_max_transport_value(ctx, state_key)),
             values_func: Arc::new(move |ctx| {
                 ctx.solution
@@ -130,7 +130,7 @@ impl ConstraintModule for WorkBalanceModule {
 
 struct MaxLoadBalance<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
     threshold: Option<f64>,
-    variance: Option<f64>,
+    tolerance: Option<f64>,
     load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
     default_capacity: Capacity,
     default_intervals: Vec<(usize, usize)>,
@@ -176,7 +176,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
         let max_loads = insertion_ctx.solution.routes.iter().map(|rc| self.get_max_load_ratio(rc)).collect();
 
-        Box::new(MeasurableObjectiveCost::new_with_variance(get_stdev(&max_loads), self.variance.clone()))
+        Box::new(MeasurableObjectiveCost::new_with_tolerance(get_stdev(&max_loads), self.tolerance.clone()))
     }
 
     fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {
@@ -187,7 +187,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 #[derive(Clone)]
 struct SimpleValueBalance {
     threshold: Option<f64>,
-    variance: Option<f64>,
+    tolerance: Option<f64>,
     max_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
     values_func: Arc<dyn Fn(&InsertionContext) -> Vec<f64> + Send + Sync>,
 }
@@ -204,7 +204,7 @@ impl Objective for SimpleValueBalance {
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
         let values = self.values_func.deref()(insertion_ctx);
 
-        Box::new(MeasurableObjectiveCost::new_with_variance(get_stdev(&values), self.variance.clone()))
+        Box::new(MeasurableObjectiveCost::new_with_tolerance(get_stdev(&values), self.tolerance.clone()))
     }
 
     fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {

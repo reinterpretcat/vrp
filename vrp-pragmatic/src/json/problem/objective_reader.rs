@@ -55,23 +55,23 @@ pub fn create_objective(
                         _ => TotalUnassignedJobs::default(),
                     }));
                 }
-                BalanceMaxLoad { threshold, variance } => {
-                    let (module, objective) = get_load_balance(props, threshold.clone(), variance.clone());
+                BalanceMaxLoad { threshold, tolerance } => {
+                    let (module, objective) = get_load_balance(props, threshold.clone(), tolerance.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceActivities { threshold, variance } => {
-                    let (module, objective) = WorkBalance::new_activity_balanced(threshold.clone(), variance.clone());
+                BalanceActivities { threshold, tolerance } => {
+                    let (module, objective) = WorkBalance::new_activity_balanced(threshold.clone(), tolerance.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceDistance { threshold, variance } => {
-                    let (module, objective) = WorkBalance::new_distance_balanced(threshold.clone(), variance.clone());
+                BalanceDistance { threshold, tolerance } => {
+                    let (module, objective) = WorkBalance::new_distance_balanced(threshold.clone(), tolerance.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceDuration { threshold, variance } => {
-                    let (module, objective) = WorkBalance::new_duration_balanced(threshold.clone(), variance.clone());
+                BalanceDuration { threshold, tolerance } => {
+                    let (module, objective) = WorkBalance::new_duration_balanced(threshold.clone(), tolerance.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
