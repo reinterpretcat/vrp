@@ -55,23 +55,23 @@ pub fn create_objective(
                         _ => TotalUnassignedJobs::default(),
                     }));
                 }
-                BalanceMaxLoad { threshold: _ } => {
-                    let (module, objective) = get_load_balance(props);
+                BalanceMaxLoad { threshold, variance } => {
+                    let (module, objective) = get_load_balance(props, threshold.clone(), variance.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceActivities { threshold: _ } => {
-                    let (module, objective) = WorkBalance::new_activity_balanced();
+                BalanceActivities { threshold, variance } => {
+                    let (module, objective) = WorkBalance::new_activity_balanced(threshold.clone(), variance.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceDistance { threshold: _ } => {
-                    let (module, objective) = WorkBalance::new_distance_balanced();
+                BalanceDistance { threshold, variance } => {
+                    let (module, objective) = WorkBalance::new_distance_balanced(threshold.clone(), variance.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceDuration { threshold: _ } => {
-                    let (module, objective) = WorkBalance::new_duration_balanced();
+                BalanceDuration { threshold, variance } => {
+                    let (module, objective) = WorkBalance::new_duration_balanced(threshold.clone(), variance.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
@@ -101,19 +101,29 @@ pub fn create_objective(
 
 fn get_load_balance(
     props: &ProblemProperties,
+    threshold: Option<f64>,
+    variance: Option<f64>,
 ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn CoreObjective + Send + Sync>) {
     if props.has_multi_dimen_capacity {
-        WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(Arc::new(|loaded, total| {
-            let mut max_ratio = 0_f64;
+        WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(
+            threshold,
+            variance,
+            Arc::new(|loaded, total| {
+                let mut max_ratio = 0_f64;
 
-            for (idx, value) in total.capacity.iter().enumerate() {
-                let ratio = loaded.capacity[idx] as f64 / *value as f64;
-                max_ratio = max_ratio.max(ratio);
-            }
+                for (idx, value) in total.capacity.iter().enumerate() {
+                    let ratio = loaded.capacity[idx] as f64 / *value as f64;
+                    max_ratio = max_ratio.max(ratio);
+                }
 
-            max_ratio
-        }))
+                max_ratio
+            }),
+        )
     } else {
-        WorkBalance::new_load_balanced::<i32>(Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64))
+        WorkBalance::new_load_balanced::<i32>(
+            threshold,
+            variance,
+            Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
+        )
     }
 }
