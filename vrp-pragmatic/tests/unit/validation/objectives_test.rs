@@ -16,7 +16,7 @@ fn can_fallback_to_default() {
 
     let result = ValidationContext::new(&problem, None).validate();
 
-    assert_eq!(result.err(), None);
+    assert!(result.is_ok());
 }
 
 parameterized_test! {can_detect_empty_objective, (objectives, expected), {
@@ -37,7 +37,7 @@ fn can_detect_empty_objective_impl(objectives: Option<Objectives>, expected: Opt
 
     let result = check_e1009_empty_objective(&objectives);
 
-    assert_eq!(result.err(), expected.map(|_| "E1009: An empty objective specified".to_string()));
+    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1009".to_string()));
 }
 
 parameterized_test! {can_detect_duplicates, (objectives, expected), {
@@ -65,7 +65,7 @@ fn can_detect_duplicates_impl(objectives: Option<Objectives>, expected: Option<S
 
     let result = check_e1010_duplicate_objectives(&objectives);
 
-    assert_eq!(result.err(), expected.map(|names| format!("E1010: Duplicate objective specified: {}", names)));
+    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1010".to_string()));
 }
 
 parameterized_test! {can_detect_missing_cost_objective, (objectives, expected), {
@@ -86,5 +86,5 @@ fn can_detect_missing_cost_objective_impl(objectives: Option<Objectives>, expect
 
     let result = check_e1011_no_cost_value_objective(&objectives);
 
-    assert_eq!(result.err(), expected.map(|_| "E1011: Missing cost objective".to_string()));
+    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1011".to_string()));
 }

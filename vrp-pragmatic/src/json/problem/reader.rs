@@ -118,7 +118,12 @@ fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, String> {
 }
 
 fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, String> {
-    ValidationContext::new(&api_problem, Some(&matrices)).validate()?;
+    ValidationContext::new(&api_problem, Some(&matrices)).validate().map_err(|errors| {
+        format!(
+            "Problem has the following validation errors:\n{}",
+            errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n")
+        )
+    })?;
 
     let problem_props = get_problem_properties(&api_problem, &matrices);
 

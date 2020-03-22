@@ -2,13 +2,18 @@ use super::*;
 use crate::extensions::MultiDimensionalCapacity;
 
 /// Checks that plan has no jobs with duplicate ids.
-fn check_e1000_no_jobs_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), String> {
-    get_duplicates(ctx.jobs().map(|job| &job.id))
-        .map_or(Ok(()), |ids| Err(format!("E1000: Duplicated job ids: {}", ids.join(", "))))
+fn check_e1000_no_jobs_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), ValidationError> {
+    get_duplicates(ctx.jobs().map(|job| &job.id)).map_or(Ok(()), |ids| {
+        Err(ValidationError::new(
+            "E1000".to_string(),
+            format!("duplicated job ids: {}", ids.join(", ")),
+            "remove jobs with the same ids".to_string(),
+        ))
+    })
 }
 
 /// Checks that jobs have proper demand.
-fn check_e1001_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), String> {
+fn check_e1001_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), ValidationError> {
     let ids = ctx
         .jobs()
         .filter(|job| {
@@ -27,12 +32,16 @@ fn check_e1001_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), S
     if ids.is_empty() {
         Ok(())
     } else {
-        Err(format!("E1001: Invalid job demand in jobs: {}", ids.join(", ")))
+        Err(ValidationError::new(
+            "E1001".to_string(),
+            format!("invalid job task demand in jobs: {}", ids.join(", ")),
+            "correct demand based on job task type".to_string(),
+        ))
     }
 }
 
 /// Checks that sum of pickup/delivery demand should be equal.
-fn check_e1002_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Result<(), String> {
+fn check_e1002_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Result<(), ValidationError> {
     let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| tasks.len() > 0);
     let get_demand = |tasks: &Option<Vec<JobTask>>| {
         if let Some(tasks) = tasks {
@@ -60,12 +69,16 @@ fn check_e1002_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Re
     if ids.is_empty() {
         Ok(())
     } else {
-        Err(format!("E1002: Invalid pickup and delivery demand in jobs: {}", ids.join(", ")))
+        Err(ValidationError::new(
+            "E1002".to_string(),
+            format!("invalid pickup and delivery demand in jobs: {}", ids.join(", ")),
+            "correct demand so that sum of pickups equal to sum of deliveries".to_string(),
+        ))
     }
 }
 
 /// Checks that job's time windows are correct.
-fn check_e1003_time_window_correctness(ctx: &ValidationContext) -> Result<(), String> {
+fn check_e1003_time_window_correctness(ctx: &ValidationContext) -> Result<(), ValidationError> {
     let has_invalid_tws = |tasks: &Option<Vec<JobTask>>| {
         tasks.as_ref().map_or(false, |tasks| {
             tasks
@@ -85,12 +98,16 @@ fn check_e1003_time_window_correctness(ctx: &ValidationContext) -> Result<(), St
     if ids.is_empty() {
         Ok(())
     } else {
-        Err(format!("E1003: Invalid time windows in jobs: {}", ids.join(", ")))
+        Err(ValidationError::new(
+            "E1003".to_string(),
+            format!("invalid time windows in jobs: {}", ids.join(", ")),
+            "change job task place time windows so that they don't intersect".to_string(),
+        ))
     }
 }
 
 /// Validates jobs from the plan.
-pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<String>> {
+pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<ValidationError>> {
     let errors = check_e1000_no_jobs_with_duplicate_ids(ctx)
         .err()
         .iter()
