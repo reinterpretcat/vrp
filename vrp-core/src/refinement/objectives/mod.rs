@@ -47,6 +47,7 @@ pub trait Objective {
 /// An objective cost with measurable value.
 pub struct MeasurableObjectiveCost {
     cost: Cost,
+    variance: Option<f64>,
 }
 
 /// A multi objective cost.
@@ -87,7 +88,7 @@ impl ObjectiveCost for MeasurableObjectiveCost {
     }
 
     fn clone_box(&self) -> ObjectiveCostType {
-        Box::new(Self { cost: self.cost })
+        Box::new(Self { cost: self.cost, variance: self.variance })
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -97,7 +98,11 @@ impl ObjectiveCost for MeasurableObjectiveCost {
 
 impl MeasurableObjectiveCost {
     pub fn new(cost: Cost) -> Self {
-        Self { cost }
+        Self { cost, variance: None }
+    }
+
+    pub fn new_with_variance(cost: Cost, variance: Option<f64>) -> Self {
+        Self { cost, variance }
     }
 }
 

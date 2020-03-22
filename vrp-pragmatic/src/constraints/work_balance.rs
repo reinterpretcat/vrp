@@ -176,7 +176,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
         let max_loads = insertion_ctx.solution.routes.iter().map(|rc| self.get_max_load_ratio(rc)).collect();
 
-        Box::new(MeasurableObjectiveCost::new(get_stdev(&max_loads)))
+        Box::new(MeasurableObjectiveCost::new_with_variance(get_stdev(&max_loads), self.variance.clone()))
     }
 
     fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {
@@ -204,7 +204,7 @@ impl Objective for SimpleValueBalance {
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
         let values = self.values_func.deref()(insertion_ctx);
 
-        Box::new(MeasurableObjectiveCost::new(get_stdev(&values)))
+        Box::new(MeasurableObjectiveCost::new_with_variance(get_stdev(&values), self.variance.clone()))
     }
 
     fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {
