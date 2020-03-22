@@ -84,6 +84,14 @@ impl ObjectiveCost for MeasurableObjectiveCost {
     }
 
     fn cmp(&self, other: &ObjectiveCostType) -> Ordering {
+        if let Some(tolerance) = self.tolerance {
+            // NOTE we get actual ratio between two values
+            let ratio = (other.value() - self.cost).abs() / self.cost;
+            if ratio.is_normal() && ratio > tolerance {
+                return Equal;
+            }
+        }
+
         self.cost.partial_cmp(&other.value()).unwrap_or(Less)
     }
 

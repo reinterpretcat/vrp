@@ -61,17 +61,23 @@ pub fn create_objective(
                     core_objectives.push(objective);
                 }
                 BalanceActivities { threshold, tolerance } => {
-                    let (module, objective) = WorkBalance::new_activity_balanced(threshold.clone(), tolerance.clone());
+                    let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance.clone());
+                    let (module, objective) =
+                        WorkBalance::new_activity_balanced(threshold.clone(), solution_tolerance, route_tolerance);
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
                 BalanceDistance { threshold, tolerance } => {
-                    let (module, objective) = WorkBalance::new_distance_balanced(threshold.clone(), tolerance.clone());
+                    let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance.clone());
+                    let (module, objective) =
+                        WorkBalance::new_distance_balanced(threshold.clone(), solution_tolerance, route_tolerance);
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
                 BalanceDuration { threshold, tolerance } => {
-                    let (module, objective) = WorkBalance::new_duration_balanced(threshold.clone(), tolerance.clone());
+                    let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance.clone());
+                    let (module, objective) =
+                        WorkBalance::new_duration_balanced(threshold.clone(), solution_tolerance, route_tolerance);
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
@@ -102,12 +108,14 @@ pub fn create_objective(
 fn get_load_balance(
     props: &ProblemProperties,
     threshold: Option<f64>,
-    variance: Option<f64>,
+    tolerance: Option<BalanceTolerance>,
 ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn CoreObjective + Send + Sync>) {
+    let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance);
     if props.has_multi_dimen_capacity {
         WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(
             threshold,
-            variance,
+            solution_tolerance,
+            route_tolerance,
             Arc::new(|loaded, total| {
                 let mut max_ratio = 0_f64;
 
@@ -122,8 +130,17 @@ fn get_load_balance(
     } else {
         WorkBalance::new_load_balanced::<i32>(
             threshold,
-            variance,
+            solution_tolerance,
+            route_tolerance,
             Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
         )
+    }
+}
+
+fn get_balance_tolerance_params(tolerance: Option<BalanceTolerance>) -> (Option<f64>, Option<f64>) {
+    if let Some(tolerance) = tolerance {
+        (tolerance.solution, tolerance.route)
+    } else {
+        (None, None)
     }
 }

@@ -287,7 +287,7 @@ pub enum Objective {
         threshold: Option<f64>,
         /// A comparison tolerance, whereby two costs are considered equal
         /// if they fall within this tolerance.
-        tolerance: Option<f64>,
+        tolerance: Option<BalanceTolerance>,
     },
 
     /// An objective to balance activities across all tours.
@@ -295,19 +295,17 @@ pub enum Objective {
     BalanceActivities {
         /// A minimum amount of activities in a tour before it considered for balancing.
         threshold: Option<usize>,
-        /// A comparison tolerance, whereby two costs are considered equal
-        /// if they fall within this tolerance.
-        tolerance: Option<f64>,
+        /// Balance tolerance parameters.
+        tolerance: Option<BalanceTolerance>,
     },
 
     /// An objective to balance distance across all tours.
     #[serde(rename(deserialize = "balance-distance"))]
     BalanceDistance {
-        /// A minimum duration of a tour before it considered for balancing.
+        /// A minimum distance of a tour before it considered for balancing.
         threshold: Option<f64>,
-        /// A comparison tolerance, whereby two costs are considered equal
-        /// if they fall within this tolerance.
-        tolerance: Option<f64>,
+        /// Balance tolerance parameters.
+        tolerance: Option<BalanceTolerance>,
     },
 
     /// An objective to balance duration across all tours.
@@ -315,9 +313,8 @@ pub enum Objective {
     BalanceDuration {
         /// A minimum duration of a tour before it considered for balancing.
         threshold: Option<f64>,
-        /// A comparison tolerance, whereby two costs are considered equal
-        /// if they fall within this tolerance.
-        tolerance: Option<f64>,
+        /// Balance tolerance parameters.
+        tolerance: Option<BalanceTolerance>,
     },
 }
 
@@ -328,6 +325,16 @@ pub struct GoalSatisfactionCriteria<T> {
     pub value: Option<T>,
     /// A goal as a change ratio defined by variation coefficient.
     pub variation: Option<VariationCoefficient>,
+}
+
+/// Specifies comparison tolerance parameters for balancing objectives.
+/// Two values are considered equal if they fall within a tolerance value.
+#[derive(Clone, Deserialize, Debug)]
+pub struct BalanceTolerance {
+    /// A tolerance for solution comparison: compares standard deviations.
+    pub solution: Option<f64>,
+    /// A tolerance for route comparison: compares local value with mean.
+    pub route: Option<f64>,
 }
 
 /// Specifies parameters for variation coefficient calculations.
