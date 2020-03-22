@@ -87,7 +87,7 @@ impl ObjectiveCost for MeasurableObjectiveCost {
         if let Some(tolerance) = self.tolerance {
             // NOTE we get actual ratio between two values
             let ratio = (other.value() - self.cost).abs() / self.cost;
-            if ratio.is_normal() && ratio > tolerance {
+            if ratio.is_normal() && ratio < tolerance {
                 return Equal;
             }
         }
