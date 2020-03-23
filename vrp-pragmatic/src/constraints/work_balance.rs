@@ -168,6 +168,11 @@ struct WorkBalanceObjectives {
 impl SoftRouteConstraint for WorkBalanceObjectives {
     fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
         let value = self.value_func.deref()(route_ctx);
+
+        if self.threshold.map_or(false, |threshold| value < threshold) {
+            return 0.;
+        }
+
         let values = self.values_func.deref()(solution_ctx);
 
         let mean = get_mean(&values);

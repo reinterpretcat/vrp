@@ -10,18 +10,24 @@ fn get_activities_count(tour: &Tour) -> usize {
         .sum()
 }
 
-parameterized_test! {can_balance_activities_with_tolerance, (tolerance, expected_lowest), {
-    can_balance_activities_with_tolerance_impl(tolerance, expected_lowest);
+parameterized_test! {can_balance_activities_with_tolerance_and_threshold, (threshold, tolerance, expected_lowest), {
+    can_balance_activities_with_tolerance_and_threshold_impl(threshold, tolerance, expected_lowest);
 }}
 
-can_balance_activities_with_tolerance! {
-    case01: (None, 3),
-    case02: (Some(BalanceTolerance { solution: None, route: None }), 3),
-    case03: (Some(BalanceTolerance { solution: None, route: Some(0.33) }), 3),
-    case04: (Some(BalanceTolerance { solution: None, route: Some(0.5) }), 2),
+can_balance_activities_with_tolerance_and_threshold! {
+    case01: (None, None, 3),
+    case02: (None, Some(BalanceTolerance { solution: None, route: None }), 3),
+    case03: (None, Some(BalanceTolerance { solution: None, route: Some(0.33) }), 3),
+    case04: (None, Some(BalanceTolerance { solution: None, route: Some(0.5) }), 2),
+    case05: (Some(2), None, 3),
+    case06: (Some(5), None, 2),
 }
 
-fn can_balance_activities_with_tolerance_impl(tolerance: Option<BalanceTolerance>, expected_lowest: usize) {
+fn can_balance_activities_with_tolerance_and_threshold_impl(
+    threshold: Option<usize>,
+    tolerance: Option<BalanceTolerance>,
+    expected_lowest: usize,
+) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -53,7 +59,7 @@ fn can_balance_activities_with_tolerance_impl(tolerance: Option<BalanceTolerance
             profiles: create_default_profiles(),
         },
         objectives: Some(Objectives {
-            primary: vec![BalanceActivities { threshold: None, tolerance }],
+            primary: vec![BalanceActivities { threshold, tolerance }],
             secondary: Some(vec![MinimizeCost { goal: None }]),
         }),
         ..create_empty_problem()
