@@ -32,7 +32,7 @@ As single dimensional array it looks like:
 pragmatically:
 
 ```
-vrp-cli pragmatic problem.json --get-locations -o locations.json
+vrp-cli solve pragmatic problem.json --get-locations -o locations.json
 ```
 
 The output format is a simply array of unique geo locations:

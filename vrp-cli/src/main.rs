@@ -28,7 +28,7 @@ fn main() {
     match matches.subcommand() {
         ("solve", Some(solve_matches)) => run_solve(solve_matches),
         ("import", Some(import_matches)) => run_import(import_matches),
-        ("", None) => eprintln!("No subcommand was used"),
+        ("", None) => eprintln!("No subcommand was used. Use -h to print help information."),
         _ => unreachable!(),
     }
 }

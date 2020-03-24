@@ -9,26 +9,26 @@ At the moment, `vrp-cli` supports solving of two scientific problem sets: **solo
 
 The following command solves solomon problem defined in _RC1_10_1.txt_ and stores solution in _RC1_10_1_solution.txt_:
 
-    vrp-cli solomon RC1_10_1.txt -o RC1_10_1_solution.txt
+    vrp-cli solve solomon RC1_10_1.txt -o RC1_10_1_solution.txt
 
 Optionally, you can specify initial solution to start with:
 
-    vrp-cli solomon RC1_10_1.txt --init-solution RC1_10_1_solution_initial.txt -o RC1_10_1_solution_improved.txt
+    vrp-cli solve solomon RC1_10_1.txt --init-solution RC1_10_1_solution_initial.txt -o RC1_10_1_solution_improved.txt
 
 To run the problem from Li&Lim set, simply specify _lilim_ instead of _solomon_ as a type:
 
-    vrp-cli lilim LC1_10_2.txt -o LC1_10_2_solution.txt
+    vrp-cli solve lilim LC1_10_2.txt -o LC1_10_2_solution.txt
 
 
 ## Pragmatic problem
 
-Pragmatic format requires at least one routing matrix passed as argument:
+Pragmatic format support routing matrix(-es) passed as argument:
 
-    vrp-cli pragmatic problem.json -m routing_matrix.json -o solution.json
+    vrp-cli solve pragmatic problem.json -m routing_matrix.json -o solution.json
 
 If you have multiple, simply specify them one by one, in the order of `fleet.profiles`:
 
-    vrp-cli pragmatic problem.json -m routing_matrix_car.json -m routing_matrix_truck.json
+    vrp-cli solve pragmatic problem.json -m routing_matrix_car.json -m routing_matrix_truck.json
 
 
 ## Termination criteria
@@ -40,13 +40,13 @@ are two types.
 
 Max time specifies duration of solving in seconds:
 
-    vrp-cli pragmatic problem.json -m routing_matrix.json -o solution.json --max-time=600
+    vrp-cli solve pragmatic problem.json -m routing_matrix.json -o solution.json --max-time=600
 
 ### Max generations
 
 Generation is one refinement step and it can be limited via _max-generations_ parameter:
 
-    vrp-cli pragmatic problem.json -m routing_matrix.json -o solution.json --max-generations=1000
+    vrp-cli solve pragmatic problem.json -m routing_matrix.json -o solution.json --max-generations=1000
 
 
 ### Default behavior

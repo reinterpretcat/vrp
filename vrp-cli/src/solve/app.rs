@@ -11,7 +11,7 @@ pub const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
 pub const OUT_RESULT_ARG_NAME: &str = "out-result";
 pub const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
 
-pub fn get_solve_app<'a,'b>() -> App<'a, 'b> {
+pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
     App::new("solve")
         .about("Solves variations of Vehicle Routing Problem")
         .arg(

@@ -81,7 +81,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
     .collect()
 }
 
-/// Runs solver
+/// Runs solver commands.
 pub fn run_solve(matches: &ArgMatches) {
     let formats = get_formats();
 
