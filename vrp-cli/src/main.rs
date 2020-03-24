@@ -1,91 +1,35 @@
-//! A command line interface to solve variations of *Vehicle Routing Problem*.
+//! A command line interface to *Vehicle Routing Problem* solver.
 //!
 //! For more details please check [docs](cli/index.html)
 
-mod args;
+mod import;
+use self::import::get_import_app;
+use self::import::run_import;
 
-use self::args::*;
+mod solve;
+use self::solve::get_solve_app;
+use self::solve::run_solve;
 
-mod formats;
-
-use self::formats::*;
-
+extern crate clap;
+use clap::{App, Arg, ArgMatches, Values};
 use std::fs::File;
-use std::ops::Deref;
+use std::io::{stdout, BufWriter, Write};
 use std::process;
 
-use clap::Values;
-use std::io::{stdout, BufWriter, Write};
-use std::sync::Arc;
-use vrp_solver::SolverBuilder;
-
 fn main() {
-    let formats = get_formats();
-    let matches = get_arg_matches(formats.keys().map(|s| s.deref()).collect::<Vec<&str>>());
+    let matches = App::new("Vehicle Routing Problem Solver")
+        .version("0.1")
+        .author("Ilya Builuk <ilya.builuk@gmail.com>")
+        .about("A command line interface to Vehicle Routing Problem solver")
+        .subcommand(get_solve_app())
+        .subcommand(get_import_app())
+        .get_matches();
 
-    // required
-    let problem_path = matches.value_of(PROBLEM_ARG_NAME).unwrap();
-    let problem_format = matches.value_of(FORMAT_ARG_NAME).unwrap();
-    let problem_file = open_file(problem_path, "problem");
-
-    // optional
-    let max_generations = matches.value_of(GENERATIONS_ARG_NAME).map(|arg| {
-        arg.parse::<usize>().unwrap_or_else(|err| {
-            eprintln!("Cannot get max generations: '{}'", err.to_string());
-            process::exit(1);
-        })
-    });
-    let max_time = matches.value_of(TIME_ARG_NAME).map(|arg| {
-        arg.parse::<f64>().unwrap_or_else(|err| {
-            eprintln!("Cannot get max time: '{}'", err.to_string());
-            process::exit(1);
-        })
-    });
-    let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
-    let matrix_files = matches
-        .values_of(MATRIX_ARG_NAME)
-        .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect());
-    let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
-    let out_geojson = matches.value_of(GEO_JSON_ARG_NAME).map(|path| create_file(path, "out geojson"));
-    let is_get_locations_set = matches.is_present(GET_LOCATIONS_ARG_NAME);
-
-    match formats.get(problem_format) {
-        Some((problem_reader, init_reader, solution_writer, locations_writer)) => {
-            let out_buffer = create_write_buffer(out_result);
-            let geo_buffer = out_geojson.map(|geojson| create_write_buffer(Some(geojson)));
-
-            if is_get_locations_set {
-                locations_writer.0(problem_file, out_buffer).unwrap_or_else(|err| {
-                    eprintln!("Cannot get locations '{}'", err);
-                    process::exit(1);
-                });
-            } else {
-                match problem_reader.0(problem_file, matrix_files) {
-                    Ok(problem) => {
-                        let problem = Arc::new(problem);
-                        let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
-                        let solution = SolverBuilder::default()
-                            .with_init_solution(solution.map(|s| (problem.clone(), Arc::new(s))))
-                            .with_max_generations(max_generations)
-                            .with_max_time(max_time)
-                            .build()
-                            .solve(problem.clone());
-                        match solution {
-                            Some(solution) => solution_writer.0(&problem, solution.0, out_buffer, geo_buffer).unwrap(),
-                            None => println!("Cannot find any solution"),
-                        };
-                    }
-                    Err(error) => {
-                        eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
-                        process::exit(1);
-                    }
-                };
-            }
-        }
-        None => {
-            eprintln!("Unknown format: '{}'", problem_format);
-            process::exit(1);
-        }
+    match matches.subcommand() {
+        ("solve", Some(solve_matches)) => run_solve(solve_matches),
+        ("import", Some(import_matches)) => run_import(import_matches),
+        ("", None) => eprintln!("No subcommand was used"),
+        _ => unreachable!(),
     }
 }
 

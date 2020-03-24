@@ -264,6 +264,9 @@ pub enum Objective {
     MinimizeCost {
         /// A goal defined by satisfaction criteria parameters.
         goal: Option<GoalSatisfactionCriteria<f64>>,
+        /// A comparison tolerance, whereby two costs are considered equal
+        /// if they fall within this tolerance.
+        tolerance: Option<f64>,
     },
 
     /// An objective to minimize total tour amount.
@@ -285,8 +288,7 @@ pub enum Objective {
     BalanceMaxLoad {
         /// A relative load in single tour before balancing takes place.
         threshold: Option<f64>,
-        /// A comparison tolerance, whereby two costs are considered equal
-        /// if they fall within this tolerance.
+        /// Balance tolerance parameters.
         tolerance: Option<BalanceTolerance>,
     },
 

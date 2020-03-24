@@ -18,42 +18,23 @@ pub fn create_objective(
             let mut core_objectives: Vec<Box<dyn CoreObjective + Send + Sync>> = vec![];
             let mut cost_idx = None;
             objectives.iter().enumerate().for_each(|(idx, objective)| match objective {
-                MinimizeCost { goal } => {
+                MinimizeCost { goal, tolerance } => {
                     cost_idx = Some(idx);
-                    core_objectives.push(Box::new(match goal {
-                        Some(GoalSatisfactionCriteria { value: None, variation: None }) => {
-                            TotalTransportCost::default()
-                        }
-                        Some(GoalSatisfactionCriteria { value, variation }) => TotalTransportCost::new(
-                            value.clone(),
-                            variation.as_ref().map(|vc| (vc.sample, vc.variation)),
-                        ),
-                        _ => TotalTransportCost::default(),
-                    }));
+                    let (value_goal, variation_goal) = split_goal(goal);
+                    core_objectives.push(Box::new(TotalTransportCost::new(
+                        value_goal,
+                        variation_goal,
+                        tolerance.clone(),
+                    )))
                 }
                 MinimizeTours { goal } => {
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
-                    core_objectives.push(Box::new(match goal {
-                        Some(GoalSatisfactionCriteria { value: None, variation: None }) => TotalRoutes::default(),
-                        Some(GoalSatisfactionCriteria { value, variation }) => TotalRoutes::new(
-                            value.clone(),
-                            variation.as_ref().map(|vc| (vc.sample, vc.variation)),
-                            true,
-                        ),
-                        _ => TotalRoutes::default(),
-                    }));
+                    let (value_goal, variation_goal) = split_goal(goal);
+                    core_objectives.push(Box::new(TotalRoutes::new(value_goal, variation_goal, true)))
                 }
                 MinimizeUnassignedJobs { goal } => {
-                    core_objectives.push(Box::new(match goal {
-                        Some(GoalSatisfactionCriteria { value: None, variation: None }) => {
-                            TotalUnassignedJobs::default()
-                        }
-                        Some(GoalSatisfactionCriteria { value, variation }) => TotalUnassignedJobs::new(
-                            value.clone(),
-                            variation.as_ref().map(|vc| (vc.sample, vc.variation)),
-                        ),
-                        _ => TotalUnassignedJobs::default(),
-                    }));
+                    let (value_goal, variation_goal) = split_goal(goal);
+                    core_objectives.push(Box::new(TotalUnassignedJobs::new(value_goal, variation_goal)))
                 }
                 BalanceMaxLoad { threshold, tolerance } => {
                     let (module, objective) = get_load_balance(props, threshold.clone(), tolerance.clone());
@@ -143,4 +124,9 @@ fn get_balance_tolerance_params(tolerance: Option<BalanceTolerance>) -> (Option<
     } else {
         (None, None)
     }
+}
+
+fn split_goal<T: Clone>(goal: &Option<GoalSatisfactionCriteria<T>>) -> (Option<T>, Option<(usize, f64)>) {
+    goal.as_ref()
+        .map_or((None, None), |goal| (goal.value.clone(), goal.variation.as_ref().map(|vc| (vc.sample, vc.variation))))
 }

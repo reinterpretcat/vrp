@@ -3,7 +3,7 @@ use crate::helpers::create_empty_problem;
 use crate::json::problem::Objective::*;
 
 fn min_cost() -> Objective {
-    MinimizeCost { goal: None }
+    MinimizeCost { goal: None, tolerance: None }
 }
 
 fn balance_dist() -> Objective {

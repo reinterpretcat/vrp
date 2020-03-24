@@ -1,5 +1,4 @@
-extern crate clap;
-use clap::{App, Arg, ArgMatches};
+use super::*;
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";
 pub const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -12,16 +11,14 @@ pub const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
 pub const OUT_RESULT_ARG_NAME: &str = "out-result";
 pub const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
 
-pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
-    App::new("Vehicle Routing Problem Solver")
-        .version("0.1")
-        .author("Ilya Builuk <ilya.builuk@gmail.com>")
+pub fn get_solve_app<'a,'b>() -> App<'a, 'b> {
+    App::new("solve")
         .about("Solves variations of Vehicle Routing Problem")
         .arg(
             Arg::with_name(FORMAT_ARG_NAME)
                 .help("Specifies the problem type")
                 .required(true)
-                .possible_values(formats.as_slice())
+                .possible_values(&["solomon", "lilim", "pragmatic"])
                 .index(1),
         )
         .arg(Arg::with_name(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
@@ -81,5 +78,4 @@ pub fn get_arg_matches(formats: Vec<&str>) -> ArgMatches {
                 .required(false)
                 .takes_value(true),
         )
-        .get_matches()
 }

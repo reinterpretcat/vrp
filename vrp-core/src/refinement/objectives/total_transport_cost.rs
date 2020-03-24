@@ -12,20 +12,22 @@ use crate::utils::VariationCoefficient;
 pub struct TotalTransportCost {
     cost_goal: Option<(f64, bool)>,
     variation_goal: Option<VariationCoefficient>,
+    tolerance: Option<f64>,
 }
 
 impl Default for TotalTransportCost {
     fn default() -> Self {
-        Self { cost_goal: None, variation_goal: None }
+        Self { cost_goal: None, variation_goal: None, tolerance: None }
     }
 }
 
 impl TotalTransportCost {
-    pub fn new(cost_goal: Option<Cost>, variation_goal: Option<(usize, f64)>) -> Self {
+    pub fn new(cost_goal: Option<Cost>, variation_goal: Option<(usize, f64)>, tolerance: Option<f64>) -> Self {
         Self {
             cost_goal: cost_goal.map(|cost| (cost, true)),
             variation_goal: variation_goal
                 .map(|(sample, threshold)| VariationCoefficient::new(sample, threshold, "cost_vc")),
+            tolerance,
         }
     }
 
@@ -59,7 +61,7 @@ impl TotalTransportCost {
 
 impl Objective for TotalTransportCost {
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
-        Box::new(MeasurableObjectiveCost::new(self.get_actual_cost(insertion_ctx)))
+        Box::new(MeasurableObjectiveCost::new_with_tolerance(self.get_actual_cost(insertion_ctx), self.tolerance))
     }
 
     fn is_goal_satisfied(

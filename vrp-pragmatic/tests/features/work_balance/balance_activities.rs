@@ -60,7 +60,7 @@ fn can_balance_activities_with_tolerance_and_threshold_impl(
         },
         objectives: Some(Objectives {
             primary: vec![BalanceActivities { threshold, tolerance }],
-            secondary: Some(vec![MinimizeCost { goal: None }]),
+            secondary: Some(vec![MinimizeCost { goal: None, tolerance: None }]),
         }),
         ..create_empty_problem()
     };
