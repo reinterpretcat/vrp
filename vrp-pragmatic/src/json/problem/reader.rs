@@ -21,7 +21,7 @@ use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::json::*;
 use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
-use crate::{get_locations, parse_time, StringReader};
+use crate::{get_locations, parse_time};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
@@ -63,11 +63,11 @@ impl PragmaticProblem for File {
 
 impl PragmaticProblem for (String, Vec<String>) {
     fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
-        let problem = deserialize_problem(BufReader::new(StringReader::new(&self.0)))?;
+        let problem = deserialize_problem(BufReader::new(self.0.as_bytes()))?;
 
         let mut matrices = vec![];
         for matrix in self.1 {
-            matrices.push(deserialize_matrix(BufReader::new(StringReader::new(&matrix)))?);
+            matrices.push(deserialize_matrix(BufReader::new(matrix.as_bytes()))?);
         }
 
         map_to_problem(problem, matrices)
@@ -76,7 +76,7 @@ impl PragmaticProblem for (String, Vec<String>) {
 
 impl PragmaticProblem for String {
     fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
-        let problem = deserialize_problem(BufReader::new(StringReader::new(&self)))?;
+        let problem = deserialize_problem(BufReader::new(self.as_bytes()))?;
 
         map_to_problem_with_approx(problem)
     }

@@ -30,7 +30,7 @@ impl SolomonProblem for File {
 
 impl SolomonProblem for String {
     fn read_solomon(&self) -> Result<Problem, String> {
-        read_solomon_format(BufReader::new(StringReader::new(self.as_str())))
+        read_solomon_format(BufReader::new(self.as_bytes()))
     }
 }
 

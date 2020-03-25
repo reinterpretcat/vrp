@@ -31,7 +31,7 @@ impl LilimProblem for File {
 
 impl LilimProblem for String {
     fn read_lilim(&self) -> Result<Problem, String> {
-        read_lilim_format(BufReader::new(StringReader::new(self.as_str())))
+        read_lilim_format(BufReader::new(self.as_bytes()))
     }
 }
 

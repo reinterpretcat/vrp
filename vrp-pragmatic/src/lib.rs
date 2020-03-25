@@ -48,30 +48,6 @@ use vrp_solver::SolverBuilder;
 
 use crate::json::Location;
 use std::io::Read;
-use std::slice::Iter;
-
-struct StringReader<'a> {
-    iter: Iter<'a, u8>,
-}
-
-impl<'a> StringReader<'a> {
-    pub fn new(data: &'a str) -> Self {
-        Self { iter: data.as_bytes().iter() }
-    }
-}
-
-impl<'a> Read for StringReader<'a> {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        for i in 0..buf.len() {
-            if let Some(x) = self.iter.next() {
-                buf[i] = *x;
-            } else {
-                return Ok(i);
-            }
-        }
-        Ok(buf.len())
-    }
-}
 
 /// Get lists of problem.
 pub fn get_locations(problem: &Problem) -> Vec<Location> {
@@ -119,8 +95,7 @@ fn to_string(pointer: *const c_char) -> String {
 
 #[no_mangle]
 extern "C" fn locations(problem: *const c_char, success: Callback, failure: Callback) {
-    let result =
-        catch_unwind(|| get_locations_serialized(BufReader::new(StringReader::new(&to_string(problem)))).ok().unwrap());
+    let result = catch_unwind(|| get_locations_serialized(BufReader::new(to_string(problem).as_bytes())).ok().unwrap());
 
     match result {
         Ok(locations) => {

@@ -5,7 +5,6 @@ mod text_reader_test;
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
-use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::states::{create_end_activity, create_start_activity};
@@ -14,29 +13,6 @@ use vrp_core::models::problem::*;
 use vrp_core::models::solution::{Activity, Registry, Route, Tour};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::refinement::objectives::MultiObjective;
-
-pub struct StringReader<'a> {
-    iter: Iter<'a, u8>,
-}
-
-impl<'a> StringReader<'a> {
-    pub fn new(data: &'a str) -> Self {
-        Self { iter: data.as_bytes().iter() }
-    }
-}
-
-impl<'a> Read for StringReader<'a> {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        for (i, item) in buf.iter_mut().enumerate() {
-            if let Some(x) = self.iter.next() {
-                *item = *x;
-            } else {
-                return Ok(i);
-            }
-        }
-        Ok(buf.len())
-    }
-}
 
 pub trait TextReader {
     fn read_problem(&mut self) -> Result<Problem, String> {
