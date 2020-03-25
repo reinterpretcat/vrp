@@ -39,7 +39,7 @@ ID,LAT,LNG,DEMAND,DURATION,TW_START,TW_END
 job1,52.52599,13.45413,2,5,2020-07-04T08:00:00Z,2020-07-04T12:00:00Z
 job2,52.5225,13.4095,1,3,,
 job2,52.5165,13.3808,-1,3,,
-job3,52.5316,13.3884,3,5,2020-07-04T08:00:00Z,2020-07-04T16:00:00Z
+job3,52.5316,13.3884,-3,5,2020-07-04T08:00:00Z,2020-07-04T16:00:00Z
 ```
 
 job with `job2` id specified twice with positive and negative demand, so it will be considered as pickup and delivery job.

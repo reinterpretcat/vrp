@@ -37,6 +37,7 @@ pub struct Relation {
     /// Vehicle id.
     pub vehicle_id: String,
     /// Vehicle shift index.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub shift_index: Option<usize>,
 }
 
@@ -48,6 +49,7 @@ pub struct JobPlace {
     /// A job place duration (service time).
     pub duration: f64,
     /// A list of job place time windows with time specified in RFC3339 format.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub times: Option<Vec<Vec<String>>>,
 }
 
@@ -57,8 +59,10 @@ pub struct JobTask {
     /// A list of possible places where given task can be performed.
     pub places: Vec<JobPlace>,
     /// Job place demand.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub demand: Option<Vec<i32>>,
     /// An tag which will be propagated back within corresponding activity in solution.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
 }
 
@@ -70,17 +74,29 @@ pub struct JobTask {
 pub struct Job {
     /// A job id.
     pub id: String,
+
     /// A list of pickup tasks.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pickups: Option<Vec<JobTask>>,
+
     /// A list of delivery tasks.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deliveries: Option<Vec<JobTask>>,
+
     /// A list of replacement tasks.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub replacements: Option<Vec<JobTask>>,
+
     /// A list of service tasks.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub services: Option<Vec<JobTask>>,
+
     /// Job priority, bigger value - less important.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub priority: Option<i32>,
+
     /// A set of skills required to serve a job.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub skills: Option<Vec<String>>,
 }
 
@@ -90,6 +106,7 @@ pub struct Plan {
     /// List of jobs.
     pub jobs: Vec<Job>,
     /// List of relations between jobs and vehicles.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relations: Option<Vec<Relation>>,
 }
 
@@ -101,6 +118,7 @@ pub struct Plan {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleCosts {
     /// Fixed is cost of vehicle usage per tour.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fixed: Option<f64>,
     /// Cost per distance unit.
     pub distance: f64,
@@ -123,12 +141,18 @@ pub struct VehiclePlace {
 pub struct VehicleShift {
     /// Vehicle start place.
     pub start: VehiclePlace,
+
     /// Vehicle end place.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<VehiclePlace>,
+
     /// Vehicle breaks.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub breaks: Option<Vec<VehicleBreak>>,
+
     /// Vehicle reloads which allows vehicle to return back to the depot (or any other place) in
     /// order to unload/load goods during single tour.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reloads: Option<Vec<VehicleReload>>,
 }
 
@@ -137,11 +161,16 @@ pub struct VehicleShift {
 pub struct VehicleReload {
     /// A reload location.
     pub location: Location,
+
     /// A reload duration (service time).
     pub duration: f64,
+
     /// A list of reload time windows with time specified in RFC3339 format.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub times: Option<Vec<Vec<String>>>,
+
     /// An tag which will be propagated back within corresponding activity in solution.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
 }
 
@@ -150,8 +179,11 @@ pub struct VehicleReload {
 #[serde(rename_all = "camelCase")]
 pub struct VehicleLimits {
     /// Max traveling distance per shift/tour.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_distance: Option<f64>,
+
     /// Max time per shift/tour.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub shift_time: Option<f64>,
 }
 
@@ -170,9 +202,12 @@ pub enum VehicleBreakTime {
 pub struct VehicleBreak {
     /// Break time.
     pub time: VehicleBreakTime,
+
     /// Break duration.
     pub duration: f64,
+
     /// Break locations.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub locations: Option<Vec<Location>>,
 }
 
@@ -181,19 +216,28 @@ pub struct VehicleBreak {
 pub struct VehicleType {
     /// Vehicle type id.
     pub type_id: String,
+
     /// Concrete vehicle ids.
     pub vehicle_ids: Vec<String>,
+
     /// Vehicle profile name.
     pub profile: String,
+
     /// Vehicle costs.
     pub costs: VehicleCosts,
+
     /// Vehicle shifts.
     pub shifts: Vec<VehicleShift>,
+
     /// Vehicle capacity.
     pub capacity: Vec<i32>,
+
     /// Vehicle skills.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub skills: Option<Vec<String>>,
+
     /// Vehicle limits.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub limits: Option<VehicleLimits>,
 }
 
@@ -204,6 +248,7 @@ pub struct Profile {
     pub name: String,
     /// Profile type.
     #[serde(rename(deserialize = "type"))]
+    #[serde(rename(serialize = "type"))]
     pub profile_type: String,
 }
 
@@ -224,6 +269,7 @@ pub struct Fleet {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Config {
     /// Features config.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub features: Option<Features>,
 }
 
@@ -232,6 +278,7 @@ pub struct Config {
 #[serde(rename_all = "camelCase")]
 pub struct Features {
     /// Tweaks priority weight. Default value is 100.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub priority: Option<Priority>,
 }
 
@@ -254,6 +301,7 @@ pub struct Objectives {
     pub primary: Vec<Objective>,
     /// A list of secondary objective functions. An accepted solution can be worse
     /// by the secondary objective if it improves the primary one.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub secondary: Option<Vec<Objective>>,
 }
 
@@ -268,6 +316,7 @@ pub enum Objective {
         goal: Option<GoalSatisfactionCriteria<f64>>,
         /// A comparison tolerance, whereby two costs are considered equal
         /// if they fall within this tolerance.
+        #[serde(skip_serializing_if = "Option::is_none")]
         tolerance: Option<f64>,
     },
 
@@ -275,6 +324,7 @@ pub enum Objective {
     #[serde(rename(deserialize = "minimize-tours"))]
     MinimizeTours {
         /// A goal defined by satisfaction criteria parameters.
+        #[serde(skip_serializing_if = "Option::is_none")]
         goal: Option<GoalSatisfactionCriteria<usize>>,
     },
 
@@ -282,6 +332,7 @@ pub enum Objective {
     #[serde(rename(deserialize = "minimize-unassigned"))]
     MinimizeUnassignedJobs {
         /// A goal defined by satisfaction criteria parameters.
+        #[serde(skip_serializing_if = "Option::is_none")]
         goal: Option<GoalSatisfactionCriteria<usize>>,
     },
 
@@ -289,8 +340,11 @@ pub enum Objective {
     #[serde(rename(deserialize = "balance-max-load"))]
     BalanceMaxLoad {
         /// A relative load in single tour before balancing takes place.
+        #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<f64>,
+
         /// Balance tolerance parameters.
+        #[serde(skip_serializing_if = "Option::is_none")]
         tolerance: Option<BalanceTolerance>,
     },
 
@@ -298,8 +352,11 @@ pub enum Objective {
     #[serde(rename(deserialize = "balance-activities"))]
     BalanceActivities {
         /// A minimum amount of activities in a tour before it considered for balancing.
+        #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<usize>,
+
         /// Balance tolerance parameters.
+        #[serde(skip_serializing_if = "Option::is_none")]
         tolerance: Option<BalanceTolerance>,
     },
 
@@ -307,8 +364,11 @@ pub enum Objective {
     #[serde(rename(deserialize = "balance-distance"))]
     BalanceDistance {
         /// A minimum distance of a tour before it considered for balancing.
+        #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<f64>,
+
         /// Balance tolerance parameters.
+        #[serde(skip_serializing_if = "Option::is_none")]
         tolerance: Option<BalanceTolerance>,
     },
 
@@ -316,8 +376,11 @@ pub enum Objective {
     #[serde(rename(deserialize = "balance-duration"))]
     BalanceDuration {
         /// A minimum duration of a tour before it considered for balancing.
+        #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<f64>,
+
         /// Balance tolerance parameters.
+        #[serde(skip_serializing_if = "Option::is_none")]
         tolerance: Option<BalanceTolerance>,
     },
 }
@@ -326,8 +389,11 @@ pub enum Objective {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GoalSatisfactionCriteria<T> {
     /// A goal as an absolute value.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<T>,
+
     /// A goal as a change ratio defined by variation coefficient.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub variation: Option<VariationCoefficient>,
 }
 
@@ -336,8 +402,11 @@ pub struct GoalSatisfactionCriteria<T> {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct BalanceTolerance {
     /// A tolerance for solution comparison: compares standard deviations.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub solution: Option<f64>,
+
     /// A tolerance for route comparison: compares local value with mean.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub route: Option<f64>,
 }
 
@@ -359,11 +428,16 @@ pub struct VariationCoefficient {
 pub struct Problem {
     /// Problem plan: customers to serve.
     pub plan: Plan,
+
     /// Problem resources: vehicles to be used, routing info.
     pub fleet: Fleet,
+
     /// Specifies objective functions.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub objectives: Option<Objectives>,
+
     /// Extra configuration.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub config: Option<Config>,
 }
 
@@ -373,9 +447,12 @@ pub struct Problem {
 pub struct Matrix {
     /// Travel distances.
     pub travel_times: Vec<i64>,
+
     /// Travel durations.
     pub distances: Vec<i64>,
+
     /// Error codes to mark unreachable locations.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub error_codes: Option<Vec<i64>>,
 }
 
