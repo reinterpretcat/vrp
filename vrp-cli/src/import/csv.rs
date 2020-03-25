@@ -64,7 +64,7 @@ fn read_jobs<R: Read>(reader: BufReader<R>) -> Result<Vec<Job>, Box<dyn Error>> 
     let get_task = |job: &CsvJob| JobTask {
         places: vec![JobPlace {
             location: Location { lat: job.lat, lng: job.lng },
-            duration: job.duration as f64,
+            duration: job.duration as f64 * 60.,
             times: parse_tw(job.tw_start.clone(), job.tw_end.clone()).map(|tw| vec![tw]),
         }],
         demand: if job.demand != 0 { Some(vec![job.demand.abs()]) } else { None },

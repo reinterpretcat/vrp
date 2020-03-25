@@ -1,4 +1,4 @@
-# Result analysis
+# Analyzing results
 
 In this example, solution is returned in a `pragmatic` format which model is described in details
 [here](../concepts/pragmatic/solution/index.md). However, analyzing VRP solution might be a difficult task. That's why
@@ -12,4 +12,4 @@ as `leaflet`:
 
 <div id="map"></div>
 
-To return solution in `geojson` format, use `-g` or `--geo-json` option.
+To return solution in `geojson` format, use extra `-g` or `--geo-json` option.

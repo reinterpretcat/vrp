@@ -5,14 +5,10 @@
 * [Getting Started](getting-started/index.md)
   * [Features](getting-started/features.md)
   * [Installation](getting-started/installation.md)
-  * [Import problem](getting-started/import.md)
-  * [Routing info](getting-started/routing.md)
-  * [Run solver](getting-started/solver.md)
-  * [Result analysis](getting-started/analysis.md)
-
-* [Command Line Tool](cli/index.md)
-    * [Available options](cli/options.md)
-    * [Logging](cli/logging.md)
+  * [Defining problem](getting-started/import.md)
+  * [Acquiring routing info](getting-started/routing.md)
+  * [Running solver](getting-started/solver.md)
+  * [Analyzing results](getting-started/analysis.md)
 
 * [Concepts](concepts/index.md)
   * [Pragmatic format](concepts/pragmatic/index.md)

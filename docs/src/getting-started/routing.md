@@ -1,4 +1,4 @@
-# Routing matrix
+# Acquiring routing info
 
 Once the problem is represented in `pragmatic` format, it's time to get matrix routing data.
 
