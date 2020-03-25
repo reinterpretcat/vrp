@@ -2,8 +2,8 @@
 //!
 //! Please refer to [documentation](concepts/pragmatic/index.md) problem and routing matrix definitions.
 
-mod deserializer;
-pub use self::deserializer::*;
+mod model;
+pub use self::model::*;
 
 mod reader;
 pub use self::reader::FormatError;

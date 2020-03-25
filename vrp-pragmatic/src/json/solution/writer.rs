@@ -5,7 +5,7 @@ mod writer_test;
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format_time;
 use crate::json::coord_index::CoordIndex;
-use crate::json::solution::default_serializer::Timing;
+use crate::json::solution::model::Timing;
 use crate::json::solution::{
     serialize_solution, serialize_solution_as_geojson, Activity, Extras, Interval, Statistic, Stop, Tour,
     UnassignedJob, UnassignedJobReason,
@@ -18,8 +18,8 @@ use vrp_core::models::problem::{Job, Multi};
 use vrp_core::models::solution::{Route, TourActivity};
 use vrp_core::models::{Problem, Solution};
 
-type ApiSolution = crate::json::solution::default_serializer::Solution;
-type ApiSchedule = crate::json::solution::default_serializer::Schedule;
+type ApiSolution = crate::json::solution::model::Solution;
+type ApiSchedule = crate::json::solution::model::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
 
