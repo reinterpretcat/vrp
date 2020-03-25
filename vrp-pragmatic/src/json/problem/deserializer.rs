@@ -6,13 +6,15 @@ extern crate serde_json;
 
 use crate::json::problem::FormatError;
 use crate::json::Location;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_json::Error;
 use std::io::{BufReader, Read};
+use std::io::{BufWriter, Write};
 
 // region Plan
 
 /// Relation type.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RelationType {
     /// Relation type which  locks jobs to specific vehicle in any order.
@@ -24,7 +26,7 @@ pub enum RelationType {
 }
 
 /// Relation is the way to lock specific jobs to specific vehicles.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Relation {
     /// Relation type.
@@ -39,7 +41,7 @@ pub struct Relation {
 }
 
 /// Specifies a place for sub job.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct JobPlace {
     /// A job place location.
     pub location: Location,
@@ -50,7 +52,7 @@ pub struct JobPlace {
 }
 
 /// Specifies a job task.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct JobTask {
     /// A list of possible places where given task can be performed.
     pub places: Vec<JobPlace>,
@@ -64,7 +66,7 @@ pub struct JobTask {
 /// which follows these rules:
 /// * all of them should be completed or none of them.
 /// * all pickups must be completed before any of deliveries.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Job {
     /// A job id.
     pub id: String,
@@ -83,7 +85,7 @@ pub struct Job {
 }
 
 /// A plan specifies work which has to be done.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Plan {
     /// List of jobs.
     pub jobs: Vec<Job>,
@@ -96,7 +98,7 @@ pub struct Plan {
 // region Fleet
 
 /// Specifies vehicle costs.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleCosts {
     /// Fixed is cost of vehicle usage per tour.
     pub fixed: Option<f64>,
@@ -107,7 +109,7 @@ pub struct VehicleCosts {
 }
 
 /// Specifies vehicle place.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehiclePlace {
     /// Vehicle start or end time.
     pub time: String,
@@ -116,7 +118,7 @@ pub struct VehiclePlace {
 }
 
 /// Specifies vehicle shift.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleShift {
     /// Vehicle start place.
@@ -131,7 +133,7 @@ pub struct VehicleShift {
 }
 
 /// Specifies a place for reload.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleReload {
     /// A reload location.
     pub location: Location,
@@ -144,7 +146,7 @@ pub struct VehicleReload {
 }
 
 /// Vehicle limits.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VehicleLimits {
     /// Max traveling distance per shift/tour.
@@ -154,7 +156,7 @@ pub struct VehicleLimits {
 }
 
 /// Vehicle break time variant.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(untagged)]
 pub enum VehicleBreakTime {
     /// Break time is defined by a time window with time specified in RFC3339 format.
@@ -164,7 +166,7 @@ pub enum VehicleBreakTime {
 }
 
 /// Vehicle break.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleBreak {
     /// Break time.
     pub time: VehicleBreakTime,
@@ -175,7 +177,7 @@ pub struct VehicleBreak {
 }
 
 /// Specifies a vehicle type.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleType {
     /// Vehicle type id.
     pub type_id: String,
@@ -196,7 +198,7 @@ pub struct VehicleType {
 }
 
 /// Specifies routing profile.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Profile {
     /// Profile name.
     pub name: String,
@@ -206,7 +208,7 @@ pub struct Profile {
 }
 
 /// Specifies fleet.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Fleet {
     /// Vehicle types.
     pub vehicles: Vec<VehicleType>,
@@ -219,14 +221,14 @@ pub struct Fleet {
 // region Configuration
 
 /// Specifies extra configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Config {
     /// Features config.
     pub features: Option<Features>,
 }
 
 /// Specifies features config.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Features {
     /// Tweaks priority weight. Default value is 100.
@@ -234,7 +236,7 @@ pub struct Features {
 }
 
 /// Configuration to tweak even distribution of the jobs across tours.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Priority {
     /// A cost for formula: `extra_cost = (priority - 1) * weight_cost`.
     pub weight_cost: f64,
@@ -245,7 +247,7 @@ pub struct Priority {
 // region Objective
 
 /// Specifies a group of objective functions.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Objectives {
     /// A list of primary objective functions. An accepted solution should not
     /// be worse of any of these.
@@ -256,7 +258,7 @@ pub struct Objectives {
 }
 
 /// Specifies objective function types.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum Objective {
     /// An objective to minimize total cost.
@@ -321,7 +323,7 @@ pub enum Objective {
 }
 
 /// Specifies goal satisfaction criteria options.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GoalSatisfactionCriteria<T> {
     /// A goal as an absolute value.
     pub value: Option<T>,
@@ -331,7 +333,7 @@ pub struct GoalSatisfactionCriteria<T> {
 
 /// Specifies comparison tolerance parameters for balancing objectives.
 /// Two values are considered equal if they fall within a tolerance value.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct BalanceTolerance {
     /// A tolerance for solution comparison: compares standard deviations.
     pub solution: Option<f64>,
@@ -340,7 +342,7 @@ pub struct BalanceTolerance {
 }
 
 /// Specifies parameters for variation coefficient calculations.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VariationCoefficient {
     /// A sample size of refinement generations.
     pub sample: usize,
@@ -353,7 +355,7 @@ pub struct VariationCoefficient {
 // region Common
 
 /// A VRP problem definition.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Problem {
     /// Problem plan: customers to serve.
     pub plan: Plan,
@@ -366,7 +368,7 @@ pub struct Problem {
 }
 
 /// A routing matrix.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Matrix {
     /// Travel distances.
@@ -389,4 +391,9 @@ pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec
 pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<FormatError>> {
     serde_json::from_reader(reader)
         .map_err(|err| vec![FormatError::new("E0001".to_string(), err.to_string(), "Check input json".to_string())])
+}
+
+/// Serializes [`problem`] in json from [`writer`].
+pub fn serialize_problem<W: Write>(writer: BufWriter<W>, problem: &Problem) -> Result<(), Error> {
+    serde_json::to_writer_pretty(writer, problem)
 }

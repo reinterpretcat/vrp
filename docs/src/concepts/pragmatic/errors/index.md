@@ -6,7 +6,7 @@ Errors from E0xxx range are generic.
 
 ### E0000
 
-This error is returned when input problem cannot be deserialized from json stream.
+This error is returned when problem cannot be deserialized from input stream.
 
 
 ### E0001

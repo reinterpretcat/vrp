@@ -57,7 +57,7 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
         )
         .arg(
             Arg::with_name(OUT_RESULT_ARG_NAME)
-                .help("Specifies path to file for output result")
+                .help("Specifies path to file for result output")
                 .short("o")
                 .long(OUT_RESULT_ARG_NAME)
                 .required(false)

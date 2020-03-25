@@ -112,12 +112,19 @@ pub struct FormatError {
     pub cause: String,
     /// An action to take in order to recover from error.
     pub action: String,
+    /// A details about exception.
+    pub details: Option<String>,
 }
 
 impl FormatError {
-    /// Creates a new instance of `FormatError` action.
+    /// Creates a new instance of `FormatError` action without details.
     pub fn new(code: String, cause: String, action: String) -> Self {
-        Self { code, cause, action }
+        Self { code, cause, action, details: None }
+    }
+
+    /// Creates a new instance of `FormatError` action.
+    pub fn new_with_details(code: String, cause: String, action: String, details: String) -> Self {
+        Self { code, cause, action, details: Some(details) }
     }
 }
 
