@@ -22,9 +22,10 @@ Use `-m` option to pass the matrix:
 ## Multiple profiles
 
 In general, you're not limited to one single routing profile. You can define multiple ones and pass their matrices
-to the solver in the order they are defined in `fleet.profiles`:
+to the solver:
 
     vrp-cli solve pragmatic problem.json -m routing_matrix_car.json -m routing_matrix_truck.json
 
+Make sure that for all profile names in `fleet.profiles` you have the corresponding matrix specified.
 
 See [multiple profiles example](../../../examples/pragmatic/basics/profiles.md).
