@@ -57,7 +57,7 @@ pub struct MatrixTransportCost {
     size: usize,
 }
 
-/// Contains matrix routing data.
+/// Contains matrix routing data for specific profile and, optionally, time.
 pub struct MatrixData {
     /// A routing profile.
     pub profile: Profile,
@@ -76,11 +76,11 @@ impl MatrixTransportCost {
         costs.sort_by(|a, b| a.profile.cmp(&b.profile));
 
         if costs.iter().any(|costs| costs.timestamp.is_some()) {
-            unimplemented!()
+            unimplemented!("Time aware routing is not yet implemented")
         }
 
         if (0..).zip(costs.iter().map(|c| c.profile)).any(|(a, b)| a != b) {
-            unimplemented!()
+            unimplemented!("Duplicate profiles can be passed only for time aware routing")
         }
 
         let (durations, distances) = costs.into_iter().fold((vec![], vec![]), |mut acc, data| {
