@@ -138,15 +138,21 @@ fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<Format
     let locations = get_locations(&problem);
     let (durations, distances) = get_approx_transportation(&locations, 10.);
 
-    let matrix = Matrix {
-        profile: None,
-        timestamp: None,
-        travel_times: durations.into_iter().map(|d| d.round() as i64).collect(),
-        distances: distances.into_iter().map(|d| d.round() as i64).collect(),
-        error_codes: None,
-    };
+    let durations = durations.into_iter().map(|d| d.round() as i64).collect::<Vec<_>>();
+    let distances = distances.into_iter().map(|d| d.round() as i64).collect::<Vec<_>>();
 
-    let matrices = problem.fleet.profiles.iter().map(|_| matrix.clone()).collect();
+    let matrices = problem
+        .fleet
+        .profiles
+        .iter()
+        .map(move |profile| Matrix {
+            profile: profile.name.clone(),
+            timestamp: None,
+            travel_times: durations.clone(),
+            distances: distances.clone(),
+            error_codes: None,
+        })
+        .collect();
 
     map_to_problem(problem, matrices)
 }
@@ -157,7 +163,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     let problem_props = get_problem_properties(&api_problem, &matrices);
 
     let coord_index = CoordIndex::new(&api_problem);
-    let transport = Arc::new(create_transport_costs(&matrices));
+    let transport = Arc::new(create_transport_costs(&api_problem, &matrices));
     let activity = Arc::new(OnlyVehicleActivityCost::default());
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
 

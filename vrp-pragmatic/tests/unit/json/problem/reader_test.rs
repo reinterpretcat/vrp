@@ -185,7 +185,7 @@ fn can_read_complex_problem() {
         config: None,
     };
     let matrix = Matrix {
-        profile: None,
+        profile: "car".to_owned(),
         timestamp: None,
         travel_times: vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         distances: vec![2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],

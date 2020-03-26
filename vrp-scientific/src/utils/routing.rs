@@ -1,5 +1,5 @@
 use vrp_core::models::common::Location;
-use vrp_core::models::problem::MatrixTransportCost;
+use vrp_core::models::problem::{MatrixData, MatrixTransportCost};
 
 pub struct MatrixFactory {
     locations: Vec<(i32, i32)>,
@@ -23,7 +23,7 @@ impl MatrixFactory {
     }
 
     pub fn create_transport(&self) -> MatrixTransportCost {
-        let matrix_data = self
+        let matrix_values = self
             .locations
             .iter()
             .flat_map(|&(x1, y1)| {
@@ -35,6 +35,8 @@ impl MatrixFactory {
             })
             .collect::<Vec<f64>>();
 
-        MatrixTransportCost::new(vec![matrix_data.clone()], vec![matrix_data])
+        let matrix_data = MatrixData::new(0, matrix_values.clone(), matrix_values);
+
+        MatrixTransportCost::new(vec![matrix_data])
     }
 }

@@ -57,11 +57,12 @@ pub struct MatrixTransportCost {
     size: usize,
 }
 
-pub struct MatrixCosts {
+/// Contains matrix routing data.
+pub struct MatrixData {
     /// A routing profile.
     pub profile: Profile,
     /// A timestamp for which routing info is applicable.
-    pub timestamp: Timestamp,
+    pub timestamp: Option<Timestamp>,
     /// Travel durations.
     pub durations: Vec<Duration>,
     /// Travel distances.
@@ -70,7 +71,25 @@ pub struct MatrixCosts {
 
 impl MatrixTransportCost {
     /// Creates a new [`MatrixTransportCost`]
-    pub fn new(durations: Vec<Vec<Duration>>, distances: Vec<Vec<Distance>>) -> Self {
+    pub fn new(costs: Vec<MatrixData>) -> Self {
+        let mut costs = costs;
+        costs.sort_by(|a, b| a.profile.cmp(&b.profile));
+
+        if costs.iter().any(|costs| costs.timestamp.is_some()) {
+            unimplemented!()
+        }
+
+        if (0..).zip(costs.iter().map(|c| c.profile)).any(|(a, b)| a != b) {
+            unimplemented!()
+        }
+
+        let (durations, distances) = costs.into_iter().fold((vec![], vec![]), |mut acc, data| {
+            acc.0.push(data.durations);
+            acc.1.push(data.distances);
+
+            acc
+        });
+
         let size = (durations.first().unwrap().len() as f64).sqrt() as usize;
 
         assert_eq!(distances.len(), durations.len());
@@ -88,5 +107,12 @@ impl TransportCost for MatrixTransportCost {
 
     fn distance(&self, profile: Profile, from: Location, to: Location, _: Timestamp) -> Distance {
         *self.distances.get(profile as usize).unwrap().get(from * self.size + to).unwrap()
+    }
+}
+
+impl MatrixData {
+    /// Creates `MatrixData` without timestamp.
+    pub fn new(profile: Profile, durations: Vec<Duration>, distances: Vec<Distance>) -> Self {
+        Self { profile, timestamp: None, durations, distances }
     }
 }

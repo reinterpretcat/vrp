@@ -3,39 +3,49 @@ use crate::json::coord_index::CoordIndex;
 use crate::json::problem::reader::{add_skills, ApiProblem, ProblemProperties};
 use crate::json::problem::Matrix;
 use crate::parse_time;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::construction::constraints::CapacityDimension;
 use vrp_core::construction::constraints::TravelLimitFunc;
 use vrp_core::models::common::{Dimensions, Distance, Duration, IdDimension, Profile, TimeWindow, ValueDimension};
-use vrp_core::models::problem::{Actor, Costs, Driver, Fleet, MatrixTransportCost, Vehicle, VehicleDetail};
+use vrp_core::models::problem::{Actor, Costs, Driver, Fleet, MatrixData, MatrixTransportCost, Vehicle, VehicleDetail};
 
-pub fn create_transport_costs(matrices: &Vec<Matrix>) -> MatrixTransportCost {
-    let mut all_durations: Vec<Vec<Duration>> = Default::default();
-    let mut all_distances: Vec<Vec<Distance>> = Default::default();
+pub fn create_transport_costs(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> MatrixTransportCost {
+    let fleet_profiles = get_profile_map(api_problem);
 
-    matrices.iter().for_each(|matrix| {
-        if let Some(error_codes) = &matrix.error_codes {
-            let mut profile_durations: Vec<Duration> = Default::default();
-            let mut profile_distances: Vec<Distance> = Default::default();
-            for (i, error) in error_codes.iter().enumerate() {
-                if *error > 0 {
-                    profile_durations.push(-1.);
-                    profile_distances.push(-1.);
-                } else {
-                    profile_durations.push(*matrix.travel_times.get(i).unwrap() as f64);
-                    profile_distances.push(*matrix.distances.get(i).unwrap() as f64);
+    let matrix_data = matrices
+        .iter()
+        .filter_map(|matrix| fleet_profiles.get(&matrix.profile).map(|profile| (profile, matrix)))
+        .map(|(profile, matrix)| {
+            let (durations, distances) = if let Some(error_codes) = &matrix.error_codes {
+                let mut durations: Vec<Duration> = Default::default();
+                let mut distances: Vec<Distance> = Default::default();
+                for (i, error) in error_codes.iter().enumerate() {
+                    if *error > 0 {
+                        durations.push(-1.);
+                        distances.push(-1.);
+                    } else {
+                        durations.push(*matrix.travel_times.get(i).unwrap() as f64);
+                        distances.push(*matrix.distances.get(i).unwrap() as f64);
+                    }
                 }
-            }
-            all_durations.push(profile_durations);
-            all_distances.push(profile_distances);
-        } else {
-            all_durations.push(matrix.travel_times.iter().map(|d| *d as f64).collect());
-            all_distances.push(matrix.distances.iter().map(|d| *d as f64).collect());
-        }
-    });
+                (durations, distances)
+            } else {
+                (
+                    matrix.travel_times.iter().map(|d| *d as f64).collect(),
+                    matrix.distances.iter().map(|d| *d as f64).collect(),
+                )
+            };
 
-    MatrixTransportCost::new(all_durations, all_distances)
+            MatrixData::new(*profile, durations, distances)
+        })
+        .collect::<Vec<_>>();
+
+    let matrix_profiles = matrix_data.iter().map(|data| data.profile).collect::<HashSet<_>>().len();
+
+    assert_eq!(fleet_profiles.len(), matrix_profiles);
+
+    MatrixTransportCost::new(matrix_data)
 }
 
 pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
@@ -128,10 +138,10 @@ pub fn read_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
     }
 }
 
-fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
+fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, i32> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
         if acc.get(&profile.name) == None {
-            acc.insert(profile.name.clone(), acc.len());
+            acc.insert(profile.name.clone(), acc.len() as i32);
         }
         acc
     })

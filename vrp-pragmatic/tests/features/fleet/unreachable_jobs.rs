@@ -10,7 +10,7 @@ fn can_use_vehicle_with_open_end() {
         ..create_empty_problem()
     };
     let matrix = Matrix {
-        profile: None,
+        profile: "car".to_owned(),
         timestamp: None,
         travel_times: vec![0, 1, 1, 0],
         distances: vec![0, 1, 1, 0],

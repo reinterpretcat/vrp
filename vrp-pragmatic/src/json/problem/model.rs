@@ -445,8 +445,8 @@ pub struct Problem {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Matrix {
-    /// A name of profile. Can be omitted when single matrix is used for all profiles.
-    pub profile: Option<String>,
+    /// A name of profile.
+    pub profile: String,
 
     /// A date in RFC3999 for which routing info is applicable.
     pub timestamp: Option<String>,

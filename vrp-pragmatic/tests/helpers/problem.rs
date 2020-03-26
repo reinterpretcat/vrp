@@ -208,7 +208,13 @@ pub fn create_matrix(data: Vec<i64>) -> Matrix {
 
     assert_eq!((size * size) as usize, data.len());
 
-    Matrix { profile: None, timestamp: None, travel_times: data.clone(), distances: data.clone(), error_codes: None }
+    Matrix {
+        profile: "car".to_owned(),
+        timestamp: None,
+        travel_times: data.clone(),
+        distances: data.clone(),
+        error_codes: None,
+    }
 }
 
 pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
