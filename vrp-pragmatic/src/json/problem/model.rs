@@ -445,10 +445,16 @@ pub struct Problem {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Matrix {
-    /// Travel distances.
+    /// A name of profile. Can be omitted when single matrix is used for all profiles.
+    pub profile: Option<String>,
+
+    /// A date in RFC3999 for which routing info is applicable.
+    pub timestamp: Option<String>,
+
+    /// Travel distances (used to be in seconds).
     pub travel_times: Vec<i64>,
 
-    /// Travel durations.
+    /// Travel durations (use to be in meters).
     pub distances: Vec<i64>,
 
     /// Error codes to mark unreachable locations.

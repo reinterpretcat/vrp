@@ -57,6 +57,17 @@ pub struct MatrixTransportCost {
     size: usize,
 }
 
+pub struct MatrixCosts {
+    /// A routing profile.
+    pub profile: Profile,
+    /// A timestamp for which routing info is applicable.
+    pub timestamp: Timestamp,
+    /// Travel durations.
+    pub durations: Vec<Duration>,
+    /// Travel distances.
+    pub distances: Vec<Distance>,
+}
+
 impl MatrixTransportCost {
     /// Creates a new [`MatrixTransportCost`]
     pub fn new(durations: Vec<Vec<Duration>>, distances: Vec<Vec<Distance>>) -> Self {

@@ -185,6 +185,8 @@ fn can_read_complex_problem() {
         config: None,
     };
     let matrix = Matrix {
+        profile: None,
+        timestamp: None,
         travel_times: vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         distances: vec![2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
         error_codes: Option::None,

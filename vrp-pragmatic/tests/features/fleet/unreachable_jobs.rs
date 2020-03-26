@@ -9,8 +9,13 @@ fn can_use_vehicle_with_open_end() {
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
         ..create_empty_problem()
     };
-    let matrix =
-        Matrix { travel_times: vec![0, 1, 1, 0], distances: vec![0, 1, 1, 0], error_codes: Some(vec![0, 1, 1, 1]) };
+    let matrix = Matrix {
+        profile: None,
+        timestamp: None,
+        travel_times: vec![0, 1, 1, 0],
+        distances: vec![0, 1, 1, 0],
+        error_codes: Some(vec![0, 1, 1, 1]),
+    };
 
     let solution = solve_with_metaheuristic(problem, vec![matrix]);
 

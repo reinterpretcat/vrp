@@ -139,6 +139,8 @@ fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<Format
     let (durations, distances) = get_approx_transportation(&locations, 10.);
 
     let matrix = Matrix {
+        profile: None,
+        timestamp: None,
         travel_times: durations.into_iter().map(|d| d.round() as i64).collect(),
         distances: distances.into_iter().map(|d| d.round() as i64).collect(),
         error_codes: None,
