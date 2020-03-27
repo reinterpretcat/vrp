@@ -44,6 +44,8 @@ use std::os::raw::c_char;
 use std::panic::catch_unwind;
 use std::slice;
 use std::sync::Arc;
+use vrp_core::models::Problem as CoreProblem;
+use vrp_core::models::Solution as CoreSolution;
 use vrp_solver::SolverBuilder;
 
 use crate::json::Location;
@@ -82,6 +84,14 @@ fn parse_time(time: &String) -> f64 {
 
 fn parse_time_safe(time: &String) -> Result<f64, ParseError> {
     DateTime::parse_from_rfc3339(time).map(|time| time.timestamp() as f64)
+}
+
+fn solution_to_string(problem: &CoreProblem, solution: &CoreSolution) -> String {
+    let mut buffer = String::new();
+    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+    solution.write_pragmatic_json(&problem, writer).ok();
+
+    buffer
 }
 
 // TODO improve error propagation
@@ -126,11 +136,7 @@ extern "C" fn solve(
 
         let (solution, _, _) = SolverBuilder::default().build().solve(problem.clone()).unwrap();
 
-        let mut buffer = String::new();
-        let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-        solution.write_pragmatic_json(&problem, writer).ok();
-
-        buffer
+        solution_to_string(problem.as_ref(), &solution)
     });
 
     match result {
@@ -143,4 +149,42 @@ extern "C" fn solve(
             failure(error.as_ptr());
         }
     };
+}
+
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+    extern crate serde_json;
+    extern crate wasm_bindgen;
+    use wasm_bindgen::prelude::*;
+
+    use super::*;
+    use crate::json::problem::Matrix;
+
+    #[wasm_bindgen]
+    pub fn web_solve(problem: &JsValue, matrices: &JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem = problem
+            .into_serde()
+            .map_err(|err| JsValue::from_str(format!("Cannot read problem: '{}'", err).as_str()))?;
+
+        let matrices: Vec<Matrix> = matrices
+            .into_serde()
+            .map_err(|err| JsValue::from_str(format!("Cannot read matrix array: '{}'", err).as_str()))?;
+
+        let problem = Arc::new(
+            if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }.map_err(
+                |errors| {
+                    JsValue::from_str(
+                        errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n").as_str(),
+                    )
+                },
+            )?,
+        );
+
+        let (solution, _, _) = SolverBuilder::default()
+            .build()
+            .solve(problem.clone())
+            .ok_or_else(|| JsValue::from_str("Cannot solve problem"))?;
+
+        Ok(JsValue::from_str(solution_to_string(problem.as_ref(), &solution).as_str()))
+    }
 }

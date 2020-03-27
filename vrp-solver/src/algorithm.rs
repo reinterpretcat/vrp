@@ -1,7 +1,6 @@
 use crate::population::SimplePopulation;
 use std::ops::Deref;
 use std::sync::Arc;
-use std::time::Instant;
 use vrp_core::construction::states::InsertionContext;
 use vrp_core::models::{Problem, Solution};
 use vrp_core::refinement::acceptance::{Acceptance, Greedy};
@@ -10,7 +9,7 @@ use vrp_core::refinement::objectives::ObjectiveCost;
 use vrp_core::refinement::selection::{SelectRandom, Selection};
 use vrp_core::refinement::termination::*;
 use vrp_core::refinement::{Individuum, RefinementContext};
-use vrp_core::utils::DefaultRandom;
+use vrp_core::utils::{DefaultRandom, Timer};
 
 /// A skeleton of metaheuristic with default ruin and recreate implementation.
 pub struct Solver {
@@ -63,9 +62,9 @@ impl Solver {
             None => InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())),
         };
 
-        let refinement_time = Instant::now();
+        let refinement_time = Timer::start();
         loop {
-            let generation_time = Instant::now();
+            let generation_time = Timer::start();
 
             insertion_ctx = self.mutation.mutate(&mut refinement_ctx, insertion_ctx);
 
@@ -77,11 +76,11 @@ impl Solver {
                 problem.objective.is_goal_satisfied(&mut refinement_ctx, &individuum.0).unwrap_or(false);
 
             if refinement_ctx.generation % 100 == 0 || is_terminated || is_goal_satisfied || is_accepted {
-                self.log_generation(&refinement_ctx, generation_time, refinement_time, &individuum, is_accepted);
+                self.log_generation(&refinement_ctx, &generation_time, &refinement_time, &individuum, is_accepted);
             }
 
             if refinement_ctx.generation > 0 && refinement_ctx.generation % 1000 == 0 {
-                self.log_population(&refinement_ctx, refinement_time);
+                self.log_population(&refinement_ctx, &refinement_time);
             }
 
             if is_accepted {
@@ -101,15 +100,15 @@ impl Solver {
             refinement_ctx.generation += 1;
         }
 
-        self.log_speed(&refinement_ctx, refinement_time);
+        self.log_speed(&refinement_ctx, &refinement_time);
         self.get_result(refinement_ctx)
     }
 
     fn log_generation(
         &self,
         refinement_ctx: &RefinementContext,
-        generation_time: Instant,
-        refinement_time: Instant,
+        generation_time: &Timer,
+        refinement_time: &Timer,
         solution: &Individuum,
         is_accepted: bool,
     ) {
@@ -118,8 +117,8 @@ impl Solver {
         self.logger.deref()(format!(
             "generation {} took {}ms (total {}s), cost: {:.2} ({:.3}%), routes: {}, unassigned: {}, accepted: {}",
             refinement_ctx.generation,
-            generation_time.elapsed().as_millis(),
-            refinement_time.elapsed().as_secs(),
+            generation_time.elapsed_millis(),
+            refinement_time.elapsed_secs(),
             cost.value(),
             cost_change,
             insertion_ctx.solution.routes.len(),
@@ -128,11 +127,11 @@ impl Solver {
         ));
     }
 
-    fn log_population(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
+    fn log_population(&self, refinement_ctx: &RefinementContext, refinement_time: &Timer) {
         self.logger.deref()(format!(
             "\tpopulation state after {}s (speed: {:.2} gen/sec):",
-            refinement_time.elapsed().as_secs(),
-            refinement_ctx.generation as f64 / refinement_time.elapsed().as_secs_f64(),
+            refinement_time.elapsed_secs(),
+            refinement_ctx.generation as f64 / refinement_time.elapsed_secs_as_f64(),
         ));
         refinement_ctx.population.all().enumerate().for_each(|(idx, (insertion_ctx, cost, generation))| {
             let cost_change = get_cost_change(refinement_ctx, cost);
@@ -148,13 +147,12 @@ impl Solver {
         });
     }
 
-    fn log_speed(&self, refinement_ctx: &RefinementContext, refinement_time: Instant) {
-        let elapsed = refinement_time.elapsed();
+    fn log_speed(&self, refinement_ctx: &RefinementContext, refinement_time: &Timer) {
         self.logger.deref()(format!(
             "solving took {}s, total generations: {}, speed: {:.2} gen/sec",
-            elapsed.as_secs(),
+            refinement_time.elapsed_secs(),
             refinement_ctx.generation,
-            refinement_ctx.generation as f64 / elapsed.as_secs_f64()
+            refinement_ctx.generation as f64 / refinement_time.elapsed_secs_as_f64()
         ));
     }
 

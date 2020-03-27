@@ -1,12 +1,9 @@
-extern crate rayon;
-
-use self::rayon::prelude::*;
-
 use crate::construction::heuristics::*;
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::refinement::mutation::Recreate;
 use crate::refinement::RefinementContext;
+use crate::utils::parallel_collect;
 use std::cmp::Ordering::*;
 use std::ops::Deref;
 
@@ -54,7 +51,7 @@ impl JobMapReducer for RegretJobMapReducer {
         jobs: Vec<Job>,
         map: Box<dyn Fn(&Job) -> InsertionResult + Send + Sync + 'a>,
     ) -> InsertionResult {
-        let mut results: Vec<InsertionResult> = jobs.par_iter().map(|job| map.deref()(&job)).collect();
+        let mut results = parallel_collect(&jobs, |job| map.deref()(&job));
 
         results.sort_by(|a, b| match (a, b) {
             (InsertionResult::Success(a), InsertionResult::Success(b)) => a.cost.partial_cmp(&b.cost).unwrap_or(Less),

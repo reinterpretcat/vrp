@@ -1,9 +1,7 @@
-extern crate rayon;
-
-use self::rayon::prelude::*;
 use crate::construction::heuristics::evaluators::{evaluate_job_insertion, InsertionPosition};
 use crate::construction::states::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
+use crate::utils::map_reduce;
 use std::ops::Deref;
 
 /// On each insertion step, selects a list of jobs to be inserted.
@@ -56,9 +54,12 @@ impl JobMapReducer for PairJobMapReducer {
         jobs: Vec<Job>,
         map: Box<dyn Fn(&Job) -> InsertionResult + Send + Sync + 'a>,
     ) -> InsertionResult {
-        jobs.par_iter()
-            .map(|job| map.deref()(&job))
-            .reduce(InsertionResult::make_failure, |a, b| self.result_selector.select(&ctx, a, b))
+        map_reduce(
+            &jobs,
+            |job| map.deref()(&job),
+            InsertionResult::make_failure,
+            |a, b| self.result_selector.select(&ctx, a, b),
+        )
     }
 }
 

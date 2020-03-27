@@ -7,12 +7,18 @@ pub use self::comparison::compare_shared;
 mod mutability;
 pub use self::mutability::*;
 
+mod parallel;
+pub use self::parallel::*;
+
 mod random;
 pub use self::random::DefaultRandom;
 pub use self::random::Random;
 
 mod statistics;
 pub use self::statistics::*;
+
+mod timing;
+pub use self::timing::Timer;
 
 mod variation_coefficient;
 pub use self::variation_coefficient::*;

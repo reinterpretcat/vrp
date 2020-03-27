@@ -3,7 +3,6 @@
 mod worst_jobs_removal_test;
 
 extern crate rand;
-extern crate rayon;
 
 use super::Ruin;
 use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
@@ -11,9 +10,9 @@ use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, TransportCost};
 use crate::models::solution::TourActivity;
 use crate::refinement::RefinementContext;
+use crate::utils::parallel_collect;
 use hashbrown::{HashMap, HashSet};
 use rand::prelude::*;
-use rayon::prelude::*;
 use std::cmp::Ordering::Less;
 use std::iter::once;
 use std::sync::{Arc, RwLock};
@@ -102,35 +101,30 @@ fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, RouteContext> {
 }
 
 fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Job, Cost)>)> {
-    insertion_ctx
-        .solution
-        .routes
-        .par_iter()
-        .map(|rc| {
-            let actor = rc.route.actor.as_ref();
-            let mut savings: Vec<(Job, Cost)> = rc
-                .route
-                .tour
-                .all_activities()
-                .as_slice()
-                .windows(3)
-                .fold(HashMap::<Job, Cost>::default(), |mut acc, iter| match iter {
-                    [start, eval, end] => {
-                        let savings = get_cost_savings(actor, start, eval, end, &insertion_ctx.problem.transport);
-                        let job = eval.retrieve_job().unwrap_or_else(|| panic!("Unexpected activity without job"));
-                        *acc.entry(job).or_insert(0.) += savings;
+    parallel_collect(&insertion_ctx.solution.routes, |rc| {
+        let actor = rc.route.actor.as_ref();
+        let mut savings: Vec<(Job, Cost)> = rc
+            .route
+            .tour
+            .all_activities()
+            .as_slice()
+            .windows(3)
+            .fold(HashMap::<Job, Cost>::default(), |mut acc, iter| match iter {
+                [start, eval, end] => {
+                    let savings = get_cost_savings(actor, start, eval, end, &insertion_ctx.problem.transport);
+                    let job = eval.retrieve_job().unwrap_or_else(|| panic!("Unexpected activity without job"));
+                    *acc.entry(job).or_insert(0.) += savings;
 
-                        acc
-                    }
-                    _ => panic!("Unexpected activity window"),
-                })
-                .drain()
-                .collect();
-            savings.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Less));
+                    acc
+                }
+                _ => panic!("Unexpected activity window"),
+            })
+            .drain()
+            .collect();
+        savings.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Less));
 
-            (rc.clone(), savings)
-        })
-        .collect()
+        (rc.clone(), savings)
+    })
 }
 
 #[inline(always)]
