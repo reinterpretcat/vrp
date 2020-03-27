@@ -58,6 +58,7 @@ defined in 'pragmatic' or 'scientific' format using default metaheuristic. For m
 `vrp-core` documentation.
 
 If you're using some other language, e.g java, please check `examples` to see how to call the library from it.
+Additionally, `vrp-pragmatic` crate can be build into `WebAssembly` and then used from modern web browser.
 
 
 # Status
