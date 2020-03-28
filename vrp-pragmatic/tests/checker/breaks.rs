@@ -157,7 +157,6 @@ mod tests {
             },
             ..create_empty_problem()
         };
-        let matrix = create_matrix_from_problem(&problem);
         let solution = Solution {
             statistic: Statistic {
                 cost: 22.,
@@ -231,7 +230,7 @@ mod tests {
             extras: None,
         };
 
-        let result = check_breaks(&CheckerContext::new(problem, Some(vec![matrix]), solution));
+        let result = check_breaks(&CheckerContext::new(problem, None, solution));
 
         assert_eq!(result, expected_result);
     }

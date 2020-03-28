@@ -221,7 +221,6 @@ mod tests {
                 },
                 ..create_empty_problem()
             };
-            let matrix = create_matrix_from_problem(&problem);
             let solution = Solution {
                 statistic: Statistic {
                     cost: 51.,
@@ -336,7 +335,7 @@ mod tests {
                 extras: None,
             };
 
-            let result = check_relations(&CheckerContext::new(problem, Some(vec![matrix]), solution)).map_err(|_| ());
+            let result = check_relations(&CheckerContext::new(problem, None, solution)).map_err(|_| ());
 
             assert_eq!(result, expected_result);
         }

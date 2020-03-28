@@ -36,6 +36,8 @@ pub fn solve_and_check(problem: Problem, matrices: Option<Vec<Matrix>>) -> Resul
 
     check_vehicle_load(&ctx)?;
     check_relations(&ctx)?;
+    // TODO break is soft constraint and can be violated, how to improve checker?
+    // check_breaks(&ctx);
 
     Ok(())
 }
@@ -197,6 +199,9 @@ fn get_location(stop: &Stop, activity: &Activity) -> Location {
 fn same_locations(left: &Location, right: &Location) -> bool {
     left.lat == right.lat && left.lng == right.lng
 }
+
+mod assignment;
+pub use self::assignment::*;
 
 mod capacity;
 pub use self::capacity::*;

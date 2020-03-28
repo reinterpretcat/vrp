@@ -43,7 +43,7 @@ prop_compose! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(256))]
+    #![proptest_config(ProptestConfig::with_cases(512))]
     #[test]
     #[ignore]
     fn can_solve_problem_with_relations(problem in create_problem_with_relations()) {
