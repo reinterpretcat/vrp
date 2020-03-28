@@ -1,5 +1,5 @@
 use crate::extensions::MultiDimensionalCapacity;
-use crate::helpers::{create_default_profiles, get_test_resource, single_demand_as_multi, ToLocation};
+use crate::helpers::{create_default_profiles, single_demand_as_multi, ToLocation, SIMPLE_MATRIX, SIMPLE_PROBLEM};
 use crate::json::problem::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
@@ -51,23 +51,6 @@ fn assert_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
     } else {
         assert!(skills.is_none());
     }
-}
-
-#[test]
-fn can_read_minimal_problem() {
-    let problem = get_test_resource("../data/small/minimal.problem.json").unwrap();
-    let matrix = get_test_resource("../data/small/minimal.matrix.json").unwrap();
-
-    let problem = (problem, vec![matrix]).read_pragmatic().ok().unwrap();
-
-    assert_eq!(problem.fleet.vehicles.len(), 1);
-    assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 2);
-    assert!(problem.locks.is_empty());
-
-    assert_time_window(
-        problem.fleet.vehicles.first().as_ref().unwrap().details.first().as_ref().unwrap().time.as_ref().unwrap(),
-        &(1562230800., 1562263200.),
-    );
 }
 
 #[test]
@@ -263,4 +246,18 @@ fn can_read_complex_problem() {
         assert_time_window(detail.time.as_ref().unwrap(), &(0., 100.));
         assert_skills(&vehicle.dimens, Some(vec!["unique1".to_string(), "unique2".to_string()]));
     });
+}
+
+#[test]
+fn can_deserialize_minimal_problem_and_matrix() {
+    let problem = (SIMPLE_PROBLEM.to_string(), vec![SIMPLE_MATRIX.to_string()]).read_pragmatic().ok().unwrap();
+
+    assert_eq!(problem.fleet.vehicles.len(), 1);
+    assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 2);
+    assert!(problem.locks.is_empty());
+
+    assert_time_window(
+        problem.fleet.vehicles.first().as_ref().unwrap().details.first().as_ref().unwrap().time.as_ref().unwrap(),
+        &(1562230800., 1562263200.),
+    );
 }

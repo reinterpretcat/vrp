@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::get_test_resource;
+use crate::helpers::{SIMPLE_MATRIX, SIMPLE_PROBLEM};
 use std::io::BufReader;
 
 fn assert_time_windows(actual: &Option<Vec<Vec<String>>>, expected: (&str, &str)) {
@@ -23,9 +23,7 @@ fn assert_demand(actual: &Option<Vec<i32>>, expected: i32) {
 
 #[test]
 fn can_deserialize_problem() {
-    let file = get_test_resource("../data/small/minimal.problem.json").unwrap();
-
-    let problem = deserialize_problem(BufReader::new(file)).ok().unwrap();
+    let problem = deserialize_problem(BufReader::new(SIMPLE_PROBLEM.as_bytes())).ok().unwrap();
 
     assert_eq!(problem.plan.jobs.len(), 2);
     assert_eq!(problem.fleet.vehicles.len(), 1);
@@ -59,9 +57,7 @@ fn can_deserialize_problem() {
 
 #[test]
 fn can_deserialize_matrix() {
-    let file = get_test_resource("../data/small/minimal.matrix.json").unwrap();
-
-    let matrix = deserialize_matrix(BufReader::new(file)).ok().unwrap();
+    let matrix = deserialize_matrix(BufReader::new(SIMPLE_MATRIX.as_bytes())).ok().unwrap();
 
     assert_eq!(matrix.distances.len(), 16);
     assert_eq!(matrix.travel_times.len(), 16);
