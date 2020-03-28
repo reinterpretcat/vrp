@@ -231,7 +231,7 @@ mod tests {
             extras: None,
         };
 
-        let result = check_breaks(&CheckerContext::new(problem, vec![matrix], solution));
+        let result = check_breaks(&CheckerContext::new(problem, Some(vec![matrix]), solution));
 
         assert_eq!(result, expected_result);
     }

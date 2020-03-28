@@ -33,7 +33,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_heuristic(problem, vec![matrix]);
+    let solution = solve_with_cheapest_insertion(problem, Some(vec![matrix]));
 
     assert_vehicle_agnostic(
         solution,

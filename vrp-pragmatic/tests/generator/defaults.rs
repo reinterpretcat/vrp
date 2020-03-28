@@ -7,6 +7,9 @@ use crate::{format_time, parse_time};
 
 pub const START_DAY: &str = "2020-07-04T00:00:00Z";
 
+pub const DEFAULT_BOUNDING_BOX: (Location, Location) =
+    (Location { lat: 52.4240, lng: 13.2148 }, Location { lat: 52.5937, lng: 13.5970 });
+
 pub fn default_time_plus_offset(offset: i32) -> String {
     format_time(parse_time(&START_DAY.to_string()) + from_hours(offset).as_secs_f64())
 }
@@ -23,7 +26,7 @@ pub fn default_job_single_day_time_windows() -> impl Strategy<Value = Option<Vec
 
 pub fn default_job_place_prototype() -> impl Strategy<Value = JobPlace> {
     job_place_prototype(
-        generate_simple_locations(1..30000),
+        generate_location(&DEFAULT_BOUNDING_BOX),
         generate_durations(1..10),
         default_job_single_day_time_windows(),
     )

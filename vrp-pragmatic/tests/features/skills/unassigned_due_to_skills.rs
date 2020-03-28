@@ -17,7 +17,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,

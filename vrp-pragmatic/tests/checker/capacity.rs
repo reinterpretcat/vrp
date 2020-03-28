@@ -347,7 +347,7 @@ mod tests {
             extras: None,
         };
 
-        let result = check_vehicle_load(&CheckerContext::new(problem, vec![matrix], solution));
+        let result = check_vehicle_load(&CheckerContext::new(problem, Some(vec![matrix]), solution));
 
         assert_eq!(result, expected_result);
     }

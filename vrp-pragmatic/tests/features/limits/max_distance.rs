@@ -23,7 +23,7 @@ fn can_limit_by_max_distance() {
         error_codes: Option::None,
     };
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,

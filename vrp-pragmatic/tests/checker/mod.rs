@@ -11,7 +11,7 @@ use vrp_core::models::common::TimeWindow;
 /// Stores problem and solution together and provides some helper methods.
 pub struct CheckerContext {
     pub problem: Problem,
-    pub matrices: Vec<Matrix>,
+    pub matrices: Option<Vec<Matrix>>,
     pub solution: Solution,
     job_map: HashMap<String, Job>,
 }
@@ -24,16 +24,15 @@ pub enum ActivityType {
     Reload(VehicleReload),
 }
 
-pub fn create_checker_context(problem: Problem) -> CheckerContext {
-    let matrix = create_matrix_from_problem(&problem);
-    let solution = solve_with_metaheuristic_and_iterations(problem.clone(), vec![matrix.clone()], 10);
+pub fn create_checker_context(problem: Problem, matrices: Option<Vec<Matrix>>) -> CheckerContext {
+    let solution = solve_with_metaheuristic_and_iterations(problem.clone(), matrices.clone(), 10);
 
-    CheckerContext::new(problem, vec![matrix], solution)
+    CheckerContext::new(problem, matrices, solution)
 }
 
 /// Solves problem and checks results.
-pub fn solve_and_check(problem: Problem) -> Result<(), String> {
-    let ctx = create_checker_context(problem);
+pub fn solve_and_check(problem: Problem, matrices: Option<Vec<Matrix>>) -> Result<(), String> {
+    let ctx = create_checker_context(problem, matrices);
 
     check_vehicle_load(&ctx)?;
     check_relations(&ctx)?;
@@ -42,7 +41,7 @@ pub fn solve_and_check(problem: Problem) -> Result<(), String> {
 }
 
 impl CheckerContext {
-    pub fn new(problem: Problem, matrices: Vec<Matrix>, solution: Solution) -> Self {
+    pub fn new(problem: Problem, matrices: Option<Vec<Matrix>>, solution: Solution) -> Self {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
 
         Self { problem, matrices, solution, job_map }

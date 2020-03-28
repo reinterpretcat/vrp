@@ -17,7 +17,7 @@ fn can_use_vehicle_with_open_end() {
         error_codes: Some(vec![0, 1, 1, 1]),
     };
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,

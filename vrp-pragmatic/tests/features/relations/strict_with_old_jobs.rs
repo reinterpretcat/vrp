@@ -43,7 +43,7 @@ fn can_use_two_strict_relations_with_two_vehicles_without_new_jobs() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,

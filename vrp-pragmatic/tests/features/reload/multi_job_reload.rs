@@ -43,7 +43,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,
@@ -191,7 +191,7 @@ fn can_properly_handle_load_without_capacity_violation() {
         ..create_empty_problem()
     };
 
-    let result = solve_and_check(problem);
+    let result = solve_and_check(problem, None);
 
     assert_eq!(result, Ok(()));
 }

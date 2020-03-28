@@ -336,7 +336,7 @@ mod tests {
                 extras: None,
             };
 
-            let result = check_relations(&CheckerContext::new(problem, vec![matrix], solution)).map_err(|_| ());
+            let result = check_relations(&CheckerContext::new(problem, Some(vec![matrix]), solution)).map_err(|_| ());
 
             assert_eq!(result, expected_result);
         }

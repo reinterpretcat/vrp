@@ -5,10 +5,6 @@ use crate::json::problem::*;
 use crate::json::Location;
 use proptest::prelude::*;
 
-fn get_test_locations() -> impl Strategy<Value = Location> {
-    generate_simple_locations(1..30000)
-}
-
 fn get_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
     prop::collection::vec(generate_break(get_break_locations(), generate_durations(10..100), get_break_times()), 1..2)
         .prop_map(|reloads| Some(reloads))
@@ -18,7 +14,7 @@ fn get_break_locations() -> impl Strategy<Value = Option<Vec<Location>>> {
     prop_oneof![
         Just(None),
         Just(Some(vec![default_vehicle_location()])),
-        prop::collection::vec(get_test_locations(), 1..5).prop_map(|locations| Some(locations))
+        prop::collection::vec(generate_location(&DEFAULT_BOUNDING_BOX), 1..5).prop_map(|locations| Some(locations))
     ]
 }
 
@@ -26,7 +22,7 @@ pub fn job_prototype() -> impl Strategy<Value = Job> {
     delivery_job_prototype(
         job_task_prototype(
             job_place_prototype(
-                generate_simple_locations(1..30000),
+                generate_location(&DEFAULT_BOUNDING_BOX),
                 generate_durations(1..10),
                 generate_no_time_windows(),
             ),
@@ -94,7 +90,7 @@ proptest! {
     #[test]
     #[ignore]
     fn can_solve_problem_with_breaks(problem in get_problem_with_breaks()) {
-        let result = solve_and_check(problem);
+        let result = solve_and_check(problem, None);
 
         assert_eq!(result, Ok(()));
     }

@@ -33,7 +33,7 @@ fn can_balance_max_load() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(solution.tours.len(), 2);
     assert_eq!(solution.tours.first().unwrap().stops.len(), 4);

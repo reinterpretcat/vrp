@@ -32,7 +32,7 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    solve_with_metaheuristic(problem, vec![matrix])
+    solve_with_metaheuristic(problem, Some(vec![matrix]))
 }
 
 parameterized_test! {can_use_break_between_two_jobs_in_relation, relation_type, {

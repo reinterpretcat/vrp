@@ -8,7 +8,7 @@ pub fn relation_job_prototype() -> impl Strategy<Value = Job> {
     delivery_job_prototype(
         job_task_prototype(
             job_place_prototype(
-                generate_simple_locations(1..100),
+                generate_location(&DEFAULT_BOUNDING_BOX),
                 generate_durations(10..20),
                 generate_no_time_windows(),
             ),
@@ -47,7 +47,7 @@ proptest! {
     #[test]
     #[ignore]
     fn can_solve_problem_with_relations(problem in create_problem_with_relations()) {
-        let ctx = create_checker_context(problem);
+        let ctx = create_checker_context(problem, None);
 
         let result = check_relations(&ctx);
 

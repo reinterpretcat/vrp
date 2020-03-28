@@ -51,7 +51,7 @@ proptest! {
     #[test]
     #[ignore]
     fn can_solve_problem_with_reloads(problem in create_problem_with_reloads()) {
-        let result = solve_and_check(problem);
+        let result = solve_and_check(problem, None);
 
         assert_eq!(result, Ok(()));
     }

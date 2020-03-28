@@ -30,7 +30,7 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,

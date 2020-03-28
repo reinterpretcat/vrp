@@ -23,7 +23,7 @@ fn can_limit_one_job_by_shift_time() {
         error_codes: Option::None,
     };
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,
@@ -71,7 +71,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, vec![matrix]);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,

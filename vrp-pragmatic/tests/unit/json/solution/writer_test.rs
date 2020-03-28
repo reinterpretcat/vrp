@@ -14,7 +14,7 @@ fn can_create_solution() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_heuristic(problem, vec![matrix]);
+    let solution = solve_with_cheapest_insertion(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,
@@ -88,7 +88,7 @@ fn can_merge_activities_in_one_stop() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_heuristic(problem, vec![matrix]);
+    let solution = solve_with_cheapest_insertion(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,
