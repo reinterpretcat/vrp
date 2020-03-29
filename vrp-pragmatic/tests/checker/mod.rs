@@ -37,7 +37,8 @@ pub fn solve_and_check(problem: Problem, matrices: Option<Vec<Matrix>>) -> Resul
     check_vehicle_load(&ctx)?;
     check_relations(&ctx)?;
     // TODO break is soft constraint and can be violated, how to improve checker?
-    // check_breaks(&ctx);
+    // check_breaks(&ctx)?;
+    check_assignment(&ctx)?;
 
     Ok(())
 }

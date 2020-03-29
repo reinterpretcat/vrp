@@ -99,13 +99,21 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
         Ok(())
     })?;
 
-    let unassigned_jobs = ctx.solution.unassigned.iter().map(|job| job.job_id.clone()).collect::<HashSet<_>>();
+    let all_unassigned_jobs = ctx
+        .solution
+        .unassigned
+        .iter()
+        .filter(|job| !job.job_id.ends_with("_break"))
+        .map(|job| job.job_id.clone())
+        .collect::<Vec<_>>();
 
-    if unassigned_jobs.len() != ctx.solution.unassigned.len() {
+    let unique_unassigned_jobs = all_unassigned_jobs.iter().cloned().collect::<HashSet<_>>();
+
+    if unique_unassigned_jobs.len() != all_unassigned_jobs.len() {
         return Err("Duplicated job ids in the list of unassigned jobs".to_string());
     }
 
-    unassigned_jobs.iter().try_for_each(|job_id| {
+    unique_unassigned_jobs.iter().try_for_each(|job_id| {
         if !all_jobs.contains_key(job_id) {
             return Err(format!("Unknown job id in the list of unassigned jobs: '{}'", job_id));
         }
@@ -117,7 +125,8 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
         Ok(())
     })?;
 
-    let all_used_job = unassigned_jobs.into_iter().chain(used_jobs.into_iter().map(|(id, _)| id)).collect::<Vec<_>>();
+    let all_used_job =
+        unique_unassigned_jobs.into_iter().chain(used_jobs.into_iter().map(|(id, _)| id)).collect::<Vec<_>>();
 
     if all_used_job.len() != all_jobs.len() {
         return Err(format!(
@@ -228,6 +237,12 @@ mod tests {
             Err("Unknown job id in the list of unassigned jobs: 'job2'".to_string())
         ),
         case_08: (
+            vec![("job1", vec!["pickup", "delivery"])],
+            vec![],
+            vec!["job1", "vehicle_break"],
+            Ok(())
+        ),
+        case_09: (
             vec![("job1", vec!["pickup", "delivery"])],
             vec![("my_vehicle_1", 0, vec![("job1", "pickup"), ("job1", "delivery")])],
             vec!["job1"],
