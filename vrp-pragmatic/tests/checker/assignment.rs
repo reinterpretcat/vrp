@@ -92,8 +92,10 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
             ));
         }
 
-        if asgn.pickups.iter().max() > asgn.deliveries.iter().min() {
-            return Err(format!("Found pickup after delivery for '{}'", id));
+        if !asgn.deliveries.is_empty() {
+            if asgn.pickups.iter().max() > asgn.deliveries.iter().min() {
+                return Err(format!("Found pickup after delivery for '{}'", id));
+            }
         }
 
         Ok(())
@@ -247,6 +249,12 @@ mod tests {
             vec![("my_vehicle_1", 0, vec![("job1", "pickup"), ("job1", "delivery")])],
             vec!["job1"],
             Err("Job present as assigned and unassigned: 'job1'".to_string())
+        ),
+         case_10: (
+            vec![("job1", vec!["pickup"])],
+            vec![("my_vehicle_1", 0, vec![("job1", "pickup")])],
+            vec![],
+            Ok(())
         ),
     }
 
