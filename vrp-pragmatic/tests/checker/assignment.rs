@@ -52,7 +52,8 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
     ctx.solution.tours.iter().try_for_each(|tour| {
         tour.stops
             .iter()
-            .flat_map(|stop| stop.activities.iter().enumerate())
+            .flat_map(|stop| stop.activities.iter())
+            .enumerate()
             .filter(|(_, activity)| activity_types.contains(&activity.activity_type.as_str()))
             .try_for_each(|(idx, activity)| {
                 let tour_info = (tour.vehicle_id.clone(), tour.shift_index);
@@ -86,13 +87,13 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
 
         if expected_tasks != assigned_tasks {
             return Err(format!(
-                "Not all tasks served by {}, expected: {}, assigned: {}",
+                "Not all tasks served for '{}', expected: {}, assigned: {}",
                 id, expected_tasks, assigned_tasks
             ));
         }
 
         if asgn.pickups.iter().max() > asgn.deliveries.iter().min() {
-            return Err(format!("Found pickup after delivery in {}", id));
+            return Err(format!("Found pickup after delivery for '{}'", id));
         }
 
         Ok(())
@@ -101,12 +102,12 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
     let unassigned_jobs = ctx.solution.unassigned.iter().map(|job| job.job_id.clone()).collect::<HashSet<_>>();
 
     if unassigned_jobs.len() != ctx.solution.unassigned.len() {
-        return Err("Duplicated job ids in list of unassigned jobs".to_string());
+        return Err("Duplicated job ids in the list of unassigned jobs".to_string());
     }
 
     unassigned_jobs.iter().try_for_each(|job_id| {
         if !all_jobs.contains_key(job_id) {
-            return Err(format!("Unknown job id in list of unassigned jobs: '{}'", job_id));
+            return Err(format!("Unknown job id in the list of unassigned jobs: '{}'", job_id));
         }
 
         if used_jobs.contains_key(job_id) {
@@ -176,22 +177,69 @@ mod tests {
         assert_eq!(result.map_err(|_| ()), expected_result);
     }
 
-    parameterized_test! {check_jobs, (jobs, tours, expected_result), {
-        check_jobs_impl(jobs, tours, expected_result);
+    parameterized_test! {check_jobs, (jobs, tours, unassigned, expected_result), {
+        check_jobs_impl(jobs, tours, unassigned, expected_result);
     }}
 
     check_jobs! {
         case_01: (
             vec![("job1", vec!["pickup", "delivery"])],
-            vec![("my_vehicle_1", 0, vec![("job1", "pickup"), ("job2", "delivery")])],
+            vec![("my_vehicle_1", 0, vec![("job1", "pickup"), ("job1", "delivery")])],
+            vec![],
             Ok(())
+        ),
+        case_02: (
+            vec![("job1", vec!["pickup", "delivery"])],
+            vec![
+                ("my_vehicle_1", 0, vec![("job1", "pickup")]),
+                ("my_vehicle_2", 0, vec![("job1", "delivery")])
+            ],
+            vec![],
+            Err("Job served in multiple tours: 'job1'".to_string())
+        ),
+        case_03: (
+            vec![("job1", vec!["pickup", "delivery"])],
+            vec![("my_vehicle_1", 0, vec![("job1", "pickup")])],
+            vec![],
+            Err("Not all tasks served for 'job1', expected: 2, assigned: 1".to_string())
+        ),
+        case_04: (
+            vec![("job1", vec!["pickup", "delivery"])],
+            vec![("my_vehicle_1", 0, vec![("job1", "delivery"), ("job1", "pickup")])],
+            vec![],
+            Err("Found pickup after delivery for 'job1'".to_string())
+        ),
+        case_05: (
+            vec![("job1", vec!["pickup", "delivery"])],
+            vec![],
+            vec!["job1"],
+            Ok(())
+        ),
+        case_06: (
+            vec![("job1", vec!["pickup", "delivery"])],
+            vec![],
+            vec!["job1", "job1"],
+            Err("Duplicated job ids in the list of unassigned jobs".to_string())
+        ),
+        case_07: (
+            vec![("job1", vec!["pickup", "delivery"])],
+            vec![],
+            vec!["job2"],
+            Err("Unknown job id in the list of unassigned jobs: 'job2'".to_string())
+        ),
+        case_08: (
+            vec![("job1", vec!["pickup", "delivery"])],
+            vec![("my_vehicle_1", 0, vec![("job1", "pickup"), ("job1", "delivery")])],
+            vec!["job1"],
+            Err("Job present as assigned and unassigned: 'job1'".to_string())
         ),
     }
 
     fn check_jobs_impl(
         jobs: Vec<(&str, Vec<&str>)>,
         tours: Vec<(&str, usize, Vec<(&str, &str)>)>,
-        expected_result: Result<(), ()>,
+        unassigned: Vec<&str>,
+        expected_result: Result<(), String>,
     ) {
         let create_tasks = |tgt: &str, tasks: &Vec<&str>| {
             tasks.iter().filter(|&t| *t == tgt).map(|_| JobTask { places: vec![], demand: None, tag: None }).collect()
@@ -230,12 +278,15 @@ mod tests {
                     statistic: Statistic::default(),
                 })
                 .collect(),
-            unassigned: vec![],
+            unassigned: unassigned
+                .into_iter()
+                .map(|job| UnassignedJob { job_id: job.to_string(), reasons: vec![] })
+                .collect(),
             extras: None,
         };
 
-        let result = check_vehicles(&CheckerContext::new(problem, None, solution));
+        let result = check_jobs(&CheckerContext::new(problem, None, solution));
 
-        assert_eq!(result.map_err(|_| ()), expected_result);
+        assert_eq!(result, expected_result);
     }
 }
