@@ -5,6 +5,7 @@ use crate::helpers::*;
 use crate::json::problem::*;
 use crate::json::solution::*;
 use crate::json::Location;
+use crate::parse_time;
 use std::collections::HashMap;
 use vrp_core::models::common::TimeWindow;
 
@@ -212,4 +213,3 @@ pub use self::breaks::*;
 
 mod relations;
 pub use self::relations::*;
-use crate::parse_time;

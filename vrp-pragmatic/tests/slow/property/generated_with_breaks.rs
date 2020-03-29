@@ -13,12 +13,12 @@ fn get_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
 fn get_break_locations() -> impl Strategy<Value = Option<Vec<Location>>> {
     prop_oneof![
         Just(None),
-        Just(Some(vec![default_vehicle_location()])),
+        generate_location(&DEFAULT_BOUNDING_BOX).prop_map(|location| Some(vec![location])),
         prop::collection::vec(generate_location(&DEFAULT_BOUNDING_BOX), 1..5).prop_map(|locations| Some(locations))
     ]
 }
 
-pub fn job_prototype() -> impl Strategy<Value = Job> {
+fn job_prototype() -> impl Strategy<Value = Job> {
     delivery_job_prototype(
         job_task_prototype(
             job_place_prototype(
@@ -40,8 +40,10 @@ fn get_break_times() -> impl Strategy<Value = VehicleBreakTime> {
 
 prop_compose! {
     fn get_break_offset_time()
-        (start in 100..500,
-         length in 10..200) -> VehicleBreakTime {
+    (
+     start in 100..500,
+     length in 10..200
+    ) -> VehicleBreakTime {
         VehicleBreakTime::TimeOffset(vec![start as f64, (start + length) as f64])
     }
 }
@@ -58,9 +60,10 @@ pub fn get_break_time_windows() -> impl Strategy<Value = VehicleBreakTime> {
 
 prop_compose! {
     fn get_vehicle_type_with_breaks()
-        (vehicle in default_vehicle_type_prototype(),
-         breaks in get_breaks()
-        ) -> VehicleType {
+    (
+     vehicle in default_vehicle_type_prototype(),
+     breaks in get_breaks()
+    ) -> VehicleType {
         assert_eq!(vehicle.shifts.len(), 1);
 
         let mut vehicle = vehicle;
@@ -72,10 +75,10 @@ prop_compose! {
 
 prop_compose! {
     fn get_problem_with_breaks()
-        (plan in generate_plan(generate_jobs(job_prototype(), 1..256)),
-         fleet in generate_fleet(generate_vehicles(get_vehicle_type_with_breaks(), 1..4), default_profiles())
-        )
-        -> Problem {
+    (
+     plan in generate_plan(generate_jobs(job_prototype(), 1..256)),
+     fleet in generate_fleet(generate_vehicles(get_vehicle_type_with_breaks(), 1..4), default_profiles())
+    ) -> Problem {
         Problem {
             plan,
             fleet,

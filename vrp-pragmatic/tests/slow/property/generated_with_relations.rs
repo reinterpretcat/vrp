@@ -4,7 +4,20 @@ use crate::json::problem::*;
 
 use proptest::prelude::*;
 
-pub fn relation_job_prototype() -> impl Strategy<Value = Job> {
+fn vehicle_type_prototype() -> impl Strategy<Value = VehicleType> {
+    generate_vehicle(
+        2..4,
+        Just("car".to_string()),
+        // NOTE must be equal or bigger than total amount jobs in relations
+        generate_simple_capacity(150..200),
+        default_costs_prototype(),
+        generate_no_skills(),
+        generate_no_limits(),
+        default_vehicle_shifts(),
+    )
+}
+
+fn relation_job_prototype() -> impl Strategy<Value = Job> {
     delivery_job_prototype(
         job_task_prototype(
             job_place_prototype(
@@ -22,13 +35,17 @@ pub fn relation_job_prototype() -> impl Strategy<Value = Job> {
 
 prop_compose! {
     fn create_problem_with_relations()
-        (plan in generate_plan(generate_jobs(relation_job_prototype(), 1..256)),
-         fleet in generate_fleet(generate_vehicles(default_vehicle_type_prototype(), 1..4), default_profiles())
-        )
-        (relations in generate_relations(&plan.jobs, &fleet.vehicles, 1..10, 2..20), plan in Just(plan), fleet in Just(fleet))
-        -> Problem {
-        // NOTE prop_filter in original strategy does not work as expected
-        let relations = relations.into_iter().filter(|r| !r.jobs.is_empty()).collect();
+    (
+    plan  in generate_plan(generate_jobs(relation_job_prototype(), 1..512)),
+    fleet in generate_fleet(generate_vehicles(vehicle_type_prototype(), 1..4), default_profiles())
+    )
+    (
+    relations in generate_relations(&plan.jobs, &fleet.vehicles, 1..10, 1..15),
+    plan in Just(plan),
+    fleet in Just(fleet)
+    ) -> Problem {
+
+        assert!(!relations.is_empty());
 
         Problem {
             plan: Plan {
@@ -43,13 +60,11 @@ prop_compose! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(512))]
+    #![proptest_config(ProptestConfig::with_cases(256))]
     #[test]
     #[ignore]
     fn can_solve_problem_with_relations(problem in create_problem_with_relations()) {
-        let ctx = create_checker_context(problem, None);
-
-        let result = check_relations(&ctx);
+        let result = solve_and_check(problem, None);
 
         assert_eq!(result, Ok(()));
     }

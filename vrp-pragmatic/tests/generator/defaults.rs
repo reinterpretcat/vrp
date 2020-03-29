@@ -69,16 +69,13 @@ pub fn default_costs_prototype() -> impl Strategy<Value = VehicleCosts> {
     ])
 }
 
-pub fn default_vehicle_location() -> Location {
-    Location { lat: 0.0, lng: 0.0 }
-}
-
 pub fn default_vehicle_places_prototype() -> impl Strategy<Value = (VehiclePlace, Option<VehiclePlace>)> {
-    let location = default_vehicle_location();
-    Just((
-        VehiclePlace { time: default_time_plus_offset(9), location: location.clone() },
-        Some(VehiclePlace { time: default_time_plus_offset(18), location }),
-    ))
+    generate_location(&DEFAULT_BOUNDING_BOX).prop_flat_map(|location| {
+        Just((
+            VehiclePlace { time: default_time_plus_offset(9), location: location.clone() },
+            Some(VehiclePlace { time: default_time_plus_offset(18), location }),
+        ))
+    })
 }
 
 pub fn default_breaks_prototype() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
@@ -93,17 +90,21 @@ pub fn default_profiles() -> impl Strategy<Value = Vec<Profile>> {
     Just(vec![Profile { name: "car".to_string(), profile_type: "car".to_string() }])
 }
 
+pub fn default_vehicle_shifts() -> impl Strategy<Value = Vec<VehicleShift>> {
+    generate_shifts(
+        generate_shift(default_vehicle_places_prototype(), default_breaks_prototype(), generate_no_reloads()),
+        1..2,
+    )
+}
+
 pub fn default_vehicle_type_prototype() -> impl Strategy<Value = VehicleType> {
     generate_vehicle(
-        from_ints(vec![2, 4]),
+        2..4,
         Just("car".to_string()),
         generate_simple_capacity(30..50),
         default_costs_prototype(),
         generate_no_skills(),
         generate_no_limits(),
-        generate_shifts(
-            generate_shift(default_vehicle_places_prototype(), default_breaks_prototype(), generate_no_reloads()),
-            1..2,
-        ),
+        default_vehicle_shifts(),
     )
 }

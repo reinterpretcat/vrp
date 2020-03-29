@@ -44,12 +44,13 @@ prop_compose! {
         priority_proto: impl Strategy<Value = Option<i32>>,
         skills_proto: impl Strategy<Value = Option<Vec<String>>>
     )
-    (pickup in pickup_place,
+    (
+     pickup in pickup_place,
      delivery in delivery_place,
      demand in demand_proto,
      priority in priority_proto,
-     skills in skills_proto)
-    -> Job {
+     skills in skills_proto
+    ) -> Job {
        Job {
             id: Uuid::new_v4().to_string(),
             pickups: Some(vec![
@@ -85,12 +86,14 @@ prop_compose! {
         priority_proto: impl Strategy<Value = Option<i32>>,
         skills_proto: impl Strategy<Value = Option<Vec<String>>>,
     )
-    (pickups in pickups_proto,
+    (
+     pickups in pickups_proto,
      deliveries in deliveries_proto,
      replacements in replacements_proto,
      services in services_proto,
      priority in priority_proto,
-     skills in skills_proto) -> Job {
+     skills in skills_proto
+    ) -> Job {
         Job {
             id: Uuid::new_v4().to_string(),
             pickups,
@@ -100,7 +103,7 @@ prop_compose! {
             priority,
             skills,
         }
-     }
+    }
 }
 
 prop_compose! {
@@ -109,9 +112,11 @@ prop_compose! {
         demand_proto: impl Strategy<Value = Option<Vec<i32>>>,
         tags: impl Strategy<Value = Option<String>>,
     )
-    (place in places,
+    (
+     place in places,
      demand in demand_proto,
-     tag in tags) -> JobTask {
+     tag in tags
+    ) -> JobTask {
        JobTask { places: vec![place], demand, tag}
     }
 }
@@ -122,9 +127,11 @@ prop_compose! {
         durations: impl Strategy<Value = f64>,
         time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
     )
-    (location in locations,
+    (
+     location in locations,
      duration in durations,
-     times in time_windows) -> JobPlace {
+     times in time_windows
+    ) -> JobPlace {
       JobPlace { times, location, duration}
     }
 }

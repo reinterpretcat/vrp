@@ -27,7 +27,7 @@ prop_compose! {
 }
 
 prop_compose! {
-    fn from_ints(vec: Vec<i32>)(index in 0..vec.len()) -> i32 {
+    fn from_usize(vec: Vec<usize>)(index in 0..vec.len()) -> usize {
         vec[index]
     }
 }

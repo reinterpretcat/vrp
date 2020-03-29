@@ -6,7 +6,7 @@ use core::ops::Range;
 
 prop_compose! {
     pub fn generate_vehicle(
-        amount_proto: impl Strategy<Value = i32>,
+        amount_proto: Range<usize>,
         profile_proto: impl Strategy<Value = String>,
         capacity_proto: impl Strategy<Value = Vec<i32>>,
         costs_proto: impl Strategy<Value = VehicleCosts>,
@@ -14,14 +14,15 @@ prop_compose! {
         limits_proto: impl Strategy<Value = Option<VehicleLimits>>,
         shifts_proto: impl Strategy<Value = Vec<VehicleShift>>,
     )
-    (amount in amount_proto,
+    (
+     amount in amount_proto,
      profile in profile_proto,
      capacity in capacity_proto,
      costs in costs_proto,
      skills in skills_proto,
      limits in limits_proto,
-     shifts in shifts_proto)
-    -> VehicleType {
+     shifts in shifts_proto
+    ) -> VehicleType {
         let type_id = Uuid::new_v4().to_string();
         VehicleType {
             type_id: type_id.clone(),
@@ -43,10 +44,12 @@ prop_compose! {
       tags: impl Strategy<Value = Option<String>>,
       time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
     )
-    (location in locations,
+    (
+     location in locations,
      duration in durations,
      tag in tags,
-     times in time_windows) -> VehicleReload {
+     times in time_windows
+    ) -> VehicleReload {
         VehicleReload {
           times,
           location,
@@ -62,9 +65,11 @@ prop_compose! {
       durations: impl Strategy<Value = f64>,
       time_proto: impl Strategy<Value = VehicleBreakTime>,
     )
-    (locations in locations_proto,
+    (
+     locations in locations_proto,
      duration in durations,
-     time in time_proto) -> VehicleBreak {
+     time in time_proto
+    ) -> VehicleBreak {
         VehicleBreak {
             time,
             duration,
@@ -87,10 +92,11 @@ prop_compose! {
         breaks_proto: impl Strategy<Value = Option<Vec<VehicleBreak>>>,
         reloads_proto: impl Strategy<Value = Option<Vec<VehicleReload>>>,
     )
-      (places in places_proto,
-       breaks in breaks_proto,
-       reloads in reloads_proto
-      ) -> VehicleShift {
+    (
+     places in places_proto,
+     breaks in breaks_proto,
+     reloads in reloads_proto
+    ) -> VehicleShift {
         VehicleShift {
           start: places.0,
           end: places.1,
@@ -112,8 +118,10 @@ prop_compose! {
     /// Generates fleet.
     pub fn generate_fleet(vehicles_proto: impl Strategy<Value = Vec<VehicleType>>,
                           profiles_proto: impl Strategy<Value = Vec<Profile>>)
-       (vehicles in vehicles_proto,
-        profiles in profiles_proto) -> Fleet {
+    (
+     vehicles in vehicles_proto,
+     profiles in profiles_proto
+    ) -> Fleet {
         Fleet { vehicles, profiles }
     }
 }

@@ -14,18 +14,21 @@ pub fn from_hours(hours: i32) -> Duration {
 prop_compose! {
     /// Generates location inside given bounding box.
     pub fn generate_location(bounding_box: &(Location, Location))
-        (lat in bounding_box.0.lat..bounding_box.1.lat,
-         lng in bounding_box.0.lng..bounding_box.1.lng)
-    -> Location {
+    (
+     lat in bounding_box.0.lat..bounding_box.1.lat,
+     lng in bounding_box.0.lng..bounding_box.1.lng
+    ) -> Location {
         Location { lat, lng }
-     }
+    }
 }
 
 prop_compose! {
     /// Generates time window.
     fn generate_time_window_fixed_raw(day: f64, start_offsets: Vec<u64>, durations: Vec<u64>)
-        (start_offset in from_uints(start_offsets.clone()),
-         duration in from_uints(durations.clone())) -> TimeWindow {
+    (
+     start_offset in from_uints(start_offsets.clone()),
+     duration in from_uints(durations.clone())
+    ) -> TimeWindow {
 
         let start = day + start_offset as f64;
         let end = start + duration as f64;
@@ -40,20 +43,20 @@ prop_compose! {
                                            start_offsets: Vec<Duration>,
                                            durations: Vec<Duration>,
                                            amount_range: Range<usize>)
-        (time_windows in prop::collection::vec(generate_time_window_fixed_raw(
-                                                parse_time(&start_date.to_string()),
-                                                start_offsets.iter().map(|d| d.as_secs()).collect(),
-                                                durations.iter().map(|d| d.as_secs()).collect()),
-                                               amount_range)
-            .prop_filter("Filter out time window intersections.", |tws| {
-                Some((0..).zip(tws.iter())).map(|tws| {
-                let tws = tws.collect::<Vec<_>>();
-                tws.iter().all(|(idx, tw)| tws.iter()
-                    .filter(|(idx_other, _)| *idx != *idx_other)
-                    .all(|(_, tw_other)| !tw.intersects(&tw_other)))
+    (time_windows in prop::collection::vec(generate_time_window_fixed_raw(
+                                            parse_time(&start_date.to_string()),
+                                            start_offsets.iter().map(|d| d.as_secs()).collect(),
+                                            durations.iter().map(|d| d.as_secs()).collect()),
+                                           amount_range)
+    .prop_filter("Filter out time window intersections.", |tws| {
+        Some((0..).zip(tws.iter())).map(|tws| {
+        let tws = tws.collect::<Vec<_>>();
+        tws.iter().all(|(idx, tw)| tws.iter()
+            .filter(|(idx_other, _)| *idx != *idx_other)
+            .all(|(_, tw_other)| !tw.intersects(&tw_other)))
 
-                }).unwrap_or(false)
-            })) -> Vec<Vec<String>> {
+        }).unwrap_or(false)
+    })) -> Vec<Vec<String>> {
 
         let mut time_windows = time_windows;
         time_windows.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap_or(Less));
