@@ -8,7 +8,7 @@ pub struct TimeQuota {
 }
 
 impl TimeQuota {
-    /// Creates a new instance of [`TimeQuotaReached`].
+    /// Creates a new instance of [`TimeQuota`].
     pub fn new(limit_in_secs: f64) -> Self {
         Self { start: Timer::start(), limit_in_secs }
     }
