@@ -20,8 +20,13 @@ impl Default for RecreateWithRegret {
 }
 
 impl Recreate for RecreateWithRegret {
-    fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::default().process(&self.job_selector, &self.job_reducer, insertion_ctx)
+    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        InsertionHeuristic::default().process(
+            &self.job_selector,
+            &self.job_reducer,
+            insertion_ctx,
+            refinement_ctx.get_quota(),
+        )
     }
 }
 

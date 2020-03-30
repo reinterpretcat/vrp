@@ -1,7 +1,8 @@
+use crate::extensions::TimeQuota;
 use crate::Solver;
 use std::ops::Deref;
 use std::sync::Arc;
-use vrp_core::construction::states::InsertionContext;
+use vrp_core::construction::states::{InsertionContext, Quota};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::refinement::termination::*;
 use vrp_core::refinement::RefinementContext;
@@ -45,12 +46,12 @@ impl SolverBuilder {
 
     /// Builds solver with parameters specified.
     pub fn build(&mut self) -> Solver {
-        self.solver.termination = Box::new(CompositeTermination::new(match (self.max_generations, self.max_time) {
+        let (criterias, quota): (Vec<Box<dyn Termination>>, _) = match (self.max_generations, self.max_time) {
             (None, None) => {
                 self.solver.logger.deref()(
                     "configured to use default max-generations (2000) and max-time (300secs)".to_string(),
                 );
-                vec![Box::new(MaxGeneration::default()), Box::new(MaxTime::default())]
+                (vec![Box::new(MaxGeneration::default()), Box::new(QuotaReached::default())], create_time_quota(300.))
             }
             _ => {
                 let mut criterias: Vec<Box<dyn Termination>> = vec![];
@@ -60,14 +61,20 @@ impl SolverBuilder {
                     criterias.push(Box::new(MaxGeneration::new(limit)))
                 }
 
-                if let Some(limit) = self.max_time {
+                let quota = if let Some(limit) = self.max_time {
                     self.solver.logger.deref()(format!("configured to use max-time {}s", limit));
-                    criterias.push(Box::new(MaxTime::new(limit)));
-                }
+                    criterias.push(Box::new(QuotaReached::default()));
+                    create_time_quota(limit)
+                } else {
+                    None
+                };
 
-                criterias
+                (criterias, quota)
             }
-        }));
+        };
+
+        self.solver.termination = Box::new(CompositeTermination::new(criterias));
+        self.solver.quota = quota;
 
         if let Some((problem, solution)) = &self.init_solution {
             let insertion_ctx = InsertionContext::new_from_solution(
@@ -87,4 +94,8 @@ impl SolverBuilder {
         }
         std::mem::replace(&mut self.solver, Solver::default())
     }
+}
+
+fn create_time_quota(limit: f64) -> Option<Box<dyn Quota + Sync + Send>> {
+    Some(Box::new(TimeQuota::new(limit)))
 }

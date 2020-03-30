@@ -9,7 +9,7 @@
 
 extern crate rand;
 
-use crate::construction::states::InsertionContext;
+use crate::construction::states::{InsertionContext, Quota};
 use crate::models::Problem;
 
 use crate::refinement::objectives::ObjectiveCostType;
@@ -87,6 +87,14 @@ impl RefinementContext {
 
     pub fn new_with_population(problem: Arc<Problem>, population: Box<dyn Population + Sync + Send>) -> Self {
         Self { problem, population, state: Default::default(), generation: 1 }
+    }
+
+    pub fn get_quota(&self) -> Option<&Box<dyn Quota + Send + Sync>> {
+        self.state.get("quota").and_then(|q| q.downcast_ref::<Box<dyn Quota + Send + Sync>>())
+    }
+
+    pub fn set_quota(&mut self, quota: Box<dyn Quota + Send + Sync>) {
+        self.state.insert("quota".to_string(), Box::new(quota));
     }
 }
 

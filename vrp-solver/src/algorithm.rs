@@ -1,7 +1,7 @@
-use crate::population::SimplePopulation;
+use crate::extensions::SimplePopulation;
 use std::ops::Deref;
 use std::sync::Arc;
-use vrp_core::construction::states::InsertionContext;
+use vrp_core::construction::states::{InsertionContext, Quota};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::refinement::acceptance::{Acceptance, Greedy};
 use vrp_core::refinement::mutation::{Mutation, RuinAndRecreateMutation};
@@ -17,6 +17,7 @@ pub struct Solver {
     pub mutation: Box<dyn Mutation>,
     pub acceptance: Box<dyn Acceptance>,
     pub termination: Box<dyn Termination>,
+    pub quota: Option<Box<dyn Quota + Sync + Send>>,
     pub initial: Option<InsertionContext>,
     pub logger: Box<dyn Fn(String) -> ()>,
 }
@@ -28,6 +29,7 @@ impl Default for Solver {
             Box::new(RuinAndRecreateMutation::default()),
             Box::new(Greedy::default()),
             Box::new(CompositeTermination::default()),
+            None,
             None,
             Box::new(|msg| println!("{}", msg)),
         )
@@ -41,10 +43,11 @@ impl Solver {
         mutation: Box<dyn Mutation>,
         acceptance: Box<dyn Acceptance>,
         termination: Box<dyn Termination>,
+        quota: Option<Box<dyn Quota + Sync + Send>>,
         initial: Option<InsertionContext>,
         logger: Box<dyn Fn(String) -> ()>,
     ) -> Self {
-        Self { selection, mutation, acceptance, termination, initial, logger }
+        Self { selection, mutation, acceptance, termination, quota, initial, logger }
     }
 
     /// Solves given problem and returns solution, its cost and generation when it is found.
@@ -52,6 +55,10 @@ impl Solver {
     pub fn solve(&mut self, problem: Arc<Problem>) -> Option<(Solution, Box<dyn ObjectiveCost + Send + Sync>, usize)> {
         let mut refinement_ctx =
             RefinementContext::new_with_population(problem.clone(), Box::new(SimplePopulation::new(5)));
+
+        if let Some(quota) = std::mem::replace(&mut self.quota, None) {
+            refinement_ctx.set_quota(quota);
+        }
 
         let mut insertion_ctx = match std::mem::replace(&mut self.initial, None) {
             Some(ctx) => {

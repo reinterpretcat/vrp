@@ -14,8 +14,8 @@ pub use self::goal_satisfaction::GoalSatisfaction;
 mod max_generation;
 pub use self::max_generation::MaxGeneration;
 
-mod max_time;
-pub use self::max_time::MaxTime;
+mod quota_reached;
+pub use self::quota_reached::QuotaReached;
 
 /// A trait which encapsulates multiple termination criteria.
 pub struct CompositeTermination {
@@ -31,7 +31,7 @@ impl CompositeTermination {
 
 impl Default for CompositeTermination {
     fn default() -> Self {
-        Self::new(vec![Box::new(MaxGeneration::default()), Box::new(MaxTime::default())])
+        Self::new(vec![Box::new(MaxGeneration::default())])
     }
 }
 

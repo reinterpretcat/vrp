@@ -19,7 +19,12 @@ impl Default for RecreateWithNearestNeighbor {
 }
 
 impl Recreate for RecreateWithNearestNeighbor {
-    fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::new(InsertionPosition::Last).process(&self.job_selector, &self.job_reducer, insertion_ctx)
+    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        InsertionHeuristic::new(InsertionPosition::Last).process(
+            &self.job_selector,
+            &self.job_reducer,
+            insertion_ctx,
+            refinement_ctx.get_quota(),
+        )
     }
 }

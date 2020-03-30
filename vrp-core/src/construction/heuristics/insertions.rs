@@ -1,5 +1,5 @@
 use crate::construction::heuristics::evaluators::{evaluate_job_insertion, InsertionPosition};
-use crate::construction::states::{InsertionContext, InsertionResult};
+use crate::construction::states::{InsertionContext, InsertionResult, Quota};
 use crate::models::problem::Job;
 use crate::utils::map_reduce;
 use std::ops::Deref;
@@ -108,12 +108,13 @@ impl InsertionHeuristic {
         job_selector: &Box<dyn JobSelector + Send + Sync>,
         job_reducer: &Box<dyn JobMapReducer + Send + Sync>,
         ctx: InsertionContext,
+        quota: Option<&Box<dyn Quota + Send + Sync>>,
     ) -> InsertionContext {
         let mut ctx = ctx;
 
         prepare_ctx(&mut ctx);
 
-        while !ctx.solution.required.is_empty() {
+        while !ctx.solution.required.is_empty() && !quota.map_or(false, |q| q.is_reached()) {
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Job>>();
             let result = job_reducer.reduce(
                 &ctx,
@@ -135,6 +136,7 @@ fn prepare_ctx(ctx: &mut InsertionContext) {
 }
 
 fn finalize_ctx(ctx: &mut InsertionContext) {
+    ctx.solution.unassigned.extend(ctx.solution.required.drain(0..).map(|job| (job, 0)));
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
 

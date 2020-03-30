@@ -68,6 +68,14 @@ pub struct InsertionContext {
     pub random: Arc<dyn Random + Send + Sync>,
 }
 
+/// Specifies a computational quota for solving VRP.
+/// The main purpose is to allow to stop algorithm in reaction to external events such
+/// as user cancellation, timer, etc.
+pub trait Quota {
+    /// Returns true when computation should be stopped.
+    fn is_reached(&self) -> bool;
+}
+
 impl InsertionContext {
     /// Creates insertion context from existing solution.
     pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> Self {
