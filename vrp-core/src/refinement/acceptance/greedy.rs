@@ -21,7 +21,7 @@ impl Acceptance for Greedy {
         let best = refinement_ctx.population.best().map(|(_, cost, _)| cost);
 
         match best {
-            Some(best) => new.cmp(&best) == Less,
+            Some(best) => new.cmp_relaxed(&best).0 == Less,
             _ => true,
         }
     }

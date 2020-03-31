@@ -12,10 +12,13 @@ use std::sync::Arc;
 
 /// Specifies objective cost type.
 pub trait ObjectiveCost {
+    /// Returns absolute value of objective.
     fn value(&self) -> Cost;
-    fn cmp(&self, other: &Box<dyn ObjectiveCost + Send + Sync>) -> Ordering;
-
+    /// Compares objectives costs together, returns (`actual`, `relaxed`) ordering.
+    fn cmp_relaxed(&self, other: &Box<dyn ObjectiveCost + Send + Sync>) -> (Ordering, Ordering);
+    /// Clones objective cost.
     fn clone_box(&self) -> Box<dyn ObjectiveCost + Send + Sync>;
+    /// Returns objective cost as `Any`.
     fn as_any(&self) -> &dyn Any;
 }
 
@@ -83,16 +86,21 @@ impl ObjectiveCost for MeasurableObjectiveCost {
         self.cost
     }
 
-    fn cmp(&self, other: &ObjectiveCostType) -> Ordering {
-        if let Some(tolerance) = self.tolerance {
+    fn cmp_relaxed(&self, other: &ObjectiveCostType) -> (Ordering, Ordering) {
+        let actual = self.cost.partial_cmp(&other.value()).unwrap_or(Less);
+        let relaxed = if let Some(tolerance) = self.tolerance {
             // NOTE we get actual ratio between two values
             let ratio = (other.value() - self.cost).abs() / self.cost;
             if ratio.is_normal() && ratio < tolerance {
-                return Equal;
+                Equal
+            } else {
+                actual
             }
-        }
+        } else {
+            actual
+        };
 
-        self.cost.partial_cmp(&other.value()).unwrap_or(Less)
+        (actual, relaxed)
     }
 
     fn clone_box(&self) -> ObjectiveCostType {
@@ -119,13 +127,15 @@ impl ObjectiveCost for MultiObjectiveCost {
         self.value_func.deref()(&self.primary_costs, &self.secondary_costs)
     }
 
-    fn cmp(&self, other: &ObjectiveCostType) -> Ordering {
+    fn cmp_relaxed(&self, other: &ObjectiveCostType) -> (Ordering, Ordering) {
         let (primary_costs, secondary_costs) = self.get_costs(other);
 
-        match Self::analyze(&self.primary_costs, primary_costs) {
-            Equal => Self::analyze(&self.secondary_costs, secondary_costs),
-            primary @ _ => primary,
-        }
+        let (result, _) = match Self::analyze(&self.primary_costs, primary_costs, 0) {
+            (Equal, relaxed_count) => Self::analyze(&self.secondary_costs, secondary_costs, relaxed_count),
+            result_pair @ _ => result_pair,
+        };
+
+        (result, result)
     }
 
     fn clone_box(&self) -> ObjectiveCostType {
@@ -163,8 +173,31 @@ impl MultiObjectiveCost {
         (primary_costs, secondary_costs)
     }
 
-    fn analyze(left: &Vec<ObjectiveCostType>, right: &Vec<ObjectiveCostType>) -> Ordering {
-        left.iter().zip(right.iter()).fold(Equal, |acc, (a, b)| match (acc, a.cmp(b)) {
+    fn analyze(
+        left: &Vec<ObjectiveCostType>,
+        right: &Vec<ObjectiveCostType>,
+        relaxed_count: usize,
+    ) -> (Ordering, usize) {
+        // NOTE Allow not more than one objective to be relaxed at the same time
+        const MAX_RELAXED_COUNT: usize = 1;
+
+        let results = left.iter().zip(right.iter()).map(|(left, right)| left.cmp_relaxed(right)).collect::<Vec<_>>();
+
+        let relaxed_count = results.iter().filter(|(a, r)| *a == Greater && *r == Equal).count() + relaxed_count;
+        let result_actual = Self::analyze_results(results.iter().map(|(a, _)| a.clone()));
+        let result_relaxed = Self::analyze_results(results.iter().map(|(_, r)| r.clone()));
+
+        let result = match (result_actual, result_relaxed) {
+            (Less, _) => Less,
+            (_, relaxed @ _) if relaxed_count <= MAX_RELAXED_COUNT => relaxed,
+            _ => Greater,
+        };
+
+        (result, relaxed_count)
+    }
+
+    fn analyze_results(results: impl Iterator<Item = Ordering>) -> Ordering {
+        results.fold(Equal, |acc, result| match (acc, result) {
             (Equal, new @ _) => new,
             (Less, Greater) => Greater,
             (Less, _) => Less,
