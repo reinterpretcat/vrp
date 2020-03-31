@@ -3,10 +3,6 @@
 mod total_transport_cost_test;
 
 use super::*;
-use crate::construction::states::InsertionContext;
-use crate::models::common::Cost;
-use crate::refinement::RefinementContext;
-use crate::utils::VariationCoefficient;
 
 /// An objective function which calculate total cost.
 pub struct TotalTransportCost {

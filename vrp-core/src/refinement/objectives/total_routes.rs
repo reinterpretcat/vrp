@@ -1,10 +1,4 @@
-use crate::construction::states::InsertionContext;
-use crate::models::common::Cost;
-use crate::refinement::objectives::{
-    check_value_variation_goals, MeasurableObjectiveCost, Objective, ObjectiveCostType,
-};
-use crate::refinement::RefinementContext;
-use crate::utils::VariationCoefficient;
+use super::*;
 
 /// An objective function which counts total amount of routes.
 pub struct TotalRoutes {
