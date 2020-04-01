@@ -165,19 +165,11 @@ fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
 
 /// Validates vehicles from the fleet.
 pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
-    let errors = check_e1004_no_vehicle_types_with_duplicate_type_ids(ctx)
-        .err()
-        .iter()
-        .cloned()
-        .chain(check_e1005_no_vehicle_types_with_duplicate_ids(ctx).err().iter().cloned())
-        .chain(check_e1006_vehicle_shift_time(ctx).err().iter().cloned())
-        .chain(check_e1007_vehicle_breaks_time_is_correct(ctx).err().iter().cloned())
-        .chain(check_e1008_vehicle_reload_time_is_correct(ctx).err().iter().cloned())
-        .collect::<Vec<_>>();
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
+    combine_error_results(&[
+        check_e1004_no_vehicle_types_with_duplicate_type_ids(ctx),
+        check_e1005_no_vehicle_types_with_duplicate_ids(ctx),
+        check_e1006_vehicle_shift_time(ctx),
+        check_e1007_vehicle_breaks_time_is_correct(ctx),
+        check_e1008_vehicle_reload_time_is_correct(ctx),
+    ])
 }

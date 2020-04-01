@@ -87,21 +87,13 @@ fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> 
 }
 
 pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
-    let errors = if let Some(objectives) = get_objectives(ctx) {
-        check_e1009_empty_objective(&objectives)
-            .err()
-            .iter()
-            .cloned()
-            .chain(check_e1010_duplicate_objectives(&objectives).err().iter().cloned())
-            .chain(check_e1011_no_cost_value_objective(&objectives).err().iter().cloned())
-            .collect::<Vec<_>>()
+    if let Some(objectives) = get_objectives(ctx) {
+        combine_error_results(&[
+            check_e1009_empty_objective(&objectives),
+            check_e1010_duplicate_objectives(&objectives),
+            check_e1011_no_cost_value_objective(&objectives),
+        ])
     } else {
-        vec![]
-    };
-
-    if errors.is_empty() {
         Ok(())
-    } else {
-        Err(errors)
     }
 }

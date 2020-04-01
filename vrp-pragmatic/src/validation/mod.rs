@@ -52,3 +52,13 @@ impl<'a> ValidationContext<'a> {
         self.problem.fleet.vehicles.iter()
     }
 }
+
+fn combine_error_results(results: &[Result<(), FormatError>]) -> Result<(), Vec<FormatError>> {
+    let errors = results.iter().cloned().flat_map(|result| result.err().into_iter()).collect::<Vec<FormatError>>();
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}

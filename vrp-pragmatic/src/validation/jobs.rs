@@ -108,18 +108,10 @@ fn check_e1003_time_window_correctness(ctx: &ValidationContext) -> Result<(), Fo
 
 /// Validates jobs from the plan.
 pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
-    let errors = check_e1000_no_jobs_with_duplicate_ids(ctx)
-        .err()
-        .iter()
-        .cloned()
-        .chain(check_e1001_correct_job_types_demand(ctx).err().iter().cloned())
-        .chain(check_e1002_multiple_pickups_deliveries_demand(ctx).err().iter().cloned())
-        .chain(check_e1003_time_window_correctness(ctx).err().iter().cloned())
-        .collect::<Vec<_>>();
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
+    combine_error_results(&[
+        check_e1000_no_jobs_with_duplicate_ids(ctx),
+        check_e1001_correct_job_types_demand(ctx),
+        check_e1002_multiple_pickups_deliveries_demand(ctx),
+        check_e1003_time_window_correctness(ctx),
+    ])
 }
