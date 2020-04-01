@@ -19,6 +19,9 @@ use self::objectives::validate_objectives;
 mod vehicles;
 use self::vehicles::validate_vehicles;
 
+mod routing;
+use self::routing::validate_profiles;
+
 impl<'a> ValidationContext<'a> {
     /// Creates an instance of `ValidationContext`.
     pub fn new(problem: &'a Problem, matrices: Option<&'a Vec<Matrix>>) -> Self {
@@ -32,6 +35,7 @@ impl<'a> ValidationContext<'a> {
             .into_iter()
             .chain(validate_vehicles(&self).err().into_iter())
             .chain(validate_objectives(&self).err().into_iter())
+            .chain(validate_profiles(&self).err().into_iter())
             .flatten()
             .collect::<Vec<_>>();
 
