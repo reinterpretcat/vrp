@@ -4,29 +4,29 @@ use std::ops::Deref;
 use vrp_core::models::common::TimeWindow;
 
 /// Checks that fleet has no vehicle with duplicate type ids.
-fn check_e1004_no_vehicle_types_with_duplicate_type_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
     get_duplicates(ctx.vehicles().map(|vehicle| &vehicle.type_id)).map_or(Ok(()), |ids| {
         Err(FormatError::new(
-            "E1004".to_string(),
-            format!("duplicated vehicle type ids: {}", ids.join(", ")),
-            "remove duplicated vehicle type ids".to_string(),
+            "E1300".to_string(),
+            "duplicated vehicle type ids".to_string(),
+            format!("remove duplicated vehicle type ids: {}", ids.join(", ")),
         ))
     })
 }
 
 /// Checks that fleet has no vehicle with duplicate ids.
-fn check_e1005_no_vehicle_types_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1301_no_vehicle_types_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
     get_duplicates(ctx.vehicles().flat_map(|vehicle| vehicle.vehicle_ids.iter())).map_or(Ok(()), |ids| {
         Err(FormatError::new(
-            "E1005".to_string(),
-            format!("duplicated vehicle ids: {}", ids.join(", ")),
-            "remove duplicated vehicle ids".to_string(),
+            "E1301".to_string(),
+            "duplicated vehicle ids".to_string(),
+            format!("remove duplicated vehicle ids: {}", ids.join(", ")),
         ))
     })
 }
 
 /// Checks that vehicle shift time is correct.
-fn check_e1006_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1302_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = ctx
         .vehicles()
         .filter_map(|vehicle| {
@@ -52,15 +52,18 @@ fn check_e1006_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), FormatE
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1006".to_string(),
-            format!("invalid start or end times in vehicle shifts: {}", type_ids.join(", ")),
-            "ensure that start and end time conform shift time rules".to_string(),
+            "E1302".to_string(),
+            "invalid start or end times in vehicle shift".to_string(),
+            format!(
+                "ensure that start and end time conform shift time rules, vehicle type ids: {}",
+                type_ids.join(", ")
+            ),
         ))
     }
 }
 
 /// Checks that break time window is correct.
-fn check_e1007_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1303_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|shift, shift_time| {
@@ -86,15 +89,15 @@ fn check_e1007_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1007".to_string(),
-            format!("invalid break time windows in vehicle shifts: {}", type_ids.join(", ")),
-            "ensure that break conform rules".to_string(),
+            "E1303".to_string(),
+            "invalid break time windows in vehicle shift".to_string(),
+            format!("ensure that break conform rules, vehicle type ids: '{}'", type_ids.join(", ")),
         ))
     }
 }
 
 /// Checks that reload time windows are correct.
-fn check_e1008_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|shift, shift_time| {
@@ -119,9 +122,9 @@ fn check_e1008_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1008".to_string(),
-            format!("invalid reload time windows in vehicle shifts: {}", type_ids.join(", ")),
-            "ensure that reload conform rules".to_string(),
+            "E1304".to_string(),
+            "invalid reload time windows in vehicle shift".to_string(),
+            format!("ensure that reload conform rules, vehicle type ids: '{}'", type_ids.join(", ")),
         ))
     }
 }
@@ -166,10 +169,10 @@ fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
 /// Validates vehicles from the fleet.
 pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     combine_error_results(&[
-        check_e1004_no_vehicle_types_with_duplicate_type_ids(ctx),
-        check_e1005_no_vehicle_types_with_duplicate_ids(ctx),
-        check_e1006_vehicle_shift_time(ctx),
-        check_e1007_vehicle_breaks_time_is_correct(ctx),
-        check_e1008_vehicle_reload_time_is_correct(ctx),
+        check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx),
+        check_e1301_no_vehicle_types_with_duplicate_ids(ctx),
+        check_e1302_vehicle_shift_time(ctx),
+        check_e1303_vehicle_breaks_time_is_correct(ctx),
+        check_e1304_vehicle_reload_time_is_correct(ctx),
     ])
 }

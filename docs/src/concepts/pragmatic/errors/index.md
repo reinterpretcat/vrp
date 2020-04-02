@@ -19,9 +19,11 @@ This error is returned when routing matrix cannot be deserialized from json stre
 Errors from E1xxx range are used by validation engine which checks logical correctness of the VRP definition.
 
 
-### E1000
+### E11xx: Jobs
 
-`Duplicated job ids` error is returned when `plan.jobs` has jobs with the same ids:
+#### E1100
+
+`duplicated job ids` error is returned when `plan.jobs` has jobs with the same ids:
 
 ```json
 {
@@ -42,10 +44,12 @@ Errors from E1xxx range are used by validation engine which checks logical corre
 }
 ```
 
+Duplicated job ids are not allowed, so you need to remove all duplicates in order to fix the error.
 
-### E1001
 
-`Invalid job demand` error is returned when job has invalid demand: `pickup`, `delivery`, `replacement` job types should
+#### E1101
+
+`invalid job task demand` error is returned when job has invalid demand: `pickup`, `delivery`, `replacement` job types should
 have demand specified on each job task, `service` type should have no demand specified:
 
 ```json
@@ -68,9 +72,12 @@ have demand specified on each job task, `service` type should have no demand spe
 }
 ```
 
-### E1002
+To fix the error, make sure that each job task has proper demand.
 
-`Invalid pickup and delivery demand` error code is returned when job has both pickups and deliveries, but the sum of
+
+#### E1102
+
+`invalid pickup and delivery demand` error code is returned when job has both pickups and deliveries, but the sum of
 pickups demand does not match to the sum of deliveries demand:
 
 ```json
@@ -97,9 +104,9 @@ pickups demand does not match to the sum of deliveries demand:
 ```
 
 
-### E1003
+#### E1103
 
-`Invalid time windows` error is returned when there is a job which has invalid time windows, e.g.:
+`invalid time windows in jobs` error is returned when there is a job which has invalid time windows, e.g.:
 
 ```json
 {
@@ -137,9 +144,16 @@ the second - as end
 ```
 
 
-### E1004
+### E12xx: Relations
 
-`Duplicated vehicle type ids` error is returned when `fleet.vehicles` has vehicle types with the same `type_id`:
+#### E1200
+
+
+### E13xx: Vehicles
+
+#### E1300
+
+`duplicated vehicle type ids` error is returned when `fleet.vehicles` has vehicle types with the same `type_id`:
 
 ```json
 {
@@ -161,9 +175,9 @@ the second - as end
 ```
 
 
-### E1005
+#### E1301
 
-`Duplicated vehicle ids` error is returned when `fleet.vehicles` has vehicle types with the same `vehicle_ids`:
+`duplicated vehicle ids` error is returned when `fleet.vehicles` has vehicle types with the same `vehicle_ids`:
 
 ```json
 {
@@ -197,16 +211,16 @@ the second - as end
 Please note that vehicle id should be unique across all vehicle types.
 
 
-### E1006
+#### E1302
 
-`Invalid start or end times in vehicle shifts` error is returned when vehicle has start/end shift times violating one of
-time windows rules defined for jobs in E1002.
+`invalid start or end times in vehicle shift` error is returned when vehicle has start/end shift times violating one of
+time windows rules defined for jobs in E1103.
 
 
-### E1007
+#### E1303
 
-`Invalid break time windows in vehicle shifts` error is returned when vehicle has invalid time window of a break. List of
-break should follow time window rules defined for jobs in E1003. Additionally, break time should be inside vehicle shift
+`invalid break time windows in vehicle shift` error is returned when vehicle has invalid time window of a break. List of
+break should follow time window rules defined for jobs in E1103. Additionally, break time should be inside vehicle shift
 it is specified:
 
 ```json
@@ -235,9 +249,9 @@ it is specified:
 ```
 
 
-### E1008
+#### E1304
 
-`Invalid reload time windows in vehicle shifts` error is returned when vehicle has invalid time window of a reload. Reload
+`invalid reload time windows in vehicle shift` error is returned when vehicle has invalid time window of a reload. Reload
 list should follow time window rules defined for jobs in E1003 except multiple reloads can have time window intersections.
 Additionally, reload time should be inside vehicle shift it is specified:
 
@@ -267,10 +281,47 @@ Additionally, reload time should be inside vehicle shift it is specified:
 }
 ```
 
+### E15xx: Profiles
 
-### E1009
 
-`An empty objective specified` error is returned when objective property is present in the problem, but no single
+#### E1500
+
+`duplicate profile names` error is returned when `fleet.profiles` has more than one profile with the same name:
+
+```json
+{
+  "profiles": [
+    {
+      "name": "vehicle_profile",
+      "type": "car"
+    },
+    {
+      "name": "vehicle_profile",
+      "type": "truck"
+    }
+  ]
+}
+```
+
+To fix the issue, remove all duplicates.
+
+
+#### E1501
+
+`empty profile collection` error is returned when `fleet.profiles` is empty:
+
+```json
+{
+  "profiles": []
+}
+```
+
+
+### E16xx: Objectives
+
+#### E1600
+
+`an empty objective specified` error is returned when objective property is present in the problem, but no single
 objective is set, e.g.:
 
 ```json
@@ -284,9 +335,9 @@ objective is set, e.g.:
 `objectives` property is optional, just remove it to fix the problem and use default objectives.
 
 
-### E1010
+#### E1610
 
-`Duplicate objective specified` error is returned when objective of specific type specified more than once:
+`duplicate objective specified` error is returned when objective of specific type specified more than once:
 
 ```json
 {
@@ -311,9 +362,9 @@ objective is set, e.g.:
 To fix this issue, just remove one, e.g. `minimize-unassigned`.
 
 
-### E1011
+#### E1611
 
-`Missing cost objective` error is returned when no cost objective specified (at the moment, only `minimize-cost` supported):
+`missing cost objective` error is returned when no cost objective specified (at the moment, only `minimize-cost` supported):
 
 ```json
 {
@@ -328,25 +379,3 @@ To fix this issue, just remove one, e.g. `minimize-unassigned`.
 ```
 
 This objective is used to calculate final costs, so it is required to be specified.
-
-
-### E1012
-
-`Duplicate profile names` error is returned when `fleet.profiles` has more than one profile with the same name:
-
-```json
-{
-  "profiles": [
-    {
-      "name": "vehicle_profile",
-      "type": "car"
-    },
-    {
-      "name": "vehicle_profile",
-      "type": "truck"
-    }
-  ]
-}
-```
-
-To fix the issue, remove all duplicates.

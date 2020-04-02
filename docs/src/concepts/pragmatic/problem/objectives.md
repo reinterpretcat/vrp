@@ -130,13 +130,11 @@ Most of objectives are conflicting to each other, so there are some suggestions:
 
 ## Related errors
 
-* [E1009 An empty objective specified](../errors/index.md#e1009)
-* [E1010 Duplicate objective specified](../errors/index.md#e1010)
-* [E1011 Missing cost objective](../errors/index.md#e1011)
+* [E1600 an empty objective specified](../errors/index.md#e1600)
+* [E1601 duplicate objective specified](../errors/index.md#e1601)
+* [E1602 missing cost objective](../errors/index.md#e1602)
 
 
 ## Examples
 
 Please refer to [examples section](../../../examples/pragmatic/objectives/index.md) to see more.
-
-

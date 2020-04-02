@@ -75,8 +75,8 @@ Each shift can have the following properties:
 
 ## Related errors
 
-* [E1004 Duplicated vehicle type ids](../errors/index.md#e1004)
-* [E1005 Duplicated vehicle ids](../errors/index.md#e1005)
-* [E1006 Invalid start or end times in vehicle shifts](../errors/index.md#e1006)
-* [E1007 Invalid break time windows in vehicle shifts](../errors/index.md#e1007)
-* [E1008 Invalid reload time windows in vehicle shifts](../errors/index.md#e1008)
+* [E1300 duplicated vehicle type ids](../errors/index.md#e1300)
+* [E1301 duplicated vehicle ids](../errors/index.md#e1301)
+* [E1302 invalid start or end times in vehicle shift](../errors/index.md#e1302)
+* [E1303 invalid break time windows in vehicle shift](../errors/index.md#e1303)
+* [E1304 invalid reload time windows in vehicle shift](../errors/index.md#e1304)

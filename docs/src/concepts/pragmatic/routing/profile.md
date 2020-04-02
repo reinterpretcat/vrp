@@ -29,3 +29,9 @@ to the solver:
 Make sure that for all profile names in `fleet.profiles` you have the corresponding matrix specified.
 
 See [multiple profiles example](../../../examples/pragmatic/basics/profiles.md).
+
+
+## Related errors
+
+* [E1500 duplicate profile names](../errors/index.md#e1500)
+* [E1501 empty profile collection](../errors/index.md#e1501)

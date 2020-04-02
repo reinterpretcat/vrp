@@ -2,18 +2,18 @@ use super::*;
 use crate::extensions::MultiDimensionalCapacity;
 
 /// Checks that plan has no jobs with duplicate ids.
-fn check_e1000_no_jobs_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1100_no_jobs_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
     get_duplicates(ctx.jobs().map(|job| &job.id)).map_or(Ok(()), |ids| {
         Err(FormatError::new(
-            "E1000".to_string(),
-            format!("duplicated job ids: {}", ids.join(", ")),
-            "remove jobs with the same ids".to_string(),
+            "E1100".to_string(),
+            "duplicated job ids".to_string(),
+            format!("remove duplicated jobs with for the ids: '{}'", ids.join(", ")),
         ))
     })
 }
 
 /// Checks that jobs have proper demand.
-fn check_e1001_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1101_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), FormatError> {
     let ids = ctx
         .jobs()
         .filter(|job| {
@@ -33,15 +33,15 @@ fn check_e1001_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), F
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1001".to_string(),
-            format!("invalid job task demand in jobs: {}", ids.join(", ")),
-            "correct demand based on job task type".to_string(),
+            "E1101".to_string(),
+            "invalid job task demand".to_string(),
+            format!("correct demand based on job task type for jobs: '{}'", ids.join(", ")),
         ))
     }
 }
 
 /// Checks that sum of pickup/delivery demand should be equal.
-fn check_e1002_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1102_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Result<(), FormatError> {
     let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| tasks.len() > 0);
     let get_demand = |tasks: &Option<Vec<JobTask>>| {
         if let Some(tasks) = tasks {
@@ -70,15 +70,15 @@ fn check_e1002_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Re
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1002".to_string(),
-            format!("invalid pickup and delivery demand in jobs: {}", ids.join(", ")),
-            "correct demand so that sum of pickups equal to sum of deliveries".to_string(),
+            "E1102".to_string(),
+            "invalid pickup and delivery demand".to_string(),
+            format!("correct demand so that sum of pickups equal to sum of deliveries, jobs: '{}'", ids.join(", ")),
         ))
     }
 }
 
 /// Checks that job's time windows are correct.
-fn check_e1003_time_window_correctness(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1103_time_window_correctness(ctx: &ValidationContext) -> Result<(), FormatError> {
     let has_invalid_tws = |tasks: &Option<Vec<JobTask>>| {
         tasks.as_ref().map_or(false, |tasks| {
             tasks
@@ -99,9 +99,9 @@ fn check_e1003_time_window_correctness(ctx: &ValidationContext) -> Result<(), Fo
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1003".to_string(),
-            format!("invalid time windows in jobs: {}", ids.join(", ")),
-            "change job task place time windows so that they don't intersect".to_string(),
+            "E1103".to_string(),
+            "invalid time windows in jobs".to_string(),
+            format!("change job task place time windows so that they don't intersect, jobs: '{}'", ids.join(", ")),
         ))
     }
 }
@@ -109,9 +109,9 @@ fn check_e1003_time_window_correctness(ctx: &ValidationContext) -> Result<(), Fo
 /// Validates jobs from the plan.
 pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     combine_error_results(&[
-        check_e1000_no_jobs_with_duplicate_ids(ctx),
-        check_e1001_correct_job_types_demand(ctx),
-        check_e1002_multiple_pickups_deliveries_demand(ctx),
-        check_e1003_time_window_correctness(ctx),
+        check_e1100_no_jobs_with_duplicate_ids(ctx),
+        check_e1101_correct_job_types_demand(ctx),
+        check_e1102_multiple_pickups_deliveries_demand(ctx),
+        check_e1103_time_window_correctness(ctx),
     ])
 }

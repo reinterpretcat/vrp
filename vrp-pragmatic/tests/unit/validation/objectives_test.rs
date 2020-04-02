@@ -13,8 +13,9 @@ fn balance_dist() -> Objective {
 #[test]
 fn can_fallback_to_default() {
     let problem = Problem { objectives: None, ..create_empty_problem() };
+    let ctx = ValidationContext::new(&problem, None);
 
-    let result = ValidationContext::new(&problem, None).validate();
+    let result = validate_objectives(&ctx);
 
     assert!(result.is_ok());
 }
@@ -35,9 +36,9 @@ fn can_detect_empty_objective_impl(objectives: Option<Objectives>, expected: Opt
     let ctx = ValidationContext::new(&problem, None);
     let objectives = get_objectives(&ctx).unwrap();
 
-    let result = check_e1009_empty_objective(&objectives);
+    let result = check_e1600_empty_objective(&objectives);
 
-    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1009".to_string()));
+    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1600".to_string()));
 }
 
 parameterized_test! {can_detect_duplicates, (objectives, expected), {
@@ -63,9 +64,9 @@ fn can_detect_duplicates_impl(objectives: Option<Objectives>, expected: Option<S
     let ctx = ValidationContext::new(&problem, None);
     let objectives = get_objectives(&ctx).unwrap();
 
-    let result = check_e1010_duplicate_objectives(&objectives);
+    let result = check_e1601_duplicate_objectives(&objectives);
 
-    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1010".to_string()));
+    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1601".to_string()));
 }
 
 parameterized_test! {can_detect_missing_cost_objective, (objectives, expected), {
@@ -84,7 +85,7 @@ fn can_detect_missing_cost_objective_impl(objectives: Option<Objectives>, expect
     let ctx = ValidationContext::new(&problem, None);
     let objectives = get_objectives(&ctx).unwrap();
 
-    let result = check_e1011_no_cost_value_objective(&objectives);
+    let result = check_e1602_no_cost_value_objective(&objectives);
 
-    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1011".to_string()));
+    assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1602".to_string()));
 }
