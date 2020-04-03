@@ -137,7 +137,6 @@ pub struct VehiclePlace {
 
 /// Specifies vehicle shift.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct VehicleShift {
     /// Vehicle start place.
     pub start: VehiclePlace,
@@ -265,29 +264,9 @@ pub struct Fleet {
 
 // region Configuration
 
-/// Specifies extra configuration.
+/// Specifies extra configuration (reserved for future).
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct Config {
-    /// Features config.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub features: Option<Features>,
-}
-
-/// Specifies features config.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Features {
-    /// Tweaks priority weight. Default value is 100.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub priority: Option<Priority>,
-}
-
-/// Configuration to tweak even distribution of the jobs across tours.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct Priority {
-    /// A cost for formula: `extra_cost = (priority - 1) * weight_cost`.
-    pub weight_cost: f64,
-}
+pub struct Config {}
 
 // endregion
 
@@ -466,14 +445,24 @@ pub struct Matrix {
 
 /// Deserializes problem in json format from [`BufReader`].
 pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec<FormatError>> {
-    serde_json::from_reader(reader)
-        .map_err(|err| vec![FormatError::new("E0000".to_string(), err.to_string(), "Check input json".to_string())])
+    serde_json::from_reader(reader).map_err(|err| {
+        vec![FormatError::new(
+            "E0000".to_string(),
+            "cannot deserialize problem".to_string(),
+            format!("check input json: '{}'", err),
+        )]
+    })
 }
 
 /// Deserializes routing matrix in json format from [`BufReader`].
 pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<FormatError>> {
-    serde_json::from_reader(reader)
-        .map_err(|err| vec![FormatError::new("E0001".to_string(), err.to_string(), "Check input json".to_string())])
+    serde_json::from_reader(reader).map_err(|err| {
+        vec![FormatError::new(
+            "E0001".to_string(),
+            "cannot deserialize matrix".to_string(),
+            format!("check input json: '{}'", err),
+        )]
+    })
 }
 
 /// Serializes [`problem`] in json from [`writer`].

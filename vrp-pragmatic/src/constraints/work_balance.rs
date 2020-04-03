@@ -1,10 +1,11 @@
+use crate::constraints::get_max_cost;
 use std::cmp::Ordering::Less;
 use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::states::{InsertionContext, RouteContext, SolutionContext};
-use vrp_core::models::problem::{Costs, Job};
+use vrp_core::models::problem::Job;
 use vrp_core::refinement::objectives::{MeasurableObjectiveCost, Objective, ObjectiveCostType};
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::{get_mean, get_stdev};
@@ -202,25 +203,4 @@ fn get_transport_value(route_ctx: &RouteContext, state_key: i32) -> f64 {
     assert!(state_key == TOTAL_DISTANCE_KEY || state_key == TOTAL_DURATION_KEY);
 
     route_ctx.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.)
-}
-
-fn get_max_cost(solution_ctx: &SolutionContext) -> f64 {
-    let get_total_cost = |costs: &Costs, distance: f64, duration: f64| {
-        costs.fixed
-            + costs.per_distance * distance
-            + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
-    };
-
-    solution_ctx
-        .routes
-        .iter()
-        .map(|rc| {
-            let distance = rc.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
-            let duration = rc.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
-
-            get_total_cost(&rc.route.actor.vehicle.costs, distance, duration)
-                + get_total_cost(&rc.route.actor.driver.costs, distance, duration)
-        })
-        .max_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
-        .unwrap_or(0.)
 }

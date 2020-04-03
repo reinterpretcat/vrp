@@ -28,7 +28,7 @@ use std::io::BufReader;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::models::common::{Cost, Dimensions, TimeWindow, ValueDimension};
+use vrp_core::models::common::{Dimensions, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 
@@ -100,7 +100,7 @@ pub struct ProblemProperties {
     has_skills: bool,
     has_unreachable_locations: bool,
     has_reload: bool,
-    priority: Option<Cost>,
+    has_priorities: bool,
 }
 
 /// A format error.
@@ -224,8 +224,8 @@ fn create_constraint_pipeline(
         constraint.add_module(Box::new(SkillsModule::new(SKILLS_CONSTRAINT_CODE)));
     }
 
-    if let Some(priority_cost) = props.priority {
-        constraint.add_module(Box::new(PriorityModule::new(priority_cost, PRIORITY_CONSTRAINT_CODE)));
+    if props.has_priorities {
+        constraint.add_module(Box::new(PriorityModule::new(PRIORITY_CONSTRAINT_CODE)));
     }
 
     if !locks.is_empty() {
@@ -301,18 +301,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         .iter()
         .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
-    let priority = api_problem.plan.jobs.iter().filter_map(|job| job.priority).any(|priority| priority > 1);
-
-    let priority = if priority {
-        api_problem
-            .config
-            .as_ref()
-            .and_then(|c| c.features.as_ref())
-            .and_then(|features| features.priority.as_ref().map(|priority| priority.weight_cost))
-            .or(Some(100.))
-    } else {
-        None
-    };
+    let has_priorities = api_problem.plan.jobs.iter().filter_map(|job| job.priority).any(|priority| priority > 1);
 
     ProblemProperties {
         has_multi_dimen_capacity,
@@ -320,7 +309,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         has_skills,
         has_unreachable_locations,
         has_reload,
-        priority,
+        has_priorities,
     }
 }
 

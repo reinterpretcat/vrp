@@ -1,8 +1,8 @@
+use crate::constraints::get_max_cost;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::states::{ActivityContext, RouteContext, SolutionContext};
-use vrp_core::models::common::Cost;
 use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::Job;
 
@@ -13,10 +13,10 @@ pub struct PriorityModule {
 }
 
 impl PriorityModule {
-    pub fn new(extra_cost: Cost, code: i32) -> Self {
+    pub fn new(code: i32) -> Self {
         Self {
             constraints: vec![
-                ConstraintVariant::SoftRoute(Arc::new(PrioritySoftRouteConstraint { extra_cost })),
+                ConstraintVariant::SoftRoute(Arc::new(PrioritySoftRouteConstraint {})),
                 ConstraintVariant::HardActivity(Arc::new(PriorityHardActivityConstraint { code })),
             ],
             keys: vec![],
@@ -40,13 +40,11 @@ impl ConstraintModule for PriorityModule {
     }
 }
 
-struct PrioritySoftRouteConstraint {
-    extra_cost: Cost,
-}
+struct PrioritySoftRouteConstraint {}
 
 impl SoftRouteConstraint for PrioritySoftRouteConstraint {
-    fn estimate_job(&self, _: &SolutionContext, _: &RouteContext, job: &Job) -> f64 {
-        get_priority(job).map_or(0., |priority| ((priority - 1) as f64 * self.extra_cost.max(0.)))
+    fn estimate_job(&self, solution_ctx: &SolutionContext, _: &RouteContext, job: &Job) -> f64 {
+        get_priority(job).map_or(0., |priority| ((priority - 1) as f64 * get_max_cost(solution_ctx).max(1E9)))
     }
 }
 
