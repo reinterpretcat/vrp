@@ -1,25 +1,32 @@
 # Error Index
 
+This page lists errors produced by the solver.
+
+
 ## E0xxx Error
 
 Errors from E0xxx range are generic.
 
+
 ### E0000
 
-This error is returned when problem cannot be deserialized from input stream.
+`cannot deserialize problem` is returned when problem definition cannot be deserialized from the input stream.
 
 
 ### E0001
 
-This error is returned when routing matrix cannot be deserialized from json stream.
+`cannot deserialize matrix` is returned when routing matrix definition cannot be deserialized from the input stream.
 
 
 ## E1xxx: Validation errors
 
-Errors from E1xxx range are used by validation engine which checks logical correctness of the VRP definition.
+Errors from E1xxx range are used by validation engine which checks logical correctness of the rich VRP definition.
 
 
 ### E11xx: Jobs
+
+These errors are related to `plan.jobs` property definition.
+
 
 #### E1100
 
@@ -146,10 +153,30 @@ the second - as end
 
 ### E12xx: Relations
 
+These errors are related to `plan.relations` property definition.
+
+
 #### E1200
+
+`relation has job id which does not present in the plan` error is returned when `plan.relations` has relations with
+job ids, not present in `plan.jobs`.
+
+
+#### E1201
+
+`relation has vehicle id which does not present in the fleet` error is returned when `plan.relations` has relations with
+vehicle ids, not present in `plan.fleet`.
+
+
+#### E1202
+
+`relation has empty job id list` error is returned when `plan.relations` has relations with empty `jobs` list.
 
 
 ### E13xx: Vehicles
+
+These errors are related to `fleet.vehicles` property definition.
+
 
 #### E1300
 
@@ -281,7 +308,10 @@ Additionally, reload time should be inside vehicle shift it is specified:
 }
 ```
 
+
 ### E15xx: Profiles
+
+These errors are related to `fleet.profiles` property definition.
 
 
 #### E1500
@@ -318,6 +348,9 @@ To fix the issue, remove all duplicates.
 
 
 ### E16xx: Objectives
+
+These errors are related to `objectives` property definition.
+
 
 #### E1600
 

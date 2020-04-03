@@ -44,8 +44,7 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
     });
 
     let locks = relations.into_iter().fold(vec![], |mut acc, ((vehicle_id, shift_index), rels)| {
-        let vehicle_id_copy = vehicle_id.clone();
-        let condition = create_condition(vehicle_id_copy, shift_index);
+        let condition = create_condition(vehicle_id.clone(), shift_index);
         let details = rels.iter().fold(vec![], |mut acc, rel| {
             let order = match rel.type_field {
                 RelationType::Any => LockOrder::Any,

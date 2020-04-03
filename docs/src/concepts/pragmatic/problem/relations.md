@@ -42,6 +42,12 @@ non-feasible solutions (e.g. routes with capacity or time window violation).
 
 * relation with jobs which have multiple pickups or deliveries are not yet supported
 
+## Related errors
+
+* [E1200 relation has job id which does not present in the plan](../errors/index.md#e1200)
+* [E1201 relation has vehicle id which does not present in the fleet](../errors/index.md#e1201)
+* [E1202 relation has empty job id list](../errors/index.md#e1202)
+
 ## Examples
 
 Please refer to [complete example](../../../examples/pragmatic/basics/relations.md) to see how to specify problem with relations.

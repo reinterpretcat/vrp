@@ -19,6 +19,9 @@ use self::objectives::validate_objectives;
 mod vehicles;
 use self::vehicles::validate_vehicles;
 
+mod relations;
+use self::relations::validate_relations;
+
 mod routing;
 use self::routing::validate_profiles;
 
@@ -36,6 +39,7 @@ impl<'a> ValidationContext<'a> {
             .chain(validate_vehicles(&self).err().into_iter())
             .chain(validate_objectives(&self).err().into_iter())
             .chain(validate_profiles(&self).err().into_iter())
+            .chain(validate_relations(&self).err().into_iter())
             .flatten()
             .collect::<Vec<_>>();
 
