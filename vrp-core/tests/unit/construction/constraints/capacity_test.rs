@@ -1,5 +1,5 @@
 use crate::construction::constraints::*;
-use crate::construction::states::{ActivityContext, RouteState};
+use crate::construction::heuristics::{ActivityContext, RouteState};
 use crate::helpers::construction::constraints::*;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;

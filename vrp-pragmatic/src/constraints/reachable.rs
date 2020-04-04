@@ -1,7 +1,7 @@
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::states::{ActivityContext, RouteContext, SolutionContext};
+use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::problem::{Job, TransportCost};
 
 pub struct ReachableModule {

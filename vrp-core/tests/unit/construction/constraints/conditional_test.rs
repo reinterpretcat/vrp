@@ -1,6 +1,6 @@
 use crate::construction::constraints::conditional::ConditionalJobModule;
 use crate::construction::constraints::{ConcreteJobContextTransition, ConstraintModule};
-use crate::construction::states::SolutionContext;
+use crate::construction::heuristics::SolutionContext;
 use crate::helpers::models::problem::{get_job_id, test_fleet, test_single_with_id};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;

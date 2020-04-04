@@ -4,7 +4,7 @@ use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::states::{InsertionContext, RouteContext, SolutionContext};
+use vrp_core::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use vrp_core::models::problem::Job;
 use vrp_core::refinement::objectives::{MeasurableObjectiveCost, Objective, ObjectiveCostType};
 use vrp_core::refinement::RefinementContext;

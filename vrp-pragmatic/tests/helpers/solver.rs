@@ -2,7 +2,7 @@ use crate::json::problem::{Matrix, PragmaticProblem, Problem};
 use crate::json::solution::{create_solution, Solution};
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
-use vrp_core::construction::states::InsertionContext;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::refinement::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::refinement::RefinementContext;

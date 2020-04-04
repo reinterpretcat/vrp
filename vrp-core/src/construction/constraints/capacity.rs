@@ -3,7 +3,7 @@
 mod capacity_test;
 
 use crate::construction::constraints::*;
-use crate::construction::states::{ActivityContext, RouteContext, RouteState, SolutionContext};
+use crate::construction::heuristics::{ActivityContext, RouteContext, RouteState, SolutionContext};
 use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route, TourActivity};

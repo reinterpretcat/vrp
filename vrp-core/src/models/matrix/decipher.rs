@@ -7,7 +7,7 @@ mod decipher_test;
 
 use super::inserter::ActivityInfoInserter;
 use super::AdjacencyMatrix;
-use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::{Actor, ActorDetail, Job, Place, Single};
 use crate::models::solution::TourActivity;
 use crate::models::Problem;

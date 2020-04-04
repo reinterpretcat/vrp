@@ -1,6 +1,6 @@
 //! A various strategies to destroy parts of an existing solution.
 
-use crate::construction::states::{InsertionContext, RouteContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::refinement::RefinementContext;

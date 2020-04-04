@@ -3,7 +3,7 @@
 mod random_route_removal_test;
 
 use super::Ruin;
-use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::refinement::RefinementContext;
 

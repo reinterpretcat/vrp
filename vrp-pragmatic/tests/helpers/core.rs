@@ -1,7 +1,7 @@
 use crate::extensions::MultiDimensionalCapacity;
 use std::sync::Arc;
 use vrp_core::construction::constraints::Demand;
-use vrp_core::construction::states::{create_end_activity, create_start_activity};
+use vrp_core::construction::heuristics::{create_end_activity, create_start_activity};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;

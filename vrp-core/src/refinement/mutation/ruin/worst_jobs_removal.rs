@@ -5,7 +5,7 @@ mod worst_jobs_removal_test;
 extern crate rand;
 
 use super::Ruin;
-use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, TransportCost};
 use crate::models::solution::TourActivity;

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::process;
 use std::sync::Arc;
-use vrp_core::construction::states::InsertionContext;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::matrix::{AdjacencyMatrixDecipher, SparseMatrix};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::utils::DefaultRandom;

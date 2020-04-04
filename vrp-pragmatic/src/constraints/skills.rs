@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::states::{RouteContext, SolutionContext};
+use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
 use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::Job;
 

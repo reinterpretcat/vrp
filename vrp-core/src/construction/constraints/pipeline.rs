@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/construction/constraints/pipeline_test.rs"]
 mod pipeline_test;
 
-use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use hashbrown::HashSet;

@@ -1,7 +1,7 @@
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
-use vrp_core::construction::states::SolutionContext;
+use vrp_core::construction::heuristics::SolutionContext;
 use vrp_core::models::common::{Dimensions, IdDimension, ValueDimension};
 use vrp_core::models::problem::{Costs, Single};
 use vrp_core::models::solution::{Activity, Route};

@@ -1,7 +1,8 @@
 use crate::extensions::SimplePopulation;
 use std::ops::Deref;
 use std::sync::Arc;
-use vrp_core::construction::states::{InsertionContext, Quota};
+use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::construction::Quota;
 use vrp_core::models::{Problem, Solution};
 use vrp_core::refinement::acceptance::{Acceptance, Greedy};
 use vrp_core::refinement::mutation::{Mutation, RuinAndRecreateMutation};

@@ -3,7 +3,7 @@ use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
-use vrp_core::construction::states::{RouteContext, RouteState, SolutionContext};
+use vrp_core::construction::heuristics::{RouteContext, RouteState, SolutionContext};
 use vrp_core::models::common::{IdDimension, Location, ValueDimension};
 use vrp_core::models::problem::{Fleet, Single};
 use vrp_core::models::solution::Registry;

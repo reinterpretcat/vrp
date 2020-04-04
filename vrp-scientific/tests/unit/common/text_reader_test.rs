@@ -2,7 +2,7 @@ use crate::common::text_reader::read_init_solution;
 use crate::helpers::{create_c101_100_problem, get_test_resource};
 use std::io::BufReader;
 use std::sync::Arc;
-use vrp_core::construction::states::InsertionContext;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::refinement::objectives::{MultiObjective, Objective};
 use vrp_core::refinement::RefinementContext;
 use vrp_core::utils::DefaultRandom;

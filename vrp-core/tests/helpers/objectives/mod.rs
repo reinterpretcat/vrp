@@ -1,4 +1,4 @@
-use crate::construction::states::InsertionContext;
+use crate::construction::heuristics::InsertionContext;
 use crate::refinement::objectives::{Objective, ObjectiveCost};
 use crate::refinement::RefinementContext;
 

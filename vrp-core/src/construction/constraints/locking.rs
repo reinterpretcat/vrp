@@ -3,7 +3,7 @@
 mod locking_test;
 
 use crate::construction::constraints::*;
-use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::problem::{Actor, Fleet, Job};
 use crate::models::{Lock, LockOrder, LockPosition};
 use hashbrown::{HashMap, HashSet};

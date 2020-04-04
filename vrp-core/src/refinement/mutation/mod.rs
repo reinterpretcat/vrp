@@ -1,4 +1,4 @@
-use crate::construction::states::InsertionContext;
+use crate::construction::heuristics::InsertionContext;
 use crate::refinement::RefinementContext;
 
 mod recreate;

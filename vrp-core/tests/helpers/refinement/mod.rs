@@ -1,4 +1,4 @@
-use crate::construction::states::InsertionContext;
+use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};

@@ -1,6 +1,6 @@
 mod timing {
     use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
-    use crate::construction::states::*;
+    use crate::construction::heuristics::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
     use crate::helpers::models::domain::create_empty_solution_context;
     use crate::helpers::models::problem::*;
@@ -275,7 +275,7 @@ mod timing {
 mod traveling {
     use super::super::stop;
     use crate::construction::constraints::*;
-    use crate::construction::states::{ActivityContext, RouteContext, RouteState};
+    use crate::construction::heuristics::{ActivityContext, RouteContext, RouteState};
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
     use crate::helpers::models::problem::*;
     use crate::helpers::models::solution::*;

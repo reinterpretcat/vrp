@@ -1,16 +1,125 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/construction/states/route_test.rs"]
-mod route_test;
+#[path = "../../../tests/unit/construction/heuristics/context_test.rs"]
+mod context_test;
 
-use crate::construction::states::OP_START_MSG;
-use crate::models::common::Schedule;
-use crate::models::problem::Actor;
-use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
-use crate::utils::as_mut;
+use crate::construction::heuristics::factories::*;
+use crate::construction::OP_START_MSG;
+use crate::models::common::{Cost, Schedule};
+use crate::models::problem::*;
+use crate::models::solution::*;
+use crate::models::{Extras, Problem, Solution};
+use crate::utils::{as_mut, Random};
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::ops::Deref;
 use std::sync::Arc;
+
+/// A context which contains information needed for heuristic and metaheuristic.
+pub struct InsertionContext {
+    /// Original problem.
+    pub problem: Arc<Problem>,
+
+    /// Solution context: discovered solution.
+    pub solution: SolutionContext,
+
+    /// Random generator.
+    pub random: Arc<dyn Random + Send + Sync>,
+}
+
+impl InsertionContext {
+    /// Creates insertion context from existing solution.
+    pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> Self {
+        create_insertion_context(problem, random)
+    }
+
+    /// Creates insertion context from existing solution.
+    pub fn new_from_solution(
+        problem: Arc<Problem>,
+        solution: (Arc<Solution>, Option<Cost>),
+        random: Arc<dyn Random + Send + Sync>,
+    ) -> Self {
+        create_insertion_context_from_solution(problem, solution, random)
+    }
+
+    /// Restores valid context state.
+    pub fn restore(&mut self) {
+        let constraint = self.problem.constraint.clone();
+        // NOTE Run first accept solution as it can change existing routes
+        // by moving jobs from/to required/ignored jobs.
+        // if this happens, accept route state will fix timing/capacity after it
+        constraint.accept_solution_state(&mut self.solution);
+
+        self.remove_empty_routes();
+
+        self.solution.routes.iter_mut().for_each(|route_ctx| {
+            constraint.accept_route_state(route_ctx);
+        });
+    }
+
+    pub fn deep_copy(&self) -> Self {
+        InsertionContext {
+            problem: self.problem.clone(),
+            solution: self.solution.deep_copy(),
+            random: self.random.clone(),
+        }
+    }
+
+    /// Removes empty routes from solution context.
+    fn remove_empty_routes(&mut self) {
+        let registry = &mut self.solution.registry;
+        self.solution.routes.retain(|rc| {
+            if rc.route.tour.has_jobs() {
+                true
+            } else {
+                registry.free_actor(&rc.route.actor);
+                false
+            }
+        });
+    }
+}
+
+/// Contains information regarding discovered solution.
+pub struct SolutionContext {
+    /// List of jobs which require permanent assignment.
+    pub required: Vec<Job>,
+
+    /// List of jobs which at the moment does not require assignment and might be ignored.
+    pub ignored: Vec<Job>,
+
+    /// Map of jobs which cannot be assigned and within reason code.
+    pub unassigned: HashMap<Job, i32>,
+
+    /// Specifies jobs which should not be affected by ruin.
+    pub locked: HashSet<Job>,
+
+    /// Set of routes within their state.
+    pub routes: Vec<RouteContext>,
+
+    /// Keeps track of used resources.
+    pub registry: Registry,
+}
+
+impl SolutionContext {
+    pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
+        Solution {
+            registry: self.registry.deep_copy(),
+            routes: self.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
+            unassigned: self.unassigned.clone(),
+            extras,
+        }
+    }
+
+    pub fn deep_copy(&self) -> Self {
+        Self {
+            required: self.required.clone(),
+            ignored: self.ignored.clone(),
+            unassigned: self.unassigned.clone(),
+            locked: self.locked.clone(),
+            routes: self.routes.iter().map(|rc| rc.deep_copy()).collect(),
+            registry: self.registry.deep_copy(),
+        }
+    }
+}
 
 pub type RouteStateValue = Arc<dyn Any + Send + Sync>;
 
@@ -170,12 +279,28 @@ impl RouteState {
     }
 }
 
+/// Specifies insertion context for activity.
+pub struct ActivityContext<'a> {
+    /// Activity insertion index.
+    pub index: usize,
+
+    /// Previous activity.
+    pub prev: &'a TourActivity,
+
+    /// Target activity.
+    pub target: &'a TourActivity,
+
+    /// Next activity. Absent if tour is open and target activity inserted last.
+    pub next: Option<&'a TourActivity>,
+}
+
 type ActivityWithKey = (usize, i32);
+type ActivityPlace = crate::models::solution::Place;
 
 /// Creates start activity.
 pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
     Box::new(Activity {
-        place: Place {
+        place: ActivityPlace {
             location: actor.detail.start.unwrap_or_else(|| unimplemented!("{}", OP_START_MSG)),
             duration: 0.0,
             time: actor.detail.time.clone(),
@@ -189,7 +314,7 @@ pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
 pub fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
     actor.detail.end.map(|location| {
         Box::new(Activity {
-            place: Place { location, duration: 0.0, time: actor.detail.time.clone() },
+            place: ActivityPlace { location, duration: 0.0, time: actor.detail.time.clone() },
             schedule: Schedule { arrival: actor.detail.time.end, departure: actor.detail.time.end },
             job: None,
         })

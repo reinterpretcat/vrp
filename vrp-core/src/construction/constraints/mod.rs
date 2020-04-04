@@ -65,8 +65,6 @@ pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
 pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
 pub const RELOAD_INTERVALS: i32 = 14;
 
-pub const OP_START_MSG: &str = "Optional start is not yet implemented.";
-
 mod pipeline;
 pub use self::pipeline::*;
 

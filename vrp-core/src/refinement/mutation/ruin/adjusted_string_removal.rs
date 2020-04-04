@@ -5,7 +5,7 @@ mod adjusted_string_removal_test;
 use std::sync::{Arc, RwLock};
 
 use super::{select_seed_jobs, Ruin};
-use crate::construction::states::{InsertionContext, RouteContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Tour;
 use crate::refinement::RefinementContext;

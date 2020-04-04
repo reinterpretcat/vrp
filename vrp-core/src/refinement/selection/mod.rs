@@ -1,6 +1,6 @@
 //! Specifies solution selection logic.
 
-use crate::construction::states::InsertionContext;
+use crate::construction::heuristics::InsertionContext;
 use crate::refinement::RefinementContext;
 
 /// Provides the way to select solution for next iteration.

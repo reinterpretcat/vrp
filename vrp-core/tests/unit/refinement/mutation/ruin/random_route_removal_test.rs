@@ -1,5 +1,5 @@
 use super::{RandomRouteRemoval, Ruin};
-use crate::construction::states::InsertionContext;
+use crate::construction::heuristics::InsertionContext;
 use crate::helpers::models::domain::*;
 use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;

@@ -1,5 +1,5 @@
 use crate::construction::constraints::*;
-use crate::construction::states::{ActivityContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use crate::helpers::models::solution::{test_actor, test_tour_activity_without_job};
 use crate::models::common::Cost;
 use crate::models::problem::Job;

@@ -6,7 +6,7 @@ extern crate rand;
 
 use crate::construction::constraints::{Demand, DemandDimension};
 use crate::construction::heuristics::*;
-use crate::construction::states::{InsertionContext, InsertionResult};
+use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::common::Distance;
 use crate::models::problem::Job;
 use crate::models::Problem;

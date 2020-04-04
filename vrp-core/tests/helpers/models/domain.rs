@@ -1,5 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::construction::states::{InsertionContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, SolutionContext};
 use crate::helpers::models::problem::*;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Job, Jobs};

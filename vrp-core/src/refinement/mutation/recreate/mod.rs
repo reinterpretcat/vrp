@@ -1,6 +1,6 @@
 //! Contains logic to build a feasible solution from partially ruined one.
 
-use crate::construction::states::InsertionContext;
+use crate::construction::heuristics::InsertionContext;
 use crate::refinement::RefinementContext;
 
 /// A trait which specifies logic to produce a new feasible solution from partial one.

@@ -3,7 +3,7 @@
 mod conditional_test;
 
 use crate::construction::constraints::{ConstraintModule, ConstraintVariant};
-use crate::construction::states::{RouteContext, SolutionContext};
+use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use hashbrown::HashSet;
 use std::slice::Iter;

@@ -2,7 +2,7 @@ use crate::constraints::*;
 use std::ops::{Add, Deref, Sub};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::states::RouteContext;
+use vrp_core::construction::heuristics::RouteContext;
 use vrp_core::models::common::{IdDimension, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Route};

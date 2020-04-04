@@ -1,4 +1,4 @@
-use vrp_core::construction::states::Quota;
+use vrp_core::construction::Quota;
 use vrp_core::utils::Timer;
 
 /// A time quota.

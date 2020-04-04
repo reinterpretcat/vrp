@@ -1,4 +1,4 @@
-use crate::construction::states::route::RouteState;
+use crate::construction::heuristics::RouteState;
 use crate::helpers::models::solution::test_activity;
 use crate::models::solution::TourActivity;
 

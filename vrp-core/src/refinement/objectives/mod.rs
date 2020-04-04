@@ -1,6 +1,6 @@
 //! Specifies objective functions.
 
-use crate::construction::states::InsertionContext;
+use crate::construction::heuristics::InsertionContext;
 use crate::models::common::Cost;
 use crate::refinement::RefinementContext;
 use crate::utils::VariationCoefficient;

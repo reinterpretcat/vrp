@@ -1,5 +1,5 @@
 use crate::construction::heuristics::*;
-use crate::construction::states::{InsertionContext, InsertionResult};
+use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::refinement::mutation::Recreate;
 use crate::refinement::RefinementContext;

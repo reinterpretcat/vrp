@@ -1,7 +1,7 @@
 use crate::construction::heuristics::evaluators::evaluate_job_insertion;
-use crate::construction::states::*;
+use crate::construction::heuristics::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
-use crate::helpers::construction::states::{create_insertion_context, create_test_insertion_context};
+use crate::helpers::construction::heuristics::{create_insertion_context, create_test_insertion_context};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_test_registry;
 use crate::helpers::models::solution::ActivityBuilder;

@@ -1,6 +1,6 @@
 use crate::helpers::*;
 use std::sync::Arc;
-use vrp_core::construction::states::InsertionContext;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem;
 use vrp_core::refinement::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::refinement::objectives::{MultiObjective, Objective};

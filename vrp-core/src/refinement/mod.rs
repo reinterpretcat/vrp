@@ -9,9 +9,10 @@
 
 extern crate rand;
 
-use crate::construction::states::{InsertionContext, Quota};
+use crate::construction::heuristics::InsertionContext;
 use crate::models::Problem;
 
+use crate::construction::Quota;
 use crate::refinement::objectives::ObjectiveCostType;
 use hashbrown::HashMap;
 use std::any::Any;

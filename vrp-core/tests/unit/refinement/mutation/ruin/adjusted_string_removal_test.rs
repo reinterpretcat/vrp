@@ -14,7 +14,7 @@ double distribution values:
 */
 
 use super::{AdjustedStringRemoval, Ruin};
-use crate::construction::states::InsertionContext;
+use crate::construction::heuristics::InsertionContext;
 use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
 use crate::helpers::refinement::generate_matrix_routes;
 use crate::helpers::utils::random::FakeRandom;

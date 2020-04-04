@@ -1,5 +1,5 @@
 use vrp_core::construction::constraints::{CapacityDimension, Demand, DemandDimension};
-use vrp_core::construction::states::InsertionContext;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;

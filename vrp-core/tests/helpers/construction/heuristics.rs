@@ -1,5 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::construction::states::{InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::domain::create_empty_problem_with_constraint;
 use crate::models::solution::Registry;

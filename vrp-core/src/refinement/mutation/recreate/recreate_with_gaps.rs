@@ -1,7 +1,7 @@
 extern crate rand;
 
+use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
-use crate::construction::states::InsertionContext;
 use crate::models::problem::Job;
 use crate::refinement::mutation::recreate::Recreate;
 use crate::refinement::RefinementContext;

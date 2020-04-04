@@ -1,4 +1,4 @@
-use crate::construction::states::{InsertionContext, RouteContext, RouteState, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;

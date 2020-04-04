@@ -1,8 +1,43 @@
 use crate::construction::heuristics::evaluators::{evaluate_job_insertion, InsertionPosition};
-use crate::construction::states::{InsertionContext, InsertionResult, Quota};
+use crate::construction::heuristics::{InsertionContext, RouteContext};
+use crate::construction::Quota;
+use crate::models::common::Cost;
 use crate::models::problem::Job;
+use crate::models::solution::TourActivity;
 use crate::utils::map_reduce;
+use std::borrow::Borrow;
 use std::ops::Deref;
+
+/// Specifies insertion result variant.
+pub enum InsertionResult {
+    /// Successful insertion result.
+    Success(InsertionSuccess),
+    /// Insertion failure.
+    Failure(InsertionFailure),
+}
+
+/// Specifies insertion success result needed to insert job into tour.
+pub struct InsertionSuccess {
+    /// Specifies delta cost change for the insertion.
+    pub cost: Cost,
+
+    /// Original job to be inserted.
+    pub job: Job,
+
+    /// Specifies activities within index where they have to be inserted.
+    pub activities: Vec<(TourActivity, usize)>,
+
+    /// Specifies route context where insertion happens.
+    pub context: RouteContext,
+}
+
+/// Specifies insertion failure.
+pub struct InsertionFailure {
+    /// Failed constraint code.
+    pub constraint: i32,
+    /// Original job failed to be inserted.
+    pub job: Option<Job>,
+}
 
 /// On each insertion step, selects a list of jobs to be inserted.
 /// It is up to implementation to decide whether a list is original consists of jobs to be inserted,
@@ -127,6 +162,38 @@ impl InsertionHeuristic {
         finalize_ctx(&mut ctx);
 
         ctx
+    }
+}
+
+impl InsertionResult {
+    pub fn make_success(cost: Cost, job: Job, activities: Vec<(TourActivity, usize)>, route_ctx: RouteContext) -> Self {
+        Self::Success(InsertionSuccess { cost, job, activities, context: route_ctx })
+    }
+
+    /// Creates result which represents insertion failure.
+    pub fn make_failure() -> Self {
+        Self::make_failure_with_code(-1, None)
+    }
+
+    /// Creates result which represents insertion failure with given code.
+    pub fn make_failure_with_code(code: i32, job: Option<Job>) -> Self {
+        Self::Failure(InsertionFailure { constraint: code, job })
+    }
+
+    /// Compares two insertion results and returns the cheapest by cost.
+    pub fn choose_best_result(left: Self, right: Self) -> Self {
+        match (left.borrow(), right.borrow()) {
+            (Self::Success(_), Self::Failure(_)) => left,
+            (Self::Failure(_), Self::Success(_)) => right,
+            (Self::Success(lhs), Self::Success(rhs)) => {
+                if lhs.cost > rhs.cost {
+                    right
+                } else {
+                    left
+                }
+            }
+            _ => right,
+        }
     }
 }
 
