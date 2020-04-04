@@ -173,6 +173,14 @@ vehicle ids, not present in `plan.fleet`.
 `relation has empty job id list` error is returned when `plan.relations` has relations with empty `jobs` list.
 
 
+#### E1203
+
+`strict or sequence relation has job with multiple places or time windows` error is returned when `plan.relations` has
+strict or sequence relation which refers one or many jobs with multiple places and/or time windows.
+
+This is currently not allowed due to matching problem.
+
+
 ### E13xx: Vehicles
 
 These errors are related to `fleet.vehicles` property definition.

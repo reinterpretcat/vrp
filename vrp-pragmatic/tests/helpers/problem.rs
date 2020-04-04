@@ -5,15 +5,15 @@ use crate::json::problem::*;
 use vrp_core::models::common::{Distance, Duration, Location, Timestamp};
 use vrp_core::models::problem::TransportCost;
 
-fn create_job_place(location: Vec<f64>) -> JobPlace {
+pub fn create_job_place(location: Vec<f64>) -> JobPlace {
     JobPlace { times: None, location: location.to_loc(), duration: 1. }
 }
 
-fn create_task(location: Vec<f64>) -> JobTask {
+pub fn create_task(location: Vec<f64>) -> JobTask {
     JobTask { places: vec![create_job_place(location)], demand: Some(vec![1]), tag: None }
 }
 
-fn create_job(id: &str) -> Job {
+pub fn create_job(id: &str) -> Job {
     Job {
         id: id.to_string(),
         pickups: None,

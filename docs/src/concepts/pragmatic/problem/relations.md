@@ -10,6 +10,7 @@ has the following properties:
 
 You can use more than one relation per vehicle.
 
+
 ## Any type
 
 A `any` relation is used to lock specific jobs to certain vehicle in any order:
@@ -18,10 +19,12 @@ A `any` relation is used to lock specific jobs to certain vehicle in any order:
 {{#include ../../../../../examples/json-pragmatic/data/basics/relation-any.basic.problem.json:82:89}}
 ```
 
+
 ## Sequence type
 
 A `sequence` relation is used to lock specific jobs to certain vehicle in fixed order allowing insertion of new jobs in
 between.
+
 
 ## Strict type
 
@@ -33,6 +36,7 @@ In contrast to `sequence` relation, `strict` locks jobs to certain vehicle witho
 
 In this example, new jobs can be inserted only after job with id `job1`.
 
+
 ## Important notes
 
 Please consider the following notes:
@@ -42,11 +46,14 @@ non-feasible solutions (e.g. routes with capacity or time window violation).
 
 * relation with jobs which have multiple pickups or deliveries are not yet supported
 
+
 ## Related errors
 
 * [E1200 relation has job id which does not present in the plan](../errors/index.md#e1200)
 * [E1201 relation has vehicle id which does not present in the fleet](../errors/index.md#e1201)
 * [E1202 relation has empty job id list](../errors/index.md#e1202)
+* [E1203 strict or sequence relation has job with multiple places or time windows](../errors/index.md#e1203)
+
 
 ## Examples
 

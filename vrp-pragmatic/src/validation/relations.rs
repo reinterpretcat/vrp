@@ -3,20 +3,18 @@
 mod relations_test;
 
 use super::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Checks that relation job ids are defined in plan.
-fn check_e1200_job_existence(relations: &Vec<Relation>, job_map: &HashMap<String, &Job>) -> Result<(), FormatError> {
+fn check_e1200_job_existence(ctx: &ValidationContext, relations: &Vec<Relation>) -> Result<(), FormatError> {
     let job_ids = relations
         .iter()
         .flat_map(|relation| {
             relation
                 .jobs
                 .iter()
-                .filter(|&job_id| {
-                    job_id != "departure" && job_id != "arrival" && job_id != "break" && job_id != "reload"
-                })
-                .filter(|&job_id| !job_map.contains_key(job_id))
+                .filter(|&job_id| filter_non_jobs(job_id))
+                .filter(|&job_id| !ctx.job_index.contains_key(job_id))
                 .cloned()
         })
         .collect::<Vec<_>>();
@@ -69,9 +67,54 @@ fn check_e1202_empty_job_list(relations: &Vec<Relation>) -> Result<(), FormatErr
     }
 }
 
+/// Checks that relation has no jobs with multiple places or time windows.
+fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &Vec<Relation>) -> Result<(), FormatError> {
+    let mut job_ids = relations
+        .iter()
+        .filter(|relation| match relation.type_field {
+            RelationType::Any => false,
+            _ => true,
+        })
+        .flat_map(|relation| {
+            relation
+                .jobs
+                .iter()
+                .filter(|&job_id| filter_non_jobs(job_id))
+                .filter_map(|job_id| ctx.job_index.get(job_id))
+                .filter(|&job| {
+                    ctx.tasks(job).into_iter().any(|task| {
+                        task.places.len() > 1
+                            || task.places.iter().any(|place| place.times.as_ref().map_or(false, |tw| tw.len() > 1))
+                    })
+                })
+                .map(|job| job.id.clone())
+        })
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    job_ids.sort();
+
+    if job_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1203".to_string(),
+            "strict or sequence relation has job with multiple places or time windows".to_string(),
+            format!(
+                "remove job from relation or specify only one place and time window, job ids: '{}'",
+                job_ids.join(", ")
+            ),
+        ))
+    }
+}
+
+fn filter_non_jobs(job_id: &String) -> bool {
+    job_id != "departure" && job_id != "arrival" && job_id != "break" && job_id != "reload"
+}
+
 /// Validates relations in the plan.
 pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
-    let job_map = ctx.jobs().map(|job| (job.id.clone(), job)).collect::<HashMap<_, _>>();
     let vehicle_map = ctx
         .vehicles()
         .map(|v_type| v_type)
@@ -80,9 +123,10 @@ pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError
 
     if let Some(relations) = ctx.problem.plan.relations.as_ref() {
         combine_error_results(&[
-            check_e1200_job_existence(relations, &job_map),
+            check_e1200_job_existence(ctx, relations),
             check_e1201_vehicle_existence(relations, &vehicle_map),
             check_e1202_empty_job_list(relations),
+            check_e1203_no_multiple_places_times(ctx, relations),
         ])
     } else {
         Ok(())

@@ -1,34 +1,46 @@
 //! This module provides functionality to validate problem definition for logical correctness.
 
 use crate::json::problem::*;
+use std::collections::HashMap;
 
 pub struct ValidationContext<'a> {
     pub problem: &'a Problem,
     pub matrices: Option<&'a Vec<Matrix>>,
+    job_index: HashMap<String, Job>,
 }
 
 mod common;
+
 use self::common::*;
 
 mod jobs;
+
 use self::jobs::validate_jobs;
 
 mod objectives;
+
 use self::objectives::validate_objectives;
 
 mod vehicles;
+
 use self::vehicles::validate_vehicles;
 
 mod relations;
+
 use self::relations::validate_relations;
 
 mod routing;
+
 use self::routing::validate_profiles;
 
 impl<'a> ValidationContext<'a> {
     /// Creates an instance of `ValidationContext`.
     pub fn new(problem: &'a Problem, matrices: Option<&'a Vec<Matrix>>) -> Self {
-        Self { problem, matrices }
+        Self {
+            problem,
+            matrices,
+            job_index: problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect(),
+        }
     }
 
     /// Validates problem on set of rules.
@@ -50,14 +62,26 @@ impl<'a> ValidationContext<'a> {
         }
     }
 
-    /// Get list of jobs from the problem.
+    /// Gets list of jobs from the problem.
     fn jobs(&self) -> impl Iterator<Item = &Job> {
         self.problem.plan.jobs.iter()
     }
 
-    /// Get list of vehicles from the problem.
+    /// Gets list of vehicles from the problem.
     fn vehicles(&self) -> impl Iterator<Item = &VehicleType> {
         self.problem.fleet.vehicles.iter()
+    }
+
+    /// Gets a flat list of job tasks from the job.
+    fn tasks(&self, job: &'a Job) -> Vec<&'a JobTask> {
+        job.pickups
+            .as_ref()
+            .iter()
+            .flat_map(|tasks| tasks.iter())
+            .chain(job.deliveries.as_ref().iter().flat_map(|tasks| tasks.iter()))
+            .chain(job.replacements.as_ref().iter().flat_map(|tasks| tasks.iter()))
+            .chain(job.services.as_ref().iter().flat_map(|tasks| tasks.iter()))
+            .collect()
     }
 }
 

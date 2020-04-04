@@ -104,7 +104,7 @@ pub struct ProblemProperties {
 }
 
 /// A format error.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FormatError {
     /// An error code in registry.
     pub code: String,
