@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/validation/jobs_test.rs"]
+mod jobs_test;
+
 use super::*;
 use crate::extensions::MultiDimensionalCapacity;
 
@@ -106,6 +110,21 @@ fn check_e1103_time_window_correctness(ctx: &ValidationContext) -> Result<(), Fo
     }
 }
 
+/// Checks that reserved job ids are no used.
+fn check_e1104_no_reserved_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let ids = ctx.jobs().filter(|job| is_reserved_job_id(&job.id)).map(|job| job.id.clone()).collect::<Vec<_>>();
+
+    if ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1104".to_string(),
+            "reserved job id is used".to_string(),
+            format!("change job id from reserved: '{}'", ids.join(", ")),
+        ))
+    }
+}
+
 /// Validates jobs from the plan.
 pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     combine_error_results(&[
@@ -113,5 +132,6 @@ pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
         check_e1101_correct_job_types_demand(ctx),
         check_e1102_multiple_pickups_deliveries_demand(ctx),
         check_e1103_time_window_correctness(ctx),
+        check_e1104_no_reserved_ids(ctx),
     ])
 }

@@ -10,27 +10,21 @@ pub struct ValidationContext<'a> {
 }
 
 mod common;
-
 use self::common::*;
 
 mod jobs;
-
 use self::jobs::validate_jobs;
 
 mod objectives;
-
 use self::objectives::validate_objectives;
 
 mod vehicles;
-
 use self::vehicles::validate_vehicles;
 
 mod relations;
-
 use self::relations::validate_relations;
 
 mod routing;
-
 use self::routing::validate_profiles;
 
 impl<'a> ValidationContext<'a> {
@@ -93,4 +87,8 @@ fn combine_error_results(results: &[Result<(), FormatError>]) -> Result<(), Vec<
     } else {
         Err(errors)
     }
+}
+
+fn is_reserved_job_id(job_id: &String) -> bool {
+    job_id == "departure" || job_id == "arrival" || job_id == "break" || job_id == "reload"
 }

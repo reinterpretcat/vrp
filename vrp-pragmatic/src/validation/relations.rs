@@ -13,7 +13,7 @@ fn check_e1200_job_existence(ctx: &ValidationContext, relations: &Vec<Relation>)
             relation
                 .jobs
                 .iter()
-                .filter(|&job_id| filter_non_jobs(job_id))
+                .filter(|&job_id| !is_reserved_job_id(job_id))
                 .filter(|&job_id| !ctx.job_index.contains_key(job_id))
                 .cloned()
         })
@@ -79,7 +79,7 @@ fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &Vec
             relation
                 .jobs
                 .iter()
-                .filter(|&job_id| filter_non_jobs(job_id))
+                .filter(|&job_id| !is_reserved_job_id(job_id))
                 .filter_map(|job_id| ctx.job_index.get(job_id))
                 .filter(|&job| {
                     ctx.tasks(job).into_iter().any(|task| {
@@ -107,10 +107,6 @@ fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &Vec
             ),
         ))
     }
-}
-
-fn filter_non_jobs(job_id: &String) -> bool {
-    job_id != "departure" && job_id != "arrival" && job_id != "break" && job_id != "reload"
 }
 
 /// Validates relations in the plan.

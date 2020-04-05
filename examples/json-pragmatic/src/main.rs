@@ -1,5 +1,4 @@
 use std::fs::File;
-use std::process;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::matrix::{AdjacencyMatrixDecipher, SparseMatrix};
@@ -10,7 +9,7 @@ use vrp_solver::SolverBuilder;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let base_path = args.get(1).unwrap_or_else(|| panic!("Please set a proper path to example data"));
+    let base_path = args.get(1).expect("Please set a proper path to example data");
     run_examples(base_path.as_str());
 }
 
@@ -45,21 +44,18 @@ fn run_examples(base_path: &str) {
                 problem.read_pragmatic()
             }
             .unwrap_or_else(|errors| {
-                eprintln!(
+                panic!(
                     "Cannot read pragmatic problem:\n{}",
                     errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n")
-                );
-                process::exit(1);
+                )
             }),
         );
 
-        let (solution, _, _) =
-            SolverBuilder::default().with_max_generations(Some(100)).build().solve(problem.clone()).unwrap_or_else(
-                || {
-                    eprintln!("Cannot solve pragmatic problem");
-                    process::exit(1);
-                },
-            );
+        let (solution, _, _) = SolverBuilder::default()
+            .with_max_generations(Some(100))
+            .build()
+            .solve(problem.clone())
+            .expect("Cannot solve pragmatic problem");
 
         let solution = Arc::new(solution);
 
@@ -70,10 +66,8 @@ fn run_examples(base_path: &str) {
 }
 
 fn open_file(path: &str) -> File {
-    File::open(path).unwrap_or_else(|err| {
-        eprintln!("Cannot open {} file: '{}'", path, err.to_string());
-        process::exit(1);
-    })
+    println!("Reading '{}'", path);
+    File::open(path).unwrap_or_else(|err| panic!(format!("Cannot open {} file: '{}'", path, err.to_string())))
 }
 
 #[cfg(test)]

@@ -151,6 +151,21 @@ the second - as end
 ```
 
 
+#### E1104
+
+`reserved job id is used` error is returned when there is a job which has reserved job id:
+
+```json
+{
+  /** Error: 'departure' is reserved job id **/
+  "id": "departure"
+}
+```
+
+To avoid confusion, the following ids are reserved: `departure`, `arrival`, `break`, and `reload`. These ids are not
+allowed to be used within `job.id` property.
+
+
 ### E12xx: Relations
 
 These errors are related to `plan.relations` property definition.
