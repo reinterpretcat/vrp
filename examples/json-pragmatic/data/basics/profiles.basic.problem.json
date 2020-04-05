@@ -44,8 +44,8 @@
   "fleet": {
     "vehicles": [
       {
-        "type_id": "my_car",
-        "vehicle_ids": [
+        "typeId": "my_car",
+        "vehicleIds": [
           "my_car_1"
         ],
         "profile": "normal_car",
@@ -77,8 +77,8 @@
         ]
       },
       {
-        "type_id": "my_truck",
-        "vehicle_ids": [
+        "typeId": "my_truck",
+        "vehicleIds": [
           "my_truck_1"
         ],
         "profile": "normal_truck",

@@ -234,8 +234,8 @@ These errors are related to `fleet.vehicles` property definition.
   "fleet": {
     "vehicles": [
       {
-        "type_id": "vehicle_1",
-        "vehicle_ids": [
+        "typeId": "vehicle_1",
+        "vehicleIds": [
           "vehicle_1_a",
           "vehicle_1_b",
           /** Error: vehicle_1_b is used second time **/
@@ -244,8 +244,8 @@ These errors are related to `fleet.vehicles` property definition.
         /** omitted **/
       },
       {
-        "type_id": "vehicle_2",
-        "vehicle_ids": [
+        "typeId": "vehicle_2",
+        "vehicleIds": [
           /** Error: vehicle_1_a is used second time **/
           "vehicle_1_a",
           "vehicle_2_b"

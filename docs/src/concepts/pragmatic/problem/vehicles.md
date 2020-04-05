@@ -2,12 +2,12 @@
 
 A vehicle types are defined by `fleet.types` property and their schema has the following properties:
 
-- **type_id** (required): a vehicle type id
+- **typeId** (required): a vehicle type id
 ```json
 {{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:98}}
 ```
 
-- **vehicle_ids** (required): a list of concrete vehicle ids available for usage.
+- **vehicleIds** (required): a list of concrete vehicle ids available for usage.
 ```json
 {{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:99:101}}
 ```

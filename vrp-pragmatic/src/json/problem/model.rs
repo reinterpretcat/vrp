@@ -30,7 +30,7 @@ pub enum RelationType {
 #[serde(rename_all = "camelCase")]
 pub struct Relation {
     /// Relation type.
-    #[serde(rename(deserialize = "type"))]
+    #[serde(rename(deserialize = "type", serialize = "type"))]
     pub type_field: RelationType,
     /// List of job ids.
     pub jobs: Vec<String>,
@@ -212,6 +212,7 @@ pub struct VehicleBreak {
 
 /// Specifies a vehicle type.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VehicleType {
     /// Vehicle type id.
     pub type_id: String,
@@ -246,8 +247,7 @@ pub struct Profile {
     /// Profile name.
     pub name: String,
     /// Profile type.
-    #[serde(rename(deserialize = "type"))]
-    #[serde(rename(serialize = "type"))]
+    #[serde(rename(deserialize = "type", serialize = "type"))]
     pub profile_type: String,
 }
 

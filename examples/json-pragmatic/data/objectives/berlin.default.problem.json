@@ -956,8 +956,8 @@
   "fleet": {
     "vehicles": [
       {
-        "type_id": "vehicle",
-        "vehicle_ids": [
+        "typeId": "vehicle",
+        "vehicleIds": [
           "vehicle_1",
           "vehicle_2",
           "vehicle_3",

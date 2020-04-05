@@ -84,8 +84,8 @@ pub const SIMPLE_PROBLEM: &str = r#"
   "fleet": {
     "vehicles": [
       {
-        "type_id": "vehicle",
-        "vehicle_ids": [
+        "typeId": "vehicle",
+        "vehicleIds": [
           "vehicle_1"
         ],
         "profile": "normal_car",

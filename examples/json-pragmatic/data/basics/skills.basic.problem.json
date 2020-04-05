@@ -50,8 +50,8 @@
   "fleet": {
     "vehicles": [
       {
-        "type_id": "vehicle_with_fridge",
-        "vehicle_ids": [
+        "typeId": "vehicle_with_fridge",
+        "vehicleIds": [
           "vehicle_with_fridge_1"
         ],
         "profile": "normal_car",
@@ -86,8 +86,8 @@
         ]
       },
       {
-        "type_id": "vehicle_with_handyman",
-        "vehicle_ids": [
+        "typeId": "vehicle_with_handyman",
+        "vehicleIds": [
           "vehicle_with_handyman_1"
         ],
         "profile": "normal_car",
