@@ -67,6 +67,8 @@ Each shift can have the following properties:
      - duration of the break
      - optional locations. When present, one of locations is used for break. If it is omitted then break is stick to
        location of job served before break.
+    Please not that break is soft constraint and can be unassigned in some cases due to other hard constraints, such as
+    time windows.
     See example [here](../../../examples/pragmatic/basics/break.md)
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. It can be used to model multi trip routes.
