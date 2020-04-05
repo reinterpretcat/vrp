@@ -53,6 +53,7 @@ non-feasible solutions (e.g. routes with capacity or time window violation).
 * [E1201 relation has vehicle id which does not present in the fleet](../errors/index.md#e1201)
 * [E1202 relation has empty job id list](../errors/index.md#e1202)
 * [E1203 strict or sequence relation has job with multiple places or time windows](../errors/index.md#e1203)
+* [E1204 job is assigned to different vehicles in relations](../errors/index.md#e1204)
 
 
 ## Examples

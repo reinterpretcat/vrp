@@ -196,6 +196,34 @@ strict or sequence relation which refers one or many jobs with multiple places a
 This is currently not allowed due to matching problem.
 
 
+#### E1204
+
+`job is assigned to different vehicles in relations` error is returned when `plan.relations` has a job assigned to several
+relations with different vehicle ids:
+
+```json
+{
+  "plan": {
+    "relations": [
+      {
+        "vehicleId": "vehicle_1",
+        "jobs": ["job1"],
+        /** omitted **/
+      },
+      {
+        /** Error: this job id is already assigned to another vehicle **/
+        "vehicleId": "vehicle_2",
+        "jobs": ["job1"],
+        /** omitted **/
+      }
+    ]
+  }
+}
+```
+
+To fix this, remove job id from one of relations.
+
+
 ### E13xx: Vehicles
 
 These errors are related to `fleet.vehicles` property definition.
@@ -203,19 +231,19 @@ These errors are related to `fleet.vehicles` property definition.
 
 #### E1300
 
-`duplicated vehicle type ids` error is returned when `fleet.vehicles` has vehicle types with the same `type_id`:
+`duplicated vehicle type ids` error is returned when `fleet.vehicles` has vehicle types with the same `typeId`:
 
 ```json
 {
   "fleet": {
     "vehicles": [
       {
-        "type_id": "vehicle_1",
+        "typeId": "vehicle_1",
         /** omitted **/
       },
       {
         /** Error: this id is already used by another vehicle type **/
-        "type_id": "vehicle_1",
+        "typeId": "vehicle_1",
         /** omitted **/
       }
       /** omitted **/
@@ -227,7 +255,7 @@ These errors are related to `fleet.vehicles` property definition.
 
 #### E1301
 
-`duplicated vehicle ids` error is returned when `fleet.vehicles` has vehicle types with the same `vehicle_ids`:
+`duplicated vehicle ids` error is returned when `fleet.vehicles` has vehicle types with the same `vehicleIds`:
 
 ```json
 {

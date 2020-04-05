@@ -109,6 +109,36 @@ fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &Vec
     }
 }
 
+/// Checks that relation job is assigned to one vehicle.
+fn check_e1204_job_assigned_to_multiple_vehicles(relations: &Vec<Relation>) -> Result<(), FormatError> {
+    let mut job_vehicle_map = HashMap::<String, String>::new();
+    let job_ids: Vec<String> = relations
+        .iter()
+        .flat_map(|relation| {
+            relation
+                .jobs
+                .clone()
+                .into_iter()
+                .filter(|job_id| !is_reserved_job_id(job_id))
+                .filter(|job_id| {
+                    *job_vehicle_map.entry(job_id.clone()).or_insert(relation.vehicle_id.clone()) != relation.vehicle_id
+                })
+                .collect::<Vec<String>>()
+                .into_iter()
+        })
+        .collect::<Vec<_>>();
+
+    if job_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1204".to_string(),
+            "job is assigned to different vehicles in relations".to_string(),
+            format!("assign jobs only to one vehicle, ids: '{}'", job_ids.join(", ")),
+        ))
+    }
+}
+
 /// Validates relations in the plan.
 pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     let vehicle_map = ctx
@@ -123,6 +153,7 @@ pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError
             check_e1201_vehicle_existence(relations, &vehicle_map),
             check_e1202_empty_job_list(relations),
             check_e1203_no_multiple_places_times(ctx, relations),
+            check_e1204_job_assigned_to_multiple_vehicles(relations),
         ])
     } else {
         Ok(())

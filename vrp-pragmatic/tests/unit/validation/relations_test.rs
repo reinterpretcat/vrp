@@ -96,3 +96,49 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
         _ => panic!(format!("{:?} vs {}", result, expected.is_some())),
     }
 }
+
+parameterized_test! {can_detect_multi_vehicle_assignment, (relations, expected), {
+    can_detect_multi_vehicle_assignment_impl(relations, expected);
+}}
+
+can_detect_multi_vehicle_assignment! {
+    case01: (vec![("job1", "car_1")], None),
+    case02: (vec![("job1", "car_1"), ("job1", "car_1")], None),
+    case03: (vec![("job1", "car_1"), ("job2", "car_1")], None),
+    case04: (vec![("job1", "car_1"), ("job1", "truck_1")], Some("job1")),
+}
+
+fn can_detect_multi_vehicle_assignment_impl(relations: Vec<(&str, &str)>, expected: Option<&str>) {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", vec![1.0, 0.]), create_delivery_job("job2", vec![2.0, 0.])],
+            relations: Some(
+                relations
+                    .iter()
+                    .map(|(job_id, vehicle_id)| Relation {
+                        type_field: RelationType::Any,
+                        jobs: vec![job_id.to_string()],
+                        vehicle_id: vehicle_id.to_string(),
+                        shift_index: None,
+                    })
+                    .collect(),
+            ),
+        },
+        fleet: Fleet {
+            vehicles: vec![create_default_vehicle("car"), create_default_vehicle("truck")],
+            profiles: vec![],
+        },
+        ..create_empty_problem()
+    };
+
+    let result = validate_result(&ValidationContext::new(&problem, None));
+
+    match (&result, &expected) {
+        (Some(error), Some(jobs)) => {
+            assert_eq!(error.code, "E1204");
+            assert!(error.action.contains(jobs))
+        }
+        (None, None) => {}
+        _ => panic!(format!("{:?} vs {}", result, expected.is_some())),
+    }
+}
