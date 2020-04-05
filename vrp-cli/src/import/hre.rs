@@ -1,3 +1,5 @@
+//! Import from an another json format logic.
+
 extern crate serde_json;
 
 use serde::{Deserialize, Serialize};

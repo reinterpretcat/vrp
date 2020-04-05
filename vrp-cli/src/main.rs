@@ -1,6 +1,5 @@
 //! A command line interface to *Vehicle Routing Problem* solver.
 //!
-//! For more details please check [docs](cli/index.html)
 
 mod import;
 use self::import::get_import_app;

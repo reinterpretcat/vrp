@@ -1,3 +1,5 @@
+//! Contains implementation of extra constraints.
+
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};

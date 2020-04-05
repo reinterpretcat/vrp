@@ -1,3 +1,5 @@
+//! Import form a simple csv format logic.
+
 #[cfg(test)]
 #[path = "../../tests/unit/import/csv_test.rs"]
 mod csv_test;
