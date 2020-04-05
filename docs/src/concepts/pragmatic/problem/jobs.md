@@ -128,6 +128,7 @@ pickups must be scheduled before any delivery, replacement or service.
 * [E1102 invalid pickup and delivery demand](../errors/index.md#e1102)
 * [E1103 invalid time windows in jobs](../errors/index.md#e1103)
 * [E1104 reserved job id is used](../errors/index.md#e1104)
+* [E1105 empty job](../errors/index.md#e1105)
 
 
 ## Examples

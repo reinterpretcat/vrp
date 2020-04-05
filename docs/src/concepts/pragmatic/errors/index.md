@@ -166,6 +166,22 @@ To avoid confusion, the following ids are reserved: `departure`, `arrival`, `bre
 allowed to be used within `job.id` property.
 
 
+#### E1105
+
+`empty job` error is returned when there is a job which has no or empty job tasks:
+
+```json
+{
+  /** Error: 'departure' is reserved job id **/
+  "id": "job1",
+  "pickups": null,
+  "deliveries": []
+}
+```
+
+To fix the error, remove job from the plan or add at least one job task to it.
+
+
 ### E12xx: Relations
 
 These errors are related to `plan.relations` property definition.

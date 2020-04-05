@@ -120,7 +120,22 @@ fn check_e1104_no_reserved_ids(ctx: &ValidationContext) -> Result<(), FormatErro
         Err(FormatError::new(
             "E1104".to_string(),
             "reserved job id is used".to_string(),
-            format!("change job id from reserved: '{}'", ids.join(", ")),
+            format!("change job id from reserved: jobs: '{}'", ids.join(", ")),
+        ))
+    }
+}
+
+/// Checks that job has at least one job task.
+fn check_e1105_empty_jobs(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let ids = ctx.jobs().filter(|job| ctx.tasks(job).is_empty()).map(|job| job.id.clone()).collect::<Vec<_>>();
+
+    if ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1105".to_string(),
+            "empty job".to_string(),
+            format!("add at least one job task: ids '{}'", ids.join(", ")),
         ))
     }
 }
@@ -133,5 +148,6 @@ pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
         check_e1102_multiple_pickups_deliveries_demand(ctx),
         check_e1103_time_window_correctness(ctx),
         check_e1104_no_reserved_ids(ctx),
+        check_e1105_empty_jobs(ctx),
     ])
 }
