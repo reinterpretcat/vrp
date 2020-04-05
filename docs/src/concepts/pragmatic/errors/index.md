@@ -172,7 +172,7 @@ allowed to be used within `job.id` property.
 
 ```json
 {
-  /** Error: 'departure' is reserved job id **/
+  /** Error: at least one job task has to be defined **/
   "id": "job1",
   "pickups": null,
   "deliveries": []
