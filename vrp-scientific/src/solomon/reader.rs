@@ -96,7 +96,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
         Ok(jobs)
     }
 
-    fn create_transport(&self) -> MatrixTransportCost {
+    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
         self.matrix.create_transport()
     }
 }

@@ -18,9 +18,9 @@ pub trait TextReader {
     fn read_problem(&mut self) -> Result<Problem, String> {
         let fleet = self.read_fleet()?;
         let jobs = self.read_jobs()?;
-        let transport = Arc::new(self.create_transport());
+        let transport = self.create_transport()?;
         let activity = Arc::new(SimpleActivityCost::default());
-        let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
+        let jobs = Jobs::new(&fleet, jobs, &transport);
 
         Ok(Problem {
             fleet: Arc::new(fleet),
@@ -38,7 +38,7 @@ pub trait TextReader {
 
     fn read_jobs(&mut self) -> Result<Vec<Job>, String>;
 
-    fn create_transport(&self) -> MatrixTransportCost;
+    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String>;
 }
 
 pub fn create_fleet_with_distance_costs(number: usize, capacity: usize, location: Location, time: TimeWindow) -> Fleet {
@@ -86,7 +86,10 @@ pub fn create_dimens_with_id(prefix: &str, id: usize) -> Dimensions {
     dimens
 }
 
-pub fn create_constraint(activity: Arc<SimpleActivityCost>, transport: Arc<MatrixTransportCost>) -> ConstraintPipeline {
+pub fn create_constraint(
+    activity: Arc<SimpleActivityCost>,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TransportConstraintModule::new(
         activity,

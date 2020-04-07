@@ -1,5 +1,6 @@
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, TransportCost};
+use std::sync::Arc;
 
 pub struct TestTransportCost {}
 
@@ -14,8 +15,8 @@ impl TransportCost for TestTransportCost {
 }
 
 impl TestTransportCost {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new_shared() -> Arc<dyn TransportCost + Sync + Send> {
+        Arc::new(Self {})
     }
 }
 

@@ -1,5 +1,6 @@
+use std::sync::Arc;
 use vrp_core::models::common::Location;
-use vrp_core::models::problem::{MatrixData, MatrixTransportCost};
+use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 
 pub struct MatrixFactory {
     locations: Vec<(i32, i32)>,
@@ -22,7 +23,7 @@ impl MatrixFactory {
         }
     }
 
-    pub fn create_transport(&self) -> MatrixTransportCost {
+    pub fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
         let matrix_values = self
             .locations
             .iter()
@@ -37,6 +38,6 @@ impl MatrixFactory {
 
         let matrix_data = MatrixData::new(0, matrix_values.clone(), matrix_values);
 
-        MatrixTransportCost::new(vec![matrix_data])
+        create_matrix_transport_cost(vec![matrix_data])
     }
 }

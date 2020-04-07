@@ -1,6 +1,6 @@
 use super::*;
 use crate::json::Location;
-use vrp_core::models::problem::{MatrixData, MatrixTransportCost, TransportCost};
+use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData};
 
 #[test]
 fn can_calculate_distance_between_two_locations() {
@@ -22,7 +22,8 @@ fn can_use_approximated_with_matrix_costs() {
     let speed = 15.;
     let (durations, distances) = get_approx_transportation(&locations, speed);
 
-    let costs = MatrixTransportCost::new(vec![MatrixData::new(0, durations, distances)]);
+    let costs = create_matrix_transport_cost(vec![MatrixData::new(0, durations, distances)])
+        .expect("Cannot create matrix transport costs");
 
     vec![(0, 1, 3048.), (1, 2, 2056.), (2, 0, 5078.)].into_iter().for_each(|(from, to, expected)| {
         let distance = costs.distance(0, from, to, 0.);

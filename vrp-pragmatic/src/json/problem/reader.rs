@@ -163,19 +163,19 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     let problem_props = get_problem_properties(&api_problem, &matrices);
 
     let coord_index = CoordIndex::new(&api_problem);
-    let transport = Arc::new(create_transport_costs(&api_problem, &matrices));
+    let transport = create_transport_costs(&api_problem, &matrices).map_err(|err| {
+        vec![FormatError::new(
+            "E0002".to_string(),
+            "cannot create transport costs".to_string(),
+            format!("Check matrix routing data: '{}'", err),
+        )]
+    })?;
     let activity = Arc::new(OnlyVehicleActivityCost::default());
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
 
     let mut job_index = Default::default();
-    let (jobs, locks) = read_jobs_with_extra_locks(
-        &api_problem,
-        &problem_props,
-        &coord_index,
-        &fleet,
-        transport.as_ref(),
-        &mut job_index,
-    );
+    let (jobs, locks) =
+        read_jobs_with_extra_locks(&api_problem, &problem_props, &coord_index, &fleet, &transport, &mut job_index);
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect();
     let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
     let extras = Arc::new(create_extras(&problem_props, coord_index));

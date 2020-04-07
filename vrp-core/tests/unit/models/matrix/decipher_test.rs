@@ -4,7 +4,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{IdDimension, Schedule};
 use crate::models::matrix::SparseMatrix;
-use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, VehicleDetail};
+use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, TransportCost, VehicleDetail};
 use crate::models::solution::{Activity, Registry};
 
 use crate::construction::constraints::Demand;
@@ -302,7 +302,7 @@ fn create_diverse_problem() -> Arc<Problem> {
 }
 
 fn create_diverse_problem_unwrapped() -> Problem {
-    let transport = Arc::new(TestTransportCost {});
+    let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(TestTransportCost {});
     let fleet = Arc::new(
         FleetBuilder::new()
             .add_driver(test_driver())
@@ -356,7 +356,7 @@ fn create_diverse_problem_unwrapped() -> Problem {
                 .places(vec![(Some(4), 1., vec![(0., 100.)])])
                 .build_as_job_ref(),
         ],
-        transport.as_ref(),
+        &transport,
     ));
 
     Problem {

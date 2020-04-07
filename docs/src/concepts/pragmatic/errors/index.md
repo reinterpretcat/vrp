@@ -18,6 +18,11 @@ Errors from E0xxx range are generic.
 `cannot deserialize matrix` is returned when routing matrix definition cannot be deserialized from the input stream.
 
 
+### E0002
+
+`cannot create transport costs` is returned when problem cannot be matched within routing matrix data passed.
+
+
 ## E1xxx: Validation errors
 
 Errors from E1xxx range are used by validation engine which checks logical correctness of the rich VRP definition.

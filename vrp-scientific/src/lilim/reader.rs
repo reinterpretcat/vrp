@@ -109,7 +109,7 @@ impl<R: Read> TextReader for LilimReader<R> {
         Ok(jobs)
     }
 
-    fn create_transport(&self) -> MatrixTransportCost {
+    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
         self.matrix.create_transport()
     }
 }

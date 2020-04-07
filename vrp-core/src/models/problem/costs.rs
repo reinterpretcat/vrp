@@ -7,6 +7,7 @@ use crate::models::problem::Actor;
 use crate::models::solution::Activity;
 use crate::utils::CollectGroupBy;
 use hashbrown::HashMap;
+use std::sync::Arc;
 
 /// Provides the way to get cost information for specific activities done by specific actor.
 pub trait ActivityCost {
@@ -54,15 +55,6 @@ pub trait TransportCost {
     fn distance(&self, profile: Profile, from: Location, to: Location, departure: Timestamp) -> Distance;
 }
 
-/// A transport cost implementation which uses custom distance and duration matrices as source of
-/// transport cost information.
-/// NOTE Not day time aware as it ignores departure timestamp.
-pub struct MatrixTransportCost {
-    durations: Vec<Vec<Duration>>,
-    distances: Vec<Vec<Distance>>,
-    size: usize,
-}
-
 /// Contains matrix routing data for specific profile and, optionally, time.
 pub struct MatrixData {
     /// A routing profile.
@@ -75,18 +67,58 @@ pub struct MatrixData {
     pub distances: Vec<Distance>,
 }
 
-impl MatrixTransportCost {
-    /// Creates a new [`MatrixTransportCost`]
-    pub fn new(costs: Vec<MatrixData>) -> Self {
+impl MatrixData {
+    /// Creates `MatrixData` without timestamp.
+    pub fn new(profile: Profile, durations: Vec<Duration>, distances: Vec<Distance>) -> Self {
+        Self { profile, timestamp: None, durations, distances }
+    }
+}
+
+/// Creates time agnostic or time aware routing costs based on matrix data passed.
+pub fn create_matrix_transport_cost(costs: Vec<MatrixData>) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+    if costs.is_empty() {
+        return Err("No matrix data found".to_string());
+    }
+
+    let size = (costs.first().unwrap().durations.len() as f64).sqrt() as usize;
+
+    if costs.iter().any(|matrix| matrix.distances.len() != matrix.durations.len()) {
+        return Err("Distance and duration collections have different length".to_string());
+    }
+
+    if costs.iter().any(|matrix| (matrix.distances.len() as f64).sqrt() as usize != size) {
+        return Err("Distance lengths don't match".to_string());
+    }
+
+    if costs.iter().any(|matrix| (matrix.durations.len() as f64).sqrt() as usize != size) {
+        return Err("Duration lengths don't match".to_string());
+    }
+
+    Ok(if costs.iter().any(|costs| costs.timestamp.is_some()) {
+        Arc::new(TimeAwareMatrixTransportCost::new(costs, size)?)
+    } else {
+        Arc::new(TimeAgnosticMatrixTransportCost::new(costs, size)?)
+    })
+}
+
+/// A time agnostic matrix routing costs.
+struct TimeAgnosticMatrixTransportCost {
+    durations: Vec<Vec<Duration>>,
+    distances: Vec<Vec<Distance>>,
+    size: usize,
+}
+
+impl TimeAgnosticMatrixTransportCost {
+    pub fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
         let mut costs = costs;
         costs.sort_by(|a, b| a.profile.cmp(&b.profile));
 
         if costs.iter().any(|costs| costs.timestamp.is_some()) {
-            unimplemented!("Time aware routing is not yet implemented")
+            return Err("Time aware routing".to_string());
         }
 
         if (0..).zip(costs.iter().map(|c| c.profile)).any(|(a, b)| a != b) {
-            unimplemented!("Duplicate profiles can be passed only for time aware routing")
+            return Err("Duplicate profiles can be passed only for time aware routing".to_string());
         }
 
         let (durations, distances) = costs.into_iter().fold((vec![], vec![]), |mut acc, data| {
@@ -96,30 +128,17 @@ impl MatrixTransportCost {
             acc
         });
 
-        let size = (durations.first().unwrap().len() as f64).sqrt() as usize;
-
-        assert_eq!(distances.len(), durations.len());
-        assert!(distances.iter().all(|d| (d.len() as f64).sqrt() as usize == size));
-        assert!(durations.iter().all(|d| (d.len() as f64).sqrt() as usize == size));
-
-        Self { durations, distances, size }
+        Ok(Self { durations, distances, size })
     }
 }
 
-impl TransportCost for MatrixTransportCost {
+impl TransportCost for TimeAgnosticMatrixTransportCost {
     fn duration(&self, profile: Profile, from: Location, to: Location, _: Timestamp) -> Duration {
         *self.durations.get(profile as usize).unwrap().get(from * self.size + to).unwrap()
     }
 
     fn distance(&self, profile: Profile, from: Location, to: Location, _: Timestamp) -> Distance {
         *self.distances.get(profile as usize).unwrap().get(from * self.size + to).unwrap()
-    }
-}
-
-impl MatrixData {
-    /// Creates `MatrixData` without timestamp.
-    pub fn new(profile: Profile, durations: Vec<Duration>, distances: Vec<Distance>) -> Self {
-        Self { profile, timestamp: None, durations, distances }
     }
 }
 
@@ -134,10 +153,6 @@ impl TimeAwareMatrixTransportCost {
     fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
         if costs.iter().any(|matrix| matrix.timestamp.is_none()) {
             return Err("Cannot use matrix without timestamp".to_string());
-        }
-
-        if costs.iter().any(|matrix| matrix.durations.len() != size || matrix.distances.len() != size) {
-            return Err("Dimensions mismatch".to_string());
         }
 
         let costs = costs.into_iter().collect_group_by_key(|matrix| matrix.profile);

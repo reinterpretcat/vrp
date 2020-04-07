@@ -19,7 +19,7 @@ pub fn read_jobs_with_extra_locks(
     props: &ProblemProperties,
     coord_index: &CoordIndex,
     fleet: &Fleet,
-    transport: &impl TransportCost,
+    transport: &Arc<dyn TransportCost + Sync + Send>,
     job_index: &mut JobIndex,
 ) -> (Jobs, Vec<Arc<Lock>>) {
     let (mut jobs, mut locks) = read_required_jobs(api_problem, props, coord_index, job_index);

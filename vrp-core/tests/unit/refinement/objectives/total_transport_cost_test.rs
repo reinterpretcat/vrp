@@ -45,13 +45,13 @@ fn can_calculate_transport_cost() {
         state: Arc::new(RouteState::default()),
     };
     let activity = Arc::new(SimpleActivityCost::default());
-    let transport = Arc::new(TestTransportCost::new());
+    let transport = TestTransportCost::new_shared();
     let constraint = Arc::new(create_constraint_pipeline_with_timing());
     let mut unassigned = HashMap::new();
     unassigned.insert(Job::Single(Arc::new(test_single())), 1);
     let problem = Arc::new(Problem {
         fleet: fleet.clone(),
-        jobs: Arc::new(Jobs::new(&fleet, vec![], transport.as_ref())),
+        jobs: Arc::new(Jobs::new(&fleet, vec![], &transport)),
         locks: vec![],
         constraint,
         activity,

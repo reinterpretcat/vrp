@@ -2,7 +2,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};
-use crate::models::problem::{Job, Jobs, MatrixData, MatrixTransportCost};
+use crate::models::problem::{create_matrix_transport_cost, Job, Jobs, MatrixData};
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::refinement::mutation::{Recreate, RecreateWithCheapest};
@@ -55,8 +55,8 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
 
     let matrix_values = generate_matrix(rows, cols);
     let matrix_data = MatrixData::new(0, matrix_values.clone(), matrix_values);
-    let transport = Arc::new(MatrixTransportCost::new(vec![matrix_data]));
-    let jobs = Jobs::new(&fleet, jobs, transport.as_ref());
+    let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
+    let jobs = Jobs::new(&fleet, jobs, &transport);
 
     let problem = Problem {
         fleet,

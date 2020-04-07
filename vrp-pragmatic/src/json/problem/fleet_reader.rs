@@ -7,10 +7,13 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::construction::constraints::CapacityDimension;
 use vrp_core::construction::constraints::TravelLimitFunc;
-use vrp_core::models::common::{Dimensions, Distance, Duration, IdDimension, Profile, TimeWindow, ValueDimension};
-use vrp_core::models::problem::{Actor, Costs, Driver, Fleet, MatrixData, MatrixTransportCost, Vehicle, VehicleDetail};
+use vrp_core::models::common::*;
+use vrp_core::models::problem::*;
 
-pub fn create_transport_costs(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> MatrixTransportCost {
+pub fn create_transport_costs(
+    api_problem: &ApiProblem,
+    matrices: &Vec<Matrix>,
+) -> Result<Arc<dyn TransportCost + Sync + Send>, String> {
     let fleet_profiles = get_profile_map(api_problem);
 
     let matrix_data = matrices
@@ -43,9 +46,11 @@ pub fn create_transport_costs(api_problem: &ApiProblem, matrices: &Vec<Matrix>) 
 
     let matrix_profiles = matrix_data.iter().map(|data| data.profile).collect::<HashSet<_>>().len();
 
-    assert_eq!(fleet_profiles.len(), matrix_profiles);
+    if fleet_profiles.len() != matrix_profiles {
+        return Err("Amount of fleet profiles does not match matrix profiles".to_string());
+    }
 
-    MatrixTransportCost::new(matrix_data)
+    create_matrix_transport_cost(matrix_data)
 }
 
 pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {

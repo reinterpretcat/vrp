@@ -187,7 +187,7 @@ pub struct Jobs {
 
 impl Jobs {
     /// Creates a new [`Jobs`].
-    pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &impl TransportCost) -> Jobs {
+    pub fn new(fleet: &Fleet, jobs: Vec<Job>, transport: &Arc<dyn TransportCost + Send + Sync>) -> Jobs {
         Jobs { jobs: jobs.clone(), index: create_index(fleet, jobs, transport) }
     }
 
@@ -260,7 +260,11 @@ const DEFAULT_DEPARTURE: Timestamp = 0.0;
 const DEFAULT_COST: Cost = 0.0;
 
 /// Creates job index.
-fn create_index(fleet: &Fleet, jobs: Vec<Job>, transport: &impl TransportCost) -> HashMap<Profile, JobIndex> {
+fn create_index(
+    fleet: &Fleet,
+    jobs: Vec<Job>,
+    transport: &Arc<dyn TransportCost + Send + Sync>,
+) -> HashMap<Profile, JobIndex> {
     fleet.profiles.iter().cloned().fold(HashMap::new(), |mut acc, profile| {
         // get all possible start positions for given profile
         let starts: Vec<Location> = fleet
@@ -298,14 +302,19 @@ fn create_index(fleet: &Fleet, jobs: Vec<Job>, transport: &impl TransportCost) -
 }
 
 #[inline(always)]
-fn get_cost_between_locations(profile: Profile, transport: &impl TransportCost, from: Location, to: Location) -> f64 {
+fn get_cost_between_locations(
+    profile: Profile,
+    transport: &Arc<dyn TransportCost + Send + Sync>,
+    from: Location,
+    to: Location,
+) -> f64 {
     transport.distance(profile, from, to, DEFAULT_DEPARTURE) + transport.duration(profile, from, to, DEFAULT_DEPARTURE)
 }
 
 /// Returns min cost between job and location.
 fn get_cost_between_job_and_location(
     profile: Profile,
-    transport: &impl TransportCost,
+    transport: &Arc<dyn TransportCost + Send + Sync>,
     lhs: &Job,
     to: Location,
 ) -> Cost {
@@ -319,7 +328,12 @@ fn get_cost_between_job_and_location(
 }
 
 /// Returns minimal cost between jobs.
-fn get_cost_between_jobs(profile: Profile, transport: &impl TransportCost, lhs: &Job, rhs: &Job) -> f64 {
+fn get_cost_between_jobs(
+    profile: Profile,
+    transport: &Arc<dyn TransportCost + Send + Sync>,
+    lhs: &Job,
+    rhs: &Job,
+) -> f64 {
     let outer: Vec<Option<Location>> = get_job_locations(lhs).collect();
     let inner: Vec<Option<Location>> = get_job_locations(rhs).collect();
 

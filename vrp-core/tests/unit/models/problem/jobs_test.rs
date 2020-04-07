@@ -22,11 +22,11 @@ impl Default for OnlyDistanceCost {
 }
 
 struct ProfileAwareTransportCost {
-    func: Box<dyn Fn(Profile, f64) -> f64>,
+    func: Box<dyn Fn(Profile, f64) -> f64 + Sync + Send>,
 }
 
 impl ProfileAwareTransportCost {
-    pub fn new(func: Box<dyn Fn(Profile, f64) -> f64>) -> ProfileAwareTransportCost {
+    pub fn new(func: Box<dyn Fn(Profile, f64) -> f64 + Sync + Send>) -> ProfileAwareTransportCost {
         ProfileAwareTransportCost { func }
     }
 }
@@ -41,19 +41,23 @@ impl TransportCost for ProfileAwareTransportCost {
     }
 }
 
-fn create_profile_aware_transport_cost() -> ProfileAwareTransportCost {
-    ProfileAwareTransportCost::new(Box::new(|p, d| if p == 2 { 10.0 - d } else { d }))
+fn create_profile_aware_transport_cost() -> Arc<dyn TransportCost + Sync + Send> {
+    Arc::new(ProfileAwareTransportCost::new(Box::new(|p, d| if p == 2 { 10.0 - d } else { d })))
+}
+
+fn create_only_distance_transport_cost() -> Arc<dyn TransportCost + Sync + Send> {
+    Arc::new(OnlyDistanceCost::default())
 }
 
 #[test]
 fn all_returns_all_jobs() {
     let jobs = vec![Job::Single(Arc::new(test_single())), Job::Single(Arc::new(test_single()))];
 
-    assert_eq!(Jobs::new(&test_fleet(), jobs, &OnlyDistanceCost::default()).all().count(), 2)
+    assert_eq!(Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost()).all().count(), 2)
 }
 
 parameterized_test! {calculates_proper_cost_between_single_jobs, (left, right, expected), {
-    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &OnlyDistanceCost::default(), &Job::Single(left), &Job::Single(right)), expected);
+    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &create_only_distance_transport_cost(), &Job::Single(left), &Job::Single(right)), expected);
 }}
 
 calculates_proper_cost_between_single_jobs! {
@@ -65,7 +69,7 @@ calculates_proper_cost_between_single_jobs! {
 }
 
 parameterized_test! {calculates_proper_cost_between_multi_jobs, (left, right, expected), {
-    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &OnlyDistanceCost::default(), &Job::Multi(left), &Job::Multi(right)), expected);
+    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &create_only_distance_transport_cost(), &Job::Multi(left), &Job::Multi(right)), expected);
 }}
 
 calculates_proper_cost_between_multi_jobs! {
@@ -178,7 +182,7 @@ fn can_use_multi_job_bind_and_roots() {
     let job = test_multi_job_with_locations(vec![vec![Some(0)], vec![Some(1)]]);
     let jobs = vec![Job::Multi(job.clone())];
 
-    let jobs = Jobs::new(&test_fleet(), jobs, &OnlyDistanceCost::default());
+    let jobs = Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost());
     let job = Job::Multi(Multi::roots(&job.jobs.first().unwrap()).unwrap());
 
     assert_eq!(jobs.neighbors(0, &job, 0.0, 100.0).collect::<Vec<Job>>().len(), 0);

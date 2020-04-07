@@ -11,9 +11,9 @@ use std::borrow::Borrow;
 use std::sync::Arc;
 
 pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> Arc<Problem> {
-    let transport = Arc::new(TestTransportCost::new());
+    let transport = TestTransportCost::new_shared();
     let fleet = Arc::new(test_fleet());
-    let jobs = Arc::new(Jobs::new(fleet.borrow(), vec![], transport.as_ref()));
+    let jobs = Arc::new(Jobs::new(fleet.borrow(), vec![], &transport));
     Arc::new(Problem {
         fleet,
         jobs,

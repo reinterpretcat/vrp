@@ -298,7 +298,7 @@ mod traveling {
         };
         let pipeline = create_constraint_pipeline_with_module(Box::new(TransportConstraintModule::new(
             Arc::new(TestActivityCost::new()),
-            Arc::new(TestTransportCost::new()),
+            TestTransportCost::new_shared(),
             Arc::new(
                 move |actor| {
                     if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() {
