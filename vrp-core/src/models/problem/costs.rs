@@ -132,7 +132,15 @@ struct TimeAwareMatrixTransportCost {
 impl TimeAwareMatrixTransportCost {
     /// Creates a new [`TimeAwareMatrixTransportCost`]
     fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
+        if costs.iter().any(|matrix| matrix.timestamp.is_none()) {
+            return Err("Cannot use matrix without timestamp".to_string());
+        }
+
         let costs = costs.into_iter().collect_group_by_key(|matrix| matrix.profile);
+
+        if costs.iter().any(|(_, matrices)| matrices.len() == 1) {
+            return Err("Should not use time aware matrix routing with single matrix".to_string());
+        }
 
         let costs = costs
             .into_iter()
