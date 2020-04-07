@@ -46,4 +46,29 @@ mod time_aware {
             Some("Should not use time aware matrix routing with single matrix".to_string())
         );
     }
+
+    #[test]
+    fn can_interpolate_durations() {
+        let costs = TimeAwareMatrixTransportCost::new(
+            vec![
+                create_matrix_data(0, Some(0.), (100., 2), (1., 2)),
+                create_matrix_data(0, Some(10.), (200., 2), (1., 2)),
+                create_matrix_data(1, Some(0.), (300., 2), (5., 2)),
+                create_matrix_data(1, Some(10.), (400., 2), (5., 2)),
+            ],
+            1,
+        )
+        .unwrap();
+
+        for (timestamp, duration) in vec![(0., 100.), (10., 200.), (15., 200.), (3., 130.), (5., 150.), (7., 170.)] {
+            assert_eq!(costs.duration(0, 0, 1, timestamp), duration);
+        }
+
+        for (timestamp, duration) in vec![(0., 300.), (10., 400.), (15., 400.), (3., 330.), (5., 350.), (7., 370.)] {
+            assert_eq!(costs.duration(1, 0, 1, timestamp), duration);
+        }
+
+        assert_eq!(costs.distance(0, 0, 1, 0.), 1.);
+        assert_eq!(costs.distance(1, 0, 1, 0.), 5.);
+    }
 }
