@@ -4,6 +4,9 @@ mod comparison;
 pub use self::comparison::compare_floats;
 pub use self::comparison::compare_shared;
 
+mod iterators;
+pub use self::iterators::CollectGroupBy;
+
 mod mutability;
 pub use self::mutability::*;
 

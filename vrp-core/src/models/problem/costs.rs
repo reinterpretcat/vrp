@@ -1,6 +1,12 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/models/problem/costs_test.rs"]
+mod costs_test;
+
 use crate::models::common::{Cost, Distance, Duration, Location, Profile, Timestamp};
 use crate::models::problem::Actor;
 use crate::models::solution::Activity;
+use crate::utils::CollectGroupBy;
+use hashbrown::HashMap;
 
 /// Provides the way to get cost information for specific activities done by specific actor.
 pub trait ActivityCost {
@@ -114,5 +120,72 @@ impl MatrixData {
     /// Creates `MatrixData` without timestamp.
     pub fn new(profile: Profile, durations: Vec<Duration>, distances: Vec<Distance>) -> Self {
         Self { profile, timestamp: None, durations, distances }
+    }
+}
+
+/// A time aware matrix costs.
+struct TimeAwareMatrixTransportCost {
+    costs: HashMap<Profile, (Vec<u64>, Vec<MatrixData>)>,
+    size: usize,
+}
+
+impl TimeAwareMatrixTransportCost {
+    /// Creates a new [`TimeAwareMatrixTransportCost`]
+    fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
+        let costs = costs.into_iter().collect_group_by_key(|matrix| matrix.profile);
+
+        let costs = costs
+            .into_iter()
+            .map(|(profile, mut matrices)| {
+                matrices.sort_by(|a, b| (a.timestamp.unwrap() as u64).cmp(&(b.timestamp.unwrap() as u64)));
+                let timestamps = matrices.iter().map(|matrix| matrix.timestamp.unwrap() as u64).collect();
+
+                (profile, (timestamps, matrices))
+            })
+            .collect();
+
+        Ok(Self { costs, size })
+    }
+}
+
+impl TransportCost for TimeAwareMatrixTransportCost {
+    fn duration(&self, profile: Profile, from: Location, to: Location, timestamp: Timestamp) -> Duration {
+        let (timestamps, matrices) = self.costs.get(&profile).unwrap();
+        let data_idx = from * self.size + to;
+
+        match timestamps.binary_search(&(timestamp as u64)) {
+            Ok(matrix_idx) => *matrices.get(matrix_idx).unwrap().durations.get(data_idx).unwrap(),
+            Err(matrix_idx) if matrix_idx == 0 => *matrices.first().unwrap().durations.get(data_idx).unwrap(),
+            Err(matrix_idx) if matrix_idx == matrices.len() => {
+                *matrices.last().unwrap().durations.get(data_idx).unwrap()
+            }
+            Err(matrix_idx) => {
+                let left_matrix = matrices.get(matrix_idx - 1).unwrap();
+                let right_matrix = matrices.get(matrix_idx).unwrap();
+
+                let left_value = *matrices.get(matrix_idx - 1).unwrap().durations.get(data_idx).unwrap();
+                let right_value = *matrices.get(matrix_idx).unwrap().durations.get(data_idx).unwrap();
+
+                // perform linear interpolation
+                let ratio = (timestamp - left_matrix.timestamp.unwrap())
+                    / (right_matrix.timestamp.unwrap() - left_matrix.timestamp.unwrap());
+
+                left_value + ratio * (right_value - left_value)
+            }
+        }
+    }
+
+    fn distance(&self, profile: Profile, from: Location, to: Location, timestamp: Timestamp) -> Distance {
+        let (timestamps, matrices) = self.costs.get(&profile).unwrap();
+        let data_idx = from * self.size + to;
+
+        match timestamps.binary_search(&(timestamp as u64)) {
+            Ok(matrix_idx) => *matrices.get(matrix_idx).unwrap().distances.get(data_idx).unwrap(),
+            Err(matrix_idx) if matrix_idx == 0 => *matrices.first().unwrap().distances.get(data_idx).unwrap(),
+            Err(matrix_idx) if matrix_idx == matrices.len() => {
+                *matrices.last().unwrap().distances.get(data_idx).unwrap()
+            }
+            Err(matrix_idx) => *matrices.get(matrix_idx).unwrap().distances.get(data_idx).unwrap(),
+        }
     }
 }
