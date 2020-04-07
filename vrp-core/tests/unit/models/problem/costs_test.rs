@@ -29,6 +29,18 @@ mod time_aware {
         );
 
         assert_eq!(
+            TimeAwareMatrixTransportCost::new(
+                vec![
+                    create_matrix_data(0, Some(0.), (0., 2), (0., 2)),
+                    create_matrix_data(0, Some(1.), (0., 1), (0., 2)),
+                ],
+                2
+            )
+            .err(),
+            Some("Dimensions mismatch".to_string())
+        );
+
+        assert_eq!(
             TimeAwareMatrixTransportCost::new(vec![create_matrix_data(0, Some(0.), (0., 1), (0., 1))], 1).err(),
             Some("Should not use time aware matrix routing with single matrix".to_string())
         );
@@ -56,7 +68,7 @@ mod time_aware {
                 create_matrix_data(1, Some(0.), (300., 2), (5., 2)),
                 create_matrix_data(1, Some(10.), (400., 2), (5., 2)),
             ],
-            1,
+            2,
         )
         .unwrap();
 

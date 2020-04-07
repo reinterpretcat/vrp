@@ -136,6 +136,10 @@ impl TimeAwareMatrixTransportCost {
             return Err("Cannot use matrix without timestamp".to_string());
         }
 
+        if costs.iter().any(|matrix| matrix.durations.len() != size || matrix.distances.len() != size) {
+            return Err("Dimensions mismatch".to_string());
+        }
+
         let costs = costs.into_iter().collect_group_by_key(|matrix| matrix.profile);
 
         if costs.iter().any(|(_, matrices)| matrices.len() == 1) {
