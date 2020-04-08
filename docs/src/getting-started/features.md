@@ -1,15 +1,14 @@
 # Features
 
-The main focus of the project is to support solving multiple variations of VRP within their combination.
-
- ## Supported VRP variations
-
- This list tries to classify supported VRP variations using common terminology and notations.
+The main focus of the project is to support solving multiple variations of VRP within their combination. This non-complete
+list describes common VRP variations supported by the project:
 
  - **Capacitated VRP (CVRP)**: designs optimal delivery routes where each vehicle only travels
      one route, each vehicle has the same characteristics and there is only one central depot.
 
- - **Heterogeneous Fleet VRP (HFVRP)** aka Mixed Fleet VRP: extend CVRP problem by varying the capacities.
+ - **Heterogeneous Fleet VRP (HFVRP)** aka Mixed Fleet VRP: extend CVRP problem by varying the capacities. Also
+     [Vehicle profiles](../examples/pragmatic/basics/profiles.md) example shows how to use different routing matrix
+     profiles for different vehicle types, e.g. truck and car.
 
  - **VRP with Time Windows (VRPTW)**: assumes that deliveries to a given customer must occur in a
      certain time interval, which varies from customer to customer.
@@ -26,62 +25,31 @@ The main focus of the project is to support solving multiple variations of VRP w
 
  - **Multi-Trip VRP (MTVRP)**: extends the VRP by adding the following constraint: routes have to be assigned
      to M vehicles in such a way that the total cost of the routes assigned to the same vehicle does not exceed
-     a time horizon T (for instance the duration of a typical working day
+     a time horizon T (for instance the duration of a typical working day). See [multiple reloads](../examples/pragmatic/basics/reload.md)
+     example.
 
  - **Multi-Objective VRP (MOVRP)**: this variant addresses a need of real life applications, where decision maker
      should consider not only one objective (for example, total cost), but multiple ones simultaneously, such as
-     amount of tours, unassigned jobs, work balance, etc.
+     amount of tours, unassigned jobs, work balance, etc. See [multiple objectives](../examples/pragmatic/objectives/index.md)
+     example.
 
  - **Open VRP (OVRP)**: usually, a route beginning at a given depot must finish at this depot, but in
      this variation vehicle ends at the last served customer.
 
  - **VRP with Lunch Break (VRPLB)**: this problem arises when drivers must take pauses during their shift,
-     for example, for lunch breaks.
+     for example, for lunch breaks. The project supports different types of break: with/without location, time window,
+     time period. See [Multiple breaks](../examples/pragmatic/basics/break.md) example
 
- - **Periodic VRP (PVRP)**: is used when planning is made over a certain period and deliveries
-     to the customer can be made in different days. In current implementation each customer
-     is visited only once.
+ - **Periodic VRP (PVRP)**: is used when planning is made over a certain period and deliveries to the customer can be
+     made in different days. In current implementation each customer is visited only once. See [multiple shifts](../examples/pragmatic/basics/multi-day.md)
+     example which shows multi-day planning scenario when vehicle can be used multiple times, but on different days.
+
+ - **Time dependent VRP (TDVRP)**: the travel time and distance between two customers or between a customer and
+     the depot depends on time of day.
+
+ - **Skill VRP (SVRP)**: associates some skill(-s) with jobs which is requirement for vehicle to have in order to serve
+     the job.
 
  - **Traveling Salesman Problem (TSP)**: this is a specific case of VRP when there is only one vehicle.
 
- In general, all these variations can be combined together in one single problem definition.
-
-
- ## Featured variations
-
- This list describes some of supported features, exposed by `pragmatic` format, in informal way:
-
- - **[multiple breaks](../examples/pragmatic/basics/break.md)** with multiple time windows or interval time and optional
-     location for vehicles.
-
- - **[multiple shifts](../examples/pragmatic/basics/multi-day.md)** for vehicles: this allows to define multi-day planning
-     scenario when vehicle can be used multiple times, but on different days.
-
- - **[multiple reloads](../examples/pragmatic/basics/reload.md)**: this allows vehicle to return back to the depot (or any
-     other place) in order to unload/load goods during single tour (see MTVRP). In some VRP variations this helps to
-     significantly reduce amount of used vehicles.
-
- - **[multi jobs](../examples/pragmatic/basics/job-types.md)**: multi job is a job which consists of multiple sub-jobs. Multi job
-     is considered as assigned only when all of sub jobs are assigned. This is useful for scenarios such as multiple
-     pickups, but single delivery, or other way round.
-
- - **[multiple objectives](../examples/pragmatic/objectives/index.md)**: this extends application from scientific domain to real
-     life scenarios where solver should consider multiple optimization parameters simultaneously.
-
- - **[vehicle profiles](../examples/pragmatic/basics/profiles.md)**: allows to use different routing matrix profiles for different
-     vehicle types, e.g. truck and car.
-
- - **multidimensional demand**: allows you to use multiple dimensions to set different types of capacity/demand
-     simultaneously.
-
-- **[skills](../examples/pragmatic/basics/skills.md)**: allows to specify various skills (which is simple some tag) on vehicle
-     and customer. Customer with specific skills can be visited only if these skills are present on vehicle.
-
-- **different job types**: allows to model pickups, deliveries, replacements, services, and their combinations.
-
-- **job priorities**: allows you to force some jobs being served before others.
-
- - **[relations](../examples/pragmatic/basics/relations.md)**: allows to specify relations which locks jobs to specific vehicles
-     in customizable way.
-
- - **limits**: allows to specify limits on vehicle such as max traveling distance or time.
+ In general, all these variations can be combined together in one single problem definition in `pragmatic` format.

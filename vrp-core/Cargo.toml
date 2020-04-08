@@ -1,8 +1,15 @@
 [package]
 name = "vrp-core"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+license = "Apache-2.0"
+keywords = ["vrp", "optimization"]
+categories = ["algorithms", "science"]
+readme = "../README.md"
+homepage = "https://github.com/reinterpretcat/vrp"
+repository = "https://github.com/reinterpretcat/vrp"
 edition = "2018"
+description = "A core algorithms to build a VRP solver"
 
 [dependencies]
 rayon = "1.1"

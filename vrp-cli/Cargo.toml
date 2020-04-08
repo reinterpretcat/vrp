@@ -1,14 +1,21 @@
 [package]
 name = "vrp-cli"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+license = "Apache-2.0"
+keywords = ["vrp", "optimization"]
+categories = ["algorithms", "science"]
+readme = "../README.md"
+homepage = "https://github.com/reinterpretcat/vrp"
+repository = "https://github.com/reinterpretcat/vrp"
 edition = "2018"
+description = "A command line interface for VRP solver"
 
 [dependencies]
-vrp-core = { path = "../vrp-core" }
-vrp-scientific = { path = "../vrp-scientific" }
-vrp-pragmatic = { path = "../vrp-pragmatic" }
-vrp-solver = { path = "../vrp-solver" }
+vrp-core = { path = "../vrp-core", version = "1.0.0" }
+vrp-scientific = { path = "../vrp-scientific", version = "1.0.0" }
+vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.0.0" }
+vrp-solver = { path = "../vrp-solver", version = "1.0.0" }
 
 clap = "2.33.0"
 csv = "1.1.3"

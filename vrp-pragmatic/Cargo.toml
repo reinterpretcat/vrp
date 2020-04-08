@@ -1,16 +1,23 @@
 [package]
 name = "vrp-pragmatic"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+license = "Apache-2.0"
+keywords = ["vrp", "optimization"]
+categories = ["algorithms", "science"]
+readme = "../README.md"
+homepage = "https://github.com/reinterpretcat/vrp"
+repository = "https://github.com/reinterpretcat/vrp"
 edition = "2018"
+description = "An extension logic for solving rich VRP"
 
 [lib]
 name = "vrp_pragmatic"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-vrp-core = { path = "../vrp-core" }
-vrp-solver = { path = "../vrp-solver" }
+vrp-core = { path = "../vrp-core", version = "1.0.0" }
+vrp-solver = { path = "../vrp-solver", version = "1.0.0" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

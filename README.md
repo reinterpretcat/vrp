@@ -12,7 +12,7 @@ Please check documentation [here](https://github.com/reinterpretcat/vrp).
 
 Although performance is constantly in focus, the main idea behind design is extensibility: the project
 aims to support a wide range of VRP variations known as Rich VRP. This is achieved through various extension
-points: custom constraints, objective functions, acceptance criteria, etc. Additionally, the project is seen as
+points: custom constraints, objective functions, acceptance criteria, etc. Additionally, the project can be seen as
 playground for experiments with various metaheuristic algorithms.
 
 

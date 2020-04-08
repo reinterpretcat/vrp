@@ -31,6 +31,11 @@ Make sure that for all profile names in `fleet.profiles` you have the correspond
 See [multiple profiles example](../../../examples/pragmatic/basics/profiles.md).
 
 
+## Time dependent routing
+
+In order to use this feature, specify more than one routing matrix for each profile with timestamp property set.
+
+
 ## Related errors
 
 * [E1500 duplicate profile names](../errors/index.md#e1500)
