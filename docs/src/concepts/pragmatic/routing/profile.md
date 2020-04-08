@@ -1,8 +1,11 @@
 # Routing profiles
 
+In order to solve VRP, you need to specify at least one routing profile.
+
+
 ## Usage
 
-In order to solve VRP, you need to specify at least one routing profile in `fleet.profiles`:
+Routing profiles are defined in `fleet.profiles`:
 
 ```json
 {{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:131:136}}

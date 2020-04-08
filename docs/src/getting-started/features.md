@@ -21,7 +21,7 @@ list describes common VRP variations supported by the project:
      require deliveries (referred to as linehauls) and others require pick-ups (referred to as backhauls).
 
  - **Multi-Depot VRP (MDVRP)**: assumes that multiple depots are geographically spread among
-     the customers
+     the customers.
 
  - **Multi-Trip VRP (MTVRP)**: extends the VRP by adding the following constraint: routes have to be assigned
      to M vehicles in such a way that the total cost of the routes assigned to the same vehicle does not exceed
@@ -38,7 +38,7 @@ list describes common VRP variations supported by the project:
 
  - **VRP with Lunch Break (VRPLB)**: this problem arises when drivers must take pauses during their shift,
      for example, for lunch breaks. The project supports different types of break: with/without location, time window,
-     time period. See [Multiple breaks](../examples/pragmatic/basics/break.md) example
+     time period. See [Multiple breaks](../examples/pragmatic/basics/break.md) example.
 
  - **Periodic VRP (PVRP)**: is used when planning is made over a certain period and deliveries to the customer can be
      made in different days. In current implementation each customer is visited only once. See [multiple shifts](../examples/pragmatic/basics/multi-day.md)

@@ -1,3 +1,5 @@
+![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
+
 # Description
 
 This project provides the way to solve multiple variations of **Vehicle Routing Problem** known as rich VRP.
@@ -5,7 +7,7 @@ This project provides the way to solve multiple variations of **Vehicle Routing 
 
 # Getting started
 
-Please check documentation [here](https://github.com/reinterpretcat/vrp).
+Please check documentation [here](https://reinterpretcat.github.io).
 
 
 # Design goal
