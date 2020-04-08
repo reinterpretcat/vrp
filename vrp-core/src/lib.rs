@@ -1,4 +1,5 @@
-//! Core crate contains a main buildings blocks for metaheuristic to solve variations of ***Vehicle Routing Problem***.
+//! A core crate contains main buildings blocks for constructing heuristics and metaheuristic
+//! to solve rich ***Vehicle Routing Problem***.
 //!
 
 #[cfg(test)]

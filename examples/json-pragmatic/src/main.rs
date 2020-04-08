@@ -1,3 +1,5 @@
+//! An examples of **Vehicle Routing Problem** solver usage.
+
 use std::fs::File;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;

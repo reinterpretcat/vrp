@@ -5,11 +5,11 @@ authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
 categories = ["algorithms", "science"]
-readme = "../README.md"
+readme = "README.md"
 homepage = "https://github.com/reinterpretcat/vrp"
 repository = "https://github.com/reinterpretcat/vrp"
 edition = "2018"
-description = "An extension with custom metaheuristic for solving VRP"
+description = "An extension which provides custom metaheuristic for solving VRP"
 
 
 [dependencies]

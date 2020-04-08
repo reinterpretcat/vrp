@@ -20,8 +20,7 @@ playground for experiments with various metaheuristic algorithms.
 
 # How to use
 
-VRP solver is built in Rust. To install it, either download a version from the [vrp releases](https://github.com/reinterpretcat/vrp/releases)
-page, use `cargo install` or pull the source code from `master`.
+VRP solver is built in Rust. To install it, use `cargo install` or pull the source code from `master`.
 
 
 ## Install from source
@@ -37,7 +36,7 @@ Built binaries can be found in the `./target/release` directory.
 
 ## Install from Cargo
 
-You can install vrp solver directly with `cargo install`:
+You can install vrp solver `cli` tool directly with `cargo install`:
 
 ```bash
 cargo install vrp-cli
