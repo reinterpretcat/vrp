@@ -7,7 +7,7 @@ list describes common VRP variations supported by the project:
      one route, each vehicle has the same characteristics and there is only one central depot.
 
  - **Heterogeneous Fleet VRP (HFVRP)** aka Mixed Fleet VRP: extend CVRP problem by varying the capacities. Also
-     [Vehicle profiles](../examples/pragmatic/basics/profiles.md) example shows how to use different routing matrix
+     [vehicle profiles](../examples/pragmatic/basics/profiles.md) example shows how to use different routing matrix
      profiles for different vehicle types, e.g. truck and car.
 
  - **VRP with Time Windows (VRPTW)**: assumes that deliveries to a given customer must occur in a
@@ -38,7 +38,12 @@ list describes common VRP variations supported by the project:
 
  - **VRP with Lunch Break (VRPLB)**: this problem arises when drivers must take pauses during their shift,
      for example, for lunch breaks. The project supports different types of break: with/without location, time window,
-     time period. See [Multiple breaks](../examples/pragmatic/basics/break.md) example.
+     time period. See [multiple breaks](../examples/pragmatic/basics/break.md) example.
+
+ - **VRP with Route Balance (VRPRB)**: the majority of the problems encountered in industry, particularly in logistics,
+     are multi-objective in nature. The VRPRB variant tries to minimize not only for the cost, but also for balancing
+     workloads between routes.
+     See [one of examples](../examples/pragmatic/objectives/objective-balance-distance.md).
 
  - **Periodic VRP (PVRP)**: is used when planning is made over a certain period and deliveries to the customer can be
      made in different days. In current implementation each customer is visited only once. See [multiple shifts](../examples/pragmatic/basics/multi-day.md)

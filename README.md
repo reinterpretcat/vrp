@@ -7,7 +7,7 @@ This project provides the way to solve multiple variations of **Vehicle Routing 
 
 # Getting started
 
-Please check documentation [here](https://reinterpretcat.github.io).
+Please check documentation [here](https://reinterpretcat.github.io/vrp).
 
 
 # Design goal
