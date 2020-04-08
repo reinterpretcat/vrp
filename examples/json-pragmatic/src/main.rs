@@ -2,10 +2,6 @@
 
 use std::fs::File;
 use std::sync::Arc;
-use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::matrix::{AdjacencyMatrixDecipher, SparseMatrix};
-use vrp_core::models::{Problem, Solution};
-use vrp_core::utils::DefaultRandom;
 use vrp_pragmatic::json::problem::PragmaticProblem;
 use vrp_solver::SolverBuilder;
 
@@ -53,17 +49,13 @@ fn run_examples(base_path: &str) {
             }),
         );
 
-        let (solution, _, _) = SolverBuilder::default()
+        let _ = SolverBuilder::default()
             .with_max_generations(Some(100))
             .build()
             .solve(problem.clone())
             .expect("Cannot solve pragmatic problem");
 
-        let solution = Arc::new(solution);
-
         // TODO use solution checker
-
-        validate_with_matrix(&problem, &solution);
     }
 }
 
@@ -80,19 +72,4 @@ mod test {
     fn can_run_examples() {
         run_examples("../json-pragmatic/data");
     }
-}
-
-fn validate_with_matrix(problem: &Arc<Problem>, solution: &Arc<Solution>) {
-    let insertion_ctx = InsertionContext::new_from_solution(
-        problem.clone(),
-        (solution.clone(), None),
-        Arc::new(DefaultRandom::default()),
-    );
-
-    let decipher = AdjacencyMatrixDecipher::new(problem.clone());
-    let adjacency_matrix_orig = decipher.encode::<SparseMatrix>(&insertion_ctx.solution);
-    let restored_solution = decipher.decode(&adjacency_matrix_orig);
-    let adjacency_matrix_rst = decipher.encode::<SparseMatrix>(&restored_solution);
-
-    assert_eq!(adjacency_matrix_rst.to_vvec(), adjacency_matrix_orig.to_vvec());
 }
