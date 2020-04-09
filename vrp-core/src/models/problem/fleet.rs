@@ -90,6 +90,8 @@ pub struct Actor {
     pub detail: ActorDetail,
 }
 
+pub type ActorGroupKeyFn = Box<dyn Fn(&[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync>>;
+
 /// Represents available resources to serve jobs.
 pub struct Fleet {
     pub drivers: Vec<Arc<Driver>>,
@@ -101,11 +103,7 @@ pub struct Fleet {
 
 impl Fleet {
     /// Creates a new fleet.
-    pub fn new(
-        drivers: Vec<Arc<Driver>>,
-        vehicles: Vec<Arc<Vehicle>>,
-        group_key: Box<dyn Fn(&Vec<Arc<Actor>>) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync>>,
-    ) -> Fleet {
+    pub fn new(drivers: Vec<Arc<Driver>>, vehicles: Vec<Arc<Vehicle>>, group_key: ActorGroupKeyFn) -> Fleet {
         // TODO we should also consider multiple drivers to support smart vehicle-driver assignment.
         assert_eq!(drivers.len(), 1);
         assert!(!vehicles.is_empty());

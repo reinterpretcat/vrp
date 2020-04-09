@@ -28,8 +28,8 @@ pub struct TestActivityCost {}
 
 impl ActivityCost for TestActivityCost {}
 
-impl TestActivityCost {
-    pub fn new() -> Self {
+impl Default for TestActivityCost {
+    fn default() -> Self {
         Self {}
     }
 }

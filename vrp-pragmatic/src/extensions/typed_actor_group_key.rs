@@ -4,7 +4,7 @@ use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::Actor;
 
 /// A actor group key implementation which creates groups using "type" dimension.
-pub fn create_typed_actor_groups(actors: &Vec<Arc<Actor>>) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync> {
+pub fn create_typed_actor_groups(actors: &[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync> {
     let unique_type_keys: HashSet<_> = actors
         .iter()
         .map(|a| (a.vehicle.dimens.get_value::<String>("type_id").cloned().unwrap(), a.detail.clone()))

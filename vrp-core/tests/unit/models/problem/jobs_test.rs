@@ -91,25 +91,24 @@ returns_proper_job_neighbours! {
 }
 
 fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
-    let fleet = FleetBuilder::new()
+    let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::new().id("v1").profile(1).details(vec![test_vehicle_detail()]).build(),
-            VehicleBuilder::new().id("v2").profile(1).details(vec![test_vehicle_detail()]).build(),
+            VehicleBuilder::default().id("v1").profile(1).details(vec![test_vehicle_detail()]).build(),
+            VehicleBuilder::default().id("v2").profile(1).details(vec![test_vehicle_detail()]).build(),
         ])
         .build();
     let species = vec![
-        SingleBuilder::new().id("s0").location(Some(0)).build_as_job_ref(),
-        SingleBuilder::new().id("s1").location(Some(1)).build_as_job_ref(),
-        SingleBuilder::new().id("s2").location(Some(2)).build_as_job_ref(),
-        SingleBuilder::new().id("s3").location(Some(3)).build_as_job_ref(),
-        SingleBuilder::new().id("s4").location(Some(4)).build_as_job_ref(),
+        SingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
+        SingleBuilder::default().id("s1").location(Some(1)).build_as_job_ref(),
+        SingleBuilder::default().id("s2").location(Some(2)).build_as_job_ref(),
+        SingleBuilder::default().id("s3").location(Some(3)).build_as_job_ref(),
+        SingleBuilder::default().id("s4").location(Some(4)).build_as_job_ref(),
     ];
     let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
 
     let result: Vec<String> = jobs
         .neighbors(1, species.get(index).unwrap(), 0.0, u32::max_value() as f64)
-        .into_iter()
         .map(|j| get_job_id(&j).clone())
         .collect();
 
@@ -132,10 +131,10 @@ returns_proper_job_ranks! {
 }
 
 fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Distance) {
-    let fleet = FleetBuilder::new()
+    let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::new()
+            VehicleBuilder::default()
                 .id("v1_1")
                 .profile(1)
                 .details(vec![VehicleDetail {
@@ -144,7 +143,7 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
                     time: Some(TimeWindow { start: 0.0, end: 0.0 }),
                 }])
                 .build(),
-            VehicleBuilder::new()
+            VehicleBuilder::default()
                 .id("v1_2")
                 .profile(1)
                 .details(vec![VehicleDetail {
@@ -153,7 +152,7 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
                     time: Some(TimeWindow { start: 0.0, end: 0.0 }),
                 }])
                 .build(),
-            VehicleBuilder::new()
+            VehicleBuilder::default()
                 .id("v2_1")
                 .profile(3)
                 .details(vec![VehicleDetail {
@@ -165,10 +164,10 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
         ])
         .build();
     let species = vec![
-        SingleBuilder::new().id("s0").location(Some(0)).build_as_job_ref(),
-        SingleBuilder::new().id("s1").location(Some(10)).build_as_job_ref(),
-        SingleBuilder::new().id("s2").location(Some(21)).build_as_job_ref(),
-        SingleBuilder::new().id("s3").location(Some(31)).build_as_job_ref(),
+        SingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
+        SingleBuilder::default().id("s1").location(Some(10)).build_as_job_ref(),
+        SingleBuilder::default().id("s2").location(Some(21)).build_as_job_ref(),
+        SingleBuilder::default().id("s3").location(Some(31)).build_as_job_ref(),
     ];
     let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
 
@@ -185,5 +184,5 @@ fn can_use_multi_job_bind_and_roots() {
     let jobs = Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost());
     let job = Job::Multi(Multi::roots(&job.jobs.first().unwrap()).unwrap());
 
-    assert_eq!(jobs.neighbors(0, &job, 0.0, 100.0).collect::<Vec<Job>>().len(), 0);
+    assert_eq!(jobs.neighbors(0, &job, 0.0, 100.0).count(), 0);
 }

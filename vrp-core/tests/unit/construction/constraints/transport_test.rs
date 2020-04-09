@@ -50,19 +50,22 @@ mod timing {
     }
 
     fn can_properly_handle_fleet_with_4_vehicles_impl(vehicle: &str, activity: usize, time: f64) {
-        let fleet = FleetBuilder::new()
+        let fleet = FleetBuilder::default()
             .add_driver(test_driver())
             .add_vehicles(vec![
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v1")
                     .details(vec![create_detail((Some(0), None), Some((0.0, 100.0)))])
                     .build(),
-                VehicleBuilder::new().id("v2").details(vec![create_detail((Some(0), None), Some((0.0, 60.0)))]).build(),
-                VehicleBuilder::new()
+                VehicleBuilder::default()
+                    .id("v2")
+                    .details(vec![create_detail((Some(0), None), Some((0.0, 60.0)))])
+                    .build(),
+                VehicleBuilder::default()
                     .id("v3")
                     .details(vec![create_detail((Some(40), None), Some((0.0, 100.0)))])
                     .build(),
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v4")
                     .details(vec![create_detail((Some(40), None), Some((0.0, 100.0)))])
                     .build(),
@@ -71,8 +74,7 @@ mod timing {
         let mut ctx = create_route_context(&fleet, vehicle);
 
         create_constraint_pipeline_with_timing().accept_route_state(&mut ctx);
-        let result =
-            ctx.state.get_activity_state::<Timestamp>(1, ctx.route.tour.get(activity).unwrap()).unwrap().clone();
+        let result = *ctx.state.get_activity_state::<Timestamp>(1, ctx.route.tour.get(activity).unwrap()).unwrap();
 
         assert_eq!(result, time);
     }
@@ -103,30 +105,30 @@ mod timing {
         next_index: usize,
         expected: Option<ActivityConstraintViolation>,
     ) {
-        let fleet = FleetBuilder::new()
+        let fleet = FleetBuilder::default()
             .add_driver(test_driver())
             .add_vehicles(vec![
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v1")
                     .details(vec![create_detail((Some(0), Some(0)), Some((0.0, 100.0)))])
                     .build(),
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v2")
                     .details(vec![create_detail((Some(0), Some(0)), Some((0.0, 60.0)))])
                     .build(),
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v3")
                     .details(vec![create_detail((Some(0), Some(0)), Some((0.0, 50.0)))])
                     .build(),
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v4")
                     .details(vec![create_detail((Some(0), Some(0)), Some((0.0, 10.0)))])
                     .build(),
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v5")
                     .details(vec![create_detail((Some(0), Some(0)), Some((60.0, 100.0)))])
                     .build(),
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v6")
                     .details(vec![create_detail((Some(0), Some(40)), Some((0.0, 40.0)))])
                     .build(),
@@ -157,9 +159,9 @@ mod timing {
 
     #[test]
     fn can_update_activity_schedule() {
-        let fleet = FleetBuilder::new()
+        let fleet = FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
+            .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
         let mut solution_ctx = SolutionContext {
             required: vec![],
@@ -171,12 +173,12 @@ mod timing {
                 "v1",
                 vec![
                     Box::new(
-                        ActivityBuilder::new()
+                        ActivityBuilder::default()
                             .place(Place { location: 10, duration: 5.0, time: TimeWindow { start: 20.0, end: 30.0 } })
                             .build(),
                     ),
                     Box::new(
-                        ActivityBuilder::new()
+                        ActivityBuilder::default()
                             .place(Place { location: 20, duration: 10.0, time: TimeWindow { start: 50.0, end: 10.0 } })
                             .build(),
                     ),
@@ -194,9 +196,9 @@ mod timing {
 
     #[test]
     fn can_calculate_soft_activity_cost_for_empty_tour() {
-        let fleet = FleetBuilder::new()
+        let fleet = FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
-            .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
+            .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
         let target = Box::new(Activity {
@@ -218,22 +220,22 @@ mod timing {
 
     #[test]
     fn can_calculate_soft_activity_cost_for_non_empty_tour() {
-        let fleet = FleetBuilder::new()
+        let fleet = FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
-            .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
+            .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
         let route_ctx = create_route_context_with_activities(
             &fleet,
             "v1",
             vec![
                 Box::new(
-                    ActivityBuilder::new()
+                    ActivityBuilder::default()
                         .place(Place { location: 10, duration: 0.0, time: DEFAULT_ACTIVITY_TIME_WINDOW.clone() })
                         .schedule(Schedule { arrival: 0.0, departure: 10.0 })
                         .build(),
                 ),
                 Box::new(
-                    ActivityBuilder::new()
+                    ActivityBuilder::default()
                         .place(Place { location: 20, duration: 0.0, time: TimeWindow { start: 40.0, end: 70.0 } })
                         .build(),
                 ),
@@ -258,13 +260,13 @@ mod timing {
 
     #[test]
     fn can_stop_with_time_route_constraint() {
-        let fleet = FleetBuilder::new()
+        let fleet = FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicles(vec![VehicleBuilder::new().id("v1").build()])
+            .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
         let solution_ctx = create_empty_solution_context();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
-        let job = SingleBuilder::new().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
+        let job = SingleBuilder::default().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
 
         let result = create_constraint_pipeline_with_timing().evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
@@ -287,7 +289,7 @@ mod traveling {
         target: &str,
         limit: (Option<Distance>, Option<Duration>),
     ) -> (ConstraintPipeline, RouteContext) {
-        let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
+        let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
         let mut state = RouteState::default();
         state.put_route_state(TOTAL_DISTANCE_KEY, 50.);
         state.put_route_state(TOTAL_DURATION_KEY, 50.);
@@ -297,7 +299,7 @@ mod traveling {
             state: Arc::new(state),
         };
         let pipeline = create_constraint_pipeline_with_module(Box::new(TransportConstraintModule::new(
-            Arc::new(TestActivityCost::new()),
+            Arc::new(TestActivityCost::default()),
             TestTransportCost::new_shared(),
             Arc::new(
                 move |actor| {

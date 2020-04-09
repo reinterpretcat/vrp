@@ -43,16 +43,13 @@ pub fn test_single_with_id_and_location(id: &str, location: Option<Location>) ->
 
 pub fn test_single_with_locations(locations: Vec<Option<Location>>) -> Arc<Single> {
     Arc::new(Single {
-        places: locations.into_iter().map(|location| test_place_with_location(location)).collect(),
+        places: locations.into_iter().map(test_place_with_location).collect(),
         dimens: Default::default(),
     })
 }
 
 pub fn test_multi_job_with_locations(locations: Vec<Vec<Option<Location>>>) -> Arc<Multi> {
-    Multi::bind(Multi::new(
-        locations.into_iter().map(|locs| test_single_with_locations(locs)).collect(),
-        Default::default(),
-    ))
+    Multi::bind(Multi::new(locations.into_iter().map(test_single_with_locations).collect(), Default::default()))
 }
 
 pub fn get_job_id(job: &Job) -> &String {
@@ -63,11 +60,13 @@ pub struct SingleBuilder {
     single: Single,
 }
 
-impl SingleBuilder {
-    pub fn new() -> Self {
+impl Default for SingleBuilder {
+    fn default() -> Self {
         Self { single: test_single() }
     }
+}
 
+impl SingleBuilder {
     pub fn id(&mut self, id: &str) -> &mut Self {
         self.single.dimens.set_value("id", id.to_string());
         self
@@ -84,7 +83,7 @@ impl SingleBuilder {
     }
 
     pub fn times(&mut self, times: Vec<TimeWindow>) -> &mut Self {
-        self.single.places.first_mut().unwrap().times = times.into_iter().map(|t| TimeSpan::Window(t)).collect();
+        self.single.places.first_mut().unwrap().times = times.into_iter().map(TimeSpan::Window).collect();
         self
     }
 
@@ -127,14 +126,16 @@ pub struct MultiBuilder {
     custom_permutator: bool,
 }
 
-impl MultiBuilder {
-    pub fn new() -> Self {
+impl Default for MultiBuilder {
+    fn default() -> Self {
         let mut multi = Multi::new(vec![], Default::default());
         multi.dimens.set_id("multi");
 
         Self { multi, custom_permutator: false }
     }
+}
 
+impl MultiBuilder {
     pub fn new_with_permutations(permutations: Vec<Vec<usize>>) -> Self {
         Self {
             multi: Multi::new_with_permutator(

@@ -51,10 +51,10 @@ impl AdjacencyMatrixDecipher {
         get_unique_actor_details(&problem.fleet.actors).into_iter().for_each(|adk| match (adk.start, adk.end) {
             (Some(_), Some(_)) => {
                 decipher.add(ActivityInfo::Terminal((adk.clone(), 0)));
-                decipher.add(ActivityInfo::Terminal((adk.clone(), 1)));
+                decipher.add(ActivityInfo::Terminal((adk, 1)));
             }
-            (None, Some(end)) => decipher.add(ActivityInfo::Terminal((adk.clone(), end))),
-            (Some(start), None) => decipher.add(ActivityInfo::Terminal((adk.clone(), start))),
+            (None, Some(end)) => decipher.add(ActivityInfo::Terminal((adk, end))),
+            (Some(start), None) => decipher.add(ActivityInfo::Terminal((adk, start))),
             _ => {}
         });
 
@@ -183,7 +183,7 @@ impl AdjacencyMatrixDecipher {
         let mut processed: HashSet<usize> = Default::default();
 
         loop {
-            if let Some(activity_info_idx) = matrix.scan_row(next_row_idx, |v| v == actor_idx as f64) {
+            if let Some(activity_info_idx) = matrix.scan_row(next_row_idx, |v| v.round() as usize == actor_idx) {
                 if processed.contains(&activity_info_idx) {
                     break;
                 }
@@ -201,7 +201,7 @@ impl AdjacencyMatrixDecipher {
     }
 }
 
-fn get_unique_actor_details(actors: &Vec<Arc<Actor>>) -> Vec<ActorDetail> {
+fn get_unique_actor_details(actors: &[Arc<Actor>]) -> Vec<ActorDetail> {
     let mut unique: HashSet<ActorDetail> = Default::default();
     let mut details = actors.iter().map(|a| a.detail.clone()).collect::<Vec<_>>();
 
@@ -235,18 +235,17 @@ fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity, leg_idx: usize) ->
     }
 }
 
-fn try_match_activity_place(activity: &TourActivity, places: &Vec<Place>) -> Option<(usize, usize)> {
+fn try_match_activity_place(activity: &TourActivity, places: &[Place]) -> Option<(usize, usize)> {
     places.iter().enumerate().fold(None, |acc, (place_idx, place)| {
-        if acc.is_none() {
-            if place.location.map_or(true, |location| location == activity.place.location) {
-                if activity.place.duration == place.duration {
-                    for (tw_idx, tw) in place.times.iter().enumerate() {
-                        // NOTE tw offset is considered as match
-                        let is_correct = tw.as_time_window().map_or(true, |tw| activity.place.time == tw);
-                        if is_correct {
-                            return Some((place_idx, tw_idx));
-                        }
-                    }
+        if acc.is_none()
+            && place.location.map_or(true, |location| location == activity.place.location)
+            && (activity.place.duration - place.duration).abs() < std::f64::EPSILON
+        {
+            for (tw_idx, tw) in place.times.iter().enumerate() {
+                // NOTE tw offset is considered as match
+                let is_correct = tw.as_time_window().map_or(true, |tw| activity.place.time == tw);
+                if is_correct {
+                    return Some((place_idx, tw_idx));
                 }
             }
         }

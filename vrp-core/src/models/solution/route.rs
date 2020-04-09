@@ -95,9 +95,7 @@ impl Activity {
 
     pub fn retrieve_job(&self) -> Option<Job> {
         match self.job.as_ref() {
-            Some(single) => Multi::roots(single)
-                .and_then(|multi| Some(Job::Multi(multi)))
-                .or_else(|| Some(Job::Single(single.clone()))),
+            Some(single) => Multi::roots(single).map(Job::Multi).or_else(|| Some(Job::Single(single.clone()))),
             _ => None,
         }
     }

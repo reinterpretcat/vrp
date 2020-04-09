@@ -62,7 +62,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn get_reloads<'a>(
         &'a self,
         route: &'a Route,
-        jobs: &'a Vec<Job>,
+        jobs: &'a [Job],
     ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
         let shift_index = get_shift_index(&route.actor.vehicle.dimens);
         let vehicle_id = route.actor.vehicle.dimens.get_id().unwrap();

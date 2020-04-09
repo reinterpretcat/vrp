@@ -33,7 +33,7 @@ impl VariationCoefficient {
         refinement_ctx.generation >= (self.sample - 1) && self.check_threshold(costs)
     }
 
-    fn check_threshold(&self, costs: &Vec<f64>) -> bool {
+    fn check_threshold(&self, costs: &[f64]) -> bool {
         get_cv(costs) < self.threshold
     }
 }

@@ -42,7 +42,7 @@ pub fn evaluate_job_insertion_in_route(
     position: InsertionPosition,
     alternative: Option<InsertionResult>,
 ) -> InsertionResult {
-    let alternative = alternative.map_or_else(|| InsertionResult::make_failure(), |r| r);
+    let alternative = alternative.map_or_else(InsertionResult::make_failure, |r| r);
 
     if let Some(violation) = ctx.problem.constraint.evaluate_hard_route(&ctx.solution, &route_ctx, job) {
         return InsertionResult::choose_best_result(

@@ -39,7 +39,7 @@ pub fn test_vehicle(profile: i32) -> Vehicle {
 }
 
 pub fn test_fleet() -> Fleet {
-    FleetBuilder::new().add_driver(test_driver()).add_vehicle(test_vehicle(0)).build()
+    FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle(0)).build()
 }
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
@@ -54,18 +54,20 @@ pub fn get_vehicle_id(vehicle: &Vehicle) -> &String {
 }
 
 pub fn get_test_actor_from_fleet(fleet: &Fleet, vehicle_id: &str) -> Arc<Actor> {
-    fleet.actors.iter().filter(|actor| get_vehicle_id(&actor.vehicle) == vehicle_id).next().unwrap().clone()
+    fleet.actors.iter().find(|actor| get_vehicle_id(&actor.vehicle) == vehicle_id).unwrap().clone()
 }
 
 pub struct VehicleBuilder {
     vehicle: Vehicle,
 }
 
-impl VehicleBuilder {
-    pub fn new() -> VehicleBuilder {
+impl Default for VehicleBuilder {
+    fn default() -> VehicleBuilder {
         VehicleBuilder { vehicle: test_vehicle(DEFAULT_PROFILE) }
     }
+}
 
+impl VehicleBuilder {
     pub fn id(&mut self, id: &str) -> &mut VehicleBuilder {
         self.vehicle.dimens.set_id(id);
         self
@@ -101,11 +103,13 @@ pub struct FleetBuilder {
     vehicles: Vec<Vehicle>,
 }
 
-impl FleetBuilder {
-    pub fn new() -> FleetBuilder {
+impl Default for FleetBuilder {
+    fn default() -> FleetBuilder {
         FleetBuilder { drivers: Default::default(), vehicles: Default::default() }
     }
+}
 
+impl FleetBuilder {
     pub fn add_driver(&mut self, driver: Driver) -> &mut FleetBuilder {
         self.drivers.push(driver);
         self
@@ -132,7 +136,7 @@ impl FleetBuilder {
     }
 }
 
-pub fn create_details_actor_groups(actors: &Vec<Arc<Actor>>) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync> {
+pub fn create_details_actor_groups(actors: &[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync> {
     let unique_type_keys: HashSet<_> = actors.iter().map(|a| a.detail.clone()).collect();
 
     let type_key_map: HashMap<_, _> = unique_type_keys.into_iter().zip(0_usize..).collect();

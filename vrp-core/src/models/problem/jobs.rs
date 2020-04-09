@@ -93,7 +93,7 @@ pub trait JobPermutation {
     fn get(&self) -> Vec<Vec<usize>>;
 
     /// Validates given permutation.
-    fn validate(&self, permutation: &Vec<usize>) -> bool;
+    fn validate(&self, permutation: &[usize]) -> bool;
 }
 
 /// Specifies permutation generator which allows only fixed set of permutations.
@@ -113,7 +113,7 @@ impl JobPermutation for FixedJobPermutation {
         self.permutations.clone()
     }
 
-    fn validate(&self, permutation: &Vec<usize>) -> bool {
+    fn validate(&self, permutation: &[usize]) -> bool {
         self.permutations
             .iter()
             .any(|prm| prm.len() == permutation.len() && prm.iter().zip(permutation.iter()).all(|(&a, &b)| a == b))
@@ -147,7 +147,7 @@ impl Multi {
     }
 
     /// Validates given set of permutations.
-    pub fn validate(&self, permutations: &Vec<usize>) -> bool {
+    pub fn validate(&self, permutations: &[usize]) -> bool {
         self.permutator.validate(permutations)
     }
 

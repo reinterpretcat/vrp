@@ -135,7 +135,7 @@ pub fn create_insertion_context_from_solution(
     });
 
     InsertionContext {
-        problem: problem.clone(),
+        problem,
         solution: SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry },
         random,
     }

@@ -17,9 +17,9 @@ pub fn test_actor() -> Arc<Actor> {
 }
 
 pub fn create_test_registry() -> Registry {
-    let fleet = FleetBuilder::new()
+    let fleet = FleetBuilder::default()
         .add_driver(test_driver_with_costs(empty_costs()))
-        .add_vehicle(VehicleBuilder::new().id("v1").build())
+        .add_vehicle(VehicleBuilder::default().id("v1").build())
         .build();
     Registry::new(&fleet)
 }

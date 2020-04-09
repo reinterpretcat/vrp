@@ -116,11 +116,13 @@ pub struct ActivityBuilder {
     activity: Activity,
 }
 
-impl ActivityBuilder {
-    pub fn new() -> Self {
+impl Default for ActivityBuilder {
+    fn default() -> Self {
         Self { activity: test_activity() }
     }
+}
 
+impl ActivityBuilder {
     pub fn place(&mut self, place: Place) -> &mut Self {
         self.activity.place = place;
         self

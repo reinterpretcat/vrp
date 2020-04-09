@@ -21,7 +21,7 @@ fn get_test_tour() -> Tour {
     tour
 }
 
-fn compare_legs<'a>(left: &RouteLeg, right: &RouteLeg) {
+fn compare_legs(left: &RouteLeg, right: &RouteLeg) {
     for i in 0..2 {
         assert_eq!(left.0.get(i).unwrap(), right.0.get(i).unwrap());
     }

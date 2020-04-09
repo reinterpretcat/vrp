@@ -69,11 +69,11 @@ fn can_interpolate_durations() {
     )
     .unwrap();
 
-    for (timestamp, duration) in vec![(0., 100.), (10., 200.), (15., 200.), (3., 130.), (5., 150.), (7., 170.)] {
+    for &(timestamp, duration) in &[(0., 100.), (10., 200.), (15., 200.), (3., 130.), (5., 150.), (7., 170.)] {
         assert_eq!(costs.duration(0, 0, 1, timestamp), duration);
     }
 
-    for (timestamp, duration) in vec![(0., 300.), (10., 400.), (15., 400.), (3., 330.), (5., 350.), (7., 370.)] {
+    for &(timestamp, duration) in &[(0., 300.), (10., 400.), (15., 400.), (3., 330.), (5., 350.), (7., 370.)] {
         assert_eq!(costs.duration(1, 0, 1, timestamp), duration);
     }
 

@@ -15,10 +15,10 @@ use std::sync::Arc;
 #[test]
 fn can_calculate_transport_cost() {
     let fleet = Arc::new(
-        FleetBuilder::new()
+        FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicle(VehicleBuilder::new().id("v1").costs(fixed_costs()).build())
-            .add_vehicle(VehicleBuilder::new().id("v2").costs(fixed_costs()).build())
+            .add_vehicle(VehicleBuilder::default().id("v1").costs(fixed_costs()).build())
+            .add_vehicle(VehicleBuilder::default().id("v2").costs(fixed_costs()).build())
             .build(),
     );
     let route1 = RouteContext {

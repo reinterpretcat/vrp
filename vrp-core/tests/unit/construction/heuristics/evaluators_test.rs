@@ -17,7 +17,7 @@ type JobPlace = crate::models::problem::Place;
 
 fn create_tour_activity_at(loc_and_time: usize) -> TourActivity {
     Box::new(
-        ActivityBuilder::new()
+        ActivityBuilder::default()
             .place(Place { location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0.) })
             .schedule(Schedule { arrival: loc_and_time as Timestamp, departure: loc_and_time as Timestamp })
             .build(),
@@ -47,7 +47,7 @@ mod single {
             assert_eq!(success.activities.first().unwrap().1, 0);
             assert_eq!(success.activities.first().unwrap().0.place.location, DEFAULT_JOB_LOCATION);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 
@@ -95,7 +95,7 @@ mod single {
             assert_eq!(success.activities.first().unwrap().1, index);
             assert_eq!(success.activities.first().unwrap().0.place.location, location);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 
@@ -117,10 +117,10 @@ mod single {
         cost: Cost,
     ) {
         let registry = Registry::new(
-            &FleetBuilder::new()
+            &FleetBuilder::default()
                 .add_driver(test_driver_with_costs(empty_costs()))
                 .add_vehicles(vec![
-                    VehicleBuilder::new()
+                    VehicleBuilder::default()
                         .id("v1")
                         .details(vec![VehicleDetail {
                             start: Some(0),
@@ -128,7 +128,7 @@ mod single {
                             time: Some(TimeWindow { start: 0.0, end: 100.0 }),
                         }])
                         .build(),
-                    VehicleBuilder::new()
+                    VehicleBuilder::default()
                         .id("v2")
                         .details(vec![VehicleDetail {
                             start: Some(20),
@@ -149,7 +149,7 @@ mod single {
             assert_eq!(get_vehicle_id(success.context.route.actor.vehicle.deref()), &expected_used_vehicle.to_owned());
             assert_eq!(compare_floats(success.cost, cost), Ordering::Equal);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 
@@ -163,7 +163,7 @@ mod single {
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 }
@@ -184,9 +184,9 @@ mod multi {
 
     #[test]
     fn can_insert_job_with_location_into_empty_tour() {
-        let job = MultiBuilder::new()
-            .job(SingleBuilder::new().id("s1").location(Some(3)).build())
-            .job(SingleBuilder::new().id("s2").location(Some(7)).build())
+        let job = MultiBuilder::default()
+            .job(SingleBuilder::default().id("s1").location(Some(3)).build())
+            .job(SingleBuilder::default().id("s2").location(Some(7)).build())
             .build();
         let ctx = create_test_insertion_context(create_test_registry());
 
@@ -196,7 +196,7 @@ mod multi {
             assert_eq!(success.cost, 28.0);
             assert_activities(success, vec![(0, 3), (1, 7)]);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 
@@ -209,9 +209,9 @@ mod multi {
         case2: vec![(0, 1111), (1, 3)],
     }
     fn can_handle_activity_constraint_violation_impl(singles: Vec<InsertionData>) {
-        let mut job = MultiBuilder::new();
+        let mut job = MultiBuilder::default();
         singles.iter().zip(0usize..).for_each(|((_, loc), index)| {
-            job.job(SingleBuilder::new().id(&index.to_string()).location(Some(*loc)).build());
+            job.job(SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build());
         });
         let job = job.build();
         let ctx = create_test_insertion_context(create_test_registry());
@@ -221,7 +221,7 @@ mod multi {
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 
@@ -251,9 +251,9 @@ mod multi {
         let routes = vec![route_ctx];
         let constraint = create_constraint_pipeline_with_timing();
         let ctx = create_insertion_context(registry, constraint, routes);
-        let mut job = MultiBuilder::new();
+        let mut job = MultiBuilder::default();
         expected.iter().zip(0usize..).for_each(|((_, loc), index)| {
-            job.job(SingleBuilder::new().id(&index.to_string()).location(Some(*loc)).build());
+            job.job(SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build());
         });
         let job = job.build();
 
@@ -264,7 +264,7 @@ mod multi {
             assert_eq!(success.activities.len(), expected.len());
             assert_activities(success, expected);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 
@@ -272,9 +272,9 @@ mod multi {
     fn can_choose_cheaper_permutation_from_two() {
         let ctx = create_test_insertion_context(create_test_registry());
         let job = MultiBuilder::new_with_permutations(vec![vec![0, 1, 2], vec![1, 0, 2], vec![2, 1, 0]])
-            .job(SingleBuilder::new().id("s1").location(Some(10)).build())
-            .job(SingleBuilder::new().id("s2").location(Some(5)).build())
-            .job(SingleBuilder::new().id("s3").location(Some(15)).build())
+            .job(SingleBuilder::default().id("s1").location(Some(10)).build())
+            .job(SingleBuilder::default().id("s2").location(Some(5)).build())
+            .job(SingleBuilder::default().id("s3").location(Some(15)).build())
             .build();
 
         let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
@@ -283,7 +283,7 @@ mod multi {
             assert_eq!(success.cost, 60.0);
             assert_activities(success, vec![(0, 5), (1, 10), (2, 15)]);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 }

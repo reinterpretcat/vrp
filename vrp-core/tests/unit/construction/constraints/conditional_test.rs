@@ -34,7 +34,7 @@ fn can_promote_jobs_between_required_and_ignored_impl(
 ) {
     let required = get_jobs(required);
     let ignored = get_jobs(ignored);
-    let required_set1: HashSet<String> = required_ids.iter().map(|s| s.to_string()).collect();
+    let required_set1: HashSet<String> = required_ids.iter().map(|s| (*s).to_string()).collect();
     let required_set2 = required_set1.clone();
 
     let mut ctx = SolutionContext {
@@ -84,7 +84,7 @@ fn can_promote_locked_jobs() {
     conditional.accept_solution_state(&mut ctx);
 
     let mut result_ids: Vec<String> =
-        get_ids(&ctx.locked.iter().cloned().collect()).iter().map(|s| s.to_string()).collect();
+        get_ids(&ctx.locked.iter().cloned().collect()).iter().map(|s| (*s).to_string()).collect();
     result_ids.sort();
     assert_eq!(result_ids, expected_ids);
 }

@@ -19,7 +19,7 @@ pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> A
         jobs,
         locks: vec![],
         constraint: Arc::new(constraint),
-        activity: Arc::new(TestActivityCost::new()),
+        activity: Arc::new(TestActivityCost::default()),
         transport,
         objective: Arc::new(MultiObjective::default()),
         extras: Arc::new(Default::default()),
@@ -64,7 +64,7 @@ pub fn get_customer_ids_from_routes_sorted(insertion_ctx: &InsertionContext) -> 
     result
 }
 
-pub fn get_sorted_customer_ids_from_jobs(jobs: &Vec<Job>) -> Vec<String> {
+pub fn get_sorted_customer_ids_from_jobs(jobs: &[Job]) -> Vec<String> {
     let mut ids = jobs.iter().map(|job| get_customer_id(&job)).collect::<Vec<String>>();
     ids.sort();
     ids

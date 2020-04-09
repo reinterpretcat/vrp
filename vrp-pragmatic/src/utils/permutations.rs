@@ -26,7 +26,7 @@ impl JobPermutation for VariableJobPermutation {
         get_split_permutations(self.size, self.split_start_index, self.sample_size)
     }
 
-    fn validate(&self, permutation: &Vec<usize>) -> bool {
+    fn validate(&self, permutation: &[usize]) -> bool {
         permutation.iter().cloned().collect::<HashSet<_>>().len() == self.size
             && permutation[0..self.split_start_index].iter().max().map_or(false, |&max| max < self.split_start_index)
             && permutation[self.split_start_index..].iter().min().map_or(false, |&min| min >= self.split_start_index)

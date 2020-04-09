@@ -1,10 +1,10 @@
 /// Returns standard deviation.
-pub fn get_stdev(values: &Vec<f64>) -> f64 {
+pub fn get_stdev(values: &[f64]) -> f64 {
     get_variance_mean(values).0.sqrt()
 }
 
 /// Returns coefficient variation.
-pub fn get_cv(values: &Vec<f64>) -> f64 {
+pub fn get_cv(values: &[f64]) -> f64 {
     let (variance, mean) = get_variance_mean(values);
     let sdev = variance.sqrt();
 
@@ -12,13 +12,13 @@ pub fn get_cv(values: &Vec<f64>) -> f64 {
 }
 
 /// Gets mean of values.
-pub fn get_mean(values: &Vec<f64>) -> f64 {
+pub fn get_mean(values: &[f64]) -> f64 {
     let sum: f64 = values.iter().sum();
     sum / values.len() as f64
 }
 
 /// Returns variance and mean.
-fn get_variance_mean(values: &Vec<f64>) -> (f64, f64) {
+fn get_variance_mean(values: &[f64]) -> (f64, f64) {
     let mean = get_mean(values);
 
     let (first, second) = values.iter().fold((0., 0.), |acc, v| {

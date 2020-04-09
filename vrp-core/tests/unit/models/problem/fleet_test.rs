@@ -6,7 +6,7 @@ fn fleet_creates_unique_profiles_from_vehicles() {
     let profile2 = 1;
 
     assert_eq!(
-        FleetBuilder::new()
+        FleetBuilder::default()
             .add_driver(test_driver())
             .add_vehicle(test_vehicle(profile1))
             .add_vehicle(test_vehicle(profile2))

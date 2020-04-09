@@ -253,9 +253,7 @@ fn can_handle_job_with_lock_impl(lock_order: LockOrder) {
         condition: Arc::new(|actor| {
             let id = actor.vehicle.dimens.get_id().unwrap();
 
-            let result = id == "v1";
-
-            result
+            id == "v1"
         }),
         details: vec![LockDetail::new(lock_order, LockPosition::Any, vec![problem.jobs.all().last().unwrap()])],
     }));
@@ -304,10 +302,10 @@ fn create_diverse_problem() -> Arc<Problem> {
 fn create_diverse_problem_unwrapped() -> Problem {
     let transport: Arc<dyn TransportCost + Sync + Send> = Arc::new(TestTransportCost {});
     let fleet = Arc::new(
-        FleetBuilder::new()
+        FleetBuilder::default()
             .add_driver(test_driver())
             .add_vehicles(vec![
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v1")
                     .capacity(2)
                     .details(vec![VehicleDetail {
@@ -316,7 +314,7 @@ fn create_diverse_problem_unwrapped() -> Problem {
                         time: Some(DEFAULT_ACTOR_TIME_WINDOW),
                     }])
                     .build(),
-                VehicleBuilder::new()
+                VehicleBuilder::default()
                     .id("v2")
                     .capacity(2)
                     .details(vec![VehicleDetail { start: Some(0), end: None, time: Some(DEFAULT_ACTOR_TIME_WINDOW) }])
@@ -328,31 +326,31 @@ fn create_diverse_problem_unwrapped() -> Problem {
     let jobs = Arc::new(Jobs::new(
         &fleet,
         vec![
-            SingleBuilder::new()
+            SingleBuilder::default()
                 .id("job1")
                 .demand(demand.clone())
                 .places(vec![(Some(1), 1., vec![(0., 100.)]), (Some(2), 1., vec![(0., 10.), (20., 100.)])])
                 .build_as_job_ref(),
-            MultiBuilder::new()
+            MultiBuilder::default()
                 .id("job2")
                 .job(
-                    SingleBuilder::new()
+                    SingleBuilder::default()
                         .id("s1")
                         .demand(demand.clone())
                         .places(vec![(Some(2), 1., vec![(0., 100.)])])
                         .build(),
                 )
                 .job(
-                    SingleBuilder::new()
+                    SingleBuilder::default()
                         .id("s2")
                         .demand(demand.clone())
                         .places(vec![(Some(3), 1., vec![(10., 100.)])])
                         .build(),
                 )
                 .build(),
-            SingleBuilder::new()
+            SingleBuilder::default()
                 .id("job3")
-                .demand(demand.clone())
+                .demand(demand)
                 .places(vec![(Some(4), 1., vec![(0., 100.)])])
                 .build_as_job_ref(),
         ],
@@ -372,7 +370,7 @@ fn create_diverse_problem_unwrapped() -> Problem {
 }
 
 fn get_job(problem: &Problem, index: usize, single_index: usize) -> Job {
-    let job = problem.jobs.all().skip(index).next().unwrap().clone();
+    let job = problem.jobs.all().nth(index).unwrap();
 
     job.as_multi().map_or_else(|| job.clone(), |m| Job::Single(m.jobs.get(single_index).unwrap().clone()))
 }

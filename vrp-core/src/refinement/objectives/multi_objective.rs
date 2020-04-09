@@ -30,7 +30,7 @@ impl ObjectiveCost for MultiObjectiveCost {
 
         let (result, _) = match Self::analyze(&self.primary_costs, primary_costs, 0) {
             (Equal, relaxed_count) => Self::analyze(&self.secondary_costs, secondary_costs, relaxed_count),
-            result_pair @ _ => result_pair,
+            result_pair => result_pair,
         };
 
         (result, result)
@@ -71,23 +71,19 @@ impl MultiObjectiveCost {
         (primary_costs, secondary_costs)
     }
 
-    fn analyze(
-        left: &Vec<ObjectiveCostType>,
-        right: &Vec<ObjectiveCostType>,
-        relaxed_count: usize,
-    ) -> (Ordering, usize) {
+    fn analyze(left: &[ObjectiveCostType], right: &[ObjectiveCostType], relaxed_count: usize) -> (Ordering, usize) {
         // NOTE Allow not more than one objective to be relaxed at the same time
         const MAX_RELAXED_COUNT: usize = 1;
 
         let results = left.iter().zip(right.iter()).map(|(left, right)| left.cmp_relaxed(right)).collect::<Vec<_>>();
 
         let relaxed_count = results.iter().filter(|(a, r)| *a == Greater && *r == Equal).count() + relaxed_count;
-        let result_actual = Self::analyze_results(results.iter().map(|(a, _)| a.clone()));
-        let result_relaxed = Self::analyze_results(results.iter().map(|(_, r)| r.clone()));
+        let result_actual = Self::analyze_results(results.iter().map(|(a, _)| *a));
+        let result_relaxed = Self::analyze_results(results.iter().map(|(_, r)| *r));
 
         let result = match (result_actual, result_relaxed) {
             (Less, _) => Less,
-            (_, relaxed @ _) if relaxed_count <= MAX_RELAXED_COUNT => relaxed,
+            (_, relaxed) if relaxed_count <= MAX_RELAXED_COUNT => relaxed,
             _ => Greater,
         };
 
@@ -96,7 +92,7 @@ impl MultiObjectiveCost {
 
     fn analyze_results(results: impl Iterator<Item = Ordering>) -> Ordering {
         results.fold(Equal, |acc, result| match (acc, result) {
-            (Equal, new @ _) => new,
+            (Equal, new) => new,
             (Less, Greater) => Greater,
             (Less, _) => Less,
             (Greater, _) => Greater,

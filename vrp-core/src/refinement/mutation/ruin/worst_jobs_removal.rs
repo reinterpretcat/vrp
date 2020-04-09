@@ -52,7 +52,7 @@ impl Ruin for WorstJobRemoval {
         routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() <= self.threshold).for_each(
             |(rc, savings)| {
                 let skip = savings.len().min(random.uniform_int(0, self.worst_skip) as usize);
-                let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).skip(skip).next();
+                let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
 
                 if let Some((job, _)) = worst {
                     let remove = random.uniform_int(self.range.0, self.range.1) as usize;

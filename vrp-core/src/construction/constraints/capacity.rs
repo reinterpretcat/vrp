@@ -75,11 +75,8 @@ pub trait MultiTrip<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + '
     fn get_reload<'a>(&self, activity: &'a Activity) -> Option<&'a Arc<Single>>;
 
     /// Gets all reloads for specific route from jobs collection.
-    fn get_reloads<'a>(
-        &'a self,
-        route: &'a Route,
-        jobs: &'a Vec<Job>,
-    ) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync>;
+    fn get_reloads<'a>(&'a self, route: &'a Route, jobs: &'a [Job])
+        -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync>;
 }
 
 /// A module which checks whether vehicle can handle customer's demand.
@@ -136,7 +133,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 (acc, Capacity::default()),
                 |acc, activity| {
                     Self::get_demand(activity)
-                        .and_then(|demand| Some((acc.0 + demand.delivery.0, acc.1 + demand.pickup.0)))
+                        .map(|demand| (acc.0 + demand.delivery.0, acc.1 + demand.pickup.0))
                         .unwrap_or_else(|| acc)
                 },
             );
@@ -146,7 +143,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 (start_delivery, Capacity::default()),
                 |(current, max), activity| {
                     let change =
-                        Self::get_demand(activity).map(|demand| demand.change()).unwrap_or_else(|| Capacity::default());
+                        Self::get_demand(activity).map(|demand| demand.change()).unwrap_or_else(Capacity::default);
 
                     let current = current + change;
                     let max = std::cmp::max(max, current);
@@ -188,7 +185,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                     &ctx.state
                         .get_activity_state(MAX_PAST_CAPACITY_KEY, end)
                         .cloned()
-                        .unwrap_or_else(|| Capacity::default()),
+                        .unwrap_or_else(Capacity::default),
                     ctx.route.actor.vehicle.dimens.get_capacity().unwrap(),
                 )
             })
@@ -427,7 +424,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        if let Some(_) = self.multi_trip.get_reload(activity_ctx.target) {
+        if self.multi_trip.get_reload(activity_ctx.target).is_some() {
             // NOTE insert reload job in route only as last
             let is_first = activity_ctx.prev.job.is_none();
             let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
@@ -502,7 +499,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         None
     }
 
-    fn get_reloads<'a>(&'a self, _: &'a Route, _: &'a Vec<Job>) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
+    fn get_reloads<'a>(&'a self, _: &'a Route, _: &'a [Job]) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
         Box::new(empty())
     }
 }

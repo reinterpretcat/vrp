@@ -15,7 +15,7 @@ impl AdjacencyMatrix for SparseMatrix {
     }
 
     fn values<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.values.iter().map(|&v| unsafe { std::mem::transmute(v) }))
+        Box::new(self.values.iter().map(|&v| f64::from_bits(v as u64)))
     }
 
     fn set_cell(&mut self, row: usize, col: usize, value: f64) {
@@ -47,7 +47,7 @@ impl SparseMatrix {
     }
 
     /// Creates `SparseMatrix` from vector of vectors representation.
-    pub fn from_vvec(matrix: &Vec<Vec<f64>>) -> Self {
+    pub fn from_vvec(matrix: &[Vec<f64>]) -> Self {
         let mut sparse = Self::new(matrix.len());
 
         for (row_idx, cols) in matrix.iter().enumerate() {

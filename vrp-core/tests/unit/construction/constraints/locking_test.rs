@@ -21,7 +21,7 @@ can_lock_jobs_to_actor! {
 
 fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<RouteConstraintViolation>) {
     let job = Job::Single(test_single_with_id("s1"));
-    let fleet = FleetBuilder::new()
+    let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicle(test_vehicle_with_id("v1"))
         .add_vehicle(test_vehicle_with_id("v2"))
@@ -157,7 +157,7 @@ fn can_lock_jobs_to_position_in_tour_impl(
     expected: Option<ActivityConstraintViolation>,
 ) {
     let (prev, next) = activities;
-    let fleet = FleetBuilder::new().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
+    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
     let locks =
         vec![Arc::new(Lock::new(Arc::new(|_| true), vec![LockDetail::new(LockOrder::Strict, lock_position, jobs)]))];
     let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, locks, 1)));

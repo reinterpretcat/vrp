@@ -34,8 +34,7 @@ impl RuinAndRecreateMutation {
 impl Mutation for RuinAndRecreateMutation {
     fn mutate(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let insertion_ctx = self.ruin.run(refinement_ctx, insertion_ctx);
-        let insertion_ctx = self.recreate.run(refinement_ctx, insertion_ctx);
 
-        insertion_ctx
+        self.recreate.run(refinement_ctx, insertion_ctx)
     }
 }

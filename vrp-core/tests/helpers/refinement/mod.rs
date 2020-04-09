@@ -26,7 +26,7 @@ pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send
 /// 3  7  11 15
 pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
     let fleet = Arc::new(
-        FleetBuilder::new()
+        FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
             .add_vehicles((0..cols).map(|i| test_vehicle_with_id(i.to_string().as_str())).collect())
             .build(),
@@ -63,7 +63,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         jobs: Arc::new(jobs),
         locks: vec![],
         constraint: Arc::new(create_constraint_pipeline_with_timing()),
-        activity: Arc::new(TestActivityCost::new()),
+        activity: Arc::new(TestActivityCost::default()),
         transport,
         objective: Arc::new(MultiObjective::default()),
         extras: Arc::new(Default::default()),

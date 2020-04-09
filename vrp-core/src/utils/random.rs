@@ -17,7 +17,7 @@ pub trait Random {
 
     /// Produces real random value, uniformly distributed on the closed interval [min, max)
     fn uniform_real(&self, min: f64, max: f64) -> f64 {
-        if min == max {
+        if (min - max).abs() < std::f64::EPSILON {
             return min;
         }
 
