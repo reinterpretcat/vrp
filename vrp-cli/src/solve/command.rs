@@ -72,7 +72,9 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                 })),
                 LocationWriter(Box::new(|problem, writer| {
                     let mut writer = writer;
-                    get_locations_serialized(BufReader::new(problem))
+                    deserialize_problem(BufReader::new(problem))
+                        .map_err(|errors| get_errors_serialized(&errors))
+                        .and_then(|problem| get_locations_serialized(&problem))
                         .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
                 })),
             ),

@@ -6,11 +6,12 @@ pub mod solve;
 extern crate clap;
 use clap::{App, Arg, ArgMatches, Values};
 use std::fs::File;
-use std::io::{stdout, BufReader, BufWriter, Read, Write};
+use std::io::{stdout, BufReader, BufWriter, Write};
 use std::process;
 use std::sync::Arc;
+use vrp_core::models::Problem as CoreProblem;
 use vrp_pragmatic::get_unique_locations;
-use vrp_pragmatic::json::problem::{deserialize_problem, FormatError, PragmaticProblem};
+use vrp_pragmatic::json::problem::{deserialize_problem, FormatError, PragmaticProblem, Problem};
 use vrp_pragmatic::json::solution::PragmaticSolution;
 use vrp_solver::SolverBuilder;
 
@@ -33,8 +34,12 @@ mod interop {
     /// Returns a list of unique locations to request a routing matrix.
     /// Problem should be passed in `pragmatic` format.
     #[no_mangle]
-    extern "C" fn get_locations(problem: *const c_char, success: Callback, failure: Callback) {
-        let result = get_locations_serialized(BufReader::new(to_string(problem).as_bytes()));
+    extern "C" fn get_routing_locations(problem: *const c_char, success: Callback, failure: Callback) {
+        let problem = to_string(problem);
+        let problem = BufReader::new(problem.as_bytes());
+        let result = deserialize_problem(problem)
+            .map_err(|errors| get_errors_serialized(&errors))
+            .and_then(|problem| get_locations_serialized(&problem));
 
         match result {
             Ok(locations) => {
@@ -48,19 +53,19 @@ mod interop {
         };
     }
 
-    /// Imports problem from format specified by `format` to `pragmatic` format.
+    /// Converts problem from format specified by `format` to `pragmatic` format.
     #[no_mangle]
-    extern "C" fn import(
+    extern "C" fn convert_to_pragmatic(
         format: *const c_char,
-        problems: *const *const c_char,
-        problems_len: *const i32,
+        inputs: *const *const c_char,
+        input_len: *const i32,
         success: Callback,
         failure: Callback,
     ) {
         let format = to_string(format);
-        let problems = unsafe { slice::from_raw_parts(problems, problems_len as usize).to_vec() };
-        let problems = problems.iter().map(|p| to_string(*p)).collect::<Vec<_>>();
-        let readers = problems.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
+        let inputs = unsafe { slice::from_raw_parts(inputs, input_len as usize).to_vec() };
+        let inputs = inputs.iter().map(|p| to_string(*p)).collect::<Vec<_>>();
+        let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
 
         match import_problem(format.as_str(), Some(readers)) {
             Ok(problem) => {
@@ -72,7 +77,7 @@ mod interop {
                 success(problem.as_ptr());
             }
             Err(err) => {
-                let error = CString::new(format!("Cannot import problem: '{}'", err).as_bytes()).unwrap();
+                let error = CString::new(format!("Cannot convert to pragmatic: '{}'", err).as_bytes()).unwrap();
                 failure(error.as_ptr());
             }
         }
@@ -80,7 +85,7 @@ mod interop {
 
     /// Solves Vehicle Routing Problem passed in `pragmatic` format.
     #[no_mangle]
-    extern "C" fn solve(
+    extern "C" fn solve_pragmatic(
         problem: *const c_char,
         matrices: *const *const c_char,
         matrices_len: *const i32,
@@ -91,7 +96,9 @@ mod interop {
         let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
         let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
 
-        let result = get_solution_serialized(problem, matrices);
+        let result = if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
+            .map_err(|errors| get_errors_serialized(&errors))
+            .and_then(|problem| get_solution_serialized(&Arc::new(problem)));
 
         match result {
             Ok(solution) => {
@@ -116,8 +123,42 @@ mod wasm {
     use super::*;
     use crate::json::problem::Matrix;
 
+    /// Returns a list of unique locations to request a routing matrix.
+    /// Problem should be passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn web_solve(problem: &JsValue, matrices: &JsValue) -> Result<JsValue, JsValue> {
+    pub fn get_routing_locations(problem: &JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem = problem
+            .into_serde()
+            .map_err(|err| JsValue::from_str(format!("Cannot read problem: '{}'", err).as_str()))?;
+
+        get_locations_serialized(&problem)
+            .map(|locations| JsValue::from_str(locations))
+            .map_err(|err| JsValue::from_str(format!("Cannot get locations: '{}'", err)))
+    }
+
+    /// Converts problem from format specified by `format` to `pragmatic` format.
+    #[wasm_bindgen]
+    pub fn convert_to_pragmatic(format: &String, inputs: &JsValue) -> Result<JsValue, JsValue> {
+        let inputs: Vec<String> =
+            inputs.into_serde().map_err(|err| JsValue::from_str(format!("Cannot read inputs: '{}'", err).as_str()))?;
+
+        let readers = inputs.iter().map(|input| BufReader::new(input.as_bytes())).collect();
+
+        match import_problem(format.as_str(), Some(readers)) {
+            Ok(problem) => {
+                let mut buffer = String::new();
+                let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+                serialize_problem(writer, &problem).unwrap();
+
+                Ok(JsValue::from_str(buffer))
+            }
+            Err(err) => Err(JsValue::from_str(format!("Cannot convert to pragmatic: '{}'", err))),
+        }
+    }
+
+    /// Solves Vehicle Routing Problem passed in `pragmatic` format.
+    #[wasm_bindgen]
+    pub fn solve_pragmatic(problem: &JsValue, matrices: &JsValue) -> Result<JsValue, JsValue> {
         let problem: Problem = problem
             .into_serde()
             .map_err(|err| JsValue::from_str(format!("Cannot read problem: '{}'", err).as_str()))?;
@@ -136,12 +177,9 @@ mod wasm {
             )?,
         );
 
-        let (solution, _, _) = SolverBuilder::default()
-            .build()
-            .solve(problem.clone())
-            .ok_or_else(|| JsValue::from_str("Cannot solve problem"))?;
-
-        Ok(JsValue::from_str(solution_to_string(problem.as_ref(), &solution).as_str()))
+        get_locations_serialized(&problem)
+            .map(|locations| JsValue::from_str(locations))
+            .map_err(|err| JsValue::from_str(format!("Cannot solve problem: '{}'", err)))
     }
 }
 
@@ -167,9 +205,7 @@ fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn Write>> {
     }
 }
 
-fn get_locations_serialized<R: Read>(problem: BufReader<R>) -> Result<String, String> {
-    let problem = deserialize_problem(problem).map_err(|errors| get_errors_serialized(&errors))?;
-
+fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     // TODO validate the problem?
 
     let locations = get_unique_locations(&problem);
@@ -180,12 +216,7 @@ fn get_locations_serialized<R: Read>(problem: BufReader<R>) -> Result<String, St
     Ok(buffer)
 }
 
-fn get_solution_serialized(problem: String, matrices: Vec<String>) -> Result<String, String> {
-    let problem = Arc::new(
-        if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-            .map_err(|errors| get_errors_serialized(&errors))?,
-    );
-
+fn get_solution_serialized(problem: &Arc<CoreProblem>) -> Result<String, String> {
     let (solution, _, _) =
         SolverBuilder::default().build().solve(problem.clone()).ok_or_else(|| "Cannot solve problem".to_string())?;
 
@@ -199,13 +230,3 @@ fn get_solution_serialized(problem: String, matrices: Vec<String>) -> Result<Str
 pub fn get_errors_serialized(errors: &Vec<FormatError>) -> String {
     errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n")
 }
-
-/*
-fn solution_to_string(problem: &CoreProblem, solution: &CoreSolution) -> String {
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    solution.write_pragmatic_json(&problem, writer).ok();
-
-    buffer
-}
-*/
