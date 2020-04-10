@@ -1,6 +1,7 @@
 //! An examples of **Vehicle Routing Problem** solver usage.
 
 use std::fs::File;
+use std::io::BufReader;
 use std::sync::Arc;
 use vrp_pragmatic::json::problem::PragmaticProblem;
 use vrp_solver::SolverBuilder;
@@ -31,12 +32,14 @@ fn run_examples(base_path: &str) {
     ];
 
     for (name, matrices) in names {
-        let problem = open_file(format!["{}/{}.problem.json", base_path, name].as_str());
+        let problem = BufReader::new(open_file(format!["{}/{}.problem.json", base_path, name].as_str()));
 
         let problem = Arc::new(
             if let Some(matrices) = matrices {
-                let matrices =
-                    matrices.iter().map(|path| open_file(format!["{}/{}.json", base_path, path].as_str())).collect();
+                let matrices = matrices
+                    .iter()
+                    .map(|path| BufReader::new(open_file(format!["{}/{}.json", base_path, path].as_str())))
+                    .collect();
                 (problem, matrices).read_pragmatic()
             } else {
                 problem.read_pragmatic()

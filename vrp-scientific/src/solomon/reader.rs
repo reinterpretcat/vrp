@@ -4,7 +4,6 @@ mod reader_test;
 
 use crate::common::*;
 use crate::utils::MatrixFactory;
-use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
@@ -19,17 +18,17 @@ pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, Str
 
 /// A trait read write solomon problem.
 pub trait SolomonProblem {
-    fn read_solomon(&self) -> Result<Problem, String>;
+    fn read_solomon(self) -> Result<Problem, String>;
 }
 
-impl SolomonProblem for File {
-    fn read_solomon(&self) -> Result<Problem, String> {
-        read_solomon_format(BufReader::new(self))
+impl<R: Read> SolomonProblem for BufReader<R> {
+    fn read_solomon(self) -> Result<Problem, String> {
+        read_solomon_format(self)
     }
 }
 
 impl SolomonProblem for String {
-    fn read_solomon(&self) -> Result<Problem, String> {
+    fn read_solomon(self) -> Result<Problem, String> {
         read_solomon_format(BufReader::new(self.as_bytes()))
     }
 }

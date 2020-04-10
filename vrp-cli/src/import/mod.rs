@@ -7,4 +7,5 @@ mod app;
 pub use self::app::get_import_app;
 
 mod command;
+pub use self::command::import_problem;
 pub use self::command::run_import;

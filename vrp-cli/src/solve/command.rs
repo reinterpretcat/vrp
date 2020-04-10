@@ -32,7 +32,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    problem.read_solomon()
+                    BufReader::new(problem).read_solomon()
                 })),
                 InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
                 SolutionWriter(Box::new(|_, solution, writer, _| solution.write_solomon(writer))),
@@ -44,7 +44,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    problem.read_lilim()
+                    BufReader::new(problem).read_lilim()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
                 SolutionWriter(Box::new(|_, solution, writer, _| solution.write_lilim(writer))),
@@ -56,10 +56,11 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
                     if let Some(matrices) = matrices {
-                        (problem, matrices).read_pragmatic()
+                        let matrices = matrices.into_iter().map(|m| BufReader::new(m)).collect();
+                        (BufReader::new(problem), matrices).read_pragmatic()
                     } else {
                         println!("configured to use single approximated routing matrix");
-                        problem.read_pragmatic()
+                        BufReader::new(problem).read_pragmatic()
                     }
                     .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
                 })),
@@ -71,7 +72,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                 })),
                 LocationWriter(Box::new(|problem, writer| {
                     let mut writer = writer;
-                    vrp_pragmatic::get_locations_serialized(BufReader::new(problem))
+                    get_locations_serialized(BufReader::new(problem))
                         .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
                 })),
             ),

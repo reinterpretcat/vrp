@@ -21,10 +21,9 @@ use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::json::*;
 use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
-use crate::{get_locations, parse_time};
+use crate::{get_unique_locations, parse_time};
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
@@ -40,22 +39,22 @@ pub trait PragmaticProblem {
     fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>>;
 }
 
-impl PragmaticProblem for (File, Vec<File>) {
+impl<R: Read> PragmaticProblem for (BufReader<R>, Vec<BufReader<R>>) {
     fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
-        let problem = deserialize_problem(BufReader::new(&self.0))?;
+        let problem = deserialize_problem(self.0)?;
 
         let mut matrices = vec![];
         for matrix in self.1 {
-            matrices.push(deserialize_matrix(BufReader::new(matrix))?);
+            matrices.push(deserialize_matrix(matrix)?);
         }
 
         map_to_problem(problem, matrices)
     }
 }
 
-impl PragmaticProblem for File {
+impl<R: Read> PragmaticProblem for BufReader<R> {
     fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
-        let problem = deserialize_problem(BufReader::new(&self))?;
+        let problem = deserialize_problem(self)?;
 
         map_to_problem_with_approx(problem)
     }
@@ -135,7 +134,7 @@ impl std::fmt::Display for FormatError {
 }
 
 fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<FormatError>> {
-    let locations = get_locations(&problem);
+    let locations = get_unique_locations(&problem);
     let (durations, distances) = get_approx_transportation(&locations, 10.);
 
     let durations = durations.into_iter().map(|d| d.round() as i64).collect::<Vec<_>>();

@@ -5,7 +5,6 @@ mod reader_test;
 use crate::common::*;
 use crate::utils::MatrixFactory;
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Demand, DemandDimension};
@@ -14,24 +13,20 @@ use vrp_core::models::problem::*;
 use vrp_core::models::Problem;
 use vrp_core::utils::TryCollect;
 
-pub fn read_lilim_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
-    LilimReader { buffer: String::new(), reader, matrix: MatrixFactory::default() }.read_problem()
-}
-
 /// A trait to read lilim problem.
 pub trait LilimProblem {
-    fn read_lilim(&self) -> Result<Problem, String>;
+    fn read_lilim(self) -> Result<Problem, String>;
 }
 
-impl LilimProblem for File {
-    fn read_lilim(&self) -> Result<Problem, String> {
-        read_lilim_format(BufReader::new(self))
+impl<R: Read> LilimProblem for BufReader<R> {
+    fn read_lilim(self) -> Result<Problem, String> {
+        LilimReader { buffer: String::new(), reader: self, matrix: MatrixFactory::default() }.read_problem()
     }
 }
 
 impl LilimProblem for String {
-    fn read_lilim(&self) -> Result<Problem, String> {
-        read_lilim_format(BufReader::new(self.as_bytes()))
+    fn read_lilim(self) -> Result<Problem, String> {
+        BufReader::new(self.as_bytes()).read_lilim()
     }
 }
 

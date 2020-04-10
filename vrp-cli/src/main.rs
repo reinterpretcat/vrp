@@ -1,19 +1,10 @@
 //! A command line interface to *Vehicle Routing Problem* solver.
 //!
 
-mod import;
-use self::import::get_import_app;
-use self::import::run_import;
-
-mod solve;
-use self::solve::get_solve_app;
-use self::solve::run_solve;
-
-extern crate clap;
-use clap::{App, Arg, ArgMatches, Values};
-use std::fs::File;
-use std::io::{stdout, BufWriter, Write};
+use clap::App;
 use std::process;
+use vrp_cli::import::{get_import_app, run_import};
+use vrp_cli::solve::{get_solve_app, run_solve};
 
 fn main() {
     let matches = App::new("Vehicle Routing Problem Solver")
@@ -27,29 +18,10 @@ fn main() {
     match matches.subcommand() {
         ("solve", Some(solve_matches)) => run_solve(solve_matches),
         ("import", Some(import_matches)) => run_import(import_matches),
-        ("", None) => eprintln!("No subcommand was used. Use -h to print help information."),
+        ("", None) => {
+            eprintln!("No subcommand was used. Use -h to print help information.");
+            process::exit(1);
+        }
         _ => unreachable!(),
-    }
-}
-
-fn open_file(path: &str, description: &str) -> File {
-    File::open(path).unwrap_or_else(|err| {
-        eprintln!("Cannot open {} file '{}': '{}'", description, path, err.to_string());
-        process::exit(1);
-    })
-}
-
-fn create_file(path: &str, description: &str) -> File {
-    File::create(path).unwrap_or_else(|err| {
-        eprintln!("Cannot create {} file '{}': '{}'", description, path, err.to_string());
-        process::exit(1);
-    })
-}
-
-fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn Write>> {
-    if let Some(out_file) = out_file {
-        BufWriter::new(Box::new(out_file))
-    } else {
-        BufWriter::new(Box::new(stdout()))
     }
 }
