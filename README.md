@@ -58,12 +58,12 @@ Please refer to crate docs for more details.
 
 ## Use from code
 
-If you're using rust, then you can simply use `vrp-solver`, `vrp-scientific`, `vrp-pragmatic` crates to solve VRP problem
+If you're using rust, then you can simply use `vrp-scientific`, `vrp-pragmatic` crates to solve VRP problem
 defined in 'pragmatic' or 'scientific' format using default metaheuristic. For more complex scenarios, please refer to
 `vrp-core` documentation.
 
-If you're using some other language, e.g java, please check `examples` to see how to call the library from it.
-Additionally, `vrp-pragmatic` crate can be build into `WebAssembly` and then used from modern web browser.
+If you're using some other language, e.g java, kotlin, javascript, please check `examples` section to see how to call
+the library from it.
 
 
 # Status

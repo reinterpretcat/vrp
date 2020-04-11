@@ -48,3 +48,4 @@
   * [Language interop](examples/interop/index.md)
     * [Java](examples/interop/java.md)
     * [Kotlin](examples/interop/kotlin.md)
+    * [Javascript](examples/interop/javascript.md)

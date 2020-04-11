@@ -4,6 +4,7 @@ pub mod import;
 pub mod solve;
 
 extern crate clap;
+use crate::import::import_problem;
 use clap::{App, Arg, ArgMatches, Values};
 use std::fs::File;
 use std::io::{stdout, BufReader, BufWriter, Write};
@@ -11,18 +12,16 @@ use std::process;
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_pragmatic::get_unique_locations;
-use vrp_pragmatic::json::problem::{deserialize_problem, FormatError, PragmaticProblem, Problem};
+use vrp_pragmatic::json::problem::{deserialize_problem, serialize_problem, FormatError, PragmaticProblem, Problem};
 use vrp_pragmatic::json::solution::PragmaticSolution;
 use vrp_solver::SolverBuilder;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod interop {
     use super::*;
-    use crate::import::import_problem;
     use std::ffi::{CStr, CString};
     use std::os::raw::c_char;
     use std::slice;
-    use vrp_pragmatic::json::problem::serialize_problem;
 
     type Callback = extern "C" fn(*const c_char);
 
@@ -121,7 +120,7 @@ mod wasm {
     use wasm_bindgen::prelude::*;
 
     use super::*;
-    use crate::json::problem::Matrix;
+    use vrp_pragmatic::json::problem::Matrix;
 
     /// Returns a list of unique locations to request a routing matrix.
     /// Problem should be passed in `pragmatic` format.
@@ -132,27 +131,27 @@ mod wasm {
             .map_err(|err| JsValue::from_str(format!("Cannot read problem: '{}'", err).as_str()))?;
 
         get_locations_serialized(&problem)
-            .map(|locations| JsValue::from_str(locations))
-            .map_err(|err| JsValue::from_str(format!("Cannot get locations: '{}'", err)))
+            .map(|locations| JsValue::from_str(locations.as_str()))
+            .map_err(|err| JsValue::from_str(format!("Cannot get locations: '{}'", err).as_str()))
     }
 
     /// Converts problem from format specified by `format` to `pragmatic` format.
     #[wasm_bindgen]
-    pub fn convert_to_pragmatic(format: &String, inputs: &JsValue) -> Result<JsValue, JsValue> {
+    pub fn convert_to_pragmatic(format: &str, inputs: &JsValue) -> Result<JsValue, JsValue> {
         let inputs: Vec<String> =
             inputs.into_serde().map_err(|err| JsValue::from_str(format!("Cannot read inputs: '{}'", err).as_str()))?;
 
         let readers = inputs.iter().map(|input| BufReader::new(input.as_bytes())).collect();
 
-        match import_problem(format.as_str(), Some(readers)) {
+        match import_problem(format, Some(readers)) {
             Ok(problem) => {
                 let mut buffer = String::new();
                 let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
                 serialize_problem(writer, &problem).unwrap();
 
-                Ok(JsValue::from_str(buffer))
+                Ok(JsValue::from_str(buffer.as_str()))
             }
-            Err(err) => Err(JsValue::from_str(format!("Cannot convert to pragmatic: '{}'", err))),
+            Err(err) => Err(JsValue::from_str(format!("Cannot convert to pragmatic: '{}'", err).as_str())),
         }
     }
 
@@ -177,9 +176,9 @@ mod wasm {
             )?,
         );
 
-        get_locations_serialized(&problem)
-            .map(|locations| JsValue::from_str(locations))
-            .map_err(|err| JsValue::from_str(format!("Cannot solve problem: '{}'", err)))
+        get_solution_serialized(&problem)
+            .map(|problem| JsValue::from_str(problem.as_str()))
+            .map_err(|err| JsValue::from_str(format!("Cannot solve problem: '{}'", err).as_str()))
     }
 }
 
