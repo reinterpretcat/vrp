@@ -6,7 +6,7 @@ This is example how to call solver methods from **javascript** in browser. You n
     cd vrp-cli
     wasm-pack build --target web
 
-It should generate `wasm` build + some javascripts for you. To test it, use the following index.html file:
+It should generate `wasm` build + some javascript files for you. To test it, use the following index.html file:
 
 ```html
 <html>
@@ -34,8 +34,8 @@ It should generate `wasm` build + some javascripts for you. To test it, use the 
         "places": {
           "delivery": {
             "location": {
-              "lat": 52.4959052,
-              "lng": 13.3539713
+              "lat": 52.52599,
+              "lng": 13.45413
             },
             "duration": 300
           }
@@ -58,15 +58,15 @@ It should generate `wasm` build + some javascripts for you. To test it, use the 
           "start": {
             "time": "2020-04-07T00:00:00Z",
             "location": {
-              "lat": 52.4664257,
-              "lng": 13.2812488
+              "lat": 52.5225,
+              "lng": 13.4095
             }
           },
           "end": {
             "time": "2020-04-07T08:00:00Z",
             "location": {
-              "lat": 52.4664257,
-              "lng": 13.2812488
+              "lat": 52.5225,
+              "lng": 13.4095
             }
           }
         }],
@@ -89,7 +89,22 @@ It should generate `wasm` build + some javascripts for you. To test it, use the 
         const locations = get_routing_locations(pragmatic_problem);
         console.log(`routing locations are:\n ${locations}`);
 
-        const solution = solve_pragmatic(pragmatic_problem, []);
+        // NOTE let's assume we got routing matrix data for locations somehow
+        // NOTE or just pass an empty array to use great circle approximation
+        const matrix_data= [
+            {
+                "profile": "normal_car",
+                "travelTimes": [
+                    0, 609,
+                    580, 0
+                ],
+                "distances": [
+                    0, 3840,
+                    3610, 0
+                ]
+            }
+        ];
+        const solution = solve_pragmatic(pragmatic_problem, matrix_data);
         console.log(`solution is:\n ${solution}`);
     }
 
@@ -98,5 +113,3 @@ It should generate `wasm` build + some javascripts for you. To test it, use the 
 </body>
 </html>
 ```
-
-Please refer to `wasm-pack` documentation for all available options.
