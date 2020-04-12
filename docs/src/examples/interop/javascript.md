@@ -1,7 +1,7 @@
 # Javascript
 
 This is example how to call solver methods from **javascript** in browser. You need to build `vrp-cli` library for
-`WebAssembly` target. To do this, you can use `wasm-pack`:
+`WebAssembly` target. To do this, you can use [wasm-pack](https://rustwasm.github.io/wasm-pack/installer):
 
     cd vrp-cli
     wasm-pack build --target web
@@ -90,7 +90,7 @@ It should generate `wasm` build + some javascript files for you. To test it, use
         console.log(`routing locations are:\n ${locations}`);
 
         // NOTE let's assume we got routing matrix data for locations somehow
-        // NOTE or just pass an empty array to use great circle approximation
+        // NOTE or just pass an empty array to use great-circle distance approximation
         const matrix_data= [
             {
                 "profile": "normal_car",
