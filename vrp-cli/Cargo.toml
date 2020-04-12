@@ -1,6 +1,6 @@
 [package]
 name = "vrp-cli"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -16,10 +16,10 @@ name = "vrp_cli"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-vrp-core = { path = "../vrp-core", version = "1.0.0" }
-vrp-scientific = { path = "../vrp-scientific", version = "1.0.0" }
-vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.0.0" }
-vrp-solver = { path = "../vrp-solver", version = "1.0.0" }
+vrp-core = { path = "../vrp-core", version = "1.0.1" }
+vrp-scientific = { path = "../vrp-scientific", version = "1.0.1" }
+vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.0.1" }
+vrp-solver = { path = "../vrp-solver", version = "1.0.1" }
 
 clap = "2.33.0"
 csv = "1.1.3"
