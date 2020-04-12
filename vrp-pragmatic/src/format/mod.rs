@@ -72,7 +72,8 @@ const LOCKING_CONSTRAINT_CODE: i32 = 7;
 const REACHABLE_CONSTRAINT_CODE: i32 = 8;
 const PRIORITY_CONSTRAINT_CODE: i32 = 9;
 
-pub mod coord_index;
+mod coord_index;
+pub use self::coord_index::CoordIndex;
 
 pub mod problem;
 pub mod solution;

@@ -1,5 +1,5 @@
-use crate::format::coord_index::CoordIndex;
 use crate::format::problem::*;
+use crate::format::CoordIndex;
 use crate::format_time;
 use crate::helpers::ToLocation;
 

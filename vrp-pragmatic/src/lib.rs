@@ -30,9 +30,8 @@ mod validation;
 
 pub mod format;
 
-use crate::format::coord_index::CoordIndex;
 use crate::format::problem::Problem;
-use crate::format::Location;
+use crate::format::{CoordIndex, Location};
 use chrono::{DateTime, ParseError, SecondsFormat, TimeZone, Utc};
 
 /// Get lists of problem.
