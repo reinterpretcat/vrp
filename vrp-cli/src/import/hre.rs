@@ -4,8 +4,8 @@ extern crate serde_json;
 
 use serde::{Deserialize, Serialize};
 use std::io::{BufReader, Read};
-use vrp_pragmatic::json::problem::*;
-use vrp_pragmatic::json::{FormatError, Location};
+use vrp_pragmatic::format::problem::*;
+use vrp_pragmatic::format::{FormatError, Location};
 
 mod hre {
     use super::*;

@@ -1,7 +1,7 @@
+use crate::format::problem::*;
+use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
-use crate::json::problem::*;
-use crate::json::solution::*;
 
 #[test]
 fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {

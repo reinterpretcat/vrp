@@ -3,7 +3,7 @@
 mod objectives_test;
 
 use super::*;
-use crate::json::problem::Objective::*;
+use crate::format::problem::Objective::*;
 use std::collections::HashMap;
 
 /// Checks that objective is not empty when specified.

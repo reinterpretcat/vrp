@@ -1,5 +1,5 @@
 use super::*;
-use crate::json::problem::*;
+use crate::format::problem::*;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::RwLock;

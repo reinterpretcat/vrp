@@ -1,6 +1,6 @@
 use crate::extensions::MultiDimensionalCapacity;
+use crate::format::problem::*;
 use crate::helpers::{create_default_profiles, single_demand_as_multi, ToLocation, SIMPLE_MATRIX, SIMPLE_PROBLEM};
-use crate::json::problem::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;

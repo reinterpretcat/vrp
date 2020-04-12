@@ -3,7 +3,7 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;
-use vrp_pragmatic::json::problem::PragmaticProblem;
+use vrp_pragmatic::format::problem::PragmaticProblem;
 use vrp_solver::SolverBuilder;
 
 fn main() {

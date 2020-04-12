@@ -1,6 +1,6 @@
 use super::*;
-use crate::json::problem::*;
-use crate::json::Location;
+use crate::format::problem::*;
+use crate::format::Location;
 use std::ops::Range;
 use uuid::Uuid;
 

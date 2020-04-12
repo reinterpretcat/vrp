@@ -1,7 +1,7 @@
 //! A helper module for processing geo coordinates in problem and solution.
 
-use crate::json::problem::Problem;
-use crate::json::Location;
+use crate::format::problem::Problem;
+use crate::format::Location;
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};

@@ -1,6 +1,6 @@
 use crate::checker::solve_and_check;
+use crate::format::problem::*;
 use crate::generator::*;
-use crate::json::problem::*;
 
 use proptest::prelude::*;
 

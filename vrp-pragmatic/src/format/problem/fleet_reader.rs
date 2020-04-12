@@ -1,7 +1,7 @@
 use crate::extensions::{create_typed_actor_groups, MultiDimensionalCapacity};
-use crate::json::coord_index::CoordIndex;
-use crate::json::problem::reader::{add_skills, ApiProblem, ProblemProperties};
-use crate::json::problem::Matrix;
+use crate::format::coord_index::CoordIndex;
+use crate::format::problem::reader::{add_skills, ApiProblem, ProblemProperties};
+use crate::format::problem::Matrix;
 use crate::parse_time;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;

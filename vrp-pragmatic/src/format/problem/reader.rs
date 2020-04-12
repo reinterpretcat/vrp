@@ -16,9 +16,9 @@ use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;
 use crate::constraints::*;
 use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
-use crate::json::coord_index::CoordIndex;
-use crate::json::problem::{deserialize_matrix, deserialize_problem, Matrix};
-use crate::json::*;
+use crate::format::coord_index::CoordIndex;
+use crate::format::problem::{deserialize_matrix, deserialize_problem, Matrix};
+use crate::format::*;
 use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
 use crate::{get_unique_locations, parse_time};
@@ -31,7 +31,7 @@ use vrp_core::models::common::{Dimensions, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 
-pub type ApiProblem = crate::json::problem::Problem;
+pub type ApiProblem = crate::format::problem::Problem;
 pub type JobIndex = HashMap<String, Job>;
 
 /// Reads specific problem definition from various sources.

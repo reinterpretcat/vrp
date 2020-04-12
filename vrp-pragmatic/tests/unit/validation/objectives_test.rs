@@ -1,6 +1,6 @@
 use super::*;
+use crate::format::problem::Objective::*;
 use crate::helpers::create_empty_problem;
-use crate::json::problem::Objective::*;
 
 fn min_cost() -> Objective {
     MinimizeCost { goal: None, tolerance: None }

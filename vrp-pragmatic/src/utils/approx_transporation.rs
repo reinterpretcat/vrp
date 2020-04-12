@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/utils/approx_transportation_test.rs"]
 mod approx_transportation_test;
 
-use crate::json::Location;
+use crate::format::Location;
 
 /// Gets approximated durations and distances.
 pub fn get_approx_transportation(locations: &Vec<Location>, speed: f64) -> (Vec<f64>, Vec<f64>) {

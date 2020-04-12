@@ -1,7 +1,7 @@
+use crate::format::coord_index::CoordIndex;
+use crate::format::problem::*;
 use crate::format_time;
 use crate::helpers::ToLocation;
-use crate::json::coord_index::CoordIndex;
-use crate::json::problem::*;
 
 pub fn create_job_place(location: Vec<f64>) -> JobPlace {
     JobPlace { times: None, location: location.to_loc(), duration: 1. }

@@ -1,5 +1,5 @@
-use crate::json::problem::{Matrix, PragmaticProblem, Problem};
-use crate::json::solution::{create_solution, Solution};
+use crate::format::problem::{Matrix, PragmaticProblem, Problem};
+use crate::format::solution::{create_solution, Solution};
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;

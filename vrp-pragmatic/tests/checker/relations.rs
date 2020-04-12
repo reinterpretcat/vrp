@@ -114,7 +114,7 @@ mod tests {
 
     mod single {
         use super::*;
-        use crate::json::solution::Tour as VehicleTour;
+        use crate::format::solution::Tour as VehicleTour;
         use RelationType::{Any, Sequence, Strict};
 
         fn create_relation(job_ids: Vec<&str>, relation_type: RelationType) -> Relation {

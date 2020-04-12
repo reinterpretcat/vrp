@@ -1,8 +1,8 @@
 use crate::extensions::MultiDimensionalCapacity;
-use crate::json::coord_index::CoordIndex;
-use crate::json::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
-use crate::json::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleReload, VehicleType};
-use crate::json::Location;
+use crate::format::coord_index::CoordIndex;
+use crate::format::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
+use crate::format::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleReload, VehicleType};
+use crate::format::Location;
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;

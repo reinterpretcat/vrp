@@ -1,8 +1,8 @@
 use crate::constraints::WorkBalance;
 use crate::extensions::MultiDimensionalCapacity;
-use crate::json::problem::reader::{ApiProblem, ProblemProperties};
-use crate::json::problem::Objective::*;
-use crate::json::problem::*;
+use crate::format::problem::reader::{ApiProblem, ProblemProperties};
+use crate::format::problem::Objective::*;
+use crate::format::problem::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintModule, ConstraintPipeline, FleetUsageConstraintModule};
 use vrp_core::refinement::objectives::Objective as CoreObjective;

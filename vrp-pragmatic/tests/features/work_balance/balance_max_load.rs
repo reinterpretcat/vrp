@@ -1,6 +1,6 @@
+use crate::format::problem::Objective::*;
+use crate::format::problem::*;
 use crate::helpers::*;
-use crate::json::problem::Objective::*;
-use crate::json::problem::*;
 
 #[test]
 fn can_balance_max_load() {

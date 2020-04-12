@@ -1,10 +1,10 @@
 //! This module provides functionality to automatically check that given solution is feasible
 //! which means that there is no constraint violations.
 
+use crate::format::problem::*;
+use crate::format::solution::*;
+use crate::format::Location;
 use crate::helpers::*;
-use crate::json::problem::*;
-use crate::json::solution::*;
-use crate::json::Location;
 use crate::parse_time;
 use std::collections::HashMap;
 use vrp_core::models::common::TimeWindow;

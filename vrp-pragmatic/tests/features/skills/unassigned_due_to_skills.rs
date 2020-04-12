@@ -1,6 +1,6 @@
+use crate::format::problem::*;
+use crate::format::solution::*;
 use crate::helpers::*;
-use crate::json::problem::*;
-use crate::json::solution::*;
 
 #[test]
 fn can_have_unassigned_due_to_missing_vehicle_skill() {

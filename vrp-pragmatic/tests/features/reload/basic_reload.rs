@@ -1,7 +1,7 @@
+use crate::format::problem::*;
+use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
-use crate::json::problem::*;
-use crate::json::solution::*;
 
 parameterized_test! {can_use_vehicle_with_two_tours_and_two_jobs, (jobs, unassigned), {
     can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs, unassigned);

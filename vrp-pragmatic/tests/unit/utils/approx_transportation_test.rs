@@ -1,5 +1,5 @@
 use super::*;
-use crate::json::Location;
+use crate::format::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData};
 
 #[test]

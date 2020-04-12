@@ -10,7 +10,7 @@ use super::app::*;
 use super::*;
 
 use std::io::{BufReader, Read};
-use vrp_pragmatic::json::problem::{serialize_problem, Problem};
+use vrp_pragmatic::format::problem::{serialize_problem, Problem};
 
 pub fn run_import(matches: &ArgMatches) {
     let input_format = matches.value_of(FORMAT_ARG_NAME).unwrap();

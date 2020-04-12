@@ -1,4 +1,4 @@
-use crate::json::Location;
+use crate::format::Location;
 use serde::Serialize;
 use serde_json::Error;
 use std::io::{BufWriter, Write};

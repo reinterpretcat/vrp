@@ -11,10 +11,10 @@ use std::io::{stdout, BufReader, BufWriter, Write};
 use std::process;
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
+use vrp_pragmatic::format::problem::{deserialize_problem, serialize_problem, PragmaticProblem, Problem};
+use vrp_pragmatic::format::solution::PragmaticSolution;
+use vrp_pragmatic::format::FormatError;
 use vrp_pragmatic::get_unique_locations;
-use vrp_pragmatic::json::problem::{deserialize_problem, serialize_problem, PragmaticProblem, Problem};
-use vrp_pragmatic::json::solution::PragmaticSolution;
-use vrp_pragmatic::json::FormatError;
 use vrp_solver::SolverBuilder;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -118,7 +118,7 @@ mod wasm {
     use wasm_bindgen::prelude::*;
 
     use super::*;
-    use vrp_pragmatic::json::problem::Matrix;
+    use vrp_pragmatic::format::problem::Matrix;
 
     /// Returns a list of unique locations to request a routing matrix.
     /// Problem should be passed in `pragmatic` format.

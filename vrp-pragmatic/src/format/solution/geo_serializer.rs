@@ -1,5 +1,5 @@
 use super::Solution;
-use crate::json::solution::{Stop, Tour};
+use crate::format::solution::{Stop, Tour};
 use serde::Serialize;
 use serde_json::Error;
 use std::collections::HashMap;

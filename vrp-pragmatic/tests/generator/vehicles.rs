@@ -1,7 +1,7 @@
 use super::uuid::Uuid;
 use super::*;
-use crate::json::problem::*;
-use crate::json::Location;
+use crate::format::problem::*;
+use crate::format::Location;
 use core::ops::Range;
 
 prop_compose! {

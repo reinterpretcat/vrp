@@ -1,5 +1,5 @@
 use super::*;
-use crate::json::Location;
+use crate::format::Location;
 use crate::{format_time, parse_time};
 use std::cmp::Ordering::Less;
 use std::ops::Range;

@@ -1,7 +1,7 @@
+use crate::format::problem::Objective::*;
+use crate::format::problem::*;
+use crate::format::solution::Tour;
 use crate::helpers::*;
-use crate::json::problem::Objective::*;
-use crate::json::problem::*;
-use crate::json::solution::Tour;
 
 fn get_activities_count(tour: &Tour) -> usize {
     tour.stops

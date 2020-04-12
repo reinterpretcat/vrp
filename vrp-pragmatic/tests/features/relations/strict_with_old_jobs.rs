@@ -1,6 +1,6 @@
+use crate::format::problem::*;
+use crate::format::solution::*;
 use crate::helpers::*;
-use crate::json::problem::*;
-use crate::json::solution::*;
 
 #[test]
 fn can_use_two_strict_relations_with_two_vehicles_without_new_jobs() {

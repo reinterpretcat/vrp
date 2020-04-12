@@ -28,4 +28,4 @@ pub use self::problem::*;
 
 pub mod solution;
 pub use self::solution::*;
-use crate::json::Location;
+use crate::format::Location;

@@ -1,5 +1,5 @@
+use crate::format::solution::{Activity, Schedule, Solution, Stop};
 use crate::helpers::ToLocation;
-use crate::json::solution::{Activity, Schedule, Solution, Stop};
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
 

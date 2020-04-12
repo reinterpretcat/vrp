@@ -28,11 +28,11 @@ mod extensions;
 mod utils;
 mod validation;
 
-pub mod json;
+pub mod format;
 
-use crate::json::coord_index::CoordIndex;
-use crate::json::problem::Problem;
-use crate::json::Location;
+use crate::format::coord_index::CoordIndex;
+use crate::format::problem::Problem;
+use crate::format::Location;
 use chrono::{DateTime, ParseError, SecondsFormat, TimeZone, Utc};
 
 /// Get lists of problem.

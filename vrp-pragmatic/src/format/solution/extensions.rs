@@ -1,4 +1,4 @@
-use crate::json::solution::{Statistic, Timing};
+use crate::format::solution::{Statistic, Timing};
 use std::ops::Add;
 
 impl Default for Statistic {

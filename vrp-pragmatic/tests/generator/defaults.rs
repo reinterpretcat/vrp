@@ -1,8 +1,8 @@
 //! This module provides default strategies.
 
 use super::*;
-use crate::json::problem::*;
-use crate::json::Location;
+use crate::format::problem::*;
+use crate::format::Location;
 use crate::{format_time, parse_time};
 
 pub const START_DAY: &str = "2020-07-04T00:00:00Z";

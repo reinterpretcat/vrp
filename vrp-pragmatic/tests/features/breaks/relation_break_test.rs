@@ -1,7 +1,7 @@
+use crate::format::problem::*;
+use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
-use crate::json::problem::*;
-use crate::json::solution::*;
 
 fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
     let problem = Problem {

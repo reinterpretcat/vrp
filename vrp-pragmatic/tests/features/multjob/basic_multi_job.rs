@@ -1,6 +1,6 @@
+use crate::format::problem::*;
+use crate::format::solution::*;
 use crate::helpers::*;
-use crate::json::problem::*;
-use crate::json::solution::*;
 
 #[test]
 fn can_assign_multi_and_single_job_as_pickups_specified() {
