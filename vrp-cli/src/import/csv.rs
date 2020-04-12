@@ -14,7 +14,7 @@ use std::error::Error;
 use std::io::{BufReader, Read};
 use std::ops::Deref;
 use vrp_pragmatic::json::problem::*;
-use vrp_pragmatic::json::Location;
+use vrp_pragmatic::json::{FormatError, Location};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]

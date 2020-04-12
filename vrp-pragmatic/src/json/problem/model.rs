@@ -4,8 +4,7 @@ mod deserializer_test;
 
 extern crate serde_json;
 
-use crate::json::problem::FormatError;
-use crate::json::Location;
+use crate::json::{FormatError, Location};
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use std::io::{BufReader, Read};

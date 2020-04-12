@@ -12,8 +12,9 @@ use std::process;
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_pragmatic::get_unique_locations;
-use vrp_pragmatic::json::problem::{deserialize_problem, serialize_problem, FormatError, PragmaticProblem, Problem};
+use vrp_pragmatic::json::problem::{deserialize_problem, serialize_problem, PragmaticProblem, Problem};
 use vrp_pragmatic::json::solution::PragmaticSolution;
+use vrp_pragmatic::json::FormatError;
 use vrp_solver::SolverBuilder;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -30,6 +31,19 @@ mod interop {
         std::str::from_utf8(slice).unwrap().to_string()
     }
 
+    fn call_back(result: Result<String, String>, success: Callback, failure: Callback) {
+        match result {
+            Ok(ok) => {
+                let ok = CString::new(ok.as_bytes()).unwrap();
+                success(ok.as_ptr());
+            }
+            Err(err) => {
+                let error = CString::new(err.as_bytes()).unwrap();
+                failure(error.as_ptr());
+            }
+        };
+    }
+
     /// Returns a list of unique locations to request a routing matrix.
     /// Problem should be passed in `pragmatic` format.
     #[no_mangle]
@@ -40,16 +54,7 @@ mod interop {
             .map_err(|errors| get_errors_serialized(&errors))
             .and_then(|problem| get_locations_serialized(&problem));
 
-        match result {
-            Ok(locations) => {
-                let locations = CString::new(locations.as_bytes()).unwrap();
-                success(locations.as_ptr());
-            }
-            Err(err) => {
-                let error = CString::new(format!("Cannot get locations: '{}'", err).as_bytes()).unwrap();
-                failure(error.as_ptr());
-            }
-        };
+        call_back(result, success, failure);
     }
 
     /// Converts problem from format specified by `format` to `pragmatic` format.
@@ -76,7 +81,7 @@ mod interop {
                 success(problem.as_ptr());
             }
             Err(err) => {
-                let error = CString::new(format!("Cannot convert to pragmatic: '{}'", err).as_bytes()).unwrap();
+                let error = CString::new(err.as_bytes()).unwrap();
                 failure(error.as_ptr());
             }
         }
@@ -101,16 +106,7 @@ mod interop {
             .map_err(|errors| get_errors_serialized(&errors))
             .and_then(|problem| get_solution_serialized(&Arc::new(problem), generations as i32, max_time as i32));
 
-        match result {
-            Ok(solution) => {
-                let solution = CString::new(solution.as_bytes()).unwrap();
-                success(solution.as_ptr());
-            }
-            Err(err) => {
-                let error = CString::new(format!("Cannot solve: '{}'", err).as_bytes()).unwrap();
-                failure(error.as_ptr());
-            }
-        };
+        call_back(result, success, failure);
     }
 }
 
@@ -128,20 +124,17 @@ mod wasm {
     /// Problem should be passed in `pragmatic` format.
     #[wasm_bindgen]
     pub fn get_routing_locations(problem: &JsValue) -> Result<JsValue, JsValue> {
-        let problem: Problem = problem
-            .into_serde()
-            .map_err(|err| JsValue::from_str(format!("Cannot read problem: '{}'", err).as_str()))?;
+        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         get_locations_serialized(&problem)
             .map(|locations| JsValue::from_str(locations.as_str()))
-            .map_err(|err| JsValue::from_str(format!("Cannot get locations: '{}'", err).as_str()))
+            .map_err(|err| JsValue::from_str(err.to_string().as_str()))
     }
 
     /// Converts problem from format specified by `format` to `pragmatic` format.
     #[wasm_bindgen]
     pub fn convert_to_pragmatic(format: &str, inputs: &JsValue) -> Result<JsValue, JsValue> {
-        let inputs: Vec<String> =
-            inputs.into_serde().map_err(|err| JsValue::from_str(format!("Cannot read inputs: '{}'", err).as_str()))?;
+        let inputs: Vec<String> = inputs.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let readers = inputs.iter().map(|input| BufReader::new(input.as_bytes())).collect();
 
@@ -153,7 +146,7 @@ mod wasm {
 
                 Ok(JsValue::from_str(buffer.as_str()))
             }
-            Err(err) => Err(JsValue::from_str(format!("Cannot convert to pragmatic: '{}'", err).as_str())),
+            Err(err) => Err(JsValue::from_str(err.to_string().as_str())),
         }
     }
 
@@ -165,27 +158,21 @@ mod wasm {
         generations: i32,
         max_time: i32,
     ) -> Result<JsValue, JsValue> {
-        let problem: Problem = problem
-            .into_serde()
-            .map_err(|err| JsValue::from_str(format!("Cannot read problem: '{}'", err).as_str()))?;
+        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
-        let matrices: Vec<Matrix> = matrices
-            .into_serde()
-            .map_err(|err| JsValue::from_str(format!("Cannot read matrix array: '{}'", err).as_str()))?;
+        let matrices: Vec<Matrix> = matrices.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let problem = Arc::new(
             if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }.map_err(
                 |errors| {
-                    JsValue::from_str(
-                        errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n").as_str(),
-                    )
+                    JsValue::from_str(errors.iter().map(|err| err.to_json()).collect::<Vec<_>>().join("\n").as_str())
                 },
             )?,
         );
 
         get_solution_serialized(&problem, generations, max_time)
             .map(|problem| JsValue::from_str(problem.as_str()))
-            .map_err(|err| JsValue::from_str(format!("Cannot solve problem: '{}'", err).as_str()))
+            .map_err(|err| JsValue::from_str(err.as_str()))
     }
 }
 
@@ -228,7 +215,14 @@ fn get_solution_serialized(problem: &Arc<CoreProblem>, generations: i32, max_tim
         .with_max_time(Some(max_time as usize))
         .build()
         .solve(problem.clone())
-        .ok_or_else(|| "Cannot solve problem".to_string())?;
+        .ok_or_else(|| {
+            FormatError::new(
+                "E0003".to_string(),
+                "cannot find any solution".to_string(),
+                "please submit a bug and share original problem and routing matrix".to_string(),
+            )
+            .to_json()
+        })?;
 
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };

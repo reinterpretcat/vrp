@@ -5,5 +5,4 @@ mod model;
 pub use self::model::*;
 
 mod reader;
-pub use self::reader::FormatError;
 pub use self::reader::PragmaticProblem;

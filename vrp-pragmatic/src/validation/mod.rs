@@ -1,6 +1,7 @@
 //! This module provides functionality to validate problem definition for logical correctness.
 
 use crate::json::problem::*;
+use crate::json::FormatError;
 use std::collections::HashMap;
 
 pub struct ValidationContext<'a> {

@@ -102,37 +102,6 @@ pub struct ProblemProperties {
     has_priorities: bool,
 }
 
-/// A format error.
-#[derive(Clone, Debug)]
-pub struct FormatError {
-    /// An error code in registry.
-    pub code: String,
-    /// A possible error cause.
-    pub cause: String,
-    /// An action to take in order to recover from error.
-    pub action: String,
-    /// A details about exception.
-    pub details: Option<String>,
-}
-
-impl FormatError {
-    /// Creates a new instance of `FormatError` action without details.
-    pub fn new(code: String, cause: String, action: String) -> Self {
-        Self { code, cause, action, details: None }
-    }
-
-    /// Creates a new instance of `FormatError` action.
-    pub fn new_with_details(code: String, cause: String, action: String, details: String) -> Self {
-        Self { code, cause, action, details: Some(details) }
-    }
-}
-
-impl std::fmt::Display for FormatError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}, cause: '{}', action: '{}'.", self.code, self.cause, self.action)
-    }
-}
-
 fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<FormatError>> {
     let locations = get_unique_locations(&problem);
     let (durations, distances) = get_approx_transportation(&locations, 10.);
