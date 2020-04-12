@@ -88,6 +88,8 @@ mod interop {
         problem: *const c_char,
         matrices: *const *const c_char,
         matrices_len: *const i32,
+        generations: *const i32,
+        max_time: *const i32,
         success: Callback,
         failure: Callback,
     ) {
@@ -97,7 +99,7 @@ mod interop {
 
         let result = if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
             .map_err(|errors| get_errors_serialized(&errors))
-            .and_then(|problem| get_solution_serialized(&Arc::new(problem)));
+            .and_then(|problem| get_solution_serialized(&Arc::new(problem), generations as i32, max_time as i32));
 
         match result {
             Ok(solution) => {
@@ -157,7 +159,12 @@ mod wasm {
 
     /// Solves Vehicle Routing Problem passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn solve_pragmatic(problem: &JsValue, matrices: &JsValue) -> Result<JsValue, JsValue> {
+    pub fn solve_pragmatic(
+        problem: &JsValue,
+        matrices: &JsValue,
+        generations: i32,
+        max_time: i32,
+    ) -> Result<JsValue, JsValue> {
         let problem: Problem = problem
             .into_serde()
             .map_err(|err| JsValue::from_str(format!("Cannot read problem: '{}'", err).as_str()))?;
@@ -176,7 +183,7 @@ mod wasm {
             )?,
         );
 
-        get_solution_serialized(&problem)
+        get_solution_serialized(&problem, generations, max_time)
             .map(|problem| JsValue::from_str(problem.as_str()))
             .map_err(|err| JsValue::from_str(format!("Cannot solve problem: '{}'", err).as_str()))
     }
@@ -215,9 +222,13 @@ fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     Ok(buffer)
 }
 
-fn get_solution_serialized(problem: &Arc<CoreProblem>) -> Result<String, String> {
-    let (solution, _, _) =
-        SolverBuilder::default().build().solve(problem.clone()).ok_or_else(|| "Cannot solve problem".to_string())?;
+fn get_solution_serialized(problem: &Arc<CoreProblem>, generations: i32, max_time: i32) -> Result<String, String> {
+    let (solution, _, _) = SolverBuilder::default()
+        .with_max_generations(Some(generations as usize))
+        .with_max_time(Some(max_time as usize))
+        .build()
+        .solve(problem.clone())
+        .ok_or_else(|| "Cannot solve problem".to_string())?;
 
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };

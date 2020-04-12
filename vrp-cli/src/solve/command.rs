@@ -101,7 +101,7 @@ pub fn run_solve(matches: &ArgMatches) {
         })
     });
     let max_time = matches.value_of(TIME_ARG_NAME).map(|arg| {
-        arg.parse::<f64>().unwrap_or_else(|err| {
+        arg.parse::<usize>().unwrap_or_else(|err| {
             eprintln!("Cannot get max time: '{}'", err.to_string());
             process::exit(1);
         })

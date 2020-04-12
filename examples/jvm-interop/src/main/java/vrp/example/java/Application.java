@@ -10,12 +10,16 @@ import java.nio.file.Paths;
 
 /** Encapsulate Vehicle Routing Problem solver behavior.  */
 interface Solver extends Library {
-    /** Gets list of routing matrix locations **/
+    /** Gets list of routing matrix locations. **/
     void get_routing_locations(String problem, OnSuccess onSuccess, OnError onError);
-    /** Converts problem to pragmatic format **/
+    /** Converts problem to pragmatic format. **/
     void convert_to_pragmatic(String format, String[] inputs, int inputsLen, OnSuccess onSuccess, OnError onError);
-    /** Solves pragmatic problem **/
-    void solve_pragmatic(String problem, String[] matrices, int matricesSize, OnSuccess onSuccess, OnError onError);
+    /** Solves pragmatic problem. maxTime is in seconds. **/
+    void solve_pragmatic(String problem, String[] matrices,
+                         int matricesSize,
+                         int generations,
+                         int maxTime,
+                         OnSuccess onSuccess, OnError onError);
 }
 
 interface OnSuccess extends Callback {
@@ -53,7 +57,7 @@ class Application {
                     }
                 });
 
-        solver.solve_pragmatic(problem, matrices, matrices.length,
+        solver.solve_pragmatic(problem, matrices, matrices.length, 1000, 10,
                 new OnSuccess() {
                     @Override
                     public void result(String json) {

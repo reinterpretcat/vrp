@@ -10,10 +10,15 @@ import java.nio.file.Paths
 private interface Solver : Library {
     /** Gets list of routing matrix locations **/
     fun get_routing_locations(problem: String, onSuccess: OnSuccess, onError: OnError)
-    /** Converts problem to pragmatic format **/
+    /** Converts problem to pragmatic format. **/
     fun convert_to_pragmatic(format: String, inputs: Array<String>, inputsLen: Int, onSuccess: OnSuccess, onError: OnError)
-    /** Solves pragmatic problem **/
-    fun solve_pragmatic(problem: String, matrices: Array<String>, matricesLen: Int, onSuccess: OnSuccess, onError: OnError)
+    /** Solves pragmatic problem. maxTime is in seconds. **/
+    fun solve_pragmatic(problem: String,
+                        matrices: Array<String>,
+                        matricesLen: Int,
+                        generations: Int,
+                        maxTime: Int,
+                        onSuccess: OnSuccess, onError: OnError)
 }
 
 private interface OnSuccess : Callback {
@@ -47,7 +52,7 @@ fun main(args: Array<String>) {
             }
     )
 
-    solver.solve_pragmatic(problem, matrices, matrices.size,
+    solver.solve_pragmatic(problem, matrices, matrices.size, 1000, 10,
             onSuccess = object : OnSuccess {
                 override fun result(json: String) {
                     println("solution: $json")

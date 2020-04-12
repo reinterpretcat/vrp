@@ -13,7 +13,7 @@ use vrp_core::utils::DefaultRandom;
 pub struct SolverBuilder {
     solver: Solver,
     max_generations: Option<usize>,
-    max_time: Option<f64>,
+    max_time: Option<usize>,
     init_solution: Option<(Arc<Problem>, Arc<Solution>)>,
 }
 
@@ -33,7 +33,7 @@ impl SolverBuilder {
 
     /// Sets max running time limit.
     /// Default is none.
-    pub fn with_max_time(&mut self, limit: Option<f64>) -> &mut Self {
+    pub fn with_max_time(&mut self, limit: Option<usize>) -> &mut Self {
         self.max_time = limit;
         self
     }
@@ -52,7 +52,7 @@ impl SolverBuilder {
                 self.solver.logger.deref()(
                     "configured to use default max-generations (2000) and max-time (300secs)".to_string(),
                 );
-                (vec![Box::new(MaxGeneration::default()), Box::new(QuotaReached::default())], create_time_quota(300.))
+                (vec![Box::new(MaxGeneration::default()), Box::new(QuotaReached::default())], create_time_quota(300))
             }
             _ => {
                 let mut criterias: Vec<Box<dyn Termination>> = vec![];
@@ -97,6 +97,6 @@ impl SolverBuilder {
     }
 }
 
-fn create_time_quota(limit: f64) -> Option<Box<dyn Quota + Sync + Send>> {
-    Some(Box::new(TimeQuota::new(limit)))
+fn create_time_quota(limit: usize) -> Option<Box<dyn Quota + Sync + Send>> {
+    Some(Box::new(TimeQuota::new(limit as f64)))
 }
