@@ -1,3 +1,5 @@
+[![](https://docs.rs/vrp-cli/badge.svg)](https://docs.rs/vrp-cli) [![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli) ![Rust](https://github.com/reinterpretcat/vrp/workflows/Rust/badge.svg?branch=master)
+
 ![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
 
 # Description
