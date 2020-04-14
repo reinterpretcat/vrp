@@ -57,6 +57,6 @@ mod actual {
     }
 
     fn now() -> f64 {
-        web_sys::window().expect("no window in context").performance().expect("no performance available").now()
+        js_sys::Date::new_0().get_time() as f64
     }
 }

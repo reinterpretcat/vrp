@@ -18,4 +18,4 @@ hashbrown = "0.6"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 rand = { version = "0.7.2", features = ["wasm-bindgen"] }
-web-sys = { version = "0.3", features = ['Window', 'Performance', 'PerformanceTiming'] }
+js-sys = { version = "0.3" }
