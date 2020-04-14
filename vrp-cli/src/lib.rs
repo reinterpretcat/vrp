@@ -1,17 +1,12 @@
 //! A VRP library public API.
 
-pub mod import;
-pub mod solve;
+pub mod extensions;
 
-extern crate clap;
-use crate::import::import_problem;
-use clap::{App, Arg, ArgMatches, Values};
-use std::fs::File;
-use std::io::{stdout, BufReader, BufWriter, Write};
-use std::process;
+use crate::extensions::import::import_problem;
+use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
-use vrp_pragmatic::format::problem::{deserialize_problem, serialize_problem, PragmaticProblem, Problem};
+use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_pragmatic::format::FormatError;
 use vrp_pragmatic::get_unique_locations;
@@ -23,6 +18,7 @@ mod interop {
     use std::ffi::{CStr, CString};
     use std::os::raw::c_char;
     use std::slice;
+    use vrp_pragmatic::format::problem::deserialize_problem;
 
     type Callback = extern "C" fn(*const c_char);
 
@@ -176,29 +172,7 @@ mod wasm {
     }
 }
 
-fn open_file(path: &str, description: &str) -> File {
-    File::open(path).unwrap_or_else(|err| {
-        eprintln!("Cannot open {} file '{}': '{}'", description, path, err.to_string());
-        process::exit(1);
-    })
-}
-
-fn create_file(path: &str, description: &str) -> File {
-    File::create(path).unwrap_or_else(|err| {
-        eprintln!("Cannot create {} file '{}': '{}'", description, path, err.to_string());
-        process::exit(1);
-    })
-}
-
-fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn Write>> {
-    if let Some(out_file) = out_file {
-        BufWriter::new(Box::new(out_file))
-    } else {
-        BufWriter::new(Box::new(stdout()))
-    }
-}
-
-fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
+pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     // TODO validate the problem?
 
     let locations = get_unique_locations(&problem);
@@ -209,7 +183,7 @@ fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     Ok(buffer)
 }
 
-fn get_solution_serialized(problem: &Arc<CoreProblem>, generations: i32, max_time: i32) -> Result<String, String> {
+pub fn get_solution_serialized(problem: &Arc<CoreProblem>, generations: i32, max_time: i32) -> Result<String, String> {
     let (solution, _, _) = SolverBuilder::default()
         .with_max_generations(Some(generations as usize))
         .with_max_time(Some(max_time as usize))

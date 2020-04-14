@@ -1,17 +1,29 @@
+use super::*;
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
+use std::process;
 use std::sync::Arc;
+use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
-use vrp_pragmatic::format::problem::PragmaticProblem;
+use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_scientific::common::read_init_solution;
 use vrp_scientific::lilim::{LilimProblem, LilimSolution};
 use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 use vrp_solver::SolverBuilder;
 
-use super::app::*;
-use super::*;
+const FORMAT_ARG_NAME: &str = "FORMAT";
+const PROBLEM_ARG_NAME: &str = "PROBLEM";
+const MATRIX_ARG_NAME: &str = "matrix";
+const GENERATIONS_ARG_NAME: &str = "max-generations";
+const TIME_ARG_NAME: &str = "max-time";
+const GEO_JSON_ARG_NAME: &str = "geo-json";
+
+const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
+const OUT_RESULT_ARG_NAME: &str = "out-result";
+const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
 
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
 
@@ -82,6 +94,75 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
     ]
     .into_iter()
     .collect()
+}
+
+pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
+    App::new("solve")
+        .about("Solves variations of Vehicle Routing Problem")
+        .arg(
+            Arg::with_name(FORMAT_ARG_NAME)
+                .help("Specifies the problem type")
+                .required(true)
+                .possible_values(&["solomon", "lilim", "pragmatic"])
+                .index(1),
+        )
+        .arg(Arg::with_name(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
+        .arg(
+            Arg::with_name(GENERATIONS_ARG_NAME)
+                .help("Specifies maximum number of generations")
+                .short("n")
+                .long(GENERATIONS_ARG_NAME)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(TIME_ARG_NAME)
+                .help("Specifies max time algorithm run in seconds")
+                .short("t")
+                .long(TIME_ARG_NAME)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(INIT_SOLUTION_ARG_NAME)
+                .help("Specifies path to file with initial solution")
+                .short("i")
+                .long(INIT_SOLUTION_ARG_NAME)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(MATRIX_ARG_NAME)
+                .help("Specifies path to file with routing matrix")
+                .short("m")
+                .long(MATRIX_ARG_NAME)
+                .multiple(true)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(OUT_RESULT_ARG_NAME)
+                .help("Specifies path to file for result output")
+                .short("o")
+                .long(OUT_RESULT_ARG_NAME)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(GET_LOCATIONS_ARG_NAME)
+                .help("Returns list of unique locations")
+                .short("l")
+                .long(GET_LOCATIONS_ARG_NAME)
+                .required(false),
+        )
+        .arg(
+            Arg::with_name(GEO_JSON_ARG_NAME)
+                .help("Specifies path to solution output in geo json format")
+                .short("g")
+                .long(GEO_JSON_ARG_NAME)
+                .required(false)
+                .takes_value(true),
+        )
 }
 
 /// Runs solver commands.
