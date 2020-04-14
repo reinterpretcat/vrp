@@ -1,10 +1,7 @@
-#[path = "./csv.rs"]
-mod csv_import;
-use self::csv_import::read_csv_problem;
-
-#[path = "./hre.rs"]
-mod hre_import;
-use self::hre_import::read_hre_problem;
+mod csv;
+use self::csv::read_csv_problem;
+mod hre;
+use self::hre::read_hre_problem;
 
 use std::io::{BufReader, Read};
 use vrp_pragmatic::format::problem::Problem;
