@@ -68,6 +68,8 @@ pub const RELOAD_INTERVALS: i32 = 14;
 mod pipeline;
 pub use self::pipeline::*;
 
+mod area;
+
 mod transport;
 pub use self::transport::*;
 
