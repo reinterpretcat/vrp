@@ -100,6 +100,7 @@ pub struct ProblemProperties {
     has_unreachable_locations: bool,
     has_reload: bool,
     has_priorities: bool,
+    has_area_limits: bool,
 }
 
 fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<FormatError>> {
@@ -262,6 +263,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         .iter()
         .flat_map(|t| &t.shifts)
         .any(|shift| shift.breaks.as_ref().map_or(false, |b| b.len() > 0));
+
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
     let has_reload = api_problem
         .fleet
@@ -270,6 +272,11 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
     let has_priorities = api_problem.plan.jobs.iter().filter_map(|job| job.priority).any(|priority| priority > 1);
+    let has_area_limits = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .any(|v| v.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map_or(false, |a| !a.is_empty()));
 
     ProblemProperties {
         has_multi_dimen_capacity,
@@ -278,6 +285,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         has_unreachable_locations,
         has_reload,
         has_priorities,
+        has_area_limits,
     }
 }
 

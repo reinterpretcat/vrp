@@ -177,12 +177,19 @@ pub struct VehicleReload {
 #[serde(rename_all = "camelCase")]
 pub struct VehicleLimits {
     /// Max traveling distance per shift/tour.
+    /// No distance restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_distance: Option<f64>,
 
     /// Max time per shift/tour.
+    /// No time restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shift_time: Option<f64>,
+
+    /// Specifies a list of areas where vehicle can serve jobs.
+    /// No area restrictions when omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_areas: Option<Vec<Vec<Location>>>,
 }
 
 /// Vehicle break time variant.

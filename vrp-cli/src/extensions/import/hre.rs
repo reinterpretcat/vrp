@@ -439,6 +439,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                     limits: v.limits.as_ref().map(|l| VehicleLimits {
                         max_distance: l.max_distance.clone(),
                         shift_time: l.shift_time.clone(),
+                        allowed_areas: None,
                     }),
                 })
                 .collect(),
