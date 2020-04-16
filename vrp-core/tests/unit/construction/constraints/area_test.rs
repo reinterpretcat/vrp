@@ -1,13 +1,79 @@
 use super::*;
+use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
+use crate::helpers::models::domain::create_empty_solution_context;
+use crate::helpers::models::problem::*;
+use crate::helpers::models::solution::*;
+use crate::models::common::ValueDimension;
+use crate::models::problem::Fleet;
 
-#[test]
-fn can_check_single_job() {
-    // TODO
+fn create_fleet() -> Fleet {
+    let mut vehicle1 = test_vehicle_with_id("v1");
+    vehicle1.dimens.set_value("areas", vec![vec![(-1., -1.), (-1., 1.), (1., 1.), (1., -1.)]]);
+
+    FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicle(vehicle1)
+        .add_vehicle(test_vehicle_with_id("v2"))
+        .build()
 }
 
-#[test]
-fn can_check_single_job_with_multiple_locations() {
-    // TODO
+fn create_area_constraint_pipeline() -> ConstraintPipeline {
+    create_constraint_pipeline_with_module(Box::new(AreaModule::new(
+        Arc::new({
+            move |actor| {
+                if get_vehicle_id(&actor.vehicle) == "v1" {
+                    actor.vehicle.dimens.get_value::<Vec<Vec<(f64, f64)>>>("areas")
+                } else {
+                    None
+                }
+            }
+        }),
+        Arc::new(|location| (location as f64, 0.)),
+        2,
+    )))
+}
+
+parameterized_test! {can_check_single_job, (vehicle_id, job_locations, activity_location, expected), {
+    can_check_single_job_impl(vehicle_id, job_locations, activity_location, expected);
+}}
+
+can_check_single_job! {
+    case01: ("v1", vec![Some(0)], 0, (None, None)),
+    case02: ("v1", vec![Some(10)], 10, (Some(()), Some(()))),
+    case03: ("v1", vec![Some(10), Some(0)], 10, (None, Some(()))),
+    case04: ("v1", vec![Some(10), Some(0)], 0, (None, None)),
+
+    case05: ("v2", vec![Some(0)], 0, (None, None)),
+    case06: ("v2", vec![Some(10)], 10, (None, None)),
+}
+
+fn can_check_single_job_impl(
+    vehicle_id: &str,
+    job_locations: Vec<Option<Location>>,
+    activity_location: Location,
+    expected: (Option<()>, Option<()>),
+) {
+    let solution_ctx = create_empty_solution_context();
+    let route_ctx = create_route_context_with_activities(&create_fleet(), vehicle_id, vec![]);
+    let activity_ctx = ActivityContext {
+        index: 0,
+        prev: &test_tour_activity_without_job(),
+        target: &test_tour_activity_with_location(activity_location),
+        next: None,
+    };
+    let pipeline = create_area_constraint_pipeline();
+
+    let route_result = pipeline.evaluate_hard_route(
+        &solution_ctx,
+        &route_ctx,
+        &SingleBuilder::default()
+            .places(job_locations.into_iter().map(|l| (l, 10., vec![(0., 100.)])).collect())
+            .build_as_job_ref(),
+    );
+    let activity_result = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx);
+
+    assert_eq!(route_result.map(|_| ()), expected.0);
+    assert_eq!(activity_result.map(|_| ()), expected.1);
 }
 
 #[test]

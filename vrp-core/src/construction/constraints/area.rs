@@ -4,14 +4,14 @@ mod area_test;
 
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
-use crate::models::common::{Location, ValueDimension};
+use crate::models::common::Location;
 use crate::models::problem::{Actor, Job, Single};
 use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
 /// A function which returns operating area for given actor.
-pub type AreaResolver = Arc<dyn Fn(&Actor) -> Option<&[Vec<(f64, f64)>]> + Sync + Send>;
+pub type AreaResolver = Arc<dyn Fn(&Actor) -> Option<&Vec<Vec<(f64, f64)>>> + Sync + Send>;
 /// A function which returns actual coordinate for given location.
 pub type LocationResolver = Arc<dyn Fn(Location) -> (f64, f64) + Sync + Send>;
 
