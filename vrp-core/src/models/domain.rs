@@ -7,7 +7,7 @@ use std::any::Any;
 use std::sync::Arc;
 
 /// Specifies a type used to store any values regarding problem and solution.
-pub type Extras = HashMap<String, Box<dyn Any + Send + Sync>>;
+pub type Extras = HashMap<String, Arc<dyn Any + Send + Sync>>;
 
 /// Defines VRP problem.
 pub struct Problem {

@@ -69,6 +69,7 @@ mod pipeline;
 pub use self::pipeline::*;
 
 mod area;
+pub use self::area::*;
 
 mod transport;
 pub use self::transport::*;

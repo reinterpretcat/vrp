@@ -131,7 +131,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
 
     let problem_props = get_problem_properties(&api_problem, &matrices);
 
-    let coord_index = CoordIndex::new(&api_problem);
+    let coord_index = Arc::new(CoordIndex::new(&api_problem));
     let transport = create_transport_costs(&api_problem, &matrices).map_err(|err| {
         vec![FormatError::new(
             "E0002".to_string(),
@@ -147,9 +147,16 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         read_jobs_with_extra_locks(&api_problem, &problem_props, &coord_index, &fleet, &transport, &mut job_index);
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect();
     let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
-    let extras = Arc::new(create_extras(&problem_props, coord_index));
-    let mut constraint =
-        create_constraint_pipeline(&fleet, activity.clone(), transport.clone(), &problem_props, &locks, limits);
+    let extras = Arc::new(create_extras(&problem_props, coord_index.clone()));
+    let mut constraint = create_constraint_pipeline(
+        coord_index,
+        &fleet,
+        activity.clone(),
+        transport.clone(),
+        &problem_props,
+        &locks,
+        limits,
+    );
 
     let objective = Arc::new(create_objective(&api_problem, &mut constraint, &problem_props));
 
@@ -166,6 +173,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
 }
 
 fn create_constraint_pipeline(
+    coord_index: Arc<CoordIndex>,
     fleet: &Fleet,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
@@ -205,6 +213,10 @@ fn create_constraint_pipeline(
         constraint.add_module(Box::new(ReachableModule::new(transport.clone(), REACHABLE_CONSTRAINT_CODE)));
     }
 
+    if props.has_area_limits {
+        add_area_module(&mut constraint, coord_index);
+    }
+
     constraint
 }
 
@@ -231,13 +243,25 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
     });
 }
 
-fn create_extras(props: &ProblemProperties, coord_index: CoordIndex) -> Extras {
+fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIndex>) {
+    constraint.add_module(Box::new(AreaModule::new(
+        Arc::new(|actor| actor.vehicle.dimens.get_value::<Vec<Vec<(f64, f64)>>>("areas")),
+        Arc::new(move |location| {
+            coord_index
+                .get_by_idx(&location)
+                .map_or_else(|| panic!("Cannot find location!"), |location| (location.lat, location.lng))
+        }),
+        AREA_CONSTRAINT_CODE,
+    )));
+}
+
+fn create_extras(props: &ProblemProperties, coord_index: Arc<CoordIndex>) -> Extras {
     let mut extras = Extras::default();
     extras.insert(
         "capacity_type".to_string(),
-        Box::new((if props.has_multi_dimen_capacity { "multi" } else { "single" }).to_string()),
+        Arc::new((if props.has_multi_dimen_capacity { "multi" } else { "single" }).to_string()),
     );
-    extras.insert("coord_index".to_owned(), Box::new(coord_index));
+    extras.insert("coord_index".to_owned(), coord_index);
 
     extras
 }

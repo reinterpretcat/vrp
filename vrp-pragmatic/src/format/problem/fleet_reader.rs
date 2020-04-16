@@ -67,6 +67,9 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
         };
 
         let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
+        let areas = vehicle.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map(|areas| {
+            areas.iter().map(|area| area.iter().map(|l| (l.lat, l.lng)).collect::<Vec<_>>()).collect::<Vec<_>>()
+        });
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             let start = {
@@ -92,6 +95,10 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
                 dimens.set_value("type_id", vehicle.type_id.clone());
                 dimens.set_value("shift_index", shift_index);
                 dimens.set_id(vehicle_id);
+
+                if let Some(areas) = areas.clone() {
+                    dimens.set_value("areas", areas);
+                }
 
                 if props.has_multi_dimen_capacity {
                     dimens.set_capacity(MultiDimensionalCapacity::new(vehicle.capacity.clone()));

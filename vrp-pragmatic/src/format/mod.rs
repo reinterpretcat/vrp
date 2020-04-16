@@ -71,6 +71,7 @@ const SKILLS_CONSTRAINT_CODE: i32 = 6;
 const LOCKING_CONSTRAINT_CODE: i32 = 7;
 const REACHABLE_CONSTRAINT_CODE: i32 = 8;
 const PRIORITY_CONSTRAINT_CODE: i32 = 9;
+const AREA_CONSTRAINT_CODE: i32 = 10;
 
 mod coord_index;
 pub use self::coord_index::CoordIndex;
