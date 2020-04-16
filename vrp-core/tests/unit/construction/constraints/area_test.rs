@@ -8,7 +8,7 @@ use crate::models::problem::Fleet;
 
 fn create_fleet() -> Fleet {
     let mut vehicle1 = test_vehicle_with_id("v1");
-    vehicle1.dimens.set_value("areas", vec![vec![(-1., -1.), (-1., 1.), (1., 1.), (1., -1.)]]);
+    vehicle1.dimens.set_value("areas", vec![vec![(-5., -5.), (-5., 5.), (5., 5.), (5., -5.)]]);
 
     FleetBuilder::default()
         .add_driver(test_driver())
@@ -42,9 +42,10 @@ can_check_single_job! {
     case02: ("v1", vec![Some(10)], 10, (Some(()), Some(()))),
     case03: ("v1", vec![Some(10), Some(0)], 10, (None, Some(()))),
     case04: ("v1", vec![Some(10), Some(0)], 0, (None, None)),
+    case05: ("v1", vec![Some(10), Some(20)], 20, (Some(()), Some(()))),
 
-    case05: ("v2", vec![Some(0)], 0, (None, None)),
-    case06: ("v2", vec![Some(10)], 10, (None, None)),
+    case06: ("v2", vec![Some(0)], 0, (None, None)),
+    case07: ("v2", vec![Some(10)], 10, (None, None)),
 }
 
 fn can_check_single_job_impl(
@@ -76,9 +77,29 @@ fn can_check_single_job_impl(
     assert_eq!(activity_result.map(|_| ()), expected.1);
 }
 
-#[test]
-fn can_check_multi_job() {
-    // TODO
+parameterized_test! {can_check_multi_job, (job_locations, expected), {
+    can_check_multi_job_impl(job_locations, expected);
+}}
+
+can_check_multi_job! {
+    case01: (vec![Some(0), Some(1)], None),
+    case02: (vec![Some(0), Some(6)], Some(())),
+    case03: (vec![Some(6), Some(0)], Some(())),
+    case04: (vec![Some(10), Some(20)], Some(())),
+}
+
+fn can_check_multi_job_impl(job_locations: Vec<Option<Location>>, expected: Option<()>) {
+    let solution_ctx = create_empty_solution_context();
+    let route_ctx = create_route_context_with_activities(&create_fleet(), "v1", vec![]);
+    let pipeline = create_area_constraint_pipeline();
+    let mut builder = MultiBuilder::default();
+    job_locations.into_iter().for_each(|location| {
+        builder.job(Arc::try_unwrap(test_single_with_location(location)).ok().unwrap());
+    });
+
+    let route_result = pipeline.evaluate_hard_route(&solution_ctx, &route_ctx, &builder.build());
+
+    assert_eq!(route_result.map(|_| ()), expected);
 }
 
 #[test]
