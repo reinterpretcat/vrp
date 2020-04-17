@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/validation/vehicles_test.rs"]
+mod vehicles_test;
+
 use super::*;
 use crate::validation::common::get_time_windows;
 use std::ops::Deref;
@@ -129,6 +133,35 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
     }
 }
 
+/// Checks that vehicle area restrictions are valid.
+fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let type_ids = ctx
+        .vehicles()
+        .filter(|vehicle| {
+            vehicle
+                .limits
+                .as_ref()
+                .and_then(|l| l.allowed_areas.as_ref())
+                .map_or(false, |areas| areas.is_empty() || areas.iter().any(|area| area.len() < 3))
+        })
+        .map(|vehicle| vehicle.type_id.to_string())
+        .collect::<Vec<_>>();
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1305".to_string(),
+            "invalid allowed area definition in vehicle limits".to_string(),
+            format!(
+                "ensure that areas list is not empty and each area has at least three coordinates, \
+                 vehicle type ids: '{}'",
+                type_ids.join(", ")
+            ),
+        ))
+    }
+}
+
 fn get_invalid_type_ids(
     ctx: &ValidationContext,
     check_shift: Box<dyn Fn(&VehicleShift, Option<TimeWindow>) -> bool>,
@@ -174,5 +207,6 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>
         check_e1302_vehicle_shift_time(ctx),
         check_e1303_vehicle_breaks_time_is_correct(ctx),
         check_e1304_vehicle_reload_time_is_correct(ctx),
+        check_e1305_vehicle_limit_area_is_correct(ctx),
     ])
 }

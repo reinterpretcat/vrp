@@ -385,6 +385,28 @@ Additionally, reload time should be inside vehicle shift it is specified:
 }
 ```
 
+#### E1305
+
+`invalid allowed area definition in vehicle limits` error is returned when `allowedArea` property in `fleet.vehicles`
+violates one of the following rules:
+
+* no empty arrays
+* each area has more than 2 coordinates
+
+```json
+{
+  "limits": {
+    "allowedAreas": [
+      /** Error: at least three locations has to be defined **/
+      [
+        { "lat": 52.12, "lng":  13.14 },
+        { "lat": 52.13, "lng":  13.15 }
+      ]
+    ]
+  }
+}
+```
+
 
 ### E15xx: Profiles
 

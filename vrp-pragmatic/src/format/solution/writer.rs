@@ -268,14 +268,16 @@ fn calculate_load(
 fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
     solution.unassigned.iter().fold(vec![], |mut acc, unassigned| {
         let reason = match *unassigned.1 {
+            SKILLS_CONSTRAINT_CODE => (1, "cannot serve required skill"),
             TIME_CONSTRAINT_CODE => (2, "cannot be visited within time window"),
             CAPACITY_CONSTRAINT_CODE => (3, "does not fit into any vehicle due to capacity"),
+            REACHABLE_CONSTRAINT_CODE => (100, "location unreachable"),
             DISTANCE_LIMIT_CONSTRAINT_CODE => (101, "cannot be assigned due to max distance constraint of vehicle"),
             DURATION_LIMIT_CONSTRAINT_CODE => (102, "cannot be assigned due to shift time constraint of vehicle"),
-            SKILLS_CONSTRAINT_CODE => (1, "cannot serve required skill"),
-            REACHABLE_CONSTRAINT_CODE => (100, "location unreachable"),
-            BREAK_CONSTRAINT_CODE => (101, "break is not assignable"),
-            PRIORITY_CONSTRAINT_CODE => (103, "cannot be served due to priority"),
+            BREAK_CONSTRAINT_CODE => (103, "break is not assignable"),
+            LOCKING_CONSTRAINT_CODE => (104, "cannot be served due to relation lock"),
+            PRIORITY_CONSTRAINT_CODE => (105, "cannot be served due to priority"),
+            AREA_CONSTRAINT_CODE => (106, "cannot be assigned due to area constraint"),
             _ => (0, "unknown"),
         };
         let dimens = match unassigned.0 {

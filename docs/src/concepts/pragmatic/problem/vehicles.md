@@ -37,8 +37,10 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 
 - **limits** (optional): vehicle limits. There are two:
     
-    - **shiftTime**: max shift time
-    - **maxDistance**: max distance
+    - **shiftTime** (optional): max shift time
+    - **maxDistance** (optional): max distance
+    - **allowedAreas** (optional): a list of areas where vehicle is allowed to serve jobs. Each area is closed polygon
+      specified by coordinates. No area restrictions when omitted.
 
 An example:
 
@@ -82,3 +84,4 @@ Each shift can have the following properties:
 * [E1302 invalid start or end times in vehicle shift](../errors/index.md#e1302)
 * [E1303 invalid break time windows in vehicle shift](../errors/index.md#e1303)
 * [E1304 invalid reload time windows in vehicle shift](../errors/index.md#e1304)
+* [E1305 invalid allowed area definition in vehicle limits](../errors/index.md#e1305)
