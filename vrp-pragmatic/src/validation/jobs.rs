@@ -140,6 +140,53 @@ fn check_e1105_empty_jobs(ctx: &ValidationContext) -> Result<(), FormatError> {
     }
 }
 
+/// Checks that job has no negative duration aka service time.
+fn check_e1106_negative_duration(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let ids = ctx
+        .jobs()
+        .filter(|job| {
+            ctx.tasks(job)
+                .iter()
+                .flat_map(|task| task.places.iter().map(|place| place.duration))
+                .any(|duration| duration.is_sign_negative())
+        })
+        .map(|job| job.id.clone())
+        .collect::<Vec<_>>();
+
+    if ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1106".to_string(),
+            "job has negative duration".to_string(),
+            format!("fix negative duration in jobs with ids: '{}'", ids.join(", ")),
+        ))
+    }
+}
+
+/// Checks that job has no negative demand in any of dimensions.
+fn check_e1107_negative_demand(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let ids = ctx
+        .jobs()
+        .filter(|job| {
+            ctx.tasks(job)
+                .iter()
+                .any(|task| task.demand.as_ref().map_or(false, |demand| demand.iter().any(|&dim| dim < 0)))
+        })
+        .map(|job| job.id.clone())
+        .collect::<Vec<_>>();
+
+    if ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1107".to_string(),
+            "job has negative demand".to_string(),
+            format!("fix negative demand in jobs with ids: '{}'", ids.join(", ")),
+        ))
+    }
+}
+
 /// Validates jobs from the plan.
 pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     combine_error_results(&[
@@ -149,5 +196,7 @@ pub fn validate_jobs(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
         check_e1103_time_window_correctness(ctx),
         check_e1104_no_reserved_ids(ctx),
         check_e1105_empty_jobs(ctx),
+        check_e1106_negative_duration(ctx),
+        check_e1107_negative_demand(ctx),
     ])
 }

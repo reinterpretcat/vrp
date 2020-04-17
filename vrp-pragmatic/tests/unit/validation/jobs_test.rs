@@ -1,6 +1,11 @@
 use super::*;
 use crate::helpers::*;
 
+fn assert_result(code: &str, action: &str, result: Option<FormatError>) {
+    assert_eq!(result.clone().map(|err| err.code), Some(code.to_string()));
+    assert!(result.map_or("".to_string(), |err| err.action).contains(action));
+}
+
 parameterized_test! {can_detect_reserved_ids, (job_id, expected), {
     can_detect_reserved_ids_impl(job_id.to_string(), expected);
 }}
@@ -23,8 +28,7 @@ fn can_detect_reserved_ids_impl(job_id: String, expected: Option<&str>) {
     let result = check_e1104_no_reserved_ids(&ValidationContext::new(&problem, None)).err();
 
     if let Some(action) = expected {
-        assert_eq!(result.clone().map(|err| err.code), Some("E1104".to_string()));
-        assert!(result.map_or("".to_string(), |err| err.action).contains(action));
+        assert_result("E1104", action, result);
     } else {
         assert!(result.is_none());
     }
@@ -50,6 +54,29 @@ fn can_detect_empty_job() {
 
     let result = check_e1105_empty_jobs(&ValidationContext::new(&problem, None)).err();
 
-    assert_eq!(result.clone().map(|err| err.code), Some("E1105".to_string()));
-    assert!(result.map_or("".to_string(), |err| err.action).contains("job1"));
+    assert_result("E1105", "job1", result);
+}
+
+#[test]
+fn can_detect_negative_duration() {
+    let problem = Problem {
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", vec![1., 0.], -10.)], relations: None },
+        ..create_empty_problem()
+    };
+
+    let result = check_e1106_negative_duration(&ValidationContext::new(&problem, None)).err();
+
+    assert_result("E1106", "job1", result);
+}
+
+#[test]
+fn can_detect_negative_demand() {
+    let problem = Problem {
+        plan: Plan { jobs: vec![create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, -1])], relations: None },
+        ..create_empty_problem()
+    };
+
+    let result = check_e1107_negative_demand(&ValidationContext::new(&problem, None)).err();
+
+    assert_result("E1107", "job1", result);
 }

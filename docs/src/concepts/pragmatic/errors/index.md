@@ -192,6 +192,49 @@ allowed to be used within `job.id` property.
 To fix the error, remove job from the plan or add at least one job task to it.
 
 
+#### E1106
+
+`job has negative duration` error is returned when there is a job place with negative duration:
+
+```json
+{
+  "id": "job",
+  "pickups": [
+    {
+      "places": [{
+        /** Error: negative duration does not make sense **/
+        "duration": -10,
+        "location": {/* omitted */}
+       }]
+       /* omitted */
+    }
+  ]
+}
+```
+
+To fix the error, make sure that all durations are non negative.
+
+
+#### E1107
+
+`job has negative demand` error is returned when there is a job with negative demand in any of dimensions:
+
+```json
+{
+  "id": "job",
+  "pickups": [
+    {
+      "places": [/* omitted */],
+      /** Error: negative demand is not allowed **/
+      "demand": [10, -1]
+    }
+  ]
+}
+```
+
+To fix the error, make sure that all demand values are non negative.
+
+
 ### E12xx: Relations
 
 These errors are related to `plan.relations` property definition.
