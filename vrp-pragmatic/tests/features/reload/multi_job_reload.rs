@@ -1,4 +1,3 @@
-use crate::checker::solve_and_check;
 use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format::Location;

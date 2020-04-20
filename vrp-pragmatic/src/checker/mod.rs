@@ -4,7 +4,6 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format::Location;
-use crate::helpers::*;
 use crate::parse_time;
 use std::collections::HashMap;
 use vrp_core::models::common::TimeWindow;
@@ -18,30 +17,11 @@ pub struct CheckerContext {
 }
 
 /// Represents all possible activity types.
-pub enum ActivityType {
+enum ActivityType {
     Terminal,
     Job(Job),
     Break(VehicleBreak),
     Reload(VehicleReload),
-}
-
-pub fn create_checker_context(problem: Problem, matrices: Option<Vec<Matrix>>) -> CheckerContext {
-    let solution = solve_with_metaheuristic_and_iterations(problem.clone(), matrices.clone(), 10);
-
-    CheckerContext::new(problem, matrices, solution)
-}
-
-/// Solves problem and checks results.
-pub fn solve_and_check(problem: Problem, matrices: Option<Vec<Matrix>>) -> Result<(), String> {
-    let ctx = create_checker_context(problem, matrices);
-
-    check_vehicle_load(&ctx)?;
-    check_relations(&ctx)?;
-    // TODO break is soft constraint and can be violated, how to improve checker?
-    // check_breaks(&ctx)?;
-    check_assignment(&ctx)?;
-
-    Ok(())
 }
 
 impl CheckerContext {
@@ -51,8 +31,22 @@ impl CheckerContext {
         Self { problem, matrices, solution, job_map }
     }
 
+    pub fn check(&self) -> Result<(), String> {
+        check_vehicle_load(&self)?;
+        check_relations(&self)?;
+
+        if let Err(err) = check_breaks(&self) {
+            // TODO break is soft constraint and can be violated, how to improve checker?
+            println!("break is violated: {}", err);
+        }
+
+        check_assignment(&self)?;
+
+        Ok(())
+    }
+
     /// Gets vehicle by its id.
-    pub fn get_vehicle(&self, vehicle_id: &str) -> Result<&VehicleType, String> {
+    fn get_vehicle(&self, vehicle_id: &str) -> Result<&VehicleType, String> {
         self.problem
             .fleet
             .vehicles
@@ -62,7 +56,7 @@ impl CheckerContext {
     }
 
     /// Gets activity operation time range in seconds since Unix epoch.
-    pub fn get_activity_time(&self, stop: &Stop, activity: &Activity) -> TimeWindow {
+    fn get_activity_time(&self, stop: &Stop, activity: &Activity) -> TimeWindow {
         let time = activity
             .time
             .clone()
@@ -72,12 +66,12 @@ impl CheckerContext {
     }
 
     /// Gets activity location.
-    pub fn get_activity_location(&self, stop: &Stop, activity: &Activity) -> Location {
+    fn get_activity_location(&self, stop: &Stop, activity: &Activity) -> Location {
         activity.location.clone().unwrap_or_else(|| stop.location.clone())
     }
 
     /// Gets vehicle shift where activity is used.
-    pub fn get_vehicle_shift(&self, tour: &Tour) -> Result<VehicleShift, String> {
+    fn get_vehicle_shift(&self, tour: &Tour) -> Result<VehicleShift, String> {
         let tour_time = TimeWindow::new(
             parse_time(&tour.stops.first().as_ref().ok_or_else(|| format!("Cannot get first activity"))?.time.arrival),
             parse_time(&tour.stops.last().as_ref().ok_or_else(|| format!("Cannot get last activity"))?.time.arrival),
@@ -98,12 +92,12 @@ impl CheckerContext {
     }
 
     /// Returns stop's activity type names.
-    pub fn get_stop_activity_types(&self, stop: &Stop) -> Vec<String> {
+    fn get_stop_activity_types(&self, stop: &Stop) -> Vec<String> {
         stop.activities.iter().map(|a| a.activity_type.clone()).collect()
     }
 
     /// Gets wrapped activity type.
-    pub fn get_activity_type(&self, tour: &Tour, stop: &Stop, activity: &Activity) -> Result<ActivityType, String> {
+    fn get_activity_type(&self, tour: &Tour, stop: &Stop, activity: &Activity) -> Result<ActivityType, String> {
         let shift = self.get_vehicle_shift(tour)?;
         let time = self.get_activity_time(stop, activity);
         let location = self.get_activity_location(stop, activity);
@@ -145,7 +139,7 @@ impl CheckerContext {
         }
     }
 
-    pub fn visit_job<F1, F2, R>(
+    fn visit_job<F1, F2, R>(
         &self,
         activity: &Activity,
         activity_type: &ActivityType,
@@ -203,13 +197,13 @@ fn same_locations(left: &Location, right: &Location) -> bool {
 }
 
 mod assignment;
-pub use self::assignment::*;
+use crate::checker::assignment::check_assignment;
 
 mod capacity;
-pub use self::capacity::*;
+use crate::checker::capacity::check_vehicle_load;
 
 mod breaks;
-pub use self::breaks::*;
+use crate::checker::breaks::check_breaks;
 
 mod relations;
-pub use self::relations::*;
+use crate::checker::relations::check_relations;

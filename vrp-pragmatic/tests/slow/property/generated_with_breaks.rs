@@ -1,8 +1,8 @@
-use crate::checker::solve_and_check;
 use crate::format::problem::*;
 use crate::generator::*;
 
 use crate::format::Location;
+use crate::helpers::solve_and_check;
 use proptest::prelude::*;
 
 fn get_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {

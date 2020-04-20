@@ -8,10 +8,6 @@
 mod helpers;
 
 #[cfg(test)]
-#[path = "../tests/checker/mod.rs"]
-mod checker;
-
-#[cfg(test)]
 #[path = "../tests/generator/mod.rs"]
 mod generator;
 
@@ -28,6 +24,7 @@ mod extensions;
 mod utils;
 mod validation;
 
+pub mod checker;
 pub mod format;
 
 use crate::format::problem::Problem;
