@@ -65,7 +65,9 @@ fn run_examples(base_path: &str) {
         let problem = get_pragmatic_problem(base_path, name);
 
         // TODO use matrices
-        CheckerContext::new(problem, None, solution);
+        if let Err(err) = CheckerContext::new(problem, None, solution).check() {
+            panic!("Unfeasible solution in '{}': '{}'", name, err);
+        }
     }
 }
 

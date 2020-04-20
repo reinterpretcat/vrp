@@ -67,7 +67,8 @@
             ],
             "demand": [
               1
-            ]
+            ],
+            "tag": "p1"
           }
         ],
         "deliveries": [
@@ -83,7 +84,8 @@
             ],
             "demand": [
               1
-            ]
+            ],
+            "tag": "d1"
           }
         ],
         "replacements": [
@@ -99,7 +101,8 @@
             ],
             "demand": [
               2
-            ]
+            ],
+            "tag": "r1"
           }
         ],
         "services": [
@@ -112,7 +115,8 @@
                 },
                 "duration": 1800.0
               }
-            ]
+            ],
+            "tag": "s1"
           }
         ]
       }

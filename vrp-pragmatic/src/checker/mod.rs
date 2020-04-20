@@ -104,10 +104,12 @@ impl CheckerContext {
 
         match activity.activity_type.as_str() {
             "departure" | "arrival" => Ok(ActivityType::Terminal),
-            "pickup" | "delivery" => self.job_map.get(activity.job_id.as_str()).map_or_else(
-                || Err(format!("Cannot find job with id '{}'", activity.job_id)),
-                |job| Ok(ActivityType::Job(job.clone())),
-            ),
+            "pickup" | "delivery" | "service" | "replacement" => {
+                self.job_map.get(activity.job_id.as_str()).map_or_else(
+                    || Err(format!("Cannot find job with id '{}'", activity.job_id)),
+                    |job| Ok(ActivityType::Job(job.clone())),
+                )
+            }
             "break" => shift
                 .breaks
                 .as_ref()
@@ -139,7 +141,7 @@ impl CheckerContext {
         }
     }
 
-    fn visit_job<F1, F2, R>(
+    fn visit_job<'a, F1, F2, R>(
         &self,
         activity: &Activity,
         activity_type: &ActivityType,
@@ -152,20 +154,21 @@ impl CheckerContext {
     {
         match activity_type {
             ActivityType::Job(job) => {
-                let pickups = job.pickups.as_ref().map_or(0, |p| p.len());
-                let deliveries = job.deliveries.as_ref().map_or(0, |p| p.len());
+                let pickups = job_task_size(&job.pickups);
+                let deliveries = job_task_size(&job.deliveries);
+                let tasks = pickups + deliveries + job_task_size(&job.services) + job_task_size(&job.replacements);
 
-                if pickups < 2 && deliveries < 2 {
-                    if activity.activity_type == "pickup" { &job.pickups } else { &job.deliveries }
-                        .as_ref()
-                        .and_then(|task| task.first())
+                if tasks < 2 || (tasks == 2 && pickups == 1 && deliveries == 1) {
+                    match_job_task(activity.activity_type.as_str(), job, |tasks| tasks.first())
                 } else {
-                    activity.job_tag.as_ref().ok_or(format!("Multi job activity must have tag {}", activity.job_id))?;
+                    activity.job_tag.as_ref().ok_or(format!(
+                        "Checker requires that multi job activity must have tag: '{}'",
+                        activity.job_id
+                    ))?;
 
-                    if activity.activity_type == "pickup" { &job.pickups } else { &job.deliveries }
-                        .iter()
-                        .flat_map(|tasks| tasks.iter())
-                        .find(|task| task.tag == activity.job_tag)
+                    match_job_task(activity.activity_type.as_str(), job, |tasks| {
+                        tasks.iter().find(|task| task.tag == activity.job_tag)
+                    })
                 }
                 .map(|task| job_visitor(job, task))
             }
@@ -173,6 +176,26 @@ impl CheckerContext {
             _ => Ok(other_visitor()),
         }
     }
+}
+
+fn job_task_size(tasks: &Option<Vec<JobTask>>) -> usize {
+    tasks.as_ref().map_or(0, |p| p.len())
+}
+
+fn match_job_task<'a>(
+    activity_type: &str,
+    job: &'a Job,
+    tasks_fn: impl Fn(&'a Vec<JobTask>) -> Option<&'a JobTask>,
+) -> Option<&'a JobTask> {
+    let tasks = match activity_type {
+        "pickup" => job.pickups.as_ref(),
+        "delivery" => job.deliveries.as_ref(),
+        "service" => job.services.as_ref(),
+        "replacement" => job.replacements.as_ref(),
+        _ => None,
+    };
+
+    tasks.and_then(|tasks| tasks_fn(tasks))
 }
 
 fn parse_time_window(tw: &Vec<String>) -> TimeWindow {

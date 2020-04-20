@@ -92,7 +92,8 @@
           "activities": [
             {
               "jobId": "mixed_job",
-              "type": "pickup"
+              "type": "pickup",
+              "tag": "p1"
             }
           ]
         },
@@ -112,7 +113,8 @@
           "activities": [
             {
               "jobId": "mixed_job",
-              "type": "delivery"
+              "type": "delivery",
+              "tag": "d1"
             }
           ]
         },
@@ -132,7 +134,8 @@
           "activities": [
             {
               "jobId": "mixed_job",
-              "type": "replacement"
+              "type": "replacement",
+              "tag": "r1"
             }
           ]
         },
@@ -152,7 +155,8 @@
           "activities": [
             {
               "jobId": "mixed_job",
-              "type": "service"
+              "type": "service",
+              "tag": "s1"
             }
           ]
         },
