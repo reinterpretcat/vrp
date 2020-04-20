@@ -13,6 +13,7 @@ mod cli {
     extern crate clap;
     use super::commands::import::{get_import_app, run_import};
     use super::commands::solve::{get_solve_app, run_solve};
+    use crate::commands::check::{get_check_app, run_check};
     use clap::App;
     use std::process;
 
@@ -23,11 +24,13 @@ mod cli {
             .about("A command line interface to Vehicle Routing Problem solver")
             .subcommand(get_solve_app())
             .subcommand(get_import_app())
+            .subcommand(get_check_app())
             .get_matches();
 
         match matches.subcommand() {
             ("solve", Some(solve_matches)) => run_solve(solve_matches),
             ("import", Some(import_matches)) => run_import(import_matches),
+            ("check", Some(check_matches)) => run_check(check_matches),
             ("", None) => {
                 eprintln!("No subcommand was used. Use -h to print help information.");
                 process::exit(1);
