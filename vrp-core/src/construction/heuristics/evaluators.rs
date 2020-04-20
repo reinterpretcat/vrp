@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::heuristics::*;
-use crate::models::common::{Cost, TimeWindow};
+use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place, TourActivity};
 use crate::models::Problem;
@@ -94,11 +94,11 @@ fn evaluate_single(
     );
 
     if result.is_success() {
-        activity.place = result.place;
+        activity.place = result.place.unwrap();
         let activities = vec![(activity, result.index)];
         InsertionResult::make_success(result.cost.unwrap() + route_costs, job.clone(), activities, route_ctx.clone())
     } else {
-        InsertionResult::make_failure_with_code(result.violation.unwrap().code, Some(job.clone()))
+        InsertionResult::make_failure_with_code(result.violation.map_or(0, |v| v.code), Some(job.clone()))
     }
 }
 
@@ -139,7 +139,7 @@ fn evaluate_multi(
                     );
 
                     if srv_res.is_success() {
-                        activity.place = srv_res.place;
+                        activity.place = srv_res.place.unwrap();
                         let activity = shadow.insert(activity, srv_res.index);
                         let activities = concat_activities(in1.activities, (activity, srv_res.index));
                         return MultiContext::success(in1.cost.unwrap_or(0.) + srv_res.cost.unwrap(), activities);
@@ -159,10 +159,7 @@ fn evaluate_multi(
         let activities = result.activities.unwrap();
         InsertionResult::make_success(result.cost.unwrap() + route_costs, job.clone(), activities, route_ctx.clone())
     } else {
-        InsertionResult::make_failure_with_code(
-            if let Some(violation) = result.violation { violation.code } else { 0 },
-            Some(job.clone()),
-        )
+        InsertionResult::make_failure_with_code(result.violation.map_or(0, |v| v.code), Some(job.clone()))
     }
 }
 
@@ -245,18 +242,13 @@ struct SingleContext {
     /// Best cost.
     pub cost: Option<Cost>,
     /// Activity place.
-    pub place: Place,
+    pub place: Option<Place>,
 }
 
 impl SingleContext {
     /// Creates a new empty context with given cost.
     fn new(cost: Option<Cost>, index: usize) -> Self {
-        Self {
-            violation: None,
-            index,
-            cost,
-            place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: 0.0 } },
-        }
+        Self { violation: None, index, cost, place: None }
     }
 
     fn fail(violation: ActivityConstraintViolation, other: SingleContext) -> Result<Self, Self> {
@@ -270,7 +262,7 @@ impl SingleContext {
     }
 
     fn success(index: usize, cost: Cost, place: Place) -> Result<Self, Self> {
-        Result::Ok(Self { violation: None, index, cost: Some(cost), place })
+        Result::Ok(Self { violation: None, index, cost: Some(cost), place: Some(place) })
     }
 
     fn skip(other: SingleContext) -> Result<Self, Self> {
@@ -278,7 +270,7 @@ impl SingleContext {
     }
 
     fn is_success(&self) -> bool {
-        self.cost.is_some()
+        self.place.is_some()
     }
 }
 
