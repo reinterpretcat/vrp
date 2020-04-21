@@ -78,6 +78,11 @@ An objective with `minimize-tours` type minimizes total amount of tours present 
 The objective has `goal` with `value` and `variation` specifying desired tour amount and variation coefficient.
 
 
+### Fleet usage maximization
+
+An objective with `maximize-tours` type maximizes total amount of tours present in solution.
+
+
 ### Unassigned jobs minimization
 
 A `minimize-unassigned` objective minimizes amount of unassigned jobs. Although, solver tries to minimize amount of

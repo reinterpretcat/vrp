@@ -27,6 +27,7 @@ fn check_e1601_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), 
             match objective {
                 MinimizeCost { goal: _, tolerance: _ } => acc.entry("minimize-cost"),
                 MinimizeTours { goal: _ } => acc.entry("minimize-tours"),
+                MaximizeTours => acc.entry("maximize-tours"),
                 MinimizeUnassignedJobs { goal: _ } => acc.entry("minimize-unassigned"),
                 BalanceMaxLoad { threshold: _, tolerance: _ } => acc.entry("balance-max-load"),
                 BalanceActivities { threshold: _, tolerance: _ } => acc.entry("balance-activities"),

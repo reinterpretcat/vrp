@@ -4,27 +4,34 @@ use super::*;
 pub struct TotalRoutes {
     route_goal: Option<(f64, bool)>,
     variation_goal: Option<VariationCoefficient>,
+    is_minimization: bool,
 }
 
 impl Default for TotalRoutes {
     fn default() -> Self {
-        Self { route_goal: None, variation_goal: None }
+        Self { route_goal: None, variation_goal: None, is_minimization: true }
     }
 }
 
 impl TotalRoutes {
-    pub fn new(route_goal: Option<usize>, variation_goal: Option<(usize, f64)>, is_minimization: bool) -> Self {
+    pub fn new_minimized(route_goal: Option<usize>, variation_goal: Option<(usize, f64)>) -> Self {
         Self {
-            route_goal: route_goal.map(|routes| (routes as f64, is_minimization)),
+            route_goal: route_goal.map(|routes| (routes as f64, true)),
             variation_goal: variation_goal
                 .map(|(sample, threshold)| VariationCoefficient::new(sample, threshold, "routes_vc")),
+            is_minimization: true,
         }
+    }
+
+    pub fn new_maximized() -> Self {
+        Self { route_goal: None, variation_goal: None, is_minimization: false }
     }
 }
 
 impl Objective for TotalRoutes {
     fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
-        Box::new(MeasurableObjectiveCost::new(insertion_ctx.solution.routes.len() as Cost))
+        let cost = if self.is_minimization { 1. } else { -1. } * insertion_ctx.solution.routes.len() as Cost;
+        Box::new(MeasurableObjectiveCost::new(cost))
     }
 
     fn is_goal_satisfied(

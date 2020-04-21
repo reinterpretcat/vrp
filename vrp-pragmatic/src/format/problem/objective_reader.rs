@@ -30,7 +30,11 @@ pub fn create_objective(
                 MinimizeTours { goal } => {
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
                     let (value_goal, variation_goal) = split_goal(goal);
-                    core_objectives.push(Box::new(TotalRoutes::new(value_goal, variation_goal, true)))
+                    core_objectives.push(Box::new(TotalRoutes::new_minimized(value_goal, variation_goal)))
+                }
+                MaximizeTours => {
+                    constraint.add_module(Box::new(FleetUsageConstraintModule::new_maximized()));
+                    core_objectives.push(Box::new(TotalRoutes::new_maximized()))
                 }
                 MinimizeUnassignedJobs { goal } => {
                     let (value_goal, variation_goal) = split_goal(goal);

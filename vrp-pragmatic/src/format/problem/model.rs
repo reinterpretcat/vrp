@@ -313,6 +313,10 @@ pub enum Objective {
         goal: Option<GoalSatisfactionCriteria<usize>>,
     },
 
+    /// An objective to maximize total tour amount.
+    #[serde(rename(deserialize = "maximize-tours"))]
+    MaximizeTours,
+
     /// An objective to minimize amount of unassigned jobs.
     #[serde(rename(deserialize = "minimize-unassigned"))]
     MinimizeUnassignedJobs {
