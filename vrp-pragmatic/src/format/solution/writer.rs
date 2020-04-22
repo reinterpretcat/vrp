@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/json/solution/writer_test.rs"]
+#[path = "../../../tests/unit/format/solution/writer_test.rs"]
 mod writer_test;
 
 use crate::extensions::MultiDimensionalCapacity;

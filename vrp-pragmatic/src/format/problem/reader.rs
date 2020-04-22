@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/json/problem/reader_test.rs"]
+#[path = "../../../tests/unit/format/problem/reader_test.rs"]
 mod reader_test;
 
 #[path = "./job_reader.rs"]

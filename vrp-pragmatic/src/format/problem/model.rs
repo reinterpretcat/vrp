@@ -1,6 +1,6 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/json/problem/deserializer_test.rs"]
-mod deserializer_test;
+#[path = "../../../tests/unit/format/problem/model_test.rs"]
+mod model_test;
 
 extern crate serde_json;
 
