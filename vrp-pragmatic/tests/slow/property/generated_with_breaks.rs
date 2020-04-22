@@ -2,7 +2,7 @@ use crate::format::problem::*;
 use crate::generator::*;
 
 use crate::format::Location;
-use crate::helpers::solve_and_check;
+use crate::helpers::solve_with_metaheuristic_and_iterations;
 use proptest::prelude::*;
 
 fn get_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
@@ -93,8 +93,6 @@ proptest! {
     #[test]
     #[ignore]
     fn can_solve_problem_with_breaks(problem in get_problem_with_breaks()) {
-        let result = solve_and_check(problem, None);
-
-        assert_eq!(result, Ok(()));
+        solve_with_metaheuristic_and_iterations(problem, None, 10);
     }
 }

@@ -190,7 +190,5 @@ fn can_properly_handle_load_without_capacity_violation() {
         ..create_empty_problem()
     };
 
-    let result = solve_and_check(problem, None);
-
-    assert_eq!(result, Ok(()));
+    solve_with_metaheuristic(problem, None);
 }

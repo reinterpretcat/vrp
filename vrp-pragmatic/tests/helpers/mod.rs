@@ -14,9 +14,6 @@ impl ToLocation for Vec<f64> {
     }
 }
 
-mod checker;
-pub use self::checker::*;
-
 mod core;
 pub use self::core::*;
 

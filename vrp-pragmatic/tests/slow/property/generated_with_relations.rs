@@ -1,6 +1,6 @@
 use crate::format::problem::*;
 use crate::generator::*;
-use crate::helpers::solve_and_check;
+use crate::helpers::solve_with_metaheuristic_and_iterations;
 
 use proptest::prelude::*;
 
@@ -64,8 +64,6 @@ proptest! {
     #[test]
     #[ignore]
     fn can_solve_problem_with_relations(problem in create_problem_with_relations()) {
-        let result = solve_and_check(problem, None);
-
-        assert_eq!(result, Ok(()));
+        solve_with_metaheuristic_and_iterations(problem, None, 10);
     }
 }
