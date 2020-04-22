@@ -1,3 +1,4 @@
+use crate::checker::CheckerContext;
 use crate::format::problem::{Matrix, PragmaticProblem, Problem};
 use crate::format::solution::{create_solution, Solution};
 use std::cmp::Ordering::Less;
@@ -11,6 +12,9 @@ use vrp_solver::SolverBuilder;
 
 /// Runs solver with cheapest insertion heuristic.
 pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
+    let problem_copy = problem.clone();
+    let matrices_copy = matrices.clone();
+
     let problem = get_core_problem(problem, matrices);
     let mut refinement_ctx = RefinementContext::new(problem.clone());
 
@@ -19,7 +23,11 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
         .solution
         .to_solution(problem.extras.clone());
 
-    sort_all_data(create_solution(problem.as_ref(), &solution))
+    let solution = create_solution(problem.as_ref(), &solution);
+
+    assert_eq!(CheckerContext::new(problem_copy, matrices_copy, solution.clone()).check().err(), None);
+
+    sort_all_data(solution)
 }
 
 /// Runs solver with default metaheuristic and default amount of generations.
@@ -33,6 +41,9 @@ pub fn solve_with_metaheuristic_and_iterations(
     matrices: Option<Vec<Matrix>>,
     generations: usize,
 ) -> Solution {
+    let problem_copy = problem.clone();
+    let matrices_copy = matrices.clone();
+
     let problem = get_core_problem(problem, matrices);
 
     let (solution, _, _) = SolverBuilder::default() //
@@ -41,7 +52,11 @@ pub fn solve_with_metaheuristic_and_iterations(
         .solve(problem.clone())
         .unwrap();
 
-    sort_all_data(create_solution(problem.as_ref(), &solution))
+    let solution = sort_all_data(create_solution(problem.as_ref(), &solution));
+
+    assert_eq!(CheckerContext::new(problem_copy, matrices_copy, solution.clone()).check().err(), None);
+
+    solution
 }
 
 fn get_core_problem(problem: Problem, matrices: Option<Vec<Matrix>>) -> Arc<CoreProblem> {

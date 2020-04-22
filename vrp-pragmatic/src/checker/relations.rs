@@ -7,6 +7,8 @@ use std::collections::HashSet;
 
 /// Checks relation rules.
 pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
+    let reserved_ids = vec!["departure", "arrival", "break", "reload"].into_iter().collect::<HashSet<_>>();
+
     (0_usize..)
         .zip(context.problem.plan.relations.as_ref().map_or(vec![].iter(), |relations| relations.iter()))
         .try_for_each(|(idx, relation)| {
@@ -24,7 +26,22 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
             let activity_ids = get_activity_ids(&tour);
 
             let relation_ids = relation.jobs.iter().collect::<HashSet<_>>();
-            if relation_ids.len() != relation.jobs.len() {
+
+            let expected_relation_count = relation_ids.iter().try_fold(0, |acc, job_id| {
+                if let Some(job) = context.get_job_by_id(job_id) {
+                    Ok(acc
+                        + job.pickups.as_ref().map_or(0, |t| t.len())
+                        + job.deliveries.as_ref().map_or(0, |t| t.len())
+                        + job.replacements.as_ref().map_or(0, |t| t.len())
+                        + job.services.as_ref().map_or(0, |t| t.len()))
+                } else if reserved_ids.contains(job_id.as_str()) {
+                    Ok(acc + 1)
+                } else {
+                    Err(format!("Relation has unknown job id: {}", job_id))
+                }
+            })?;
+
+            if expected_relation_count != relation.jobs.len() {
                 return Err(format!("Relation {} contains duplicated ids: {:?}", idx, relation.jobs));
             }
 

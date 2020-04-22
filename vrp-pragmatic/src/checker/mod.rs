@@ -141,6 +141,10 @@ impl CheckerContext {
         }
     }
 
+    fn get_job_by_id(&self, job_id: &str) -> Option<&Job> {
+        self.problem.plan.jobs.iter().find(|job| job.id == job_id)
+    }
+
     fn visit_job<'a, F1, F2, R>(
         &self,
         activity: &Activity,

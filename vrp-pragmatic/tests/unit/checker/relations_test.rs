@@ -57,7 +57,6 @@ mod single {
         case_tour_01:     (Some(vec![create_relation(vec!["departure", "job1", "job3"], Any)]), Ok(())),
         case_tour_02:     (Some(vec![create_relation(vec!["job1", "job2"], Any)]), Ok(())),
         case_tour_03:     (Some(vec![create_relation(vec!["job2", "job3"], Any)]), Ok(())),
-        case_tour_04:     (Some(vec![create_relation(vec!["job2", "job6"], Any)]), Ok(())),
 
         case_mixed_01:    (Some(vec![create_relation(vec!["departure", "job1"], Strict),
                                      create_relation(vec!["job3", "job4"], Sequence)]), Ok(())),
