@@ -39,7 +39,7 @@ pub fn assign_crowding_distance<'a, S>(
         .iter()
         .map(|objective| {
             // first, sort according to objective
-            a.sort_by(|a, b| objective.total_order(a.solution, b.solution));
+            a.sort_by(|a, b| objective.dominance_ord(a.solution, b.solution));
 
             // assign infinite crowding distance to the extremes
             {

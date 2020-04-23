@@ -22,18 +22,9 @@ use std::marker::PhantomData;
 /// distance metric. As the fitness generally is a function of the solution, this is more or less
 /// an implementation detail or that of an optimization. Nothing prevents you from using the fitness
 /// value here as the solution value.
-pub trait Objective {
-    /// The solution value type that we define the objective on.
-    type Solution;
-
+pub trait Objective: DominanceOrd {
     /// The output type of the distance metric.
     type Distance: Sized;
-
-    /// An objective defines a total ordering between any two solution values.
-    ///
-    /// This answers the question, is solution `a` better, equal or worse than solution `b`,
-    /// according to the objective.
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering;
 
     /// An objective defines a distance metric between any two solution values.
     ///
@@ -42,16 +33,19 @@ pub trait Objective {
     /// according to the objective. Larger magnitudes would mean "less similar".
     ///
     /// Note: Distance values can be negative, i.e. the caller is responsible for obtaining absolute values.
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> Self::Distance;
+    fn distance(&self, a: &Self::T, b: &Self::T) -> Self::Distance;
 }
 
-/// An multi objective.
+pub type Objectives<'a, S, D> = [&'a dyn Objective<T = S, Distance = D>];
+
+/// An multi objective which combines multiple objectives and allows to compare solutions based on
+/// dominance ordering. All objectives are considered as equally important.
 pub struct MultiObjective<'a, S, D>
 where
     S: 'a,
     D: 'a,
 {
-    pub objectives: &'a [&'a dyn Objective<Solution = S, Distance = D>],
+    pub objectives: &'a Objectives<'a, S, D>,
     _solution: PhantomData<S>,
     _distance: PhantomData<D>,
 }
@@ -61,7 +55,7 @@ where
     S: 'a,
     D: 'a,
 {
-    pub fn new(objectives: &'a [&'a dyn Objective<Solution = S, Distance = D>]) -> Self {
+    pub fn new(objectives: &'a Objectives<'a, S, D>) -> Self {
         Self { objectives, _solution: PhantomData, _distance: PhantomData }
     }
 }
@@ -78,7 +72,7 @@ where
         let mut greater_cnt = 0;
 
         for objective in self.objectives.iter() {
-            match objective.total_order(a, b) {
+            match objective.dominance_ord(a, b) {
                 Ordering::Less => {
                     less_cnt += 1;
                 }
