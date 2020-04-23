@@ -38,17 +38,16 @@ pub fn assign_crowding_distance<'a, S>(
         .objectives
         .iter()
         .map(|objective| {
-            // First, sort according to objective
+            // first, sort according to objective
             a.sort_by(|a, b| objective.total_order(a.solution, b.solution));
 
-            // Assign infinite crowding distance to the extremes
+            // assign infinite crowding distance to the extremes
             {
                 a.first_mut().unwrap().crowding_distance = INFINITY;
                 a.last_mut().unwrap().crowding_distance = INFINITY;
             }
 
-            // The distance between the "best" and "worst" solution
-            // according to "objective".
+            // the distance between the "best" and "worst" solution according to "objective"
             let spread = objective.distance(a.first().unwrap().solution, a.last().unwrap().solution).abs();
             debug_assert!(spread >= 0.0);
 

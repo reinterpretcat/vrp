@@ -21,3 +21,5 @@ pub use self::non_dominated_sort::*;
 
 mod objective;
 pub use self::objective::*;
+
+mod selection;
