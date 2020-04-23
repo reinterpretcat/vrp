@@ -1,6 +1,5 @@
 use super::*;
-use crate::helpers::refinement::population::dominance::TupleDominanceOrd;
-use crate::helpers::refinement::population::Tuple;
+use crate::helpers::refinement::population::*;
 
 #[test]
 fn test_non_domination() {

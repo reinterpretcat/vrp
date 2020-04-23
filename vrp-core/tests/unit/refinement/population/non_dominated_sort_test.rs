@@ -1,6 +1,5 @@
 use super::*;
-use crate::helpers::refinement::population::dominance::TupleDominanceOrd;
-use crate::helpers::refinement::population::Tuple;
+use crate::helpers::refinement::population::*;
 
 // Create `n_fronts` with each having `n` solutions in it.
 pub fn create_solutions_with_n_fronts(n: usize, n_fronts: usize) -> (Vec<Tuple>, Vec<Vec<usize>>) {

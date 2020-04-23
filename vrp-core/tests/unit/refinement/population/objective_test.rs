@@ -1,5 +1,4 @@
-use crate::helpers::refinement::population::objective::*;
-use crate::helpers::refinement::population::Tuple;
+use crate::helpers::refinement::population::*;
 use crate::refinement::population::Objective;
 use std::cmp::Ordering;
 

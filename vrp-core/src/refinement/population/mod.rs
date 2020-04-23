@@ -10,6 +10,9 @@
 //! Copyright (c) 2016 Michael Neumann
 //!
 
+mod crowding_distance;
+pub use self::crowding_distance::*;
+
 mod dominance_ord;
 pub use self::dominance_ord::DominanceOrd;
 
@@ -17,4 +20,4 @@ mod non_dominated_sort;
 pub use self::non_dominated_sort::*;
 
 mod objective;
-pub use self::objective::Objective;
+pub use self::objective::*;
