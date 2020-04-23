@@ -23,3 +23,4 @@ mod objective;
 pub use self::objective::*;
 
 mod selection;
+pub use self::selection::select_and_rank;
