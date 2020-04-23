@@ -6,27 +6,19 @@ use super::DominanceOrd;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-/// An *objective* defines a *total ordering relation* and a *distance metric* on a set of
-/// `solutions`. Given any two solutions, an objective answers the following two questions:
+/// An *objective* defines a *total ordering relation* by `dominance_ord` method from `DominanceOrd`
+/// trait and a *distance metric* on a `solutions` set of type `T`. Given any two solutions, an
+/// objective answers the following two questions:
 ///
 /// - "which solution is the better one" (total order)
 ///
 /// - "how similar are the two solutions" (distance metric)
 ///
-/// Objectives can be seen as a projection of a (possibly) multi-variate solution value to a scalar
-/// value. There can be any number of different projections (objectives) for any given solution value.
-/// Of course solution values need not be multi-variate.
-///
-/// We use the term "solution" here, ignoring the fact that in practice we often have to evaluate
-/// the "fitness" of a solution prior of being able to define any useful ordering relation or
-/// distance metric. As the fitness generally is a function of the solution, this is more or less
-/// an implementation detail or that of an optimization. Nothing prevents you from using the fitness
-/// value here as the solution value.
 pub trait Objective: DominanceOrd {
     /// The output type of the distance metric.
     type Distance: Sized;
 
-    /// An objective defines a distance metric between any two solution values.
+    /// Gets a distance metric between any two solution values.
     ///
     /// The distance metric answer the question, how similar the solutions `a` and `b` are,
     /// according to the objective.  A zero value would mean, that both solutions are in fact the same,
@@ -36,16 +28,52 @@ pub trait Objective: DominanceOrd {
     fn distance(&self, a: &Self::T, b: &Self::T) -> Self::Distance;
 }
 
-pub type Objectives<'a, S, D> = [&'a dyn Objective<T = S, Distance = D>];
+/// A hierarchy objective which separates multiple objectives into two groups: primary and secondary.
+/// An objective from primary group is considered more important than secondary one.
+pub struct HierarchyObjective<'a, S, D>
+where
+    S: 'a,
+    D: 'a,
+{
+    primary: MultiObjective<'a, S, D>,
+    secondary: MultiObjective<'a, S, D>,
+    _solution: PhantomData<S>,
+    _distance: PhantomData<D>,
+}
 
-/// An multi objective which combines multiple objectives and allows to compare solutions based on
+impl<'a, S, D> HierarchyObjective<'a, S, D>
+where
+    S: 'a,
+    D: 'a,
+{
+    pub fn new(primary: MultiObjective<'a, S, D>, secondary: MultiObjective<'a, S, D>) -> Self {
+        Self { primary, secondary, _solution: PhantomData, _distance: PhantomData }
+    }
+}
+
+impl<'a, S, D> DominanceOrd for HierarchyObjective<'a, S, D>
+where
+    S: 'a,
+    D: 'a,
+{
+    type T = S;
+
+    fn dominance_ord(&self, a: &Self::T, b: &Self::T) -> Ordering {
+        match self.primary.dominance_ord(a, b) {
+            Ordering::Equal => self.secondary.dominance_ord(a, b),
+            order @ _ => order,
+        }
+    }
+}
+
+/// A multi objective which combines multiple objectives and allows to compare solutions based on
 /// dominance ordering. All objectives are considered as equally important.
 pub struct MultiObjective<'a, S, D>
 where
     S: 'a,
     D: 'a,
 {
-    pub objectives: &'a Objectives<'a, S, D>,
+    pub objectives: &'a [&'a dyn Objective<T = S, Distance = D>],
     _solution: PhantomData<S>,
     _distance: PhantomData<D>,
 }
@@ -55,7 +83,7 @@ where
     S: 'a,
     D: 'a,
 {
-    pub fn new(objectives: &'a Objectives<'a, S, D>) -> Self {
+    pub fn new(objectives: &'a [&'a dyn Objective<T = S, Distance = D>]) -> Self {
         Self { objectives, _solution: PhantomData, _distance: PhantomData }
     }
 }

@@ -10,14 +10,8 @@ use std::cmp::Ordering;
 /// has three possible outcomes:
 ///
 /// - Either solution `a` dominates solution `b` ("a < b"),
-///
 /// - or solution `b` dominates solution `a` ("a > b"),
-///
 /// - or neither solution `a` nor `b` dominates each other ("a == b").
-///
-/// The dominance relation is for example used in non-dominated sort algorithms to obtain the Pareto fronts.
-///
-/// The MIT License (MIT) Copyright (c) 2016 Michael Neumann
 ///
 /// [1]: https://en.wikipedia.org/wiki/Dominance_order
 pub trait DominanceOrd {

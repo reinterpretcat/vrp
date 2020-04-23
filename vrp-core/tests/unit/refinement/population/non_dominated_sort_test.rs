@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::refinement::population::*;
 
-// Create `n_fronts` with each having `n` solutions in it.
+/// Creates `n_fronts` with each having `n` solutions in it.
 pub fn create_solutions_with_n_fronts(n: usize, n_fronts: usize) -> (Vec<Tuple>, Vec<Vec<usize>>) {
     let mut solutions = Vec::with_capacity(n * n_fronts);
     let mut expected_fronts = Vec::with_capacity(n_fronts);

@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::refinement::population::*;
 
 #[test]
-fn test_crowding_distance() {
+fn can_get_crowding_distance() {
     // construct a multi objective over a Tuple
     let mo = MultiObjective::<Tuple, f64>::new(&[&Objective1, &Objective2]);
 

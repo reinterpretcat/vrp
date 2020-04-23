@@ -18,7 +18,7 @@ fn fitness(individual: &Individuum) -> Tuple {
 }
 
 #[test]
-fn test_selection_and_ranking() {
+fn can_use_select_and_rank() {
     let population = vec![
         Individuum(10.0, 19.61),
         Individuum(4.99, 5.10),

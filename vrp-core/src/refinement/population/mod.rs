@@ -1,4 +1,4 @@
-//! A multi objective algorithms based on NSGA-2.
+//! This module contains a logic for multi objective optimization algorithms based on NSGA-2.
 //!
 //! The code is based on the source code from the following repos:
 //!
@@ -6,8 +6,7 @@
 //! https://github.com/mneumann/non-dominated-sort-rs
 //! https://github.com/mneumann/nsga2-rs
 //!
-//! The MIT License (MIT)
-//! Copyright (c) 2016 Michael Neumann
+//! which is released under MIT License (MIT), copyright (c) 2016 Michael Neumann
 //!
 
 mod crowding_distance;

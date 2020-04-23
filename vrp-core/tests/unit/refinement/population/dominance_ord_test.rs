@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::refinement::population::*;
 
 #[test]
-fn test_non_domination() {
+fn can_compare_non_dominant_relations() {
     let a = &Tuple(1, 2);
     let b = &Tuple(2, 1);
 
@@ -16,7 +16,7 @@ fn test_non_domination() {
 }
 
 #[test]
-fn test_domination() {
+fn can_compare_dominant_relations() {
     let a = &Tuple(1, 2);
     let b = &Tuple(1, 3);
     let c = &Tuple(0, 2);

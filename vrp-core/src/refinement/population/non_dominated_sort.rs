@@ -6,8 +6,6 @@
 //! objectives, a solution can happen to be better in one objective while at the same time worse in
 //! another objective, and as such none of the two solutions _dominates_ the other.
 //!
-//! The MIT License (MIT) Copyright (c) 2016 Michael Neumann
-//!
 //! [1]: https://www.iitk.ac.in/kangal/Deb_NSGA-II.pdf "A Fast and Elitist Multiobjective Genetic Algorithm: NSGA-II)"
 
 #[cfg(test)]
