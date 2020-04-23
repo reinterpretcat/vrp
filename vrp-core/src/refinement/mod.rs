@@ -104,3 +104,5 @@ pub mod mutation;
 pub mod objectives;
 pub mod selection;
 pub mod termination;
+
+pub mod population;
