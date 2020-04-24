@@ -1,6 +1,7 @@
-//! This module contains a logic for multi objective optimization algorithms based on NSGA-2.
+//! This module contains a logic for processing multiple solutions and multi objective optimization
+//! based on NSGA2 algorithm.
 //!
-//! The code is based on the source code from the following repos:
+//! A NSGA2 implementation is based on the source code from the following repos:
 //!
 //! https://github.com/mneumann/dominance-ord-rs
 //! https://github.com/mneumann/non-dominated-sort-rs
