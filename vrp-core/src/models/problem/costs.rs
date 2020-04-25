@@ -6,12 +6,13 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::common::*;
 use crate::models::problem::{Actor, TargetObjective};
 use crate::models::solution::Activity;
+use crate::solver::objectives::{TotalRoutes, TotalTransportCost, TotalUnassignedJobs};
 use crate::utils::CollectGroupBy;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-/// Defines global objective.
+/// A hierarchical multi objective for vehicle routing problem.
 pub struct ObjectiveCost {
     primary_objectives: Vec<TargetObjective>,
     secondary_objectives: Vec<TargetObjective>,
@@ -50,7 +51,10 @@ impl MultiObjective for ObjectiveCost {
 
 impl Default for ObjectiveCost {
     fn default() -> Self {
-        unimplemented!()
+        Self::new(
+            vec![Box::new(TotalUnassignedJobs::default()), Box::new(TotalRoutes::default())],
+            vec![Box::new(TotalTransportCost::default())],
+        )
     }
 }
 

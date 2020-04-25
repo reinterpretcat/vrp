@@ -93,12 +93,12 @@ fn create_refinement_ctx(
     std::mem::replace(&mut config.initial_individuals, vec![])
         .into_iter()
         .take(config.initial_size)
-        .map(|ctx| refinement_ctx.population.add((ctx, generation)));
+        .for_each(|ctx| refinement_ctx.population.add((ctx, generation)));
 
     let weights = config.initial_methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
     let empty_ctx = InsertionContext::new(problem.clone(), config.random.clone());
 
-    (refinement_ctx.population.size()..=config.initial_size).try_for_each(|idx| {
+    let _ = (refinement_ctx.population.size()..=config.initial_size).try_for_each(|idx| {
         let item_time = Timer::start();
 
         if config.termination.is_termination(&mut refinement_ctx) {
