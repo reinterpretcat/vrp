@@ -84,7 +84,7 @@ fn create_refinement_ctx(
 
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
-        Box::new(DominancePopulation::new(config.population_size)),
+        Box::new(DominancePopulation::new(problem.clone(), config.random.clone(), config.population_size)),
         std::mem::replace(&mut config.quota, None),
     );
 
@@ -103,7 +103,7 @@ fn create_refinement_ctx(
             return Err(());
         }
 
-        let method_idx = config.random.weighted(weights.iter());
+        let method_idx = config.random.weighted(weights.as_slice());
         let insertion_ctx = config.initial_methods[method_idx].0.run(&mut refinement_ctx, empty_ctx.deep_copy());
 
         refinement_ctx.population.add(insertion_ctx);

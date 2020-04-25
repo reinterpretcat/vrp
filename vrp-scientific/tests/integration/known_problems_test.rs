@@ -58,7 +58,11 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     expected: Vec<Vec<&str>>,
     cost: f64,
 ) {
-    let mut refinement_ctx = RefinementContext::new(problem.clone(), Box::new(DominancePopulation::new(1)), None);
+    let mut refinement_ctx = RefinementContext::new(
+        problem.clone(),
+        Box::new(DominancePopulation::new(problem.clone(), Arc::new(DefaultRandom::default()), 1)),
+        None,
+    );
 
     let insertion_ctx = RecreateWithCheapest::default()
         .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())));

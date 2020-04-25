@@ -10,8 +10,10 @@
 //! which is released under MIT License (MIT), copyright (c) 2016 Michael Neumann
 //!
 
-use crate::construction::heuristics::InsertionContext;
+use crate::models::Problem;
 use crate::solver::{Individual, Population};
+use crate::utils::Random;
+use std::sync::Arc;
 
 mod crowding_distance;
 use self::crowding_distance::*;
@@ -24,22 +26,47 @@ use self::nsga2::select_and_rank;
 
 /// An evolution aware implementation of `[Population]` trait.
 pub struct DominancePopulation {
+    problem: Arc<Problem>,
+    random: Arc<dyn Random + Send + Sync>,
     individuals: Vec<Individual>,
+    weights: Vec<usize>,
     max_size: usize,
 }
 
 impl DominancePopulation {
     /// Creates a new instance of `[EvoPopulation]`.
-    pub fn new(max_size: usize) -> Self {
-        Self { individuals: vec![], max_size }
+    pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>, max_size: usize) -> Self {
+        Self {
+            problem,
+            random,
+            individuals: vec![],
+            weights: (0..max_size).map(|idx| max_size - idx).collect(),
+            max_size,
+        }
     }
 }
 
 impl Population for DominancePopulation {
     fn add(&mut self, individual: Individual) {
-        let problem = individual.problem.clone();
-
         self.individuals.push(individual);
+
+        let mut best_order =
+            select_and_rank(self.individuals.as_slice(), self.max_size, self.problem.objective.as_ref())
+                .iter()
+                .map(|acd| acd.index)
+                .collect::<Vec<_>>();
+
+        (0..best_order.len()).for_each(|i| loop {
+            let j = best_order[i];
+            let k = best_order[j];
+
+            if i == j {
+                break;
+            }
+
+            self.individuals.swap(j, k);
+            best_order.swap(i, j);
+        });
 
         self.individuals.truncate(self.max_size);
     }
@@ -53,9 +80,9 @@ impl Population for DominancePopulation {
     }
 
     fn select(&self) -> &Individual {
-        // TODO select
+        let idx = self.random.weighted(&self.weights[0..self.individuals.len()]);
 
-        unimplemented!()
+        self.individuals.get(idx).unwrap()
     }
 
     fn size(&self) -> usize {

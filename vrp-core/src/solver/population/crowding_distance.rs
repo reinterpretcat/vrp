@@ -2,8 +2,7 @@
 #[path = "../../../tests/unit/solver/population/crowding_distance_test.rs"]
 mod crowding_distance_test;
 
-use super::*;
-use crate::models::common::{MultiObjective, Objective};
+use crate::models::common::MultiObjective;
 use crate::solver::population::non_dominated_sort::Front;
 use std::f64::INFINITY;
 

@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::solver::population::*;
+use crate::solver::population::non_dominated_sort::non_dominated_sort;
 
 #[test]
 fn can_get_crowding_distance() {

@@ -101,7 +101,7 @@ impl Builder {
     }
 
     /// Builds solver with parameters specified.
-    pub fn build(mut self) -> Result<Solver, String> {
+    pub fn build(self) -> Result<Solver, String> {
         let problem = self.problem.ok_or_else(|| "problem is not specified".to_string())?;
         let mut config = self.config;
 

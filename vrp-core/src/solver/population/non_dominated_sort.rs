@@ -41,10 +41,6 @@ impl<'f, 's: 'f, S: 's> Front<'s, S> {
         self.current_front.is_empty()
     }
 
-    pub fn len(&self) -> usize {
-        self.current_front.len()
-    }
-
     pub fn current_front_indices(&self) -> &[usize] {
         &self.current_front[..]
     }
