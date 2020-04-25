@@ -158,6 +158,8 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         limits,
     );
 
+    let objective = create_objective(&api_problem, &mut constraint, &problem_props);
+
     Ok(Problem {
         fleet: Arc::new(fleet),
         jobs: Arc::new(jobs),
@@ -165,7 +167,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         constraint: Arc::new(constraint),
         activity,
         transport,
-        objective: create_objective(&api_problem, &mut constraint, &problem_props),
+        objective,
         extras,
     })
 }

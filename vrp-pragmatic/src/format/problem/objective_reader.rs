@@ -13,7 +13,7 @@ pub fn create_objective(
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
 ) -> Arc<SolutionObjective> {
-    Arc::new(if let Some(objectives) = &api_problem.objectives {
+    if let Some(objectives) = &api_problem.objectives {
         let mut map_objectives = |objectives: &Vec<_>| {
             let mut core_objectives: Vec<Box<SolutionObjective>> = vec![];
             let mut cost_idx = None;
@@ -67,18 +67,18 @@ pub fn create_objective(
                     core_objectives.push(objective);
                 }
             });
-            (core_objectives, cost_idx)
+            (MultiObjective::new(core_objectives), cost_idx)
         };
 
         let (primary, primary_cost_idx) = map_objectives(&objectives.primary);
         let (secondary, secondary_cost_idx) = map_objectives(&objectives.secondary.clone().unwrap_or_else(|| vec![]));
 
         // TODO refactor how cost objective is used (cost_idx, primary_cost_idx, secondary_cost_idx)
-        HierarchyObjective::<InsertionContext>::new(MultiObjective::new(primary), MultiObjective::new(secondary))
+        Arc::new(HierarchyObjective::new(primary, secondary))
     } else {
         constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
-        MultiObjective::default()
-    })
+        Arc::new(MultiObjective::default())
+    }
 }
 
 fn get_load_balance(

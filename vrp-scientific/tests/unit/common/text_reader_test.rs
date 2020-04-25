@@ -4,7 +4,6 @@ use crate::helpers::{create_c101_100_problem, get_test_resource};
 use std::io::BufReader;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::refinement::objectives::Objective;
 use vrp_core::utils::DefaultRandom;
 
 #[test]

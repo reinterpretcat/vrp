@@ -48,27 +48,27 @@ impl Default for Builder {
 impl Builder {
     /// Sets max generations to be run.
     /// Default is 2000.
-    pub fn with_max_generations(&mut self, limit: Option<usize>) -> &mut Self {
+    pub fn with_max_generations(mut self, limit: Option<usize>) -> Self {
         self.max_generations = limit;
         self
     }
 
     /// Sets max running time limit.
     /// Default is 300 seconds.
-    pub fn with_max_time(&mut self, limit: Option<usize>) -> &mut Self {
+    pub fn with_max_time(mut self, limit: Option<usize>) -> Self {
         self.max_time = limit;
         self
     }
 
     /// Sets problem.
-    pub fn with_problem(&mut self, problem: Arc<Problem>) -> &mut Self {
+    pub fn with_problem(mut self, problem: Arc<Problem>) -> Self {
         self.problem = Some(problem);
         self
     }
 
     /// Sets initial solutions.
     /// Default is none.
-    pub fn with_solutions(&mut self, solutions: Vec<Arc<Solution>>) -> &mut Self {
+    pub fn with_solutions(mut self, solutions: Vec<Arc<Solution>>) -> Self {
         self.config.logger.deref()(format!("configured to use {} initial solutions", solutions.len()));
         self.config.initial_individuals = solutions
             .iter()
@@ -85,7 +85,7 @@ impl Builder {
 
     /// Sets population size.
     /// Default is 8.
-    pub fn with_population_size(&mut self, size: usize) -> &mut Self {
+    pub fn with_population_size(mut self, size: usize) -> Self {
         self.config.logger.deref()(format!("configured to use population size={} ", size));
         self.config.population_size = size;
         self
@@ -94,14 +94,14 @@ impl Builder {
     /// Sets initial population size. Each initial individual is constructed separately which
     /// used to take more time than normal refinement process.
     /// Default is 4.
-    pub fn with_initial_size(&mut self, size: usize) -> &mut Self {
+    pub fn with_initial_size(mut self, size: usize) -> Self {
         self.config.logger.deref()(format!("configured to use initial population size={} ", size));
         self.config.initial_size = size;
         self
     }
 
     /// Builds solver with parameters specified.
-    pub fn build(self) -> Result<Solver, String> {
+    pub fn build(mut self) -> Result<Solver, String> {
         let problem = self.problem.ok_or_else(|| "problem is not specified".to_string())?;
         let mut config = self.config;
 

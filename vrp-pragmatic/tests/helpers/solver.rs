@@ -50,7 +50,7 @@ pub fn solve_with_metaheuristic_and_iterations(
 
     let problem = get_core_problem(problem, matrices);
 
-    let (solution, _, _) = Builder::default() //
+    let (solution, _, _) = Builder::default()
         .with_max_generations(Some(generations))
         .with_problem(problem.clone())
         .build()

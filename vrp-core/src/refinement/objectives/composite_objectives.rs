@@ -14,7 +14,10 @@ pub struct HierarchyObjective<S> {
     _solution: PhantomData<S>,
 }
 
-impl<S> HierarchyObjective<S> {
+impl<S> HierarchyObjective<S>
+where
+    S: Send + Sync,
+{
     pub fn new(primary: MultiObjective<S>, secondary: MultiObjective<S>) -> Self {
         Self { primary, secondary, _solution: PhantomData }
     }
@@ -42,12 +45,18 @@ impl<S> Objective for HierarchyObjective<S> {
 /// A multi objective which combines multiple objectives and allows to compare solutions based on
 /// dominance ordering. All objectives are considered as equally important.
 pub struct MultiObjective<S> {
-    pub objectives: Vec<Box<dyn Objective<Solution = S>>>,
+    pub objectives: Vec<Box<dyn Objective<Solution = S> + Send + Sync>>,
     _solution: PhantomData<S>,
 }
 
+impl<S> Default for MultiObjective<S> {
+    fn default() -> Self {
+        unimplemented!()
+    }
+}
+
 impl<S> MultiObjective<S> {
-    pub fn new(objectives: Vec<Box<dyn Objective<Solution = S>>>) -> Self {
+    pub fn new(objectives: Vec<Box<dyn Objective<Solution = S> + Send + Sync>>) -> Self {
         Self { objectives, _solution: PhantomData }
     }
 }

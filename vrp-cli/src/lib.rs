@@ -6,11 +6,11 @@ use crate::extensions::import::import_problem;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
+use vrp_core::solver::Builder;
 use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_pragmatic::format::FormatError;
 use vrp_pragmatic::get_unique_locations;
-use vrp_solver::SolverBuilder;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod interop {
@@ -184,18 +184,18 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
 }
 
 pub fn get_solution_serialized(problem: &Arc<CoreProblem>, generations: i32, max_time: i32) -> Result<String, String> {
-    let (solution, _, _) = SolverBuilder::default()
+    let (solution, _, _) = Builder::default()
         .with_max_generations(Some(generations as usize))
         .with_max_time(Some(max_time as usize))
         .build()
-        .solve(problem.clone())
-        .ok_or_else(|| {
-            FormatError::new(
+        .and_then(|solver| solver.solve())
+        .or_else(|err| {
+            Err(FormatError::new(
                 "E0003".to_string(),
                 "cannot find any solution".to_string(),
-                "please submit a bug and share original problem and routing matrix".to_string(),
+                format!("please submit a bug and share original problem and routing matrix. Error: '{}'", err),
             )
-            .to_json()
+            .to_json())
         })?;
 
     let mut buffer = String::new();

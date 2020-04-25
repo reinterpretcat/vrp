@@ -7,12 +7,12 @@ use std::process;
 use std::sync::Arc;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
+use vrp_core::solver::Builder;
 use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_scientific::common::read_init_solution;
 use vrp_scientific::lilim::{LilimProblem, LilimSolution};
 use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
-use vrp_solver::SolverBuilder;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -177,13 +177,13 @@ pub fn run_solve(matches: &ArgMatches) {
     // optional
     let max_generations = matches.value_of(GENERATIONS_ARG_NAME).map(|arg| {
         arg.parse::<usize>().unwrap_or_else(|err| {
-            eprintln!("Cannot get max generations: '{}'", err.to_string());
+            eprintln!("cannot get max generations: '{}'", err.to_string());
             process::exit(1);
         })
     });
     let max_time = matches.value_of(TIME_ARG_NAME).map(|arg| {
         arg.parse::<usize>().unwrap_or_else(|err| {
-            eprintln!("Cannot get max time: '{}'", err.to_string());
+            eprintln!("cannot get max time: '{}'", err.to_string());
             process::exit(1);
         })
     });
@@ -202,7 +202,7 @@ pub fn run_solve(matches: &ArgMatches) {
 
             if is_get_locations_set {
                 locations_writer.0(problem_file, out_buffer).unwrap_or_else(|err| {
-                    eprintln!("Cannot get locations '{}'", err);
+                    eprintln!("cannot get locations '{}'", err);
                     process::exit(1);
                 });
             } else {
@@ -210,26 +210,29 @@ pub fn run_solve(matches: &ArgMatches) {
                     Ok(problem) => {
                         let problem = Arc::new(problem);
                         let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
-                        let solution = SolverBuilder::default()
-                            .with_init_solution(solution.map(|s| (problem.clone(), Arc::new(s))))
+                        let (solution, _, _) = Builder::default()
+                            .with_problem(problem.clone())
+                            .with_solutions(solution.map_or_else(|| vec![], |s| vec![Arc::new(s)]))
                             .with_max_generations(max_generations)
                             .with_max_time(max_time)
                             .build()
-                            .solve(problem.clone());
-                        match solution {
-                            Some(solution) => solution_writer.0(&problem, solution.0, out_buffer, geo_buffer).unwrap(),
-                            None => println!("Cannot find any solution"),
-                        };
+                            .and_then(|solver| solver.solve())
+                            .unwrap_or_else(|err| {
+                                eprintln!("cannot find any solution: '{}'", err);
+                                process::exit(1);
+                            });
+
+                        solution_writer.0(&problem, solution, out_buffer, geo_buffer).unwrap()
                     }
                     Err(error) => {
-                        eprintln!("Cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
+                        eprintln!("cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
                         process::exit(1);
                     }
                 };
             }
         }
         None => {
-            eprintln!("Unknown format: '{}'", problem_format);
+            eprintln!("unknown format: '{}'", problem_format);
             process::exit(1);
         }
     }
