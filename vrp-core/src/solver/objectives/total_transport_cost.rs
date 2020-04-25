@@ -28,10 +28,6 @@ impl TotalTransportCost {
             tolerance,
         }
     }
-
-    fn get_actual_cost(&self, insertion_ctx: &InsertionContext) -> Cost {
-        insertion_ctx.solution.get_actual_cost()
-    }
 }
 
 impl Objective for TotalTransportCost {
@@ -46,6 +42,6 @@ impl Objective for TotalTransportCost {
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        self.get_actual_cost(solution)
+        solution.solution.get_actual_cost()
     }
 }

@@ -1,7 +1,7 @@
 mod timing {
     use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
     use crate::construction::heuristics::*;
-    use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
+    use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
     use crate::helpers::models::domain::create_empty_solution_context;
     use crate::helpers::models::problem::*;
     use crate::helpers::models::solution::*;
@@ -73,7 +73,7 @@ mod timing {
             .build();
         let mut ctx = create_route_context(&fleet, vehicle);
 
-        create_constraint_pipeline_with_timing().accept_route_state(&mut ctx);
+        create_constraint_pipeline_with_transport().accept_route_state(&mut ctx);
         let result = *ctx.state.get_activity_state::<Timestamp>(1, ctx.route.tour.get(activity).unwrap()).unwrap();
 
         assert_eq!(result, time);
@@ -135,7 +135,7 @@ mod timing {
             ])
             .build();
         let mut route_ctx = create_route_context(&fleet, vehicle);
-        let pipeline = create_constraint_pipeline_with_timing();
+        let pipeline = create_constraint_pipeline_with_transport();
         pipeline.accept_route_state(&mut route_ctx);
         route_ctx
             .route_mut()
@@ -187,7 +187,7 @@ mod timing {
             registry: Registry::new(&fleet),
         };
 
-        create_constraint_pipeline_with_timing().accept_solution_state(&mut solution_ctx);
+        create_constraint_pipeline_with_transport().accept_solution_state(&mut solution_ctx);
 
         let route_ctx = solution_ctx.routes.first().unwrap();
         assert_eq!(route_ctx.route.tour.get(1).unwrap().schedule, Schedule { arrival: 20.0, departure: 25.0 });
@@ -213,7 +213,7 @@ mod timing {
             next: route_ctx.route.tour.get(1),
         };
 
-        let result = create_constraint_pipeline_with_timing().evaluate_soft_activity(&route_ctx, &activity_ctx);
+        let result = create_constraint_pipeline_with_transport().evaluate_soft_activity(&route_ctx, &activity_ctx);
 
         assert_eq!(compare_floats(result, 21.0), Ordering::Equal);
     }
@@ -253,7 +253,7 @@ mod timing {
             next: route_ctx.route.tour.get(2),
         };
 
-        let result = create_constraint_pipeline_with_timing().evaluate_soft_activity(&route_ctx, &activity_ctx);
+        let result = create_constraint_pipeline_with_transport().evaluate_soft_activity(&route_ctx, &activity_ctx);
 
         assert_eq!(compare_floats(result, 30.0), Ordering::Equal);
     }
@@ -268,7 +268,7 @@ mod timing {
         let route_ctx = create_route_context_with_activities(&fleet, "v1", vec![]);
         let job = SingleBuilder::default().times(vec![TimeWindow::new(2000., 3000.)]).build_as_job_ref();
 
-        let result = create_constraint_pipeline_with_timing().evaluate_hard_route(&solution_ctx, &route_ctx, &job);
+        let result = create_constraint_pipeline_with_transport().evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
         assert_eq_option!(result, Some(RouteConstraintViolation { code: 1 }));
     }

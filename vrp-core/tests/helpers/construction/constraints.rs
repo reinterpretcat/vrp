@@ -16,7 +16,7 @@ pub fn create_constraint_pipeline_with_module(module: Box<dyn ConstraintModule +
     constraint
 }
 
-pub fn create_constraint_pipeline_with_timing() -> ConstraintPipeline {
+pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
     create_constraint_pipeline_with_module(Box::new(TransportConstraintModule::new(
         Arc::new(TestActivityCost::default()),
         TestTransportCost::new_shared(),

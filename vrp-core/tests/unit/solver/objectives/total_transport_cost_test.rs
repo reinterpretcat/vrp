@@ -1,5 +1,5 @@
 use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState, SolutionContext};
-use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
+use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Objective, Schedule};
@@ -45,20 +45,20 @@ fn can_calculate_transport_cost() {
     };
     let activity = Arc::new(SimpleActivityCost::default());
     let transport = TestTransportCost::new_shared();
-    let constraint = Arc::new(create_constraint_pipeline_with_timing());
+    let constraint = Arc::new(create_constraint_pipeline_with_transport());
     let mut unassigned = HashMap::new();
     unassigned.insert(Job::Single(Arc::new(test_single())), 1);
     let problem = Arc::new(Problem {
         fleet: fleet.clone(),
         jobs: Arc::new(Jobs::new(&fleet, vec![], &transport)),
         locks: vec![],
-        constraint,
+        constraint: constraint.clone(),
         activity,
         transport,
         objective: Arc::new(ObjectiveCost::default()),
         extras: Arc::new(Extras::default()),
     });
-    let insertion_ctx = InsertionContext {
+    let mut insertion_ctx = InsertionContext {
         problem,
         solution: SolutionContext {
             required: vec![],
@@ -70,6 +70,7 @@ fn can_calculate_transport_cost() {
         },
         random: Arc::new(DefaultRandom::default()),
     };
+    constraint.accept_solution_state(&mut insertion_ctx.solution);
 
     // vehicle + driver
 

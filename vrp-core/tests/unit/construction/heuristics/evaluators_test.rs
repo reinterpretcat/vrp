@@ -1,6 +1,6 @@
 use crate::construction::heuristics::evaluators::evaluate_job_insertion;
 use crate::construction::heuristics::*;
-use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
+use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::construction::heuristics::{create_insertion_context, create_test_insertion_context};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_test_registry;
@@ -85,7 +85,7 @@ mod single {
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         route_ctx.route_mut().tour.insert_at(create_tour_activity_at(5), 1).insert_at(create_tour_activity_at(10), 2);
         let routes = vec![route_ctx];
-        let constraint = create_constraint_pipeline_with_timing();
+        let constraint = create_constraint_pipeline_with_transport();
         let ctx = create_insertion_context(registry, constraint, routes);
 
         let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
@@ -249,7 +249,7 @@ mod multi {
             route_ctx.route_mut().tour.insert_at(create_tour_activity_at(loc), index);
         });
         let routes = vec![route_ctx];
-        let constraint = create_constraint_pipeline_with_timing();
+        let constraint = create_constraint_pipeline_with_transport();
         let ctx = create_insertion_context(registry, constraint, routes);
         let mut job = MultiBuilder::default();
         expected.iter().zip(0usize..).for_each(|((_, loc), index)| {
