@@ -6,8 +6,8 @@ use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
+use vrp_core::solver::RefinementContext;
 use vrp_core::solver::{Builder, DominancePopulation};
-use vrp_core::solver::{Population, RefinementContext};
 use vrp_core::utils::DefaultRandom;
 
 /// Runs solver with cheapest insertion heuristic.

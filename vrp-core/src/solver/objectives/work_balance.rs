@@ -193,20 +193,26 @@ impl Objective for WorkBalanceObjectives {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        let fitness_a = get_stdev(&self.values_func.deref()(&a.solution));
-        let fitness_b = get_stdev(&self.values_func.deref()(&b.solution));
+        let fitness_a = self.fitness(a);
+        let fitness_b = self.fitness(b);
 
         compare_floats(fitness_a, fitness_b)
     }
 
     fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        let fitness_a = get_stdev(&self.values_func.deref()(&a.solution));
-        let fitness_b = get_stdev(&self.values_func.deref()(&b.solution));
+        let fitness_a = self.fitness(a);
+        let fitness_b = self.fitness(b);
 
         fitness_a - fitness_b
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        get_stdev(&self.values_func.deref()(&solution.solution))
+        let value = get_stdev(&self.values_func.deref()(&solution.solution));
+
+        if value.is_nan() {
+            1.
+        } else {
+            value
+        }
     }
 }

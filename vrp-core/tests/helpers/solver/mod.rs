@@ -6,19 +6,19 @@ use crate::models::problem::{create_matrix_transport_cost, Job, Jobs, MatrixData
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::solver::mutation::{Recreate, RecreateWithCheapest};
-use crate::solver::{Population, RefinementContext};
-use crate::utils::Random;
+use crate::solver::{DominancePopulation, Population, RefinementContext};
+use crate::utils::{DefaultRandom, Random};
 use std::sync::Arc;
 
 pub mod population;
 
 /// Creates default population.
-pub fn create_default_population() -> Box<dyn Population + Sync + Send> {
-    unimplemented!()
+pub fn create_default_population(problem: Arc<Problem>) -> Box<dyn Population + Sync + Send> {
+    Box::new(DominancePopulation::new(problem, Arc::new(DefaultRandom::default()), 4, 2, 2))
 }
 
 pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext {
-    RefinementContext::new(problem, create_default_population(), None)
+    RefinementContext::new(problem.clone(), create_default_population(problem.clone()), None)
 }
 
 /// Creates initial solution using cheapest insertion
