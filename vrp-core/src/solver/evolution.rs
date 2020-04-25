@@ -48,13 +48,13 @@ pub fn run_evolution(problem: Arc<Problem>, config: EvolutionConfig) -> Result<B
         let generation_time = Timer::start();
 
         // NOTE at the moment, only one solution is produced per generation
-        let insertion_ctx = refinement_ctx.population.select().0.deep_copy();
+        let insertion_ctx = refinement_ctx.population.select().deep_copy();
 
         let insertion_ctx = config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
 
         log_progress(&refinement_ctx, &insertion_ctx, &evolution_time, &generation_time, &config.logger);
 
-        refinement_ctx.population.add((insertion_ctx, refinement_ctx.generation));
+        refinement_ctx.population.add(insertion_ctx);
 
         refinement_ctx.generation += 1;
     }
@@ -82,8 +82,6 @@ fn create_refinement_ctx(
         return Err("at least one initial method has to be specified".to_string());
     }
 
-    let generation = 0_usize;
-
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
         Box::new(DominancePopulation::new(config.population_size)),
@@ -93,7 +91,7 @@ fn create_refinement_ctx(
     std::mem::replace(&mut config.initial_individuals, vec![])
         .into_iter()
         .take(config.initial_size)
-        .for_each(|ctx| refinement_ctx.population.add((ctx, generation)));
+        .for_each(|ctx| refinement_ctx.population.add(ctx));
 
     let weights = config.initial_methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
     let empty_ctx = InsertionContext::new(problem.clone(), config.random.clone());
@@ -108,7 +106,7 @@ fn create_refinement_ctx(
         let method_idx = config.random.weighted(weights.iter());
         let insertion_ctx = config.initial_methods[method_idx].0.run(&mut refinement_ctx, empty_ctx.deep_copy());
 
-        refinement_ctx.population.add((insertion_ctx, generation));
+        refinement_ctx.population.add(insertion_ctx);
 
         config.logger.deref()(format!(
             "[{:06}s] created {} of {} initial solutions in [{}ms]",
@@ -136,10 +134,9 @@ fn log_progress(
     if fitness_change < 0. && refinement_ctx.generation % 100 == 0 {
         log_individual(
             &insertion_ctx,
-            refinement_ctx.generation,
+            Some((refinement_ctx.generation, generation_time)),
             (fitness_value, fitness_change),
             &evolution_time,
-            Some(&generation_time),
             logger,
         );
     }
@@ -151,19 +148,21 @@ fn log_progress(
 
 fn log_individual(
     insertion_ctx: &InsertionContext,
-    generation: usize,
+    generation: Option<(usize, &Timer)>,
     fitness: (f64, f64),
     evolution_time: &Timer,
-    generation_time: Option<&Timer>,
     logger: &Logger,
 ) {
     let (fitness_value, fitness_change) = fitness;
 
     logger.deref()(format!(
-        "[{:06}s] generation {}{}, fitness: {:.2} ({:.3}%), routes: {}, unassigned: {}, is improvement: {}",
+        "[{:06}s] {}fitness: {:.2} ({:.3}%), routes: {}, unassigned: {}, is improvement: {}",
         evolution_time.elapsed_secs(),
-        generation,
-        generation_time.map_or("".to_string(), |time| format!(" took {}ms", time.elapsed_millis())),
+        generation.map_or("".to_string(), |(gen, time)| format!(
+            " generation {} took {}ms, ",
+            gen,
+            time.elapsed_millis()
+        )),
         fitness_value,
         fitness_change,
         insertion_ctx.solution.routes.len(),
@@ -179,15 +178,8 @@ fn log_population(refinement_ctx: &RefinementContext, evolution_time: &Timer, lo
         refinement_ctx.generation as f64 / evolution_time.elapsed_secs_as_f64(),
     ));
 
-    refinement_ctx.population.all().for_each(|(insertion_ctx, generation)| {
-        log_individual(
-            insertion_ctx,
-            *generation,
-            get_fitness(&refinement_ctx, &insertion_ctx),
-            evolution_time,
-            None,
-            logger,
-        )
+    refinement_ctx.population.all().for_each(|insertion_ctx| {
+        log_individual(insertion_ctx, None, get_fitness(&refinement_ctx, &insertion_ctx), evolution_time, logger)
     });
 }
 
@@ -207,7 +199,7 @@ fn get_fitness(refinement_ctx: &RefinementContext, insertion_ctx: &InsertionCont
     let fitness_change = refinement_ctx
         .population
         .best()
-        .map(|(best_ctx, _)| refinement_ctx.problem.objective.fitness(best_ctx))
+        .map(|best_ctx| refinement_ctx.problem.objective.fitness(best_ctx))
         .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.)
         .unwrap_or(100.);
 

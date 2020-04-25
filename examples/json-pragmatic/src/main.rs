@@ -55,7 +55,7 @@ fn run_examples(base_path: &str) {
             }),
         );
 
-        let (solution, _, _) = Builder::default()
+        let (solution, _) = Builder::default()
             .with_max_generations(Some(100))
             .with_problem(problem.clone())
             .build()

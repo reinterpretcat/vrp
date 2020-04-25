@@ -184,7 +184,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
 }
 
 pub fn get_solution_serialized(problem: &Arc<CoreProblem>, generations: i32, max_time: i32) -> Result<String, String> {
-    let (solution, _, _) = Builder::default()
+    let (solution, _) = Builder::default()
         .with_max_generations(Some(generations as usize))
         .with_max_time(Some(max_time as usize))
         .build()

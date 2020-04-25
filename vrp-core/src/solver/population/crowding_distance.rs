@@ -4,6 +4,7 @@ mod crowding_distance_test;
 
 use super::*;
 use crate::models::common::{MultiObjective, Objective};
+use crate::solver::population::non_dominated_sort::Front;
 use std::f64::INFINITY;
 
 pub struct AssignedCrowdingDistance<'a, S>

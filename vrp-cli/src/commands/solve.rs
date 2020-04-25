@@ -210,7 +210,7 @@ pub fn run_solve(matches: &ArgMatches) {
                     Ok(problem) => {
                         let problem = Arc::new(problem);
                         let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
-                        let (solution, _, _) = Builder::default()
+                        let (solution, _) = Builder::default()
                             .with_problem(problem.clone())
                             .with_solutions(solution.map_or_else(|| vec![], |s| vec![Arc::new(s)]))
                             .with_max_generations(max_generations)

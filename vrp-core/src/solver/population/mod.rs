@@ -14,13 +14,13 @@ use crate::construction::heuristics::InsertionContext;
 use crate::solver::{Individual, Population};
 
 mod crowding_distance;
-pub use self::crowding_distance::*;
+use self::crowding_distance::*;
 
 mod non_dominated_sort;
-pub use self::non_dominated_sort::*;
+use self::non_dominated_sort::*;
 
 mod nsga2;
-pub use self::nsga2::select_and_rank;
+use self::nsga2::select_and_rank;
 
 /// An evolution aware implementation of `[Population]` trait.
 pub struct DominancePopulation {
@@ -37,9 +37,9 @@ impl DominancePopulation {
 
 impl Population for DominancePopulation {
     fn add(&mut self, individual: Individual) {
-        self.individuals.push(individual);
+        let problem = individual.problem.clone();
 
-        // TODO sort
+        self.individuals.push(individual);
 
         self.individuals.truncate(self.max_size);
     }
@@ -52,7 +52,7 @@ impl Population for DominancePopulation {
         self.individuals.first()
     }
 
-    fn select(&self) -> &(InsertionContext, usize) {
+    fn select(&self) -> &Individual {
         // TODO select
 
         unimplemented!()

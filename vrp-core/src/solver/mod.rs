@@ -37,8 +37,8 @@ pub struct RefinementContext {
     pub generation: usize,
 }
 
-/// Represents solution in population defined as actual solution, its cost, and generation
-pub type Individual = (InsertionContext, usize);
+/// Represents solution in population defined as actual solution.
+pub type Individual = InsertionContext;
 
 /// Represents a solution population.
 pub trait Population {
@@ -79,14 +79,14 @@ pub struct Solver {
 }
 
 impl Solver {
-    pub fn solve(self) -> Result<(Solution, Cost, usize), String> {
+    pub fn solve(self) -> Result<(Solution, Cost), String> {
         let population = run_evolution(self.problem.clone(), self.config)?;
 
         // NOTE select first best according to population
-        let (insertion_ctx, generation) = population.best().ok_or_else(|| "cannot find any solution".to_string())?;
+        let insertion_ctx = population.best().ok_or_else(|| "cannot find any solution".to_string())?;
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
         let cost = self.problem.objective.fitness(insertion_ctx);
 
-        Ok((solution, cost, *generation))
+        Ok((solution, cost))
     }
 }
