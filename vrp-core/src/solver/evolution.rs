@@ -85,7 +85,7 @@ fn create_refinement_ctx(
 
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
-        Box::new(DominancePopulation::new()),
+        Box::new(DominancePopulation::new(config.population_size)),
         std::mem::replace(&mut config.quota, None),
     );
 

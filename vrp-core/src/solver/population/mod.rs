@@ -24,33 +24,42 @@ mod nsga2;
 pub use self::nsga2::select_and_rank;
 
 /// An evolution aware implementation of `[Population]` trait.
-pub struct DominancePopulation {}
+pub struct DominancePopulation {
+    individuals: Vec<Individual>,
+    max_size: usize,
+}
 
 impl DominancePopulation {
     /// Creates a new instance of `[EvoPopulation]`.
-    pub fn new() -> Self {
-        unimplemented!()
+    pub fn new(max_size: usize) -> Self {
+        Self { individuals: vec![], max_size }
     }
 }
 
 impl Population for DominancePopulation {
-    fn add(&mut self, _individual: Individual) {
-        unimplemented!()
+    fn add(&mut self, individual: Individual) {
+        self.individuals.push(individual);
+
+        // TODO sort
+
+        self.individuals.truncate(self.max_size);
     }
 
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        unimplemented!()
+        Box::new(self.individuals.iter())
     }
 
     fn best(&self) -> Option<&Individual> {
-        unimplemented!()
+        self.individuals.first()
     }
 
     fn select(&self) -> &(InsertionContext, usize) {
+        // TODO select
+
         unimplemented!()
     }
 
     fn size(&self) -> usize {
-        unimplemented!()
+        self.individuals.len()
     }
 }
