@@ -22,6 +22,10 @@ pub struct EvolutionConfig {
 
     /// Population size.
     pub population_size: usize,
+    /// Offspring size.
+    pub offspring_size: usize,
+    /// Elite size.
+    pub elite_size: usize,
     /// Initial size of population to be generated.
     pub initial_size: usize,
     /// Create methods to create initial individuals.
@@ -84,7 +88,13 @@ fn create_refinement_ctx(
 
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
-        Box::new(DominancePopulation::new(problem.clone(), config.random.clone(), config.population_size)),
+        Box::new(DominancePopulation::new(
+            problem.clone(),
+            config.random.clone(),
+            config.population_size,
+            config.offspring_size,
+            config.elite_size,
+        )),
         std::mem::replace(&mut config.quota, None),
     );
 
@@ -96,7 +106,7 @@ fn create_refinement_ctx(
     let weights = config.initial_methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
     let empty_ctx = InsertionContext::new(problem.clone(), config.random.clone());
 
-    let _ = (refinement_ctx.population.size()..=config.initial_size).try_for_each(|idx| {
+    let _ = (refinement_ctx.population.size()..config.initial_size).try_for_each(|idx| {
         let item_time = Timer::start();
 
         if config.termination.is_termination(&mut refinement_ctx) {
@@ -109,9 +119,9 @@ fn create_refinement_ctx(
         refinement_ctx.population.add(insertion_ctx);
 
         config.logger.deref()(format!(
-            "[{:06}s] created {} of {} initial solutions in [{}ms]",
+            "[{}s] created {} of {} initial solutions in {}ms",
             evolution_time.elapsed_millis(),
-            idx,
+            idx + 1,
             config.initial_size,
             item_time.elapsed_millis()
         ));
@@ -156,10 +166,10 @@ fn log_individual(
     let (fitness_value, fitness_change) = fitness;
 
     logger.deref()(format!(
-        "[{:06}s] {}fitness: {:.2} ({:.3}%), routes: {}, unassigned: {}, is improvement: {}",
-        evolution_time.elapsed_secs(),
-        generation.map_or("".to_string(), |(gen, time)| format!(
-            " generation {} took {}ms, ",
+        "{}fitness: {:.2} ({:.3}%), routes: {}, unassigned: {}, is improvement: {}",
+        generation.map_or("\t".to_string(), |(gen, time)| format!(
+            "[{}s] generation {} took {}ms, ",
+            evolution_time.elapsed_secs(),
             gen,
             time.elapsed_millis()
         )),
@@ -173,7 +183,7 @@ fn log_individual(
 
 fn log_population(refinement_ctx: &RefinementContext, evolution_time: &Timer, logger: &Logger) {
     logger.deref()(format!(
-        "[{:06}s] population state (speed: {:.2} gen/sec):",
+        "[{}s] population state (speed: {:.2} gen/sec):",
         evolution_time.elapsed_secs(),
         refinement_ctx.generation as f64 / evolution_time.elapsed_secs_as_f64(),
     ));
@@ -186,7 +196,7 @@ fn log_population(refinement_ctx: &RefinementContext, evolution_time: &Timer, lo
 fn log_result(refinement_ctx: &RefinementContext, evolution_time: &Timer, logger: &Logger) {
     log_population(refinement_ctx, evolution_time, logger);
     logger.deref()(format!(
-        "[{:06}s] total generations: {}, speed: {:.2} gen/sec",
+        "[{}s] total generations: {}, speed: {:.2} gen/sec",
         evolution_time.elapsed_secs(),
         refinement_ctx.generation,
         refinement_ctx.generation as f64 / evolution_time.elapsed_secs_as_f64()

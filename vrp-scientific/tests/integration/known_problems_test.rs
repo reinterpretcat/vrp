@@ -60,7 +60,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
 ) {
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
-        Box::new(DominancePopulation::new(problem.clone(), Arc::new(DefaultRandom::default()), 1)),
+        Box::new(DominancePopulation::new(problem.clone(), Arc::new(DefaultRandom::default()), 4, 2, 2)),
         None,
     );
 

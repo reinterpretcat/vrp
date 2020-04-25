@@ -30,18 +30,35 @@ pub struct DominancePopulation {
     random: Arc<dyn Random + Send + Sync>,
     individuals: Vec<Individual>,
     weights: Vec<usize>,
-    max_size: usize,
+    offspring_size: usize,
+    population_size: usize,
 }
 
 impl DominancePopulation {
     /// Creates a new instance of `[EvoPopulation]`.
-    pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>, max_size: usize) -> Self {
+    pub fn new(
+        problem: Arc<Problem>,
+        random: Arc<dyn Random + Send + Sync>,
+        population_size: usize,
+        offspring_size: usize,
+        elite_size: usize,
+    ) -> Self {
+        assert!(elite_size < population_size);
+
+        let max_size = population_size + offspring_size;
+
         Self {
             problem,
             random,
             individuals: vec![],
-            weights: (0..max_size).map(|idx| max_size - idx).collect(),
-            max_size,
+            weights: (0..max_size)
+                .map(|idx| {
+                    let weight = max_size - idx;
+                    weight + if idx < elite_size { weight } else { 0 }
+                })
+                .collect(),
+            population_size,
+            offspring_size,
         }
     }
 }
@@ -50,13 +67,15 @@ impl Population for DominancePopulation {
     fn add(&mut self, individual: Individual) {
         self.individuals.push(individual);
 
+        let max_size = self.population_size + self.offspring_size;
+
         let mut best_order =
-            select_and_rank(self.individuals.as_slice(), self.max_size, self.problem.objective.as_ref())
+            select_and_rank(self.individuals.as_slice(), self.individuals.len(), self.problem.objective.as_ref())
                 .iter()
                 .map(|acd| acd.index)
                 .collect::<Vec<_>>();
 
-        (0..best_order.len()).for_each(|i| loop {
+        (0..self.individuals.len()).for_each(|i| loop {
             let j = best_order[i];
             let k = best_order[j];
 
@@ -68,7 +87,9 @@ impl Population for DominancePopulation {
             best_order.swap(i, j);
         });
 
-        self.individuals.truncate(self.max_size);
+        if self.individuals.len() > max_size {
+            self.individuals.truncate(self.population_size);
+        }
     }
 
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {

@@ -28,6 +28,8 @@ impl Default for Builder {
                 termination: Box::new(MaxTime::new(300.)),
                 quota: None,
                 population_size: 8,
+                offspring_size: 4,
+                elite_size: 2,
                 initial_size: 4,
                 initial_methods: vec![
                     (Box::new(RecreateWithCheapest::default()), 10),
