@@ -13,7 +13,6 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::Problem;
 
 use crate::construction::Quota;
-use crate::refinement::objectives::ObjectiveCostType;
 use hashbrown::HashMap;
 use std::any::Any;
 use std::sync::Arc;
@@ -29,12 +28,15 @@ pub struct RefinementContext {
     /// A collection of data associated with refinement process.
     pub state: HashMap<String, Box<dyn Any>>,
 
+    /// A quota for refinement process.
+    pub quota: Option<Box<dyn Quota + Send + Sync>>,
+
     /// Specifies refinement generation (or iteration).
     pub generation: usize,
 }
 
 /// Represents solution in population defined as actual solution, its cost, and generation
-pub type Individuum = (InsertionContext, ObjectiveCostType, usize);
+pub type Individuum = (InsertionContext, usize);
 
 /// Represents a solution population.
 pub trait Population {
@@ -44,65 +46,27 @@ pub trait Population {
     /// Returns all solutions from population sorted according their quality.
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a>;
 
-    /// Returns best solution from population.
+    /// Returns best solution from the population.
     fn best(&self) -> Option<&Individuum>;
+
+    /// Returns one of solutions from the population.
+    fn select(&self) -> &Individuum;
 
     /// Returns size of population.
     fn size(&self) -> usize;
 }
 
-/// A population which consist maximum of one solution.
-struct SinglePopulation {
-    individuums: Vec<Individuum>,
-}
-
-impl Default for SinglePopulation {
-    fn default() -> Self {
-        Self { individuums: vec![] }
-    }
-}
-
-impl Population for SinglePopulation {
-    fn add(&mut self, individuum: Individuum) {
-        self.individuums.clear();
-        self.individuums.push(individuum);
-    }
-
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a> {
-        Box::new(self.individuums.iter())
-    }
-
-    fn best(&self) -> Option<&Individuum> {
-        self.individuums.first()
-    }
-
-    fn size(&self) -> usize {
-        self.individuums.len()
-    }
-}
-
 impl RefinementContext {
-    pub fn new(problem: Arc<Problem>) -> Self {
-        Self::new_with_population(problem, Box::new(SinglePopulation::default()))
-    }
-
-    pub fn new_with_population(problem: Arc<Problem>, population: Box<dyn Population + Sync + Send>) -> Self {
-        Self { problem, population, state: Default::default(), generation: 1 }
-    }
-
-    pub fn get_quota(&self) -> Option<&Box<dyn Quota + Send + Sync>> {
-        self.state.get("quota").and_then(|q| q.downcast_ref::<Box<dyn Quota + Send + Sync>>())
-    }
-
-    pub fn set_quota(&mut self, quota: Box<dyn Quota + Send + Sync>) {
-        self.state.insert("quota".to_string(), Box::new(quota));
+    /// Creates a new instance of `[RefinementContext]`.
+    pub fn new(
+        problem: Arc<Problem>,
+        population: Box<dyn Population + Sync + Send>,
+        quota: Option<Box<dyn Quota + Send + Sync>>,
+    ) -> Self {
+        Self { problem, population, state: Default::default(), quota, generation: 1 }
     }
 }
 
-pub mod acceptance;
 pub mod mutation;
 pub mod objectives;
-pub mod selection;
 pub mod termination;
-
-pub mod population;

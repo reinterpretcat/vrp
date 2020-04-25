@@ -1,14 +1,14 @@
-use crate::constraints::get_max_cost;
+use crate::construction::constraints::*;
+use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
+use crate::models::problem::Job;
+use crate::models::SolutionObjective;
+use crate::refinement::objectives::Objective;
+use crate::utils::{compare_floats, get_mean, get_stdev};
+use std::cmp::Ordering;
 use std::cmp::Ordering::Less;
 use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
-use vrp_core::construction::constraints::*;
-use vrp_core::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
-use vrp_core::models::problem::Job;
-use vrp_core::refinement::objectives::{MeasurableObjectiveCost, Objective, ObjectiveCostType};
-use vrp_core::refinement::RefinementContext;
-use vrp_core::utils::{get_mean, get_stdev};
 
 /// Provides functionality needed to balance work across all routes.
 pub struct WorkBalance {}
@@ -20,7 +20,7 @@ impl WorkBalance {
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
         load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>)
+    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>)
     where
         Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
     {
@@ -73,7 +73,7 @@ impl WorkBalance {
         threshold: Option<usize>,
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
         let activity_balance = WorkBalanceObjectives {
             threshold: threshold.map(|t| t as f64),
             solution_tolerance,
@@ -96,7 +96,7 @@ impl WorkBalance {
         threshold: Option<f64>,
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
         Self::new_transport_balanced(threshold, solution_tolerance, route_tolerance, TOTAL_DISTANCE_KEY)
     }
 
@@ -105,7 +105,7 @@ impl WorkBalance {
         threshold: Option<f64>,
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
         Self::new_transport_balanced(threshold, solution_tolerance, route_tolerance, TOTAL_DURATION_KEY)
     }
 
@@ -114,12 +114,15 @@ impl WorkBalance {
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
         state_key: i32,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn Objective + Send + Sync>) {
+    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
         let transport_balance = WorkBalanceObjectives {
             threshold,
             solution_tolerance,
             route_tolerance,
-            value_func: Arc::new(move |rc| get_transport_value(rc, state_key)),
+            value_func: Arc::new(move |rc| {
+                debug_assert!(state_key == TOTAL_DISTANCE_KEY || state_key == TOTAL_DURATION_KEY);
+                rc.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.)
+            }),
             values_func: Arc::new(move |ctx| {
                 ctx.routes.iter().map(|rc| rc.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.)).collect()
             }),
@@ -180,7 +183,7 @@ impl SoftRouteConstraint for WorkBalanceObjectives {
         let ratio = (value - mean).max(0.) / mean;
 
         if ratio.is_normal() && ratio > self.route_tolerance.unwrap_or(0.) {
-            ratio * get_max_cost(solution_ctx)
+            ratio * solution_ctx.get_max_cost()
         } else {
             0.
         }
@@ -188,19 +191,23 @@ impl SoftRouteConstraint for WorkBalanceObjectives {
 }
 
 impl Objective for WorkBalanceObjectives {
-    fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
-        let values = self.values_func.deref()(&insertion_ctx.solution);
+    type Solution = InsertionContext;
 
-        Box::new(MeasurableObjectiveCost::new_with_tolerance(get_stdev(&values), self.solution_tolerance.clone()))
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        let fitness_a = get_stdev(&self.values_func.deref()(&a.solution));
+        let fitness_b = get_stdev(&self.values_func.deref()(&b.solution));
+
+        compare_floats(fitness_a, fitness_b)
     }
 
-    fn is_goal_satisfied(&self, _: &mut RefinementContext, _: &InsertionContext) -> Option<bool> {
-        None
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        let fitness_a = get_stdev(&self.values_func.deref()(&a.solution));
+        let fitness_b = get_stdev(&self.values_func.deref()(&b.solution));
+
+        fitness_a - fitness_b
     }
-}
 
-fn get_transport_value(route_ctx: &RouteContext, state_key: i32) -> f64 {
-    assert!(state_key == TOTAL_DISTANCE_KEY || state_key == TOTAL_DURATION_KEY);
-
-    route_ctx.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.)
+    fn fitness(&self, solution: &Self::Solution) -> f64 {
+        get_stdev(&self.values_func.deref()(&solution.solution))
+    }
 }

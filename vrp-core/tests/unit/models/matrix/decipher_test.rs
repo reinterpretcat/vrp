@@ -8,9 +8,9 @@ use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, TransportCost, Veh
 use crate::models::solution::{Activity, Registry};
 
 use crate::construction::constraints::Demand;
+use crate::helpers::refinement::create_default_objective;
 use crate::models::solution::Place as ActivityPlace;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
-use crate::refinement::objectives::MultiObjective;
 
 #[test]
 fn can_create_adjacency_matrix_decipher() {
@@ -364,7 +364,7 @@ fn create_diverse_problem_unwrapped() -> Problem {
         constraint: Arc::new(create_constraint_pipeline_with_simple_capacity()),
         activity: Arc::new(SimpleActivityCost::default()),
         transport,
-        objective: Arc::new(MultiObjective::default()),
+        objective: create_default_objective(),
         extras: Arc::new(Default::default()),
     }
 }

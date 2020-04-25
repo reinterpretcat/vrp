@@ -1,5 +1,5 @@
-use vrp_core::construction::Quota;
-use vrp_core::utils::Timer;
+use crate::construction::Quota;
+use crate::utils::Timer;
 
 /// A time quota.
 pub struct TimeQuota {

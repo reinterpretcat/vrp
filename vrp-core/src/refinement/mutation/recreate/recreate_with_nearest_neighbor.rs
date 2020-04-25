@@ -24,7 +24,7 @@ impl Recreate for RecreateWithNearestNeighbor {
             &self.job_selector,
             &self.job_reducer,
             insertion_ctx,
-            refinement_ctx.get_quota(),
+            &refinement_ctx.quota,
         )
     }
 }

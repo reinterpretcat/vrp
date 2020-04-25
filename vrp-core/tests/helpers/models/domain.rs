@@ -1,11 +1,11 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::{InsertionContext, SolutionContext};
 use crate::helpers::models::problem::*;
+use crate::helpers::refinement::create_default_objective;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Job, Jobs};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
-use crate::refinement::objectives::MultiObjective;
 use crate::utils::DefaultRandom;
 use std::borrow::Borrow;
 use std::sync::Arc;
@@ -21,7 +21,7 @@ pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> A
         constraint: Arc::new(constraint),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        objective: Arc::new(MultiObjective::default()),
+        objective: create_default_objective(),
         extras: Arc::new(Default::default()),
     })
 }

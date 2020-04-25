@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::refinement::population::*;
+use crate::helpers::solver::sorting::*;
 use std::f64::consts::PI;
 
 struct Individuum(pub f64, pub f64);
@@ -33,7 +33,7 @@ fn can_use_select_and_rank() {
         Individuum(5.20, 18.86),
         Individuum(7.89, 8.97),
     ];
-    let mo = MultiObjective::new(&[&Objective1, &Objective2]);
+    let mo = MultiObjective::new(vec![Box::new(Objective1), Box::new(Objective2)]);
 
     // rate population (calculate fitness)
     let rated_population = population.iter().map(fitness).collect::<Vec<_>>();

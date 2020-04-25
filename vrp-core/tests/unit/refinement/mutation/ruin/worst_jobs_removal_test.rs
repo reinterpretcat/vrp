@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::{Ruin, WorstJobRemoval};
 use crate::construction::heuristics::InsertionContext;
 use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
-use crate::helpers::refinement::generate_matrix_routes;
+use crate::helpers::refinement::{create_default_refinement_ctx, generate_matrix_routes};
 use crate::helpers::utils::random::FakeRandom;
 use crate::refinement::RefinementContext;
 
@@ -26,8 +26,8 @@ fn can_ruin_solution_with_matrix_routes_impl(matrix: (usize, usize), ints: Vec<i
         Arc::new(FakeRandom::new(ints, reals)),
     );
 
-    let insertion_ctx =
-        WorstJobRemoval::default().run(&mut RefinementContext::new(insertion_ctx.problem.clone()), insertion_ctx);
+    let insertion_ctx = WorstJobRemoval::default()
+        .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(get_sorted_customer_ids_from_jobs(&insertion_ctx.solution.required), expected_ids);
 }

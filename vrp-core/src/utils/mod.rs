@@ -20,6 +20,9 @@ pub use self::random::Random;
 mod statistics;
 pub use self::statistics::*;
 
+mod time_quota;
+pub use self::time_quota::TimeQuota;
+
 mod timing;
 pub use self::timing::Timer;
 

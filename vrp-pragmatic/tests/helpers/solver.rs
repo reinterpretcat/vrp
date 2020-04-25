@@ -6,9 +6,13 @@ use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::refinement::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::refinement::RefinementContext;
+use vrp_core::refinement::{Population, RefinementContext};
+use vrp_core::solver::Builder;
 use vrp_core::utils::DefaultRandom;
-use vrp_solver::SolverBuilder;
+
+fn create_default_population() -> Box<dyn Population + Sync + Send> {
+    unimplemented!()
+}
 
 /// Runs solver with cheapest insertion heuristic.
 pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
@@ -16,7 +20,7 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
     let matrices_copy = matrices.clone();
 
     let problem = get_core_problem(problem, matrices);
-    let mut refinement_ctx = RefinementContext::new(problem.clone());
+    let mut refinement_ctx = RefinementContext::new(problem.clone(), create_default_population(), None);
 
     let solution = RecreateWithCheapest::default()
         .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
@@ -46,11 +50,13 @@ pub fn solve_with_metaheuristic_and_iterations(
 
     let problem = get_core_problem(problem, matrices);
 
-    let (solution, _, _) = SolverBuilder::default() //
+    let (solution, _, _) = Builder::default() //
         .with_max_generations(Some(generations))
+        .with_problem(problem.clone())
         .build()
-        .solve(problem.clone())
-        .unwrap();
+        .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
+        .solve()
+        .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
 
     let solution = sort_all_data(create_solution(problem.as_ref(), &solution));
 

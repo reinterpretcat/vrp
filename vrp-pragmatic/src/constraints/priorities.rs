@@ -1,4 +1,3 @@
-use crate::constraints::get_max_cost;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
@@ -44,7 +43,7 @@ struct PrioritySoftRouteConstraint {}
 
 impl SoftRouteConstraint for PrioritySoftRouteConstraint {
     fn estimate_job(&self, solution_ctx: &SolutionContext, _: &RouteContext, job: &Job) -> f64 {
-        get_priority(job).map_or(0., |priority| ((priority - 1) as f64 * get_max_cost(solution_ctx).max(1E9)))
+        get_priority(job).map_or(0., |priority| ((priority - 1) as f64 * solution_ctx.get_max_cost().max(1E9)))
     }
 }
 

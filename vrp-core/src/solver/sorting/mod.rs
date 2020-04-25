@@ -10,17 +10,13 @@
 //! which is released under MIT License (MIT), copyright (c) 2016 Michael Neumann
 //!
 
+use crate::refinement::objectives::{MultiObjective, Objective};
+
 mod crowding_distance;
 pub use self::crowding_distance::*;
-
-mod dominance_ord;
-pub use self::dominance_ord::DominanceOrd;
 
 mod non_dominated_sort;
 pub use self::non_dominated_sort::*;
 
-mod objective;
-pub use self::objective::*;
-
-mod selection;
-pub use self::selection::select_and_rank;
+mod nsga2;
+pub use self::nsga2::select_and_rank;

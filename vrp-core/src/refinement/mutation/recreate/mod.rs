@@ -53,8 +53,7 @@ impl CompositeRecreate {
 
 impl Recreate for CompositeRecreate {
     fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        // NOTE always use the first recreate method for initial generation
-        let index = if refinement_ctx.generation == 1 { 0 } else { insertion_ctx.random.weighted(self.weights.iter()) };
+        let index = insertion_ctx.random.weighted(self.weights.iter());
         self.recreates.get(index).unwrap().run(refinement_ctx, insertion_ctx)
     }
 }

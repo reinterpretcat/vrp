@@ -1,22 +1,33 @@
-pub mod population;
-
 use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};
 use crate::models::problem::{create_matrix_transport_cost, Job, Jobs, MatrixData};
 use crate::models::solution::{Registry, Route};
-use crate::models::{Problem, Solution};
+use crate::models::{Problem, Solution, SolutionObjective};
 use crate::refinement::mutation::{Recreate, RecreateWithCheapest};
-use crate::refinement::objectives::MultiObjective;
-use crate::refinement::RefinementContext;
+use crate::refinement::{Population, RefinementContext};
 use crate::utils::Random;
 use std::sync::Arc;
+
+/// Creates default objective.
+pub fn create_default_objective() -> Arc<SolutionObjective> {
+    unimplemented!()
+}
+
+/// Creates default population.
+pub fn create_default_population() -> Box<dyn Population + Sync + Send> {
+    unimplemented!()
+}
+
+pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext {
+    RefinementContext::new(problem, create_default_population(), None)
+}
 
 /// Creates initial solution using cheapest insertion
 pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> InsertionContext {
     RecreateWithCheapest::default()
-        .run(&mut RefinementContext::new(problem.clone()), InsertionContext::new(problem, random))
+        .run(&mut create_default_refinement_ctx(problem.clone()), InsertionContext::new(problem, random))
 }
 
 /// Generates problem and solution which has routes distributed uniformly, e.g.:
@@ -67,7 +78,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         constraint: Arc::new(create_constraint_pipeline_with_timing()),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        objective: Arc::new(MultiObjective::default()),
+        objective: create_default_objective(),
         extras: Arc::new(Default::default()),
     };
 

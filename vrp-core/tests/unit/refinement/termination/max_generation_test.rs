@@ -1,8 +1,7 @@
-use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_problem};
-use crate::refinement::objectives::{MeasurableObjectiveCost, ObjectiveCost};
+use crate::helpers::models::domain::*;
+use crate::helpers::refinement::create_default_refinement_ctx;
 use crate::refinement::termination::max_generation::MaxGeneration;
 use crate::refinement::termination::Termination;
-use crate::refinement::RefinementContext;
 
 parameterized_test! {can_detect_termination, (generation, limit, expected), {
     can_detect_termination_impl(generation, limit, expected);
@@ -15,12 +14,10 @@ can_detect_termination! {
 }
 
 fn can_detect_termination_impl(generation: usize, limit: usize, expected: bool) {
-    let mut refinement_ctx = RefinementContext::new(create_empty_problem());
+    let mut refinement_ctx = create_default_refinement_ctx(create_empty_problem());
     refinement_ctx.generation = generation;
-    let cost: Box<dyn ObjectiveCost + Send + Sync> = Box::new(MeasurableObjectiveCost::new(0.));
-    let individuum = (create_empty_insertion_context(), cost, generation);
 
-    let result = MaxGeneration::new(limit).is_termination(&mut refinement_ctx, (&individuum, true));
+    let result = MaxGeneration::new(limit).is_termination(&mut refinement_ctx);
 
     assert_eq!(result, expected);
 }

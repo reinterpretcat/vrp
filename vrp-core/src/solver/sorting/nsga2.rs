@@ -1,8 +1,8 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/refinement/population/selection_test.rs"]
-mod selection_test;
+#[path = "../../../tests/unit/solver/sorting/nsga2_test.rs"]
+mod nsga2_test;
 
-use crate::refinement::population::*;
+use super::*;
 
 /// Select `n` solutions using the approach taken by NSGA2.
 ///
@@ -15,7 +15,7 @@ use crate::refinement::population::*;
 pub fn select_and_rank<'a, S: 'a>(
     solutions: &'a [S],
     n: usize,
-    multi_objective: &MultiObjective<S, f64>,
+    multi_objective: &MultiObjective<S>,
 ) -> Vec<AssignedCrowdingDistance<'a, S>> {
     // cannot select more solutions than we actually have
     let n = solutions.len().min(n);

@@ -9,10 +9,10 @@
 //! [1]: https://www.iitk.ac.in/kangal/Deb_NSGA-II.pdf "A Fast and Elitist Multiobjective Genetic Algorithm: NSGA-II)"
 
 #[cfg(test)]
-#[path = "../../../tests/unit/refinement/population/non_dominated_sort_test.rs"]
+#[path = "../../../tests/unit/solver/sorting/non_dominated_sort_test.rs"]
 mod non_dominated_sort_test;
 
-use super::DominanceOrd;
+use super::*;
 use std::cmp::Ordering;
 
 type SolutionIdx = usize;
@@ -97,45 +97,41 @@ impl<'f, 's: 'f, S: 's> Iterator for FrontElemIter<'f, 's, S> {
     }
 }
 
-/// Perform a non-dominated sort of `solutions`. Returns the first Pareto front.
-pub fn non_dominated_sort<'s, S, D>(solutions: &'s [S], domination: &D) -> Front<'s, S>
+/// Performs a non-dominated sort of `solutions`. Returns the first Pareto front.
+pub fn non_dominated_sort<'s, S, O>(solutions: &'s [S], objective: &O) -> Front<'s, S>
 where
-    D: DominanceOrd<T = S>,
+    O: Objective<Solution = S>,
 {
-    // The indices of the solutions that are dominated by this `solution`.
+    // the indices of the solutions that are dominated by this `solution`
     let mut dominated_solutions: Vec<Vec<SolutionIdx>> = solutions.iter().map(|_| Vec::new()).collect();
 
-    // For each solutions, we keep a domination count, i.e.
-    // the number of solutions that dominate the solution.
+    // for each solutions, we keep a domination count, i.e. the number of solutions that dominate the solution
     let mut domination_count: Vec<usize> = solutions.iter().map(|_| 0).collect();
 
     let mut current_front: Vec<SolutionIdx> = Vec::new();
 
-    // inital pass over each combination: O(n*n / 2).
+    // initial pass over each combination: O(n*n / 2)
     let mut iter = solutions.iter().enumerate();
     while let Some((p_i, p)) = iter.next() {
         let mut pair_iter = iter.clone();
         while let Some((q_i, q)) = pair_iter.next() {
-            match domination.dominance_ord(p, q) {
+            match objective.total_order(p, q) {
                 Ordering::Less => {
-                    // p dominates q
-                    // Add `q` to the set of solutions dominated by `p`.
+                    // p dominates q, add `q` to the set of solutions dominated by `p`
                     dominated_solutions[p_i].push(q_i);
                     // q is dominated by p
                     domination_count[q_i] += 1;
                 }
                 Ordering::Greater => {
-                    // p is dominated by q
-                    // Add `p` to the set of solutions dominated by `q`.
+                    // p is dominated by q, add `p` to the set of solutions dominated by `q`
                     dominated_solutions[q_i].push(p_i);
-                    // q dominates p
-                    // Increment domination counter of `p`.
+                    // q dominates p, increment domination counter of `p`
                     domination_count[p_i] += 1
                 }
                 Ordering::Equal => {}
             }
         }
-        // if domination_count drops to zero, push index to front.
+        // if domination_count drops to zero, push index to front
         if domination_count[p_i] == 0 {
             current_front.push(p_i);
         }

@@ -3,7 +3,7 @@
 mod max_generation_test;
 
 use crate::refinement::termination::Termination;
-use crate::refinement::{Individuum, RefinementContext};
+use crate::refinement::RefinementContext;
 
 /// Stops when maximum amount of generations is exceeded.
 pub struct MaxGeneration {
@@ -17,14 +17,8 @@ impl MaxGeneration {
     }
 }
 
-impl Default for MaxGeneration {
-    fn default() -> Self {
-        Self::new(2000)
-    }
-}
-
 impl Termination for MaxGeneration {
-    fn is_termination(&self, refinement_ctx: &mut RefinementContext, _: (&Individuum, bool)) -> bool {
+    fn is_termination(&self, refinement_ctx: &mut RefinementContext) -> bool {
         refinement_ctx.generation >= self.limit
     }
 }

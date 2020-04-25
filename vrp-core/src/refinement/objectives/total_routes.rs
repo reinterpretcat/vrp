@@ -1,4 +1,5 @@
 use super::*;
+use crate::utils::compare_floats;
 
 /// An objective function which counts total amount of routes.
 pub struct TotalRoutes {
@@ -29,18 +30,23 @@ impl TotalRoutes {
 }
 
 impl Objective for TotalRoutes {
-    fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
-        let cost = if self.is_minimization { 1. } else { -1. } * insertion_ctx.solution.routes.len() as Cost;
-        Box::new(MeasurableObjectiveCost::new(cost))
+    type Solution = InsertionContext;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        let fitness_a = a.solution.routes.len() as f64;
+        let fitness_b = b.solution.routes.len() as f64;
+
+        let (fitness_a, fitness_b) =
+            if self.is_minimization { (fitness_a, fitness_b) } else { (-1. * fitness_a, -1. * fitness_b) };
+
+        compare_floats(fitness_a, fitness_b)
     }
 
-    fn is_goal_satisfied(
-        &self,
-        refinement_ctx: &mut RefinementContext,
-        insertion_ctx: &InsertionContext,
-    ) -> Option<bool> {
-        let actual_routes = insertion_ctx.solution.routes.len() as f64;
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        a.solution.routes.len() as f64 - b.solution.routes.len() as f64
+    }
 
-        check_value_variation_goals(refinement_ctx, actual_routes, &self.route_goal, &self.variation_goal)
+    fn fitness(&self, solution: &Self::Solution) -> f64 {
+        solution.solution.routes.len() as f64
     }
 }

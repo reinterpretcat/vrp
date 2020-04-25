@@ -15,4 +15,3 @@ publish = false
 [dependencies]
 vrp-pragmatic = { path = "../../vrp-pragmatic", version = "1.0.3" }
 vrp-core = { path = "../../vrp-core", version = "1.0.3" }
-vrp-solver = { path = "../../vrp-solver", version = "1.0.3" }

@@ -1,4 +1,5 @@
 use crate::helpers::models::domain::create_empty_problem;
+use crate::helpers::refinement::create_default_refinement_ctx;
 use crate::refinement::RefinementContext;
 use crate::utils::variation_coefficient::VariationCoefficient;
 
@@ -12,7 +13,7 @@ can_detect_termination! {
 }
 
 fn can_detect_termination_impl(capacity: usize, threshold: f64, delta: f64, expected: Vec<bool>) {
-    let mut refinement_ctx = RefinementContext::new(create_empty_problem());
+    let mut refinement_ctx = create_default_refinement_ctx(create_empty_problem());
     let termination = VariationCoefficient::new(capacity, threshold, "test_cv");
 
     let result = (0..capacity)

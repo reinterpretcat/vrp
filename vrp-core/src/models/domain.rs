@@ -1,4 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
+use crate::construction::heuristics::InsertionContext;
 use crate::models::problem::{ActivityCost, Actor, Fleet, Job, Jobs, TransportCost};
 use crate::models::solution::{Registry, Route};
 use crate::refinement::objectives::Objective;
@@ -8,6 +9,8 @@ use std::sync::Arc;
 
 /// Specifies a type used to store any values regarding problem and solution.
 pub type Extras = HashMap<String, Arc<dyn Any + Send + Sync>>;
+
+pub type SolutionObjective = dyn Objective<Solution = InsertionContext> + Send + Sync;
 
 /// Defines VRP problem.
 pub struct Problem {
@@ -30,7 +33,7 @@ pub struct Problem {
     pub transport: Arc<dyn TransportCost + Send + Sync>,
 
     /// Specifies objective function for the problem.
-    pub objective: Arc<dyn Objective + Send + Sync>,
+    pub objective: Arc<SolutionObjective>,
 
     /// Specifies index for storing extra parameters of arbitrary type.
     pub extras: Arc<Extras>,

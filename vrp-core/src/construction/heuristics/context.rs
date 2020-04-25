@@ -2,13 +2,14 @@
 #[path = "../../../tests/unit/construction/heuristics/context_test.rs"]
 mod context_test;
 
+use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::factories::*;
 use crate::construction::OP_START_MSG;
 use crate::models::common::{Cost, Schedule};
 use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
-use crate::utils::{as_mut, Random};
+use crate::utils::{as_mut, compare_floats, Random};
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::ops::Deref;
@@ -100,6 +101,26 @@ pub struct SolutionContext {
 }
 
 impl SolutionContext {
+    pub fn get_max_cost(&self) -> f64 {
+        let get_total_cost = |costs: &Costs, distance: f64, duration: f64| {
+            costs.fixed
+                + costs.per_distance * distance
+                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
+        };
+
+        self.routes
+            .iter()
+            .map(|rc| {
+                let distance = rc.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+                let duration = rc.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
+
+                get_total_cost(&rc.route.actor.vehicle.costs, distance, duration)
+                    + get_total_cost(&rc.route.actor.driver.costs, distance, duration)
+            })
+            .max_by(|&a, &b| compare_floats(a, b))
+            .unwrap_or(0.)
+    }
+
     pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
         Solution {
             registry: self.registry.deep_copy(),

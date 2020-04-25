@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::refinement::population::*;
+use crate::helpers::solver::sorting::*;
 
 /// Creates `n_fronts` with each having `n` solutions in it.
 pub fn create_solutions_with_n_fronts(n: usize, n_fronts: usize) -> (Vec<Tuple>, Vec<Vec<usize>>) {
@@ -26,7 +26,7 @@ fn get_solutions() -> Vec<Tuple> {
 fn test_non_dominated_sort() {
     let solutions = get_solutions();
 
-    let f0 = non_dominated_sort(&solutions, &TupleDominanceOrd);
+    let f0 = non_dominated_sort(&solutions, &TupleObjective);
     assert_eq!(0, f0.rank());
     assert_eq!(&[2, 4], f0.current_front_indices());
 
@@ -46,7 +46,7 @@ fn test_non_dominated_sort() {
 fn test_fronts(n: usize, n_fronts: usize) {
     let (solutions, expected_fronts) = create_solutions_with_n_fronts(n, n_fronts);
 
-    let mut f = non_dominated_sort(&solutions, &TupleDominanceOrd);
+    let mut f = non_dominated_sort(&solutions, &TupleObjective);
     for (expected_rank, expected_front) in expected_fronts.iter().enumerate() {
         assert_eq!(expected_rank, f.rank());
         assert_eq!(&expected_front[..], f.current_front_indices());

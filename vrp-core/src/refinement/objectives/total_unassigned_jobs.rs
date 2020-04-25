@@ -23,17 +23,20 @@ impl TotalUnassignedJobs {
 }
 
 impl Objective for TotalUnassignedJobs {
-    fn estimate_cost(&self, _: &mut RefinementContext, insertion_ctx: &InsertionContext) -> ObjectiveCostType {
-        Box::new(MeasurableObjectiveCost::new(insertion_ctx.solution.unassigned.len() as Cost))
+    type Solution = InsertionContext;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        let fitness_a = a.solution.unassigned.len();
+        let fitness_b = b.solution.unassigned.len();
+
+        fitness_a.cmp(&fitness_b)
     }
 
-    fn is_goal_satisfied(
-        &self,
-        refinement_ctx: &mut RefinementContext,
-        insertion_ctx: &InsertionContext,
-    ) -> Option<bool> {
-        let actual_unassigned = insertion_ctx.solution.unassigned.len() as f64;
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        a.solution.unassigned.len() as f64 - b.solution.unassigned.len() as f64
+    }
 
-        check_value_variation_goals(refinement_ctx, actual_unassigned, &self.unassigned_goal, &self.variation_goal)
+    fn fitness(&self, solution: &Self::Solution) -> f64 {
+        solution.solution.unassigned.len() as f64
     }
 }

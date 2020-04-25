@@ -1,8 +1,8 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/refinement/population/crowding_distance_test.rs"]
+#[path = "../../../tests/unit/solver/sorting/crowding_distance_test.rs"]
 mod crowding_distance_test;
 
-use crate::refinement::population::*;
+use super::*;
 use std::f64::INFINITY;
 
 pub struct AssignedCrowdingDistance<'a, S>
@@ -22,7 +22,7 @@ pub struct ObjectiveStat {
 /// Assigns a crowding distance to each solution in `front`.
 pub fn assign_crowding_distance<'a, S>(
     front: &Front<'a, S>,
-    multi_objective: &MultiObjective<S, f64>,
+    multi_objective: &MultiObjective<S>,
 ) -> (Vec<AssignedCrowdingDistance<'a, S>>, Vec<ObjectiveStat>) {
     let mut a: Vec<_> = front
         .iter()
@@ -39,7 +39,7 @@ pub fn assign_crowding_distance<'a, S>(
         .iter()
         .map(|objective| {
             // first, sort according to objective
-            a.sort_by(|a, b| objective.dominance_ord(a.solution, b.solution));
+            a.sort_by(|a, b| objective.total_order(a.solution, b.solution));
 
             // assign infinite crowding distance to the extremes
             {

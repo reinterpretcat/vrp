@@ -1,21 +1,21 @@
-use crate::constraints::WorkBalance;
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Objective::*;
 use crate::format::problem::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintModule, ConstraintPipeline, FleetUsageConstraintModule};
-use vrp_core::refinement::objectives::Objective as CoreObjective;
+use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::models::SolutionObjective;
 use vrp_core::refinement::objectives::*;
 
 pub fn create_objective(
     api_problem: &ApiProblem,
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
-) -> MultiObjective {
-    if let Some(objectives) = &api_problem.objectives {
+) -> Arc<SolutionObjective> {
+    Arc::new(if let Some(objectives) = &api_problem.objectives {
         let mut map_objectives = |objectives: &Vec<_>| {
-            let mut core_objectives: Vec<Box<dyn CoreObjective + Send + Sync>> = vec![];
+            let mut core_objectives: Vec<Box<SolutionObjective>> = vec![];
             let mut cost_idx = None;
             objectives.iter().enumerate().for_each(|(idx, objective)| match objective {
                 MinimizeCost { goal, tolerance } => {
@@ -73,28 +73,19 @@ pub fn create_objective(
         let (primary, primary_cost_idx) = map_objectives(&objectives.primary);
         let (secondary, secondary_cost_idx) = map_objectives(&objectives.secondary.clone().unwrap_or_else(|| vec![]));
 
-        MultiObjective::new(
-            primary,
-            secondary,
-            Arc::new(move |primary, secondary| {
-                primary_cost_idx
-                    .map(|idx| primary.get(idx).unwrap())
-                    .or(secondary_cost_idx.map(|idx| secondary.get(idx).unwrap()))
-                    .expect("Cannot get cost value objective")
-                    .value()
-            }),
-        )
+        // TODO refactor how cost objective is used (cost_idx, primary_cost_idx, secondary_cost_idx)
+        HierarchyObjective::<InsertionContext>::new(MultiObjective::new(primary), MultiObjective::new(secondary))
     } else {
         constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
         MultiObjective::default()
-    }
+    })
 }
 
 fn get_load_balance(
     props: &ProblemProperties,
     threshold: Option<f64>,
     tolerance: Option<BalanceTolerance>,
-) -> (Box<dyn ConstraintModule + Send + Sync>, Box<dyn CoreObjective + Send + Sync>) {
+) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
     let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance);
     if props.has_multi_dimen_capacity {
         WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(

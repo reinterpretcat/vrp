@@ -2,6 +2,7 @@
 #[path = "../../tests/unit/common/text_reader_test.rs"]
 mod text_reader_test;
 
+use crate::common::create_default_objective;
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
@@ -12,7 +13,6 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::{Activity, Registry, Route, Tour};
 use vrp_core::models::{Problem, Solution};
-use vrp_core::refinement::objectives::MultiObjective;
 
 pub trait TextReader {
     fn read_problem(&mut self) -> Result<Problem, String> {
@@ -29,7 +29,7 @@ pub trait TextReader {
             constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
             activity,
             transport,
-            objective: Arc::new(MultiObjective::default()),
+            objective: create_default_objective(),
             extras: Arc::new(Default::default()),
         })
     }

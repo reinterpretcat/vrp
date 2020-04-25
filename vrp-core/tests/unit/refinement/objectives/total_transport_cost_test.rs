@@ -2,12 +2,12 @@ use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
+use crate::helpers::refinement::{create_default_objective, create_default_refinement_ctx};
 use crate::models::common::Schedule;
 use crate::models::problem::{Job, Jobs, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
-use crate::refinement::objectives::{MultiObjective, Objective, TotalTransportCost};
-use crate::refinement::RefinementContext;
+use crate::refinement::objectives::{Objective, TotalTransportCost};
 use crate::utils::DefaultRandom;
 use hashbrown::HashMap;
 use std::sync::Arc;
@@ -56,10 +56,9 @@ fn can_calculate_transport_cost() {
         constraint,
         activity,
         transport,
-        objective: Arc::new(MultiObjective::default()),
+        objective: create_default_objective(),
         extras: Arc::new(Extras::default()),
     });
-    let mut refinement_ctx = RefinementContext::new(problem.clone());
     let insertion_ctx = InsertionContext {
         problem,
         solution: SolutionContext {
@@ -89,7 +88,7 @@ fn can_calculate_transport_cost() {
 
     // total: (70 * 2 + 100) + (21 * 2 + 100) = 382
 
-    let result = TotalTransportCost::default().estimate_cost(&mut refinement_ctx, &insertion_ctx);
+    let result = TotalTransportCost::default().fitness(&insertion_ctx);
 
-    assert_eq!(result.value(), 382.0);
+    assert_eq!(result.round(), 382.0);
 }

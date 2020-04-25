@@ -143,13 +143,13 @@ impl InsertionHeuristic {
         job_selector: &Box<dyn JobSelector + Send + Sync>,
         job_reducer: &Box<dyn JobMapReducer + Send + Sync>,
         ctx: InsertionContext,
-        quota: Option<&Box<dyn Quota + Send + Sync>>,
+        quota: &Option<Box<dyn Quota + Send + Sync>>,
     ) -> InsertionContext {
         let mut ctx = ctx;
 
         prepare_ctx(&mut ctx);
 
-        while !ctx.solution.required.is_empty() && !quota.map_or(false, |q| q.is_reached()) {
+        while !ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Job>>();
             let result = job_reducer.reduce(
                 &ctx,

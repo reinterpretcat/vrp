@@ -3,8 +3,8 @@ use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem;
 use vrp_core::refinement::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::refinement::objectives::{MultiObjective, Objective};
 use vrp_core::refinement::RefinementContext;
+use vrp_core::solver::DominancePopulation;
 use vrp_core::utils::DefaultRandom;
 
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {
@@ -57,11 +57,12 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     expected: Vec<Vec<&str>>,
     cost: f64,
 ) {
-    let mut refinement_ctx = RefinementContext::new(problem.clone());
+    let mut refinement_ctx = RefinementContext::new(problem.clone(), Box::new(DominancePopulation::new()), None);
+
     let insertion_ctx = RecreateWithCheapest::default()
         .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())));
 
-    let result_cost = MultiObjective::default().estimate_cost(&mut refinement_ctx, &insertion_ctx);
+    let result_cost = problem.objective.fitness(&insertion_ctx);
     assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
-    assert_eq!(result_cost.value().round(), cost.round());
+    assert_eq!(result_cost.round(), cost.round());
 }
