@@ -1,6 +1,7 @@
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::models::common::Objective;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::DominancePopulation;

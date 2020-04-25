@@ -2,12 +2,57 @@
 #[path = "../../../tests/unit/models/problem/costs_test.rs"]
 mod costs_test;
 
-use crate::models::common::{Cost, Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::Actor;
+use crate::construction::heuristics::InsertionContext;
+use crate::models::common::*;
+use crate::models::problem::{Actor, TargetObjective};
 use crate::models::solution::Activity;
 use crate::utils::CollectGroupBy;
 use hashbrown::HashMap;
+use std::cmp::Ordering;
 use std::sync::Arc;
+
+/// Defines global objective.
+pub struct ObjectiveCost {
+    primary_objectives: Vec<TargetObjective>,
+    secondary_objectives: Vec<TargetObjective>,
+}
+
+impl ObjectiveCost {
+    pub fn new(primary_objectives: Vec<TargetObjective>, secondary_objectives: Vec<TargetObjective>) -> Self {
+        Self { primary_objectives, secondary_objectives }
+    }
+}
+
+impl Objective for ObjectiveCost {
+    type Solution = InsertionContext;
+
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        match dominance_order(a, b, &self.primary_objectives) {
+            Ordering::Equal => dominance_order(a, b, &self.secondary_objectives),
+            order @ _ => order,
+        }
+    }
+
+    fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
+        unreachable!()
+    }
+
+    fn fitness(&self, solution: &Self::Solution) -> f64 {
+        solution.solution.get_max_cost()
+    }
+}
+
+impl MultiObjective for ObjectiveCost {
+    fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &TargetObjective> + 'a> {
+        Box::new(self.primary_objectives.iter().chain(self.secondary_objectives.iter()))
+    }
+}
+
+impl Default for ObjectiveCost {
+    fn default() -> Self {
+        unimplemented!()
+    }
+}
 
 /// Provides the way to get cost information for specific activities done by specific actor.
 pub trait ActivityCost {
@@ -214,5 +259,31 @@ impl TransportCost for TimeAwareMatrixTransportCost {
             }
             Err(matrix_idx) => *matrices.get(matrix_idx).unwrap().distances.get(data_idx).unwrap(),
         }
+    }
+}
+
+fn dominance_order<S>(a: &S, b: &S, objectives: &Vec<Box<dyn Objective<Solution = S> + Send + Sync>>) -> Ordering {
+    let mut less_cnt = 0;
+    let mut greater_cnt = 0;
+
+    for objective in objectives.iter() {
+        match objective.total_order(a, b) {
+            Ordering::Less => {
+                less_cnt += 1;
+            }
+            Ordering::Greater => {
+                greater_cnt += 1;
+            }
+            Ordering::Equal => {}
+        }
+    }
+
+    if less_cnt > 0 && greater_cnt == 0 {
+        Ordering::Less
+    } else if greater_cnt > 0 && less_cnt == 0 {
+        Ordering::Greater
+    } else {
+        debug_assert!((less_cnt > 0 && greater_cnt > 0) || (less_cnt == 0 && greater_cnt == 0));
+        Ordering::Equal
     }
 }

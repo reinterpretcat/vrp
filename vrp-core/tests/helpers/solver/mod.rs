@@ -2,20 +2,15 @@ use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};
-use crate::models::problem::{create_matrix_transport_cost, Job, Jobs, MatrixData};
+use crate::models::problem::{create_matrix_transport_cost, Job, Jobs, MatrixData, ObjectiveCost};
 use crate::models::solution::{Registry, Route};
-use crate::models::{Problem, Solution, SolutionObjective};
+use crate::models::{Problem, Solution};
 use crate::solver::mutation::{Recreate, RecreateWithCheapest};
 use crate::solver::{Population, RefinementContext};
 use crate::utils::Random;
 use std::sync::Arc;
 
-pub mod sorting;
-
-/// Creates default objective.
-pub fn create_default_objective() -> Arc<SolutionObjective> {
-    unimplemented!()
-}
+pub mod population;
 
 /// Creates default population.
 pub fn create_default_population() -> Box<dyn Population + Sync + Send> {
@@ -80,7 +75,7 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         constraint: Arc::new(create_constraint_pipeline_with_timing()),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        objective: create_default_objective(),
+        objective: Arc::new(ObjectiveCost::default()),
         extras: Arc::new(Default::default()),
     };
 

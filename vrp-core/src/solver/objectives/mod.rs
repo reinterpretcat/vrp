@@ -5,9 +5,6 @@ use crate::models::common::Cost;
 use crate::utils::VariationCoefficient;
 use std::cmp::Ordering;
 
-mod composite_objectives;
-pub use self::composite_objectives::*;
-
 mod total_routes;
 pub use self::total_routes::TotalRoutes;
 

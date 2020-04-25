@@ -4,11 +4,10 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{IdDimension, Schedule};
 use crate::models::matrix::SparseMatrix;
-use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, TransportCost, VehicleDetail};
+use crate::models::problem::{Fleet, Jobs, ObjectiveCost, SimpleActivityCost, TransportCost, VehicleDetail};
 use crate::models::solution::{Activity, Registry};
 
 use crate::construction::constraints::Demand;
-use crate::helpers::solver::create_default_objective;
 use crate::models::solution::Place as ActivityPlace;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
 
@@ -364,7 +363,7 @@ fn create_diverse_problem_unwrapped() -> Problem {
         constraint: Arc::new(create_constraint_pipeline_with_simple_capacity()),
         activity: Arc::new(SimpleActivityCost::default()),
         transport,
-        objective: create_default_objective(),
+        objective: Arc::new(ObjectiveCost::default()),
         extras: Arc::new(Default::default()),
     }
 }

@@ -1,5 +1,6 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
+use crate::models::common::Objective;
 use crate::models::Problem;
 use crate::solver::mutation::{Mutation, Recreate};
 use crate::solver::population::DominancePopulation;

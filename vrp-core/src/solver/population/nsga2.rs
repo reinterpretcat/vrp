@@ -3,6 +3,7 @@
 mod nsga2_test;
 
 use super::*;
+use crate::models::common::MultiObjective;
 
 /// Select `n` solutions using the approach taken by NSGA2.
 ///
@@ -15,7 +16,7 @@ use super::*;
 pub fn select_and_rank<'a, S: 'a>(
     solutions: &'a [S],
     n: usize,
-    multi_objective: &MultiObjective<S>,
+    multi_objective: &impl MultiObjective<Solution = S>,
 ) -> Vec<AssignedCrowdingDistance<'a, S>> {
     // cannot select more solutions than we actually have
     let n = solutions.len().min(n);

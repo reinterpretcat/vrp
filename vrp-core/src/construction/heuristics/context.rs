@@ -101,24 +101,12 @@ pub struct SolutionContext {
 }
 
 impl SolutionContext {
-    pub fn get_max_cost(&self) -> f64 {
-        let get_total_cost = |costs: &Costs, distance: f64, duration: f64| {
-            costs.fixed
-                + costs.per_distance * distance
-                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
-        };
+    pub fn get_actual_cost(&self) -> Cost {
+        self.routes.iter().fold(Cost::default(), |acc, rc| acc + Self::get_route_cost(rc))
+    }
 
-        self.routes
-            .iter()
-            .map(|rc| {
-                let distance = rc.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
-                let duration = rc.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
-
-                get_total_cost(&rc.route.actor.vehicle.costs, distance, duration)
-                    + get_total_cost(&rc.route.actor.driver.costs, distance, duration)
-            })
-            .max_by(|&a, &b| compare_floats(a, b))
-            .unwrap_or(0.)
+    pub fn get_max_cost(&self) -> Cost {
+        self.routes.iter().map(Self::get_route_cost).max_by(|&a, &b| compare_floats(a, b)).unwrap_or(0.)
     }
 
     pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
@@ -139,6 +127,20 @@ impl SolutionContext {
             routes: self.routes.iter().map(|rc| rc.deep_copy()).collect(),
             registry: self.registry.deep_copy(),
         }
+    }
+
+    fn get_route_cost(route_ctx: &RouteContext) -> Cost {
+        let get_cost = |costs: &Costs, distance: f64, duration: f64| {
+            costs.fixed
+                + costs.per_distance * distance
+                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
+        };
+
+        let actor = &route_ctx.route.actor;
+        let distance = route_ctx.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+        let duration = route_ctx.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
+
+        get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)
     }
 }
 

@@ -1,13 +1,13 @@
 use super::*;
-use crate::helpers::solver::sorting::*;
+use crate::helpers::solver::population::*;
 use std::f64::consts::PI;
 
-struct Individuum(pub f64, pub f64);
+struct Individual(pub f64, pub f64);
 
-fn fitness(individual: &Individuum) -> Tuple {
+fn fitness(individual: &Individual) -> Tuple {
     const SCALE: f64 = 10.;
 
-    let Individuum(r, h) = *individual;
+    let Individual(r, h) = *individual;
 
     let sh = (r * r + h * h).sqrt();
 
@@ -20,20 +20,20 @@ fn fitness(individual: &Individuum) -> Tuple {
 #[test]
 fn can_use_select_and_rank() {
     let population = vec![
-        Individuum(10.0, 19.61),
-        Individuum(4.99, 5.10),
-        Individuum(6.09, 0.79),
-        Individuum(6.91, 10.62),
-        Individuum(5.21, 18.87),
-        Individuum(7.90, 8.98),
-        Individuum(9.84, 0.78),
-        Individuum(4.96, 0.60),
-        Individuum(6.24, 19.66),
-        Individuum(6.90, 15.09),
-        Individuum(5.20, 18.86),
-        Individuum(7.89, 8.97),
+        Individual(10.0, 19.61),
+        Individual(4.99, 5.10),
+        Individual(6.09, 0.79),
+        Individual(6.91, 10.62),
+        Individual(5.21, 18.87),
+        Individual(7.90, 8.98),
+        Individual(9.84, 0.78),
+        Individual(4.96, 0.60),
+        Individual(6.24, 19.66),
+        Individual(6.90, 15.09),
+        Individual(5.20, 18.86),
+        Individual(7.89, 8.97),
     ];
-    let mo = MultiObjective::new(vec![Box::new(Objective1), Box::new(Objective2)]);
+    let mo = TupleMultiObjective::new(vec![Box::new(Objective1), Box::new(Objective2)]);
 
     // rate population (calculate fitness)
     let rated_population = population.iter().map(fitness).collect::<Vec<_>>();

@@ -1,7 +1,7 @@
 extern crate rand;
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
-use crate::models::common::Cost;
+use crate::models::common::{Cost, Objective};
 use crate::models::{Problem, Solution};
 use crate::solver::evolution::{run_evolution, EvolutionConfig};
 use hashbrown::HashMap;

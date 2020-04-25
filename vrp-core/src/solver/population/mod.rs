@@ -11,7 +11,6 @@
 //!
 
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::objectives::MultiObjective;
 use crate::solver::{Individual, Population};
 
 mod crowding_distance;

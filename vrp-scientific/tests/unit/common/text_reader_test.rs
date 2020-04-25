@@ -1,9 +1,10 @@
-use crate::common::create_default_objective;
 use crate::common::text_reader::read_init_solution;
 use crate::helpers::{create_c101_100_problem, get_test_resource};
 use std::io::BufReader;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::models::common::Objective;
+use vrp_core::models::problem::ObjectiveCost;
 use vrp_core::utils::DefaultRandom;
 
 #[test]
@@ -16,7 +17,7 @@ pub fn can_read_init_solution() {
 
     assert_eq!(solution.routes.len(), 10);
     assert_eq!(
-        create_default_objective()
+        ObjectiveCost::default()
             .fitness(&InsertionContext::new_from_solution(
                 problem,
                 (solution, None),

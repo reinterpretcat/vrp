@@ -3,6 +3,7 @@
 mod crowding_distance_test;
 
 use super::*;
+use crate::models::common::{MultiObjective, Objective};
 use std::f64::INFINITY;
 
 pub struct AssignedCrowdingDistance<'a, S>
@@ -22,7 +23,7 @@ pub struct ObjectiveStat {
 /// Assigns a crowding distance to each solution in `front`.
 pub fn assign_crowding_distance<'a, S>(
     front: &Front<'a, S>,
-    multi_objective: &MultiObjective<S>,
+    multi_objective: &impl MultiObjective<Solution = S>,
 ) -> (Vec<AssignedCrowdingDistance<'a, S>>, Vec<ObjectiveStat>) {
     let mut a: Vec<_> = front
         .iter()
@@ -34,9 +35,10 @@ pub fn assign_crowding_distance<'a, S>(
         })
         .collect();
 
+    let objective_count = multi_objective.objectives().count();
+
     let objective_stat: Vec<_> = multi_objective
-        .objectives
-        .iter()
+        .objectives()
         .map(|objective| {
             // first, sort according to objective
             a.sort_by(|a, b| objective.total_order(a.solution, b.solution));
@@ -52,7 +54,7 @@ pub fn assign_crowding_distance<'a, S>(
             debug_assert!(spread >= 0.0);
 
             if spread > 0.0 {
-                let norm = 1.0 / (spread * (multi_objective.objectives.len() as f64));
+                let norm = 1.0 / (spread * (objective_count as f64));
                 debug_assert!(norm > 0.0);
 
                 for i in 1..a.len() - 1 {

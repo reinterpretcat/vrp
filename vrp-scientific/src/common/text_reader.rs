@@ -2,7 +2,6 @@
 #[path = "../../tests/unit/common/text_reader_test.rs"]
 mod text_reader_test;
 
-use crate::common::create_default_objective;
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
@@ -29,7 +28,7 @@ pub trait TextReader {
             constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
             activity,
             transport,
-            objective: create_default_objective(),
+            objective: Arc::new(ObjectiveCost::default()),
             extras: Arc::new(Default::default()),
         })
     }

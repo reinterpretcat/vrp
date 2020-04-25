@@ -2,11 +2,10 @@ use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_timing;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::helpers::solver::{create_default_objective, create_default_refinement_ctx};
-use crate::models::common::Schedule;
-use crate::models::problem::{Job, Jobs, SimpleActivityCost};
+use crate::models::common::{Objective, Schedule};
+use crate::models::problem::{Job, Jobs, ObjectiveCost, SimpleActivityCost};
 use crate::models::solution::Registry;
-use crate::models::{Extras, Objective, Problem};
+use crate::models::{Extras, Problem};
 use crate::solver::objectives::TotalTransportCost;
 use crate::utils::DefaultRandom;
 use hashbrown::HashMap;
@@ -56,7 +55,7 @@ fn can_calculate_transport_cost() {
         constraint,
         activity,
         transport,
-        objective: create_default_objective(),
+        objective: Arc::new(ObjectiveCost::default()),
         extras: Arc::new(Extras::default()),
     });
     let insertion_ctx = InsertionContext {

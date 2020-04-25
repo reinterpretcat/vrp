@@ -1,10 +1,10 @@
 use super::*;
-use crate::helpers::solver::sorting::*;
+use crate::helpers::solver::population::*;
 
 #[test]
 fn can_get_crowding_distance() {
     // construct a multi objective over a Tuple
-    let mo = MultiObjective::new(vec![Box::new(Objective1), Box::new(Objective2)]);
+    let mo = TupleMultiObjective::new(vec![Box::new(Objective1), Box::new(Objective2)]);
 
     let a = Tuple(1, 3);
     let b = Tuple(3, 1);

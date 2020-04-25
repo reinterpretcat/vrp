@@ -1,9 +1,8 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::{InsertionContext, SolutionContext};
 use crate::helpers::models::problem::*;
-use crate::helpers::solver::create_default_objective;
 use crate::models::common::IdDimension;
-use crate::models::problem::{Job, Jobs};
+use crate::models::problem::{Job, Jobs, ObjectiveCost};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
 use crate::utils::DefaultRandom;
@@ -21,7 +20,7 @@ pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> A
         constraint: Arc::new(constraint),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        objective: create_default_objective(),
+        objective: Arc::new(ObjectiveCost::default()),
         extras: Arc::new(Default::default()),
     })
 }

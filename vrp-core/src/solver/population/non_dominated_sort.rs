@@ -12,7 +12,7 @@
 #[path = "../../../tests/unit/solver/population/non_dominated_sort_test.rs"]
 mod non_dominated_sort_test;
 
-use crate::models::Objective;
+use crate::models::common::Objective;
 use std::cmp::Ordering;
 
 type SolutionIdx = usize;

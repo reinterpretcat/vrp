@@ -3,7 +3,7 @@
 mod total_transport_cost_test;
 
 use super::*;
-use crate::models::Objective;
+use crate::models::common::Objective;
 use crate::utils::compare_floats;
 
 /// An objective function which calculate total cost.
@@ -30,30 +30,7 @@ impl TotalTransportCost {
     }
 
     fn get_actual_cost(&self, insertion_ctx: &InsertionContext) -> Cost {
-        insertion_ctx.solution.routes.iter().fold(Cost::default(), |acc, rc| {
-            let actor = &rc.route.actor;
-
-            let start = rc.route.tour.start().unwrap();
-            let problem = &insertion_ctx.problem;
-            let initial = problem.activity.cost(actor, start, start.schedule.arrival);
-            let initial = initial + actor.vehicle.costs.fixed + actor.driver.costs.fixed;
-
-            acc + rc.route.tour.legs().fold(initial, |acc, (items, _)| {
-                acc + match items {
-                    [from, to] => {
-                        problem.activity.cost(actor, to, to.schedule.arrival)
-                            + problem.transport.cost(
-                                actor,
-                                from.place.location,
-                                to.place.location,
-                                from.schedule.departure,
-                            )
-                    }
-                    [_] => 0.0,
-                    _ => panic!("Unexpected route leg configuration."),
-                }
-            })
-        })
+        insertion_ctx.solution.get_actual_cost()
     }
 }
 

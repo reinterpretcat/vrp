@@ -1,7 +1,7 @@
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
-use crate::models::problem::Job;
-use crate::models::{Objective, SolutionObjective};
+use crate::models::common::Objective;
+use crate::models::problem::{Job, TargetConstraint, TargetObjective};
 use crate::utils::{compare_floats, get_mean, get_stdev};
 use std::cmp::Ordering;
 use std::cmp::Ordering::Less;
@@ -19,7 +19,7 @@ impl WorkBalance {
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
         load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>)
+    ) -> (TargetConstraint, TargetObjective)
     where
         Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
     {
@@ -72,7 +72,7 @@ impl WorkBalance {
         threshold: Option<usize>,
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
+    ) -> (TargetConstraint, TargetObjective) {
         let activity_balance = WorkBalanceObjectives {
             threshold: threshold.map(|t| t as f64),
             solution_tolerance,
@@ -95,7 +95,7 @@ impl WorkBalance {
         threshold: Option<f64>,
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
+    ) -> (TargetConstraint, TargetObjective) {
         Self::new_transport_balanced(threshold, solution_tolerance, route_tolerance, TOTAL_DISTANCE_KEY)
     }
 
@@ -104,7 +104,7 @@ impl WorkBalance {
         threshold: Option<f64>,
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
+    ) -> (TargetConstraint, TargetObjective) {
         Self::new_transport_balanced(threshold, solution_tolerance, route_tolerance, TOTAL_DURATION_KEY)
     }
 
@@ -113,7 +113,7 @@ impl WorkBalance {
         solution_tolerance: Option<f64>,
         route_tolerance: Option<f64>,
         state_key: i32,
-    ) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
+    ) -> (TargetConstraint, TargetObjective) {
         let transport_balance = WorkBalanceObjectives {
             threshold,
             solution_tolerance,

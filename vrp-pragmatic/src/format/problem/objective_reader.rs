@@ -3,23 +3,20 @@ use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Objective::*;
 use crate::format::problem::*;
 use std::sync::Arc;
-use vrp_core::construction::constraints::{ConstraintModule, ConstraintPipeline, FleetUsageConstraintModule};
-use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::SolutionObjective;
+use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
+use vrp_core::models::problem::{ObjectiveCost, TargetConstraint, TargetObjective};
 use vrp_core::solver::objectives::*;
 
 pub fn create_objective(
     api_problem: &ApiProblem,
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
-) -> Arc<SolutionObjective> {
-    if let Some(objectives) = &api_problem.objectives {
+) -> Arc<ObjectiveCost> {
+    Arc::new(if let Some(objectives) = &api_problem.objectives {
         let mut map_objectives = |objectives: &Vec<_>| {
-            let mut core_objectives: Vec<Box<SolutionObjective>> = vec![];
-            let mut cost_idx = None;
-            objectives.iter().enumerate().for_each(|(idx, objective)| match objective {
+            let mut core_objectives: Vec<TargetObjective> = vec![];
+            objectives.iter().for_each(|objective| match objective {
                 MinimizeCost { goal, tolerance } => {
-                    cost_idx = Some(idx);
                     let (value_goal, variation_goal) = split_goal(goal);
                     core_objectives.push(Box::new(TotalTransportCost::new(
                         value_goal,
@@ -67,25 +64,24 @@ pub fn create_objective(
                     core_objectives.push(objective);
                 }
             });
-            (MultiObjective::new(core_objectives), cost_idx)
+            core_objectives
         };
 
-        let (primary, primary_cost_idx) = map_objectives(&objectives.primary);
-        let (secondary, secondary_cost_idx) = map_objectives(&objectives.secondary.clone().unwrap_or_else(|| vec![]));
+        let primary_objectives = map_objectives(&objectives.primary);
+        let secondary_objectives = map_objectives(&objectives.secondary.clone().unwrap_or_else(|| vec![]));
 
-        // TODO refactor how cost objective is used (cost_idx, primary_cost_idx, secondary_cost_idx)
-        Arc::new(HierarchyObjective::new(primary, secondary))
+        ObjectiveCost::new(primary_objectives, secondary_objectives)
     } else {
         constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
-        Arc::new(MultiObjective::default())
-    }
+        ObjectiveCost::default()
+    })
 }
 
 fn get_load_balance(
     props: &ProblemProperties,
     threshold: Option<f64>,
     tolerance: Option<BalanceTolerance>,
-) -> (Box<dyn ConstraintModule + Send + Sync>, Box<SolutionObjective>) {
+) -> (TargetConstraint, TargetObjective) {
     let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance);
     if props.has_multi_dimen_capacity {
         WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(
