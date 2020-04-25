@@ -68,6 +68,12 @@ impl Builder {
         self
     }
 
+    /// Sets initial methods.
+    pub fn with_initial_methods(mut self, initial_methods: Vec<(Box<dyn Recreate>, usize)>) -> Self {
+        self.config.initial_methods = initial_methods;
+        self
+    }
+
     /// Sets initial solutions.
     /// Default is none.
     pub fn with_solutions(mut self, solutions: Vec<Arc<Solution>>) -> Self {
