@@ -39,21 +39,21 @@ pub struct RefinementContext {
 }
 
 /// Represents solution in population defined as actual solution, its cost, and generation
-pub type Individuum = (InsertionContext, usize);
+pub type Individual = (InsertionContext, usize);
 
 /// Represents a solution population.
 pub trait Population {
-    /// Adds individuum into population.
-    fn add(&mut self, individuum: Individuum);
+    /// Adds individual into population.
+    fn add(&mut self, individual: Individual);
 
     /// Returns all solutions from population sorted according their quality.
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individuum> + 'a>;
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a>;
 
     /// Returns best solution from the population.
-    fn best(&self) -> Option<&Individuum>;
+    fn best(&self) -> Option<&Individual>;
 
     /// Returns one of solutions from the population.
-    fn select(&self) -> &Individuum;
+    fn select(&self) -> &Individual;
 
     /// Returns size of population.
     fn size(&self) -> usize;
