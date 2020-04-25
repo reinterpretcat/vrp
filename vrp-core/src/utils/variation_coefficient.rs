@@ -3,7 +3,7 @@
 mod variation_coefficient_test;
 
 use crate::models::common::Cost;
-use crate::refinement::RefinementContext;
+use crate::solver::RefinementContext;
 use crate::utils::get_cv;
 
 /// Uses coefficient of variation as termination criteria.

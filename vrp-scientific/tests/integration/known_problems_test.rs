@@ -2,9 +2,9 @@ use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem;
-use vrp_core::refinement::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::refinement::RefinementContext;
+use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::DominancePopulation;
+use vrp_core::solver::RefinementContext;
 use vrp_core::utils::DefaultRandom;
 
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {

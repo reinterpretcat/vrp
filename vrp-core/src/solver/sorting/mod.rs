@@ -10,7 +10,7 @@
 //! which is released under MIT License (MIT), copyright (c) 2016 Michael Neumann
 //!
 
-use crate::refinement::objectives::{MultiObjective, Objective};
+use crate::solver::objectives::MultiObjective;
 
 mod crowding_distance;
 pub use self::crowding_distance::*;

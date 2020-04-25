@@ -1,5 +1,5 @@
 use super::Tuple;
-use crate::refinement::objectives::Objective;
+use crate::models::Objective;
 use std::cmp::Ordering;
 
 // We define three objectives

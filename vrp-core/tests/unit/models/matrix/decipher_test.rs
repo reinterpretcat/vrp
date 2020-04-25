@@ -8,7 +8,7 @@ use crate::models::problem::{Fleet, Jobs, SimpleActivityCost, TransportCost, Veh
 use crate::models::solution::{Activity, Registry};
 
 use crate::construction::constraints::Demand;
-use crate::helpers::refinement::create_default_objective;
+use crate::helpers::solver::create_default_objective;
 use crate::models::solution::Place as ActivityPlace;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
 

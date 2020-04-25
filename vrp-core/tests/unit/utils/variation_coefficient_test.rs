@@ -1,6 +1,6 @@
 use crate::helpers::models::domain::create_empty_problem;
-use crate::helpers::refinement::create_default_refinement_ctx;
-use crate::refinement::RefinementContext;
+use crate::helpers::solver::create_default_refinement_ctx;
+use crate::solver::RefinementContext;
 use crate::utils::variation_coefficient::VariationCoefficient;
 
 parameterized_test! {can_detect_termination, (capacity, threshold, delta, expected), {

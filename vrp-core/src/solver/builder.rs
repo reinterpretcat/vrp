@@ -1,9 +1,9 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::{Problem, Solution};
-use crate::refinement::mutation::*;
-use crate::refinement::termination::*;
 use crate::solver::evolution::EvolutionConfig;
+use crate::solver::mutation::*;
+use crate::solver::termination::*;
 use crate::solver::Solver;
 use crate::utils::{DefaultRandom, TimeQuota};
 use std::ops::Deref;

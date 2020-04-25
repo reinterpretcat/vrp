@@ -5,9 +5,9 @@ use std::cmp::Ordering::Less;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
-use vrp_core::refinement::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::refinement::{Population, RefinementContext};
+use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::Builder;
+use vrp_core::solver::{Population, RefinementContext};
 use vrp_core::utils::DefaultRandom;
 
 fn create_default_population() -> Box<dyn Population + Sync + Send> {

@@ -1,11 +1,11 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::Problem;
-use crate::refinement::mutation::{Mutation, Recreate};
-use crate::refinement::termination::Termination;
-use crate::refinement::{Population, RefinementContext};
+use crate::solver::mutation::{Mutation, Recreate};
 use crate::solver::population::DominancePopulation;
+use crate::solver::termination::Termination;
 use crate::solver::Logger;
+use crate::solver::{Population, RefinementContext};
 use crate::utils::{Random, Timer};
 use std::ops::Deref;
 use std::sync::Arc;

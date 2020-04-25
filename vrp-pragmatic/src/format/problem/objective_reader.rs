@@ -6,7 +6,7 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintModule, ConstraintPipeline, FleetUsageConstraintModule};
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::SolutionObjective;
-use vrp_core::refinement::objectives::*;
+use vrp_core::solver::objectives::*;
 
 pub fn create_objective(
     api_problem: &ApiProblem,

@@ -1,7 +1,7 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::{InsertionContext, SolutionContext};
 use crate::helpers::models::problem::*;
-use crate::helpers::refinement::create_default_objective;
+use crate::helpers::solver::create_default_objective;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Job, Jobs};
 use crate::models::solution::Registry;

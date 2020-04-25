@@ -1,5 +1,5 @@
 use crate::helpers::solver::sorting::Tuple;
-use crate::refinement::objectives::Objective;
+use crate::models::Objective;
 use std::cmp::Ordering;
 
 pub struct TupleObjective;

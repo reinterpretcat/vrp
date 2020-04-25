@@ -1,5 +1,5 @@
 use crate::construction::heuristics::InsertionContext;
-use crate::refinement::{Individuum, Population};
+use crate::solver::{Individuum, Population};
 
 /// An evolution aware implementation of `[Population]` trait.
 pub struct DominancePopulation {}
