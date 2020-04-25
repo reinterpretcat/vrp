@@ -120,7 +120,7 @@ fn create_refinement_ctx(
 
         config.logger.deref()(format!(
             "[{}s] created {} of {} initial solutions in {}ms",
-            evolution_time.elapsed_millis(),
+            evolution_time.elapsed_secs(),
             idx + 1,
             config.initial_size,
             item_time.elapsed_millis()

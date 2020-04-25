@@ -6,13 +6,9 @@ use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::solver::Builder;
+use vrp_core::solver::{Builder, DominancePopulation};
 use vrp_core::solver::{Population, RefinementContext};
 use vrp_core::utils::DefaultRandom;
-
-fn create_default_population() -> Box<dyn Population + Sync + Send> {
-    unimplemented!()
-}
 
 /// Runs solver with cheapest insertion heuristic.
 pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
@@ -20,10 +16,12 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
     let matrices_copy = matrices.clone();
 
     let problem = get_core_problem(problem, matrices);
-    let mut refinement_ctx = RefinementContext::new(problem.clone(), create_default_population(), None);
+    let random = Arc::new(DefaultRandom::default());
+    let population = Box::new(DominancePopulation::new(problem.clone(), random.clone(), 8, 4, 2));
+    let mut refinement_ctx = RefinementContext::new(problem.clone(), population, None);
 
     let solution = RecreateWithCheapest::default()
-        .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())))
+        .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), random))
         .solution
         .to_solution(problem.extras.clone());
 
