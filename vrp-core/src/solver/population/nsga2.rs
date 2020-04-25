@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/solver/sorting/nsga2_test.rs"]
+#[path = "../../../tests/unit/solver/population/nsga2_test.rs"]
 mod nsga2_test;
 
 use super::*;

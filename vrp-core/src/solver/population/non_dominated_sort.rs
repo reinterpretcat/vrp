@@ -9,7 +9,7 @@
 //! [1]: https://www.iitk.ac.in/kangal/Deb_NSGA-II.pdf "A Fast and Elitist Multiobjective Genetic Algorithm: NSGA-II)"
 
 #[cfg(test)]
-#[path = "../../../tests/unit/solver/sorting/non_dominated_sort_test.rs"]
+#[path = "../../../tests/unit/solver/population/non_dominated_sort_test.rs"]
 mod non_dominated_sort_test;
 
 use crate::models::Objective;

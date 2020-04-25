@@ -15,7 +15,6 @@ pub mod termination;
 mod builder;
 mod evolution;
 mod population;
-mod sorting;
 
 pub use self::builder::Builder;
 pub use self::population::DominancePopulation;

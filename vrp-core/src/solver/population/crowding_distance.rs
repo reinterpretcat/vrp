@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/solver/sorting/crowding_distance_test.rs"]
+#[path = "../../../tests/unit/solver/population/crowding_distance_test.rs"]
 mod crowding_distance_test;
 
 use super::*;
