@@ -10,6 +10,10 @@
 //! which is released under MIT License (MIT), copyright (c) 2016 Michael Neumann
 //!
 
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/population/population_test.rs"]
+mod population_test;
+
 use crate::models::Problem;
 use crate::solver::{Individual, Population};
 use crate::utils::Random;
@@ -23,6 +27,7 @@ use self::non_dominated_sort::*;
 
 mod nsga2;
 use self::nsga2::select_and_rank;
+use crate::models::common::Objective;
 
 /// An evolution aware implementation of `[Population]` trait.
 pub struct DominancePopulation {
@@ -72,12 +77,18 @@ impl Population for DominancePopulation {
         let mut best_order =
             select_and_rank(self.individuals.as_slice(), self.individuals.len(), self.problem.objective.as_ref())
                 .iter()
-                .map(|acd| acd.index)
+                .map(|acd| {
+                    (
+                        acd.index,
+                        acd.crowding_distance,
+                        self.problem.objective.fitness(self.individuals.get(acd.index).unwrap()),
+                    )
+                })
                 .collect::<Vec<_>>();
 
         (0..self.individuals.len()).for_each(|i| loop {
-            let j = best_order[i];
-            let k = best_order[j];
+            let (j, _, _) = best_order[i];
+            let (k, _, _) = best_order[j];
 
             if i == j {
                 break;

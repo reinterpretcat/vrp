@@ -2,17 +2,24 @@ use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::{InsertionContext, SolutionContext};
 use crate::helpers::models::problem::*;
 use crate::models::common::IdDimension;
-use crate::models::problem::{Job, Jobs, ObjectiveCost};
+use crate::models::problem::{Fleet, Job, Jobs, ObjectiveCost};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
 use crate::utils::DefaultRandom;
-use std::borrow::Borrow;
 use std::sync::Arc;
 
 pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> Arc<Problem> {
+    create_empty_problem_with_constraint_and_fleet(constraint, test_fleet())
+}
+
+pub fn create_empty_problem() -> Arc<Problem> {
+    create_empty_problem_with_constraint(ConstraintPipeline::default())
+}
+
+pub fn create_empty_problem_with_constraint_and_fleet(constraint: ConstraintPipeline, fleet: Fleet) -> Arc<Problem> {
     let transport = TestTransportCost::new_shared();
-    let fleet = Arc::new(test_fleet());
-    let jobs = Arc::new(Jobs::new(fleet.borrow(), vec![], &transport));
+    let fleet = Arc::new(fleet);
+    let jobs = Arc::new(Jobs::new(fleet.as_ref(), vec![], &transport));
     Arc::new(Problem {
         fleet,
         jobs,
@@ -23,10 +30,6 @@ pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> A
         objective: Arc::new(ObjectiveCost::default()),
         extras: Arc::new(Default::default()),
     })
-}
-
-pub fn create_empty_problem() -> Arc<Problem> {
-    create_empty_problem_with_constraint(ConstraintPipeline::default())
 }
 
 pub fn create_empty_solution() -> Solution {
