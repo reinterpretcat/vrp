@@ -2,24 +2,11 @@ use super::*;
 use crate::models::common::Objective;
 
 /// An objective function which counts total amount of unassigned jobs.
-pub struct TotalUnassignedJobs {
-    unassigned_goal: Option<(f64, bool)>,
-    variation_goal: Option<VariationCoefficient>,
-}
+pub struct TotalUnassignedJobs {}
 
 impl Default for TotalUnassignedJobs {
     fn default() -> Self {
-        Self { unassigned_goal: None, variation_goal: None }
-    }
-}
-
-impl TotalUnassignedJobs {
-    pub fn new(desired_unassigned: Option<usize>, variation_goal: Option<(usize, f64)>) -> Self {
-        Self {
-            unassigned_goal: desired_unassigned.map(|unassigned| (unassigned as f64, true)),
-            variation_goal: variation_goal
-                .map(|(sample, threshold)| VariationCoefficient::new(sample, threshold, "unassigned_vc")),
-        }
+        Self {}
     }
 }
 

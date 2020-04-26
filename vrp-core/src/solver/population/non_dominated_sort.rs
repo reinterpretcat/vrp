@@ -41,10 +41,6 @@ impl<'f, 's: 'f, S: 's> Front<'s, S> {
         self.current_front.is_empty()
     }
 
-    pub fn current_front_indices(&self) -> &[usize] {
-        &self.current_front[..]
-    }
-
     pub fn next_front(self) -> Self {
         let Front { dominated_solutions, mut domination_count, previous_front, current_front, rank, solutions } = self;
 

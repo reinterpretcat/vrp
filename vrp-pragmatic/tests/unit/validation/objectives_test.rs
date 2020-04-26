@@ -3,7 +3,7 @@ use crate::format::problem::Objective::*;
 use crate::helpers::create_empty_problem;
 
 fn min_cost() -> Objective {
-    MinimizeCost { goal: None }
+    MinimizeCost
 }
 
 fn balance_dist() -> Objective {

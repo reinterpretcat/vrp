@@ -5,29 +5,22 @@ use crate::utils::compare_floats;
 
 /// An objective function which counts total amount of routes.
 pub struct TotalRoutes {
-    route_goal: Option<(f64, bool)>,
-    variation_goal: Option<VariationCoefficient>,
     is_minimization: bool,
 }
 
 impl Default for TotalRoutes {
     fn default() -> Self {
-        Self { route_goal: None, variation_goal: None, is_minimization: true }
+        Self { is_minimization: true }
     }
 }
 
 impl TotalRoutes {
-    pub fn new_minimized(route_goal: Option<usize>, variation_goal: Option<(usize, f64)>) -> Self {
-        Self {
-            route_goal: route_goal.map(|routes| (routes as f64, true)),
-            variation_goal: variation_goal
-                .map(|(sample, threshold)| VariationCoefficient::new(sample, threshold, "routes_vc")),
-            is_minimization: true,
-        }
+    pub fn new_minimized() -> Self {
+        Self { is_minimization: true }
     }
 
     pub fn new_maximized() -> Self {
-        Self { route_goal: None, variation_goal: None, is_minimization: false }
+        Self { is_minimization: false }
     }
 }
 

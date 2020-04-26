@@ -66,15 +66,15 @@ fn test_non_dominated_sort() {
 
     let f0 = non_dominated_sort(&solutions, &objective);
     assert_eq!(0, f0.rank());
-    assert_eq!(&[2, 4], f0.current_front_indices());
+    assert_eq!(&[2, 4], f0.current_front.as_slice());
 
     let f1 = f0.next_front();
     assert_eq!(1, f1.rank());
-    assert_eq!(&[0, 1], f1.current_front_indices());
+    assert_eq!(&[0, 1], f1.current_front.as_slice());
 
     let f2 = f1.next_front();
     assert_eq!(2, f2.rank());
-    assert_eq!(&[3], f2.current_front_indices());
+    assert_eq!(&[3], f2.current_front.as_slice());
 
     let f3 = f2.next_front();
     assert_eq!(3, f3.rank());
@@ -88,7 +88,7 @@ fn test_fronts(n: usize, n_fronts: usize) {
     let mut f = non_dominated_sort(&solutions, &objective);
     for (expected_rank, expected_front) in expected_fronts.iter().enumerate() {
         assert_eq!(expected_rank, f.rank());
-        assert_eq!(&expected_front[..], f.current_front_indices());
+        assert_eq!(&expected_front[..], f.current_front.as_slice());
         f = f.next_front();
     }
     assert_eq!(true, f.is_empty());

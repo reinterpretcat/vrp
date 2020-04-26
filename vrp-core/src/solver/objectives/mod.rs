@@ -1,8 +1,6 @@
 //! Specifies objective functions.
 
 use crate::construction::heuristics::InsertionContext;
-use crate::models::common::Cost;
-use crate::utils::VariationCoefficient;
 use std::cmp::Ordering;
 
 mod total_routes;

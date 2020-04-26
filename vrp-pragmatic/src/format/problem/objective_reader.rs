@@ -1,7 +1,6 @@
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Objective::*;
-use crate::format::problem::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
 use vrp_core::models::problem::{ObjectiveCost, TargetConstraint, TargetObjective};
@@ -16,23 +15,16 @@ pub fn create_objective(
         let mut map_objectives = |objectives: &Vec<_>| {
             let mut core_objectives: Vec<TargetObjective> = vec![];
             objectives.iter().for_each(|objective| match objective {
-                MinimizeCost { goal } => {
-                    let (value_goal, variation_goal) = split_goal(goal);
-                    core_objectives.push(Box::new(TotalTransportCost::new(value_goal, variation_goal)))
-                }
-                MinimizeTours { goal } => {
+                MinimizeCost => core_objectives.push(Box::new(TotalTransportCost::default())),
+                MinimizeTours => {
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
-                    let (value_goal, variation_goal) = split_goal(goal);
-                    core_objectives.push(Box::new(TotalRoutes::new_minimized(value_goal, variation_goal)))
+                    core_objectives.push(Box::new(TotalRoutes::new_minimized()))
                 }
                 MaximizeTours => {
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_maximized()));
                     core_objectives.push(Box::new(TotalRoutes::new_maximized()))
                 }
-                MinimizeUnassignedJobs { goal } => {
-                    let (value_goal, variation_goal) = split_goal(goal);
-                    core_objectives.push(Box::new(TotalUnassignedJobs::new(value_goal, variation_goal)))
-                }
+                MinimizeUnassignedJobs => core_objectives.push(Box::new(TotalUnassignedJobs::default())),
                 BalanceMaxLoad { threshold } => {
                     let (module, objective) = get_load_balance(props, threshold.clone());
                     constraint.add_module(module);
@@ -85,9 +77,4 @@ fn get_load_balance(props: &ProblemProperties, threshold: Option<f64>) -> (Targe
     } else {
         WorkBalance::new_load_balanced::<i32>(threshold, Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64))
     }
-}
-
-fn split_goal<T: Clone>(goal: &Option<GoalSatisfactionCriteria<T>>) -> (Option<T>, Option<(usize, f64)>) {
-    goal.as_ref()
-        .map_or((None, None), |goal| (goal.value.clone(), goal.variation.as_ref().map(|vc| (vc.sample, vc.variation))))
 }

@@ -8,6 +8,9 @@ pub trait Termination {
     fn is_termination(&self, refinement_ctx: &mut RefinementContext) -> bool;
 }
 
+mod cost_variation;
+pub use self::cost_variation::CostVariation;
+
 mod max_generation;
 pub use self::max_generation::MaxGeneration;
 

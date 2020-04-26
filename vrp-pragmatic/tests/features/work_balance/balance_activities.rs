@@ -53,7 +53,7 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<usize>, expected
         },
         objectives: Some(Objectives {
             primary: vec![BalanceActivities { threshold }],
-            secondary: Some(vec![MinimizeCost { goal: None }]),
+            secondary: Some(vec![MinimizeCost]),
         }),
         ..create_empty_problem()
     };

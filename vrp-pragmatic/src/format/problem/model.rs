@@ -296,18 +296,11 @@ pub struct Objectives {
 pub enum Objective {
     /// An objective to minimize total cost.
     #[serde(rename(deserialize = "minimize-cost"))]
-    MinimizeCost {
-        /// A goal defined by satisfaction criteria parameters.
-        goal: Option<GoalSatisfactionCriteria<f64>>,
-    },
+    MinimizeCost,
 
     /// An objective to minimize total tour amount.
     #[serde(rename(deserialize = "minimize-tours"))]
-    MinimizeTours {
-        /// A goal defined by satisfaction criteria parameters.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        goal: Option<GoalSatisfactionCriteria<usize>>,
-    },
+    MinimizeTours,
 
     /// An objective to maximize total tour amount.
     #[serde(rename(deserialize = "maximize-tours"))]
@@ -315,11 +308,7 @@ pub enum Objective {
 
     /// An objective to minimize amount of unassigned jobs.
     #[serde(rename(deserialize = "minimize-unassigned"))]
-    MinimizeUnassignedJobs {
-        /// A goal defined by satisfaction criteria parameters.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        goal: Option<GoalSatisfactionCriteria<usize>>,
-    },
+    MinimizeUnassignedJobs,
 
     /// An objective to balance max load across all tours.
     #[serde(rename(deserialize = "balance-max-load"))]
@@ -352,27 +341,6 @@ pub enum Objective {
         #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<f64>,
     },
-}
-
-/// Specifies goal satisfaction criteria options.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct GoalSatisfactionCriteria<T> {
-    /// A goal as an absolute value.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<T>,
-
-    /// A goal as a change ratio defined by variation coefficient.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub variation: Option<VariationCoefficient>,
-}
-
-/// Specifies parameters for variation coefficient calculations.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct VariationCoefficient {
-    /// A sample size of refinement generations.
-    pub sample: usize,
-    /// A variation ratio.
-    pub variation: f64,
 }
 
 // endregion

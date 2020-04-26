@@ -26,9 +26,6 @@ pub use self::time_quota::TimeQuota;
 mod timing;
 pub use self::timing::Timer;
 
-mod variation_coefficient;
-pub use self::variation_coefficient::*;
-
 /// A trait to get tuple from collection items.
 /// See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector
 pub trait TryCollect<T> {
