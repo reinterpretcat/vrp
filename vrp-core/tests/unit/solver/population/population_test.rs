@@ -64,4 +64,16 @@ fn can_maintain_best_order() {
 }
 
 #[test]
-fn can_maintain_diversity() {}
+fn can_maintain_diversity() {
+    let problem = create_problem();
+    let mut population = DominancePopulation::new(problem.clone(), Arc::new(DefaultRandom::default()), 4, 1, 1);
+
+    population.add(create_individual(&problem, 100.));
+    assert_eq!(population.size(), 1);
+
+    population.add(create_individual(&problem, 200.));
+    assert_eq!(get_all_fitness(&population), &[100., 200.]);
+
+    population.add(create_individual(&problem, 100.));
+    assert_eq!(get_all_fitness(&population), &[100., 200.]);
+}

@@ -14,9 +14,11 @@
 #[path = "../../../tests/unit/solver/population/population_test.rs"]
 mod population_test;
 
+use crate::models::common::Objective;
 use crate::models::Problem;
 use crate::solver::{Individual, Population};
-use crate::utils::Random;
+use crate::utils::{compare_floats, Random};
+use std::cmp::Ordering::Equal;
 use std::sync::Arc;
 
 mod crowding_distance;
@@ -27,7 +29,7 @@ use self::non_dominated_sort::*;
 
 mod nsga2;
 use self::nsga2::select_and_rank;
-use crate::models::common::Objective;
+use hashbrown::HashSet;
 
 /// An evolution aware implementation of `[Population]` trait.
 pub struct DominancePopulation {
@@ -74,11 +76,14 @@ impl Population for DominancePopulation {
 
         let max_size = self.population_size + self.offspring_size;
 
+        // get best order
         let mut best_order =
             select_and_rank(self.individuals.as_slice(), self.individuals.len(), self.problem.objective.as_ref())
                 .iter()
-                .map(|acd| {
+                .enumerate()
+                .map(|(idx, acd)| {
                     (
+                        idx,
                         acd.index,
                         acd.crowding_distance,
                         self.problem.objective.fitness(self.individuals.get(acd.index).unwrap()),
@@ -86,9 +91,10 @@ impl Population for DominancePopulation {
                 })
                 .collect::<Vec<_>>();
 
+        // sort population according to best order
         (0..self.individuals.len()).for_each(|i| loop {
-            let (j, _, _) = best_order[i];
-            let (k, _, _) = best_order[j];
+            let (_, j, _, _) = best_order[i];
+            let (_, k, _, _) = best_order[j];
 
             if i == j {
                 break;
@@ -96,6 +102,22 @@ impl Population for DominancePopulation {
 
             self.individuals.swap(j, k);
             best_order.swap(i, j);
+        });
+
+        // restore original order
+        best_order.sort_by(|a, b| a.0.cmp(&b.0));
+
+        // deduplicate best order
+        best_order.dedup_by(|(_, _, a_cd, a_cost), (_, _, b_cd, b_cost)| {
+            compare_floats(*a_cd, *b_cd) == Equal && compare_floats(*a_cost, *b_cost) == Equal
+        });
+
+        // deduplicate population
+        let indices = best_order.iter().map(|i| i.0).collect::<HashSet<_>>();
+        let mut idx = 0_usize;
+        self.individuals.retain(|_| {
+            idx += 1;
+            indices.contains(&(idx - 1))
         });
 
         if self.individuals.len() > max_size {
