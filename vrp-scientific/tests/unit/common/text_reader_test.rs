@@ -14,16 +14,8 @@ pub fn can_read_init_solution() {
 
     let solution =
         Arc::new(read_init_solution(BufReader::new(file), problem.clone()).expect("Cannot read initial solution"));
-
     assert_eq!(solution.routes.len(), 10);
-    assert_eq!(
-        ObjectiveCost::default()
-            .fitness(&InsertionContext::new_from_solution(
-                problem,
-                (solution, None),
-                Arc::new(DefaultRandom::default())
-            ))
-            .round(),
-        828.936f64.round()
-    );
+
+    let ctx = InsertionContext::new_from_solution(problem, (solution, None), Arc::new(DefaultRandom::default()));
+    assert_eq!(ObjectiveCost::default().fitness(&ctx).round(), 828.936f64.round());
 }

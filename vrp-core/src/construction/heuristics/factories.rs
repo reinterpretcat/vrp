@@ -125,18 +125,14 @@ pub fn create_insertion_context_from_solution(
 
     solution.0.routes.iter().for_each(|route| {
         if route.tour.has_jobs() {
-            let mut route_ctx =
-                RouteContext { route: Arc::new(route.deep_copy()), state: Arc::new(RouteState::default()) };
-            problem.constraint.accept_route_state(&mut route_ctx);
-            routes.push(route_ctx);
+            routes.push(RouteContext { route: Arc::new(route.deep_copy()), state: Arc::new(RouteState::default()) });
         } else {
             registry.free_actor(&route.actor);
         }
     });
 
-    InsertionContext {
-        problem,
-        solution: SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry },
-        random,
-    }
+    let mut solution = SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry };
+    problem.constraint.accept_solution_state(&mut solution);
+
+    InsertionContext { problem, solution, random }
 }

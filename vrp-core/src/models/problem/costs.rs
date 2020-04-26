@@ -39,7 +39,7 @@ impl Objective for ObjectiveCost {
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.solution.get_max_cost()
+        solution.solution.get_total_cost()
     }
 }
 

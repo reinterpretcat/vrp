@@ -101,7 +101,7 @@ pub struct SolutionContext {
 }
 
 impl SolutionContext {
-    pub fn get_actual_cost(&self) -> Cost {
+    pub fn get_total_cost(&self) -> Cost {
         self.routes.iter().fold(Cost::default(), |acc, rc| acc + Self::get_route_cost(rc))
     }
 

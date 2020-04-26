@@ -40,6 +40,6 @@ impl Objective for TotalTransportCost {
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.solution.get_actual_cost()
+        solution.solution.get_total_cost()
     }
 }
