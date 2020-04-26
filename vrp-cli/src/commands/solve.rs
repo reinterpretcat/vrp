@@ -19,6 +19,7 @@ const PROBLEM_ARG_NAME: &str = "PROBLEM";
 const MATRIX_ARG_NAME: &str = "matrix";
 const GENERATIONS_ARG_NAME: &str = "max-generations";
 const TIME_ARG_NAME: &str = "max-time";
+const COST_VARIATION_ARG_NAME: &str = "cost-variation";
 const GEO_JSON_ARG_NAME: &str = "geo-json";
 
 const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
@@ -124,6 +125,14 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name(COST_VARIATION_ARG_NAME)
+                .help("Specifies cost variation coefficient termination criteria in form \"sample_size,threshold\"")
+                .short("c")
+                .long(COST_VARIATION_ARG_NAME)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name(INIT_SOLUTION_ARG_NAME)
                 .help("Specifies path to file with initial solution")
                 .short("i")
@@ -187,6 +196,16 @@ pub fn run_solve(matches: &ArgMatches) {
             process::exit(1);
         })
     });
+    let cost_variation = matches.value_of(COST_VARIATION_ARG_NAME).map(|arg| {
+        if let [sample, threshold] =
+            arg.split(',').filter_map(|line| line.parse::<f64>().ok()).collect::<Vec<_>>().as_slice()
+        {
+            (*sample as usize, *threshold)
+        } else {
+            eprintln!("cannot parse cost variation");
+            process::exit(1);
+        }
+    });
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let matrix_files = matches
         .values_of(MATRIX_ARG_NAME)
@@ -215,6 +234,7 @@ pub fn run_solve(matches: &ArgMatches) {
                             .with_solutions(solution.map_or_else(|| vec![], |s| vec![Arc::new(s)]))
                             .with_max_generations(max_generations)
                             .with_max_time(max_time)
+                            .with_cost_variation(cost_variation)
                             .build()
                             .and_then(|solver| solver.solve())
                             .unwrap_or_else(|err| {

@@ -13,6 +13,7 @@ use std::sync::Arc;
 pub struct Builder {
     max_generations: Option<usize>,
     max_time: Option<usize>,
+    cost_variation: Option<(usize, f64)>,
     problem: Option<Arc<Problem>>,
     config: EvolutionConfig,
 }
@@ -22,6 +23,7 @@ impl Default for Builder {
         Self {
             max_generations: None,
             max_time: None,
+            cost_variation: None,
             problem: None,
             config: EvolutionConfig {
                 mutation: Box::new(RuinAndRecreateMutation::default()),
@@ -52,6 +54,13 @@ impl Builder {
     /// Default is 2000.
     pub fn with_max_generations(mut self, limit: Option<usize>) -> Self {
         self.max_generations = limit;
+        self
+    }
+
+    /// Sets cost variation termination criteria.
+    /// Default is None.
+    pub fn with_cost_variation(mut self, variation: Option<(usize, f64)>) -> Self {
+        self.cost_variation = variation;
         self
     }
 
@@ -113,32 +122,41 @@ impl Builder {
         let problem = self.problem.ok_or_else(|| "problem is not specified".to_string())?;
         let mut config = self.config;
 
-        let (criterias, quota): (Vec<Box<dyn Termination>>, _) = match (self.max_generations, self.max_time) {
-            (None, None) => {
-                config.logger.deref()(
-                    "configured to use default max-generations (2000) and max-time (300secs)".to_string(),
-                );
-                (vec![Box::new(MaxGeneration::new(2000)), Box::new(MaxTime::new(300.))], None)
-            }
-            _ => {
-                let mut criterias: Vec<Box<dyn Termination>> = vec![];
-
-                if let Some(limit) = self.max_generations {
-                    config.logger.deref()(format!("configured to use max-generations {}", limit));
-                    criterias.push(Box::new(MaxGeneration::new(limit)))
+        let (criterias, quota): (Vec<Box<dyn Termination>>, _) =
+            match (self.max_generations, self.max_time, self.cost_variation) {
+                (None, None, None) => {
+                    config.logger.deref()(
+                        "configured to use default max-generations (2000) and max-time (300secs)".to_string(),
+                    );
+                    (vec![Box::new(MaxGeneration::new(2000)), Box::new(MaxTime::new(300.))], None)
                 }
+                _ => {
+                    let mut criterias: Vec<Box<dyn Termination>> = vec![];
 
-                let quota = if let Some(limit) = self.max_time {
-                    config.logger.deref()(format!("configured to use max-time {}s", limit));
-                    criterias.push(Box::new(MaxTime::new(limit as f64)));
-                    create_time_quota(limit)
-                } else {
-                    None
-                };
+                    if let Some(limit) = self.max_generations {
+                        config.logger.deref()(format!("configured to use max-generations {}", limit));
+                        criterias.push(Box::new(MaxGeneration::new(limit)))
+                    }
 
-                (criterias, quota)
-            }
-        };
+                    let quota = if let Some(limit) = self.max_time {
+                        config.logger.deref()(format!("configured to use max-time {}s", limit));
+                        criterias.push(Box::new(MaxTime::new(limit as f64)));
+                        create_time_quota(limit)
+                    } else {
+                        None
+                    };
+
+                    if let Some((sample, threshold)) = self.cost_variation {
+                        config.logger.deref()(format!(
+                            "configured to use cost variation with sample: {}, threshold: {}",
+                            sample, threshold
+                        ));
+                        criterias.push(Box::new(CostVariation::new(sample, threshold)))
+                    }
+
+                    (criterias, quota)
+                }
+            };
 
         config.termination = Box::new(CompositeTermination::new(criterias));
         config.quota = quota;
