@@ -10,22 +10,20 @@ use crate::utils::compare_floats;
 pub struct TotalTransportCost {
     cost_goal: Option<(f64, bool)>,
     variation_goal: Option<VariationCoefficient>,
-    tolerance: Option<f64>,
 }
 
 impl Default for TotalTransportCost {
     fn default() -> Self {
-        Self { cost_goal: None, variation_goal: None, tolerance: None }
+        Self { cost_goal: None, variation_goal: None }
     }
 }
 
 impl TotalTransportCost {
-    pub fn new(cost_goal: Option<Cost>, variation_goal: Option<(usize, f64)>, tolerance: Option<f64>) -> Self {
+    pub fn new(cost_goal: Option<Cost>, variation_goal: Option<(usize, f64)>) -> Self {
         Self {
             cost_goal: cost_goal.map(|cost| (cost, true)),
             variation_goal: variation_goal
                 .map(|(sample, threshold)| VariationCoefficient::new(sample, threshold, "cost_vc")),
-            tolerance,
         }
     }
 }

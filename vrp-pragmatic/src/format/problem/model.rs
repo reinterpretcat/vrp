@@ -299,10 +299,6 @@ pub enum Objective {
     MinimizeCost {
         /// A goal defined by satisfaction criteria parameters.
         goal: Option<GoalSatisfactionCriteria<f64>>,
-        /// A comparison tolerance, whereby two costs are considered equal
-        /// if they fall within this tolerance.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tolerance: Option<f64>,
     },
 
     /// An objective to minimize total tour amount.
@@ -331,10 +327,6 @@ pub enum Objective {
         /// A relative load in single tour before balancing takes place.
         #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<f64>,
-
-        /// Balance tolerance parameters.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tolerance: Option<BalanceTolerance>,
     },
 
     /// An objective to balance activities across all tours.
@@ -343,10 +335,6 @@ pub enum Objective {
         /// A minimum amount of activities in a tour before it considered for balancing.
         #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<usize>,
-
-        /// Balance tolerance parameters.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tolerance: Option<BalanceTolerance>,
     },
 
     /// An objective to balance distance across all tours.
@@ -355,10 +343,6 @@ pub enum Objective {
         /// A minimum distance of a tour before it considered for balancing.
         #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<f64>,
-
-        /// Balance tolerance parameters.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tolerance: Option<BalanceTolerance>,
     },
 
     /// An objective to balance duration across all tours.
@@ -367,10 +351,6 @@ pub enum Objective {
         /// A minimum duration of a tour before it considered for balancing.
         #[serde(skip_serializing_if = "Option::is_none")]
         threshold: Option<f64>,
-
-        /// Balance tolerance parameters.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tolerance: Option<BalanceTolerance>,
     },
 }
 
@@ -384,19 +364,6 @@ pub struct GoalSatisfactionCriteria<T> {
     /// A goal as a change ratio defined by variation coefficient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub variation: Option<VariationCoefficient>,
-}
-
-/// Specifies comparison tolerance parameters for balancing objectives.
-/// Two values are considered equal if they fall within a tolerance value.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct BalanceTolerance {
-    /// A tolerance for solution comparison: compares standard deviations.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub solution: Option<f64>,
-
-    /// A tolerance for route comparison: compares local value with mean.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub route: Option<f64>,
 }
 
 /// Specifies parameters for variation coefficient calculations.

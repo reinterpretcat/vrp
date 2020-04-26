@@ -25,14 +25,14 @@ fn check_e1601_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), 
         .iter()
         .fold(HashMap::new(), |mut acc, objective| {
             match objective {
-                MinimizeCost { goal: _, tolerance: _ } => acc.entry("minimize-cost"),
+                MinimizeCost { goal: _ } => acc.entry("minimize-cost"),
                 MinimizeTours { goal: _ } => acc.entry("minimize-tours"),
                 MaximizeTours => acc.entry("maximize-tours"),
                 MinimizeUnassignedJobs { goal: _ } => acc.entry("minimize-unassigned"),
-                BalanceMaxLoad { threshold: _, tolerance: _ } => acc.entry("balance-max-load"),
-                BalanceActivities { threshold: _, tolerance: _ } => acc.entry("balance-activities"),
-                BalanceDistance { threshold: _, tolerance: _ } => acc.entry("balance-distance"),
-                BalanceDuration { threshold: _, tolerance: _ } => acc.entry("balance-duration"),
+                BalanceMaxLoad { threshold: _ } => acc.entry("balance-max-load"),
+                BalanceActivities { threshold: _ } => acc.entry("balance-activities"),
+                BalanceDistance { threshold: _ } => acc.entry("balance-distance"),
+                BalanceDuration { threshold: _ } => acc.entry("balance-duration"),
             }
             .and_modify(|count| *count += 1)
             .or_insert(1_usize);
@@ -61,7 +61,7 @@ fn check_e1602_no_cost_value_objective(objectives: &Vec<&Objective>) -> Result<(
     let min_costs = objectives
         .iter()
         .filter(|objective| match objective {
-            MinimizeCost { goal: _, tolerance: _ } => true,
+            MinimizeCost { goal: _ } => true,
             _ => false,
         })
         .count();

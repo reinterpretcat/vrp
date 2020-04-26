@@ -3,11 +3,11 @@ use crate::format::problem::Objective::*;
 use crate::helpers::create_empty_problem;
 
 fn min_cost() -> Objective {
-    MinimizeCost { goal: None, tolerance: None }
+    MinimizeCost { goal: None }
 }
 
 fn balance_dist() -> Objective {
-    BalanceDistance { threshold: None, tolerance: None }
+    BalanceDistance { threshold: None }
 }
 
 #[test]

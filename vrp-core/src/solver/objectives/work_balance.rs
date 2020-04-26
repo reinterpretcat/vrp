@@ -16,8 +16,6 @@ impl WorkBalance {
     /// Creates `WorkBalanceModule` which balances max load across all tours.
     pub fn new_load_balanced<Capacity>(
         threshold: Option<f64>,
-        solution_tolerance: Option<f64>,
-        route_tolerance: Option<f64>,
         load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
     ) -> (TargetConstraint, TargetObjective)
     where
@@ -46,8 +44,6 @@ impl WorkBalance {
 
         let load_balance = WorkBalanceObjectives {
             threshold,
-            solution_tolerance,
-            route_tolerance,
             value_func: Arc::new({
                 let get_load_ratio = get_load_ratio.clone();
                 move |rc| get_load_ratio(rc)
@@ -68,15 +64,9 @@ impl WorkBalance {
     }
 
     /// Creates `WorkBalanceModule` which balances activities across all tours.
-    pub fn new_activity_balanced(
-        threshold: Option<usize>,
-        solution_tolerance: Option<f64>,
-        route_tolerance: Option<f64>,
-    ) -> (TargetConstraint, TargetObjective) {
+    pub fn new_activity_balanced(threshold: Option<usize>) -> (TargetConstraint, TargetObjective) {
         let activity_balance = WorkBalanceObjectives {
             threshold: threshold.map(|t| t as f64),
-            solution_tolerance,
-            route_tolerance,
             value_func: Arc::new(|rc| rc.route.tour.activity_count() as f64),
             values_func: Arc::new(|ctx| ctx.routes.iter().map(|rc| rc.route.tour.activity_count() as f64).collect()),
         };
@@ -91,33 +81,18 @@ impl WorkBalance {
     }
 
     /// Creates `WorkBalanceModule` which balances travelled distances across all tours.
-    pub fn new_distance_balanced(
-        threshold: Option<f64>,
-        solution_tolerance: Option<f64>,
-        route_tolerance: Option<f64>,
-    ) -> (TargetConstraint, TargetObjective) {
-        Self::new_transport_balanced(threshold, solution_tolerance, route_tolerance, TOTAL_DISTANCE_KEY)
+    pub fn new_distance_balanced(threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
+        Self::new_transport_balanced(threshold, TOTAL_DISTANCE_KEY)
     }
 
     /// Creates `WorkBalanceModule` which balances travelled durations across all tours.
-    pub fn new_duration_balanced(
-        threshold: Option<f64>,
-        solution_tolerance: Option<f64>,
-        route_tolerance: Option<f64>,
-    ) -> (TargetConstraint, TargetObjective) {
-        Self::new_transport_balanced(threshold, solution_tolerance, route_tolerance, TOTAL_DURATION_KEY)
+    pub fn new_duration_balanced(threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
+        Self::new_transport_balanced(threshold, TOTAL_DURATION_KEY)
     }
 
-    fn new_transport_balanced(
-        threshold: Option<f64>,
-        solution_tolerance: Option<f64>,
-        route_tolerance: Option<f64>,
-        state_key: i32,
-    ) -> (TargetConstraint, TargetObjective) {
+    fn new_transport_balanced(threshold: Option<f64>, state_key: i32) -> (TargetConstraint, TargetObjective) {
         let transport_balance = WorkBalanceObjectives {
             threshold,
-            solution_tolerance,
-            route_tolerance,
             value_func: Arc::new(move |rc| {
                 debug_assert!(state_key == TOTAL_DISTANCE_KEY || state_key == TOTAL_DURATION_KEY);
                 rc.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.)
@@ -162,8 +137,6 @@ impl ConstraintModule for WorkBalanceModule {
 #[derive(Clone)]
 struct WorkBalanceObjectives {
     threshold: Option<f64>,
-    solution_tolerance: Option<f64>,
-    route_tolerance: Option<f64>,
     value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     values_func: Arc<dyn Fn(&SolutionContext) -> Vec<f64> + Send + Sync>,
 }
@@ -181,7 +154,7 @@ impl SoftRouteConstraint for WorkBalanceObjectives {
         let mean = get_mean(&values);
         let ratio = (value - mean).max(0.) / mean;
 
-        if ratio.is_normal() && ratio > self.route_tolerance.unwrap_or(0.) {
+        if ratio.is_normal() {
             ratio * solution_ctx.get_max_cost()
         } else {
             0.

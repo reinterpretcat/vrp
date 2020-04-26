@@ -97,7 +97,11 @@ impl Population for DominancePopulation {
     }
 
     fn best(&self) -> Option<&Individual> {
-        self.individuals.first()
+        let best_idx = select_and_rank(self.individuals.as_slice(), 1, self.problem.objective.as_ref())
+            .first()
+            .map(|info| info.index);
+
+        best_idx.and_then(|idx| self.individuals.get(idx))
     }
 
     fn select(&self) -> &Individual {

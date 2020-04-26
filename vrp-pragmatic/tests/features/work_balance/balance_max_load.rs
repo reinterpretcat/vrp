@@ -26,8 +26,8 @@ fn can_balance_max_load() {
             profiles: create_default_profiles(),
         },
         objectives: Some(Objectives {
-            primary: vec![BalanceMaxLoad { threshold: None, tolerance: None }],
-            secondary: Some(vec![MinimizeCost { goal: None, tolerance: None }]),
+            primary: vec![BalanceMaxLoad { threshold: None }],
+            secondary: Some(vec![MinimizeCost { goal: None }]),
         }),
         ..create_empty_problem()
     };

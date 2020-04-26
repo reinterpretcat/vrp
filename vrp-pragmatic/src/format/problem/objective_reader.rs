@@ -16,13 +16,9 @@ pub fn create_objective(
         let mut map_objectives = |objectives: &Vec<_>| {
             let mut core_objectives: Vec<TargetObjective> = vec![];
             objectives.iter().for_each(|objective| match objective {
-                MinimizeCost { goal, tolerance } => {
+                MinimizeCost { goal } => {
                     let (value_goal, variation_goal) = split_goal(goal);
-                    core_objectives.push(Box::new(TotalTransportCost::new(
-                        value_goal,
-                        variation_goal,
-                        tolerance.clone(),
-                    )))
+                    core_objectives.push(Box::new(TotalTransportCost::new(value_goal, variation_goal)))
                 }
                 MinimizeTours { goal } => {
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
@@ -37,29 +33,23 @@ pub fn create_objective(
                     let (value_goal, variation_goal) = split_goal(goal);
                     core_objectives.push(Box::new(TotalUnassignedJobs::new(value_goal, variation_goal)))
                 }
-                BalanceMaxLoad { threshold, tolerance } => {
-                    let (module, objective) = get_load_balance(props, threshold.clone(), tolerance.clone());
+                BalanceMaxLoad { threshold } => {
+                    let (module, objective) = get_load_balance(props, threshold.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceActivities { threshold, tolerance } => {
-                    let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance.clone());
-                    let (module, objective) =
-                        WorkBalance::new_activity_balanced(threshold.clone(), solution_tolerance, route_tolerance);
+                BalanceActivities { threshold } => {
+                    let (module, objective) = WorkBalance::new_activity_balanced(threshold.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceDistance { threshold, tolerance } => {
-                    let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance.clone());
-                    let (module, objective) =
-                        WorkBalance::new_distance_balanced(threshold.clone(), solution_tolerance, route_tolerance);
+                BalanceDistance { threshold } => {
+                    let (module, objective) = WorkBalance::new_distance_balanced(threshold.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceDuration { threshold, tolerance } => {
-                    let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance.clone());
-                    let (module, objective) =
-                        WorkBalance::new_duration_balanced(threshold.clone(), solution_tolerance, route_tolerance);
+                BalanceDuration { threshold } => {
+                    let (module, objective) = WorkBalance::new_duration_balanced(threshold.clone());
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
@@ -77,17 +67,10 @@ pub fn create_objective(
     })
 }
 
-fn get_load_balance(
-    props: &ProblemProperties,
-    threshold: Option<f64>,
-    tolerance: Option<BalanceTolerance>,
-) -> (TargetConstraint, TargetObjective) {
-    let (solution_tolerance, route_tolerance) = get_balance_tolerance_params(tolerance);
+fn get_load_balance(props: &ProblemProperties, threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
     if props.has_multi_dimen_capacity {
         WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(
             threshold,
-            solution_tolerance,
-            route_tolerance,
             Arc::new(|loaded, total| {
                 let mut max_ratio = 0_f64;
 
@@ -100,20 +83,7 @@ fn get_load_balance(
             }),
         )
     } else {
-        WorkBalance::new_load_balanced::<i32>(
-            threshold,
-            solution_tolerance,
-            route_tolerance,
-            Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
-        )
-    }
-}
-
-fn get_balance_tolerance_params(tolerance: Option<BalanceTolerance>) -> (Option<f64>, Option<f64>) {
-    if let Some(tolerance) = tolerance {
-        (tolerance.solution, tolerance.route)
-    } else {
-        (None, None)
+        WorkBalance::new_load_balanced::<i32>(threshold, Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64))
     }
 }
 
