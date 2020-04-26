@@ -41,7 +41,7 @@ impl Default for Builder {
                 ],
                 initial_individuals: vec![],
                 random: Arc::new(DefaultRandom::default()),
-                logger: Box::new(|msg| println!("{}", msg)),
+                logger: Arc::new(|msg| println!("{}", msg)),
             },
         }
     }

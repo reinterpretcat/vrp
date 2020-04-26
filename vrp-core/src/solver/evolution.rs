@@ -48,15 +48,15 @@ pub fn run_evolution(problem: Arc<Problem>, config: EvolutionConfig) -> Result<B
 
     let mut refinement_ctx = create_refinement_ctx(problem.clone(), &mut config, &evolution_time)?;
 
+    // NOTE at the moment, only one solution is produced per generation
     while !config.termination.is_termination(&mut refinement_ctx) {
         let generation_time = Timer::start();
 
-        // NOTE at the moment, only one solution is produced per generation
         let insertion_ctx = refinement_ctx.population.select().deep_copy();
 
-        let insertion_ctx = config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
-
         log_progress(&refinement_ctx, &insertion_ctx, &evolution_time, &generation_time, &config.logger);
+
+        let insertion_ctx = config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
 
         refinement_ctx.population.add(insertion_ctx);
 
@@ -139,19 +139,17 @@ fn log_progress(
     generation_time: &Timer,
     logger: &Logger,
 ) {
-    let (fitness_value, fitness_change) = get_fitness(&refinement_ctx, &insertion_ctx);
-
-    if fitness_change < 0. && refinement_ctx.generation % 100 == 0 {
+    if refinement_ctx.generation % 100 == 0 {
         log_individual(
             &insertion_ctx,
             Some((refinement_ctx.generation, generation_time)),
-            (fitness_value, fitness_change),
+            get_fitness(&refinement_ctx, &insertion_ctx),
             &evolution_time,
             logger,
         );
     }
 
-    if refinement_ctx.generation % 1000 == 0 {
+    if refinement_ctx.generation % 1000 == 0 || refinement_ctx.generation == 1 {
         log_population(&refinement_ctx, &evolution_time, logger);
     }
 }
@@ -166,7 +164,7 @@ fn log_individual(
     let (fitness_value, fitness_change) = fitness;
 
     logger.deref()(format!(
-        "{}fitness: {:.2} ({:.3}%), routes: {}, unassigned: {}, is improvement: {}",
+        "{}cost: {:.2} ({:.3}%), tours: {}, unassigned: {}",
         generation.map_or("\t".to_string(), |(gen, time)| format!(
             "[{}s] generation {} took {}ms, ",
             evolution_time.elapsed_secs(),
@@ -176,8 +174,7 @@ fn log_individual(
         fitness_value,
         fitness_change,
         insertion_ctx.solution.routes.len(),
-        insertion_ctx.solution.unassigned.len(),
-        fitness_change < 0.
+        insertion_ctx.solution.unassigned.len()
     ));
 }
 

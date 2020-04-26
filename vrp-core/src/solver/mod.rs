@@ -18,6 +18,7 @@ mod population;
 
 pub use self::builder::Builder;
 pub use self::population::DominancePopulation;
+use std::ops::Deref;
 
 /// Contains information needed to perform refinement.
 pub struct RefinementContext {
@@ -70,7 +71,7 @@ impl RefinementContext {
 }
 
 /// A logger type.
-pub type Logger = Box<dyn Fn(String) -> ()>;
+pub type Logger = Arc<dyn Fn(String) -> ()>;
 
 /// A Vehicle Routing Problem Solver.
 pub struct Solver {
@@ -80,12 +81,21 @@ pub struct Solver {
 
 impl Solver {
     pub fn solve(self) -> Result<(Solution, Cost), String> {
+        let logger = self.config.logger.clone();
+
         let population = run_evolution(self.problem.clone(), self.config)?;
 
         // NOTE select first best according to population
         let insertion_ctx = population.best().ok_or_else(|| "cannot find any solution".to_string())?;
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
         let cost = self.problem.objective.fitness(insertion_ctx);
+
+        logger.deref()(format!(
+            "best solution has cost: {}, tours: {}, unassigned: {}",
+            cost,
+            solution.routes.len(),
+            solution.unassigned.len()
+        ));
 
         Ok((solution, cost))
     }
