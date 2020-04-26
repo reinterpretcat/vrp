@@ -50,7 +50,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn has_reloads(&self, route_ctx: &RouteContext) -> bool {
         route_ctx
             .state
-            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS)
+            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)
             .map(|intervals| intervals.len() > 1)
             .unwrap_or(false)
     }

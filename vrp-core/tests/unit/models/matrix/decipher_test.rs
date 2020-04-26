@@ -8,6 +8,7 @@ use crate::models::problem::{Fleet, Jobs, ObjectiveCost, SimpleActivityCost, Tra
 use crate::models::solution::{Activity, Registry};
 
 use crate::construction::constraints::Demand;
+use crate::helpers::models::domain::create_empty_solution_context;
 use crate::models::solution::Place as ActivityPlace;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
 
@@ -28,10 +29,6 @@ fn can_encode_decode_feasible_diverse_problem() {
     let problem = create_diverse_problem();
     let decipher = AdjacencyMatrixDecipher::new(problem.clone());
     let original_solution = SolutionContext {
-        required: vec![],
-        ignored: vec![],
-        unassigned: Default::default(),
-        locked: Default::default(),
         routes: vec![
             create_route(
                 &problem.fleet,
@@ -51,6 +48,7 @@ fn can_encode_decode_feasible_diverse_problem() {
             ),
         ],
         registry: Registry::new(&problem.fleet),
+        ..create_empty_solution_context()
     };
     // 0-5-8-1
     // 2-6-7

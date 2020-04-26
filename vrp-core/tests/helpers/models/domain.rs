@@ -46,6 +46,7 @@ pub fn create_empty_solution_context() -> SolutionContext {
         locked: Default::default(),
         routes: vec![],
         registry: Registry::new(&test_fleet()),
+        state: Default::default(),
     }
 }
 

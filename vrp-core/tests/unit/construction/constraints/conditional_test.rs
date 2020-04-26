@@ -1,6 +1,7 @@
 use crate::construction::constraints::conditional::ConditionalJobModule;
 use crate::construction::constraints::{ConcreteJobContextTransition, ConstraintModule};
 use crate::construction::heuristics::SolutionContext;
+use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::{get_job_id, test_fleet, test_single_with_id};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
@@ -37,14 +38,7 @@ fn can_promote_jobs_between_required_and_ignored_impl(
     let required_set1: HashSet<String> = required_ids.iter().map(|s| (*s).to_string()).collect();
     let required_set2 = required_set1.clone();
 
-    let mut ctx = SolutionContext {
-        required,
-        ignored,
-        unassigned: Default::default(),
-        locked: Default::default(),
-        routes: Default::default(),
-        registry: Registry::new(&test_fleet()),
-    };
+    let mut ctx = SolutionContext { required, ignored, ..create_empty_solution_context() };
     let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
         remove_required: move |_, job| !required_set1.contains(get_job_id(&job)),
         promote_required: move |_, job| required_set2.contains(get_job_id(&job)),
@@ -68,11 +62,9 @@ fn can_promote_locked_jobs() {
 
     let mut ctx = SolutionContext {
         required: jobs.clone(),
-        ignored: Default::default(),
-        unassigned: Default::default(),
         locked: jobs.iter().filter(move |job| already_locked_jobs.contains(get_job_id(&job))).cloned().collect(),
-        routes: Default::default(),
         registry: Registry::new(&test_fleet()),
+        ..create_empty_solution_context()
     };
     let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
         remove_required: |_, _| false,

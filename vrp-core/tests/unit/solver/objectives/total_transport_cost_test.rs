@@ -1,5 +1,6 @@
 use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
+use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Objective, Schedule};
@@ -61,12 +62,10 @@ fn can_calculate_transport_cost() {
     let mut insertion_ctx = InsertionContext {
         problem,
         solution: SolutionContext {
-            required: vec![],
-            ignored: vec![],
             unassigned,
-            locked: Default::default(),
             routes: vec![route1, route2],
             registry: Registry::new(&fleet),
+            ..create_empty_solution_context()
         },
         random: Arc::new(DefaultRandom::default()),
     };

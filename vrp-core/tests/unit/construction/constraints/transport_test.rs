@@ -164,10 +164,6 @@ mod timing {
             .add_vehicles(vec![VehicleBuilder::default().id("v1").build()])
             .build();
         let mut solution_ctx = SolutionContext {
-            required: vec![],
-            ignored: vec![],
-            unassigned: Default::default(),
-            locked: Default::default(),
             routes: vec![create_route_context_with_activities(
                 &fleet,
                 "v1",
@@ -185,6 +181,7 @@ mod timing {
                 ],
             )],
             registry: Registry::new(&fleet),
+            ..create_empty_solution_context()
         };
 
         create_constraint_pipeline_with_transport().accept_solution_state(&mut solution_ctx);

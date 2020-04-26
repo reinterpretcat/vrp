@@ -171,7 +171,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             let multi_trip = self.multi_trip.clone();
             Box::new(move |a| multi_trip.get_reload(a).is_some())
         });
-        state.put_route_state(RELOAD_INTERVALS, intervals.clone());
+        state.put_route_state(RELOAD_INTERVALS_KEY, intervals.clone());
 
         intervals
     }
@@ -286,7 +286,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         };
 
         ctx.state
-            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS)
+            .get_route_state::<Vec<(usize, usize)>>(RELOAD_INTERVALS_KEY)
             .map(|intervals| {
                 if let Some(insert_idx) = insert_idx {
                     intervals.iter().filter(|(_, end_idx)| insert_idx <= *end_idx).all(|interval| {

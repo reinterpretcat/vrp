@@ -18,6 +18,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
     let mut unassigned: HashMap<Job, i32> = Default::default();
     let mut routes: Vec<RouteContext> = Default::default();
     let mut registry = Registry::new(&problem.fleet);
+    let state = Default::default();
 
     let mut sequence_job_usage: HashMap<Job, usize> = Default::default();
 
@@ -98,7 +99,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
 
     let mut ctx = InsertionContext {
         problem: problem.clone(),
-        solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry },
+        solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry, state },
         random,
     };
 
@@ -122,6 +123,7 @@ pub fn create_insertion_context_from_solution(
 
     let mut registry = solution.0.registry.deep_copy();
     let mut routes: Vec<RouteContext> = Vec::new();
+    let state = Default::default();
 
     solution.0.routes.iter().for_each(|route| {
         if route.tour.has_jobs() {
@@ -131,7 +133,7 @@ pub fn create_insertion_context_from_solution(
         }
     });
 
-    let mut solution = SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry };
+    let mut solution = SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry, state };
     problem.constraint.accept_solution_state(&mut solution);
 
     InsertionContext { problem, solution, random }

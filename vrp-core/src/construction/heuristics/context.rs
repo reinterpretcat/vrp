@@ -79,6 +79,9 @@ impl InsertionContext {
     }
 }
 
+/// A any state value.
+pub type StateValue = Arc<dyn Any + Send + Sync>;
+
 /// Contains information regarding discovered solution.
 pub struct SolutionContext {
     /// List of jobs which require permanent assignment.
@@ -98,6 +101,9 @@ pub struct SolutionContext {
 
     /// Keeps track of used resources.
     pub registry: Registry,
+
+    /// A collection of data associated with solution.
+    pub state: HashMap<i32, StateValue>,
 }
 
 impl SolutionContext {
@@ -126,6 +132,7 @@ impl SolutionContext {
             locked: self.locked.clone(),
             routes: self.routes.iter().map(|rc| rc.deep_copy()).collect(),
             registry: self.registry.deep_copy(),
+            state: self.state.clone(),
         }
     }
 
@@ -144,8 +151,6 @@ impl SolutionContext {
     }
 }
 
-pub type RouteStateValue = Arc<dyn Any + Send + Sync>;
-
 /// Specifies insertion context for route.
 #[derive(Clone)]
 pub struct RouteContext {
@@ -158,8 +163,8 @@ pub struct RouteContext {
 
 /// Provides the way to associate arbitrary data within route and activity.
 pub struct RouteState {
-    route_states: HashMap<i32, RouteStateValue>,
-    activity_states: HashMap<ActivityWithKey, RouteStateValue>,
+    route_states: HashMap<i32, StateValue>,
+    activity_states: HashMap<ActivityWithKey, StateValue>,
     keys: HashSet<i32>,
 }
 
@@ -244,7 +249,7 @@ impl RouteState {
     }
 
     /// Gets value associated with key.
-    pub fn get_route_state_raw(&self, key: i32) -> Option<&RouteStateValue> {
+    pub fn get_route_state_raw(&self, key: i32) -> Option<&StateValue> {
         self.route_states.get(&key)
     }
 
@@ -256,7 +261,7 @@ impl RouteState {
     }
 
     /// Gets value associated with key.
-    pub fn get_activity_state_raw(&self, key: i32, activity: &TourActivity) -> Option<&RouteStateValue> {
+    pub fn get_activity_state_raw(&self, key: i32, activity: &TourActivity) -> Option<&StateValue> {
         self.activity_states.get(&(activity.as_ref() as *const Activity as usize, key))
     }
 
@@ -279,7 +284,7 @@ impl RouteState {
     }
 
     /// Puts value associated with key and specific activity.
-    pub fn put_activity_state_raw(&mut self, key: i32, activity: &TourActivity, value: RouteStateValue) {
+    pub fn put_activity_state_raw(&mut self, key: i32, activity: &TourActivity, value: StateValue) {
         self.activity_states.insert((activity.as_ref() as *const Activity as usize, key), value);
         self.keys.insert(key);
     }
