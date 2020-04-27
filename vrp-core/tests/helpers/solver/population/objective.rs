@@ -39,7 +39,6 @@ impl Objective for Objective2 {
     }
 }
 
-// Objective3 is defined on the sum of the tuple values.
 impl Objective for Objective3 {
     type Solution = Tuple;
 

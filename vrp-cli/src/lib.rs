@@ -100,7 +100,9 @@ mod interop {
 
         let result = if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
             .map_err(|errors| get_errors_serialized(&errors))
-            .and_then(|problem| get_solution_serialized(&Arc::new(problem), generations as i32, max_time as i32));
+            .and_then(|problem| {
+                get_solution_serialized(&Arc::new(problem), (4, 2, 2, 2), generations as i32, max_time as i32)
+            });
 
         call_back(result, success, failure);
     }
@@ -166,7 +168,7 @@ mod wasm {
             )?,
         );
 
-        get_solution_serialized(&problem, generations, max_time)
+        get_solution_serialized(&problem, (2, 1, 1, 1), generations, max_time)
             .map(|problem| JsValue::from_str(problem.as_str()))
             .map_err(|err| JsValue::from_str(err.as_str()))
     }
@@ -183,10 +185,21 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     Ok(buffer)
 }
 
-pub fn get_solution_serialized(problem: &Arc<CoreProblem>, generations: i32, max_time: i32) -> Result<String, String> {
+pub fn get_solution_serialized(
+    problem: &Arc<CoreProblem>,
+    population_config: (usize, usize, usize, usize),
+    generations: i32,
+    max_time: i32,
+) -> Result<String, String> {
+    let (population_size, offspring_size, elite_size, initial_size) = population_config;
     let (solution, _) = Builder::default()
+        .with_problem(problem.clone())
         .with_max_generations(Some(generations as usize))
         .with_max_time(Some(max_time as usize))
+        .with_population_size(population_size)
+        .with_offspring_size(offspring_size)
+        .with_elite_size(elite_size)
+        .with_initial_size(initial_size)
         .build()
         .and_then(|solver| solver.solve())
         .or_else(|err| {

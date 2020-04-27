@@ -108,6 +108,22 @@ impl Builder {
         self
     }
 
+    /// Sets offspring size.
+    /// Default is 4.
+    pub fn with_offspring_size(mut self, size: usize) -> Self {
+        self.config.logger.deref()(format!("configured to use offspring size={} ", size));
+        self.config.offspring_size = size;
+        self
+    }
+
+    /// Sets elite size.
+    /// Default is 2.
+    pub fn with_elite_size(mut self, size: usize) -> Self {
+        self.config.logger.deref()(format!("configured to use elite size={} ", size));
+        self.config.elite_size = size;
+        self
+    }
+
     /// Sets initial population size. Each initial individual is constructed separately which
     /// used to take more time than normal refinement process.
     /// Default is 4.
