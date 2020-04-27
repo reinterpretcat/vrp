@@ -315,32 +315,49 @@ pub enum Objective {
     BalanceMaxLoad {
         /// A relative load in single tour before balancing takes place.
         #[serde(skip_serializing_if = "Option::is_none")]
-        threshold: Option<f64>,
+        options: Option<BalanceOptions>,
     },
 
     /// An objective to balance activities across all tours.
     #[serde(rename(deserialize = "balance-activities"))]
     BalanceActivities {
-        /// A minimum amount of activities in a tour before it considered for balancing.
+        /// An options which can be used to specify minimum activity amount in a tour before
+        /// it considered for balancing.
         #[serde(skip_serializing_if = "Option::is_none")]
-        threshold: Option<usize>,
+        options: Option<BalanceOptions>,
     },
 
     /// An objective to balance distance across all tours.
     #[serde(rename(deserialize = "balance-distance"))]
     BalanceDistance {
-        /// A minimum distance of a tour before it considered for balancing.
+        /// An options which can be used to specify minimum distance of a tour before
+        /// it considered for balancing.
         #[serde(skip_serializing_if = "Option::is_none")]
-        threshold: Option<f64>,
+        options: Option<BalanceOptions>,
     },
 
     /// An objective to balance duration across all tours.
     #[serde(rename(deserialize = "balance-duration"))]
     BalanceDuration {
-        /// A minimum duration of a tour before it considered for balancing.
+        /// An options which can be used to specify minimum duration of a tour before
+        /// it considered for balancing.
         #[serde(skip_serializing_if = "Option::is_none")]
-        threshold: Option<f64>,
+        options: Option<BalanceOptions>,
     },
+}
+
+/// Specifies balance objective options.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct BalanceOptions {
+    /// A relative value in single tour before balancing takes place.
+    /// NOTE: it is soft constraint and might be ignored by decision maker.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub threshold: Option<f64>,
+
+    /// A balancing tolerance: two objective fitness values are considered equal if they
+    /// fall within a tolerance value.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tolerance: Option<f64>,
 }
 
 // endregion

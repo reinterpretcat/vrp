@@ -5,9 +5,9 @@ use crate::models::problem::{Job, TargetConstraint, TargetObjective};
 use crate::solver::objectives::{
     BALANCE_ACTIVITY_KEY, BALANCE_DISTANCE_KEY, BALANCE_DURATION_KEY, BALANCE_MAX_LOAD_KEY,
 };
-use crate::utils::{compare_floats, get_mean, get_stdev};
+use crate::utils::{compare_floats, get_cv, get_mean};
 use std::cmp::Ordering;
-use std::cmp::Ordering::Less;
+use std::cmp::Ordering::{Equal, Less};
 use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
@@ -19,6 +19,7 @@ impl WorkBalance {
     /// Creates `WorkBalanceModule` which balances max load across all tours.
     pub fn new_load_balanced<Capacity>(
         threshold: Option<f64>,
+        tolerance: Option<f64>,
         load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
     ) -> (TargetConstraint, TargetObjective)
     where
@@ -56,6 +57,7 @@ impl WorkBalance {
 
         let objective = WorkBalanceObjectives {
             threshold,
+            tolerance,
             state_key: BALANCE_MAX_LOAD_KEY,
             value_func: value_func.clone(),
             values_func: values_func.clone(),
@@ -73,14 +75,18 @@ impl WorkBalance {
     }
 
     /// Creates `WorkBalanceModule` which balances activities across all tours.
-    pub fn new_activity_balanced(threshold: Option<usize>) -> (TargetConstraint, TargetObjective) {
+    pub fn new_activity_balanced(
+        threshold: Option<f64>,
+        tolerance: Option<f64>,
+    ) -> (TargetConstraint, TargetObjective) {
         let value_func = Arc::new(|rc: &RouteContext| rc.route.tour.activity_count() as f64);
         let values_func = Arc::new(|ctx: &SolutionContext| {
             ctx.routes.iter().map(|rc| rc.route.tour.activity_count() as f64).collect()
         });
 
         let objective = WorkBalanceObjectives {
-            threshold: threshold.map(|t| t as f64),
+            threshold,
+            tolerance,
             state_key: BALANCE_ACTIVITY_KEY,
             value_func: value_func.clone(),
             values_func: values_func.clone(),
@@ -98,17 +104,24 @@ impl WorkBalance {
     }
 
     /// Creates `WorkBalanceModule` which balances travelled distances across all tours.
-    pub fn new_distance_balanced(threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
-        Self::new_transport_balanced(threshold, TOTAL_DISTANCE_KEY, BALANCE_DISTANCE_KEY)
+    pub fn new_distance_balanced(
+        threshold: Option<f64>,
+        tolerance: Option<f64>,
+    ) -> (TargetConstraint, TargetObjective) {
+        Self::new_transport_balanced(threshold, tolerance, TOTAL_DISTANCE_KEY, BALANCE_DISTANCE_KEY)
     }
 
     /// Creates `WorkBalanceModule` which balances travelled durations across all tours.
-    pub fn new_duration_balanced(threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
-        Self::new_transport_balanced(threshold, TOTAL_DURATION_KEY, BALANCE_DURATION_KEY)
+    pub fn new_duration_balanced(
+        threshold: Option<f64>,
+        tolerance: Option<f64>,
+    ) -> (TargetConstraint, TargetObjective) {
+        Self::new_transport_balanced(threshold, tolerance, TOTAL_DURATION_KEY, BALANCE_DURATION_KEY)
     }
 
     fn new_transport_balanced(
         threshold: Option<f64>,
+        tolerance: Option<f64>,
         transport_state_key: i32,
         memory_state_key: i32,
     ) -> (TargetConstraint, TargetObjective) {
@@ -126,6 +139,7 @@ impl WorkBalance {
 
         let objective = WorkBalanceObjectives {
             threshold,
+            tolerance,
             state_key: memory_state_key,
             value_func: value_func.clone(),
             values_func: values_func.clone(),
@@ -163,9 +177,9 @@ impl ConstraintModule for WorkBalanceModule {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         let values = self.values_func.deref()(ctx);
-        let std_dev = get_stdev(&values);
+        let cv = get_cv(&values);
 
-        ctx.state.insert(self.state_key, Arc::new(std_dev));
+        ctx.state.insert(self.state_key, Arc::new(cv));
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -180,6 +194,7 @@ impl ConstraintModule for WorkBalanceModule {
 #[derive(Clone)]
 struct WorkBalanceObjectives {
     threshold: Option<f64>,
+    tolerance: Option<f64>,
     state_key: i32,
     value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     values_func: Arc<dyn Fn(&SolutionContext) -> Vec<f64> + Send + Sync>,
@@ -217,7 +232,11 @@ impl Objective for WorkBalanceObjectives {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
 
-        compare_floats(fitness_a, fitness_b)
+        if self.tolerance.map_or(false, |tolerance| (fitness_a - fitness_b).abs() < tolerance) {
+            Equal
+        } else {
+            compare_floats(fitness_a, fitness_b)
+        }
     }
 
     fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
@@ -234,7 +253,7 @@ impl Objective for WorkBalanceObjectives {
             .get(&self.state_key)
             .and_then(|s| s.downcast_ref::<f64>())
             .cloned()
-            .unwrap_or_else(|| get_stdev(&self.values_func.deref()(&solution.solution)));
+            .unwrap_or_else(|| get_cv(&self.values_func.deref()(&solution.solution)));
 
         if value.is_nan() {
             1.

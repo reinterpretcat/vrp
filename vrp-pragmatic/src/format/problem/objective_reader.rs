@@ -1,5 +1,6 @@
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
+use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
@@ -25,23 +26,26 @@ pub fn create_objective(
                     core_objectives.push(Box::new(TotalRoutes::new_maximized()))
                 }
                 MinimizeUnassignedJobs => core_objectives.push(Box::new(TotalUnassignedJobs::default())),
-                BalanceMaxLoad { threshold } => {
-                    let (module, objective) = get_load_balance(props, threshold.clone());
+                BalanceMaxLoad { options } => {
+                    let (module, objective) = get_load_balance(props, options);
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceActivities { threshold } => {
-                    let (module, objective) = WorkBalance::new_activity_balanced(threshold.clone());
+                BalanceActivities { options } => {
+                    let (threshold, tolerance) = unwrap_options(options);
+                    let (module, objective) = WorkBalance::new_activity_balanced(threshold, tolerance);
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceDistance { threshold } => {
-                    let (module, objective) = WorkBalance::new_distance_balanced(threshold.clone());
+                BalanceDistance { options } => {
+                    let (threshold, tolerance) = unwrap_options(options);
+                    let (module, objective) = WorkBalance::new_distance_balanced(threshold, tolerance);
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
-                BalanceDuration { threshold } => {
-                    let (module, objective) = WorkBalance::new_duration_balanced(threshold.clone());
+                BalanceDuration { options } => {
+                    let (threshold, tolerance) = unwrap_options(options);
+                    let (module, objective) = WorkBalance::new_duration_balanced(threshold, tolerance);
                     constraint.add_module(module);
                     core_objectives.push(objective);
                 }
@@ -59,10 +63,19 @@ pub fn create_objective(
     })
 }
 
-fn get_load_balance(props: &ProblemProperties, threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
+fn unwrap_options(options: &Option<BalanceOptions>) -> (Option<f64>, Option<f64>) {
+    (options.as_ref().and_then(|o| o.threshold), options.as_ref().and_then(|o| o.tolerance))
+}
+
+fn get_load_balance(
+    props: &ProblemProperties,
+    options: &Option<BalanceOptions>,
+) -> (TargetConstraint, TargetObjective) {
+    let (threshold, tolerance) = unwrap_options(options);
     if props.has_multi_dimen_capacity {
         WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(
             threshold,
+            tolerance,
             Arc::new(|loaded, total| {
                 let mut max_ratio = 0_f64;
 
@@ -75,6 +88,10 @@ fn get_load_balance(props: &ProblemProperties, threshold: Option<f64>) -> (Targe
             }),
         )
     } else {
-        WorkBalance::new_load_balanced::<i32>(threshold, Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64))
+        WorkBalance::new_load_balanced::<i32>(
+            threshold,
+            tolerance,
+            Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
+        )
     }
 }

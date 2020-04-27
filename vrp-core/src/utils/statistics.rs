@@ -1,8 +1,3 @@
-/// Returns standard deviation.
-pub fn get_stdev(values: &[f64]) -> f64 {
-    get_variance_mean(values).0.sqrt()
-}
-
 /// Returns coefficient variation.
 pub fn get_cv(values: &[f64]) -> f64 {
     let (variance, mean) = get_variance_mean(values);

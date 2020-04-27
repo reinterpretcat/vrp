@@ -16,12 +16,12 @@ parameterized_test! {can_balance_activities_with_threshold, (threshold, expected
 
 can_balance_activities_with_threshold! {
     case01: (None, 3),
-    case02: (Some(2), 3),
+    case02: (Some(2.), 3),
     // TODO this test fails as metaheuristic might find better balanced solution and stick to it
-    //case03: (Some(5), 2),
+    //case03: (Some(5.), 2),
 }
 
-fn can_balance_activities_with_threshold_impl(threshold: Option<usize>, expected_lowest: usize) {
+fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_lowest: usize) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -53,7 +53,7 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<usize>, expected
             profiles: create_default_profiles(),
         },
         objectives: Some(Objectives {
-            primary: vec![BalanceActivities { threshold }],
+            primary: vec![BalanceActivities { options: Some(BalanceOptions { threshold, tolerance: None }) }],
             secondary: Some(vec![MinimizeCost]),
         }),
         ..create_empty_problem()

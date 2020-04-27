@@ -7,7 +7,7 @@ fn min_cost() -> Objective {
 }
 
 fn balance_dist() -> Objective {
-    BalanceDistance { threshold: None }
+    BalanceDistance { options: None }
 }
 
 #[test]
