@@ -29,17 +29,14 @@ impl Default for Builder {
                 mutation: Box::new(RuinAndRecreateMutation::default()),
                 termination: Box::new(MaxTime::new(300.)),
                 quota: None,
-                population_size: 8,
+                population_size: 4,
                 offspring_size: 4,
                 elite_size: 2,
-                initial_size: 4,
+                initial_size: 2,
                 initial_methods: vec![
                     (Box::new(RecreateWithCheapest::default()), 10),
                     (Box::new(RecreateWithRegret::default()), 10),
-                    (Box::new(RecreateWithRegret::new((5, 8))), 10),
                     (Box::new(RecreateWithBlinks::<i32>::default()), 5),
-                    (Box::new(RecreateWithGaps::default()), 5),
-                    (Box::new(RecreateWithNearestNeighbor::default()), 5),
                 ],
                 initial_individuals: vec![],
                 random: Arc::new(DefaultRandom::default()),
@@ -86,7 +83,7 @@ impl Builder {
     /// Sets initial solutions.
     /// Default is none.
     pub fn with_solutions(mut self, solutions: Vec<Arc<Solution>>) -> Self {
-        self.config.logger.deref()(format!("configured to use {} initial solutions", solutions.len()));
+        self.config.logger.deref()(format!("provided {} initial solutions to start with", solutions.len()));
         self.config.initial_individuals = solutions
             .iter()
             .map(|solution| {
@@ -101,7 +98,7 @@ impl Builder {
     }
 
     /// Sets population size.
-    /// Default is 8.
+    /// Default is 4.
     pub fn with_population_size(mut self, size: usize) -> Self {
         self.config.logger.deref()(format!("configured to use population size={} ", size));
         self.config.population_size = size;
@@ -126,7 +123,7 @@ impl Builder {
 
     /// Sets initial population size. Each initial individual is constructed separately which
     /// used to take more time than normal refinement process.
-    /// Default is 4.
+    /// Default is 2.
     pub fn with_initial_size(mut self, size: usize) -> Self {
         self.config.logger.deref()(format!("configured to use initial population size={} ", size));
         self.config.initial_size = size;

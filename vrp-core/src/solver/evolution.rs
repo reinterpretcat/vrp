@@ -54,11 +54,11 @@ pub fn run_evolution(problem: Arc<Problem>, config: EvolutionConfig) -> Result<B
 
         let insertion_ctx = refinement_ctx.population.select().deep_copy();
 
-        log_progress(&refinement_ctx, &insertion_ctx, &evolution_time, &generation_time, &config.logger);
-
         let insertion_ctx = config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
 
-        refinement_ctx.population.add(insertion_ctx);
+        log_progress(&refinement_ctx, &evolution_time, Some(&generation_time), &config.logger);
+
+        add_solution(&mut refinement_ctx, insertion_ctx);
 
         refinement_ctx.generation += 1;
     }
@@ -116,7 +116,7 @@ fn create_refinement_ctx(
         let method_idx = config.random.weighted(weights.as_slice());
         let insertion_ctx = config.initial_methods[method_idx].0.run(&mut refinement_ctx, empty_ctx.deep_copy());
 
-        refinement_ctx.population.add(insertion_ctx);
+        add_solution(&mut refinement_ctx, insertion_ctx);
 
         config.logger.deref()(format!(
             "[{}s] created {} of {} initial solutions in {}ms",
@@ -132,39 +132,54 @@ fn create_refinement_ctx(
     Ok(refinement_ctx)
 }
 
+fn add_solution(refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) {
+    let is_quota_reached = refinement_ctx.quota.as_ref().map_or(false, |quota| quota.is_reached());
+    let is_population_empty = refinement_ctx.population.size() == 0;
+
+    // NOTE fix population not to accept solution with worse primary objective fitness as best
+    if is_population_empty || !is_quota_reached {
+        refinement_ctx.population.add(insertion_ctx);
+    }
+}
+
 fn log_progress(
     refinement_ctx: &RefinementContext,
-    insertion_ctx: &InsertionContext,
     evolution_time: &Timer,
-    generation_time: &Timer,
+    generation_time: Option<&Timer>,
     logger: &Logger,
 ) {
-    if refinement_ctx.generation % 100 == 0 {
-        log_individual(
-            &insertion_ctx,
-            Some((refinement_ctx.generation, generation_time)),
-            get_fitness(&refinement_ctx, &insertion_ctx),
-            &evolution_time,
-            logger,
-        );
-    }
+    if let Some(best_individual) = refinement_ctx.population.best() {
+        let best_fitness = refinement_ctx.problem.objective.fitness(best_individual);
 
-    if refinement_ctx.generation % 1000 == 0 || refinement_ctx.generation == 1 {
-        log_population(&refinement_ctx, &evolution_time, logger);
+        if refinement_ctx.generation % 100 == 0 {
+            log_individual(
+                best_individual,
+                generation_time.map(|timer| (refinement_ctx.generation, timer)),
+                (best_fitness, None),
+                &evolution_time,
+                logger,
+            );
+        }
+
+        if refinement_ctx.generation % 1000 == 0 || refinement_ctx.generation == 1 {
+            log_population(&refinement_ctx, &evolution_time, logger);
+        }
+    } else {
+        logger.deref()("no progress yet".to_string());
     }
 }
 
 fn log_individual(
     insertion_ctx: &InsertionContext,
     generation: Option<(usize, &Timer)>,
-    fitness: (f64, f64),
+    fitness: (f64, Option<f64>),
     evolution_time: &Timer,
     logger: &Logger,
 ) {
     let (fitness_value, fitness_change) = fitness;
 
     logger.deref()(format!(
-        "{}cost: {:.2} ({:.3}%), tours: {}, unassigned: {}",
+        "{}cost: {:.2}{}, tours: {}, unassigned: {}",
         generation.map_or("\t".to_string(), |(gen, time)| format!(
             "[{}s] generation {} took {}ms, ",
             evolution_time.elapsed_secs(),
@@ -172,7 +187,7 @@ fn log_individual(
             time.elapsed_millis()
         )),
         fitness_value,
-        fitness_change,
+        fitness_change.map_or_else(|| "".to_string(), |change| format!(" ({:.3}%)", change)),
         insertion_ctx.solution.routes.len(),
         insertion_ctx.solution.unassigned.len()
     ));
@@ -200,15 +215,14 @@ fn log_result(refinement_ctx: &RefinementContext, evolution_time: &Timer, logger
     ));
 }
 
-fn get_fitness(refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> (f64, f64) {
+fn get_fitness(refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> (f64, Option<f64>) {
     let fitness_value = refinement_ctx.problem.objective.fitness(insertion_ctx);
 
     let fitness_change = refinement_ctx
         .population
         .best()
         .map(|best_ctx| refinement_ctx.problem.objective.fitness(best_ctx))
-        .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.)
-        .unwrap_or(100.);
+        .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.);
 
     (fitness_value, fitness_change)
 }

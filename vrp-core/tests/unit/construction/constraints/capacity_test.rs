@@ -79,7 +79,7 @@ fn can_evaluate_demand_on_route_impl(size: i32, expected: Option<RouteConstraint
 
     let result = create_constraint_pipeline_with_simple_capacity().evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
-    assert_eq_option!(result, expected);
+    assert_eq!(result, expected);
 }
 
 parameterized_test! {can_evaluate_demand_on_activity, (sizes, neighbours, size, expected), {
@@ -124,5 +124,5 @@ fn can_evaluate_demand_on_activity_impl(
 
     let result = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx);
 
-    assert_eq_option!(result, expected);
+    assert_eq!(result, expected);
 }

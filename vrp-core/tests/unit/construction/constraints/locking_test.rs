@@ -36,7 +36,7 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Ro
 
     let result = pipeline.evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
-    assert_eq_option!(result, expected);
+    assert_eq!(result, expected);
 }
 
 fn stop() -> Option<ActivityConstraintViolation> {
@@ -172,5 +172,5 @@ fn can_lock_jobs_to_position_in_tour_impl(
         },
     );
 
-    assert_eq_option!(result, expected);
+    assert_eq!(result, expected);
 }

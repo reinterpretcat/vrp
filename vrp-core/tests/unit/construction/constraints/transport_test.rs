@@ -154,7 +154,7 @@ mod timing {
 
         let result = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx);
 
-        assert_eq_option!(result, expected);
+        assert_eq!(result, expected);
     }
 
     #[test]
@@ -267,7 +267,7 @@ mod timing {
 
         let result = create_constraint_pipeline_with_transport().evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
-        assert_eq_option!(result, Some(RouteConstraintViolation { code: 1 }));
+        assert_eq!(result, Some(RouteConstraintViolation { code: 1 }));
     }
 }
 
@@ -348,7 +348,7 @@ mod traveling {
             },
         );
 
-        assert_eq_option!(result, expected);
+        assert_eq!(result, expected);
     }
 
     #[test]
@@ -365,6 +365,6 @@ mod traveling {
             },
         );
 
-        assert_eq_option!(result, stop(3));
+        assert_eq!(result, stop(3));
     }
 }
