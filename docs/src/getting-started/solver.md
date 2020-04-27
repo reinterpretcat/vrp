@@ -4,30 +4,34 @@ To run the solver, simply use:
 
     vrp-cli solve pragmatic problem.json -o solution.json -g solution.geojson
 
-
 It will produce some log output which contains various information regarding refinement process such as costs, amount
 of routes, time, etc.:
 
-    configured to use single approximated routing matrix
-    configured to use default max-generations (2000) and max-time (300secs)
-    generation 1 took 6085ms (total 6s), cost: 4161.71 (100.000%), routes: 52, unassigned: 0, accepted: true
-    generation 15 took 3ms (total 6s), cost: 4161.15 (-0.010%), routes: 52, unassigned: 0, accepted: true
-    ....
-    generation 996 took 10ms (total 34s), cost: 4081.04 (-0.006%), routes: 52, unassigned: 0, accepted: true
-    generation 1000 took 5ms (total 34s), cost: 4084.25 (0.079%), routes: 52, unassigned: 0, accepted: false
-           population state after 34s (speed: 28.82 gen/sec):
-                   0 cost: 4081.04 (0.000%), routes: 52, unassigned: 0, discovered at: 996
-                   1 cost: 4081.29 (0.006%), routes: 52, unassigned: 0, discovered at: 977
-                   2 cost: 4082.12 (0.027%), routes: 52, unassigned: 0, discovered at: 969
-                   3 cost: 4082.37 (0.033%), routes: 52, unassigned: 0, discovered at: 966
-                   4 cost: 4082.43 (0.034%), routes: 52, unassigned: 0, discovered at: 947
-    generation 1032 took 7ms (total 35s), cost: 4080.87 (-0.004%), routes: 52, unassigned: 0, accepted: true
-    generation 1054 took 6ms (total 36s), cost: 4080.32 (-0.014%), routes: 52, unassigned: 0, accepted: true
-    ...
-    stopped due to termination (true) or goal satisfaction (false)
-    solving took 64s, total generations: 2000, speed: 31.37 gen/sec
-    best solution within cost 4051.2276 discovered at 1998 generation
+```
+configured to use single approximated routing matrix
+provided 0 initial solutions to start with
+configured to use max-generations 1000
+[0s] created 1 of 2 initial solutions in 2ms
+[0s] created 2 of 2 initial solutions in 0ms
+[0s] population state (speed: 272.68 gen/sec):
+        cost: 114.29 (0.000%), tours: 2, unassigned: 0
+        cost: 117.58 (2.876%), tours: 2, unassigned: 1
+[0s] generation 100 took 0ms, cost: 69.70, tours: 2, unassigned: 0
+..
+[0s] generation 800 took 0ms, cost: 69.70, tours: 2, unassigned: 0
+[0s] generation 900 took 0ms, cost: 69.70, tours: 2, unassigned: 0
+[0s] population state (speed: 7498.72 gen/sec):
+        cost: 69.70 (0.000%), tours: 2, unassigned: 0
+        cost: 69.47 (-0.319%), tours: 2, unassigned: 0
+        cost: 69.76 (0.089%), tours: 2, unassigned: 0
+        cost: 69.54 (-0.230%), tours: 2, unassigned: 0
+        cost: 71.76 (2.966%), tours: 2, unassigned: 0
+        cost: 113.12 (62.307%), tours: 2, unassigned: 0
+        cost: 114.29 (63.988%), tours: 2, unassigned: 0
+[0s] total generations: 1000, speed: 7495.83 gen/sec
+best solution has cost: 69.6964, tours: 2, unassigned: 0
 
+```
 Once the problem is solved, it will save solution in `pragmatic` and `geojson` (optional) format.
 
 ## Extra options
@@ -41,13 +45,22 @@ are two types.
 
 Max time specifies duration of solving in seconds:
 
-    vrp-cli solve pragmatic problem.json -m routing_matrix.json -o solution.json --max-time=600
+    vrp-cli solve pragmatic problem.json --max-time=600
 
 #### Max generations
 
 Generation is one refinement step and it can be limited via _max-generations_ parameter:
 
-    vrp-cli solve pragmatic problem.json -m routing_matrix.json -o solution.json --max-generations=1000
+    vrp-cli solve pragmatic problem.json --max-generations=1000
+
+#### Cost variation
+
+Cost variation stops refinement process when cost does not significantly change:
+
+    vrp-cli solve pragmatic problem.json --cost-variation=200,0.1
+
+It calculates [coefficient of variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) of cost change over
+specific amount of generations specified by `sample` and stops algorithm when it is below specified `threshold`.
 
 
 #### Default behavior
