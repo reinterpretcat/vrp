@@ -138,19 +138,21 @@
   "objectives": {
     "primary": [
       {
-        "type": "balance-max-load",
-        "threshold": 0.5
+        "type": "minimize-unassigned"
+      },
+      {
+        "type": "minimize-tours"
       }
     ],
     "secondary": [
       {
-        "type": "minimize-cost",
-        "goal": {
-          "value": 100,
-          "variation": {
-            "sample": 100,
-            "variation": 0.05
-          }
+        "type": "minimize-cost"
+      },
+      {
+        "type": "balance-max-load",
+        "options": {
+          "threshold": 0.5,
+          "tolerance": 0.05
         }
       }
     ]

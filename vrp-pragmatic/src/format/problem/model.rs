@@ -354,8 +354,7 @@ pub struct BalanceOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub threshold: Option<f64>,
 
-    /// A balancing tolerance: two objective fitness values are considered equal if they
-    /// fall within a tolerance value.
+    /// A balancing tolerance calculated as variation coefficient.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tolerance: Option<f64>,
 }

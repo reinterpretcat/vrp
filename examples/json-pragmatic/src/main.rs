@@ -23,7 +23,6 @@ fn run_examples(base_path: &str) {
         ("basics/multi-job.mixed", None),
         ("basics/multi-objective.balance-load", None),
         ("basics/multi-objective.default", None),
-        ("basics/multi-objective.goal", None),
         ("basics/profiles.basic", Some(vec!["basics/profiles.basic.matrix.car", "basics/profiles.basic.matrix.truck"])),
         ("basics/relation-strict.basic", None),
         ("basics/relation-any.basic", None),
