@@ -106,14 +106,21 @@ fn create_refinement_ctx(
     let weights = config.initial_methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
     let empty_ctx = InsertionContext::new(problem.clone(), config.random.clone());
 
-    let _ = (refinement_ctx.population.size()..config.initial_size).try_for_each(|idx| {
+    let indices: Vec<_> = if config.initial_size <= config.initial_methods.len() {
+        (0..config.initial_size).collect()
+    } else {
+        (refinement_ctx.population.size()..config.initial_size)
+            .map(|_| config.random.weighted(weights.as_slice()))
+            .collect()
+    };
+
+    let _ = indices.into_iter().enumerate().try_for_each(|(idx, method_idx)| {
         let item_time = Timer::start();
 
         if config.termination.is_termination(&mut refinement_ctx) {
             return Err(());
         }
 
-        let method_idx = config.random.weighted(weights.as_slice());
         let insertion_ctx = config.initial_methods[method_idx].0.run(&mut refinement_ctx, empty_ctx.deep_copy());
 
         add_solution(&mut refinement_ctx, insertion_ctx);
