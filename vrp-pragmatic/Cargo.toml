@@ -14,12 +14,12 @@ description = "An extension logic for solving rich VRP"
 [dependencies]
 vrp-core = { path = "../vrp-core", version = "1.1.0" }
 
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { version = "1.0.106", features = ["derive"] }
+serde_json = "1.0.52"
 
-chrono = "0.4"
-rand = "0.7.2"
+chrono = "0.4.11"
+rand = "0.7.3"
 
 [dev-dependencies]
-proptest = "0.9.5"
-uuid = { version = "0.8", features = ["v4"] }
+proptest = "0.9.6"
+uuid = { version = "0.8.1", features = ["v4"] }
