@@ -47,9 +47,9 @@ fn degree_rad(degrees: f64) -> f64 {
 
 #[inline(always)]
 fn wgs84_earth_radius(lat: f64) -> f64 {
-    // Semi-axes of WGS-84 geoidal reference
-    const WGS84_A: f64 = 6378137.0; // Major semiaxis [m]
-    const WGS84_B: f64 = 6356752.3; // Minor semiaxis [m]
+    // semi-axes of WGS-84 geoidal reference
+    const WGS84_A: f64 = 6378137.0; // major semiaxis [m]
+    const WGS84_B: f64 = 6356752.3; // minor semiaxis [m]
 
     // http://en.wikipedia.org/wiki/Earth_radius
     let an = WGS84_A * WGS84_A * lat.cos();

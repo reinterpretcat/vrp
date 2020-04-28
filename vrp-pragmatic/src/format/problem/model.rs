@@ -257,8 +257,7 @@ pub struct Profile {
     #[serde(rename(deserialize = "type", serialize = "type"))]
     pub profile_type: String,
 
-    /// Approximation speed (meters per second). Used only when routing matrix
-    /// is not specified.
+    /// Approximation speed (meters per second). Used only when routing matrix is not specified.
     /// Default value is 10.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub speed: Option<f64>,

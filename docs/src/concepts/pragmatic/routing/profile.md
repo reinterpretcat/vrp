@@ -21,6 +21,10 @@ Use `-m` option to pass the matrix:
 
     vrp-cli solve pragmatic problem.json -m routing_matrix.json -o solution.json
 
+If you don't pass any routing matrix, then [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula) is used to
+calculate distances between geo locations. Durations are calculated using speed value defined via `speed` property in
+each profile. It is optional, default value is `10` which corresponds `10m/s`.
+
 
 ## Multiple profiles
 
