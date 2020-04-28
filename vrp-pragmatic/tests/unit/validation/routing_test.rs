@@ -7,8 +7,8 @@ fn can_detect_duplicates() {
         fleet: Fleet {
             vehicles: vec![],
             profiles: vec![
-                Profile { name: "my_vehicle".to_string(), profile_type: "car".to_string() },
-                Profile { name: "my_vehicle".to_string(), profile_type: "truck".to_string() },
+                Profile { name: "my_vehicle".to_string(), profile_type: "car".to_string(), speed: None },
+                Profile { name: "my_vehicle".to_string(), profile_type: "truck".to_string(), speed: None },
             ],
         },
         ..create_empty_problem()

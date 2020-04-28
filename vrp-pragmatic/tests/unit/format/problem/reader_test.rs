@@ -1,6 +1,7 @@
+use super::create_approx_matrices;
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format::problem::*;
-use crate::helpers::{create_default_profiles, single_demand_as_multi, ToLocation, SIMPLE_MATRIX, SIMPLE_PROBLEM};
+use crate::helpers::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
@@ -260,4 +261,40 @@ fn can_deserialize_minimal_problem_and_matrix() {
         problem.fleet.vehicles.first().as_ref().unwrap().details.first().as_ref().unwrap().time.as_ref().unwrap(),
         &(1562230800., 1562263200.),
     );
+}
+
+#[test]
+fn can_create_approximation_matrices() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job("job1", vec![52.52599, 13.45413]),
+                create_delivery_job("job2", vec![52.5165, 13.3808]),
+            ],
+            relations: None,
+        },
+        fleet: Fleet {
+            vehicles: vec![],
+            profiles: vec![
+                Profile { name: "car1".to_string(), profile_type: "car".to_string(), speed: Some(8.) },
+                Profile { name: "car2".to_string(), profile_type: "car".to_string(), speed: Some(10.) },
+                Profile { name: "car3".to_string(), profile_type: "car".to_string(), speed: Some(5.) },
+                Profile { name: "car4".to_string(), profile_type: "car".to_string(), speed: None },
+            ],
+        },
+        ..create_empty_problem()
+    };
+
+    let matrices = create_approx_matrices(&problem);
+    assert_eq!(matrices.len(), 4);
+
+    for &(profile, duration) in &[("car1", 635), ("car2", 508), ("car3", 1016), ("car4", 508)] {
+        let matrix = matrices.iter().find(|m| m.profile.as_str() == profile).unwrap();
+
+        assert!(matrix.error_codes.is_none());
+        assert!(matrix.timestamp.is_none());
+
+        assert_eq!(matrix.distances, &[0, 5078, 5078, 0]);
+        assert_eq!(matrix.travel_times, &[0, duration, duration, 0]);
+    }
 }

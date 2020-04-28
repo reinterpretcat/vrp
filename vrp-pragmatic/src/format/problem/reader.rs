@@ -22,6 +22,7 @@ use crate::format::*;
 use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
 use crate::{get_unique_locations, parse_time};
+use std::cmp::Ordering::Equal;
 use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::iter::FromIterator;
@@ -30,6 +31,7 @@ use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{Dimensions, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
+use vrp_core::utils::compare_floats;
 
 pub type ApiProblem = crate::format::problem::Problem;
 pub type JobIndex = HashMap<String, Job>;
@@ -103,26 +105,44 @@ pub struct ProblemProperties {
     has_area_limits: bool,
 }
 
-fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<FormatError>> {
-    let locations = get_unique_locations(&problem);
-    let (durations, distances) = get_approx_transportation(&locations, 10.);
-
-    let durations = durations.into_iter().map(|d| d.round() as i64).collect::<Vec<_>>();
-    let distances = distances.into_iter().map(|d| d.round() as i64).collect::<Vec<_>>();
-
-    let matrices = problem
+fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
+    const DEFAULT_SPEED: f64 = 10.;
+    // get each speed value once
+    let speeds = problem
         .fleet
         .profiles
         .iter()
-        .map(move |profile| Matrix {
-            profile: profile.name.clone(),
-            timestamp: None,
-            travel_times: durations.clone(),
-            distances: distances.clone(),
-            error_codes: None,
-        })
-        .collect();
+        .map(|profile| profile.speed.unwrap_or(DEFAULT_SPEED))
+        .map(|speed| unsafe { std::mem::transmute(speed) })
+        .collect::<HashSet<i64>>();
+    let speeds = speeds.into_iter().map(|speed| unsafe { std::mem::transmute(speed) }).collect::<Vec<_>>();
 
+    let locations = get_unique_locations(&problem);
+    let approx_data = get_approx_transportation(&locations, speeds.as_slice());
+
+    problem
+        .fleet
+        .profiles
+        .iter()
+        .map(move |profile| {
+            // TODO
+            let speed = profile.speed.clone().unwrap_or(DEFAULT_SPEED);
+            let idx =
+                speeds.iter().position(|s| compare_floats(*s, speed) == Equal).expect("Cannot find profile speed");
+
+            Matrix {
+                profile: profile.name.clone(),
+                timestamp: None,
+                travel_times: approx_data[idx].0.clone(),
+                distances: approx_data[idx].1.clone(),
+                error_codes: None,
+            }
+        })
+        .collect()
+}
+
+fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<FormatError>> {
+    let matrices = create_approx_matrices(&problem);
     map_to_problem(problem, matrices)
 }
 

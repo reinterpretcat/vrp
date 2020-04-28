@@ -189,7 +189,7 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
 }
 
 pub fn create_default_profiles() -> Vec<Profile> {
-    vec![Profile { name: "car".to_string(), profile_type: "car".to_string() }]
+    vec![Profile { name: "car".to_string(), profile_type: "car".to_string(), speed: None }]
 }
 
 pub fn create_empty_problem() -> Problem {

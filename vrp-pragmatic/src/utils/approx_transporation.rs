@@ -3,21 +3,23 @@
 mod approx_transportation_test;
 
 use crate::format::Location;
+use vrp_core::utils::parallel_collect;
 
-/// Gets approximated durations and distances.
-pub fn get_approx_transportation(locations: &Vec<Location>, speed: f64) -> (Vec<f64>, Vec<f64>) {
-    locations
-        .iter()
-        .flat_map(|l1| {
-            locations.iter().map(move |l2| {
-                let distance = get_distance(l1, l2);
-                let duration = distance / speed;
-                (duration, distance)
-            })
-        })
-        .collect::<Vec<_>>()
-        .into_iter()
-        .unzip()
+/// Gets approximated durations and distances rounded to nearest integer.
+pub fn get_approx_transportation(locations: &Vec<Location>, speeds: &[f64]) -> Vec<(Vec<i64>, Vec<i64>)> {
+    assert!(speeds.len() > 0);
+    assert!(speeds.iter().all(|&speed| speed > 0.));
+
+    let distances =
+        locations.iter().flat_map(|l1| locations.iter().map(move |l2| get_distance(l1, l2))).collect::<Vec<_>>();
+
+    let distances_rounded = distances.iter().map(|distance| distance.round() as i64).collect::<Vec<_>>();
+
+    parallel_collect(speeds, |speed| {
+        let durations = distances.iter().map(|distance| (distance / speed).round() as i64).collect::<Vec<_>>();
+
+        (durations, distances_rounded.clone())
+    })
 }
 
 /// Gets distance between two points using haversine formula.

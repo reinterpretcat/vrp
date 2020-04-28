@@ -3,6 +3,7 @@
 use super::*;
 use crate::format::problem::*;
 use crate::format::Location;
+use crate::helpers::create_default_profiles;
 use crate::{format_time, parse_time};
 
 pub const START_DAY: &str = "2020-07-04T00:00:00Z";
@@ -87,7 +88,7 @@ pub fn default_breaks_prototype() -> impl Strategy<Value = Option<Vec<VehicleBre
 }
 
 pub fn default_profiles() -> impl Strategy<Value = Vec<Profile>> {
-    Just(vec![Profile { name: "car".to_string(), profile_type: "car".to_string() }])
+    Just(create_default_profiles())
 }
 
 pub fn default_vehicle_shifts() -> impl Strategy<Value = Vec<VehicleShift>> {

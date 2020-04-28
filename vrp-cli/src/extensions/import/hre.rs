@@ -447,7 +447,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                 .fleet
                 .profiles
                 .iter()
-                .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone() })
+                .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone(), speed: None })
                 .collect(),
         },
         objectives: None,

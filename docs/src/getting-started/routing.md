@@ -16,4 +16,6 @@ For quick prototyping, `pragmatic` format supports distance approximation using 
 within fixed speed for durations. This helps you quickly check how solver works on specific problem variant without
 need to acquire routing matrix.
 
+The speed is `10m/s` by default and can be tweaked by setting optional `speed` property in a each profile separately.
+
 To use this feature, simply omit `-m` parameter.

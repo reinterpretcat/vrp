@@ -2,6 +2,14 @@ use super::*;
 use crate::format::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData};
 
+fn get_test_locations() -> Vec<Location> {
+    vec![
+        Location { lat: 52.52599, lng: 13.45413 },
+        Location { lat: 52.5225, lng: 13.4095 },
+        Location { lat: 52.5165, lng: 13.3808 },
+    ]
+}
+
 #[test]
 fn can_calculate_distance_between_two_locations() {
     let l1 = Location { lat: 52.52599, lng: 13.45413 };
@@ -14,13 +22,14 @@ fn can_calculate_distance_between_two_locations() {
 
 #[test]
 fn can_use_approximated_with_matrix_costs() {
-    let locations = vec![
-        Location { lat: 52.52599, lng: 13.45413 },
-        Location { lat: 52.5225, lng: 13.4095 },
-        Location { lat: 52.5165, lng: 13.3808 },
-    ];
-    let speed = 15.;
-    let (durations, distances) = get_approx_transportation(&locations, speed);
+    let locations = get_test_locations();
+    let speed = 10.;
+    let approx_data = get_approx_transportation(&locations, &[speed]);
+    assert_eq!(approx_data.len(), 1);
+
+    let (durations, distances) = approx_data.first().unwrap();
+    let durations = durations.iter().map(|&d| d as f64).collect();
+    let distances = distances.iter().map(|&d| d as f64).collect();
 
     let costs = create_matrix_transport_cost(vec![MatrixData::new(0, durations, distances)])
         .expect("Cannot create matrix transport costs");

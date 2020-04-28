@@ -152,7 +152,7 @@ pub fn read_csv_problem<R1: Read, R2: Read>(
         plan: Plan { jobs, relations: None },
         fleet: Fleet {
             vehicles,
-            profiles: profiles.into_iter().map(|p| Profile { name: p.clone(), profile_type: p }).collect(),
+            profiles: profiles.into_iter().map(|p| Profile { name: p.clone(), profile_type: p, speed: None }).collect(),
         },
         objectives: None,
         config: None,
