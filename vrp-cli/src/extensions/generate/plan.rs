@@ -7,7 +7,7 @@ use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
 use vrp_pragmatic::format::Location;
 
 /// Generates a new plan for given problem.
-pub fn generate_plan(problem_proto: &Problem, job_count: usize) -> Plan {
+pub fn generate_plan(problem_proto: &Problem, job_size: usize) -> Plan {
     let rnd = DefaultRandom::default();
 
     let bounding_box = get_plan_bounding_box(&problem_proto.plan);
@@ -23,7 +23,7 @@ pub fn generate_plan(problem_proto: &Problem, job_count: usize) -> Plan {
                     places: task
                         .places
                         .iter()
-                        .map(|place| JobPlace {
+                        .map(|_| JobPlace {
                             location: get_random_location(&bounding_box, &rnd),
                             duration: get_random_item(durations.as_slice(), &rnd).cloned().unwrap(),
                             times: get_random_item(time_windows.as_slice(), &rnd).cloned(),
@@ -41,10 +41,11 @@ pub fn generate_plan(problem_proto: &Problem, job_count: usize) -> Plan {
         })
     };
 
-    let jobs = (1..=job_count)
+    let jobs = (1..=job_size)
         .map(|job_idx| {
             let job_proto = get_random_item(problem_proto.plan.jobs.as_slice(), &rnd).unwrap();
 
+            // TODO implement more sophisticated logic for jobs with pickup and delivery
             let keep_original_demand = job_proto.pickups.as_ref().map_or(false, |t| t.len() > 0)
                 && job_proto.deliveries.as_ref().map_or(false, |t| t.len() > 0);
 
@@ -120,5 +121,8 @@ fn get_random_item<'a, T>(items: &'a [T], rnd: &DefaultRandom) -> Option<&'a T> 
 }
 
 fn get_random_location(bounding_box: &(Location, Location), rnd: &DefaultRandom) -> Location {
-    unimplemented!()
+    let lat = rnd.uniform_real(bounding_box.0.lat, bounding_box.1.lat);
+    let lng = rnd.uniform_real(bounding_box.0.lng, bounding_box.1.lng);
+
+    Location { lat, lng }
 }
