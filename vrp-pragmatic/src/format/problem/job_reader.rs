@@ -129,21 +129,18 @@ fn read_required_jobs(
 
         let singles =
             job.pickups
-                .as_ref()
                 .iter()
                 .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, "pickup", is_static_demand)))
-                .chain(job.deliveries.as_ref().iter().flat_map(|tasks| {
+                .chain(job.deliveries.iter().flat_map(|tasks| {
                     tasks.iter().map(|task| get_single_from_task(task, "delivery", is_static_demand))
                 }))
                 .chain(
                     job.replacements
-                        .as_ref()
                         .iter()
                         .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, "replacement", true))),
                 )
                 .chain(
                     job.services
-                        .as_ref()
                         .iter()
                         .flat_map(|tasks| tasks.iter().map(|task| get_single_from_task(task, "service", false))),
                 )

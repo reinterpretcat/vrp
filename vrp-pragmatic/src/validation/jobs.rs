@@ -22,10 +22,9 @@ fn check_e1101_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), F
         .jobs()
         .filter(|job| {
             job.pickups
-                .as_ref()
                 .iter()
-                .chain(job.deliveries.as_ref().iter())
-                .chain(job.replacements.as_ref().iter())
+                .chain(job.deliveries.iter())
+                .chain(job.replacements.iter())
                 .flat_map(|tasks| tasks.iter())
                 .any(|task| task.demand.is_none())
                 || job.services.iter().flat_map(|tasks| tasks.iter()).any(|task| task.demand.is_some())
