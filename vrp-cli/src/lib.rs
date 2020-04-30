@@ -1,5 +1,10 @@
 //! A VRP library public API.
 
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(test)]
+#[path = "../tests/features/mod.rs"]
+mod features;
+
 pub mod extensions;
 
 use crate::extensions::import::import_problem;
