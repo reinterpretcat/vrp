@@ -8,7 +8,7 @@ different days and one vehicle type with two shifts on different days.
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-day.basic.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-day.basic.problem.json}}
 ```
 
 </p></details>
@@ -17,7 +17,7 @@ different days and one vehicle type with two shifts on different days.
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-day.basic.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-day.basic.solution.json}}
 ```
 
 </p></details>

@@ -40,7 +40,7 @@ vrp-cli solve pragmatic problem.json --get-locations -o locations.json
 The output format is a simply array of unique geo locations:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.locations.json}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.locations.json}}
 ```
 
 You can use it to get a routing matrix from any of routing services of your choice, but the order in resulting matrix
@@ -50,5 +50,5 @@ should be kept as expected.
 Routing matrix example:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.matrix.json}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.matrix.json}}
 ```

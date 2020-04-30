@@ -15,7 +15,7 @@ This project is about solving Vehicle Routing Problem which is common task in tr
  > world VRPs they need to solve.
 
 <div id="geojson" hidden>
-{{#include ../../examples/json-pragmatic/data/objectives/berlin.balance-max-load.solution.geojson}}
+{{#include ../../examples/data/pragmatic/objectives/berlin.balance-max-load.solution.geojson}}
 </div>
 
 <div id="map"></div>

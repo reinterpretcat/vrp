@@ -15,5 +15,5 @@ A statistic entity represents total statistic for the whole solution or one tour
  A solution statistic example:
 
  ```json
- {{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json:2:11}}
+ {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:2:11}}
  ```

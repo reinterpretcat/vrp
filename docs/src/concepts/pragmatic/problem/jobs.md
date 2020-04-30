@@ -35,7 +35,7 @@ depending on time of the day.
 Pickup job is a job with `job.pickups` property specified,   without `job.deliveries`:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:33:57}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:33:57}}
 ```
 
 The vehicle picks some `good` at pickup locations, which leads to capacity growth according to `job.pickups.demand` value,
@@ -47,7 +47,7 @@ and brings it till the end of the tour. Each pickup task has its own properties 
 Delivery job is a job with `job.deliveries` property specified, without `job.pickups`:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:4:32}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:4:32}}
 ```
 
 The vehicle picks some `goods` at the start stop, which leads to initial capacity growth, and brings it to job's locations,
@@ -60,7 +60,7 @@ where capacity is decreased based on `job.deliveries.demand` values. Each delive
 Pickup and delivery job is a job with both `job.pickups` and `job.deliveries` properties specified:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:58:92}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:58:92}}
 ```
 
 The vehicle picks some `goods` at one or multiple `job.pickups.location`, which leads to capacity growth, and brings
@@ -73,7 +73,7 @@ them to one or many `job.deliveries.location`. The job has the following rules:
 A good example of such job is a job with more than two places with variable demand:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.basic.problem.json:4:55}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-job.basic.problem.json:4:55}}
 ```
 
 This job contains two pickups and one delivery. Interpretation of such job can be "bring two parcels from two different
@@ -82,7 +82,7 @@ places to one single customer".
 Another example is one pickup and two deliveries:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.basic.problem.json:56:107}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-job.basic.problem.json:56:107}}
 ```
 
 
@@ -91,7 +91,7 @@ Another example is one pickup and two deliveries:
 A replacement job is a job with `job.replacement` property specified:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.mixed.problem.json:4:28}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.problem.json:4:28}}
 ```
 
 It models an use case when something big has to be replaced at the customer's location. This task requires a new `good`
@@ -103,7 +103,7 @@ to be loaded at the beginning of the journey and old replaced one brought to jou
 A service job is a job with `job.service` property specified:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.mixed.problem.json:29:54}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.problem.json:29:54}}
 ```
 
 This job models some work without demand (e.g. handyman visit).
@@ -114,7 +114,7 @@ This job models some work without demand (e.g. handyman visit).
 You can specify multiple tasks properties to get some mixed job:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.mixed.problem.json:55:118}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.problem.json:55:118}}
 ```
 
 Similar pickup and delivery job, all these tasks has to be executed or none of them. The order is not specified except

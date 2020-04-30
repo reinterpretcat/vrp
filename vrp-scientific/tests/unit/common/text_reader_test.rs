@@ -10,7 +10,7 @@ use vrp_core::utils::DefaultRandom;
 #[test]
 pub fn can_read_init_solution() {
     let problem = Arc::new(create_c101_100_problem());
-    let file = get_test_resource("../data/solomon/C101.100.best.txt").unwrap();
+    let file = get_test_resource("../../examples/data/scientific/solomon/C101.100.best.txt").unwrap();
 
     let solution =
         Arc::new(read_init_solution(BufReader::new(file), problem.clone()).expect("Cannot read initial solution"));

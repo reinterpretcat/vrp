@@ -3,7 +3,7 @@
 When job cannot be assigned, it goes to the list of unassigned jobs:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/unassigned.unreachable.solution.json:113:123}}
+{{#include ../../../../../examples/data/pragmatic/basics/unassigned.unreachable.solution.json:113:123}}
 ```
 
 Each item in this list has job id, reason code and description.

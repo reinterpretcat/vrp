@@ -16,7 +16,7 @@ You can use more than one relation per vehicle.
 A `any` relation is used to lock specific jobs to certain vehicle in any order:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/relation-any.basic.problem.json:82:89}}
+{{#include ../../../../../examples/data/pragmatic/basics/relation-any.basic.problem.json:82:89}}
 ```
 
 
@@ -31,7 +31,7 @@ between.
 In contrast to `sequence` relation, `strict` locks jobs to certain vehicle without ability to insert new jobs in between:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/relation-strict.basic.problem.json:82:89}}
+{{#include ../../../../../examples/data/pragmatic/basics/relation-strict.basic.problem.json:82:89}}
 ```
 
 In this example, new jobs can be inserted only after job with id `job1`.

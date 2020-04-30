@@ -7,7 +7,7 @@ This example demonstrates how to use multiple routing profiles: `car` and `truck
     <summary>List of problem locations</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/profiles.basic.locations.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/profiles.basic.locations.json}}
 ```
 
 </p></details>
@@ -16,7 +16,7 @@ This example demonstrates how to use multiple routing profiles: `car` and `truck
     <summary>Routing matrix for car</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/profiles.basic.matrix.car.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/profiles.basic.matrix.car.json}}
 ```
 
 </p></details>
@@ -25,7 +25,7 @@ This example demonstrates how to use multiple routing profiles: `car` and `truck
     <summary>Routing matrix for truck</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/profiles.basic.matrix.truck.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/profiles.basic.matrix.truck.json}}
 ```
 
 </p></details>
@@ -35,7 +35,7 @@ This example demonstrates how to use multiple routing profiles: `car` and `truck
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/profiles.basic.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/profiles.basic.problem.json}}
 ```
 
 </p></details>
@@ -44,7 +44,7 @@ This example demonstrates how to use multiple routing profiles: `car` and `truck
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/profiles.basic.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/profiles.basic.solution.json}}
 ```
 
 </p></details>

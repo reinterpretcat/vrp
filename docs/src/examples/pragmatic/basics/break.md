@@ -6,7 +6,7 @@ This example demonstrates how to use vehicle break with omitted location and tim
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/break.basic.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/break.basic.problem.json}}
 ```
 
 </p></details>
@@ -15,7 +15,7 @@ This example demonstrates how to use vehicle break with omitted location and tim
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/break.basic.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/break.basic.solution.json}}
 ```
 
 </p></details>

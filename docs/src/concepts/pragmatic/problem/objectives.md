@@ -51,7 +51,7 @@ Each objective has optional parameters defined by `option` property:
 An usage example:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-objective.balance-load.problem.json:151:157}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.balance-load.problem.json:151:157}}
 ```
 
 ## Default behaviour
@@ -60,7 +60,7 @@ By default, decision maker minimizes amount of routes, unassigned jobs and total
 definition:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/multi-objective.default.problem.json:138:152}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.default.problem.json:138:152}}
 ```
 
 Here, cost minimization is a secondary objective which corresponds to a classical hierarchical objective used

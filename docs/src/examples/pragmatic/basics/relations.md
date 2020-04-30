@@ -11,7 +11,7 @@ In this example, `any` relation locks two jobs to specific vehicle in any order.
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/relation-any.basic.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/relation-any.basic.problem.json}}
 ```
 
 </p></details>
@@ -20,7 +20,7 @@ In this example, `any` relation locks two jobs to specific vehicle in any order.
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/relation-any.basic.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/relation-any.basic.solution.json}}
 ```
 
 </p></details>
@@ -34,7 +34,7 @@ In this example, `strict` relation locks two jobs to specific vehicle starting f
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/relation-strict.basic.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/relation-strict.basic.problem.json}}
 ```
 
 </p></details>
@@ -43,7 +43,7 @@ In this example, `strict` relation locks two jobs to specific vehicle starting f
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/relation-strict.basic.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/relation-strict.basic.solution.json}}
 ```
 
 </p></details>

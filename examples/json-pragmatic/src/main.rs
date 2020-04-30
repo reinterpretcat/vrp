@@ -94,6 +94,6 @@ mod test {
 
     #[test]
     fn can_run_examples() {
-        run_examples("../json-pragmatic/data");
+        run_examples("../data/pragmatic");
     }
 }

@@ -7,7 +7,7 @@ visualized in numerous web based front ends, e.g. [geojson.io](http://geojson.io
 as `leaflet`:
 
 <div id="geojson" hidden>
-{{#include ../../../examples/json-pragmatic/data/objectives/berlin.default.solution.geojson}}
+{{#include ../../../examples/data/pragmatic/objectives/berlin.default.solution.geojson}}
 </div>
 
 <div id="map"></div>

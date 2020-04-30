@@ -7,7 +7,7 @@ This example demonstrates how to use skills feature with jobs and vehicles.
     <summary>Complete problem json</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/skills.basic.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json}}
 ```
 
 </p></details>
@@ -16,7 +16,7 @@ This example demonstrates how to use skills feature with jobs and vehicles.
     <summary>Complete solution json</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/skills.basic.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.solution.json}}
 ```
 
 </p></details>

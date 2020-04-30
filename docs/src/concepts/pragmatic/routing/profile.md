@@ -8,13 +8,13 @@ In order to solve VRP, you need to specify at least one routing profile.
 Routing profiles are defined in `fleet.profiles`:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:131:136}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:131:136}}
 ```
 
 The `name` must be unique for each profile and it should referenced by `profile` property defined on vehicle:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json:102}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:102}}
 ```
 
 Use `-m` option to pass the matrix:

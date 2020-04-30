@@ -6,7 +6,7 @@ This example demonstrates one job which is unassigned due to unreachable locatio
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/unassigned.unreachable.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/unassigned.unreachable.problem.json}}
 ```
 
 </p></details>
@@ -15,7 +15,7 @@ This example demonstrates one job which is unassigned due to unreachable locatio
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/unassigned.unreachable.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/unassigned.unreachable.solution.json}}
 ```
 
 </p></details>

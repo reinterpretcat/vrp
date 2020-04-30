@@ -13,7 +13,7 @@ In this example, there is one delivery, one pickup, and one pickup and delivery 
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json}}
 ```
 
 </p></details>
@@ -22,7 +22,7 @@ In this example, there is one delivery, one pickup, and one pickup and delivery 
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json}}
 ```
 
 </p></details>
@@ -30,7 +30,7 @@ In this example, there is one delivery, one pickup, and one pickup and delivery 
 </br>
 
 <div id="geojson" hidden>
-{{#include ../../../../../examples/json-pragmatic/data/simple.basic.solution.geojson}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.solution.geojson}}
 </div>
 
 <div id="map"></div>
@@ -46,7 +46,7 @@ This example contains two multi jobs with slightly different parameters.
      <summary>Problem</summary><p>
  
  ```json
- {{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.basic.problem.json}}
+ {{#include ../../../../../examples/data/pragmatic/basics/multi-job.basic.problem.json}}
  ```
  
  </p></details>
@@ -55,7 +55,7 @@ This example contains two multi jobs with slightly different parameters.
      <summary>Solution</summary><p>
  
  ```json
- {{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.basic.solution.json}}
+ {{#include ../../../../../examples/data/pragmatic/basics/multi-job.basic.solution.json}}
  ```
  
  </p></details>
@@ -69,7 +69,7 @@ You can mix job task types in one job:
      <summary>Problem</summary><p>
  
  ```json
- {{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.mixed.problem.json}}
+ {{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.problem.json}}
  ```
  
  </p></details>
@@ -78,7 +78,7 @@ You can mix job task types in one job:
      <summary>Solution</summary><p>
  
  ```json
- {{#include ../../../../../examples/json-pragmatic/data/basics/multi-job.mixed.solution.json}}
+ {{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.solution.json}}
  ```
  
  </p></details>

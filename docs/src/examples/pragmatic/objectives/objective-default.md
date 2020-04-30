@@ -4,7 +4,7 @@
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/objectives/berlin.default.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.default.problem.json}}
 ```
 
 </p></details>
@@ -13,7 +13,7 @@
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/objectives/berlin.default.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.default.solution.json}}
 ```
 
 </p></details>
@@ -21,7 +21,7 @@
 </br>
 
 <div id="geojson" hidden>
-{{#include ../../../../../examples/json-pragmatic/data/objectives/berlin.default.solution.geojson}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.default.solution.geojson}}
 </div>
 
 <div id="map"></div>
@@ -30,7 +30,7 @@ By default, primary objective for the solver is to minimize fleet usage and amou
 objective is total cost minimization:
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/objectives/berlin.default.problem.json:1003:1017}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.default.problem.json:1003:1017}}
 ```
 
 As result, solution has minimum amount of vehicles used to serve all jobs (`3`).

@@ -15,7 +15,7 @@ In this scenario, once some jobs are delivered, the vehicle returns to the origi
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/reload.basic.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/reload.basic.problem.json}}
 ```
 
 </p></details>
@@ -24,7 +24,7 @@ In this scenario, once some jobs are delivered, the vehicle returns to the origi
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/reload.basic.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/reload.basic.solution.json}}
 ```
 
 </p></details>
@@ -39,7 +39,7 @@ to model _waste collection_ use case.
     <summary>Problem</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/reload.multi.problem.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/reload.multi.problem.json}}
 ```
 
 </p></details>
@@ -48,13 +48,13 @@ to model _waste collection_ use case.
     <summary>Solution</summary><p>
 
 ```json
-{{#include ../../../../../examples/json-pragmatic/data/basics/reload.multi.solution.json}}
+{{#include ../../../../../examples/data/pragmatic/basics/reload.multi.solution.json}}
 ```
 
 </p></details>
 
 <div id="geojson" hidden>
-{{#include ../../../../../examples/json-pragmatic/data/basics/reload.multi.solution.geojson}}
+{{#include ../../../../../examples/data/pragmatic/basics/reload.multi.solution.geojson}}
 </div>
 
 <div id="map"></div>
