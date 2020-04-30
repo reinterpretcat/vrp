@@ -7,7 +7,7 @@ use vrp_pragmatic::format::problem::Problem;
 /// using property based approach. This implementation, in contrast, focuses on generating realistic
 /// problems.
 pub fn generate_from_prototype(problem: &Problem, job_size: usize) -> Result<Problem, String> {
-    if problem.plan.jobs.len() > 3 {
+    if problem.plan.jobs.len() < 3 {
         return Err("at least three jobs should be defined".to_string());
     }
 

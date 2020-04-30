@@ -54,6 +54,11 @@ impl FormatError {
 
         buffer
     }
+
+    /// Formats multiple format errors into string.
+    pub fn format_many(errors: &[Self], separator: &str) -> String {
+        errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join(separator)
+    }
 }
 
 impl std::fmt::Display for FormatError {

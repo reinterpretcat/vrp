@@ -301,23 +301,23 @@ pub struct Objectives {
 #[serde(tag = "type")]
 pub enum Objective {
     /// An objective to minimize total cost.
-    #[serde(rename(deserialize = "minimize-cost"))]
+    #[serde(rename(deserialize = "minimize-cost", serialize = "minimize-cost"))]
     MinimizeCost,
 
     /// An objective to minimize total tour amount.
-    #[serde(rename(deserialize = "minimize-tours"))]
+    #[serde(rename(deserialize = "minimize-tours", serialize = "minimize-tours"))]
     MinimizeTours,
 
     /// An objective to maximize total tour amount.
-    #[serde(rename(deserialize = "maximize-tours"))]
+    #[serde(rename(deserialize = "maximize-tours", serialize = "maximize-tours"))]
     MaximizeTours,
 
     /// An objective to minimize amount of unassigned jobs.
-    #[serde(rename(deserialize = "minimize-unassigned"))]
+    #[serde(rename(deserialize = "minimize-unassigned", serialize = "minimize-unassigned"))]
     MinimizeUnassignedJobs,
 
     /// An objective to balance max load across all tours.
-    #[serde(rename(deserialize = "balance-max-load"))]
+    #[serde(rename(deserialize = "balance-max-load", serialize = "balance-max-load"))]
     BalanceMaxLoad {
         /// A relative load in single tour before balancing takes place.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -325,7 +325,7 @@ pub enum Objective {
     },
 
     /// An objective to balance activities across all tours.
-    #[serde(rename(deserialize = "balance-activities"))]
+    #[serde(rename(deserialize = "balance-activities", serialize = "balance-activities"))]
     BalanceActivities {
         /// An options which can be used to specify minimum activity amount in a tour before
         /// it considered for balancing.
@@ -334,7 +334,7 @@ pub enum Objective {
     },
 
     /// An objective to balance distance across all tours.
-    #[serde(rename(deserialize = "balance-distance"))]
+    #[serde(rename(deserialize = "balance-distance", serialize = "balance-distance"))]
     BalanceDistance {
         /// An options which can be used to specify minimum distance of a tour before
         /// it considered for balancing.
@@ -343,7 +343,7 @@ pub enum Objective {
     },
 
     /// An objective to balance duration across all tours.
-    #[serde(rename(deserialize = "balance-duration"))]
+    #[serde(rename(deserialize = "balance-duration", serialize = "balance-duration"))]
     BalanceDuration {
         /// An options which can be used to specify minimum duration of a tour before
         /// it considered for balancing.

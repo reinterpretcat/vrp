@@ -8,6 +8,7 @@ use vrp_core::solver::Builder;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
+use vrp_pragmatic::format::FormatError;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -47,10 +48,7 @@ fn run_examples(base_path: &str) {
                 problem.read_pragmatic()
             }
             .unwrap_or_else(|errors| {
-                panic!(
-                    "cannot read pragmatic problem:\n{}",
-                    errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n")
-                )
+                panic!("cannot read pragmatic problem:\n{}", FormatError::format_many(errors.as_slice(), "\t\n"))
             }),
         );
 

@@ -1,6 +1,7 @@
 use clap::{App, Arg, ArgMatches, Values};
 
 pub mod check;
+pub mod generate;
 pub mod import;
 pub mod solve;
 

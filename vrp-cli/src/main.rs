@@ -14,6 +14,7 @@ mod cli {
     use super::commands::import::{get_import_app, run_import};
     use super::commands::solve::{get_solve_app, run_solve};
     use crate::commands::check::{get_check_app, run_check};
+    use crate::commands::generate::{get_generate_app, run_generate};
     use clap::App;
     use std::process;
 
@@ -25,12 +26,14 @@ mod cli {
             .subcommand(get_solve_app())
             .subcommand(get_import_app())
             .subcommand(get_check_app())
+            .subcommand(get_generate_app())
             .get_matches();
 
         match matches.subcommand() {
             ("solve", Some(solve_matches)) => run_solve(solve_matches),
             ("import", Some(import_matches)) => run_import(import_matches),
             ("check", Some(check_matches)) => run_check(check_matches),
+            ("generate", Some(check_matches)) => run_generate(check_matches),
             ("", None) => {
                 eprintln!("No subcommand was used. Use -h to print help information.");
                 process::exit(1);
