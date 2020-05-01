@@ -9,6 +9,7 @@
   * [Acquiring routing info](getting-started/routing.md)
   * [Running solver](getting-started/solver.md)
   * [Analyzing results](getting-started/analysis.md)
+  * [Evaluating performance](getting-started/performance.md)
 
 * [Concepts](concepts/index.md)
   * [Pragmatic format](concepts/pragmatic/index.md)

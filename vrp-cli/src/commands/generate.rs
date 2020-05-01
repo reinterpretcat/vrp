@@ -5,7 +5,7 @@ use vrp_cli::extensions::generate::generate_problem;
 use vrp_pragmatic::format::problem::serialize_problem;
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";
-pub const INPUT_ARG_NAME: &str = "input-files";
+pub const PROTOTYPES_ARG_NAME: &str = "prototypes";
 pub const OUT_RESULT_ARG_NAME: &str = "out-result";
 pub const JOBS_SIZE_ARG_NAME: &str = "jobs-size";
 pub const AREA_SIZE_ARG_NAME: &str = "area-size";
@@ -21,10 +21,10 @@ pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
                 .index(1),
         )
         .arg(
-            Arg::with_name(INPUT_ARG_NAME)
+            Arg::with_name(PROTOTYPES_ARG_NAME)
                 .help("Sets input files which contains a VRP definition prototype")
-                .short("i")
-                .long(INPUT_ARG_NAME)
+                .short("p")
+                .long(PROTOTYPES_ARG_NAME)
                 .required(true)
                 .takes_value(true)
                 .multiple(true),
@@ -58,7 +58,7 @@ pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
 pub fn run_generate(matches: &ArgMatches) {
     let input_format = matches.value_of(FORMAT_ARG_NAME).unwrap();
     let input_files = matches
-        .values_of(INPUT_ARG_NAME)
+        .values_of(PROTOTYPES_ARG_NAME)
         .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "input"))).collect::<Vec<_>>());
     let jobs_size = parse_int_value::<usize>(matches, JOBS_SIZE_ARG_NAME, "jobs size").unwrap();
     let area_size = parse_float_value::<f64>(matches, AREA_SIZE_ARG_NAME, "area size");
