@@ -1,6 +1,6 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
-use crate::models::common::Objective;
+use crate::models::common::{MultiObjective, Objective};
 use crate::models::Problem;
 use crate::solver::mutation::{Mutation, Recreate};
 use crate::solver::population::DominancePopulation;
@@ -184,9 +184,16 @@ fn log_individual(
     logger: &Logger,
 ) {
     let (fitness_value, fitness_change) = fitness;
+    let fitness_values = insertion_ctx
+        .problem
+        .objective
+        .objectives()
+        .map(|objective| objective.fitness(insertion_ctx))
+        .map(|fitness| format!("{:.3}", fitness))
+        .collect::<Vec<_>>();
 
     logger.deref()(format!(
-        "{}cost: {:.2}{}, tours: {}, unassigned: {}",
+        "{}cost: {:.2}{}, tours: {}, unassigned: {}, fitness: ({})",
         generation.map_or("\t".to_string(), |(gen, time)| format!(
             "[{}s] generation {} took {}ms, ",
             evolution_time.elapsed_secs(),
@@ -196,7 +203,8 @@ fn log_individual(
         fitness_value,
         fitness_change.map_or_else(|| "".to_string(), |change| format!(" ({:.3}%)", change)),
         insertion_ctx.solution.routes.len(),
-        insertion_ctx.solution.unassigned.len()
+        insertion_ctx.solution.unassigned.len(),
+        fitness_values.join(", ")
     ));
 }
 
