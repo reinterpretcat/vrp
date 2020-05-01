@@ -8,6 +8,7 @@ pub mod solve;
 use std::fs::File;
 use std::io::{stdout, BufWriter, Write};
 use std::process;
+use std::str::FromStr;
 
 fn open_file(path: &str, description: &str) -> File {
     File::open(path).unwrap_or_else(|err| {
@@ -29,4 +30,32 @@ fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn Write>> {
     } else {
         BufWriter::new(Box::new(stdout()))
     }
+}
+
+// TODO avoid code duplication (macros?)
+
+fn parse_float_value<T: FromStr<Err = std::num::ParseFloatError>>(
+    matches: &ArgMatches,
+    arg_name: &str,
+    arg_desc: &str,
+) -> Option<T> {
+    matches.value_of(arg_name).map(|arg| {
+        arg.parse::<T>().unwrap_or_else(|err| {
+            eprintln!("cannot get {}: '{}'", err.to_string(), arg_desc);
+            process::exit(1);
+        })
+    })
+}
+
+fn parse_int_value<T: FromStr<Err = std::num::ParseIntError>>(
+    matches: &ArgMatches,
+    arg_name: &str,
+    arg_desc: &str,
+) -> Option<T> {
+    matches.value_of(arg_name).map(|arg| {
+        arg.parse::<T>().unwrap_or_else(|err| {
+            eprintln!("cannot get {}: '{}'", err.to_string(), arg_desc);
+            process::exit(1);
+        })
+    })
 }

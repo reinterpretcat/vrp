@@ -184,18 +184,9 @@ pub fn run_solve(matches: &ArgMatches) {
     let problem_file = open_file(problem_path, "problem");
 
     // optional
-    let max_generations = matches.value_of(GENERATIONS_ARG_NAME).map(|arg| {
-        arg.parse::<usize>().unwrap_or_else(|err| {
-            eprintln!("cannot get max generations: '{}'", err.to_string());
-            process::exit(1);
-        })
-    });
-    let max_time = matches.value_of(TIME_ARG_NAME).map(|arg| {
-        arg.parse::<usize>().unwrap_or_else(|err| {
-            eprintln!("cannot get max time: '{}'", err.to_string());
-            process::exit(1);
-        })
-    });
+    let max_generations = parse_int_value::<usize>(matches, GENERATIONS_ARG_NAME, "max generations");
+    let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time");
+
     let cost_variation = matches.value_of(COST_VARIATION_ARG_NAME).map(|arg| {
         if let [sample, threshold] =
             arg.split(',').filter_map(|line| line.parse::<f64>().ok()).collect::<Vec<_>>().as_slice()

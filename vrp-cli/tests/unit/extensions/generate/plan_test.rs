@@ -40,7 +40,7 @@ fn can_generate_bounding_box() {
     };
 
     let (Location { lat: min_lat, lng: min_lng }, Location { lat: max_lat, lng: max_lng }) =
-        get_plan_bounding_box(&plan);
+        get_bounding_box_from_plan(&plan);
     assert_eq!(min_lat, -1.);
     assert_eq!(min_lng, 0.);
     assert_eq!(max_lat, 3.);

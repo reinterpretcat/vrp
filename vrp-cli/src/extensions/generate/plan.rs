@@ -6,11 +6,22 @@ use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
 use vrp_pragmatic::format::Location;
 
-/// Generates a new plan for given problem.
-pub fn generate_plan(problem_proto: &Problem, job_size: usize) -> Plan {
+/// Generates a new plan for given problem with amount of jobs specified by`jobs_size` and
+/// bounding box of size `area_size` (half size in meters). When not specified, jobs bounding
+/// box is used.
+pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option<f64>) -> Result<Plan, String> {
     let rnd = DefaultRandom::default();
 
-    let bounding_box = get_plan_bounding_box(&problem_proto.plan);
+    let bounding_box = if let Some(area_size) = area_size {
+        if area_size > 0. {
+            get_bounding_box_from_size(&problem_proto.plan, area_size)
+        } else {
+            return Err("area size must be positive".to_string());
+        }
+    } else {
+        get_bounding_box_from_plan(&problem_proto.plan)
+    };
+
     let time_windows = get_plan_time_windows(&problem_proto.plan);
     let demands = get_plan_demands(&problem_proto.plan);
     let durations = get_plan_durations(&problem_proto.plan);
@@ -61,10 +72,10 @@ pub fn generate_plan(problem_proto: &Problem, job_size: usize) -> Plan {
         })
         .collect();
 
-    Plan { jobs, relations: None }
+    Ok(Plan { jobs, relations: None })
 }
 
-fn get_plan_bounding_box(plan: &Plan) -> (Location, Location) {
+fn get_bounding_box_from_plan(plan: &Plan) -> (Location, Location) {
     let mut lat_min = std::f64::MAX;
     let mut lat_max = std::f64::MIN;
     let mut lng_min = std::f64::MAX;
@@ -79,6 +90,38 @@ fn get_plan_bounding_box(plan: &Plan) -> (Location, Location) {
     });
 
     (Location { lat: lat_min, lng: lng_min }, Location { lat: lat_max, lng: lng_max })
+}
+
+fn get_bounding_box_from_size(plan: &Plan, area_size: f64) -> (Location, Location) {
+    const WGS84_A: f64 = 6378137.0;
+    const WGS84_B: f64 = 6356752.3;
+    let deg_to_rad = |deg| std::f64::consts::PI * deg / 180.;
+    let rad_to_deg = |rad| 180. * rad / std::f64::consts::PI;
+
+    let (min, max) = get_bounding_box_from_plan(plan);
+    let center_lat = min.lat + (max.lat - min.lat) / 2.;
+    let center_lng = min.lng + (max.lng - min.lng) / 2.;
+
+    let lat = deg_to_rad(center_lat);
+    let lng = deg_to_rad(center_lng);
+
+    // NOTE copied from pragmatic
+    let an = WGS84_A * WGS84_A * lat.cos();
+    let bn = WGS84_B * WGS84_B * lat.sin();
+    let ad = WGS84_A * lat.cos();
+    let bd = WGS84_B * lat.sin();
+
+    let half_size = area_size;
+
+    let radius = ((an * an + bn * bn) / (ad * ad + bd * bd)).sqrt();
+    let pradius = radius * lat.cos();
+
+    let lat_min = rad_to_deg(lat - half_size / radius);
+    let lat_max = rad_to_deg(lat + half_size / radius);
+    let lon_min = rad_to_deg(lng - half_size / pradius);
+    let lon_max = rad_to_deg(lng + half_size / pradius);
+
+    (Location { lat: lat_min, lng: lon_min }, Location { lat: lat_max, lng: lon_max })
 }
 
 fn get_plan_time_windows(plan: &Plan) -> Vec<Vec<Vec<String>>> {
