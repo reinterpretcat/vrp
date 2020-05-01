@@ -22,10 +22,10 @@ pub mod slow;
 mod constraints;
 mod extensions;
 mod utils;
-mod validation;
 
 pub mod checker;
 pub mod format;
+pub mod validation;
 
 use crate::format::problem::Problem;
 use crate::format::{CoordIndex, Location};
