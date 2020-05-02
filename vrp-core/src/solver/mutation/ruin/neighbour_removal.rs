@@ -4,8 +4,10 @@ use crate::solver::RefinementContext;
 
 /// A ruin strategy which removes jobs in neighbourhood of randomly selected job (inclusive).
 pub struct NeighbourRemoval {
-    /// Specifies minimum and maximum amount of removed jobs.
-    range: (usize, usize),
+    /// Specifies minimum amount of removed jobs.
+    min: usize,
+    /// Specifies maximum amount of removed jobs.
+    max: usize,
     /// Specifies threshold ratio of maximum removed jobs.
     threshold: f64,
 }
@@ -13,7 +15,7 @@ pub struct NeighbourRemoval {
 impl NeighbourRemoval {
     /// Creates a new instance of [`NeighbourRemoval`].
     pub fn new(min: usize, max: usize, threshold: f64) -> Self {
-        Self { range: (min, max), threshold }
+        Self { min, max, threshold }
     }
 }
 
@@ -27,7 +29,7 @@ impl Ruin for NeighbourRemoval {
     fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
 
-        let affected = get_chunk_size(&insertion_ctx, &self.range, self.threshold);
+        let affected = get_chunk_size(&insertion_ctx, &(self.min, self.max), self.threshold);
 
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.random.clone();

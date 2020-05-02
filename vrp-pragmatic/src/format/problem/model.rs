@@ -7,8 +7,7 @@ extern crate serde_json;
 use crate::format::{FormatError, Location};
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
-use std::io::{BufReader, Read};
-use std::io::{BufWriter, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 
 // region Plan
 

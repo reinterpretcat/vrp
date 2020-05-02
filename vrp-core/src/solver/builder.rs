@@ -130,6 +130,20 @@ impl Builder {
         self
     }
 
+    /// Sets mutation algorithm.
+    /// Default is ruin and recreate.
+    pub fn with_mutation(mut self, mutation: Box<dyn Mutation>) -> Self {
+        self.config.mutation = mutation;
+        self
+    }
+
+    /// Sets termination algorithm.
+    /// Default is max time and max generations.
+    pub fn with_termination(mut self, termination: Box<dyn Termination>) -> Self {
+        self.config.termination = termination;
+        self
+    }
+
     /// Builds solver with parameters specified.
     pub fn build(self) -> Result<Solver, String> {
         let problem = self.problem.ok_or_else(|| "problem is not specified".to_string())?;

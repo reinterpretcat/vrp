@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::process;
 use std::sync::Arc;
+use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::Builder;
@@ -25,6 +26,7 @@ const GEO_JSON_ARG_NAME: &str = "geo-json";
 const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
 const OUT_RESULT_ARG_NAME: &str = "out-result";
 const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
+const CONFIG_ARG_NAME: &str = "config";
 
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
 
@@ -127,7 +129,7 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
         .arg(
             Arg::with_name(COST_VARIATION_ARG_NAME)
                 .help("Specifies cost variation coefficient termination criteria in form \"sample_size,threshold\"")
-                .short("c")
+                .short("v")
                 .long(COST_VARIATION_ARG_NAME)
                 .required(false)
                 .takes_value(true),
@@ -172,6 +174,13 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .required(false)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name(CONFIG_ARG_NAME)
+                .help("Specifies path to algorithm configuration file")
+                .short("c")
+                .long(CONFIG_ARG_NAME)
+                .required(false),
+        )
 }
 
 /// Runs solver commands.
@@ -198,6 +207,7 @@ pub fn run_solve(matches: &ArgMatches) {
         }
     });
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
+    let config = matches.value_of(CONFIG_ARG_NAME).map(|path| open_file(path, "config"));
     let matrix_files = matches
         .values_of(MATRIX_ARG_NAME)
         .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect());
@@ -220,7 +230,17 @@ pub fn run_solve(matches: &ArgMatches) {
                     Ok(problem) => {
                         let problem = Arc::new(problem);
                         let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
-                        let (solution, _) = Builder::default()
+
+                        let builder = if let Some(config) = config {
+                            create_builder_from_config_file(BufReader::new(config)).unwrap_or_else(|err| {
+                                eprintln!("cannot read config: '{}'", err);
+                                process::exit(1);
+                            })
+                        } else {
+                            Builder::default()
+                        };
+
+                        let (solution, _) = builder
                             .with_problem(problem.clone())
                             .with_solutions(solution.map_or_else(|| vec![], |s| vec![Arc::new(s)]))
                             .with_max_generations(max_generations)

@@ -4,8 +4,10 @@ use crate::solver::RefinementContext;
 
 /// A ruin strategy which removes random jobs from solution.
 pub struct RandomJobRemoval {
-    /// Specifies minimum and maximum amount of removed jobs.
-    range: (usize, usize),
+    /// Specifies minimum amount of removed jobs.
+    min: usize,
+    /// Specifies maximum amount of removed jobs.
+    max: usize,
     /// Specifies threshold ratio of maximum removed jobs.
     threshold: f64,
 }
@@ -13,7 +15,7 @@ pub struct RandomJobRemoval {
 impl RandomJobRemoval {
     /// Creates a new instance of [`RandomJobRemoval`].
     pub fn new(min: usize, max: usize, threshold: f64) -> Self {
-        Self { range: (min, max), threshold }
+        Self { min, max, threshold }
     }
 }
 
@@ -31,7 +33,7 @@ impl Ruin for RandomJobRemoval {
             return insertion_ctx;
         }
 
-        let affected = get_chunk_size(&insertion_ctx, &self.range, self.threshold);
+        let affected = get_chunk_size(&insertion_ctx, &(self.min, self.max), self.threshold);
 
         (0..affected).for_each(|_| {
             let solution = &mut insertion_ctx.solution;

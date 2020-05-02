@@ -15,7 +15,7 @@ pub struct RecreateWithRegret {
 
 impl Default for RecreateWithRegret {
     fn default() -> Self {
-        RecreateWithRegret::new((2, 4))
+        RecreateWithRegret::new(2, 4)
     }
 }
 
@@ -31,21 +31,22 @@ impl Recreate for RecreateWithRegret {
 }
 
 impl RecreateWithRegret {
-    pub fn new(regret_range: (i32, i32)) -> Self {
+    pub fn new(min: usize, max: usize) -> Self {
         Self {
             job_selector: Box::new(AllJobSelector::default()),
-            job_reducer: Box::new(RegretJobMapReducer::new(regret_range)),
+            job_reducer: Box::new(RegretJobMapReducer::new(min, max)),
         }
     }
 }
 
 struct RegretJobMapReducer {
-    regret_range: (i32, i32),
+    min: usize,
+    max: usize,
 }
 
 impl RegretJobMapReducer {
-    pub fn new(regret_range: (i32, i32)) -> Self {
-        Self { regret_range }
+    pub fn new(min: usize, max: usize) -> Self {
+        Self { min, max }
     }
 }
 
@@ -66,7 +67,7 @@ impl JobMapReducer for RegretJobMapReducer {
         });
 
         let regret_index =
-            ctx.random.uniform_int(self.regret_range.0, self.regret_range.1).min(results.len() as i32) as usize - 1;
+            ctx.random.uniform_int(self.min as i32, self.max as i32).min(results.len() as i32) as usize - 1;
 
         let insertion_result = results
             .drain(regret_index..=regret_index)

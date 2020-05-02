@@ -36,7 +36,7 @@ impl Default for CompositeRecreate {
             (Box::new(RecreateWithCheapest::default()), 100),
             (Box::new(RecreateWithRegret::default()), 90),
             (Box::new(RecreateWithBlinks::<i32>::default()), 30),
-            (Box::new(RecreateWithRegret::new((5, 8))), 20),
+            (Box::new(RecreateWithRegret::new(5, 8)), 20),
             (Box::new(RecreateWithGaps::default()), 10),
             (Box::new(RecreateWithNearestNeighbor::default()), 5),
         ])

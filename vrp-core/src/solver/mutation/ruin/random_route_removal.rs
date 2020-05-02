@@ -10,9 +10,9 @@ use crate::solver::RefinementContext;
 /// A ruin strategy which removes random route from solution.
 pub struct RandomRouteRemoval {
     /// Specifies minimum amount of removed routes.
-    rmin: f64,
+    min: f64,
     /// Specifies maximum amount of removed routes.
-    rmax: f64,
+    max: f64,
     /// Specifies threshold ratio of maximum removed routes.
     threshold: f64,
 }
@@ -20,7 +20,7 @@ pub struct RandomRouteRemoval {
 impl RandomRouteRemoval {
     /// Creates a new instance of [`RandomRouteRemoval`].
     pub fn new(rmin: usize, rmax: usize, threshold: f64) -> Self {
-        Self { rmin: rmin as f64, rmax: rmax as f64, threshold }
+        Self { min: rmin as f64, max: rmax as f64, threshold }
     }
 
     fn remove_whole_route(&self, solution: &mut SolutionContext, route_ctx: &mut RouteContext) {
@@ -59,10 +59,10 @@ impl Default for RandomRouteRemoval {
 impl Ruin for RandomRouteRemoval {
     fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
-        let max = (insertion_ctx.solution.routes.len() as f64 * self.threshold).max(self.rmin).round() as usize;
+        let max = (insertion_ctx.solution.routes.len() as f64 * self.threshold).max(self.min).round() as usize;
         let affected = insertion_ctx
             .random
-            .uniform_int(self.rmin as i32, self.rmax as i32)
+            .uniform_int(self.min as i32, self.max as i32)
             .min(insertion_ctx.solution.routes.len().min(max) as i32) as usize;
 
         (0..affected).for_each(|_| {
