@@ -179,7 +179,8 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .help("Specifies path to algorithm configuration file")
                 .short("c")
                 .long(CONFIG_ARG_NAME)
-                .required(false),
+                .required(false)
+                .takes_value(true),
         )
 }
 

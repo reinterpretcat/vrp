@@ -100,7 +100,7 @@ impl Builder {
     /// Sets population size.
     /// Default is 4.
     pub fn with_population_size(mut self, size: usize) -> Self {
-        self.config.logger.deref()(format!("configured to use population size={} ", size));
+        self.config.logger.deref()(format!("configured to use population size: {} ", size));
         self.config.population_size = size;
         self
     }
@@ -108,7 +108,7 @@ impl Builder {
     /// Sets offspring size.
     /// Default is 4.
     pub fn with_offspring_size(mut self, size: usize) -> Self {
-        self.config.logger.deref()(format!("configured to use offspring size={} ", size));
+        self.config.logger.deref()(format!("configured to use offspring size: {} ", size));
         self.config.offspring_size = size;
         self
     }
@@ -116,7 +116,7 @@ impl Builder {
     /// Sets elite size.
     /// Default is 2.
     pub fn with_elite_size(mut self, size: usize) -> Self {
-        self.config.logger.deref()(format!("configured to use elite size={} ", size));
+        self.config.logger.deref()(format!("configured to use elite size: {} ", size));
         self.config.elite_size = size;
         self
     }
@@ -125,7 +125,7 @@ impl Builder {
     /// used to take more time than normal refinement process.
     /// Default is 2.
     pub fn with_initial_size(mut self, size: usize) -> Self {
-        self.config.logger.deref()(format!("configured to use initial population size={} ", size));
+        self.config.logger.deref()(format!("configured to use initial population size: {} ", size));
         self.config.initial_size = size;
         self
     }
@@ -161,12 +161,12 @@ impl Builder {
                     let mut criterias: Vec<Box<dyn Termination>> = vec![];
 
                     if let Some(limit) = self.max_generations {
-                        config.logger.deref()(format!("configured to use max-generations {}", limit));
+                        config.logger.deref()(format!("configured to use max-generations: {}", limit));
                         criterias.push(Box::new(MaxGeneration::new(limit)))
                     }
 
                     let quota = if let Some(limit) = self.max_time {
-                        config.logger.deref()(format!("configured to use max-time {}s", limit));
+                        config.logger.deref()(format!("configured to use max-time: {}s", limit));
                         criterias.push(Box::new(MaxTime::new(limit as f64)));
                         create_time_quota(limit)
                     } else {

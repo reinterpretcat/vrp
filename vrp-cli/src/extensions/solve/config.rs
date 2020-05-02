@@ -167,7 +167,7 @@ fn create_ruin_method(method: &RuinMethod) -> (Arc<dyn Ruin>, f64) {
             (Arc::new(RandomRouteRemoval::new(*min, *max, *threshold)), *probability)
         }
         RuinMethod::WorstJob { probability, min, max, threshold, skip: worst_skip } => {
-            (Arc::new(WorstJobRemoval::new(*min, *max, *threshold, *worst_skip)), *probability)
+            (Arc::new(WorstJobRemoval::new(*threshold, *worst_skip, *min, *max)), *probability)
         }
     }
 }
