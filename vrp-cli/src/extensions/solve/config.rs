@@ -172,7 +172,8 @@ fn create_ruin_method(method: &RuinMethod) -> (Arc<dyn Ruin>, f64) {
     }
 }
 
-fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
+/// Reads config from reader.
+pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
     serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{}'", err))
 }
 

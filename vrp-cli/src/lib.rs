@@ -8,10 +8,10 @@ mod features;
 pub mod extensions;
 
 use crate::extensions::import::import_problem;
+use crate::extensions::solve::config::{create_builder_from_config, read_config};
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
-use vrp_core::solver::Builder;
 use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_pragmatic::format::FormatError;
@@ -94,20 +94,18 @@ mod interop {
         problem: *const c_char,
         matrices: *const *const c_char,
         matrices_len: *const i32,
-        generations: *const i32,
-        max_time: *const i32,
+        config: *const c_char,
         success: Callback,
         failure: Callback,
     ) {
         let problem = to_string(problem);
         let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
         let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
+        let config = to_string(config);
 
         let result = if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
             .map_err(|errors| get_errors_serialized(&errors))
-            .and_then(|problem| {
-                get_solution_serialized(&Arc::new(problem), (4, 2, 2, 2), generations as i32, max_time as i32)
-            });
+            .and_then(|problem| get_solution_serialized(&Arc::new(problem), &config));
 
         call_back(result, success, failure);
     }
@@ -155,12 +153,7 @@ mod wasm {
 
     /// Solves Vehicle Routing Problem passed in `pragmatic` format.
     #[wasm_bindgen]
-    pub fn solve_pragmatic(
-        problem: &JsValue,
-        matrices: &JsValue,
-        generations: i32,
-        max_time: i32,
-    ) -> Result<JsValue, JsValue> {
+    pub fn solve_pragmatic(problem: &JsValue, matrices: &JsValue, config: &JsValue) -> Result<JsValue, JsValue> {
         let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         let matrices: Vec<Matrix> = matrices.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
@@ -173,7 +166,9 @@ mod wasm {
             )?,
         );
 
-        get_solution_serialized(&problem, (2, 1, 1, 1), generations, max_time)
+        let config_str: String = config.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+
+        get_solution_serialized(&problem, &config_str)
             .map(|problem| JsValue::from_str(problem.as_str()))
             .map_err(|err| JsValue::from_str(err.as_str()))
     }
@@ -190,22 +185,18 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     Ok(buffer)
 }
 
-pub fn get_solution_serialized(
-    problem: &Arc<CoreProblem>,
-    population_config: (usize, usize, usize, usize),
-    generations: i32,
-    max_time: i32,
-) -> Result<String, String> {
-    let (population_size, offspring_size, elite_size, initial_size) = population_config;
-    let (solution, _) = Builder::default()
-        .with_problem(problem.clone())
-        .with_max_generations(Some(generations as usize))
-        .with_max_time(Some(max_time as usize))
-        .with_population_size(population_size)
-        .with_offspring_size(offspring_size)
-        .with_elite_size(elite_size)
-        .with_initial_size(initial_size)
-        .build()
+pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &String) -> Result<String, String> {
+    let config = read_config(BufReader::new(config_str.as_bytes())).map_err(|err| {
+        FormatError::new(
+            "E0004".to_string(),
+            "cannot read config".to_string(),
+            format!("check config definition. Error: '{}'", err),
+        )
+        .to_json()
+    })?;
+
+    let (solution, _) = create_builder_from_config(&config)
+        .and_then(|builder| builder.with_problem(problem.clone()).build())
         .and_then(|solver| solver.solve())
         .or_else(|err| {
             Err(FormatError::new(

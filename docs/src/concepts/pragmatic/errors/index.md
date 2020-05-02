@@ -27,6 +27,11 @@ Errors from E0xxx range are generic.
 `cannot find any solution` is returned when no solution is found. In this case, please submit a bug and share original
 problem and routing matrix.
 
+### E0004
+
+`cannot read config` is returned when algorithm configuration cannot be created. To fix it, make sure that config has
+a valid json schema and valid parameters.
+
 
 ## E1xxx: Validation errors
 
