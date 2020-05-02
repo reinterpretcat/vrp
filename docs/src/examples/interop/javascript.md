@@ -104,12 +104,16 @@ It should generate `wasm` build + some javascript files for you. To test it, use
                 ]
             }
         ];
-        const refinement_max_generations = 1000;
-        const refinement_max_time_in_seconds = 10;
-        const solution = solve_pragmatic(pragmatic_problem,
-                                         matrix_data,
-                                         refinement_max_generations,
-                                         refinement_max_time_in_seconds);
+
+        // config provides the way to tweak algorithm behavior
+        const config = {
+            "termination": {
+                 "max_time": 10,
+                 "max_generations": 1000
+            }
+        };
+
+        const solution = solve_pragmatic(pragmatic_problem, matrix_data, config);
         console.log(`solution is:\n ${solution}`);
     }
 

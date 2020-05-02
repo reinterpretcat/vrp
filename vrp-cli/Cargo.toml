@@ -29,3 +29,4 @@ clap = "2.33.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.60", features = ["serde-serialize"] }
+js-sys = "0.3.37"

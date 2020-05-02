@@ -166,7 +166,10 @@ mod wasm {
             )?,
         );
 
-        let config_str: String = config.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+        let config_str = js_sys::JSON::stringify(config)
+            .map(|str| str.to_string())?
+            .into_serde()
+            .map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
 
         get_solution_serialized(&problem, &config_str)
             .map(|problem| JsValue::from_str(problem.as_str()))
