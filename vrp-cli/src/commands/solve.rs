@@ -239,14 +239,14 @@ pub fn run_solve(matches: &ArgMatches) {
                             })
                         } else {
                             Builder::default()
+                                .with_max_generations(max_generations)
+                                .with_max_time(max_time)
+                                .with_cost_variation(cost_variation)
                         };
 
                         let (solution, _) = builder
                             .with_problem(problem.clone())
                             .with_solutions(solution.map_or_else(|| vec![], |s| vec![Arc::new(s)]))
-                            .with_max_generations(max_generations)
-                            .with_max_time(max_time)
-                            .with_cost_variation(cost_variation)
                             .build()
                             .and_then(|solver| solver.solve())
                             .unwrap_or_else(|err| {
