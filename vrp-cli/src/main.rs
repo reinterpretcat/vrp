@@ -33,7 +33,7 @@ mod cli {
             ("solve", Some(solve_matches)) => run_solve(solve_matches),
             ("import", Some(import_matches)) => run_import(import_matches),
             ("check", Some(check_matches)) => run_check(check_matches),
-            ("generate", Some(check_matches)) => run_generate(check_matches),
+            ("generate", Some(generate_matches)) => run_generate(generate_matches),
             ("", None) => {
                 eprintln!("No subcommand was used. Use -h to print help information.");
                 process::exit(1);
