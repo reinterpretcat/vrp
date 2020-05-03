@@ -17,8 +17,7 @@ interface Solver extends Library {
     /** Solves pragmatic problem. maxTime is in seconds. **/
     void solve_pragmatic(String problem, String[] matrices,
                          int matricesSize,
-                         int generations,
-                         int maxTime,
+                         String config,
                          OnSuccess onSuccess, OnError onError);
 }
 
@@ -57,7 +56,7 @@ class Application {
                     }
                 });
 
-        solver.solve_pragmatic(problem, matrices, matrices.length, 1000, 10,
+        solver.solve_pragmatic(problem, matrices, matrices.length, "{}",
                 new OnSuccess() {
                     @Override
                     public void result(String json) {

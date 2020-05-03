@@ -16,8 +16,7 @@ private interface Solver : Library {
     fun solve_pragmatic(problem: String,
                         matrices: Array<String>,
                         matricesLen: Int,
-                        generations: Int,
-                        maxTime: Int,
+                        config: String,
                         onSuccess: OnSuccess, onError: OnError)
 }
 
@@ -52,7 +51,7 @@ fun main(args: Array<String>) {
             }
     )
 
-    solver.solve_pragmatic(problem, matrices, matrices.size, 1000, 10,
+    solver.solve_pragmatic(problem, matrices, matrices.size, "{}",
             onSuccess = object : OnSuccess {
                 override fun result(json: String) {
                     println("solution: $json")
