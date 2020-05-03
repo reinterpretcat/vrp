@@ -23,7 +23,7 @@ Using `generate` command, you can quickly generate different VRP variants. Usage
 This command generates a new problem definition with 100 jobs spread uniformly in bounding box with half side 10000 meters.
 
 
-## A check solution command
+## A check command
 
 A `check` command is intended to prove feasibility of calculated solution. Both, the problem definition and calculated
 solution, are required:
@@ -31,16 +31,19 @@ solution, are required:
         vrp-cli check pragmatic -p problem.json -s solution.json
 
 
-
 ## Algorithm fine tuning
 
-TODO describe tweaking metaheuristic parameters
+Actual algorithm parameters can be tweaked by supplying configuration file, e.g.:
 
+        vrp-cli solve pragmatic problem.json -s solution.json --config tweak.json
 
-## Algorithm performance
+<details>
+    <summary>Configuration file</summary><p>
 
-TODO describe usage of `jq` command to extract data in tabular format
+```json
+{{#include ../../../examples/data/config/config.full.json}}
+```
 
-TODO describe usage of spreadsheet (python script?) to create a plot with fitness values (routes, cost, balancing)
+</p></details>
 
-TODO more..
+All main parameters are optional and can be omitted to stick with defaults.
