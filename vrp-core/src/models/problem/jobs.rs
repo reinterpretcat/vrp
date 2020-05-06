@@ -308,6 +308,9 @@ fn get_cost_between_locations(
     from: Location,
     to: Location,
 ) -> f64 {
+    // TODO summing distance and duration looks certainly incorrect, but we can't use any
+    //      specific costs here from vehicle types. Would be it better then to calculate
+    //      some average cost across vehicles of specific profile?
     transport.distance(profile, from, to, DEFAULT_DEPARTURE) + transport.duration(profile, from, to, DEFAULT_DEPARTURE)
 }
 
