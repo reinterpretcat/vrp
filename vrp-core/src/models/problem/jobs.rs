@@ -3,7 +3,7 @@
 mod jobs_test;
 
 use crate::models::common::*;
-use crate::models::problem::{Fleet, TransportCost};
+use crate::models::problem::{Costs, Fleet, TransportCost};
 use hashbrown::HashMap;
 use std::cell::UnsafeCell;
 use std::cmp::Ordering::Less;
@@ -265,7 +265,10 @@ fn create_index(
     jobs: Vec<Job>,
     transport: &Arc<dyn TransportCost + Send + Sync>,
 ) -> HashMap<Profile, JobIndex> {
+    let avg_profile_costs = get_avg_profile_costs(fleet);
+
     fleet.profiles.iter().cloned().fold(HashMap::new(), |mut acc, profile| {
+        let avg_costs = avg_profile_costs.get(&profile).unwrap();
         // get all possible start positions for given profile
         let starts: Vec<Location> = fleet
             .vehicles
@@ -281,14 +284,14 @@ fn create_index(
             let mut job_costs: Vec<(Job, Cost)> = jobs
                 .iter()
                 .filter(|j| **j != job)
-                .map(|j| (j.clone(), get_cost_between_jobs(profile, transport, &job, j)))
+                .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, &job, j)))
                 .collect();
             job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
 
             let fleet_costs = starts
                 .iter()
                 .cloned()
-                .map(|s| get_cost_between_job_and_location(profile, transport, &job, s))
+                .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport, &job, s))
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                 .unwrap_or(DEFAULT_COST);
 
@@ -304,26 +307,26 @@ fn create_index(
 #[inline(always)]
 fn get_cost_between_locations(
     profile: Profile,
+    costs: &Costs,
     transport: &Arc<dyn TransportCost + Send + Sync>,
     from: Location,
     to: Location,
 ) -> f64 {
-    // TODO summing distance and duration looks certainly incorrect, but we can't use any
-    //      specific costs here from vehicle types. Would be it better then to calculate
-    //      some average cost across vehicles of specific profile?
-    transport.distance(profile, from, to, DEFAULT_DEPARTURE) + transport.duration(profile, from, to, DEFAULT_DEPARTURE)
+    transport.distance(profile, from, to, DEFAULT_DEPARTURE) * costs.per_distance
+        + transport.duration(profile, from, to, DEFAULT_DEPARTURE) * costs.per_driving_time
 }
 
 /// Returns min cost between job and location.
 fn get_cost_between_job_and_location(
     profile: Profile,
+    costs: &Costs,
     transport: &Arc<dyn TransportCost + Send + Sync>,
     lhs: &Job,
     to: Location,
 ) -> Cost {
     get_job_locations(lhs)
         .map(|from| match from {
-            Some(from) => get_cost_between_locations(profile, transport, from, to),
+            Some(from) => get_cost_between_locations(profile, costs, transport, from, to),
             _ => DEFAULT_COST,
         })
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
@@ -333,6 +336,7 @@ fn get_cost_between_job_and_location(
 /// Returns minimal cost between jobs.
 fn get_cost_between_jobs(
     profile: Profile,
+    costs: &Costs,
     transport: &Arc<dyn TransportCost + Send + Sync>,
     lhs: &Job,
     rhs: &Job,
@@ -344,7 +348,7 @@ fn get_cost_between_jobs(
         .iter()
         .flat_map(|o| inner.iter().map(move |i| (*o, *i)))
         .map(|pair| match pair {
-            (Some(from), Some(to)) => get_cost_between_locations(profile, transport, from, to),
+            (Some(from), Some(to)) => get_cost_between_locations(profile, costs, transport, from, to),
             _ => DEFAULT_COST,
         })
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
@@ -357,4 +361,31 @@ fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Locatio
         Job::Single(single) => Box::new(single.places.iter().map(|p| p.location)),
         Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|j| j.places.iter().map(|p| p.location))),
     }
+}
+
+fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<Profile, Costs> {
+    let get_avg_by = |costs: &Vec<Costs>, map_cost_fn: fn(&Costs) -> f64| -> f64 {
+        costs.iter().map(map_cost_fn).sum::<f64>() / (costs.len() as f64)
+    };
+    fleet
+        .vehicles
+        .iter()
+        .fold(HashMap::new(), |mut acc, vehicle| {
+            acc.entry(vehicle.profile).or_insert_with(|| vec![]).push(vehicle.costs.clone());
+            acc
+        })
+        .iter()
+        .map(|(&profile, costs)| {
+            (
+                profile,
+                Costs {
+                    fixed: get_avg_by(&costs, |c| c.fixed),
+                    per_distance: get_avg_by(&costs, |c| c.per_distance),
+                    per_driving_time: get_avg_by(&costs, |c| c.per_driving_time),
+                    per_waiting_time: get_avg_by(&costs, |c| c.per_waiting_time),
+                    per_service_time: get_avg_by(&costs, |c| c.per_service_time),
+                },
+            )
+        })
+        .collect()
 }

@@ -49,6 +49,10 @@ fn create_only_distance_transport_cost() -> Arc<dyn TransportCost + Sync + Send>
     Arc::new(OnlyDistanceCost::default())
 }
 
+fn create_costs() -> Costs {
+    Costs { fixed: 10.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 }
+}
+
 #[test]
 fn all_returns_all_jobs() {
     let jobs = vec![Job::Single(Arc::new(test_single())), Job::Single(Arc::new(test_single()))];
@@ -57,7 +61,12 @@ fn all_returns_all_jobs() {
 }
 
 parameterized_test! {calculates_proper_cost_between_single_jobs, (left, right, expected), {
-    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &create_only_distance_transport_cost(), &Job::Single(left), &Job::Single(right)), expected);
+    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE,
+                                    &create_costs(),
+                                    &create_only_distance_transport_cost(),
+                                    &Job::Single(left),
+                                    &Job::Single(right)),
+              expected);
 }}
 
 calculates_proper_cost_between_single_jobs! {
@@ -69,7 +78,12 @@ calculates_proper_cost_between_single_jobs! {
 }
 
 parameterized_test! {calculates_proper_cost_between_multi_jobs, (left, right, expected), {
-    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE, &create_only_distance_transport_cost(), &Job::Multi(left), &Job::Multi(right)), expected);
+    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE,
+                                     &create_costs(),
+                                     &create_only_distance_transport_cost(),
+                                     &Job::Multi(left),
+                                     &Job::Multi(right)),
+               expected);
 }}
 
 calculates_proper_cost_between_multi_jobs! {
