@@ -17,6 +17,9 @@ pub trait Ruin {
 mod adjusted_string_removal;
 pub use self::adjusted_string_removal::AdjustedStringRemoval;
 
+mod cluster_removal;
+pub use self::cluster_removal::ClusterRemoval;
+
 mod neighbour_removal;
 pub use self::neighbour_removal::NeighbourRemoval;
 
