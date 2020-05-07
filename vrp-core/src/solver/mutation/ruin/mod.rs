@@ -121,12 +121,19 @@ fn select_seed_jobs<'a>(
     let seed = select_seed_job(routes, random);
 
     if let Some((route_index, job)) = seed {
-        return Box::new(once(job.clone()).chain(problem.jobs.neighbors(
-            routes.get(route_index).unwrap().route.actor.vehicle.profile,
-            &job,
-            Default::default(),
-            std::f64::MAX,
-        )));
+        return Box::new(
+            once(job.clone()).chain(
+                problem
+                    .jobs
+                    .neighbors(
+                        routes.get(route_index).unwrap().route.actor.vehicle.profile,
+                        &job,
+                        Default::default(),
+                        std::f64::MAX,
+                    )
+                    .cloned(),
+            ),
+        );
     }
 
     Box::new(empty())

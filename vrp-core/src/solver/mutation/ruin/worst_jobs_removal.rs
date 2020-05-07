@@ -62,12 +62,12 @@ impl Ruin for WorstJobRemoval {
                 if let Some((job, _)) = worst {
                     let remove = random.uniform_int(self.min as i32, self.max as i32) as usize;
                     once(job.clone())
-                        .chain(problem.jobs.neighbors(
-                            rc.route.actor.vehicle.profile,
-                            &job,
-                            Default::default(),
-                            std::f64::MAX,
-                        ))
+                        .chain(
+                            problem
+                                .jobs
+                                .neighbors(rc.route.actor.vehicle.profile, &job, Default::default(), std::f64::MAX)
+                                .cloned(),
+                        )
                         .filter(|job| can_remove_job(job))
                         .take(remove)
                         .for_each(|job| {

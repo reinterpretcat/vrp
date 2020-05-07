@@ -198,13 +198,7 @@ impl Jobs {
 
     /// Returns range of jobs "near" to given one.Near is defined by transport costs,
     /// its profile and time. Value is filtered by max cost.
-    pub fn neighbors<'a>(
-        &'a self,
-        profile: Profile,
-        job: &Job,
-        _: Timestamp,
-        max_cost: Cost,
-    ) -> impl Iterator<Item = Job> + 'a {
+    pub fn neighbors(&self, profile: Profile, job: &Job, _: Timestamp, max_cost: Cost) -> impl Iterator<Item = &Job> {
         self.index
             .get(&profile)
             .unwrap()
@@ -213,7 +207,7 @@ impl Jobs {
             .0
             .iter()
             .filter(move |(_, cost)| *cost > 0. && *cost < max_cost)
-            .map(|(j, _)| j.clone())
+            .map(|(j, _)| j)
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
