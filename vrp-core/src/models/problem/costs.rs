@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/models/problem/costs_test.rs"]
 mod costs_test;
 
+use crate::algorithms::nsga2::{MultiObjective, Objective};
 use crate::construction::heuristics::InsertionContext;
 use crate::models::common::*;
 use crate::models::problem::{Actor, TargetObjective};

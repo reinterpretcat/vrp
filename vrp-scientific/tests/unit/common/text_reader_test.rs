@@ -2,8 +2,8 @@ use crate::common::text_reader::read_init_solution;
 use crate::helpers::{create_c101_100_problem, get_test_resource};
 use std::io::BufReader;
 use std::sync::Arc;
+use vrp_core::algorithms::nsga2::Objective;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::common::Objective;
 use vrp_core::models::problem::ObjectiveCost;
 use vrp_core::utils::DefaultRandom;
 

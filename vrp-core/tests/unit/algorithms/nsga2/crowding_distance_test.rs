@@ -1,6 +1,6 @@
 use super::*;
-use crate::helpers::solver::population::*;
-use crate::solver::population::non_dominated_sort::non_dominated_sort;
+use crate::algorithms::nsga2::non_dominated_sort::non_dominated_sort;
+use crate::helpers::algorithms::nsga2::*;
 
 #[test]
 fn can_get_crowding_distance() {

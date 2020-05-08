@@ -1,6 +1,6 @@
+use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
-use crate::models::common::Objective;
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
 use crate::solver::objectives::{
     BALANCE_ACTIVITY_KEY, BALANCE_DISTANCE_KEY, BALANCE_DURATION_KEY, BALANCE_MAX_LOAD_KEY,

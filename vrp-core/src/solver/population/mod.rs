@@ -14,22 +14,13 @@
 #[path = "../../../tests/unit/solver/population/population_test.rs"]
 mod population_test;
 
-use crate::models::common::Objective;
+use crate::algorithms::nsga2::{select_and_rank, Objective};
 use crate::models::Problem;
 use crate::solver::{Individual, Population};
 use crate::utils::{compare_floats, Random};
+use hashbrown::HashSet;
 use std::cmp::Ordering::Equal;
 use std::sync::Arc;
-
-mod crowding_distance;
-use self::crowding_distance::*;
-
-mod non_dominated_sort;
-use self::non_dominated_sort::*;
-
-mod nsga2;
-use self::nsga2::select_and_rank;
-use hashbrown::HashSet;
 
 /// An evolution aware implementation of `[Population]` trait.
 pub struct DominancePopulation {

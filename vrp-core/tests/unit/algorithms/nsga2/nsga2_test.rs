@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::solver::population::*;
+use crate::helpers::algorithms::nsga2::*;
 use std::f64::consts::PI;
 
 struct Individual(pub f64, pub f64);

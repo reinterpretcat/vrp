@@ -2,7 +2,8 @@
 #[path = "../../../tests/unit/solver/termination/cost_variation_test.rs"]
 mod cost_variation_test;
 
-use crate::models::common::{Cost, Objective};
+use crate::algorithms::nsga2::Objective;
+use crate::models::common::Cost;
 use crate::solver::termination::Termination;
 use crate::solver::RefinementContext;
 use crate::utils::get_cv;

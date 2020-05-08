@@ -1,6 +1,5 @@
 use super::Tuple;
-use crate::models::common::MultiObjective;
-use crate::models::common::Objective;
+use crate::algorithms::nsga2::{MultiObjective, Objective};
 use std::cmp::Ordering;
 
 pub struct Objective1;

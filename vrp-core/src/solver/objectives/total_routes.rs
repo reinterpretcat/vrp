@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::models::common::Objective;
+use crate::algorithms::nsga2::Objective;
 use crate::utils::compare_floats;
 
 /// An objective function which counts total amount of routes.

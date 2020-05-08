@@ -10,8 +10,6 @@ use crate::solver::{DominancePopulation, Population, RefinementContext};
 use crate::utils::{DefaultRandom, Random};
 use std::sync::Arc;
 
-pub mod population;
-
 /// Creates default population.
 pub fn create_default_population(problem: Arc<Problem>) -> Box<dyn Population + Sync + Send> {
     Box::new(DominancePopulation::new(problem, Arc::new(DefaultRandom::default()), 4, 2, 2))

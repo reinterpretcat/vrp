@@ -1,9 +1,10 @@
+use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::common::{Objective, Schedule};
+use crate::models::common::Schedule;
 use crate::models::problem::{Job, Jobs, ObjectiveCost, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};

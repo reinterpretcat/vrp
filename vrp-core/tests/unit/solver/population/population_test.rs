@@ -1,9 +1,9 @@
+use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
-use crate::models::common::Objective;
 use crate::models::Problem;
 use crate::solver::{DominancePopulation, Individual, Population};
 use crate::utils::DefaultRandom;

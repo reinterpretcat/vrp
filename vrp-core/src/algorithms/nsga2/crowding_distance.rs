@@ -1,9 +1,9 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/solver/population/crowding_distance_test.rs"]
+#[path = "../../../tests/unit/algorithms/nsga2/crowding_distance_test.rs"]
 mod crowding_distance_test;
 
-use crate::models::common::MultiObjective;
-use crate::solver::population::non_dominated_sort::Front;
+use crate::algorithms::nsga2::non_dominated_sort::Front;
+use crate::algorithms::nsga2::*;
 use std::f64::INFINITY;
 
 pub struct AssignedCrowdingDistance<'a, S>

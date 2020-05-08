@@ -1,5 +1,5 @@
 use super::*;
-use crate::models::common::Objective;
+use crate::algorithms::nsga2::Objective;
 
 /// An objective function which counts total amount of unassigned jobs.
 pub struct TotalUnassignedJobs {}

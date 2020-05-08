@@ -1,9 +1,8 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/solver/population/nsga2_test.rs"]
+#[path = "../../../tests/unit/algorithms/nsga2/nsga2_test.rs"]
 mod nsga2_test;
 
 use super::*;
-use crate::models::common::MultiObjective;
 
 /// Select `n` solutions using the approach taken by NSGA2.
 ///

@@ -1,6 +1,6 @@
+use crate::algorithms::nsga2::{MultiObjective, Objective};
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
-use crate::models::common::{MultiObjective, Objective};
 use crate::models::Problem;
 use crate::solver::mutation::{Mutation, Recreate};
 use crate::solver::population::DominancePopulation;

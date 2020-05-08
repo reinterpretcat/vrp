@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::solver::population::*;
+use crate::helpers::algorithms::nsga2::*;
 use std::cmp::Ordering;
 
 fn create_matrix_data(
