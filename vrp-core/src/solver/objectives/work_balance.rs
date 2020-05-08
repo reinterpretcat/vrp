@@ -1,11 +1,10 @@
 use crate::algorithms::nsga2::Objective;
+use crate::algorithms::statistics::{get_cv, get_mean};
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
-use crate::solver::objectives::{
-    BALANCE_ACTIVITY_KEY, BALANCE_DISTANCE_KEY, BALANCE_DURATION_KEY, BALANCE_MAX_LOAD_KEY,
-};
-use crate::utils::{compare_floats, get_cv, get_mean};
+use crate::solver::objectives::*;
+use crate::utils::compare_floats;
 use std::cmp::Ordering;
 use std::cmp::Ordering::{Equal, Less};
 use std::ops::{Add, Deref, Sub};

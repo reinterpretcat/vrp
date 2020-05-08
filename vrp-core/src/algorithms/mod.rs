@@ -2,3 +2,4 @@
 
 pub mod dbscan;
 pub mod nsga2;
+pub mod statistics;

@@ -17,9 +17,6 @@ mod random;
 pub use self::random::DefaultRandom;
 pub use self::random::Random;
 
-mod statistics;
-pub use self::statistics::*;
-
 mod time_quota;
 pub use self::time_quota::TimeQuota;
 

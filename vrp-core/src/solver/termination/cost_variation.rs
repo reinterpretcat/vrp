@@ -3,10 +3,10 @@
 mod cost_variation_test;
 
 use crate::algorithms::nsga2::Objective;
+use crate::algorithms::statistics::get_cv;
 use crate::models::common::Cost;
 use crate::solver::termination::Termination;
 use crate::solver::RefinementContext;
-use crate::utils::get_cv;
 
 /// Stops when maximum amount of generations is exceeded.
 pub struct CostVariation {
