@@ -6,13 +6,13 @@ use hashbrown::{HashMap, HashSet};
 use std::hash::Hash;
 
 /// Represents a cluster of items.
-type Cluster<'a, T> = Vec<&'a T>;
+pub type Cluster<'a, T> = Vec<&'a T>;
 
 /// A function which returns neighbors of given item with given epsilon.
-type NeighborhoodFn<'a, T> = Box<dyn Fn(&'a T, f64) -> Box<dyn Iterator<Item = &'a T> + 'a> + 'a>;
+pub type NeighborhoodFn<'a, T> = Box<dyn Fn(&'a T, f64) -> Box<dyn Iterator<Item = &'a T> + 'a> + 'a>;
 
 /// Creates clusters of items using DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm.
-fn create_clusters<'a, T>(
+pub fn create_clusters<'a, T>(
     items: &[&'a T],
     eps: f64,
     min_items: usize,

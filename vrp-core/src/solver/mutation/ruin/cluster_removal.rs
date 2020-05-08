@@ -10,14 +10,14 @@ use std::ops::Range;
 /// A ruin strategy which removes job clusters using DBSCAN algorithm.
 pub struct ClusterRemoval {
     /// A range parameter for the distance which defines the neighborhood of a job.
-    eps_range: Range<f64>,
+    _eps_range: Range<f64>,
     /// A range parameter for minimum amount of the jobs to form the cluster.
-    min_point_range: Range<usize>,
+    _min_point_range: Range<usize>,
 }
 
 impl ClusterRemoval {
     pub fn new(eps_range: Range<f64>, min_point_range: Range<usize>) -> Self {
-        Self { eps_range, min_point_range }
+        Self { _eps_range: eps_range, _min_point_range: min_point_range }
     }
 }
 
