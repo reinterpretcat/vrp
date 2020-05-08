@@ -128,12 +128,8 @@ fn select_seed_jobs<'a>(
             once(job.clone()).chain(
                 problem
                     .jobs
-                    .neighbors(
-                        routes.get(route_index).unwrap().route.actor.vehicle.profile,
-                        &job,
-                        Default::default(),
-                        std::f64::MAX,
-                    )
+                    .neighbors(routes.get(route_index).unwrap().route.actor.vehicle.profile, &job, Default::default())
+                    .map(|(job, _)| job)
                     .cloned(),
             ),
         );

@@ -65,7 +65,8 @@ impl Ruin for WorstJobRemoval {
                         .chain(
                             problem
                                 .jobs
-                                .neighbors(rc.route.actor.vehicle.profile, &job, Default::default(), std::f64::MAX)
+                                .neighbors(rc.route.actor.vehicle.profile, &job, Default::default())
+                                .map(|(job, _)| job)
                                 .cloned(),
                         )
                         .filter(|job| can_remove_job(job))

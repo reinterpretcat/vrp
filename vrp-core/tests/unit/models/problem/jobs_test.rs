@@ -121,10 +121,8 @@ fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
     ];
     let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
 
-    let result: Vec<String> = jobs
-        .neighbors(1, species.get(index).unwrap(), 0.0, u32::max_value() as f64)
-        .map(|j| get_job_id(&j).clone())
-        .collect();
+    let result: Vec<String> =
+        jobs.neighbors(1, species.get(index).unwrap(), 0.0).map(|(j, _)| get_job_id(j).clone()).collect();
 
     assert_eq!(result, expected);
 }
@@ -198,5 +196,5 @@ fn can_use_multi_job_bind_and_roots() {
     let jobs = Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost());
     let job = Job::Multi(Multi::roots(&job.jobs.first().unwrap()).unwrap());
 
-    assert_eq!(jobs.neighbors(0, &job, 0.0, 100.0).count(), 0);
+    assert_eq!(jobs.neighbors(0, &job, 0.0).count(), 0);
 }
