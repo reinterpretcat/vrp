@@ -198,8 +198,8 @@ pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &String) 
         .to_json()
     })?;
 
-    let (solution, _) = create_builder_from_config(&config)
-        .and_then(|builder| builder.with_problem(problem.clone()).build())
+    let (solution, _) = create_builder_from_config(problem.clone(), &config)
+        .and_then(|builder| builder.build())
         .and_then(|solver| solver.solve())
         .or_else(|err| {
             Err(FormatError::new(

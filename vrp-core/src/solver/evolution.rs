@@ -13,6 +13,8 @@ use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
 pub struct EvolutionConfig {
+    /// An original problem.
+    pub problem: Arc<Problem>,
     /// A mutation applied to population.
     pub mutation: Box<dyn Mutation>,
     /// A termination defines when evolution should stop.

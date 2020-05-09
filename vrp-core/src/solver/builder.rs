@@ -14,19 +14,18 @@ pub struct Builder {
     max_generations: Option<usize>,
     max_time: Option<usize>,
     cost_variation: Option<(usize, f64)>,
-    problem: Option<Arc<Problem>>,
     config: EvolutionConfig,
 }
 
-impl Default for Builder {
-    fn default() -> Self {
+impl Builder {
+    pub fn new(problem: Arc<Problem>) -> Self {
         Self {
             max_generations: None,
             max_time: None,
             cost_variation: None,
-            problem: None,
             config: EvolutionConfig {
-                mutation: Box::new(RuinAndRecreateMutation::default()),
+                problem: problem.clone(),
+                mutation: Box::new(RuinAndRecreateMutation::new_from_problem(problem)),
                 termination: Box::new(MaxTime::new(300.)),
                 quota: None,
                 population_size: 4,
@@ -68,12 +67,6 @@ impl Builder {
         self
     }
 
-    /// Sets problem.
-    pub fn with_problem(mut self, problem: Arc<Problem>) -> Self {
-        self.problem = Some(problem);
-        self
-    }
-
     /// Sets initial methods.
     pub fn with_initial_methods(mut self, initial_methods: Vec<(Box<dyn Recreate>, usize)>) -> Self {
         self.config.initial_methods = initial_methods;
@@ -88,7 +81,7 @@ impl Builder {
             .iter()
             .map(|solution| {
                 InsertionContext::new_from_solution(
-                    self.problem.as_ref().unwrap().clone(),
+                    self.config.problem.clone(),
                     (solution.clone(), None),
                     Arc::new(DefaultRandom::default()),
                 )
@@ -146,7 +139,7 @@ impl Builder {
 
     /// Builds solver with parameters specified.
     pub fn build(self) -> Result<Solver, String> {
-        let problem = self.problem.ok_or_else(|| "problem is not specified".to_string())?;
+        let problem = self.config.problem.clone();
         let mut config = self.config;
 
         let (criterias, quota): (Vec<Box<dyn Termination>>, _) =

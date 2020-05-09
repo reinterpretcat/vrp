@@ -7,6 +7,7 @@ extern crate serde_json;
 use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
+use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::Builder;
 
@@ -178,13 +179,16 @@ pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
 }
 
 /// Creates a solver `Builder` from config file.
-pub fn create_builder_from_config_file<R: Read>(reader: BufReader<R>) -> Result<Builder, String> {
-    read_config(reader).and_then(|config| create_builder_from_config(&config))
+pub fn create_builder_from_config_file<R: Read>(
+    problem: Arc<Problem>,
+    reader: BufReader<R>,
+) -> Result<Builder, String> {
+    read_config(reader).and_then(|config| create_builder_from_config(problem, &config))
 }
 
 /// Creates a solver `Builder` from config.
-pub fn create_builder_from_config(config: &Config) -> Result<Builder, String> {
-    let mut builder = Builder::default();
+pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
+    let mut builder = Builder::new(problem);
 
     builder = configure_from_population(builder, &config.population);
     builder = configure_from_mutation(builder, &config.mutation);

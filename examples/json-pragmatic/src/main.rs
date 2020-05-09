@@ -52,9 +52,8 @@ fn run_examples(base_path: &str) {
             }),
         );
 
-        let (solution, _) = Builder::default()
+        let (solution, _) = Builder::new(problem.clone())
             .with_max_generations(Some(100))
-            .with_problem(problem.clone())
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
             .solve()

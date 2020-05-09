@@ -233,19 +233,20 @@ pub fn run_solve(matches: &ArgMatches) {
                         let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
 
                         let builder = if let Some(config) = config {
-                            create_builder_from_config_file(BufReader::new(config)).unwrap_or_else(|err| {
-                                eprintln!("cannot read config: '{}'", err);
-                                process::exit(1);
-                            })
+                            create_builder_from_config_file(problem.clone(), BufReader::new(config)).unwrap_or_else(
+                                |err| {
+                                    eprintln!("cannot read config: '{}'", err);
+                                    process::exit(1);
+                                },
+                            )
                         } else {
-                            Builder::default()
+                            Builder::new(problem.clone())
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
                                 .with_cost_variation(cost_variation)
                         };
 
                         let (solution, _) = builder
-                            .with_problem(problem.clone())
                             .with_solutions(solution.map_or_else(|| vec![], |s| vec![Arc::new(s)]))
                             .build()
                             .and_then(|solver| solver.solve())

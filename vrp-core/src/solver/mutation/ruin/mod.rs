@@ -38,8 +38,15 @@ pub struct CompositeRuin {
     weights: Vec<usize>,
 }
 
-impl Default for CompositeRuin {
-    fn default() -> Self {
+impl CompositeRuin {
+    pub fn new(ruins: Vec<(Vec<(Arc<dyn Ruin>, f64)>, usize)>) -> Self {
+        let weights = ruins.iter().map(|(_, weight)| *weight).collect();
+        let ruins = ruins.into_iter().map(|(ruin, _)| ruin).collect();
+
+        Self { ruins, weights }
+    }
+
+    pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
         let adjusted_string_default = Arc::new(AdjustedStringRemoval::default());
         let adjusted_string_aggressive = Arc::new(AdjustedStringRemoval::new(30, 120, 0.02));
 
@@ -69,15 +76,6 @@ impl Default for CompositeRuin {
             (vec![(random_job_default.clone(), 1.), (random_route_default.clone(), 0.1)], 10),
             (vec![(random_route_default, 1.), (random_job_default, 0.1)], 10),
         ])
-    }
-}
-
-impl CompositeRuin {
-    pub fn new(ruins: Vec<(Vec<(Arc<dyn Ruin>, f64)>, usize)>) -> Self {
-        let weights = ruins.iter().map(|(_, weight)| *weight).collect();
-        let ruins = ruins.into_iter().map(|(ruin, _)| ruin).collect();
-
-        Self { ruins, weights }
     }
 }
 

@@ -48,10 +48,9 @@ pub fn solve_with_metaheuristic_and_iterations(
 
     let problem = get_core_problem(problem, matrices);
 
-    let (solution, _) = Builder::default()
+    let (solution, _) = Builder::new(problem.clone())
         .with_initial_methods(vec![(Box::new(RecreateWithCheapest::default()), 1)])
         .with_max_generations(Some(generations))
-        .with_problem(problem.clone())
         .with_initial_size(1)
         .build()
         .unwrap_or_else(|err| panic!("cannot build solver: {}", err))

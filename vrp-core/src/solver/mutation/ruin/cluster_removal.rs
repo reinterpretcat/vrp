@@ -24,6 +24,7 @@ impl ClusterRemoval {
 impl Ruin for ClusterRemoval {
     fn run(&self, _: &mut RefinementContext, _: InsertionContext) -> InsertionContext {
         // TODO eps_range: get few random random jobs and check their average neighborhood?
+        //      select_seed_jobs
         // TODO min points: use activities (jobs?) amount?
 
         unimplemented!()

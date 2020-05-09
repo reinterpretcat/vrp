@@ -6,6 +6,8 @@ pub use self::recreate::*;
 
 mod ruin;
 pub use self::ruin::*;
+use crate::models::Problem;
+use std::sync::Arc;
 
 /// Mutates given insertion context.
 pub trait Mutation {
@@ -18,16 +20,17 @@ pub struct RuinAndRecreateMutation {
     pub ruin: Box<dyn Ruin>,
 }
 
-impl Default for RuinAndRecreateMutation {
-    fn default() -> Self {
-        Self { recreate: Box::new(CompositeRecreate::default()), ruin: Box::new(CompositeRuin::default()) }
-    }
-}
-
 impl RuinAndRecreateMutation {
     /// Creates a new instance of [`RuinAndRecreateMutation`].
     pub fn new(recreate: Box<dyn Recreate>, ruin: Box<dyn Ruin>) -> Self {
         Self { recreate, ruin }
+    }
+
+    pub fn new_from_problem(problem: Arc<Problem>) -> Self {
+        Self {
+            recreate: Box::new(CompositeRecreate::new_from_problem(problem.clone())),
+            ruin: Box::new(CompositeRuin::new_from_problem(problem)),
+        }
     }
 }
 

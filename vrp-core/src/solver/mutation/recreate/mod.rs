@@ -23,6 +23,8 @@ pub use self::recreate_with_regret::RecreateWithRegret;
 
 mod recreate_with_nearest_neighbor;
 pub use self::recreate_with_nearest_neighbor::*;
+use crate::models::Problem;
+use std::sync::Arc;
 
 /// Provides the way to run one of multiple recreate methods.
 pub struct CompositeRecreate {
@@ -30,8 +32,14 @@ pub struct CompositeRecreate {
     weights: Vec<usize>,
 }
 
-impl Default for CompositeRecreate {
-    fn default() -> Self {
+impl CompositeRecreate {
+    pub fn new(recreates: Vec<(Box<dyn Recreate>, usize)>) -> Self {
+        let weights = recreates.iter().map(|(_, weight)| *weight).collect();
+        let recreates = recreates.into_iter().map(|(recreate, _)| recreate).collect();
+        Self { recreates, weights }
+    }
+
+    pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
         Self::new(vec![
             (Box::new(RecreateWithCheapest::default()), 100),
             (Box::new(RecreateWithRegret::default()), 90),
@@ -40,14 +48,6 @@ impl Default for CompositeRecreate {
             (Box::new(RecreateWithGaps::default()), 10),
             (Box::new(RecreateWithNearestNeighbor::default()), 5),
         ])
-    }
-}
-
-impl CompositeRecreate {
-    pub fn new(recreates: Vec<(Box<dyn Recreate>, usize)>) -> Self {
-        let weights = recreates.iter().map(|(_, weight)| *weight).collect();
-        let recreates = recreates.into_iter().map(|(recreate, _)| recreate).collect();
-        Self { recreates, weights }
     }
 }
 
