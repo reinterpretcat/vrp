@@ -4,6 +4,7 @@ mod point_test;
 
 use std::hash::{Hash, Hasher};
 
+/// Represents a point in 2D space.
 #[derive(Debug)]
 pub struct Point {
     pub x: f64,
@@ -11,6 +12,7 @@ pub struct Point {
 }
 
 impl Point {
+    /// Creates a new instance of `Point`.
     pub fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
