@@ -1,40 +1,6 @@
 use super::*;
+use crate::algorithms::geometry::Point;
 use crate::utils::compare_floats;
-use std::hash::Hasher;
-
-#[derive(Debug)]
-struct Point {
-    x: f64,
-    y: f64,
-}
-
-impl Point {
-    fn transmute(&self) -> (i64, i64) {
-        let x: i64 = unsafe { std::mem::transmute(self.x) };
-        let y: i64 = unsafe { std::mem::transmute(self.y) };
-
-        (x, y)
-    }
-}
-
-impl Hash for Point {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let (x, y) = self.transmute();
-        x.hash(state);
-        y.hash(state);
-    }
-}
-
-impl Eq for Point {}
-
-impl PartialEq for Point {
-    fn eq(&self, other: &Self) -> bool {
-        let (self_x, self_y) = self.transmute();
-        let (other_x, other_y) = other.transmute();
-
-        self_x == other_x && self_y == other_y
-    }
-}
 
 fn p(x: f64, y: f64) -> Point {
     Point { x, y }
@@ -47,13 +13,7 @@ fn create_index(points: &Vec<Point>) -> HashMap<&Point, Vec<(&Point, f64)>> {
         let mut pairs = points
             .iter()
             .filter(|other| *other != point)
-            .map(|other| {
-                let delta_x = point.x - other.x;
-                let delta_y = point.y - other.y;
-                let distance = (delta_x * delta_x + delta_y * delta_y).sqrt();
-
-                (other, distance)
-            })
+            .map(|other| (other, point.distance_to_point(other)))
             .collect::<Vec<_>>();
 
         pairs.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
