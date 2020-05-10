@@ -38,6 +38,29 @@ pub struct CompositeRuin {
     weights: Vec<usize>,
 }
 
+/// Specifies a limit for amount of jobs to be removed.
+pub struct JobRemovalLimit {
+    /// Specifies minimum amount of removed jobs.
+    pub min: usize,
+    /// Specifies maximum amount of removed jobs.
+    pub max: usize,
+    /// Specifies threshold ratio of maximum removed jobs.
+    pub threshold: f64,
+}
+
+impl JobRemovalLimit {
+    /// Creates a new instance of `JobRemovalLimit`.
+    pub fn new(min: usize, max: usize, threshold: f64) -> Self {
+        Self { min, max, threshold }
+    }
+}
+
+impl Default for JobRemovalLimit {
+    fn default() -> Self {
+        Self { min: 8, max: 32, threshold: 0.2 }
+    }
+}
+
 impl CompositeRuin {
     pub fn new(ruins: Vec<(Vec<(Arc<dyn Ruin>, f64)>, usize)>) -> Self {
         let weights = ruins.iter().map(|(_, weight)| *weight).collect();
@@ -51,7 +74,7 @@ impl CompositeRuin {
         let adjusted_string_aggressive = Arc::new(AdjustedStringRemoval::new(30, 120, 0.02));
 
         let neighbour_removal = Arc::new(NeighbourRemoval::default());
-        let neighbour_aggressive = Arc::new(NeighbourRemoval::new(30, 120, 0.5));
+        let neighbour_aggressive = Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(30, 120, 0.25)));
 
         let worst_job_default = Arc::new(WorstJobRemoval::default());
         let random_job_default = Arc::new(RandomJobRemoval::default());
@@ -103,14 +126,12 @@ impl Ruin for CompositeRuin {
     }
 }
 
-fn get_chunk_size(ctx: &InsertionContext, range: &(usize, usize), threshold: f64) -> usize {
-    let &(min, max) = range;
-
+fn get_chunk_size(ctx: &InsertionContext, limit: &JobRemovalLimit) -> usize {
     let assigned = ctx.problem.jobs.size() - ctx.solution.unassigned.len() - ctx.solution.ignored.len();
 
-    let max_limit = (assigned as f64 * threshold).min(max as f64).round() as usize;
+    let max_limit = (assigned as f64 * limit.threshold).min(limit.max as f64).round() as usize;
 
-    ctx.random.uniform_int(min as i32, max as i32).min(max_limit as i32) as usize
+    ctx.random.uniform_int(limit.min as i32, limit.max as i32).min(max_limit as i32) as usize
 }
 
 /// Returns randomly selected job within all its neighbours.

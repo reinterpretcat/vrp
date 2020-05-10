@@ -4,7 +4,7 @@ mod worst_jobs_removal_test;
 
 extern crate rand;
 
-use super::Ruin;
+use super::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, TransportCost};
@@ -20,19 +20,21 @@ use std::sync::{Arc, RwLock};
 /// A ruin strategy which detects the most cost expensive jobs in each route and delete them
 /// with their neighbours.
 pub struct WorstJobRemoval {
-    /// Specifies minimum amount of removed jobs.
-    min: usize,
-    /// Specifies maximum amount of removed jobs.
-    max: usize,
-    /// Specifies threshold ratio of maximum removed jobs.
-    threshold: usize,
+    /// Specifies limitation for job removal.
+    limit: JobRemovalLimit,
     /// Amount of jobs to skip.
-    worst_skip: i32,
+    worst_skip: usize,
+}
+
+impl WorstJobRemoval {
+    pub fn new(worst_skip: usize, limit: JobRemovalLimit) -> Self {
+        Self { limit, worst_skip }
+    }
 }
 
 impl Default for WorstJobRemoval {
     fn default() -> Self {
-        Self::new(32, 4, 1, 4)
+        Self::new(4, JobRemovalLimit::default())
     }
 }
 
@@ -54,47 +56,39 @@ impl Ruin for WorstJobRemoval {
 
         routes_savings.shuffle(&mut rand::thread_rng());
 
-        routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() <= self.threshold).for_each(
-            |(rc, savings)| {
-                let skip = savings.len().min(random.uniform_int(0, self.worst_skip) as usize);
-                let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
+        let max = ((insertion_ctx.problem.jobs.size() as f64 * self.limit.threshold) as usize).min(self.limit.max);
 
-                if let Some((job, _)) = worst {
-                    let remove = random.uniform_int(self.min as i32, self.max as i32) as usize;
-                    once(job.clone())
-                        .chain(
-                            problem
-                                .jobs
-                                .neighbors(rc.route.actor.vehicle.profile, &job, Default::default())
-                                .map(|(job, _)| job)
-                                .cloned(),
-                        )
-                        .filter(|job| can_remove_job(job))
-                        .take(remove)
-                        .for_each(|job| {
-                            // NOTE job can be absent if it is unassigned
-                            if let Some(rc) = route_jobs.get_mut(&job) {
-                                // NOTE actual insertion context modification via route mut
-                                if rc.route_mut().tour.remove(&job) {
-                                    removed_jobs.write().unwrap().insert(job);
-                                }
+        routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() <= max).for_each(|(rc, savings)| {
+            let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
+            let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
+
+            if let Some((job, _)) = worst {
+                let remove = random.uniform_int(self.limit.min as i32, self.limit.max as i32) as usize;
+                once(job.clone())
+                    .chain(
+                        problem
+                            .jobs
+                            .neighbors(rc.route.actor.vehicle.profile, &job, Default::default())
+                            .map(|(job, _)| job)
+                            .cloned(),
+                    )
+                    .filter(|job| can_remove_job(job))
+                    .take(remove)
+                    .for_each(|job| {
+                        // NOTE job can be absent if it is unassigned
+                        if let Some(rc) = route_jobs.get_mut(&job) {
+                            // NOTE actual insertion context modification via route mut
+                            if rc.route_mut().tour.remove(&job) {
+                                removed_jobs.write().unwrap().insert(job);
                             }
-                        });
-                }
-            },
-        );
+                        }
+                    });
+            }
+        });
 
         removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
-    }
-}
-
-impl WorstJobRemoval {
-    pub fn new(threshold: usize, worst_skip: usize, min: usize, max: usize) -> Self {
-        assert!(min <= max);
-
-        Self { threshold, worst_skip: worst_skip as i32, min, max }
     }
 }
 

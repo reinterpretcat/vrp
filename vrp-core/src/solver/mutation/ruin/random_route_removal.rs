@@ -2,7 +2,7 @@
 #[path = "../../../../tests/unit/solver/mutation/ruin/random_route_removal_test.rs"]
 mod random_route_removal_test;
 
-use super::Ruin;
+use super::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::solver::RefinementContext;
@@ -52,7 +52,7 @@ impl RandomRouteRemoval {
 
 impl Default for RandomRouteRemoval {
     fn default() -> Self {
-        Self::new(1, 8, 0.2)
+        Self::new(1, 4, 0.1)
     }
 }
 

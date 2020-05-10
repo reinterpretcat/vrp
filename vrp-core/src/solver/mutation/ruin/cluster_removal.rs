@@ -3,12 +3,12 @@
 mod cluster_removal_test;
 
 extern crate rand;
+use super::*;
 use crate::algorithms::dbscan::{create_clusters, Cluster, NeighborhoodFn};
 use crate::algorithms::geometry::Point;
 use crate::construction::heuristics::InsertionContext;
 use crate::models::problem::Job;
 use crate::models::Problem;
-use crate::solver::mutation::Ruin;
 use crate::solver::RefinementContext;
 use crate::utils::{compare_floats, Random};
 use rand::prelude::*;
@@ -19,22 +19,12 @@ use std::sync::Arc;
 pub struct ClusterRemoval {
     /// Stores possible pairs of `min_point` and `epsilon` parameter values.
     params: Vec<(usize, f64)>,
-    /// Specifies minimum amount of removed jobs.
-    min: usize,
-    /// Specifies maximum amount of removed jobs.
-    max: usize,
-    /// Threshold to control how many jobs can be removed.
-    threshold: f64,
+    /// Specifies limitation for job removal.
+    limit: JobRemovalLimit,
 }
 
 impl ClusterRemoval {
-    pub fn new(
-        problem: Arc<Problem>,
-        cluster_size: Range<usize>,
-        min_jobs: usize,
-        max_jobs: usize,
-        threshold: f64,
-    ) -> Self {
+    pub fn new(problem: Arc<Problem>, cluster_size: Range<usize>, limit: JobRemovalLimit) -> Self {
         // TODO test on problem with zero or one job.
 
         let min = cluster_size.start.max(3);
@@ -42,7 +32,7 @@ impl ClusterRemoval {
 
         let params = (min..max).map(|min_pts| (min_pts, estimate_epsilon(&problem, min_pts - 1))).collect::<Vec<_>>();
 
-        Self { params, min: min_jobs, max: max_jobs, threshold }
+        Self { params, limit }
     }
 }
 
@@ -51,8 +41,7 @@ impl Ruin for ClusterRemoval {
         let problem = &insertion_ctx.problem;
         let random = &insertion_ctx.random;
 
-        let mut clusters =
-            create_job_clusters(problem, random, self.params.as_slice(), (self.min as i32, self.max as i32));
+        let mut clusters = create_job_clusters(problem, random, self.params.as_slice());
         clusters.shuffle(&mut rand::thread_rng());
 
         unimplemented!()
@@ -63,11 +52,10 @@ fn create_job_clusters<'a>(
     problem: &'a Problem,
     random: &Arc<dyn Random + Send + Sync>,
     params: &[(usize, f64)],
-    range: (i32, i32),
 ) -> Vec<Cluster<'a, Job>> {
-    // get main parameters with minor randomization
-    let profile = problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32) as usize];
-    let &(min_items, eps) = params.get(random.uniform_int(range.0, range.1) as usize).unwrap();
+    // get main parameters with some randomization
+    let profile = problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32 - 1) as usize];
+    let &(min_items, eps) = params.get(random.uniform_int(0, params.len() as i32 - 1) as usize).unwrap();
     let eps = random.uniform_real(eps * 0.9, eps * 1.1);
 
     let neighbor_fn: NeighborhoodFn<'a, Job> = Box::new(move |job, eps| {

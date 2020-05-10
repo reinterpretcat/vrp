@@ -49,7 +49,7 @@ pub enum RuinMethod {
     #[serde(rename(deserialize = "random-route"))]
     RandomRoute { probability: f64, min: usize, max: usize, threshold: f64 },
     #[serde(rename(deserialize = "worst-job"))]
-    WorstJob { probability: f64, min: usize, max: usize, threshold: usize, skip: usize },
+    WorstJob { probability: f64, min: usize, max: usize, threshold: f64, skip: usize },
 }
 
 /// Specifies recreate methods with their probability weight and specific parameters.
@@ -159,16 +159,16 @@ fn create_ruin_method(method: &RuinMethod) -> (Arc<dyn Ruin>, f64) {
             (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha)), *probability)
         }
         RuinMethod::Neighbour { probability, min, max, threshold } => {
-            (Arc::new(NeighbourRemoval::new(*min, *max, *threshold)), *probability)
+            (Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(*min, *max, *threshold))), *probability)
         }
         RuinMethod::RandomJob { probability, min, max, threshold } => {
-            (Arc::new(RandomJobRemoval::new(*min, *max, *threshold)), *probability)
+            (Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(*min, *max, *threshold))), *probability)
         }
         RuinMethod::RandomRoute { probability, min, max, threshold } => {
             (Arc::new(RandomRouteRemoval::new(*min, *max, *threshold)), *probability)
         }
         RuinMethod::WorstJob { probability, min, max, threshold, skip: worst_skip } => {
-            (Arc::new(WorstJobRemoval::new(*threshold, *worst_skip, *min, *max)), *probability)
+            (Arc::new(WorstJobRemoval::new(*worst_skip, JobRemovalLimit::new(*min, *max, *threshold))), *probability)
         }
     }
 }

@@ -39,13 +39,13 @@
             "type": "random-route",
             "min": 1,
             "max": 8,
-            "threshold": 0.2
+            "threshold": 0.1
           },
           {
             "probability": 0.05,
             "type": "random-job",
-            "min": 1,
-            "max": 10,
+            "min": 8,
+            "max": 32,
             "threshold": 0.2
           }
         ]
@@ -68,22 +68,22 @@
           {
             "probability": 1,
             "type": "neighbour",
-            "min": 15,
-            "max": 30,
-            "threshold": 0.5
+            "min": 8,
+            "max": 32,
+            "threshold": 0.2
           },
           {
             "probability": 0.05,
             "type": "random-route",
             "min": 1,
-            "max": 8,
-            "threshold": 0.2
+            "max": 4,
+            "threshold": 0.1
           },
           {
             "probability": 0.05,
             "type": "random-job",
-            "min": 1,
-            "max": 10,
+            "min": 8,
+            "max": 32,
             "threshold": 0.2
           }
         ]
@@ -96,7 +96,7 @@
             "type": "neighbour",
             "min": 30,
             "max": 120,
-            "threshold": 0.5
+            "threshold": 0.25
           }
         ]
       },
@@ -106,10 +106,10 @@
           {
             "probability": 1,
             "type": "worst-job",
-            "min": 1,
-            "max": 4,
             "skip": 4,
-            "threshold": 32
+            "min": 8,
+            "max": 32,
+            "threshold": 0.2
           },
           {
             "probability": 0.1,
@@ -126,34 +126,34 @@
           {
             "probability": 1,
             "type": "random-job",
-            "min": 1,
-            "max": 10,
+            "min": 8,
+            "max": 32,
             "threshold": 0.2
           },
           {
             "probability": 0.1,
             "type": "random-route",
             "min": 1,
-            "max": 8,
-            "threshold": 0.2
+            "max": 4,
+            "threshold": 0.1
           }
         ]
       },
       {
-        "weight": 0,
+        "weight": 10,
         "methods": [
           {
             "probability": 0.1,
             "type": "random-route",
             "min": 1,
-            "max": 8,
-            "threshold": 0.2
+            "max": 4,
+            "threshold": 0.1
           },
           {
             "probability": 0.1,
             "type": "random-job",
-            "min": 1,
-            "max": 10,
+            "min": 8,
+            "max": 32,
             "threshold": 0.2
           }
         ]
