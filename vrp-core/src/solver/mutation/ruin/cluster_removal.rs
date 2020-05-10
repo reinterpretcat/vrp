@@ -39,20 +39,31 @@ impl ClusterRemoval {
 
 impl Ruin for ClusterRemoval {
     fn run(&self, _: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        let problem = &insertion_ctx.problem;
-        let random = &insertion_ctx.random;
+        let problem = insertion_ctx.problem.clone();
+        let random = insertion_ctx.random.clone();
+        let mut insertion_ctx = insertion_ctx;
 
-        let mut clusters = create_job_clusters(problem, random, self.params.as_slice());
+        let mut clusters = create_job_clusters(&problem, &random, self.params.as_slice());
         clusters.shuffle(&mut rand::thread_rng());
 
+        let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
         let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 
-        clusters.iter().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|_cluster| {
-            // TODO
+        clusters.iter().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|cluster| {
+            cluster.iter().for_each(|job| {
+                if let Some(rc) = route_jobs.get_mut(job) {
+                    // NOTE actual insertion context modification via route mut
+                    if rc.route_mut().tour.remove(&job) {
+                        removed_jobs.write().unwrap().insert((*job).clone());
+                    }
+                }
+            });
         });
 
-        unimplemented!()
+        removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
+
+        insertion_ctx
     }
 }
 

@@ -5,7 +5,7 @@ mod worst_jobs_removal_test;
 extern crate rand;
 
 use super::*;
-use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, TransportCost};
 use crate::models::solution::TourActivity;
@@ -92,14 +92,6 @@ impl Ruin for WorstJobRemoval {
 
         insertion_ctx
     }
-}
-
-fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, RouteContext> {
-    solution
-        .routes
-        .iter()
-        .flat_map(|rc| rc.route.tour.jobs().collect::<Vec<_>>().into_iter().map(move |job| (job, rc.clone())))
-        .collect()
 }
 
 fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Job, Cost)>)> {

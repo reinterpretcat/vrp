@@ -1,10 +1,11 @@
 //! A various strategies to destroy parts of an existing solution.
 
-use crate::construction::heuristics::{InsertionContext, RouteContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::RefinementContext;
 use crate::utils::Random;
+use hashbrown::HashMap;
 use std::iter::{empty, once};
 use std::sync::Arc;
 
@@ -132,6 +133,14 @@ fn get_removal_chunk_size(ctx: &InsertionContext, limit: &JobRemovalLimit) -> us
     let max_limit = (assigned as f64 * limit.threshold).min(limit.max as f64).round() as usize;
 
     ctx.random.uniform_int(limit.min as i32, limit.max as i32).min(max_limit as i32) as usize
+}
+
+fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, RouteContext> {
+    solution
+        .routes
+        .iter()
+        .flat_map(|rc| rc.route.tour.jobs().collect::<Vec<_>>().into_iter().map(move |job| (job, rc.clone())))
+        .collect()
 }
 
 /// Returns randomly selected job within all its neighbours.
