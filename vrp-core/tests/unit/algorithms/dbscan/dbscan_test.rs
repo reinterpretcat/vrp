@@ -1,10 +1,7 @@
 use super::*;
 use crate::algorithms::geometry::Point;
+use crate::helpers::algorithms::p;
 use crate::utils::compare_floats;
-
-fn p(x: f64, y: f64) -> Point {
-    Point { x, y }
-}
 
 fn create_index(points: &Vec<Point>) -> HashMap<&Point, Vec<(&Point, f64)>> {
     points.iter().fold(HashMap::new(), |mut acc, point| {

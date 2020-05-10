@@ -63,6 +63,7 @@ fn get_average_costs(problem: &Problem, nth_neighbor: usize) -> Vec<f64> {
                 .neighbors(profile, &job, 0.)
                 .skip(nth_neighbor - 1)
                 .next()
+                // TODO consider time window difference as extra cost?
                 .map(|(_, cost)| *cost)
                 .unwrap_or(0.);
         });
