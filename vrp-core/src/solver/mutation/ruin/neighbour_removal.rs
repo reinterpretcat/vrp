@@ -25,7 +25,7 @@ impl Ruin for NeighbourRemoval {
     fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
 
-        let affected = get_chunk_size(&insertion_ctx, &self.limit);
+        let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.random.clone();

@@ -11,9 +11,10 @@ use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::RefinementContext;
 use crate::utils::{compare_floats, Random};
+use hashbrown::HashSet;
 use rand::prelude::*;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// A ruin strategy which removes job clusters using DBSCAN algorithm.
 pub struct ClusterRemoval {
@@ -43,6 +44,13 @@ impl Ruin for ClusterRemoval {
 
         let mut clusters = create_job_clusters(problem, random, self.params.as_slice());
         clusters.shuffle(&mut rand::thread_rng());
+
+        let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
+        let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
+
+        clusters.iter().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|_cluster| {
+            // TODO
+        });
 
         unimplemented!()
     }

@@ -126,7 +126,7 @@ impl Ruin for CompositeRuin {
     }
 }
 
-fn get_chunk_size(ctx: &InsertionContext, limit: &JobRemovalLimit) -> usize {
+fn get_removal_chunk_size(ctx: &InsertionContext, limit: &JobRemovalLimit) -> usize {
     let assigned = ctx.problem.jobs.size() - ctx.solution.unassigned.len() - ctx.solution.ignored.len();
 
     let max_limit = (assigned as f64 * limit.threshold).min(limit.max as f64).round() as usize;

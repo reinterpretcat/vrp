@@ -29,7 +29,7 @@ impl Ruin for RandomJobRemoval {
             return insertion_ctx;
         }
 
-        let affected = get_chunk_size(&insertion_ctx, &self.limit);
+        let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 
         (0..affected).for_each(|_| {
             let solution = &mut insertion_ctx.solution;

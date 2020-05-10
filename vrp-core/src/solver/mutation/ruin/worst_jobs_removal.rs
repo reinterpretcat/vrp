@@ -56,35 +56,37 @@ impl Ruin for WorstJobRemoval {
 
         routes_savings.shuffle(&mut rand::thread_rng());
 
-        let max = ((insertion_ctx.problem.jobs.size() as f64 * self.limit.threshold) as usize).min(self.limit.max);
+        let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 
-        routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() <= max).for_each(|(rc, savings)| {
-            let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
-            let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
+        routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() <= affected).for_each(
+            |(rc, savings)| {
+                let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
+                let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
 
-            if let Some((job, _)) = worst {
-                let remove = random.uniform_int(self.limit.min as i32, self.limit.max as i32) as usize;
-                once(job.clone())
-                    .chain(
-                        problem
-                            .jobs
-                            .neighbors(rc.route.actor.vehicle.profile, &job, Default::default())
-                            .map(|(job, _)| job)
-                            .cloned(),
-                    )
-                    .filter(|job| can_remove_job(job))
-                    .take(remove)
-                    .for_each(|job| {
-                        // NOTE job can be absent if it is unassigned
-                        if let Some(rc) = route_jobs.get_mut(&job) {
-                            // NOTE actual insertion context modification via route mut
-                            if rc.route_mut().tour.remove(&job) {
-                                removed_jobs.write().unwrap().insert(job);
+                if let Some((job, _)) = worst {
+                    let remove = random.uniform_int(self.limit.min as i32, self.limit.max as i32) as usize;
+                    once(job.clone())
+                        .chain(
+                            problem
+                                .jobs
+                                .neighbors(rc.route.actor.vehicle.profile, &job, Default::default())
+                                .map(|(job, _)| job)
+                                .cloned(),
+                        )
+                        .filter(|job| can_remove_job(job))
+                        .take(remove)
+                        .for_each(|job| {
+                            // NOTE job can be absent if it is unassigned
+                            if let Some(rc) = route_jobs.get_mut(&job) {
+                                // NOTE actual insertion context modification via route mut
+                                if rc.route_mut().tour.remove(&job) {
+                                    removed_jobs.write().unwrap().insert(job);
+                                }
                             }
-                        }
-                    });
-            }
-        });
+                        });
+                }
+            },
+        );
 
         removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
 
