@@ -33,7 +33,6 @@ fn can_remove_parts_routes_from_context() {
 
     let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, |data| (data.clone(), data));
     let problem = Problem {
-        fleet: problem.fleet,
         jobs: problem.jobs.clone(),
         locks: vec![Arc::new(Lock {
             condition: Arc::new(|_| false),
@@ -43,11 +42,7 @@ fn can_remove_parts_routes_from_context() {
                 jobs: problem.jobs.all().filter(|job| ["c0", "c3"].contains(&get_customer_id(job).as_str())).collect(),
             }],
         })],
-        constraint: problem.constraint,
-        activity: problem.activity,
-        transport: problem.transport,
-        objective: problem.objective,
-        extras: problem.extras,
+        ..problem
     };
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
