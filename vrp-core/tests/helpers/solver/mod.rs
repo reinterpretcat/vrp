@@ -32,7 +32,11 @@ pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send
 /// 1  5   9 13
 /// 2  6  10 14
 /// 3  7  11 15
-pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
+pub fn generate_matrix_routes(
+    rows: usize,
+    cols: usize,
+    matrix_modify: fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
+) -> (Problem, Solution) {
     let fleet = Arc::new(
         FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
@@ -61,8 +65,9 @@ pub fn generate_matrix_routes(rows: usize, cols: usize) -> (Problem, Solution) {
         });
     });
 
-    let matrix_values = generate_matrix(rows, cols);
-    let matrix_data = MatrixData::new(0, matrix_values.clone(), matrix_values);
+    let (durations, distances) = matrix_modify(generate_matrix(rows, cols));
+
+    let matrix_data = MatrixData::new(0, durations, distances);
     let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
     let jobs = Jobs::new(&fleet, jobs, &transport);
 
