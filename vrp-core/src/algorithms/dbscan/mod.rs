@@ -13,7 +13,7 @@ pub type NeighborhoodFn<'a, T> = Box<dyn Fn(&'a T, f64) -> Box<dyn Iterator<Item
 
 /// Creates clusters of items using DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm.
 pub fn create_clusters<'a, T>(
-    items: &[&'a T],
+    items: &'a [T],
     eps: f64,
     min_items: usize,
     neighborhood_fn: &NeighborhoodFn<'a, T>,
@@ -35,7 +35,7 @@ where
         } else {
             let mut cluster = Vec::new();
 
-            cluster.push(*item);
+            cluster.push(item);
             item_types.insert(item, ItemType::Clustered);
 
             let mut index = 0;

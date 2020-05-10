@@ -196,6 +196,11 @@ impl Jobs {
         self.jobs.iter().cloned()
     }
 
+    /// Returns all jobs in original order as slice.
+    pub fn all_as_slice(&self) -> &[Job] {
+        self.jobs.as_slice()
+    }
+
     /// Returns range of jobs "near" to given one. Near is defined by costs with relation
     /// transport profile and departure time.
     pub fn neighbors(&self, profile: Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = &(Job, Cost)> {

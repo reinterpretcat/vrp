@@ -1,9 +1,6 @@
 use crate::helpers::algorithms::p;
-use crate::helpers::models::problem::{MultiBuilder, SingleBuilder};
 use crate::helpers::solver::generate_matrix_routes;
-use crate::models::problem::Jobs;
 use crate::solver::mutation::ruin::cluster_removal::{estimate_epsilon, get_max_curvature};
-use std::sync::Arc;
 
 #[test]
 fn can_get_max_curvature() {

@@ -110,9 +110,8 @@ fn can_create_clusters_normally() {
     ];
     let index = create_index(&ps);
     let neighborhood_fn = create_neighborhood(&index);
-    let point_refs = ps.iter().map(|p| p).collect::<Vec<_>>();
 
-    let clusters = create_clusters(point_refs.as_slice(), 2., 5, &neighborhood_fn);
+    let clusters = create_clusters(ps.as_slice(), 2., 5, &neighborhood_fn);
 
     assert_eq!(clusters.len(), 3);
 
@@ -152,9 +151,8 @@ fn can_create_clusters_with_single_link() {
     ];
     let index = create_index(&ps);
     let neighborhood_fn = create_neighborhood(&index);
-    let point_refs = ps.iter().map(|p| p).collect::<Vec<_>>();
 
-    let clusters = create_clusters(point_refs.as_slice(), 3., 3, &neighborhood_fn);
+    let clusters = create_clusters(ps.as_slice(), 3., 3, &neighborhood_fn);
 
     assert_eq!(clusters.len(), 1);
 
