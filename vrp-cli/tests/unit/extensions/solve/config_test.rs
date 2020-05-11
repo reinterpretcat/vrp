@@ -11,6 +11,6 @@ fn can_read_config() {
     assert!(config.termination.is_some());
 
     let MutationConfig::RuinRecreate { ruins, recreates } = config.mutation.expect("cannot get mutation");
-    assert_eq!(ruins.len(), 7);
+    assert_eq!(ruins.len(), 10);
     assert_eq!(recreates.len(), 6);
 }

@@ -46,6 +46,7 @@ impl Ruin for ClusterRemoval {
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
+        let locked = insertion_ctx.solution.locked.clone();
         let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 
         clusters.iter_mut().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|cluster| {
@@ -54,7 +55,7 @@ impl Ruin for ClusterRemoval {
                 cluster.shuffle(&mut rand::thread_rng());
             }
 
-            cluster.iter().take(left).for_each(|job| {
+            cluster.iter().filter(|job| !locked.contains(job)).take(left).for_each(|job| {
                 if let Some(rc) = route_jobs.get_mut(job) {
                     // NOTE actual insertion context modification via route mut
                     if rc.route_mut().tour.remove(&job) {
