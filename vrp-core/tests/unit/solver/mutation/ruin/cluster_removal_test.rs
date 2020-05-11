@@ -1,10 +1,10 @@
 use super::*;
 use crate::helpers::algorithms::p;
 use crate::helpers::models::domain::create_empty_problem;
-use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
+use crate::helpers::solver::*;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Location;
-use crate::utils::Random;
+use crate::utils::{DefaultRandom, Random};
 use std::sync::Arc;
 
 fn create_test_distances() -> Vec<f64> {
@@ -108,4 +108,36 @@ fn can_handle_empty_problem() {
     let removal = ClusterRemoval::new(problem, 3..4, JobRemovalLimit::default());
 
     assert_eq!(removal.params.len(), 1);
+}
+
+parameterized_test! {can_ruin_jobs, (limit, cluster_size, expected), {
+    can_ruin_jobs_impl(limit, cluster_size, expected);
+}}
+
+can_ruin_jobs! {
+    case_01: (4, 3..4, 4),
+    case_02: (5, 3..4, 5),
+    case_03: (8, 3..4, 7),
+}
+
+fn can_ruin_jobs_impl(limit: usize, cluster_size: Range<usize>, expected: usize) {
+    let limit = JobRemovalLimit::new(limit, limit, 1.);
+    let (problem, solution) = generate_matrix_routes(8, 1, |_| (vec![0.; 64], create_test_distances()));
+    let problem = Arc::new(problem);
+    let insertion_ctx = InsertionContext::new_from_solution(
+        problem.clone(),
+        (Arc::new(solution), None),
+        Arc::new(DefaultRandom::default()),
+    );
+
+    let insertion_ctx = ClusterRemoval::new(problem, cluster_size, limit)
+        .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
+
+    assert_eq!(insertion_ctx.solution.unassigned.len(), 0);
+    assert_eq!(insertion_ctx.solution.locked.len(), 0);
+    assert_eq!(insertion_ctx.solution.required.len(), expected);
+    assert_eq!(
+        insertion_ctx.solution.routes.iter().map(|route| route.route.tour.job_count()).sum::<usize>(),
+        8 - expected
+    );
 }
