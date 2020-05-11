@@ -63,7 +63,7 @@
         ]
       },
       {
-        "weight": 75,
+        "weight": 50,
         "methods": [
           {
             "probability": 1,
@@ -139,6 +139,35 @@
             "min": 30,
             "max": 120,
             "threshold": 0.25
+          }
+        ]
+      },
+      {
+        "weight": 10,
+        "methods": [
+          {
+            "probability": 1,
+            "type": "cluster",
+            "min": 8,
+            "max": 32,
+            "cmin": 3,
+            "cmax": 9,
+            "threshold": 0.2
+          },
+          {
+            "probability": 0.75,
+            "type": "adjusted-string",
+            "lmax": 30,
+            "cavg": 15,
+            "alpha": 0.01
+          },
+          {
+            "probability": 0.5,
+            "type": "worst-job",
+            "skip": 4,
+            "min": 8,
+            "max": 32,
+            "threshold": 0.2
           }
         ]
       },
