@@ -12,6 +12,7 @@ pub type Cluster<'a, T> = Vec<&'a T>;
 pub type NeighborhoodFn<'a, T> = Box<dyn Fn(&'a T, f64) -> Box<dyn Iterator<Item = &'a T> + 'a> + 'a>;
 
 /// Creates clusters of items using DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm.
+/// NOTE: `neighborhood_fn` shall return point itself.
 pub fn create_clusters<'a, T>(
     items: &'a [T],
     eps: f64,

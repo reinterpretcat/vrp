@@ -1,3 +1,4 @@
+use crate::algorithms::geometry::Point;
 use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::problem::*;
@@ -65,7 +66,7 @@ pub fn generate_matrix_routes(
         });
     });
 
-    let (durations, distances) = matrix_modify(generate_matrix(rows, cols));
+    let (durations, distances) = matrix_modify(generate_matrix_from_sizes(rows, cols));
 
     let matrix_data = MatrixData::new(0, durations, distances);
     let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
@@ -87,7 +88,7 @@ pub fn generate_matrix_routes(
     (problem, solution)
 }
 
-fn generate_matrix(rows: usize, cols: usize) -> Vec<f64> {
+fn generate_matrix_from_sizes(rows: usize, cols: usize) -> Vec<f64> {
     let size = cols * rows;
     let mut data = vec![0.; size * size];
 
@@ -108,4 +109,8 @@ fn generate_matrix(rows: usize, cols: usize) -> Vec<f64> {
     });
 
     data
+}
+
+pub fn generate_matrix_distances_from_points(points: &[Point]) -> Vec<f64> {
+    points.iter().cloned().flat_map(|p_a| points.iter().map(move |p_b| p_a.distance_to_point(p_b))).collect()
 }

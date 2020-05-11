@@ -26,12 +26,10 @@ pub struct ClusterRemoval {
 
 impl ClusterRemoval {
     pub fn new(problem: Arc<Problem>, cluster_size: Range<usize>, limit: JobRemovalLimit) -> Self {
-        // TODO test on problem with zero or one job.
-
         let min = cluster_size.start.max(3);
         let max = cluster_size.end.min(problem.jobs.size()).max(min + 1);
 
-        let params = (min..max).map(|min_pts| (min_pts, estimate_epsilon(&problem, min_pts - 1))).collect::<Vec<_>>();
+        let params = (min..max).map(|min_pts| (min_pts, estimate_epsilon(&problem, min_pts))).collect::<Vec<_>>();
 
         Self { params, limit }
     }
@@ -50,8 +48,13 @@ impl Ruin for ClusterRemoval {
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
         let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 
-        clusters.iter().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|cluster| {
-            cluster.iter().for_each(|job| {
+        clusters.iter_mut().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|cluster| {
+            let left = affected - removed_jobs.read().unwrap().len();
+            if cluster.len() > left {
+                cluster.shuffle(&mut rand::thread_rng());
+            }
+
+            cluster.iter().take(left).for_each(|job| {
                 if let Some(rc) = route_jobs.get_mut(job) {
                     // NOTE actual insertion context modification via route mut
                     if rc.route_mut().tour.remove(&job) {
@@ -78,16 +81,18 @@ fn create_job_clusters<'a>(
     let eps = random.uniform_real(eps * 0.9, eps * 1.1);
 
     let neighbor_fn: NeighborhoodFn<'a, Job> = Box::new(move |job, eps| {
-        Box::new(problem.jobs.neighbors(profile, job, 0.).take_while(move |(_, cost)| *cost < eps).map(|(job, _)| job))
+        Box::new(once(job).chain(
+            problem.jobs.neighbors(profile, job, 0.).take_while(move |(_, cost)| *cost < eps).map(|(job, _)| job),
+        ))
     });
 
     create_clusters(problem.jobs.all_as_slice(), eps, min_items, &neighbor_fn)
 }
 
 /// Estimates DBSCAN epsilon parameter.
-fn estimate_epsilon(problem: &Problem, nth_neighbor: usize) -> f64 {
+fn estimate_epsilon(problem: &Problem, min_points: usize) -> f64 {
     // for each job get distance to its nth neighbor
-    let mut costs = get_average_costs(problem, nth_neighbor);
+    let mut costs = get_average_costs(problem, min_points);
 
     // sort all distances in ascending order and form the curve
     costs.sort_by(|&a, &b| compare_floats(a, b));
@@ -101,13 +106,13 @@ fn estimate_epsilon(problem: &Problem, nth_neighbor: usize) -> f64 {
 }
 
 /// Gets average costs across all profiles.
-fn get_average_costs(problem: &Problem, nth_neighbor: usize) -> Vec<f64> {
+fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
     let mut costs = problem.fleet.profiles.iter().fold(vec![0.; problem.jobs.size()], |mut acc, &profile| {
         problem.jobs.all().enumerate().for_each(|(idx, job)| {
             acc[idx] += problem
                 .jobs
                 .neighbors(profile, &job, 0.)
-                .skip(nth_neighbor)
+                .skip(min_points - 1)
                 .next()
                 // TODO consider time window difference as extra cost?
                 .map(|(_, cost)| *cost)

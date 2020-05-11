@@ -5,7 +5,7 @@ mod point_test;
 use std::hash::{Hash, Hasher};
 
 /// Represents a point in 2D space.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Point {
     pub x: f64,
     pub y: f64,

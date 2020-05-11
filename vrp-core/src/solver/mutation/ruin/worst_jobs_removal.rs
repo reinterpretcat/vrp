@@ -58,12 +58,13 @@ impl Ruin for WorstJobRemoval {
 
         let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 
-        routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() <= affected).for_each(
+        routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(
             |(rc, savings)| {
                 let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
                 let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
 
                 if let Some((job, _)) = worst {
+                    // TODO ensure that we do not remove more jobs than specified by affected
                     let remove = random.uniform_int(self.limit.min as i32, self.limit.max as i32) as usize;
                     once(job.clone())
                         .chain(

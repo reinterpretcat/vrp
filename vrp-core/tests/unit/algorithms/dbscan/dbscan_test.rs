@@ -24,7 +24,7 @@ fn create_index(points: &Vec<Point>) -> HashMap<&Point, Vec<(&Point, f64)>> {
 fn create_neighborhood<'a>(index: &'a HashMap<&'a Point, Vec<(&'a Point, f64)>>) -> NeighborhoodFn<'a, Point> {
     Box::new(move |item: &Point, eps: f64| {
         Box::new(
-            index.get(item).unwrap().iter().take_while(move |(_, distance)| *distance <= eps).map(|(point, _)| *point),
+            index.get(item).unwrap().iter().take_while(move |(_, distance)| *distance < eps).map(|(point, _)| *point),
         )
     })
 }
