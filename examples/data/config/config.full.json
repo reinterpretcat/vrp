@@ -63,6 +63,48 @@
         ]
       },
       {
+        "weight": 75,
+        "methods": [
+          {
+            "probability": 1,
+            "type": "cluster",
+            "min": 8,
+            "max": 32,
+            "cmin": 3,
+            "cmax": 9,
+            "threshold": 0.2
+          },
+          {
+            "probability": 0.05,
+            "type": "random-route",
+            "min": 1,
+            "max": 8,
+            "threshold": 0.1
+          },
+          {
+            "probability": 0.05,
+            "type": "random-job",
+            "min": 8,
+            "max": 32,
+            "threshold": 0.2
+          }
+        ]
+      },
+      {
+        "weight": 10,
+        "methods": [
+          {
+            "probability": 1,
+            "type": "cluster",
+            "min": 30,
+            "max": 120,
+            "cmin": 8,
+            "cmax": 16,
+            "threshold": 0.25
+          }
+        ]
+      },
+      {
         "weight": 50,
         "methods": [
           {

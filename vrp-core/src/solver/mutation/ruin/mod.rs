@@ -70,9 +70,13 @@ impl CompositeRuin {
         Self { ruins, weights }
     }
 
-    pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
+    pub fn new_from_problem(problem: Arc<Problem>) -> Self {
         let adjusted_string_default = Arc::new(AdjustedStringRemoval::default());
         let adjusted_string_aggressive = Arc::new(AdjustedStringRemoval::new(30, 120, 0.02));
+
+        let cluster_default = Arc::new(ClusterRemoval::new(problem.clone(), 3..9, JobRemovalLimit::default()));
+        let cluster_aggressive =
+            Arc::new(ClusterRemoval::new(problem.clone(), 8..16, JobRemovalLimit::new(30, 120, 0.25)));
 
         let neighbour_removal = Arc::new(NeighbourRemoval::default());
         let neighbour_aggressive = Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(30, 120, 0.25)));
@@ -91,6 +95,8 @@ impl CompositeRuin {
                 100,
             ),
             (vec![(adjusted_string_aggressive, 1.)], 10),
+            (vec![(cluster_default, 1.), (random_route_default.clone(), 0.05), (random_job_default.clone(), 0.05)], 75),
+            (vec![(cluster_aggressive, 1.)], 10),
             (
                 vec![(neighbour_removal, 1.), (random_route_default.clone(), 0.05), (random_job_default.clone(), 0.05)],
                 50,
