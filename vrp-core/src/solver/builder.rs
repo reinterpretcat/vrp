@@ -11,10 +11,10 @@ use std::sync::Arc;
 
 /// Provides configurable way to build solver.
 pub struct Builder {
-    max_generations: Option<usize>,
-    max_time: Option<usize>,
-    cost_variation: Option<(usize, f64)>,
-    config: EvolutionConfig,
+    pub max_generations: Option<usize>,
+    pub max_time: Option<usize>,
+    pub cost_variation: Option<(usize, f64)>,
+    pub config: EvolutionConfig,
 }
 
 impl Builder {

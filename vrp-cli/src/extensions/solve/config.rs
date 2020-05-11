@@ -50,6 +50,8 @@ pub enum RuinMethod {
     RandomRoute { probability: f64, min: usize, max: usize, threshold: f64 },
     #[serde(rename(deserialize = "worst-job"))]
     WorstJob { probability: f64, min: usize, max: usize, threshold: f64, skip: usize },
+    #[serde(rename(deserialize = "cluster"))]
+    Cluster { probability: f64, min: usize, max: usize, threshold: f64, cmin: usize, cmax: usize },
 }
 
 /// Specifies recreate methods with their probability weight and specific parameters.
@@ -120,9 +122,10 @@ fn configure_from_population(mut builder: Builder, population_config: &Option<Po
 fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<MutationConfig>) -> Builder {
     if let Some(config) = mutation_config {
         let MutationConfig::RuinRecreate { ruins, recreates } = config;
+        let problem = builder.config.problem.clone();
         builder = builder.with_mutation(Box::new(RuinAndRecreateMutation::new(
             Box::new(CompositeRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect())),
-            Box::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(g)).collect())),
+            Box::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(&problem, g)).collect())),
         )));
     }
 
@@ -149,11 +152,11 @@ fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate>, usize)
     }
 }
 
-fn create_ruin_group(group: &RuinMethodGroup) -> (Vec<(Arc<dyn Ruin>, f64)>, usize) {
-    (group.methods.iter().map(|r| create_ruin_method(r)).collect(), group.weight)
+fn create_ruin_group(problem: &Arc<Problem>, group: &RuinMethodGroup) -> (Vec<(Arc<dyn Ruin>, f64)>, usize) {
+    (group.methods.iter().map(|r| create_ruin_method(problem, r)).collect(), group.weight)
 }
 
-fn create_ruin_method(method: &RuinMethod) -> (Arc<dyn Ruin>, f64) {
+fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn Ruin>, f64) {
     match method {
         RuinMethod::AdjustedString { probability, lmax, cavg, alpha } => {
             (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha)), *probability)
@@ -170,6 +173,10 @@ fn create_ruin_method(method: &RuinMethod) -> (Arc<dyn Ruin>, f64) {
         RuinMethod::WorstJob { probability, min, max, threshold, skip: worst_skip } => {
             (Arc::new(WorstJobRemoval::new(*worst_skip, JobRemovalLimit::new(*min, *max, *threshold))), *probability)
         }
+        RuinMethod::Cluster { probability, min, max, threshold, cmin, cmax } => (
+            Arc::new(ClusterRemoval::new(problem.clone(), *cmin..*cmax, JobRemovalLimit::new(*min, *max, *threshold))),
+            *probability,
+        ),
     }
 }
 
