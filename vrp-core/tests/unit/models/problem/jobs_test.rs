@@ -41,6 +41,27 @@ impl TransportCost for ProfileAwareTransportCost {
     }
 }
 
+struct FixedTransportCost {
+    duration_cost: f64,
+    distance_cost: f64,
+}
+
+impl TransportCost for FixedTransportCost {
+    fn duration(&self, _profile: Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
+        self.duration_cost
+    }
+
+    fn distance(&self, _profile: Profile, _from: Location, _to: Location, _departure: Timestamp) -> Distance {
+        self.distance_cost
+    }
+}
+
+impl FixedTransportCost {
+    pub fn new(duration_cost: f64, distance_cost: f64) -> Arc<dyn TransportCost + Send + Sync> {
+        Arc::new(Self { duration_cost, distance_cost })
+    }
+}
+
 fn create_profile_aware_transport_cost() -> Arc<dyn TransportCost + Sync + Send> {
     Arc::new(ProfileAwareTransportCost::new(Box::new(|p, d| if p == 2 { 10.0 - d } else { d })))
 }
@@ -197,4 +218,31 @@ fn can_use_multi_job_bind_and_roots() {
     let job = Job::Multi(Multi::roots(&job.jobs.first().unwrap()).unwrap());
 
     assert_eq!(jobs.neighbors(0, &job, 0.0).count(), 0);
+}
+
+parameterized_test! {can_handle_negative_distances_durations, (duration_cost, distance_cost), {
+    can_handle_negative_distances_durations_impl(FixedTransportCost::new(duration_cost, distance_cost));
+}}
+
+can_handle_negative_distances_durations! {
+    case01: (-1., 1.),
+    case02: (1., -1.),
+    case03: (-1., -1.),
+    case04: (-1., 0.),
+}
+
+fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn TransportCost + Send + Sync>) {
+    let profile = 0;
+    let species = vec![
+        SingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
+        SingleBuilder::default().id("s1").location(Some(1)).build_as_job_ref(),
+    ];
+
+    let jobs = Jobs::new(&test_fleet(), species.clone(), &transport_costs);
+
+    for job in &species {
+        assert!(jobs
+            .neighbors(profile, job, 0.0)
+            .all(|(_, cost)| { (*cost - UNREACHABLE_COST).abs() < std::f64::EPSILON }));
+    }
 }

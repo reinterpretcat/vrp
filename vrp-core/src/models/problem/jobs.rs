@@ -247,8 +247,9 @@ impl Hash for Job {
 }
 
 // TODO: we don't know actual departure and zero-cost when we create job index.
-const DEFAULT_DEPARTURE: Timestamp = 0.0;
-const DEFAULT_COST: Cost = 0.0;
+const DEFAULT_DEPARTURE: Timestamp = 0.;
+const DEFAULT_COST: Cost = 0.;
+const UNREACHABLE_COST: Cost = std::f32::MAX as f64;
 
 /// Creates job index.
 fn create_index(
@@ -303,8 +304,15 @@ fn get_cost_between_locations(
     from: Location,
     to: Location,
 ) -> f64 {
-    transport.distance(profile, from, to, DEFAULT_DEPARTURE) * costs.per_distance
-        + transport.duration(profile, from, to, DEFAULT_DEPARTURE) * costs.per_driving_time
+    let distance = transport.distance(profile, from, to, DEFAULT_DEPARTURE);
+    let duration = transport.duration(profile, from, to, DEFAULT_DEPARTURE);
+
+    if distance < 0. || duration < 0. {
+        // NOTE this happens if matrix uses negative values as a marker of unreachable location
+        UNREACHABLE_COST
+    } else {
+        distance * costs.per_distance + duration * costs.per_driving_time
+    }
 }
 
 /// Returns min cost between job and location.
