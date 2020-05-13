@@ -1,11 +1,92 @@
+//! The `solver` module contains basic building blocks for a metaheuristic among with the default
+//!  implementation which can be roughly described as
+//! "`Multi-objective Parthenogenesis based Evolutionary Algorithm with Ruin and Recreate Mutation Operator`".
+//!
+//! ## Metaheuristic
+//!
+//! A metaheuristic is a high-level algorithmic framework that provides a set of guidelines or strategies
+//! to develop heuristic optimization algorithms. Examples of metaheuristics include genetic/evolutionary
+//! algorithms, tabu search, simulated annealing, variable neighborhood search, (adaptive) large
+//! neighborhood search, ant colony optimization, etc.
+//!
+//! ## Multi-objective decision maker
+//!
+//! Most VRPs, frequently used to model real cases, are set up with a single objective (e.g. minimizing
+//! the cost of the solution), however the majority of the problems encountered in logistics industry,
+//! are multi-objective in nature as the complexity of real-life logistics planning often cannot be
+//! reduced to cost only. Such non-cost factors are:
+//!
+//! - balancing work across multiple workers
+//! - minimization or maximization of fleet usage
+//! - minimization of unassigned jobs
+//!
+//! In most of the cases, these additional factors are contradicting to the cost minimization
+//! objective which, in fact, leads to nontrivial multi-objective optimization problem, where no
+//! single solution exists that simultaneously optimizes each objective.
+//!
+//! That's why the concept of dominance is introduced: a solution is said to dominate another
+//! solution if its quality is at least as good on every objective and better on at least one.
+//! The set of all non-dominated solutions of an optimization problem is called the Pareto set and
+//! the projection of this set onto the objective function space is called the Pareto front.
+//!
+//! The aim of multi-objective metaheuristics is to approximate the Pareto front as closely as
+//! possible (Zitzler et al., 2004) and therefore generate a set of mutually non-dominated solutions
+//! called the Pareto set approximation.
+//!
+//! This library utilizes `NSGA-II` algorithm to apply Pareto-based ranking over population in order
+//! to find Pareto set approximation. However, that Pareto optimality of the solutions cannot be
+//! guaranteed: it is only known that none of the generated solutions dominates the others.
+//! In the end, the top ranked individual is returned as best known solution.
+//!
+//! This crate contains NSGA-II buildings blocks which can be found in [`nsga2`] module.
+//!
+//! [`nsga2`]: ../algorithms/nsga2/index.html
+//!
+//! ## Evolutionary algorithm
+//!
+//! An evolutionary algorithm (EA) is a generic population-based metaheuristic optimization algorithm.
+//! This crate provides a custom implementation of EA which can be divided into the following steps:
+//!
+//! - *initialization*: on this step, an initial population is created using different construction
+//!    heuristics.
+//! - *main loop begin*: enter an evolution loop
+//!     - *selection*: an individual is selected from population. Best-fit individuals have more
+//!        chances to be selected.
+//!     - *mutation*: a mutation operation is applied to selected individual. Default implementation
+//!       uses `ruin and recreate` approach described in next section.
+//!     - *population adjustments*: new individual is added to population, then the population is
+//!       sorted and shrinked to keep it under specific size with only best-fit individuals.
+//! - *main loop end*: exit evolution loop when one of termination criteria are met. See [`termination`]
+//!       module for details.
+//!
+//! As there is no crossover operator involved and offspring is produced from one parent, this algorithm
+//! can be characterized as parthenogenesis based EA. This approach eliminates design of feasible
+//! crossover operator which is a challenging task in case of VRP.
+//!
+//!  [`termination`]: termination/index.html
+//!
+//! ## Ruin and Recreate principle
+//!
+//! - *ruin and recreate* principle is introduced by [`Schrimpf et al. (2000)`]
+//! The key idea is to ruin a quite large fraction of the solution and try to restore the solution
+//! as best as it is possible in order to get a new solution better than the previous one. Original
+//! algorithm can be described as  a large neighborhood search that combines elements of simulated
+//! annealing and threshold-accepting algorithms, but this crate only reuses ruin/recreate idea as
+//! a mutation operator which is implemented in [`mutation`] module.
+//!
+//! [`Schrimpf et al. (2000)`]: https://www.sciencedirect.com/science/article/pii/S0021999199964136
+//! [`mutation`]: mutation/index.html
+//!
+
 extern crate rand;
+use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::{Problem, Solution};
-use crate::solver::evolution::{run_evolution, EvolutionConfig};
 use hashbrown::HashMap;
 use std::any::Any;
+use std::ops::Deref;
 use std::sync::Arc;
 
 pub mod mutation;
@@ -13,13 +94,13 @@ pub mod objectives;
 pub mod termination;
 
 mod builder;
-mod evolution;
-mod population;
-
 pub use self::builder::Builder;
+
+mod evolution;
+use self::evolution::{run_evolution, EvolutionConfig};
+
+mod population;
 pub use self::population::DominancePopulation;
-use crate::algorithms::nsga2::Objective;
-use std::ops::Deref;
 
 /// Contains information needed to perform refinement.
 pub struct RefinementContext {
@@ -61,7 +142,7 @@ pub trait Population {
 }
 
 impl RefinementContext {
-    /// Creates a new instance of `[RefinementContext]`.
+    /// Creates a new instance of `RefinementContext`.
     pub fn new(
         problem: Arc<Problem>,
         population: Box<dyn Population + Sync + Send>,
@@ -74,13 +155,17 @@ impl RefinementContext {
 /// A logger type.
 pub type Logger = Arc<dyn Fn(String) -> ()>;
 
-/// A Vehicle Routing Problem Solver.
+/// A Vehicle Routing Problem Solver which utilizes default metaheuristic.
 pub struct Solver {
+    /// A problem definition.
     pub problem: Arc<Problem>,
+    /// An evolution configuration.
     pub config: EvolutionConfig,
 }
 
 impl Solver {
+    /// Solves a Vehicle Routing Problem defined by `problem`.
+    /// Returns a (solution, its cost) pair or error description.
     pub fn solve(self) -> Result<(Solution, Cost), String> {
         let logger = self.config.logger.clone();
 

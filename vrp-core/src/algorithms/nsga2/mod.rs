@@ -1,13 +1,23 @@
 //! This module contains a logic for processing multiple solutions and multi objective optimization
-//! based on NSGA2 algorithm.
+//! based on `Non Dominated Sorting Genetic Algorithm II` algorithm.
 //!
-//! A NSGA2 implementation is based on the source code from the following repos:
+//! A Non Dominated Sorting Genetic Algorithm II (NSGA-II) is a popular multi objective optimization
+//! algorithm with three special characteristics:
 //!
-//! https://github.com/mneumann/dominance-ord-rs
-//! https://github.com/mneumann/non-dominated-sort-rs
-//! https://github.com/mneumann/nsga2-rs
+//! - fast non-dominated sorting approach
+//! - fast crowded distance estimation procedure
+//! - simple crowded comparison operator
 //!
-//! which is released under MIT License (MIT), copyright (c) 2016 Michael Neumann
+//! For more details regarding NSGA-II algorithm details, check original paper "A fast and elitist
+//! multiobjective genetic algorithm: NSGA-II", Kalyanmoy Deb et al. DOI: `0.1109/4235.996017`
+//!
+//! A NSGA-II implementation in this module is based on the source code from the following repositories:
+//!
+//! - [dominance order trait](https://github.com/mneumann/dominance-ord-rs)
+//! - [fast non-dominated sort algorithm](https://github.com/mneumann/non-dominated-sort-rs)
+//! - [NSGA-II implementation](https://github.com/mneumann/nsga2-rs)
+//!
+//! which are released under MIT License (MIT), copyright (c) 2016 Michael Neumann
 //!
 
 mod crowding_distance;

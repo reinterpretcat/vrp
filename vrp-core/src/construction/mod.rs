@@ -1,5 +1,6 @@
-//! Building blocks for arbitrary heuristic to construct a feasible solution.
+//! # Content
 //!
+//! Building blocks for arbitrary heuristic to construct a feasible solution.
 //!
 //! # Insertion heuristic
 //!
