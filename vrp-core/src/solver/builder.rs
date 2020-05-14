@@ -9,15 +9,54 @@ use crate::utils::{DefaultRandom, TimeQuota};
 use std::ops::Deref;
 use std::sync::Arc;
 
-/// Provides configurable way to build solver.
+/// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent
+/// interface style.
+///
+/// A newly created builder instance is pre-configured with some reasonable defaults for mid-size
+/// problems (~200), so there is no need to call any of its methods.
+///
+/// [`Solver`]: ./struct.Solver.html
+///
+/// # Examples
+///
+/// This example shows how to override some of default metaheuristic parameters using fluent
+/// interface methods:
+///
+/// ```
+/// # use vrp_core::models::examples::create_example_problem;
+/// # use std::sync::Arc;
+/// use vrp_core::solver::Builder;
+/// use vrp_core::models::Problem;
+///
+/// // create your VRP problem
+/// let problem: Arc<Problem> = create_example_problem();
+/// // build solver using builder with overridden parameters
+/// let solver = Builder::new(problem)
+///     .with_max_time(Some(60))
+///     .with_max_generations(Some(100))
+///     .with_initial_size(4)
+///     .build()?;
+/// // run solver and get the best known solution within its cost.
+/// let (solution, cost) = solver.solve()?;
+///
+/// assert_eq!(cost, 42.);
+/// assert_eq!(solution.routes.len(), 1);
+/// assert_eq!(solution.unassigned.len(), 0);
+/// # Ok::<(), String>(())
+/// ```
 pub struct Builder {
+    /// A max amount generations in evolution.
     pub max_generations: Option<usize>,
+    /// A max seconds to run evolution.
     pub max_time: Option<usize>,
+    /// A cost variation parameters for termination criteria.
     pub cost_variation: Option<(usize, f64)>,
+    /// An evolution configuration..
     pub config: EvolutionConfig,
 }
 
 impl Builder {
+    /// Creates a new instance of `Builder`.
     pub fn new(problem: Arc<Problem>) -> Self {
         Self {
             max_generations: None,
@@ -46,7 +85,7 @@ impl Builder {
 }
 
 impl Builder {
-    /// Sets max generations to be run.
+    /// Sets max generations to be run by evolution.
     /// Default is 2000.
     pub fn with_max_generations(mut self, limit: Option<usize>) -> Self {
         self.max_generations = limit;
@@ -60,21 +99,21 @@ impl Builder {
         self
     }
 
-    /// Sets max running time limit.
+    /// Sets max running time limit for evolution.
     /// Default is 300 seconds.
     pub fn with_max_time(mut self, limit: Option<usize>) -> Self {
         self.max_time = limit;
         self
     }
 
-    /// Sets initial methods.
+    /// Sets initial methods used to construct initial population.
     pub fn with_initial_methods(mut self, initial_methods: Vec<(Box<dyn Recreate>, usize)>) -> Self {
         self.config.initial_methods = initial_methods;
         self
     }
 
-    /// Sets initial solutions.
-    /// Default is none.
+    /// Sets initial solutions in population.
+    /// Default is no solutions in population.
     pub fn with_solutions(mut self, solutions: Vec<Arc<Solution>>) -> Self {
         self.config.logger.deref()(format!("provided {} initial solutions to start with", solutions.len()));
         self.config.initial_individuals = solutions

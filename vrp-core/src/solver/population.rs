@@ -10,7 +10,16 @@ use hashbrown::HashSet;
 use std::cmp::Ordering::Equal;
 use std::sync::Arc;
 
-/// An evolution aware implementation of `[Population]` trait.
+/// A simple evolution aware implementation of [`Population`] trait with the the following
+/// characteristics:
+///
+/// - sorting of individuals in population according their objective fitness using [`NSGA-II`] algorithm
+/// - maintaining diversity of population based on their ranking
+/// - individuals from elite group are more preferable for selection
+///
+/// [`Population`]: ./trait.Population.html
+/// [`NSGA-II`]: ../algorithms/nsga2/index.html
+///
 pub struct DominancePopulation {
     problem: Arc<Problem>,
     random: Arc<dyn Random + Send + Sync>,
@@ -21,7 +30,14 @@ pub struct DominancePopulation {
 }
 
 impl DominancePopulation {
-    /// Creates a new instance of `[EvoPopulation]`.
+    /// Creates a new instance of `DominancePopulation`.
+    ///
+    /// * `problem` - a Vehicle Routing Problem definition.
+    /// * `random` - an implementation of [`Random`](../utils/trait.Random.html) trait.
+    /// * `population_size` - a max size of population without offspring.
+    /// * `offspring_size` - a max size of offspring before shrinking occurs.
+    /// * `elite_size` - amount of individuals considered as elite.
+    ///
     pub fn new(
         problem: Arc<Problem>,
         random: Arc<dyn Random + Send + Sync>,

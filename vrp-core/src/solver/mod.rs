@@ -2,16 +2,14 @@
 //! implementation which can be roughly described as "*Multi-objective Parthenogenesis based
 //! Evolutionary Algorithm with Ruin and Recreate Mutation Operator*".
 //!
-//! # Key points
-//!
-//! ## Metaheuristic
+//! # Metaheuristic
 //!
 //! A metaheuristic is a high-level algorithmic framework that provides a set of guidelines or strategies
 //! to develop heuristic optimization algorithms. Examples of metaheuristics include genetic/evolutionary
 //! algorithms, tabu search, simulated annealing, variable neighborhood search, (adaptive) large
 //! neighborhood search, ant colony optimization, etc.
 //!
-//! ## Multi-objective decision maker
+//! # Multi-objective decision maker
 //!
 //! Most VRPs, frequently used to model real cases, are set up with a single objective (e.g. minimizing
 //! the cost of the solution), however the majority of the problems encountered in logistics industry,
@@ -44,7 +42,7 @@
 //!
 //! [`nsga2`]: ../algorithms/nsga2/index.html
 //!
-//! ## Evolutionary algorithm
+//! # Evolutionary algorithm
 //!
 //! An evolutionary algorithm (EA) is a generic population-based metaheuristic optimization algorithm.
 //! This crate provides a custom implementation of EA which can be divided into the following steps:
@@ -68,7 +66,7 @@
 //!
 //!  [`termination`]: termination/index.html
 //!
-//! ## Ruin and Recreate principle
+//! # Ruin and Recreate principle
 //!
 //! A **ruin and recreate** principle is introduced by [`Schrimpf et al. (2000)`] and key idea here
 //! is to ruin a quite large fraction of the solution and try to restore the solution as best as it
@@ -82,9 +80,9 @@
 //! [`Schrimpf et al. (2000)`]: https://www.sciencedirect.com/science/article/pii/S0021999199964136
 //! [`mutation`]: mutation/index.html
 //!
-//! # Usage
+//! # Solver usage
 //!
-//! Check [`Builder`] and [`Solver`] documentation to see how to solver VRP.
+//! Check [`Builder`] and [`Solver`] documentation to see how to run VRP solver.
 //!
 //! [`Builder`]: ./struct.Builder.html
 //! [`Solver`]: ./struct.Solver.html
