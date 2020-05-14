@@ -1,6 +1,8 @@
-//! The `solver` module contains basic building blocks for a metaheuristic among with the default
-//!  implementation which can be roughly described as
-//! "`Multi-objective Parthenogenesis based Evolutionary Algorithm with Ruin and Recreate Mutation Operator`".
+//! The *solver* module contains basic building blocks for a metaheuristic among with the default
+//! implementation which can be roughly described as "*Multi-objective Parthenogenesis based
+//! Evolutionary Algorithm with Ruin and Recreate Mutation Operator*".
+//!
+//! # Key points
 //!
 //! ## Metaheuristic
 //!
@@ -16,9 +18,9 @@
 //! are multi-objective in nature as the complexity of real-life logistics planning often cannot be
 //! reduced to cost only. Such non-cost factors are:
 //!
-//! - balancing work across multiple workers
-//! - minimization or maximization of fleet usage
-//! - minimization of unassigned jobs
+//! - **balancing work across multiple workers**
+//! - **minimization or maximization of fleet usage**
+//! - **minimization of unassigned jobs**
 //!
 //! In most of the cases, these additional factors are contradicting to the cost minimization
 //! objective which, in fact, leads to nontrivial multi-objective optimization problem, where no
@@ -47,16 +49,17 @@
 //! An evolutionary algorithm (EA) is a generic population-based metaheuristic optimization algorithm.
 //! This crate provides a custom implementation of EA which can be divided into the following steps:
 //!
-//! - *initialization*: on this step, an initial population is created using different construction
+//! - **initialization**: on this step, an initial population is created using different construction
 //!    heuristics.
-//! - *main loop begin*: enter an evolution loop
-//!     - *selection*: an individual is selected from population. Best-fit individuals have more
+//! - **main loop begin**: enter an evolution loop
+//!     - **selection**: an individual is selected from population. Best-fit individuals have more
 //!        chances to be selected.
-//!     - *mutation*: a mutation operation is applied to selected individual. Default implementation
-//!       uses `ruin and recreate` approach described in next section.
-//!     - *population adjustments*: new individual is added to population, then the population is
-//!       sorted and shrinked to keep it under specific size with only best-fit individuals.
-//! - *main loop end*: exit evolution loop when one of termination criteria are met. See [`termination`]
+//!     - **mutation**: a mutation operator is applied to selected individual. Default implementation
+//!       uses `ruin and recreate` principle described in next section.
+//!     - **population adjustments**: new individual is added to population, then the population is
+//!       sorted and shrinked to keep it under specific size limits with best-fit individuals and
+//!       some intermediate.
+//! - **main loop end**: exit evolution loop when one of termination criteria are met. See [`termination`]
 //!       module for details.
 //!
 //! As there is no crossover operator involved and offspring is produced from one parent, this algorithm
@@ -67,15 +70,24 @@
 //!
 //! ## Ruin and Recreate principle
 //!
-//! - *ruin and recreate* principle is introduced by [`Schrimpf et al. (2000)`]
-//! The key idea is to ruin a quite large fraction of the solution and try to restore the solution
-//! as best as it is possible in order to get a new solution better than the previous one. Original
-//! algorithm can be described as  a large neighborhood search that combines elements of simulated
-//! annealing and threshold-accepting algorithms, but this crate only reuses ruin/recreate idea as
-//! a mutation operator which is implemented in [`mutation`] module.
+//! A **ruin and recreate** principle is introduced by [`Schrimpf et al. (2000)`] and key idea here
+//! is to ruin a quite large fraction of the solution and try to restore the solution as best as it
+//! is possible in order to get a new solution better than the previous one. Original algorithm can
+//! be described as a large neighborhood search that combines elements of simulated annealing and
+//! threshold-accepting algorithms, but this crate only reuses ruin/recreate idea as a mutation
+//! operator.
+//!
+//! Implementation blocks can be found in [`mutation`] module.
 //!
 //! [`Schrimpf et al. (2000)`]: https://www.sciencedirect.com/science/article/pii/S0021999199964136
 //! [`mutation`]: mutation/index.html
+//!
+//! # Usage
+//!
+//! Check [`Builder`] and [`Solver`] documentation to see how to solver VRP.
+//!
+//! [`Builder`]: ./struct.Builder.html
+//! [`Solver`]: ./struct.Solver.html
 //!
 
 extern crate rand;
@@ -107,7 +119,7 @@ pub struct RefinementContext {
     /// Original problem.
     pub problem: Arc<Problem>,
 
-    /// Specifies solution population.
+    /// Specifies population with discovered solutions.
     pub population: Box<dyn Population + Sync + Send>,
 
     /// A collection of data associated with refinement process.
@@ -116,7 +128,7 @@ pub struct RefinementContext {
     /// A quota for refinement process.
     pub quota: Option<Box<dyn Quota + Send + Sync>>,
 
-    /// Specifies refinement generation (or iteration).
+    /// Specifies refinement generation.
     pub generation: usize,
 }
 
@@ -157,21 +169,45 @@ pub type Logger = Arc<dyn Fn(String) -> ()>;
 
 /// A Vehicle Routing Problem Solver which utilizes default metaheuristic.
 pub struct Solver {
-    /// A problem definition.
+    /// A VRP problem definition.
     pub problem: Arc<Problem>,
     /// An evolution configuration.
     pub config: EvolutionConfig,
 }
 
 impl Solver {
-    /// Solves a Vehicle Routing Problem defined by `problem`.
-    /// Returns a (solution, its cost) pair or error description.
+    /// Solves a Vehicle Routing Problem and returns a (solution, its cost) pair in case of success
+    /// or error description, if solution cannot be found.
+    ///
+    /// # Examples
+    ///
+    /// The most simple way to run solver is to use [`Builder`](./struct.Builder.html)
+    /// which has preconfigured settings:
+    ///
+    /// ```
+    /// # use vrp_core::models::examples::create_example_problem;
+    /// # use std::sync::Arc;
+    /// use vrp_core::solver::Builder;
+    /// use vrp_core::models::Problem;
+    ///
+    /// // create your VRP problem
+    /// let problem: Arc<Problem> = create_example_problem();
+    /// // build solver using builder with default settings
+    /// let solver = Builder::new(problem).build()?;
+    /// // run solver and get the best known solution within its cost.
+    /// let (solution, cost) = solver.solve()?;
+    ///
+    /// assert_eq!(cost, 42.);
+    /// assert_eq!(solution.routes.len(), 1);
+    /// assert_eq!(solution.unassigned.len(), 0);
+    /// # Ok::<(), String>(())
+    /// ```
     pub fn solve(self) -> Result<(Solution, Cost), String> {
         let logger = self.config.logger.clone();
 
         let population = run_evolution(self.problem.clone(), self.config)?;
 
-        // NOTE select first best according to population
+        // NOTE select the first best individual from population
         let insertion_ctx = population.best().ok_or_else(|| "cannot find any solution".to_string())?;
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
         let cost = self.problem.objective.fitness(insertion_ctx);

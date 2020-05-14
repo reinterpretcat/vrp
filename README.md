@@ -1,10 +1,15 @@
-[![](https://docs.rs/vrp-cli/badge.svg)](https://docs.rs/vrp-cli) [![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli) ![Rust](https://github.com/reinterpretcat/vrp/workflows/Rust/badge.svg?branch=master)
+[![](https://docs.rs/vrp-cli/badge.svg)](https://docs.rs/vrp-cli)
+[![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli)
+![minimum rustc 1.31](https://img.shields.io/badge/rustc-1.31+-red.svg)
+![Rust](https://github.com/reinterpretcat/vrp/workflows/Rust/badge.svg?branch=master)
 
 ![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
 
 # Description
 
-This project provides the way to solve multiple variations of **Vehicle Routing Problem** known as rich VRP.
+This project provides the way to solve multiple variations of **Vehicle Routing Problem** known as rich VRP. It provides
+default metaheuristic implementation which can be roughly described as
+`Multi-objective Parthenogenesis based Evolutionary Algorithm with Ruin and Recreate Mutation Operator`
 
 
 # Getting started

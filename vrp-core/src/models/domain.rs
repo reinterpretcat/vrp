@@ -1,5 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::models::problem::{ActivityCost, Actor, Fleet, Job, Jobs, ObjectiveCost, TransportCost};
+use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use hashbrown::HashMap;
 use std::any::Any;
