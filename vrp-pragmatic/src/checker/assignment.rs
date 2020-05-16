@@ -82,7 +82,7 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
 
     used_jobs.iter().try_for_each(|(id, asgn)| {
         // TODO validate whether each job task is served once
-        let job = all_jobs.get(id).ok_or(format!("Cannot find job with id {}", id))?;
+        let job = all_jobs.get(id).ok_or_else(|| format!("Cannot find job with id {}", id))?;
         let expected_tasks = job.pickups.as_ref().map_or(0, |p| p.len())
             + job.deliveries.as_ref().map_or(0, |d| d.len())
             + job.services.as_ref().map_or(0, |s| s.len())
@@ -96,10 +96,8 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
             ));
         }
 
-        if !asgn.deliveries.is_empty() {
-            if asgn.pickups.iter().max() > asgn.deliveries.iter().min() {
-                return Err(format!("Found pickup after delivery for '{}'", id));
-            }
+        if !asgn.deliveries.is_empty() && asgn.pickups.iter().max() > asgn.deliveries.iter().min() {
+            return Err(format!("Found pickup after delivery for '{}'", id));
         }
 
         Ok(())

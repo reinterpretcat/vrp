@@ -86,7 +86,7 @@ fn as_leg_with_break<'a>(
     stop: &Stop,
     leg: &'a [Activity],
 ) -> Option<(&'a Activity, &'a Activity, VehicleBreak)> {
-    if let &[from, to] = &leg {
+    if let [from, to] = leg {
         if let Some(activity_type) = context.get_activity_type(tour, stop, to).ok() {
             if let ActivityType::Break(vehicle_break) = activity_type {
                 return Some((from, to, vehicle_break));

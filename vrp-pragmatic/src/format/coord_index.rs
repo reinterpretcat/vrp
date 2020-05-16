@@ -67,8 +67,8 @@ impl CoordIndex {
         self.direct_index.get(location).cloned()
     }
 
-    pub fn get_by_idx(&self, index: &usize) -> Option<Location> {
-        self.reverse_index.get(index).cloned()
+    pub fn get_by_idx(&self, index: usize) -> Option<Location> {
+        self.reverse_index.get(&index).cloned()
     }
 
     pub fn unique(&self) -> Vec<Location> {

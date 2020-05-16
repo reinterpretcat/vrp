@@ -6,8 +6,8 @@ use crate::format::Location;
 use vrp_core::utils::parallel_collect;
 
 /// Gets approximated durations and distances rounded to nearest integer.
-pub fn get_approx_transportation(locations: &Vec<Location>, speeds: &[f64]) -> Vec<(Vec<i64>, Vec<i64>)> {
-    assert!(speeds.len() > 0);
+pub fn get_approx_transportation(locations: &[Location], speeds: &[f64]) -> Vec<(Vec<i64>, Vec<i64>)> {
+    assert!(!speeds.is_empty());
     assert!(speeds.iter().all(|&speed| speed > 0.));
 
     let distances =
@@ -48,8 +48,8 @@ fn degree_rad(degrees: f64) -> f64 {
 #[inline(always)]
 fn wgs84_earth_radius(lat: f64) -> f64 {
     // semi-axes of WGS-84 geoidal reference
-    const WGS84_A: f64 = 6378137.0; // major semiaxis [m]
-    const WGS84_B: f64 = 6356752.3; // minor semiaxis [m]
+    const WGS84_A: f64 = 6_378_137.0; // major semiaxis [m]
+    const WGS84_B: f64 = 6_356_752.3; // minor semiaxis [m]
 
     // http://en.wikipedia.org/wiki/Earth_radius
     let an = WGS84_A * WGS84_A * lat.cos();

@@ -62,7 +62,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
             vehicle.number,
             vehicle.capacity,
             self.matrix.collect(depot.location),
-            depot.tw.clone(),
+            depot.tw,
         ))
     }
 

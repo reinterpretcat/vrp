@@ -253,12 +253,10 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
                 Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32))),
             ))
         }
+    } else if props.has_multi_dimen_capacity {
+        Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(CAPACITY_CONSTRAINT_CODE))
     } else {
-        if props.has_multi_dimen_capacity {
-            Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(CAPACITY_CONSTRAINT_CODE))
-        } else {
-            Box::new(CapacityConstraintModule::<i32>::new(CAPACITY_CONSTRAINT_CODE))
-        }
+        Box::new(CapacityConstraintModule::<i32>::new(CAPACITY_CONSTRAINT_CODE))
     });
 }
 
@@ -267,7 +265,7 @@ fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIn
         Arc::new(|actor| actor.vehicle.dimens.get_value::<Vec<Vec<(f64, f64)>>>("areas")),
         Arc::new(move |location| {
             coord_index
-                .get_by_idx(&location)
+                .get_by_idx(location)
                 .map_or_else(|| panic!("Cannot find location!"), |location| (location.lat, location.lng))
         }),
         AREA_CONSTRAINT_CODE,

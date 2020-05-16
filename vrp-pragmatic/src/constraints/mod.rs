@@ -20,7 +20,7 @@ fn get_vehicle_id_from_job(job: &Arc<Single>) -> Option<&String> {
     job.dimens.get_value::<String>("vehicle_id")
 }
 
-fn is_correct_vehicle(route: &Route, target_id: &String, target_shift: usize) -> bool {
+fn is_correct_vehicle(route: &Route, target_id: &str, target_shift: usize) -> bool {
     route.actor.vehicle.dimens.get_id().unwrap() == target_id
         && get_shift_index(&route.actor.vehicle.dimens) == target_shift
 }

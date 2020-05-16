@@ -38,12 +38,12 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
 
     let relations = api_problem.plan.relations.as_ref().unwrap().iter().fold(HashMap::new(), |mut acc, r| {
         let shift_index = r.shift_index.unwrap_or(0);
-        acc.entry((r.vehicle_id.clone(), shift_index)).or_insert(vec![]).push(r.clone());
+        acc.entry((r.vehicle_id.clone(), shift_index)).or_insert_with(|| vec![]).push(r.clone());
 
         acc
     });
 
-    let locks = relations.into_iter().fold(vec![], |mut acc, ((vehicle_id, shift_index), rels)| {
+    relations.into_iter().fold(vec![], |mut acc, ((vehicle_id, shift_index), rels)| {
         let condition = create_condition(vehicle_id.clone(), shift_index);
         let details = rels.iter().fold(vec![], |mut acc, rel| {
             let order = match rel.type_field {
@@ -89,9 +89,7 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
         acc.push(Arc::new(Lock::new(condition, details)));
 
         acc
-    });
-
-    locks
+    })
 }
 
 fn read_required_jobs(
@@ -105,14 +103,14 @@ fn read_required_jobs(
 
     let get_single_from_task = |task: &JobTask, activity_type: &str, is_static_demand: bool| {
         let absent = (empty(), empty());
-        let capacity = task.demand.clone().map_or_else(|| empty(), |d| MultiDimensionalCapacity::new(d));
+        let capacity = task.demand.clone().map_or_else(empty, MultiDimensionalCapacity::new);
         let demand = if is_static_demand { (capacity, empty()) } else { (empty(), capacity) };
 
         let demand = match activity_type {
             "pickup" => Demand { pickup: demand, delivery: absent },
             "delivery" => Demand { pickup: absent, delivery: demand },
-            "replacement" => Demand { pickup: demand.clone(), delivery: demand },
-            "service" => Demand { pickup: demand, delivery: demand },
+            "replacement" => Demand { pickup: demand, delivery: demand },
+            "service" => Demand { pickup: absent, delivery: absent },
             _ => panic!("Invalid activity type."),
         };
 

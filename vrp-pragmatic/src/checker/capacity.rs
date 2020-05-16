@@ -53,8 +53,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                     .zip(0..)
                     .filter_map(|(stop, idx)| if idx == 0 || idx % 2 == 1 { Some(stop) } else { None })
                     .flat_map(|stop| {
-                        stop.clone()
-                            .activities
+                        stop.activities
                             .iter()
                             .map(move |activity| (activity.clone(), context.get_activity_type(tour, stop, activity)))
                     })
@@ -66,7 +65,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                             Ok(match demand {
                                 (DemandType::StaticDelivery, demand) => (acc.0 + demand, acc.1),
                                 (DemandType::StaticPickup, demand) => (acc.0, acc.1 + demand),
-                                (DemandType::StaticPickupDelivery, demand) => (acc.0 + demand.clone(), acc.1 + demand),
+                                (DemandType::StaticPickupDelivery, demand) => (acc.0 + demand, acc.1 + demand),
                                 _ => acc,
                             })
                         },
@@ -139,9 +138,9 @@ fn get_demand(
         activity,
         &activity_type,
         |job, task| {
-            let is_dynamic = job.pickups.as_ref().map_or(false, |p| p.len() > 0)
-                && job.deliveries.as_ref().map_or(false, |p| p.len() > 0);
-            let demand = task.demand.clone().map_or_else(|| Capacity::default(), |d| Capacity::new(d));
+            let is_dynamic = job.pickups.as_ref().map_or(false, |p| !p.is_empty())
+                && job.deliveries.as_ref().map_or(false, |p| !p.is_empty());
+            let demand = task.demand.clone().map_or_else(Capacity::default, Capacity::new);
 
             (is_dynamic, demand)
         },

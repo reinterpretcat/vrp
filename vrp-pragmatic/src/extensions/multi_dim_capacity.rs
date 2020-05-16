@@ -58,7 +58,7 @@ impl Add for MultiDimensionalCapacity {
             let mut dimens = acc;
 
             for (idx, value) in rhs.capacity.iter().enumerate() {
-                dimens.capacity[idx] += value;
+                dimens.capacity[idx] += *value;
             }
 
             dimens.size = dimens.size.max(rhs.size);
@@ -81,7 +81,7 @@ impl Sub for MultiDimensionalCapacity {
         let mut dimens = self;
 
         for (idx, value) in rhs.capacity.iter().enumerate() {
-            dimens.capacity[idx] -= value;
+            dimens.capacity[idx] -= *value;
         }
 
         dimens.size = dimens.size.max(rhs.size);
@@ -95,15 +95,7 @@ impl Ord for MultiDimensionalCapacity {
         let size = self.capacity.len().max(other.capacity.len());
         (0..size).fold(Ordering::Equal, |acc, idx| match acc {
             Ordering::Greater => Ordering::Greater,
-            Ordering::Equal => {
-                if self.get(idx) > other.get(idx) {
-                    Ordering::Greater
-                } else if self.get(idx) == other.get(idx) {
-                    Ordering::Equal
-                } else {
-                    Ordering::Less
-                }
-            }
+            Ordering::Equal => self.get(idx).cmp(&other.get(idx)),
             Ordering::Less => {
                 if self.get(idx) > other.get(idx) {
                     Ordering::Greater

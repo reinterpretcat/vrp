@@ -52,7 +52,7 @@ impl CheckerContext {
             .vehicles
             .iter()
             .find(|v| vehicle_id.starts_with(v.type_id.as_str()))
-            .ok_or(format!("Cannot find vehicle with id '{}'", vehicle_id))
+            .ok_or_else(|| format!("Cannot find vehicle with id '{}'", vehicle_id))
     }
 
     /// Gets activity operation time range in seconds since Unix epoch.
@@ -73,8 +73,10 @@ impl CheckerContext {
     /// Gets vehicle shift where activity is used.
     fn get_vehicle_shift(&self, tour: &Tour) -> Result<VehicleShift, String> {
         let tour_time = TimeWindow::new(
-            parse_time(&tour.stops.first().as_ref().ok_or_else(|| format!("Cannot get first activity"))?.time.arrival),
-            parse_time(&tour.stops.last().as_ref().ok_or_else(|| format!("Cannot get last activity"))?.time.arrival),
+            parse_time(
+                &tour.stops.first().as_ref().ok_or_else(|| "Cannot get first activity".to_string())?.time.arrival,
+            ),
+            parse_time(&tour.stops.last().as_ref().ok_or_else(|| "Cannot get last activity".to_string())?.time.arrival),
         );
 
         self.get_vehicle(tour.vehicle_id.as_str())?
@@ -145,7 +147,7 @@ impl CheckerContext {
         self.problem.plan.jobs.iter().find(|job| job.id == job_id)
     }
 
-    fn visit_job<'a, F1, F2, R>(
+    fn visit_job<F1, F2, R>(
         &self,
         activity: &Activity,
         activity_type: &ActivityType,
@@ -165,10 +167,9 @@ impl CheckerContext {
                 if tasks < 2 || (tasks == 2 && pickups == 1 && deliveries == 1) {
                     match_job_task(activity.activity_type.as_str(), job, |tasks| tasks.first())
                 } else {
-                    activity.job_tag.as_ref().ok_or(format!(
-                        "Checker requires that multi job activity must have tag: '{}'",
-                        activity.job_id
-                    ))?;
+                    activity.job_tag.as_ref().ok_or_else(|| {
+                        format!("Checker requires that multi job activity must have tag: '{}'", activity.job_id)
+                    })?;
 
                     match_job_task(activity.activity_type.as_str(), job, |tasks| {
                         tasks.iter().find(|task| task.tag == activity.job_tag)
@@ -176,7 +177,7 @@ impl CheckerContext {
                 }
                 .map(|task| job_visitor(job, task))
             }
-            .ok_or("Cannot match activity to job place".to_string()),
+            .ok_or_else(|| "Cannot match activity to job place".to_string()),
             _ => Ok(other_visitor()),
         }
     }
@@ -202,7 +203,7 @@ fn match_job_task<'a>(
     tasks.and_then(|tasks| tasks_fn(tasks))
 }
 
-fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
+fn parse_time_window(tw: &[String]) -> TimeWindow {
     TimeWindow::new(parse_time(tw.first().unwrap()), parse_time(tw.last().unwrap()))
 }
 
@@ -220,7 +221,7 @@ fn get_location(stop: &Stop, activity: &Activity) -> Location {
 }
 
 fn same_locations(left: &Location, right: &Location) -> bool {
-    left.lat == right.lat && left.lng == right.lng
+    (left.lat - right.lat).abs() < std::f64::EPSILON && (left.lng - right.lng).abs() < std::f64::EPSILON
 }
 
 mod assignment;

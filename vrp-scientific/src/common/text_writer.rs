@@ -16,7 +16,7 @@ pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) 
             .tour
             .all_activities()
             .filter(|a| a.job.is_some())
-            .map(|a| a.retrieve_job().unwrap().clone())
+            .map(|a| a.retrieve_job().unwrap())
             .map(|job| job.dimens().get_id().unwrap().clone())
             .collect::<Vec<String>>()
             .join(" ");

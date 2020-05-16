@@ -119,7 +119,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
         let (start_idx, start) = if start_idx == 0 {
             let start = route.tour.start().unwrap();
             tour.stops.push(Stop {
-                location: coord_index.get_by_idx(&start.place.location).unwrap(),
+                location: coord_index.get_by_idx(start.place.location).unwrap(),
                 time: format_schedule(&start.schedule),
                 load: start_delivery.as_vec(),
                 distance: 0,
@@ -180,7 +180,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
                 if prev_location != act.place.location {
                     tour.stops.push(Stop {
-                        location: coord_index.get_by_idx(&act.place.location).unwrap(),
+                        location: coord_index.get_by_idx(act.place.location).unwrap(),
                         time: format_as_schedule(&(arrival, departure)),
                         load: prev_load.as_vec(),
                         distance,
@@ -198,7 +198,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 last.activities.push(Activity {
                     job_id,
                     activity_type,
-                    location: Some(coord_index.get_by_idx(&act.place.location).unwrap()),
+                    location: Some(coord_index.get_by_idx(act.place.location).unwrap()),
                     time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
                     job_tag,
                 });

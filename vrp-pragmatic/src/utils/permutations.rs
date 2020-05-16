@@ -34,7 +34,7 @@ impl JobPermutation for VariableJobPermutation {
 }
 
 fn get_permutations(start: usize, end: usize) -> Permutations {
-    Permutations { idxs: (start..end + 1).collect(), swaps: vec![0; end - start + 1], i: 0 }
+    Permutations { idxs: (start..=end).collect(), swaps: vec![0; end - start + 1], i: 0 }
 }
 
 pub struct Permutations {
@@ -72,7 +72,7 @@ fn generate_sample_permutations(start: usize, end: usize, sample_size: usize) ->
     get_permutations(start, end)
         .choose_multiple(&mut rng, sample_size)
         .iter()
-        .map(|permutation| permutation.iter().map(|i| *i).collect::<Vec<usize>>())
+        .map(|permutation| permutation.iter().copied().collect::<Vec<usize>>())
         .collect()
 }
 

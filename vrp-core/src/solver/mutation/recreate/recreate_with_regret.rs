@@ -51,6 +51,7 @@ impl RegretJobMapReducer {
 }
 
 impl JobMapReducer for RegretJobMapReducer {
+    #[allow(clippy::let_and_return)]
     fn reduce<'a>(
         &'a self,
         ctx: &'a InsertionContext,

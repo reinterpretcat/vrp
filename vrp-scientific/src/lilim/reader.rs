@@ -65,7 +65,7 @@ impl<R: Read> TextReader for LilimReader<R> {
             vehicle.number,
             vehicle.capacity,
             self.matrix.collect(depot.location),
-            depot.tw.clone(),
+            depot.tw,
         ))
     }
 

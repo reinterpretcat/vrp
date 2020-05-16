@@ -14,17 +14,16 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
         .try_for_each(|(idx, relation)| {
             let tour = get_tour_by_vehicle_id(&relation.vehicle_id, relation.shift_index, &context.solution);
             // NOTE tour can be absent for tour relation
-            let tour = if tour.is_err() {
+            let tour = if let Ok(tour) = tour {
+                tour
+            } else {
                 return match relation.type_field {
                     RelationType::Any => Ok(()),
                     _ => tour.map(|_| ()),
                 };
-            } else {
-                tour.unwrap()
             };
 
             let activity_ids = get_activity_ids(&tour);
-
             let relation_ids = relation.jobs.iter().collect::<HashSet<_>>();
 
             let expected_relation_count = relation_ids.iter().try_fold(0, |acc, job_id| {
@@ -118,10 +117,8 @@ where
         if let Some(pos) = right.iter().position(|e2| e1 == *e2) {
             common.push(e1);
             right.remove(pos);
-        } else {
-            if !common.is_empty() {
-                break;
-            }
+        } else if !common.is_empty() {
+            break;
         }
     }
 

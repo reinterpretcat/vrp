@@ -29,10 +29,10 @@ fn check_e1601_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), 
                 MinimizeTours => acc.entry("minimize-tours"),
                 MaximizeTours => acc.entry("maximize-tours"),
                 MinimizeUnassignedJobs => acc.entry("minimize-unassigned"),
-                BalanceMaxLoad { options: _ } => acc.entry("balance-max-load"),
-                BalanceActivities { options: _ } => acc.entry("balance-activities"),
-                BalanceDistance { options: _ } => acc.entry("balance-distance"),
-                BalanceDuration { options: _ } => acc.entry("balance-duration"),
+                BalanceMaxLoad { .. } => acc.entry("balance-max-load"),
+                BalanceActivities { .. } => acc.entry("balance-activities"),
+                BalanceDistance { .. } => acc.entry("balance-distance"),
+                BalanceDuration { .. } => acc.entry("balance-duration"),
             }
             .and_modify(|count| *count += 1)
             .or_insert(1_usize);
