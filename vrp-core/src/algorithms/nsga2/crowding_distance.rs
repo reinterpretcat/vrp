@@ -70,5 +70,5 @@ pub fn assign_crowding_distance<'a, S>(
         })
         .collect();
 
-    return (a, objective_stat);
+    (a, objective_stat)
 }

@@ -1,6 +1,6 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/algorithms/nsga2/nsga2_test.rs"]
-mod nsga2_test;
+#[path = "../../../tests/unit/algorithms/nsga2/nsga2_sort_test.rs"]
+mod nsga2_sort_test;
 
 use super::*;
 
@@ -53,5 +53,5 @@ pub fn select_and_rank<'a, S: 'a>(
 
     debug_assert_eq!(n, result.len());
 
-    return result;
+    result
 }

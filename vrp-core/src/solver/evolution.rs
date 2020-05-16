@@ -48,7 +48,7 @@ pub fn run_evolution(problem: Arc<Problem>, config: EvolutionConfig) -> Result<B
 
     let evolution_time = Timer::start();
 
-    let mut refinement_ctx = create_refinement_ctx(problem.clone(), &mut config, &evolution_time)?;
+    let mut refinement_ctx = create_refinement_ctx(problem, &mut config, &evolution_time)?;
 
     // NOTE at the moment, only one solution is produced per generation
     while !config.termination.is_termination(&mut refinement_ctx) {
@@ -84,7 +84,7 @@ fn create_refinement_ctx(
         return Err("initial size should be less or equal population size".to_string());
     }
 
-    if config.initial_methods.len() < 1 {
+    if config.initial_methods.is_empty() {
         return Err("at least one initial method has to be specified".to_string());
     }
 
@@ -106,7 +106,7 @@ fn create_refinement_ctx(
         .for_each(|ctx| refinement_ctx.population.add(ctx));
 
     let weights = config.initial_methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
-    let empty_ctx = InsertionContext::new(problem.clone(), config.random.clone());
+    let empty_ctx = InsertionContext::new(problem, config.random.clone());
 
     let indices: Vec<_> = if config.initial_size <= config.initial_methods.len() {
         (0..config.initial_size).collect()

@@ -34,6 +34,9 @@ pub use self::random_job_removal::RandomJobRemoval;
 mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
 
+/// A type which specifies a group of multiple ruin strategies with its probability.
+pub type RuinGroup = (Vec<(Arc<dyn Ruin>, f64)>, usize);
+
 /// Provides the way to run multiple ruin methods one by one on the same solution.
 pub struct CompositeRuin {
     ruins: Vec<Vec<(Arc<dyn Ruin>, f64)>>,
@@ -64,7 +67,7 @@ impl Default for JobRemovalLimit {
 }
 
 impl CompositeRuin {
-    pub fn new(ruins: Vec<(Vec<(Arc<dyn Ruin>, f64)>, usize)>) -> Self {
+    pub fn new(ruins: Vec<RuinGroup>) -> Self {
         let weights = ruins.iter().map(|(_, weight)| *weight).collect();
         let ruins = ruins.into_iter().map(|(ruin, _)| ruin).collect();
 
@@ -76,8 +79,7 @@ impl CompositeRuin {
         let adjusted_string_aggressive = Arc::new(AdjustedStringRemoval::new(30, 120, 0.02));
 
         let cluster_default = Arc::new(ClusterRemoval::new(problem.clone(), 3..9, JobRemovalLimit::default()));
-        let cluster_aggressive =
-            Arc::new(ClusterRemoval::new(problem.clone(), 8..16, JobRemovalLimit::new(30, 120, 0.25)));
+        let cluster_aggressive = Arc::new(ClusterRemoval::new(problem, 8..16, JobRemovalLimit::new(30, 120, 0.25)));
 
         let neighbour_removal = Arc::new(NeighbourRemoval::default());
         let neighbour_aggressive = Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(30, 120, 0.25)));

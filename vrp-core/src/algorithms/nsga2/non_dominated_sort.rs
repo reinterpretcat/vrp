@@ -104,8 +104,7 @@ where
     // initial pass over each combination: O(n*n / 2)
     let mut iter = solutions.iter().enumerate();
     while let Some((p_i, p)) = iter.next() {
-        let mut pair_iter = iter.clone();
-        while let Some((q_i, q)) = pair_iter.next() {
+        for (q_i, q) in iter.clone() {
             match objective.total_order(p, q) {
                 Ordering::Less => {
                     // p dominates q, add `q` to the set of solutions dominated by `p`

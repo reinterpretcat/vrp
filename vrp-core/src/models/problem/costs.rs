@@ -31,7 +31,7 @@ impl Objective for ObjectiveCost {
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
         match dominance_order(a, b, &self.primary_objectives) {
             Ordering::Equal => dominance_order(a, b, &self.secondary_objectives),
-            order @ _ => order,
+            order => order,
         }
     }
 
@@ -267,7 +267,7 @@ impl TransportCost for TimeAwareMatrixTransportCost {
     }
 }
 
-fn dominance_order<S>(a: &S, b: &S, objectives: &Vec<Box<dyn Objective<Solution = S> + Send + Sync>>) -> Ordering {
+fn dominance_order<S>(a: &S, b: &S, objectives: &[Box<dyn Objective<Solution = S> + Send + Sync>]) -> Ordering {
     let mut less_cnt = 0;
     let mut greater_cnt = 0;
 

@@ -102,11 +102,8 @@ fn estimate_epsilon(problem: &Problem, min_points: usize) -> f64 {
     costs.sort_by(|&a, &b| compare_floats(a, b));
     let curve = costs.into_iter().enumerate().map(|(idx, cost)| Point::new(idx as f64, cost)).collect::<Vec<_>>();
 
-    // get max curvature approximation
-    let curvature = get_max_curvature(curve.as_slice());
-
-    // use max curvature as a guess for optimal epsilon value
-    curvature
+    // get max curvature approximation and return it as a guess for optimal epsilon value
+    get_max_curvature(curve.as_slice())
 }
 
 /// Gets average costs across all profiles.
@@ -116,8 +113,7 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
             acc[idx] += problem
                 .jobs
                 .neighbors(profile, &job, 0.)
-                .skip(min_points - 1)
-                .next()
+                .nth(min_points - 1)
                 // TODO consider time window difference as extra cost?
                 .map(|(_, cost)| *cost)
                 .unwrap_or(0.);

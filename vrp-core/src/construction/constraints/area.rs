@@ -104,7 +104,7 @@ impl HardActivityConstraint for AreaHardActivityConstraint {
                     .target
                     .job
                     .as_ref()
-                    .map_or(false, |job| job.places.iter().filter_map(|place| place.location.clone()).count() == 1);
+                    .map_or(false, |job| job.places.iter().filter_map(|place| place.location).count() == 1);
 
                 return Some(ActivityConstraintViolation { code: self.code, stopped });
             }
@@ -118,14 +118,14 @@ impl HardActivityConstraint for AreaHardActivityConstraint {
 fn can_serve_job_in_area(job: &Single, areas: &[Vec<(f64, f64)>], location_resolver: &LocationResolver) -> bool {
     job.places
         .iter()
-        .filter_map(|place| place.location.clone())
+        .filter_map(|place| place.location)
         .map(|location| location_resolver.deref()(location))
         .any(|location| areas.iter().any(|area| is_location_in_area(&location, area)))
 }
 
 /// Checks whether given location is inside area using ray casting algorithm.
 /// Location is interpreted as 2D point, area - as 2D polygon.
-fn is_location_in_area(location: &(f64, f64), area: &Vec<(f64, f64)>) -> bool {
+fn is_location_in_area(location: &(f64, f64), area: &[(f64, f64)]) -> bool {
     let &(x, y) = location;
 
     let mut is_inside = false;
