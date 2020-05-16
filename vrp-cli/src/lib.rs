@@ -1,4 +1,14 @@
-//! A VRP library public API.
+//! A crate for solving Vehicle Routing Problem using default metaheuristic.
+//!
+//!
+//! This crate provides ready-to-use functionality to solve rich ***Vehicle Routing Problem***.
+//!
+//! For more details check the following resources:
+//!
+//! - [`user guide`](https://reinterpretcat.github.io/vrp) describes how to use cli
+//!   application built from this crate
+//! - [`core crate`](../vrp_core/index.html) implements default metaheuristic
+//!
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]

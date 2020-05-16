@@ -1,4 +1,4 @@
-//! Utility helpers.
+//! A collection of various utility helpers.
 
 mod comparison;
 pub use self::comparison::compare_floats;

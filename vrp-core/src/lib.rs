@@ -72,6 +72,30 @@
 //!
 //! # Examples
 //!
+//! The most simple way to run solver is to use [`Builder`](./struct.Builder.html). You can tweak
+//! metaheuristic parameters by calling corresponding methods of the builder instance:
+//!
+//! ```
+//! # use vrp_core::models::examples::create_example_problem;
+//! # use std::sync::Arc;
+//! use vrp_core::solver::Builder;
+//! use vrp_core::models::Problem;
+//!
+//! // create your VRP problem
+//! let problem: Arc<Problem> = create_example_problem();
+//! // build solver to run 10 secs or 1000 generation
+//! let solver = Builder::new(problem)
+//!     .with_max_time(Some(10))
+//!     .with_max_generations(Some(1000))
+//!     .build()?;
+//! // run solver and get the best known solution within its cost.
+//! let (solution, cost) = solver.solve()?;
+//!
+//! assert_eq!(cost, 42.);
+//! assert_eq!(solution.routes.len(), 1);
+//! assert_eq!(solution.unassigned.len(), 0);
+//! # Ok::<(), String>(())
+//! ```
 //!
 
 #[cfg(test)]

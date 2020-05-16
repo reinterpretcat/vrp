@@ -1,4 +1,4 @@
-//! Models to represent problem and solution domain.
+//! A collection of models to represent problem and solution in Vehicle Routing Problem domain.
 
 pub mod common;
 pub mod matrix;

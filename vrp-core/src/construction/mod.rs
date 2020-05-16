@@ -1,6 +1,4 @@
-//! # Content
-//!
-//! Building blocks for arbitrary heuristic to construct a feasible solution.
+//! This module contains building blocks for constructive heuristics.
 //!
 //! # Insertion heuristic
 //!
@@ -18,7 +16,7 @@ pub trait Quota {
     fn is_reached(&self) -> bool;
 }
 
-pub const OP_START_MSG: &str = "Optional start is not yet implemented.";
+const OP_START_MSG: &str = "Optional start is not yet implemented.";
 
 pub mod constraints;
 pub mod heuristics;

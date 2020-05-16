@@ -1,6 +1,5 @@
 //! The *solver* module contains basic building blocks for a metaheuristic among with the default
-//! implementation which can be roughly described as "*Multi-objective Parthenogenesis based
-//! Evolutionary Algorithm with Ruin and Recreate Mutation Operator*".
+//! implementation.
 //!
 //! # Metaheuristic
 //!
@@ -8,6 +7,9 @@
 //! to develop heuristic optimization algorithms. Examples of metaheuristics include genetic/evolutionary
 //! algorithms, tabu search, simulated annealing, variable neighborhood search, (adaptive) large
 //! neighborhood search, ant colony optimization, etc.
+//!
+//! The default implementation can be roughly described as "*Multi-objective Parthenogenesis based
+//! Evolutionary Algorithm with Ruin and Recreate Mutation Operator*".
 //!
 //! # Multi-objective decision maker
 //!
