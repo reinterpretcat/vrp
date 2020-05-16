@@ -57,8 +57,7 @@ impl Default for RandomRouteRemoval {
 }
 
 impl Ruin for RandomRouteRemoval {
-    fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        let mut insertion_ctx = insertion_ctx;
+    fn run(&self, _refinement_ctx: &mut RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let max = (insertion_ctx.solution.routes.len() as f64 * self.threshold).max(self.min).round() as usize;
         let affected = insertion_ctx
             .random

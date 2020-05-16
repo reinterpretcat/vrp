@@ -40,10 +40,9 @@ impl ClusterRemoval {
 }
 
 impl Ruin for ClusterRemoval {
-    fn run(&self, _: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _: &mut RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.random.clone();
-        let mut insertion_ctx = insertion_ctx;
 
         let mut clusters = create_job_clusters(&problem, &random, self.params.as_slice());
         clusters.shuffle(&mut rand::thread_rng());

@@ -40,9 +40,7 @@ impl Default for WorstJobRemoval {
 }
 
 impl Ruin for WorstJobRemoval {
-    fn run(&self, _refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        let mut insertion_ctx = insertion_ctx;
-
+    fn run(&self, _refinement_ctx: &mut RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.random.clone();
 
