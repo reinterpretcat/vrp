@@ -21,8 +21,10 @@ Please check documentation [here](https://reinterpretcat.github.io/vrp).
 
 Although performance is constantly in focus, the main idea behind design is extensibility: the project
 aims to support a wide range of VRP variations known as Rich VRP. This is achieved through various extension
-points: custom constraints, objective functions, acceptance criteria, etc. Additionally, the project can be seen as
-playground for experiments with various metaheuristic algorithms.
+points: custom constraints, objective functions, acceptance criteria, etc.
+
+By default, it provides a metaheuristic which can be roughly described as *Multi-objective Parthenogenesis based
+Evolutionary Algorithm with Ruin and Recreate Mutation Operator*.
 
 
 # How to use
