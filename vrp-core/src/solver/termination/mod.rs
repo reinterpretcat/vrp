@@ -1,4 +1,5 @@
-//! Metaheuristic termination logic.
+//! The termination module contains logic which defines termination criteria for metaheuristic,
+//! e.g. when to stop evolution in evolutionary algorithms.
 
 use crate::solver::RefinementContext;
 
@@ -23,7 +24,7 @@ pub struct CompositeTermination {
 }
 
 impl CompositeTermination {
-    /// Creates a new instance of [`CompositeTermination`].
+    /// Creates a new instance of `CompositeTermination`.
     pub fn new(terminations: Vec<Box<dyn Termination>>) -> Self {
         Self { terminations }
     }

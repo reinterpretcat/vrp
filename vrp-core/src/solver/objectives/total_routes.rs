@@ -3,7 +3,7 @@ use super::*;
 use crate::algorithms::nsga2::Objective;
 use crate::utils::compare_floats;
 
-/// An objective function which counts total amount of routes.
+/// An objective function which controls total amount of routes.
 pub struct TotalRoutes {
     is_minimization: bool,
 }
@@ -15,10 +15,12 @@ impl Default for TotalRoutes {
 }
 
 impl TotalRoutes {
+    /// Creates an instance of `TotalRoutes` with fleet minimization as a target.
     pub fn new_minimized() -> Self {
         Self { is_minimization: true }
     }
 
+    /// Creates an instance of `TotalRoutes` with fleet maximization as a target.
     pub fn new_maximized() -> Self {
         Self { is_minimization: false }
     }

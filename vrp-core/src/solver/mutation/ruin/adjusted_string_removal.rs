@@ -12,11 +12,12 @@ use crate::solver::RefinementContext;
 use crate::utils::Random;
 use hashbrown::HashSet;
 
-/// "Adjusted string removal" ruin strategy based on "Slack Induction by String Removals for
-/// Vehicle Routing Problems" (aka SISR) by Jan Christiaens, Greet Vanden Berghe.
+/// _Adjusted string removal_ ruin strategy based on "Slack Induction by String Removals for
+/// Vehicle Routing Problems" by Jan Christiaens, Greet Vanden Berghe.
+///
 /// Some definitions from the paper:
-///     String is a sequence of consecutive nodes in a tour.
-///     Cardinality is the number of customers included in a string or tour.
+///  - _string_ is a sequence of consecutive nodes in a tour.
+///  - _cardinality_ is the number of customers included in a string or tour.
 pub struct AdjustedStringRemoval {
     /// Specifies max removed string cardinality for specific tour.
     lmax: usize,

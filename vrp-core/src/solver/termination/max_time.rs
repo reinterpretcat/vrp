@@ -2,14 +2,14 @@ use crate::solver::termination::Termination;
 use crate::solver::RefinementContext;
 use crate::utils::Timer;
 
-/// Stops when max time elapsed.
+/// A termination criteria which is in terminated state when max time elapsed.
 pub struct MaxTime {
     start: Timer,
     limit_in_secs: f64,
 }
 
 impl MaxTime {
-    /// Creates a new instance of [`QuotaReached`].
+    /// Creates a new instance of `MaxTime`.
     pub fn new(limit_in_secs: f64) -> Self {
         Self { start: Timer::start(), limit_in_secs }
     }

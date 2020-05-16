@@ -85,22 +85,19 @@ impl Builder {
 }
 
 impl Builder {
-    /// Sets max generations to be run by evolution.
-    /// Default is 2000.
+    /// Sets max generations to be run by evolution. Default is 2000.
     pub fn with_max_generations(mut self, limit: Option<usize>) -> Self {
         self.max_generations = limit;
         self
     }
 
-    /// Sets cost variation termination criteria.
-    /// Default is None.
+    /// Sets cost variation termination criteria. Default is None.
     pub fn with_cost_variation(mut self, variation: Option<(usize, f64)>) -> Self {
         self.cost_variation = variation;
         self
     }
 
-    /// Sets max running time limit for evolution.
-    /// Default is 300 seconds.
+    /// Sets max running time limit for evolution. Default is 300 seconds.
     pub fn with_max_time(mut self, limit: Option<usize>) -> Self {
         self.max_time = limit;
         self
@@ -112,8 +109,7 @@ impl Builder {
         self
     }
 
-    /// Sets initial solutions in population.
-    /// Default is no solutions in population.
+    /// Sets initial solutions in population. Default is no solutions in population.
     pub fn with_solutions(mut self, solutions: Vec<Arc<Solution>>) -> Self {
         self.config.logger.deref()(format!("provided {} initial solutions to start with", solutions.len()));
         self.config.initial_individuals = solutions
@@ -129,24 +125,21 @@ impl Builder {
         self
     }
 
-    /// Sets population size.
-    /// Default is 4.
+    /// Sets population size. Default is 4.
     pub fn with_population_size(mut self, size: usize) -> Self {
         self.config.logger.deref()(format!("configured to use population size: {} ", size));
         self.config.population_size = size;
         self
     }
 
-    /// Sets offspring size.
-    /// Default is 4.
+    /// Sets offspring size. Default is 4.
     pub fn with_offspring_size(mut self, size: usize) -> Self {
         self.config.logger.deref()(format!("configured to use offspring size: {} ", size));
         self.config.offspring_size = size;
         self
     }
 
-    /// Sets elite size.
-    /// Default is 2.
+    /// Sets elite size. Default is 2.
     pub fn with_elite_size(mut self, size: usize) -> Self {
         self.config.logger.deref()(format!("configured to use elite size: {} ", size));
         self.config.elite_size = size;
@@ -162,21 +155,19 @@ impl Builder {
         self
     }
 
-    /// Sets mutation algorithm.
-    /// Default is ruin and recreate.
+    /// Sets mutation algorithm. Default is ruin and recreate.
     pub fn with_mutation(mut self, mutation: Box<dyn Mutation>) -> Self {
         self.config.mutation = mutation;
         self
     }
 
-    /// Sets termination algorithm.
-    /// Default is max time and max generations.
+    /// Sets termination algorithm. Default is max time and max generations.
     pub fn with_termination(mut self, termination: Box<dyn Termination>) -> Self {
         self.config.termination = termination;
         self
     }
 
-    /// Builds solver with parameters specified.
+    /// Builds [`Solver`](./struct.Solver.html) instance.
     pub fn build(self) -> Result<Solver, String> {
         let problem = self.config.problem.clone();
         let mut config = self.config;

@@ -115,7 +115,8 @@ impl JobSelector for RankedJobSelector {
     }
 }
 
-/// Selects best result with "blinks" - select random one with some probability.
+/// A recreate strategy with blinks inspired by "Slack Induction by String Removals for Vehicle
+/// Routing Problems", Jan Christiaens, Greet Vanden Berghe.
 struct BlinkResultSelector {
     ratio: f64,
 }

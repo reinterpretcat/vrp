@@ -9,7 +9,7 @@ pub struct NeighbourRemoval {
 }
 
 impl NeighbourRemoval {
-    /// Creates a new instance of [`NeighbourRemoval`].
+    /// Creates a new instance of `NeighbourRemoval`.
     pub fn new(limit: JobRemovalLimit) -> Self {
         Self { limit }
     }

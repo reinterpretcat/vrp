@@ -112,12 +112,12 @@ use self::evolution::{run_evolution, EvolutionConfig};
 mod population;
 pub use self::population::DominancePopulation;
 
-/// Contains information needed to perform refinement.
+/// A type which encapsulates information needed to perform solution refinement process.
 pub struct RefinementContext {
-    /// Original problem.
+    /// Original problem definition.
     pub problem: Arc<Problem>,
 
-    /// Specifies population with discovered solutions.
+    /// A population which tracks best discovered solutions.
     pub population: Box<dyn Population + Sync + Send>,
 
     /// A collection of data associated with refinement process.
@@ -126,19 +126,19 @@ pub struct RefinementContext {
     /// A quota for refinement process.
     pub quota: Option<Box<dyn Quota + Send + Sync>>,
 
-    /// Specifies refinement generation.
+    /// A number which specifies refinement generation.
     pub generation: usize,
 }
 
 /// Represents solution in population defined as actual solution.
 pub type Individual = InsertionContext;
 
-/// Represents a solution population.
+/// A trait which models a population with individuals (solutions).
 pub trait Population {
-    /// Adds individual into population.
+    /// Adds an individual into the population.
     fn add(&mut self, individual: Individual);
 
-    /// Returns all solutions from population sorted according their quality.
+    /// Returns all solutions from the population sorted according their quality.
     fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a>;
 
     /// Returns best solution from the population.
@@ -147,7 +147,7 @@ pub trait Population {
     /// Returns one of solutions from the population.
     fn select(&self) -> &Individual;
 
-    /// Returns size of population.
+    /// Returns population size.
     fn size(&self) -> usize;
 }
 
@@ -162,10 +162,10 @@ impl RefinementContext {
     }
 }
 
-/// A logger type.
+/// A logger type which prints various information regarding the work done by the VRP solver.
 pub type Logger = Arc<dyn Fn(String) -> ()>;
 
-/// A Vehicle Routing Problem Solver which utilizes default metaheuristic.
+/// A Vehicle Routing Problem Solver based on evolutionary algorithm.
 pub struct Solver {
     /// A VRP problem definition.
     pub problem: Arc<Problem>,
@@ -174,7 +174,7 @@ pub struct Solver {
 }
 
 impl Solver {
-    /// Solves a Vehicle Routing Problem and returns a (solution, its cost) pair in case of success
+    /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
     /// or error description, if solution cannot be found.
     ///
     /// # Examples

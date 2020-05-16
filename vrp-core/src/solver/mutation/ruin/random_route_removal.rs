@@ -18,7 +18,7 @@ pub struct RandomRouteRemoval {
 }
 
 impl RandomRouteRemoval {
-    /// Creates a new instance of [`RandomRouteRemoval`].
+    /// Creates a new instance of `RandomRouteRemoval`.
     pub fn new(rmin: usize, rmax: usize, threshold: f64) -> Self {
         Self { min: rmin as f64, max: rmax as f64, threshold }
     }

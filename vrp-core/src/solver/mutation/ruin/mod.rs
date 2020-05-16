@@ -1,4 +1,5 @@
-//! A various strategies to destroy parts of an existing solution.
+//! The ruin module contains various strategies to destroy small, medium or large parts of an
+//! existing solution.
 
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;

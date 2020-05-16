@@ -6,7 +6,7 @@ use super::*;
 use crate::algorithms::nsga2::Objective;
 use crate::utils::compare_floats;
 
-/// An objective function which calculate total cost.
+/// An objective function for total cost minimization as a target.
 pub struct TotalTransportCost {}
 
 impl Default for TotalTransportCost {

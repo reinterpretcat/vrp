@@ -1,4 +1,4 @@
-//! Contains logic to build a feasible solution from partially ruined one.
+//! The recreate module contains logic to build a feasible solution from partially ruined.
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
@@ -26,19 +26,22 @@ pub use self::recreate_with_nearest_neighbor::*;
 use crate::models::Problem;
 use std::sync::Arc;
 
-/// Provides the way to run one of multiple recreate methods.
+/// Provides the way to run one of multiple recreate methods with different probability.
 pub struct CompositeRecreate {
     recreates: Vec<Box<dyn Recreate>>,
     weights: Vec<usize>,
 }
 
 impl CompositeRecreate {
+    /// Creates a new instance of `CompositeRecreate` using list of recreate strategies.
     pub fn new(recreates: Vec<(Box<dyn Recreate>, usize)>) -> Self {
         let weights = recreates.iter().map(|(_, weight)| *weight).collect();
         let recreates = recreates.into_iter().map(|(recreate, _)| recreate).collect();
         Self { recreates, weights }
     }
 
+    /// Creates a new instance of `CompositeRecreate` for given problem using default recreate
+    /// strategies.
     pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
         Self::new(vec![
             (Box::new(RecreateWithCheapest::default()), 100),

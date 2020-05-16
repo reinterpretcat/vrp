@@ -27,6 +27,7 @@ pub struct WorstJobRemoval {
 }
 
 impl WorstJobRemoval {
+    /// Creates a new instance of `WorstJobRemoval`.
     pub fn new(worst_skip: usize, limit: JobRemovalLimit) -> Self {
         Self { limit, worst_skip }
     }

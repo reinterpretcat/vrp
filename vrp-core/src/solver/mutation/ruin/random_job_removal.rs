@@ -9,7 +9,7 @@ pub struct RandomJobRemoval {
 }
 
 impl RandomJobRemoval {
-    /// Creates a new instance of [`RandomJobRemoval`].
+    /// Creates a new instance of `RandomJobRemoval`.
     pub fn new(limit: JobRemovalLimit) -> Self {
         Self { limit }
     }

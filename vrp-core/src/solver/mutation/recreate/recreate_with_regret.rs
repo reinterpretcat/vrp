@@ -7,7 +7,7 @@ use crate::utils::parallel_collect;
 use std::cmp::Ordering::*;
 use std::ops::Deref;
 
-/// A recreate method which uses regret insertion approach.
+/// A recreate strategy which uses regret insertion heuristic to insert jobs into solution.
 pub struct RecreateWithRegret {
     job_selector: Box<dyn JobSelector + Send + Sync>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,

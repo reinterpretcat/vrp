@@ -11,11 +11,11 @@ use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
 
-/// Provides functionality needed to balance work across all routes.
+/// A type which provides functionality needed to balance work across all routes.
 pub struct WorkBalance {}
 
 impl WorkBalance {
-    /// Creates `WorkBalanceModule` which balances max load across all tours.
+    /// Creates _(constraint, objective)_  type pair which balances max load across all tours.
     pub fn new_load_balanced<Capacity>(
         threshold: Option<f64>,
         tolerance: Option<f64>,
@@ -73,7 +73,7 @@ impl WorkBalance {
         (Box::new(constraint), Box::new(objective))
     }
 
-    /// Creates `WorkBalanceModule` which balances activities across all tours.
+    /// Creates _(constraint, objective)_  type pair which balances activities across all tours.
     pub fn new_activity_balanced(
         threshold: Option<f64>,
         tolerance: Option<f64>,
@@ -102,7 +102,7 @@ impl WorkBalance {
         (Box::new(constraint), Box::new(objective))
     }
 
-    /// Creates `WorkBalanceModule` which balances travelled distances across all tours.
+    /// Creates _(constraint, objective)_  type pair which balances travelled distances across all tours.
     pub fn new_distance_balanced(
         threshold: Option<f64>,
         tolerance: Option<f64>,
@@ -110,7 +110,7 @@ impl WorkBalance {
         Self::new_transport_balanced(threshold, tolerance, TOTAL_DISTANCE_KEY, BALANCE_DISTANCE_KEY)
     }
 
-    /// Creates `WorkBalanceModule` which balances travelled durations across all tours.
+    /// Creates _(constraint, objective)_  type pair which balances travelled durations across all tours.
     pub fn new_duration_balanced(
         threshold: Option<f64>,
         tolerance: Option<f64>,

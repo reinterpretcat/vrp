@@ -1,7 +1,7 @@
 use super::*;
 use crate::algorithms::nsga2::Objective;
 
-/// An objective function which counts total amount of unassigned jobs.
+/// An objective function which minimizes amount of unassigned jobs as a target.
 pub struct TotalUnassignedJobs {}
 
 impl Default for TotalUnassignedJobs {

@@ -1,3 +1,11 @@
+//! The mutation module specifies building blocks for mutation operator used by evolution.
+//!
+//! The default implementation of mutation operator is `RuinAndRecreateMutation` which is based on
+//! **ruin and recreate** principle, introduced by [`Schrimpf et al. (2000)`].
+//!
+//! [`Schrimpf et al. (2000)`]: https://www.sciencedirect.com/science/article/pii/S0021999199964136
+//!
+
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
 
@@ -9,23 +17,28 @@ pub use self::ruin::*;
 use crate::models::Problem;
 use std::sync::Arc;
 
-/// Mutates given insertion context.
+/// A trait which defines mutation behavior.
 pub trait Mutation {
+    /// Changes given refinement context and consumes passed insertion context.
+    /// Returns an insertion context with potentially new feasible solution.
     fn mutate(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
-/// A mutation which implements ruin and recreate metaheuristic.
+/// A mutation operator based on ruin and recreate principle.
 pub struct RuinAndRecreateMutation {
-    pub recreate: Box<dyn Recreate>,
+    /// A ruin method.
     pub ruin: Box<dyn Ruin>,
+    /// A recreate method.
+    pub recreate: Box<dyn Recreate>,
 }
 
 impl RuinAndRecreateMutation {
-    /// Creates a new instance of [`RuinAndRecreateMutation`].
+    /// Creates a new instance of `RuinAndRecreateMutation` using given ruin and recreate methods.
     pub fn new(recreate: Box<dyn Recreate>, ruin: Box<dyn Ruin>) -> Self {
         Self { recreate, ruin }
     }
 
+    /// Creates a new instance of `RuinAndRecreateMutation` using default ruin and recreate methods.
     pub fn new_from_problem(problem: Arc<Problem>) -> Self {
         Self {
             recreate: Box::new(CompositeRecreate::new_from_problem(problem.clone())),

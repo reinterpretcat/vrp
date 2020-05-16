@@ -16,7 +16,10 @@ use rand::prelude::*;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
 
-/// A ruin strategy which removes job clusters using DBSCAN algorithm.
+/// A ruin strategy which removes job clusters using [`DBSCAN`] algorithm.
+///
+/// [`DBSCAN`]: ../../algorithms/dbscan/index.html
+///
 pub struct ClusterRemoval {
     /// Stores possible pairs of `min_point` and `epsilon` parameter values.
     params: Vec<(usize, f64)>,
@@ -25,6 +28,7 @@ pub struct ClusterRemoval {
 }
 
 impl ClusterRemoval {
+    /// Creates a new instance of `ClusterRemoval`.
     pub fn new(problem: Arc<Problem>, cluster_size: Range<usize>, limit: JobRemovalLimit) -> Self {
         let min = cluster_size.start.max(3);
         let max = cluster_size.end.min(problem.jobs.size()).max(min + 1);

@@ -8,7 +8,8 @@ use crate::models::common::Cost;
 use crate::solver::termination::Termination;
 use crate::solver::RefinementContext;
 
-/// Stops when maximum amount of generations is exceeded.
+/// A termination criteria which is in terminated state based on cost variation during the refinement
+/// process.
 pub struct CostVariation {
     sample: usize,
     threshold: f64,
@@ -16,7 +17,7 @@ pub struct CostVariation {
 }
 
 impl CostVariation {
-    /// Creates a new instance of [`CostVariation`].
+    /// Creates a new instance of `CostVariation`.
     pub fn new(sample: usize, threshold: f64) -> Self {
         Self { sample, threshold, key: "coeff_var".to_string() }
     }

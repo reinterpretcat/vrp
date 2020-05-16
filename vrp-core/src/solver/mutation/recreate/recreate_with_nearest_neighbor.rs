@@ -3,7 +3,7 @@ use crate::construction::heuristics::*;
 use crate::solver::mutation::Recreate;
 use crate::solver::RefinementContext;
 
-/// Recreates solution using nearest neighbor algorithm.
+/// A recreate strategy which solution using nearest neighbor algorithm.
 pub struct RecreateWithNearestNeighbor {
     job_selector: Box<dyn JobSelector + Send + Sync>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,
