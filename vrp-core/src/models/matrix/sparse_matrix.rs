@@ -22,7 +22,7 @@ impl AdjacencyMatrix for SparseMatrix {
         let cells = self.data.entry(row).or_insert_with(|| vec![]);
         cells.push((col, value));
         cells.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
-        self.values.insert(unsafe { std::mem::transmute(value) });
+        self.values.insert(value.to_bits() as i64);
     }
 
     fn scan_row<F>(&self, row: usize, predicate: F) -> Option<usize>

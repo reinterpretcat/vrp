@@ -94,6 +94,5 @@ impl Hash for Location {
 }
 
 fn write_hash<H: Hasher>(value: f64, state: &mut H) {
-    let value: u64 = unsafe { std::mem::transmute(value) };
-    state.write_u64(value);
+    state.write_u64(value.to_bits());
 }

@@ -113,7 +113,7 @@ fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .profiles
         .iter()
         .map(|profile| profile.speed.unwrap_or(DEFAULT_SPEED))
-        .map(|speed| unsafe { std::mem::transmute(speed) })
+        .map(|speed| speed.to_bits())
         .collect::<HashSet<u64>>();
     let speeds = speeds.into_iter().map(f64::from_bits).collect::<Vec<_>>();
 

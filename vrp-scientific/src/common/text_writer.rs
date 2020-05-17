@@ -9,7 +9,7 @@ pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) 
         return Err(Error::new(ErrorKind::Other, "Cannot write text solution with unassigned jobs."));
     }
 
-    writer.write_all("Solution\n".as_bytes())?;
+    writer.write_all(b"Solution\n")?;
 
     solution.routes.iter().zip(1..).for_each(|(r, i)| {
         let customers = r

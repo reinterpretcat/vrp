@@ -66,8 +66,8 @@ impl Point {
 
 impl Point {
     fn transmute(&self) -> (i64, i64) {
-        let x: i64 = unsafe { std::mem::transmute(self.x) };
-        let y: i64 = unsafe { std::mem::transmute(self.y) };
+        let x = self.x.to_bits() as i64;
+        let y = self.y.to_bits() as i64;
 
         (x, y)
     }

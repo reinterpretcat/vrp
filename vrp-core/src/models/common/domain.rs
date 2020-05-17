@@ -74,8 +74,8 @@ impl Eq for TimeWindow {}
 
 impl Hash for TimeWindow {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let start: i64 = unsafe { std::mem::transmute(self.start) };
-        let end: i64 = unsafe { std::mem::transmute(self.end) };
+        let start = self.start.to_bits() as i64;
+        let end = self.end.to_bits() as i64;
 
         start.hash(state);
         end.hash(state);

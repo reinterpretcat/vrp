@@ -139,11 +139,11 @@ impl Fleet {
 
 impl Hash for Costs {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let fixed: i64 = unsafe { std::mem::transmute(self.fixed) };
-        let per_distance: i64 = unsafe { std::mem::transmute(self.per_distance) };
-        let per_driving_time: i64 = unsafe { std::mem::transmute(self.per_driving_time) };
-        let per_service_time: i64 = unsafe { std::mem::transmute(self.per_service_time) };
-        let per_waiting_time: i64 = unsafe { std::mem::transmute(self.per_waiting_time) };
+        let fixed = self.fixed.to_bits() as i64;
+        let per_distance = self.per_distance.to_bits() as i64;
+        let per_driving_time = self.per_driving_time.to_bits() as i64;
+        let per_service_time = self.per_service_time.to_bits() as i64;
+        let per_waiting_time = self.per_waiting_time.to_bits() as i64;
 
         fixed.hash(state);
         per_distance.hash(state);
