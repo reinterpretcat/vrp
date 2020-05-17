@@ -87,7 +87,7 @@ impl Population for DominancePopulation {
                 .collect::<Vec<_>>();
 
         // sort population according to best order
-        (0..self.individuals.len()).for_each(|i| loop {
+        (0..best_order.len()).for_each(|i| loop {
             let (_, j, _, _) = best_order[i];
             let (_, k, _, _) = best_order[j];
 
