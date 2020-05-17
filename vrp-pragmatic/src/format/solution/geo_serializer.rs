@@ -26,7 +26,7 @@ struct FeatureCollection {
 }
 
 fn slice_to_map(vec: &[(&str, &str)]) -> HashMap<String, String> {
-    vec.into_iter().map(|(key, value)| (key.to_string(), value.to_string())).collect()
+    vec.iter().map(|&(key, value)| (key.to_string(), value.to_string())).collect()
 }
 
 fn get_marker_symbol(stop: &Stop) -> String {
@@ -94,10 +94,7 @@ pub fn serialize_solution_as_geojson<W: Write>(writer: BufWriter<W>, solution: &
         .enumerate()
         .map(|(tour_idx, tour)| get_tour_line(tour_idx, tour, get_color(tour_idx).as_str()));
 
-    serde_json::to_writer_pretty(
-        writer,
-        &FeatureCollection { features: stop_markers.into_iter().chain(stop_lines.into_iter()).collect() },
-    )
+    serde_json::to_writer_pretty(writer, &FeatureCollection { features: stop_markers.chain(stop_lines).collect() })
 }
 
 fn get_color(idx: usize) -> String {
@@ -105,7 +102,7 @@ fn get_color(idx: usize) -> String {
 
     let idx = idx % COLOR_LIST.len();
 
-    COLOR_LIST.get(idx).as_ref().unwrap().to_string()
+    (**COLOR_LIST.get(idx).as_ref().unwrap()).to_string()
 }
 
 fn get_color_inverse(idx: usize) -> String {
@@ -113,7 +110,7 @@ fn get_color_inverse(idx: usize) -> String {
 
     let idx = (COLOR_LIST.len() - idx) % COLOR_LIST.len();
 
-    COLOR_LIST.get(idx).as_ref().unwrap().to_string()
+    (**COLOR_LIST.get(idx).as_ref().unwrap()).to_string()
 }
 
 type ColorList = &'static [&'static str; 15];

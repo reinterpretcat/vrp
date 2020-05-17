@@ -45,16 +45,13 @@ fn check_e1101_correct_job_types_demand(ctx: &ValidationContext) -> Result<(), F
 
 /// Checks that sum of pickup/delivery demand should be equal.
 fn check_e1102_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| tasks.len() > 0);
+    let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| !tasks.is_empty());
     let get_demand = |tasks: &Option<Vec<JobTask>>| {
         if let Some(tasks) = tasks {
             tasks
                 .iter()
                 .map(|task| {
-                    task.demand.clone().map_or_else(
-                        || MultiDimensionalCapacity::default(),
-                        |demand| MultiDimensionalCapacity::new(demand),
-                    )
+                    task.demand.clone().map_or_else(MultiDimensionalCapacity::default, MultiDimensionalCapacity::new)
                 })
                 .sum()
         } else {

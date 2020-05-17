@@ -7,7 +7,7 @@ use crate::format::problem::Objective::*;
 use std::collections::HashMap;
 
 /// Checks that objective is not empty when specified.
-fn check_e1600_empty_objective(objectives: &Vec<&Objective>) -> Result<(), FormatError> {
+fn check_e1600_empty_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
     if objectives.is_empty() {
         Err(FormatError::new(
             "E1600".to_string(),
@@ -20,7 +20,7 @@ fn check_e1600_empty_objective(objectives: &Vec<&Objective>) -> Result<(), Forma
 }
 
 /// Checks that each objective type specified only once.
-fn check_e1601_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), FormatError> {
+fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), FormatError> {
     let mut duplicates = objectives
         .iter()
         .fold(HashMap::new(), |mut acc, objective| {
@@ -40,7 +40,7 @@ fn check_e1601_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), 
             acc
         })
         .iter()
-        .filter_map(|(name, count)| if *count > 1 { Some(name.to_string()) } else { None })
+        .filter_map(|(name, count)| if *count > 1 { Some((*name).to_string()) } else { None })
         .collect::<Vec<_>>();
 
     duplicates.sort();
@@ -57,7 +57,7 @@ fn check_e1601_duplicate_objectives(objectives: &Vec<&Objective>) -> Result<(), 
 }
 
 /// Checks that cost objective is specified.
-fn check_e1602_no_cost_value_objective(objectives: &Vec<&Objective>) -> Result<(), FormatError> {
+fn check_e1602_no_cost_value_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
     let min_costs = objectives
         .iter()
         .filter(|objective| match objective {

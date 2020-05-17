@@ -57,8 +57,8 @@ pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option
             let job_proto = get_random_item(problem_proto.plan.jobs.as_slice(), &rnd).unwrap();
 
             // TODO implement more sophisticated logic for jobs with pickup and delivery
-            let keep_original_demand = job_proto.pickups.as_ref().map_or(false, |t| t.len() > 0)
-                && job_proto.deliveries.as_ref().map_or(false, |t| t.len() > 0);
+            let keep_original_demand = job_proto.pickups.as_ref().map_or(false, |t| !t.is_empty())
+                && job_proto.deliveries.as_ref().map_or(false, |t| !t.is_empty());
 
             Job {
                 id: format!("job{}", job_idx),
@@ -93,8 +93,8 @@ fn get_bounding_box_from_plan(plan: &Plan) -> (Location, Location) {
 }
 
 fn get_bounding_box_from_size(plan: &Plan, area_size: f64) -> (Location, Location) {
-    const WGS84_A: f64 = 6378137.0;
-    const WGS84_B: f64 = 6356752.3;
+    const WGS84_A: f64 = 6_378_137.0;
+    const WGS84_B: f64 = 6_356_752.3;
     let deg_to_rad = |deg| std::f64::consts::PI * deg / 180.;
     let rad_to_deg = |rad| 180. * rad / std::f64::consts::PI;
 

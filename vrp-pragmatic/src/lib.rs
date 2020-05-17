@@ -40,10 +40,10 @@ fn format_time(time: f64) -> String {
     Utc.timestamp(time as i64, 0).to_rfc3339_opts(SecondsFormat::Secs, true)
 }
 
-fn parse_time(time: &String) -> f64 {
+fn parse_time(time: &str) -> f64 {
     parse_time_safe(time).unwrap()
 }
 
-fn parse_time_safe(time: &String) -> Result<f64, ParseError> {
+fn parse_time_safe(time: &str) -> Result<f64, ParseError> {
     DateTime::parse_from_rfc3339(time).map(|time| time.timestamp() as f64)
 }

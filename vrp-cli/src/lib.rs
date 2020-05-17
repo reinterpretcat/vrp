@@ -198,7 +198,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     Ok(buffer)
 }
 
-pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &String) -> Result<String, String> {
+pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &str) -> Result<String, String> {
     let config = read_config(BufReader::new(config_str.as_bytes())).map_err(|err| {
         FormatError::new(
             "E0004".to_string(),
@@ -227,6 +227,6 @@ pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &String) 
     Ok(buffer)
 }
 
-pub fn get_errors_serialized(errors: &Vec<FormatError>) -> String {
+pub fn get_errors_serialized(errors: &[FormatError]) -> String {
     errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n")
 }

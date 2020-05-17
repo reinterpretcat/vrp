@@ -4,23 +4,23 @@ use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
 
 /// Checks time window rules.
-pub fn check_raw_time_windows(tws: &Vec<Vec<String>>, skip_intersection_check: bool) -> bool {
+pub fn check_raw_time_windows(tws: &[Vec<String>], skip_intersection_check: bool) -> bool {
     let tws = get_time_windows(tws);
     check_time_windows(&tws, skip_intersection_check)
 }
 
 /// Checks time window rules.
-pub fn check_time_windows(tws: &Vec<Option<TimeWindow>>, skip_intersection_check: bool) -> bool {
+pub fn check_time_windows(tws: &[Option<TimeWindow>], skip_intersection_check: bool) -> bool {
     if tws.iter().any(|tw| tw.is_none()) {
         false
     } else {
-        let mut tws = tws.into_iter().map(|tw| tw.clone().unwrap()).collect::<Vec<_>>();
-        if let &[a] = &tws.as_slice() {
+        let mut tws = tws.iter().map(|tw| tw.clone().unwrap()).collect::<Vec<_>>();
+        if let [a] = tws.as_slice() {
             a.start <= a.end
         } else {
             tws.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap_or(Less));
             tws.windows(2).any(|pair| {
-                if let &[a, b] = &pair {
+                if let [a, b] = pair {
                     a.start <= a.end && b.start <= b.end && (skip_intersection_check || !a.intersects(b))
                 } else {
                     false
@@ -30,7 +30,7 @@ pub fn check_time_windows(tws: &Vec<Option<TimeWindow>>, skip_intersection_check
     }
 }
 
-pub fn get_time_window(start: &String, end: &String) -> Option<TimeWindow> {
+pub fn get_time_window(start: &str, end: &str) -> Option<TimeWindow> {
     let start = parse_time_safe(start);
     let end = parse_time_safe(end);
 
@@ -42,7 +42,7 @@ pub fn get_time_window(start: &String, end: &String) -> Option<TimeWindow> {
 }
 
 /// Get time windows.
-pub fn get_time_window_from_vec(tw: &Vec<String>) -> Option<TimeWindow> {
+pub fn get_time_window_from_vec(tw: &[String]) -> Option<TimeWindow> {
     if tw.len() != 2 {
         None
     } else {
@@ -51,8 +51,8 @@ pub fn get_time_window_from_vec(tw: &Vec<String>) -> Option<TimeWindow> {
 }
 
 /// Get time windows.
-pub fn get_time_windows(tws: &Vec<Vec<String>>) -> Vec<Option<TimeWindow>> {
-    tws.iter().map(get_time_window_from_vec).collect::<Vec<_>>()
+pub fn get_time_windows(tws: &[Vec<String>]) -> Vec<Option<TimeWindow>> {
+    tws.iter().map(|tw| get_time_window_from_vec(tw)).collect::<Vec<_>>()
 }
 
 /// Returns a duplicates

@@ -32,7 +32,7 @@ fn can_lock_jobs_to_actor_impl(used: String, locked: String, expected: Option<Ro
     ))];
     let solution_ctx = create_empty_solution_context();
     let route_ctx = create_route_context_with_activities(&fleet, used.as_str(), vec![]);
-    let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, locks, 1)));
+    let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, &locks, 1)));
 
     let result = pipeline.evaluate_hard_route(&solution_ctx, &route_ctx, &job);
 
@@ -160,7 +160,7 @@ fn can_lock_jobs_to_position_in_tour_impl(
     let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
     let locks =
         vec![Arc::new(Lock::new(Arc::new(|_| true), vec![LockDetail::new(LockOrder::Strict, lock_position, jobs)]))];
-    let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, locks, 1)));
+    let pipeline = create_constraint_pipeline_with_module(Box::new(StrictLockingModule::new(&fleet, &locks, 1)));
 
     let result = pipeline.evaluate_hard_activity(
         &create_route_context_with_activities(&fleet, "v1", vec![]),

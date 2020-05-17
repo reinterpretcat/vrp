@@ -6,7 +6,7 @@ use super::*;
 use std::collections::{HashMap, HashSet};
 
 /// Checks that relation job ids are defined in plan.
-fn check_e1200_job_existence(ctx: &ValidationContext, relations: &Vec<Relation>) -> Result<(), FormatError> {
+fn check_e1200_job_existence(ctx: &ValidationContext, relations: &[Relation]) -> Result<(), FormatError> {
     let job_ids = relations
         .iter()
         .flat_map(|relation| {
@@ -32,7 +32,7 @@ fn check_e1200_job_existence(ctx: &ValidationContext, relations: &Vec<Relation>)
 
 /// Checks that relation vehicle ids are defined in fleet.
 fn check_e1201_vehicle_existence(
-    relations: &Vec<Relation>,
+    relations: &[Relation],
     vehicle_map: &HashMap<String, &VehicleType>,
 ) -> Result<(), FormatError> {
     let vehicle_ids = relations
@@ -53,7 +53,7 @@ fn check_e1201_vehicle_existence(
 }
 
 /// Checks that relation vehicle ids are defined in fleet.
-fn check_e1202_empty_job_list(relations: &Vec<Relation>) -> Result<(), FormatError> {
+fn check_e1202_empty_job_list(relations: &[Relation]) -> Result<(), FormatError> {
     let has_empty_relations = relations.iter().any(|relation| relation.jobs.is_empty());
 
     if has_empty_relations {
@@ -68,7 +68,7 @@ fn check_e1202_empty_job_list(relations: &Vec<Relation>) -> Result<(), FormatErr
 }
 
 /// Checks that relation has no jobs with multiple places or time windows.
-fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &Vec<Relation>) -> Result<(), FormatError> {
+fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &[Relation]) -> Result<(), FormatError> {
     let mut job_ids = relations
         .iter()
         .filter(|relation| match relation.type_field {
@@ -110,7 +110,7 @@ fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &Vec
 }
 
 /// Checks that relation job is assigned to one vehicle.
-fn check_e1204_job_assigned_to_multiple_vehicles(relations: &Vec<Relation>) -> Result<(), FormatError> {
+fn check_e1204_job_assigned_to_multiple_vehicles(relations: &[Relation]) -> Result<(), FormatError> {
     let mut job_vehicle_map = HashMap::<String, String>::new();
     let job_ids: Vec<String> = relations
         .iter()
@@ -121,7 +121,8 @@ fn check_e1204_job_assigned_to_multiple_vehicles(relations: &Vec<Relation>) -> R
                 .into_iter()
                 .filter(|job_id| !is_reserved_job_id(job_id))
                 .filter(|job_id| {
-                    *job_vehicle_map.entry(job_id.clone()).or_insert(relation.vehicle_id.clone()) != relation.vehicle_id
+                    *job_vehicle_map.entry(job_id.clone()).or_insert_with(|| relation.vehicle_id.clone())
+                        != relation.vehicle_id
                 })
                 .collect::<Vec<String>>()
                 .into_iter()

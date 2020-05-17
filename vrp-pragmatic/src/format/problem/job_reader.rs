@@ -144,12 +144,12 @@ fn read_required_jobs(
                 )
                 .collect::<Vec<_>>();
 
-        assert!(singles.len() > 0);
+        assert!(!singles.is_empty());
 
         let problem_job = if singles.len() > 1 {
-            get_multi_job(&job.id, &job.priority, &job.skills, singles, job.pickups.as_ref().map_or(0, |p| p.len()))
+            get_multi_job(&job.id, job.priority, &job.skills, singles, job.pickups.as_ref().map_or(0, |p| p.len()))
         } else {
-            get_single_job(&job.id, singles.into_iter().next().unwrap(), &job.priority, &job.skills)
+            get_single_job(&job.id, singles.into_iter().next().unwrap(), job.priority, &job.skills)
         };
 
         job_index.insert(job.id.clone(), problem_job.clone());
@@ -186,7 +186,7 @@ fn read_breaks(
     jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
-    breaks: &Vec<VehicleBreak>,
+    breaks: &[VehicleBreak],
 ) {
     (1..)
         .zip(breaks.iter())
@@ -212,7 +212,7 @@ fn read_breaks(
                     let places = if let Some(locations) = &place.locations {
                         assert!(!locations.is_empty());
                         locations
-                            .into_iter()
+                            .iter()
                             .map(|location| (Some(location.clone()), place.duration, times.clone()))
                             .collect()
                     } else {
@@ -234,7 +234,7 @@ fn read_reloads(
     jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
-    reloads: &Vec<VehicleReload>,
+    reloads: &[VehicleReload],
 ) {
     (1..)
         .zip(reloads.iter())
@@ -276,7 +276,7 @@ fn get_conditional_job(
     single.dimens.set_id(job_type);
     single.dimens.set_value("type", job_type.to_string());
     single.dimens.set_value("shift_index", shift_index);
-    single.dimens.set_value("vehicle_id", vehicle_id.clone());
+    single.dimens.set_value("vehicle_id", vehicle_id);
     if let Some(tag) = tag {
         single.dimens.set_value("tag", tag.clone());
     }
@@ -327,9 +327,9 @@ fn get_single_with_extras(
     single
 }
 
-fn get_single_job(id: &String, single: Single, priority: &Option<i32>, skills: &Option<Vec<String>>) -> Job {
+fn get_single_job(id: &str, single: Single, priority: Option<i32>, skills: &Option<Vec<String>>) -> Job {
     let mut single = single;
-    single.dimens.set_id(id.as_str());
+    single.dimens.set_id(id);
 
     add_priority(&mut single.dimens, priority);
     add_skills(&mut single.dimens, skills);
@@ -338,14 +338,14 @@ fn get_single_job(id: &String, single: Single, priority: &Option<i32>, skills: &
 }
 
 fn get_multi_job(
-    id: &String,
-    priority: &Option<i32>,
+    id: &str,
+    priority: Option<i32>,
     skills: &Option<Vec<String>>,
     singles: Vec<Single>,
     deliveries_start_index: usize,
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
-    dimens.set_id(id.as_str());
+    dimens.set_id(id);
     add_priority(&mut dimens, priority);
     add_skills(&mut dimens, skills);
 
@@ -378,9 +378,9 @@ fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
     }
 }
 
-fn add_priority(dimens: &mut Dimensions, priority: &Option<i32>) {
+fn add_priority(dimens: &mut Dimensions, priority: Option<i32>) {
     if let Some(priority) = priority {
-        dimens.set_value("priority", *priority);
+        dimens.set_value("priority", priority);
     }
 }
 

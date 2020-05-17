@@ -103,14 +103,12 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
     let mut leg = intervals.into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
         let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-            (leg.load.unwrap_or_else(|| MultiDimensionalCapacity::default()), MultiDimensionalCapacity::default()),
+            (leg.load.unwrap_or_else(MultiDimensionalCapacity::default), MultiDimensionalCapacity::default()),
             |acc, activity| {
                 let (delivery, pickup) = activity
                     .job
                     .as_ref()
-                    .and_then(|job| {
-                        get_capacity(&job.dimens, is_multi_dimen).and_then(|d| Some((d.delivery.0, d.pickup.0)))
-                    })
+                    .and_then(|job| get_capacity(&job.dimens, is_multi_dimen).map(|d| (d.delivery.0, d.pickup.0)))
                     .unwrap_or((MultiDimensionalCapacity::default(), MultiDimensionalCapacity::default()));
                 (acc.0 + delivery, acc.1 + pickup)
             },
@@ -259,9 +257,7 @@ fn calculate_load(
     is_multi_dimen: bool,
 ) -> MultiDimensionalCapacity {
     let job = act.job.as_ref();
-    let demand = job
-        .and_then(|job| get_capacity(&job.dimens, is_multi_dimen))
-        .unwrap_or(Demand::<MultiDimensionalCapacity>::default());
+    let demand = job.and_then(|job| get_capacity(&job.dimens, is_multi_dimen)).unwrap_or_default();
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
 }
 

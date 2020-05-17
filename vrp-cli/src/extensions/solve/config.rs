@@ -24,14 +24,14 @@ pub enum MutationConfig {
     #[serde(rename(deserialize = "ruin-recreate"))]
     RuinRecreate {
         /// Ruin methods.
-        ruins: Vec<RuinMethodGroup>,
+        ruins: Vec<ConfigRuinGroup>,
         /// Recreate methods.
         recreates: Vec<RecreateMethod>,
     },
 }
 
 #[derive(Clone, Deserialize, Debug)]
-pub struct RuinMethodGroup {
+pub struct ConfigRuinGroup {
     methods: Vec<RuinMethod>,
     weight: usize,
 }
@@ -152,7 +152,7 @@ fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate>, usize)
     }
 }
 
-fn create_ruin_group(problem: &Arc<Problem>, group: &RuinMethodGroup) -> (Vec<(Arc<dyn Ruin>, f64)>, usize) {
+fn create_ruin_group(problem: &Arc<Problem>, group: &ConfigRuinGroup) -> RuinGroup {
     (group.methods.iter().map(|r| create_ruin_method(problem, r)).collect(), group.weight)
 }
 

@@ -114,8 +114,8 @@ fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .iter()
         .map(|profile| profile.speed.unwrap_or(DEFAULT_SPEED))
         .map(|speed| unsafe { std::mem::transmute(speed) })
-        .collect::<HashSet<i64>>();
-    let speeds = speeds.into_iter().map(|speed| unsafe { std::mem::transmute(speed) }).collect::<Vec<_>>();
+        .collect::<HashSet<u64>>();
+    let speeds = speeds.into_iter().map(f64::from_bits).collect::<Vec<_>>();
 
     let locations = get_unique_locations(&problem);
     let approx_data = get_approx_transportation(&locations, speeds.as_slice());
@@ -164,7 +164,7 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     let mut job_index = Default::default();
     let (jobs, locks) =
         read_jobs_with_extra_locks(&api_problem, &problem_props, &coord_index, &fleet, &transport, &mut job_index);
-    let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect();
+    let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
     let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
     let extras = Arc::new(create_extras(&problem_props, coord_index.clone()));
     let mut constraint = create_constraint_pipeline(
@@ -197,7 +197,7 @@ fn create_constraint_pipeline(
     activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     props: &ProblemProperties,
-    locks: &Vec<Arc<Lock>>,
+    locks: &[Arc<Lock>],
     limits: TravelLimitFunc,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
@@ -225,7 +225,7 @@ fn create_constraint_pipeline(
     }
 
     if !locks.is_empty() {
-        constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks.clone(), LOCKING_CONSTRAINT_CODE)));
+        constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks, LOCKING_CONSTRAINT_CODE)));
     }
 
     if props.has_unreachable_locations {
@@ -283,12 +283,12 @@ fn create_extras(props: &ProblemProperties, coord_index: Arc<CoordIndex>) -> Ext
     extras
 }
 
-fn parse_time_window(tw: &Vec<String>) -> TimeWindow {
+fn parse_time_window(tw: &[String]) -> TimeWindow {
     assert_eq!(tw.len(), 2);
     TimeWindow::new(parse_time(tw.first().unwrap()), parse_time(tw.last().unwrap()))
 }
 
-fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> ProblemProperties {
+fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> ProblemProperties {
     let has_unreachable_locations = matrices.iter().any(|m| m.error_codes.is_some());
     let has_multi_dimen_capacity = api_problem.fleet.vehicles.iter().any(|t| t.capacity.len() > 1)
         || api_problem.plan.jobs.iter().any(|job| {
@@ -303,7 +303,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &Vec<Matrix>) -> P
         .vehicles
         .iter()
         .flat_map(|t| &t.shifts)
-        .any(|shift| shift.breaks.as_ref().map_or(false, |b| b.len() > 0));
+        .any(|shift| shift.breaks.as_ref().map_or(false, |b| !b.is_empty()));
 
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
     let has_reload = api_problem

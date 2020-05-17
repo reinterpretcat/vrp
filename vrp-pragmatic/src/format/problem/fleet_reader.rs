@@ -12,7 +12,7 @@ use vrp_core::models::problem::*;
 
 pub fn create_transport_costs(
     api_problem: &ApiProblem,
-    matrices: &Vec<Matrix>,
+    matrices: &[Matrix],
 ) -> Result<Arc<dyn TransportCost + Sync + Send>, String> {
     let fleet_profiles = get_profile_map(api_problem);
 
@@ -78,15 +78,15 @@ pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_ind
                 (location, time)
             };
 
-            let end = shift.end.as_ref().map_or(None, |end| {
+            let end = shift.end.as_ref().map(|end| {
                 let location = coord_index.get_by_loc(&end.location).unwrap();
                 let time = parse_time(&end.time);
-                Some((location, time))
+                (location, time)
             });
 
             let details = vec![VehicleDetail {
                 start: Some(start.0),
-                end: end.map_or(None, |end| Some(end.0)),
+                end: end.map(|end| end.0),
                 time: Some(TimeWindow::new(start.1, end.map_or(std::f64::MAX, |end| end.1))),
             }];
 

@@ -7,7 +7,7 @@ use std::io::{BufReader, Read};
 use vrp_pragmatic::format::problem::*;
 use vrp_pragmatic::format::{FormatError, Location};
 
-mod hre {
+mod models {
     use super::*;
 
     #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -303,12 +303,12 @@ mod hre {
     // endregion
 }
 
-fn to_loc(loc: &hre::Location) -> Location {
+fn to_loc(loc: &models::Location) -> Location {
     Location { lat: loc.lat, lng: loc.lng }
 }
 
 pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, FormatError> {
-    let job_place_mapper = |job: &hre::Job, place: &hre::JobPlace| JobTask {
+    let job_place_mapper = |job: &models::Job, place: &models::JobPlace| JobTask {
         places: vec![JobPlace {
             location: to_loc(&place.location),
             duration: place.duration,
@@ -318,7 +318,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
         tag: place.tag.clone(),
     };
 
-    let multi_job_place_mapper = |places: &Vec<hre::MultiJobPlace>| {
+    let multi_job_place_mapper = |places: &Vec<models::MultiJobPlace>| {
         if places.is_empty() {
             None
         } else {
@@ -339,7 +339,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
         }
     };
 
-    let hre_problem: hre::Problem = serde_json::from_reader(reader)
+    let hre_problem: models::Problem = serde_json::from_reader(reader)
         .map_err(|err| FormatError::new("E0000".to_string(), err.to_string(), "Check input json".to_string()))?;
 
     Ok(Problem {
@@ -349,22 +349,22 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                 .jobs
                 .iter()
                 .map(|job| match job {
-                    hre::JobVariant::Single(job) => Job {
+                    models::JobVariant::Single(job) => Job {
                         id: job.id.clone(),
                         pickups: job.places.pickup.as_ref().map(|place| vec![job_place_mapper(job, place)]),
                         deliveries: job.places.delivery.as_ref().map(|place| vec![job_place_mapper(job, place)]),
                         replacements: None,
                         services: None,
-                        priority: job.priority.as_ref().map(|p| *p),
+                        priority: job.priority.as_ref().copied(),
                         skills: job.skills.clone(),
                     },
-                    hre::JobVariant::Multi(job) => Job {
+                    models::JobVariant::Multi(job) => Job {
                         id: job.id.clone(),
                         pickups: multi_job_place_mapper(&job.places.pickups),
                         deliveries: multi_job_place_mapper(&job.places.deliveries),
                         replacements: None,
                         services: None,
-                        priority: job.priority.as_ref().map(|p| *p),
+                        priority: job.priority.as_ref().copied(),
                         skills: job.skills.clone(),
                     },
                 })
@@ -374,13 +374,13 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                     .iter()
                     .map(|r| Relation {
                         type_field: match r.type_field {
-                            hre::RelationType::Sequence => RelationType::Strict,
-                            hre::RelationType::Flexible => RelationType::Sequence,
-                            hre::RelationType::Tour => RelationType::Any,
+                            models::RelationType::Sequence => RelationType::Strict,
+                            models::RelationType::Flexible => RelationType::Sequence,
+                            models::RelationType::Tour => RelationType::Any,
                         },
                         jobs: r.jobs.clone(),
                         vehicle_id: r.vehicle_id.clone(),
-                        shift_index: r.shift_index.clone(),
+                        shift_index: r.shift_index,
                     })
                     .collect()
             }),
@@ -394,11 +394,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                     type_id: v.id.clone(),
                     vehicle_ids: (1..=v.amount).map(|seq| format!("{}_{}", v.id, seq)).collect(),
                     profile: v.profile.clone(),
-                    costs: VehicleCosts {
-                        fixed: v.costs.fixed.clone(),
-                        distance: v.costs.distance,
-                        time: v.costs.time,
-                    },
+                    costs: VehicleCosts { fixed: v.costs.fixed, distance: v.costs.distance, time: v.costs.time },
                     shifts: v
                         .shifts
                         .iter()
@@ -426,7 +422,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                                     .iter()
                                     .map(|r| VehicleReload {
                                         location: to_loc(&r.location),
-                                        duration: r.duration.clone(),
+                                        duration: r.duration,
                                         times: r.times.clone(),
                                         tag: r.tag.clone(),
                                     })
@@ -437,8 +433,8 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                     capacity: v.capacity.clone(),
                     skills: v.skills.clone(),
                     limits: v.limits.as_ref().map(|l| VehicleLimits {
-                        max_distance: l.max_distance.clone(),
-                        shift_time: l.shift_time.clone(),
+                        max_distance: l.max_distance,
+                        shift_time: l.shift_time,
                         allowed_areas: None,
                     }),
                 })

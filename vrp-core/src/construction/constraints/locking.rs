@@ -33,7 +33,7 @@ impl ConstraintModule for StrictLockingModule {
 }
 
 impl StrictLockingModule {
-    pub fn new(fleet: &Fleet, locks: Vec<Arc<Lock>>, code: i32) -> Self {
+    pub fn new(fleet: &Fleet, locks: &[Arc<Lock>], code: i32) -> Self {
         let mut rules = vec![];
         let mut conditions = HashMap::new();
         locks.iter().for_each(|lock| {
