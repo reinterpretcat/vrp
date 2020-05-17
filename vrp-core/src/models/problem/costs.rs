@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/models/problem/costs_test.rs"]
 mod costs_test;
 
-use crate::algorithms::nsga2::{MultiObjective, Objective};
+use crate::algorithms::nsga2::{dominance_order, MultiObjective, Objective};
 use crate::construction::heuristics::InsertionContext;
 use crate::models::common::*;
 use crate::models::problem::{Actor, TargetObjective};
@@ -264,31 +264,5 @@ impl TransportCost for TimeAwareMatrixTransportCost {
             }
             Err(matrix_idx) => *matrices.get(matrix_idx).unwrap().distances.get(data_idx).unwrap(),
         }
-    }
-}
-
-fn dominance_order<S>(a: &S, b: &S, objectives: &[Box<dyn Objective<Solution = S> + Send + Sync>]) -> Ordering {
-    let mut less_cnt = 0;
-    let mut greater_cnt = 0;
-
-    for objective in objectives.iter() {
-        match objective.total_order(a, b) {
-            Ordering::Less => {
-                less_cnt += 1;
-            }
-            Ordering::Greater => {
-                greater_cnt += 1;
-            }
-            Ordering::Equal => {}
-        }
-    }
-
-    if less_cnt > 0 && greater_cnt == 0 {
-        Ordering::Less
-    } else if greater_cnt > 0 && less_cnt == 0 {
-        Ordering::Greater
-    } else {
-        debug_assert!((less_cnt > 0 && greater_cnt > 0) || (less_cnt == 0 && greater_cnt == 0));
-        Ordering::Equal
     }
 }

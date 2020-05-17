@@ -55,7 +55,7 @@ pub fn solve_with_metaheuristic_and_iterations(
         .build()
         .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
         .solve()
-        .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
+        .unwrap_or_else(|err| panic!("cannot solve the problem: {}", err));
 
     let solution = sort_all_data(create_solution(problem.as_ref(), &solution));
 

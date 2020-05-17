@@ -147,7 +147,7 @@ pub trait Population {
     fn best(&self) -> Option<&Individual>;
 
     /// Returns one of solutions from the population.
-    fn select(&self) -> &Individual;
+    fn select(&self) -> Option<&Individual>;
 
     /// Returns population size.
     fn size(&self) -> usize;

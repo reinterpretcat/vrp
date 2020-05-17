@@ -32,3 +32,30 @@ pub trait MultiObjective: Objective {
         &'a self,
     ) -> Box<dyn Iterator<Item = &Box<dyn Objective<Solution = Self::Solution> + Send + Sync>> + 'a>;
 }
+
+/// Calculates dominance order of two solutions using multiple objectives.
+pub fn dominance_order<S>(a: &S, b: &S, objectives: &[Box<dyn Objective<Solution = S> + Send + Sync>]) -> Ordering {
+    let mut less_cnt = 0;
+    let mut greater_cnt = 0;
+
+    for objective in objectives.iter() {
+        match objective.total_order(a, b) {
+            Ordering::Less => {
+                less_cnt += 1;
+            }
+            Ordering::Greater => {
+                greater_cnt += 1;
+            }
+            Ordering::Equal => {}
+        }
+    }
+
+    if less_cnt > 0 && greater_cnt == 0 {
+        Ordering::Less
+    } else if greater_cnt > 0 && less_cnt == 0 {
+        Ordering::Greater
+    } else {
+        debug_assert!((less_cnt > 0 && greater_cnt > 0) || (less_cnt == 0 && greater_cnt == 0));
+        Ordering::Equal
+    }
+}

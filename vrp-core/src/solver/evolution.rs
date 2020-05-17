@@ -54,7 +54,8 @@ pub fn run_evolution(problem: Arc<Problem>, config: EvolutionConfig) -> Result<B
     while !config.termination.is_termination(&mut refinement_ctx) {
         let generation_time = Timer::start();
 
-        let insertion_ctx = refinement_ctx.population.select().deep_copy();
+        let insertion_ctx =
+            refinement_ctx.population.select().ok_or_else(|| "Empty population".to_string())?.deep_copy();
 
         let insertion_ctx = config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
 
