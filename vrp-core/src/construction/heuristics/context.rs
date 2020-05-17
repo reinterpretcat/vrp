@@ -254,15 +254,13 @@ impl RouteState {
     }
 
     /// Gets value associated with key converted to given type.
-    pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: i32, activity: &TourActivity) -> Option<&T> {
-        self.activity_states
-            .get(&(activity.as_ref() as *const Activity as usize, key))
-            .and_then(|s| s.downcast_ref::<T>())
+    pub fn get_activity_state<T: Send + Sync + 'static>(&self, key: i32, activity: &Activity) -> Option<&T> {
+        self.activity_states.get(&(activity as *const Activity as usize, key)).and_then(|s| s.downcast_ref::<T>())
     }
 
     /// Gets value associated with key.
-    pub fn get_activity_state_raw(&self, key: i32, activity: &TourActivity) -> Option<&StateValue> {
-        self.activity_states.get(&(activity.as_ref() as *const Activity as usize, key))
+    pub fn get_activity_state_raw(&self, key: i32, activity: &Activity) -> Option<&StateValue> {
+        self.activity_states.get(&(activity as *const Activity as usize, key))
     }
 
     /// Puts value associated with key.
@@ -278,21 +276,21 @@ impl RouteState {
     }
 
     /// Puts value associated with key and specific activity.
-    pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: i32, activity: &TourActivity, value: T) {
-        self.activity_states.insert((activity.as_ref() as *const Activity as usize, key), Arc::new(value));
+    pub fn put_activity_state<T: Send + Sync + 'static>(&mut self, key: i32, activity: &Activity, value: T) {
+        self.activity_states.insert((activity as *const Activity as usize, key), Arc::new(value));
         self.keys.insert(key);
     }
 
     /// Puts value associated with key and specific activity.
-    pub fn put_activity_state_raw(&mut self, key: i32, activity: &TourActivity, value: StateValue) {
-        self.activity_states.insert((activity.as_ref() as *const Activity as usize, key), value);
+    pub fn put_activity_state_raw(&mut self, key: i32, activity: &Activity, value: StateValue) {
+        self.activity_states.insert((activity as *const Activity as usize, key), value);
         self.keys.insert(key);
     }
 
     /// Removes all activity states for given activity.
-    pub fn remove_activity_states(&mut self, activity: &TourActivity) {
+    pub fn remove_activity_states(&mut self, activity: &Activity) {
         for (_, key) in self.keys.iter().enumerate() {
-            self.activity_states.remove(&(activity.as_ref() as *const Activity as usize, *key));
+            self.activity_states.remove(&(activity as *const Activity as usize, *key));
         }
     }
 
@@ -313,21 +311,21 @@ pub struct ActivityContext<'a> {
     pub index: usize,
 
     /// Previous activity.
-    pub prev: &'a TourActivity,
+    pub prev: &'a Activity,
 
     /// Target activity.
-    pub target: &'a TourActivity,
+    pub target: &'a Activity,
 
     /// Next activity. Absent if tour is open and target activity inserted last.
-    pub next: Option<&'a TourActivity>,
+    pub next: Option<&'a Activity>,
 }
 
 type ActivityWithKey = (usize, i32);
 type ActivityPlace = crate::models::solution::Place;
 
 /// Creates start activity.
-pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
-    Box::new(Activity {
+pub fn create_start_activity(actor: &Arc<Actor>) -> Activity {
+    Activity {
         place: ActivityPlace {
             location: actor.detail.start.unwrap_or_else(|| unimplemented!("{}", OP_START_MSG)),
             duration: 0.0,
@@ -335,16 +333,14 @@ pub fn create_start_activity(actor: &Arc<Actor>) -> TourActivity {
         },
         schedule: Schedule { arrival: actor.detail.time.start, departure: actor.detail.time.start },
         job: None,
-    })
+    }
 }
 
 /// Creates end activity if it is specified for the actor.
-pub fn create_end_activity(actor: &Arc<Actor>) -> Option<TourActivity> {
-    actor.detail.end.map(|location| {
-        Box::new(Activity {
-            place: ActivityPlace { location, duration: 0.0, time: actor.detail.time.clone() },
-            schedule: Schedule { arrival: actor.detail.time.end, departure: actor.detail.time.end },
-            job: None,
-        })
+pub fn create_end_activity(actor: &Arc<Actor>) -> Option<Activity> {
+    actor.detail.end.map(|location| Activity {
+        place: ActivityPlace { location, duration: 0.0, time: actor.detail.time.clone() },
+        schedule: Schedule { arrival: actor.detail.time.end, departure: actor.detail.time.end },
+        job: None,
     })
 }

@@ -386,7 +386,7 @@ fn create_route(fleet: &Fleet, vehicle: &str, activities: Vec<ActivityWithJob>) 
 
                 let place = single.places.get(place_idx).unwrap();
 
-                Box::new(Activity {
+                Activity {
                     place: ActivityPlace {
                         location: place.location.unwrap(),
                         duration: place.duration,
@@ -394,7 +394,7 @@ fn create_route(fleet: &Fleet, vehicle: &str, activities: Vec<ActivityWithJob>) 
                     },
                     schedule: Schedule::new(0., 0.),
                     job: Some(single),
-                })
+                }
             })
             .collect(),
     )

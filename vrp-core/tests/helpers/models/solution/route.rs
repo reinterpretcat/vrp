@@ -2,7 +2,7 @@ use crate::construction::heuristics::{create_end_activity, create_start_activity
 use crate::helpers::models::problem::*;
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Fleet, Single};
-use crate::models::solution::{Activity, Place, Route, Tour, TourActivity};
+use crate::models::solution::{Activity, Place, Route, Tour};
 use std::sync::Arc;
 
 pub const DEFAULT_ACTIVITY_SCHEDULE: Schedule = Schedule { departure: 0.0, arrival: 0.0 };
@@ -74,9 +74,9 @@ pub fn test_activity_without_job() -> Activity {
 pub fn create_route_with_start_end_activities(
     fleet: &Fleet,
     vehicle: &str,
-    start: TourActivity,
-    end: TourActivity,
-    activities: Vec<TourActivity>,
+    start: Activity,
+    end: Activity,
+    activities: Vec<Activity>,
 ) -> Route {
     let mut tour = Tour::default();
     tour.set_start(start);
@@ -85,7 +85,7 @@ pub fn create_route_with_start_end_activities(
     create_route(get_test_actor_from_fleet(fleet, vehicle), tour, activities)
 }
 
-pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<TourActivity>) -> Route {
+pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
     let actor = get_test_actor_from_fleet(fleet, vehicle);
     let mut tour = Tour::default();
     tour.set_start(create_start_activity(&actor));
@@ -94,17 +94,13 @@ pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Ve
     create_route(actor, tour, activities)
 }
 
-pub fn create_route_context_with_activities(
-    fleet: &Fleet,
-    vehicle: &str,
-    activities: Vec<TourActivity>,
-) -> RouteContext {
+pub fn create_route_context_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> RouteContext {
     let route = create_route_with_activities(fleet, vehicle, activities);
 
     RouteContext { route: Arc::new(route), state: Arc::new(RouteState::default()) }
 }
 
-fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<TourActivity>) -> Route {
+fn create_route(actor: Arc<Actor>, mut tour: Tour, activities: Vec<Activity>) -> Route {
     activities.into_iter().enumerate().for_each(|(index, a)| {
         tour.insert_at(a, index + 1);
     });

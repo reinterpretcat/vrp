@@ -26,12 +26,9 @@ fn can_calculate_transport_cost() {
         route: Arc::new(create_route_with_start_end_activities(
             &fleet,
             "v1",
-            test_tour_activity_with_schedule(Schedule::new(0., 0.)),
-            test_tour_activity_with_schedule(Schedule::new(40., 40.)),
-            vec![
-                test_tour_activity_with_location_and_duration(10, 5.),
-                test_tour_activity_with_location_and_duration(15, 5.),
-            ],
+            test_activity_with_schedule(Schedule::new(0., 0.)),
+            test_activity_with_schedule(Schedule::new(40., 40.)),
+            vec![test_activity_with_location_and_duration(10, 5.), test_activity_with_location_and_duration(15, 5.)],
         )),
         state: Arc::new(RouteState::default()),
     };
@@ -39,9 +36,9 @@ fn can_calculate_transport_cost() {
         route: Arc::new(create_route_with_start_end_activities(
             &fleet,
             "v2",
-            test_tour_activity_with_schedule(Schedule::new(0., 0.)),
-            test_tour_activity_with_schedule(Schedule::new(11., 11.)),
-            vec![test_tour_activity_with_location_and_duration(5, 1.)],
+            test_activity_with_schedule(Schedule::new(0., 0.)),
+            test_activity_with_schedule(Schedule::new(11., 11.)),
+            vec![test_activity_with_location_and_duration(5, 1.)],
         )),
         state: Arc::new(RouteState::default()),
     };

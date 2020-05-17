@@ -133,7 +133,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                 route.last().unwrap().split_whitespace().for_each(|id| {
                     let single = id_map.get(id).unwrap();
                     let place = single.places.first().unwrap();
-                    tour.insert_last(Box::new(Activity {
+                    tour.insert_last(Activity {
                         place: vrp_core::models::solution::Place {
                             location: place.location.unwrap(),
                             duration: place.duration,
@@ -141,7 +141,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                         },
                         schedule: Schedule::new(0.0, 0.0),
                         job: Some(single.clone()),
-                    }));
+                    });
                 });
 
                 solution.routes.push(Route { actor, tour });

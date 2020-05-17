@@ -6,7 +6,7 @@ use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{Job, Single};
-use crate::models::solution::TourActivity;
+use crate::models::solution::Activity;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition};
 use std::sync::Arc;
 
@@ -43,8 +43,8 @@ fn stop() -> Option<ActivityConstraintViolation> {
     Some(ActivityConstraintViolation { code: 1, stopped: false })
 }
 
-fn some_activity() -> TourActivity {
-    Box::new(test_activity_with_location(1))
+fn some_activity() -> Activity {
+    test_activity_with_location(1)
 }
 
 parameterized_test! {can_lock_jobs_to_position_in_tour, (position, activities_func, expected), {
@@ -59,19 +59,19 @@ parameterized_test! {can_lock_jobs_to_position_in_tour, (position, activities_fu
 can_lock_jobs_to_position_in_tour! {
     case01_departure: (
         LockPosition::Departure,
-        |s1: Arc<Single>, _: Arc<Single>| (test_tour_activity_without_job(), test_tour_activity_with_job(s1)),
+        |s1: Arc<Single>, _: Arc<Single>| (test_activity_without_job(), test_activity_with_job(s1)),
         stop()),
     case02_departure: (
         LockPosition::Departure,
-        |_: Arc<Single>, s2: Arc<Single>| (test_tour_activity_without_job(), test_tour_activity_with_job(s2)),
+        |_: Arc<Single>, s2: Arc<Single>| (test_activity_without_job(), test_activity_with_job(s2)),
         stop()),
     case03_departure: (
         LockPosition::Departure,
-        |_: Arc<Single>, s2: Arc<Single>| (test_tour_activity_with_job(s2), some_activity()),
+        |_: Arc<Single>, s2: Arc<Single>| (test_activity_with_job(s2), some_activity()),
         None),
     case04_departure: (
         LockPosition::Departure,
-        |s1: Arc<Single>, _: Arc<Single>| (test_tour_activity_with_job(s1), some_activity()),
+        |s1: Arc<Single>, _: Arc<Single>| (test_activity_with_job(s1), some_activity()),
         stop()),
     case05_departure: (
         LockPosition::Departure,
@@ -79,24 +79,24 @@ can_lock_jobs_to_position_in_tour! {
         None),
     case06_departure: (
         LockPosition::Departure,
-        |_: Arc<Single>, s2: Arc<Single>| (test_tour_activity_with_job(s2), test_tour_activity_without_job()),
+        |_: Arc<Single>, s2: Arc<Single>| (test_activity_with_job(s2), test_activity_without_job()),
         None),
     case07_departure: (
         LockPosition::Departure,
-        |s1: Arc<Single>, _: Arc<Single>| (test_tour_activity_with_job(s1), test_tour_activity_without_job()),
+        |s1: Arc<Single>, _: Arc<Single>| (test_activity_with_job(s1), test_activity_without_job()),
         stop()),
 
     case08_arrival: (
         LockPosition::Arrival,
-        |s1: Arc<Single>, _: Arc<Single>| (test_tour_activity_with_job(s1), test_tour_activity_without_job()),
+        |s1: Arc<Single>, _: Arc<Single>| (test_activity_with_job(s1), test_activity_without_job()),
         stop()),
     case09_arrival: (
         LockPosition::Arrival,
-        |s1: Arc<Single>, _: Arc<Single>| (some_activity(), test_tour_activity_with_job(s1)),
+        |s1: Arc<Single>, _: Arc<Single>| (some_activity(), test_activity_with_job(s1)),
         None),
     case10_arrival: (
         LockPosition::Arrival,
-        |_: Arc<Single>, s2: Arc<Single>| (some_activity(), test_tour_activity_with_job(s2)),
+        |_: Arc<Single>, s2: Arc<Single>| (some_activity(), test_activity_with_job(s2)),
         stop()),
    case11_arrival: (
         LockPosition::Arrival,
@@ -104,55 +104,55 @@ can_lock_jobs_to_position_in_tour! {
         None),
    case12_arrival: (
         LockPosition::Arrival,
-        |s1: Arc<Single>, _: Arc<Single>| (test_tour_activity_without_job(), test_tour_activity_with_job(s1)),
+        |s1: Arc<Single>, _: Arc<Single>| (test_activity_without_job(), test_activity_with_job(s1)),
         None),
 
   case13_any: (
         LockPosition::Any,
-        |s1: Arc<Single>, s2: Arc<Single>| (test_tour_activity_with_job(s1), test_tour_activity_with_job(s2)),
+        |s1: Arc<Single>, s2: Arc<Single>| (test_activity_with_job(s1), test_activity_with_job(s2)),
         stop()),
   case14_any: (
         LockPosition::Any,
-        |s1: Arc<Single>, s2: Arc<Single>| (test_tour_activity_with_job(s2), test_tour_activity_with_job(s1)),
+        |s1: Arc<Single>, s2: Arc<Single>| (test_activity_with_job(s2), test_activity_with_job(s1)),
         stop()),
   case15_any: (
         LockPosition::Any,
-        |s1: Arc<Single>, _: Arc<Single>| (some_activity(), test_tour_activity_with_job(s1)),
+        |s1: Arc<Single>, _: Arc<Single>| (some_activity(), test_activity_with_job(s1)),
         None),
   case16_any: (
         LockPosition::Any,
-        |_: Arc<Single>, s2: Arc<Single>| (some_activity(), test_tour_activity_with_job(s2)),
+        |_: Arc<Single>, s2: Arc<Single>| (some_activity(), test_activity_with_job(s2)),
         stop()),
   case17_any: (
         LockPosition::Any,
-        |_: Arc<Single>, s2: Arc<Single>| (test_tour_activity_with_job(s2), some_activity()),
+        |_: Arc<Single>, s2: Arc<Single>| (test_activity_with_job(s2), some_activity()),
         None),
   case18_any: (
         LockPosition::Any,
-        |_: Arc<Single>, s2: Arc<Single>| (test_tour_activity_with_job(s2), test_tour_activity_without_job()),
+        |_: Arc<Single>, s2: Arc<Single>| (test_activity_with_job(s2), test_activity_without_job()),
         None),
   case19_any: (
         LockPosition::Any,
-        |s1: Arc<Single>, _: Arc<Single>| (test_tour_activity_without_job(), test_tour_activity_with_job(s1)),
+        |s1: Arc<Single>, _: Arc<Single>| (test_activity_without_job(), test_activity_with_job(s1)),
         None),
   case20_any: (
         LockPosition::Any,
-        |_: Arc<Single>, s2: Arc<Single>| (test_tour_activity_without_job(), test_tour_activity_with_job(s2)),
+        |_: Arc<Single>, s2: Arc<Single>| (test_activity_without_job(), test_activity_with_job(s2)),
         stop()),
 
   case21_fixed: (
        LockPosition::Fixed,
-       |s1: Arc<Single>, s2: Arc<Single>| (test_tour_activity_with_job(s1), test_tour_activity_with_job(s2)),
+       |s1: Arc<Single>, s2: Arc<Single>| (test_activity_with_job(s1), test_activity_with_job(s2)),
        stop()),
   case22_fixed: (
        LockPosition::Fixed,
-       |s1: Arc<Single>, _: Arc<Single>| (some_activity(), test_tour_activity_with_job(s1)),
+       |s1: Arc<Single>, _: Arc<Single>| (some_activity(), test_activity_with_job(s1)),
        stop()),
 }
 
 fn can_lock_jobs_to_position_in_tour_impl(
     lock_position: LockPosition,
-    activities: (TourActivity, TourActivity),
+    activities: (Activity, Activity),
     jobs: Vec<Job>,
     expected: Option<ActivityConstraintViolation>,
 ) {
@@ -167,7 +167,7 @@ fn can_lock_jobs_to_position_in_tour_impl(
         &ActivityContext {
             index: 0,
             prev: &prev,
-            target: &test_tour_activity_with_job(test_single_with_id("new")),
+            target: &test_activity_with_job(test_single_with_id("new")),
             next: Some(&next),
         },
     );

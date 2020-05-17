@@ -9,12 +9,10 @@ use std::iter::once;
 use std::ops::RangeBounds;
 use std::slice::{Iter, IterMut};
 
-pub type TourActivity = Box<Activity>;
-
 /// Represents a tour, a smart container for jobs with their associated activities.
 pub struct Tour {
     /// Stores activities in the order the performed.
-    activities: Vec<TourActivity>,
+    activities: Vec<Activity>,
 
     /// Stores jobs in the order of their activities added.
     jobs: HashSet<Job>,
@@ -31,7 +29,7 @@ impl Default for Tour {
 
 impl Tour {
     /// Sets tour start.
-    pub fn set_start(&mut self, activity: TourActivity) -> &mut Tour {
+    pub fn set_start(&mut self, activity: Activity) -> &mut Tour {
         assert!(activity.job.is_none());
         assert!(self.activities.is_empty());
         self.activities.push(activity);
@@ -40,7 +38,7 @@ impl Tour {
     }
 
     /// Sets tour end.
-    pub fn set_end(&mut self, activity: TourActivity) -> &mut Tour {
+    pub fn set_end(&mut self, activity: Activity) -> &mut Tour {
         assert!(activity.job.is_none());
         assert!(!self.activities.is_empty());
         self.activities.push(activity);
@@ -50,13 +48,13 @@ impl Tour {
     }
 
     /// Inserts activity within its job to the end of tour.
-    pub fn insert_last(&mut self, activity: TourActivity) -> &mut Tour {
+    pub fn insert_last(&mut self, activity: Activity) -> &mut Tour {
         self.insert_at(activity, self.activity_count() + 1);
         self
     }
 
     /// Inserts activity within its job at specified index.
-    pub fn insert_at(&mut self, activity: TourActivity, index: usize) -> &mut Tour {
+    pub fn insert_at(&mut self, activity: Activity, index: usize) -> &mut Tour {
         assert!(activity.job.is_some());
         assert!(!self.activities.is_empty());
 
@@ -103,27 +101,27 @@ impl Tour {
     }
 
     /// Returns all activities in tour.
-    pub fn all_activities(&self) -> Iter<TourActivity> {
+    pub fn all_activities(&self) -> Iter<Activity> {
         self.activities.iter()
     }
 
     /// Returns activities slice in specific range (all inclusive).
-    pub fn activities_slice(&self, start: usize, end: usize) -> &[TourActivity] {
+    pub fn activities_slice(&self, start: usize, end: usize) -> &[Activity] {
         &self.activities[start..=end]
     }
 
     /// Returns all activities in tour as mutable.
-    pub fn all_activities_mut(&mut self) -> IterMut<TourActivity> {
+    pub fn all_activities_mut(&mut self) -> IterMut<Activity> {
         self.activities.iter_mut()
     }
 
     /// Returns all activities in tour for specific job.
-    pub fn job_activities<'a>(&'a self, job: &'a Job) -> impl Iterator<Item = &TourActivity> + 'a {
+    pub fn job_activities<'a>(&'a self, job: &'a Job) -> impl Iterator<Item = &Activity> + 'a {
         self.activities.iter().filter(move |a| a.has_same_job(job))
     }
 
     /// Returns counted tour legs.
-    pub fn legs<'a>(&'a self) -> Box<dyn Iterator<Item = (&'a [TourActivity], usize)> + 'a> {
+    pub fn legs<'a>(&'a self) -> Box<dyn Iterator<Item = (&'a [Activity], usize)> + 'a> {
         let last_index = self.activities.len() - 1;
         let window_size = if last_index == 0 { 1 } else { 2 };
         let legs = self.activities.windows(window_size).zip(0_usize..);
@@ -143,22 +141,22 @@ impl Tour {
     }
 
     /// Returns activity by its index in tour.
-    pub fn get(&self, index: usize) -> Option<&TourActivity> {
+    pub fn get(&self, index: usize) -> Option<&Activity> {
         self.activities.get(index)
     }
 
     /// Returns mutable activity by its index in tour.
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut TourActivity> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Activity> {
         self.activities.get_mut(index)
     }
 
     /// Returns start activity in tour.
-    pub fn start(&self) -> Option<&TourActivity> {
+    pub fn start(&self) -> Option<&Activity> {
         self.activities.first()
     }
 
     /// Returns end activity in tour.
-    pub fn end(&self) -> Option<&TourActivity> {
+    pub fn end(&self) -> Option<&Activity> {
         self.activities.last()
     }
 
@@ -170,13 +168,6 @@ impl Tour {
     /// Returns index of first job occurrence in the tour.
     pub fn index(&self, job: &Job) -> Option<usize> {
         self.activities.iter().position(move |a| a.has_same_job(&job))
-    }
-
-    /// Returns index of the activity in the tour.
-    pub fn activity_index(&self, activity: &TourActivity) -> Option<usize> {
-        self.activities
-            .iter()
-            .position(|a| (a.as_ref() as *const Activity as usize) == (activity.as_ref() as *const Activity as usize))
     }
 
     /// Checks whether tour has jobs.
@@ -206,7 +197,7 @@ impl Tour {
     /// Creates a copy of existing tour deeply copying all activities and jobs.
     pub fn deep_copy(&self) -> Tour {
         Tour {
-            activities: self.activities.iter().map(|a| Box::new(a.deep_copy())).collect(),
+            activities: self.activities.iter().map(|a| a.deep_copy()).collect(),
             jobs: self.jobs.iter().cloned().collect(),
             is_closed: self.is_closed,
         }

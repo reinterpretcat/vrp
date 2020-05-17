@@ -7,7 +7,7 @@ use crate::helpers::models::solution::create_test_registry;
 use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{Job, Single, VehicleDetail};
-use crate::models::solution::{Place, Registry, TourActivity};
+use crate::models::solution::{Activity, Place, Registry};
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
 use std::ops::Deref;
@@ -15,13 +15,11 @@ use std::sync::Arc;
 
 type JobPlace = crate::models::problem::Place;
 
-fn create_tour_activity_at(loc_and_time: usize) -> TourActivity {
-    Box::new(
-        ActivityBuilder::default()
-            .place(Place { location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0.) })
-            .schedule(Schedule { arrival: loc_and_time as Timestamp, departure: loc_and_time as Timestamp })
-            .build(),
-    )
+fn create_activity_at(loc_and_time: usize) -> Activity {
+    ActivityBuilder::default()
+        .place(Place { location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0.) })
+        .schedule(Schedule { arrival: loc_and_time as Timestamp, departure: loc_and_time as Timestamp })
+        .build()
 }
 
 mod single {
@@ -83,7 +81,7 @@ mod single {
     ) {
         let registry = create_test_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
-        route_ctx.route_mut().tour.insert_at(create_tour_activity_at(5), 1).insert_at(create_tour_activity_at(10), 2);
+        route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
         let routes = vec![route_ctx];
         let constraint = create_constraint_pipeline_with_transport();
         let ctx = create_insertion_context(registry, constraint, routes);
@@ -246,7 +244,7 @@ mod multi {
         let registry = create_test_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         existing.iter().for_each(|&(index, loc)| {
-            route_ctx.route_mut().tour.insert_at(create_tour_activity_at(loc), index);
+            route_ctx.route_mut().tour.insert_at(create_activity_at(loc), index);
         });
         let routes = vec![route_ctx];
         let constraint = create_constraint_pipeline_with_transport();

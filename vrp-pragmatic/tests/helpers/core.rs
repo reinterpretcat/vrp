@@ -31,7 +31,7 @@ pub fn test_vehicle(id: &str) -> Vehicle {
     }
 }
 
-pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<TourActivity>) -> Route {
+pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
     let actor = fleet.actors.iter().filter(|a| a.vehicle.dimens.get_id().unwrap() == vehicle).next().unwrap().clone();
     let mut tour = Tour::default();
     tour.set_start(create_start_activity(&actor));
@@ -44,8 +44,8 @@ pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Ve
     Route { actor, tour }
 }
 
-pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location) -> TourActivity {
-    Box::new(Activity {
+pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location) -> Activity {
+    Activity {
         place: vrp_core::models::solution::Place {
             location,
             duration: DEFAULT_JOB_DURATION,
@@ -53,7 +53,7 @@ pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location
         },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: Some(job),
-    })
+    }
 }
 
 pub fn create_single_with_location(location: Option<Location>) -> Single {

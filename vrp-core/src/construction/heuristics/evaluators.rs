@@ -8,7 +8,7 @@ use crate::construction::constraints::ActivityConstraintViolation;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
-use crate::models::solution::{Activity, Place, TourActivity};
+use crate::models::solution::{Activity, Place};
 use crate::models::Problem;
 
 /// Specifies allowed insertion position in route for the job.
@@ -83,7 +83,7 @@ fn evaluate_single(
     route_costs: Cost,
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
-    let mut activity = Box::new(Activity::new_with_job(single.clone()));
+    let mut activity = Activity::new_with_job(single.clone());
     let result = analyze_insertion_in_route(
         ctx,
         route_ctx,
@@ -127,7 +127,7 @@ fn evaluate_multi(
                     if in1.violation.is_some() {
                         return Result::Err(in1);
                     }
-                    let mut activity = Box::new(Activity::new_with_job(service.clone()));
+                    let mut activity = Activity::new_with_job(service.clone());
                     // 3. analyze legs
                     let srv_res = analyze_insertion_in_route(
                         ctx,
@@ -169,7 +169,7 @@ fn analyze_insertion_in_route(
     route_ctx: &RouteContext,
     position: InsertionPosition,
     single: &Single,
-    target: &mut Box<Activity>,
+    target: &mut Activity,
     init: SingleContext,
 ) -> SingleContext {
     unwrap_from_result(match position {
@@ -193,9 +193,9 @@ fn analyze_insertion_in_route(
 fn analyze_insertion_in_route_leg<'a>(
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
-    leg: (&'a [TourActivity], usize),
+    leg: (&'a [Activity], usize),
     single: &Single,
-    target: &mut Box<Activity>,
+    target: &mut Activity,
     out: SingleContext,
 ) -> Result<SingleContext, SingleContext> {
     let (items, index) = leg;
@@ -285,7 +285,7 @@ struct MultiContext {
     /// Cost accumulator.
     pub cost: Option<Cost>,
     /// Activities with their indices.
-    pub activities: Option<Vec<(TourActivity, usize)>>,
+    pub activities: Option<Vec<(Activity, usize)>>,
 }
 
 impl MultiContext {
@@ -346,7 +346,7 @@ impl MultiContext {
     }
 
     /// Creates successful insertion context.
-    fn success(cost: Cost, activities: Vec<(TourActivity, usize)>) -> Result<Self, Self> {
+    fn success(cost: Cost, activities: Vec<(Activity, usize)>) -> Result<Self, Self> {
         Result::Ok(Self {
             violation: None,
             start_index: activities.first().unwrap().1,
@@ -396,7 +396,7 @@ impl ShadowContext {
         }
     }
 
-    fn insert(&mut self, activity: TourActivity, index: usize) -> TourActivity {
+    fn insert(&mut self, activity: Activity, index: usize) -> Activity {
         if !self.is_mutated {
             self.ctx = self.ctx.deep_copy();
             self.is_mutated = true;
@@ -406,7 +406,7 @@ impl ShadowContext {
         self.problem.constraint.accept_route_state(&mut self.ctx);
         self.is_dirty = true;
 
-        Box::new(self.ctx.route.tour.get(index + 1).unwrap().deep_copy())
+        self.ctx.route.tour.get(index + 1).unwrap().deep_copy()
     }
 
     fn restore(&mut self, job: &Job) {
@@ -429,9 +429,9 @@ fn unwrap_from_result<T>(result: Result<T, T>) -> T {
 }
 
 fn concat_activities(
-    activities: Option<Vec<(Box<Activity>, usize)>>,
-    activity: (Box<Activity>, usize),
-) -> Vec<(Box<Activity>, usize)> {
+    activities: Option<Vec<(Activity, usize)>>,
+    activity: (Activity, usize),
+) -> Vec<(Activity, usize)> {
     let mut activities = activities.unwrap_or_else(|| vec![]);
     activities.push((activity.0, activity.1));
 

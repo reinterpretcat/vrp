@@ -1,6 +1,6 @@
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
-use crate::helpers::models::solution::{test_actor, test_tour_activity_without_job};
+use crate::helpers::models::solution::{test_activity_without_job, test_actor};
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use std::slice::Iter;
@@ -75,8 +75,8 @@ fn can_evaluate_hard_activity_constraints() {
         &RouteContext::new(test_actor()),
         &ActivityContext {
             index: 0,
-            prev: &test_tour_activity_without_job(),
-            target: &test_tour_activity_without_job(),
+            prev: &test_activity_without_job(),
+            target: &test_activity_without_job(),
             next: None,
         },
     );
@@ -103,8 +103,8 @@ fn can_estimate_hard_activity_constraints() {
         &RouteContext::new(test_actor()),
         &ActivityContext {
             index: 0,
-            prev: &test_tour_activity_without_job(),
-            target: &test_tour_activity_without_job(),
+            prev: &test_activity_without_job(),
+            target: &test_activity_without_job(),
             next: None,
         },
     );

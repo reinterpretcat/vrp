@@ -5,7 +5,7 @@ use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{Job, Vehicle};
-use crate::models::solution::TourActivity;
+use crate::models::solution::Activity;
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {
     VehicleBuilder::default().id("v1").capacity(capacity).build()
@@ -15,7 +15,7 @@ fn create_activity_violation(stopped: bool) -> Option<ActivityConstraintViolatio
     Some(ActivityConstraintViolation { code: 2, stopped })
 }
 
-fn get_simple_capacity_state(key: i32, state: &RouteState, activity: Option<&TourActivity>) -> i32 {
+fn get_simple_capacity_state(key: i32, state: &RouteState, activity: Option<&Activity>) -> i32 {
     *state.get_activity_state::<i32>(key, activity.unwrap()).unwrap()
 }
 
@@ -44,9 +44,9 @@ fn can_calculate_current_capacity_state_values_impl(
         &fleet,
         "v1",
         vec![
-            test_tour_activity_with_simple_demand(create_simple_demand(s1)),
-            test_tour_activity_with_simple_demand(create_simple_demand(s2)),
-            test_tour_activity_with_simple_demand(create_simple_demand(s3)),
+            test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s1))),
+            test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s2))),
+            test_activity_with_job(test_single_with_simple_demand(create_simple_demand(s3))),
         ],
     );
 
@@ -110,11 +110,14 @@ fn can_evaluate_demand_on_activity_impl(
     let mut route_ctx = create_route_context_with_activities(
         &fleet,
         "v1",
-        sizes.into_iter().map(|size| test_tour_activity_with_simple_demand(create_simple_demand(size))).collect(),
+        sizes
+            .into_iter()
+            .map(|size| test_activity_with_job(test_single_with_simple_demand(create_simple_demand(size))))
+            .collect(),
     );
     let pipeline = create_constraint_pipeline_with_simple_capacity();
     pipeline.accept_route_state(&mut route_ctx);
-    let target = test_tour_activity_with_simple_demand(create_simple_demand(size));
+    let target = test_activity_with_job(test_single_with_simple_demand(create_simple_demand(size)));
     let activity_ctx = ActivityContext {
         index: 0,
         prev: route_ctx.route.tour.get(neighbours.0).unwrap(),

@@ -67,7 +67,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
                         }
                     };
                     let last_location = activity.place.location;
-                    route_ctx.route_mut().tour.insert_last(Box::new(activity));
+                    route_ctx.route_mut().tour.insert_last(activity);
 
                     last_location
                 })

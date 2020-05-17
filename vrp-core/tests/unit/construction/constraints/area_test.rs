@@ -58,8 +58,8 @@ fn can_check_single_job_impl(
     let route_ctx = create_route_context_with_activities(&create_fleet(), vehicle_id, vec![]);
     let activity_ctx = ActivityContext {
         index: 0,
-        prev: &test_tour_activity_without_job(),
-        target: &test_tour_activity_with_location(activity_location),
+        prev: &test_activity_without_job(),
+        target: &test_activity_with_location(activity_location),
         next: None,
     };
     let pipeline = create_area_constraint_pipeline();

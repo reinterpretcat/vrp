@@ -2,7 +2,7 @@ use crate::algorithms::geometry::Point;
 use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::problem::*;
-use crate::helpers::models::solution::{create_route_with_activities, test_tour_activity_with_job};
+use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
 use crate::models::problem::{create_matrix_transport_cost, Job, Jobs, MatrixData, ObjectiveCost};
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
@@ -59,7 +59,7 @@ pub fn generate_matrix_routes(
             let route = routes.get_mut(i).unwrap();
             jobs.push(Job::Single(single.clone()));
 
-            let mut activity = test_tour_activity_with_job(single);
+            let mut activity = test_activity_with_job(single);
             activity.place.location = index;
 
             route.tour.insert_last(activity);

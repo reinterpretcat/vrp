@@ -6,8 +6,8 @@ use crate::extensions::MultiDimensionalCapacity;
 use crate::format::coord_index::CoordIndex;
 use crate::format::solution::model::Timing;
 use crate::format::solution::{
-    serialize_solution, serialize_solution_as_geojson, Activity, Extras, Interval, Statistic, Stop, Tour,
-    UnassignedJob, UnassignedJobReason,
+    serialize_solution, serialize_solution_as_geojson, Extras, Interval, Statistic, Stop, Tour, UnassignedJob,
+    UnassignedJobReason,
 };
 use crate::format::*;
 use crate::format_time;
@@ -15,9 +15,10 @@ use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::{route_intervals, Demand, DemandDimension};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Multi};
-use vrp_core::models::solution::{Route, TourActivity};
+use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
 
+type ApiActivity = crate::format::solution::model::Activity;
 type ApiSolution = crate::format::solution::model::Solution;
 type ApiSchedule = crate::format::solution::model::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
@@ -121,7 +122,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 time: format_schedule(&start.schedule),
                 load: start_delivery.as_vec(),
                 distance: 0,
-                activities: vec![Activity {
+                activities: vec![ApiActivity {
                     job_id: "departure".to_string(),
                     activity_type: "departure".to_string(),
                     location: None,
@@ -193,7 +194,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
                 last.time.departure = format_time(departure);
                 last.load = load.as_vec();
-                last.activities.push(Activity {
+                last.activities.push(ApiActivity {
                     job_id,
                     activity_type,
                     location: Some(coord_index.get_by_idx(act.place.location).unwrap()),
@@ -251,11 +252,7 @@ fn format_as_schedule(schedule: &(f64, f64)) -> ApiSchedule {
     format_schedule(&Schedule::new(schedule.0, schedule.1))
 }
 
-fn calculate_load(
-    current: MultiDimensionalCapacity,
-    act: &TourActivity,
-    is_multi_dimen: bool,
-) -> MultiDimensionalCapacity {
+fn calculate_load(current: MultiDimensionalCapacity, act: &Activity, is_multi_dimen: bool) -> MultiDimensionalCapacity {
     let job = act.job.as_ref();
     let demand = job.and_then(|job| get_capacity(&job.dimens, is_multi_dimen)).unwrap_or_default();
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
@@ -292,7 +289,7 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
     })
 }
 
-fn get_activity_type(activity: &TourActivity) -> Option<&String> {
+fn get_activity_type(activity: &Activity) -> Option<&String> {
     activity.job.as_ref().and_then(|single| single.dimens.get_value::<String>("type"))
 }
 

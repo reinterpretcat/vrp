@@ -3,7 +3,7 @@ use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use crate::models::solution::TourActivity;
+use crate::models::solution::Activity;
 use crate::utils::map_reduce;
 use std::borrow::Borrow;
 use std::ops::Deref;
@@ -25,7 +25,7 @@ pub struct InsertionSuccess {
     pub job: Job,
 
     /// Specifies activities within index where they have to be inserted.
-    pub activities: Vec<(TourActivity, usize)>,
+    pub activities: Vec<(Activity, usize)>,
 
     /// Specifies route context where insertion happens.
     pub context: RouteContext,
@@ -166,7 +166,7 @@ impl InsertionHeuristic {
 }
 
 impl InsertionResult {
-    pub fn make_success(cost: Cost, job: Job, activities: Vec<(TourActivity, usize)>, route_ctx: RouteContext) -> Self {
+    pub fn make_success(cost: Cost, job: Job, activities: Vec<(Activity, usize)>, route_ctx: RouteContext) -> Self {
         Self::Success(InsertionSuccess { cost, job, activities, context: route_ctx })
     }
 

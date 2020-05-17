@@ -6,7 +6,7 @@ use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, RouteState, SolutionContext};
 use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::problem::{Job, Single};
-use crate::models::solution::{Activity, Route, TourActivity};
+use crate::models::solution::{Activity, Route};
 use hashbrown::HashSet;
 use std::iter::empty;
 use std::marker::PhantomData;
@@ -40,7 +40,7 @@ pub trait DemandDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sy
 }
 
 /// Returns intervals between vehicle terminal and reload activities.
-pub fn route_intervals(route: &Route, is_reload: Box<dyn Fn(&TourActivity) -> bool + 'static>) -> Vec<(usize, usize)> {
+pub fn route_intervals(route: &Route, is_reload: Box<dyn Fn(&Activity) -> bool + 'static>) -> Vec<(usize, usize)> {
     let last_idx = route.tour.total() - 1;
     (0_usize..).zip(route.tour.all_activities()).fold(Vec::<(usize, usize)>::default(), |mut acc, (idx, a)| {
         if is_reload.deref()(a) || idx == last_idx {
@@ -228,7 +228,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn has_demand_violation(
         state: &RouteState,
-        pivot: &TourActivity,
+        pivot: &Activity,
         capacity: Option<&Capacity>,
         demand: Option<&Demand<Capacity>>,
         stopped: bool,
@@ -275,7 +275,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         demand: Option<&Demand<Capacity>>,
         insert_idx: Option<usize>,
     ) -> bool {
-        let has_demand_violation = |activity: &TourActivity| {
+        let has_demand_violation = |activity: &Activity| {
             CapacityConstraintModule::<Capacity>::has_demand_violation(
                 &ctx.state,
                 activity,
@@ -301,7 +301,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             .unwrap_or_else(|| has_demand_violation(ctx.route.tour.get(insert_idx.unwrap_or(0)).unwrap()).is_none())
     }
 
-    fn get_demand(activity: &TourActivity) -> Option<&Demand<Capacity>> {
+    fn get_demand(activity: &Activity) -> Option<&Demand<Capacity>> {
         activity.job.as_ref().and_then(|job| job.dimens.get_demand())
     }
 }

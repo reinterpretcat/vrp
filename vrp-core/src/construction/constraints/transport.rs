@@ -7,7 +7,7 @@ use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionCon
 use crate::construction::OP_START_MSG;
 use crate::models::common::{Cost, Distance, Duration, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, Actor, Job, Single, TransportCost};
-use crate::models::solution::{Activity, TourActivity};
+use crate::models::solution::Activity;
 use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -368,8 +368,8 @@ impl TravelHardActivityConstraint {
     fn calculate_leg_travel_info(
         &self,
         profile: Profile,
-        first: &TourActivity,
-        second: &TourActivity,
+        first: &Activity,
+        second: &Activity,
         departure: Timestamp,
     ) -> (Distance, Duration) {
         let first_to_second_dis =

@@ -9,7 +9,7 @@ use super::inserter::ActivityInfoInserter;
 use super::AdjacencyMatrix;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::{Actor, ActorDetail, Job, Place, Single};
-use crate::models::solution::TourActivity;
+use crate::models::solution::Activity;
 use crate::models::Problem;
 use crate::utils::DefaultRandom;
 use hashbrown::{HashMap, HashSet};
@@ -210,7 +210,7 @@ fn get_unique_actor_details(actors: &[Arc<Actor>]) -> Vec<ActorDetail> {
     details
 }
 
-fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity, leg_idx: usize) -> ActivityInfo {
+fn create_activity_info(actor: &Arc<Actor>, a: &Activity, leg_idx: usize) -> ActivityInfo {
     match a.retrieve_job() {
         Some(job) => {
             let (single_idx, single) = match &job {
@@ -235,7 +235,7 @@ fn create_activity_info(actor: &Arc<Actor>, a: &TourActivity, leg_idx: usize) ->
     }
 }
 
-fn try_match_activity_place(activity: &TourActivity, places: &[Place]) -> Option<(usize, usize)> {
+fn try_match_activity_place(activity: &Activity, places: &[Place]) -> Option<(usize, usize)> {
     places.iter().enumerate().fold(None, |acc, (place_idx, place)| {
         if acc.is_none()
             && place.location.map_or(true, |location| location == activity.place.location)

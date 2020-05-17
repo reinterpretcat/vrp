@@ -22,11 +22,7 @@ mod timing {
         create_route_context_with_activities(
             fleet,
             vehicle,
-            vec![
-                test_tour_activity_with_location(10),
-                test_tour_activity_with_location(20),
-                test_tour_activity_with_location(30),
-            ],
+            vec![test_activity_with_location(10), test_activity_with_location(20), test_activity_with_location(30)],
         )
     }
 
@@ -148,7 +144,7 @@ mod timing {
             .unwrap();
 
         let prev = route_ctx.route.tour.get(prev_index).unwrap();
-        let target = test_tour_activity_with_location(location);
+        let target = test_activity_with_location(location);
         let next = route_ctx.route.tour.get(next_index);
         let activity_ctx = ActivityContext { index: 0, prev, target: &target, next };
 
@@ -168,16 +164,12 @@ mod timing {
                 &fleet,
                 "v1",
                 vec![
-                    Box::new(
-                        ActivityBuilder::default()
-                            .place(Place { location: 10, duration: 5.0, time: TimeWindow { start: 20.0, end: 30.0 } })
-                            .build(),
-                    ),
-                    Box::new(
-                        ActivityBuilder::default()
-                            .place(Place { location: 20, duration: 10.0, time: TimeWindow { start: 50.0, end: 10.0 } })
-                            .build(),
-                    ),
+                    ActivityBuilder::default()
+                        .place(Place { location: 10, duration: 5.0, time: TimeWindow { start: 20.0, end: 30.0 } })
+                        .build(),
+                    ActivityBuilder::default()
+                        .place(Place { location: 20, duration: 10.0, time: TimeWindow { start: 50.0, end: 10.0 } })
+                        .build(),
                 ],
             )],
             registry: Registry::new(&fleet),
@@ -225,17 +217,13 @@ mod timing {
             &fleet,
             "v1",
             vec![
-                Box::new(
-                    ActivityBuilder::default()
-                        .place(Place { location: 10, duration: 0.0, time: DEFAULT_ACTIVITY_TIME_WINDOW.clone() })
-                        .schedule(Schedule { arrival: 0.0, departure: 10.0 })
-                        .build(),
-                ),
-                Box::new(
-                    ActivityBuilder::default()
-                        .place(Place { location: 20, duration: 0.0, time: TimeWindow { start: 40.0, end: 70.0 } })
-                        .build(),
-                ),
+                ActivityBuilder::default()
+                    .place(Place { location: 10, duration: 0.0, time: DEFAULT_ACTIVITY_TIME_WINDOW.clone() })
+                    .schedule(Schedule { arrival: 0.0, departure: 10.0 })
+                    .build(),
+                ActivityBuilder::default()
+                    .place(Place { location: 20, duration: 0.0, time: TimeWindow { start: 40.0, end: 70.0 } })
+                    .build(),
             ],
         );
         let target = Box::new(Activity {
@@ -342,9 +330,9 @@ mod traveling {
             &route_ctx,
             &ActivityContext {
                 index: 0,
-                prev: &test_tour_activity_with_location(50),
-                target: &test_tour_activity_with_location(location),
-                next: Some(&test_tour_activity_with_location(50)),
+                prev: &test_activity_with_location(50),
+                target: &test_activity_with_location(location),
+                next: Some(&test_activity_with_location(50)),
             },
         );
 
@@ -359,9 +347,9 @@ mod traveling {
             &route_ctx,
             &ActivityContext {
                 index: 0,
-                prev: &test_tour_activity_with_location(50),
-                target: &test_tour_activity_with_location_and_tw(75, TimeWindow::new(100., 100.)),
-                next: Some(&test_tour_activity_with_location(50)),
+                prev: &test_activity_with_location(50),
+                target: &test_activity_with_location_and_tw(75, TimeWindow::new(100., 100.)),
+                next: Some(&test_activity_with_location(50)),
             },
         );
 

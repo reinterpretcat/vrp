@@ -8,7 +8,7 @@ use super::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::Cost;
 use crate::models::problem::{Actor, Job, TransportCost};
-use crate::models::solution::TourActivity;
+use crate::models::solution::Activity;
 use crate::solver::RefinementContext;
 use crate::utils::parallel_collect;
 use hashbrown::{HashMap, HashSet};
@@ -124,9 +124,9 @@ fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContex
 #[inline(always)]
 fn get_cost_savings(
     actor: &Actor,
-    start: &TourActivity,
-    middle: &TourActivity,
-    end: &TourActivity,
+    start: &Activity,
+    middle: &Activity,
+    end: &Activity,
     transport: &Arc<dyn TransportCost + Send + Sync>,
 ) -> Cost {
     get_cost(actor, start, middle, transport) + get_cost(actor, middle, end, transport)
@@ -134,11 +134,6 @@ fn get_cost_savings(
 }
 
 #[inline(always)]
-fn get_cost(
-    actor: &Actor,
-    from: &TourActivity,
-    to: &TourActivity,
-    transport: &Arc<dyn TransportCost + Send + Sync>,
-) -> Cost {
+fn get_cost(actor: &Actor, from: &Activity, to: &Activity, transport: &Arc<dyn TransportCost + Send + Sync>) -> Cost {
     transport.cost(actor, from.place.location, to.place.location, from.schedule.departure)
 }
