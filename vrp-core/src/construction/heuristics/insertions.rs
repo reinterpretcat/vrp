@@ -140,8 +140,8 @@ impl InsertionHeuristic {
 impl InsertionHeuristic {
     pub fn process(
         &self,
-        job_selector: &Box<dyn JobSelector + Send + Sync>,
-        job_reducer: &Box<dyn JobMapReducer + Send + Sync>,
+        job_selector: &(dyn JobSelector + Send + Sync),
+        job_reducer: &(dyn JobMapReducer + Send + Sync),
         ctx: InsertionContext,
         quota: &Option<Box<dyn Quota + Send + Sync>>,
     ) -> InsertionContext {
