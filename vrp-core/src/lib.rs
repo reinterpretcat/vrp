@@ -15,9 +15,9 @@
 //!
 //! Extra functionality, already developed on top of this crate, is available via following crates:
 //!
-//! - [`scientific`] supports VRP variations used in scientific benchmarks
-//! - [`pragmatic`] supports custom json format which can be used to model real world scenarios
-//! - [`cli`] provides a command line interface and static library with all available functionality
+//! - `vrp-scientific` crate supports VRP variations used in scientific benchmarks
+//! - `vrp-pragmatic` crate supports custom json format which can be used to model real world scenarios
+//! - `vrp-cli` crate provides a command line interface and static library with all available functionality
 //!   provided by the project
 //!
 //! Meanwhile, the project tries to keep the list of dependencies relatively small, but "Not invented HERE"
@@ -28,9 +28,6 @@
 //! internal implementation or library extension. It you are looking just for user documentation,
 //! check! the [`user guide`] documentation.
 //!
-//! [`scientific`]: ../vrp_scientific/index.html
-//! [`pragmatic`]: ../vrp_pragmatic/index.html
-//! [`cli`]: ../vrp_cli/index.html
 //! [`user guide`]: https://reinterpretcat.github.io/vrp/
 //!
 //!
