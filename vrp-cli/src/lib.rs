@@ -7,7 +7,7 @@
 //!
 //! - [`user guide`](https://reinterpretcat.github.io/vrp) describes how to use cli
 //!   application built from this crate
-//! - [`core crate`](../vrp_core/index.html) implements default metaheuristic
+//! - `vrp-core` crate implements default metaheuristic
 //!
 
 #[cfg(not(target_arch = "wasm32"))]
