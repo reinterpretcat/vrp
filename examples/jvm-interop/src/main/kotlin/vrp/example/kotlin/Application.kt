@@ -12,7 +12,7 @@ private interface Solver : Library {
     fun get_routing_locations(problem: String, onSuccess: OnSuccess, onError: OnError)
     /** Converts problem to pragmatic format. **/
     fun convert_to_pragmatic(format: String, inputs: Array<String>, inputsLen: Int, onSuccess: OnSuccess, onError: OnError)
-    /** Solves pragmatic problem. maxTime is in seconds. **/
+    /** Solves pragmatic problem. **/
     fun solve_pragmatic(problem: String,
                         matrices: Array<String>,
                         matricesLen: Int,

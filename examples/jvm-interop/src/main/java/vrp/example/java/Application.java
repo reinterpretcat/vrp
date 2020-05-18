@@ -14,7 +14,7 @@ interface Solver extends Library {
     void get_routing_locations(String problem, OnSuccess onSuccess, OnError onError);
     /** Converts problem to pragmatic format. **/
     void convert_to_pragmatic(String format, String[] inputs, int inputsLen, OnSuccess onSuccess, OnError onError);
-    /** Solves pragmatic problem. maxTime is in seconds. **/
+    /** Solves pragmatic problem. **/
     void solve_pragmatic(String problem, String[] matrices,
                          int matricesSize,
                          String config,

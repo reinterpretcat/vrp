@@ -1,6 +1,6 @@
 {
   "population": {
-    "initial_methods": [
+    "initialMethods": [
       {
         "weight": 10,
         "type": "cheapest"
@@ -16,10 +16,10 @@
         "type": "blinks"
       }
     ],
-    "initial_size": 2,
-    "population_size": 4,
-    "offspring_size": 4,
-    "elite_size": 2
+    "initialSize": 2,
+    "populationSize": 4,
+    "offspringSize": 4,
+    "eliteSize": 2
   },
   "mutation": {
     "type": "ruin-recreate",
@@ -263,8 +263,8 @@
     ]
   },
   "termination": {
-    "max_time": 300,
-    "max_generations": 2000,
+    "maxTime": 300,
+    "maxGenerations": 2000,
     "variation": {
       "sample": 2000,
       "cv": 1

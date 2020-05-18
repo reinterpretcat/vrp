@@ -71,6 +71,7 @@ pub enum RecreateMethod {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct PopulationConfig {
     initial_methods: Option<Vec<RecreateMethod>>,
     initial_size: Option<usize>,
@@ -80,6 +81,7 @@ pub struct PopulationConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct TerminationConfig {
     max_time: Option<usize>,
     max_generations: Option<usize>,
