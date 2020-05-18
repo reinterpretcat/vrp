@@ -119,7 +119,7 @@ impl ResultSelector for BestResultSelector {
 }
 
 /// Implements generalized insertion heuristic.
-/// Using [`JobSelector`] and [`ResultSelector`], it tries to identify next job to be inserted until
+/// Using `JobSelector` and `ResultSelector`, it tries to identify next job to be inserted until
 /// there are no jobs left or it is not possible to insert due to constraint limitations.
 pub struct InsertionHeuristic {
     insertion_position: InsertionPosition,

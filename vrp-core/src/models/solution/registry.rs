@@ -14,7 +14,7 @@ pub struct Registry {
 }
 
 impl Registry {
-    /// Creates a new instance of [`Registry`];
+    /// Creates a new instance of `Registry`;
     pub fn new(fleet: &Fleet) -> Self {
         let index = fleet
             .groups

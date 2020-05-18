@@ -409,7 +409,7 @@ pub struct Matrix {
 
 // endregion
 
-/// Deserializes problem in json format from [`BufReader`].
+/// Deserializes problem in json format from `BufReader`.
 pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec<FormatError>> {
     serde_json::from_reader(reader).map_err(|err| {
         vec![FormatError::new(
@@ -420,7 +420,7 @@ pub fn deserialize_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Vec
     })
 }
 
-/// Deserializes routing matrix in json format from [`BufReader`].
+/// Deserializes routing matrix in json format from `BufReader`.
 pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<FormatError>> {
     serde_json::from_reader(reader).map_err(|err| {
         vec![FormatError::new(
@@ -431,7 +431,7 @@ pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<F
     })
 }
 
-/// Serializes [`problem`] in json from [`writer`].
+/// Serializes `problem` in json from `writer`.
 pub fn serialize_problem<W: Write>(writer: BufWriter<W>, problem: &Problem) -> Result<(), Error> {
     serde_json::to_writer_pretty(writer, problem)
 }

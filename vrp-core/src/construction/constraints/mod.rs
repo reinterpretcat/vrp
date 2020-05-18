@@ -16,7 +16,7 @@
 //! ## Design
 //!
 //! There are multiple types of constraints described below in details. In common, all of them try
-//! to identify insertion possibility or cost of given customer known as [`Job`] into given route.
+//! to identify insertion possibility or cost of given customer known as `Job` into given route.
 //!
 //!
 //! ### Constraint characteristics
