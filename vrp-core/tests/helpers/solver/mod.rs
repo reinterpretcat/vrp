@@ -68,7 +68,7 @@ pub fn generate_matrix_routes(
 
     let (durations, distances) = matrix_modify(generate_matrix_from_sizes(rows, cols));
 
-    let matrix_data = MatrixData::new(0, durations, distances);
+    let matrix_data = MatrixData::new(0, None, durations, distances);
     let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
     let jobs = Jobs::new(&fleet, jobs, &transport);
 

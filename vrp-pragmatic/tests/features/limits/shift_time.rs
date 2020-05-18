@@ -16,7 +16,7 @@ fn can_limit_one_job_by_shift_time() {
         ..create_empty_problem()
     };
     let matrix = Matrix {
-        profile: "car".to_owned(),
+        profile: Some("car".to_owned()),
         timestamp: None,
         travel_times: vec![1, 100, 100, 1],
         distances: vec![1, 1, 1, 1],

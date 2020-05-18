@@ -130,7 +130,7 @@ fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
                 speeds.iter().position(|s| compare_floats(*s, speed) == Equal).expect("Cannot find profile speed");
 
             Matrix {
-                profile: profile.name.clone(),
+                profile: Some(profile.name.clone()),
                 timestamp: None,
                 travel_times: approx_data[idx].0.clone(),
                 distances: approx_data[idx].1.clone(),

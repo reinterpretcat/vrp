@@ -118,30 +118,35 @@ pub struct MatrixData {
 }
 
 impl MatrixData {
-    /// Creates `MatrixData` without timestamp.
-    pub fn new(profile: Profile, durations: Vec<Duration>, distances: Vec<Distance>) -> Self {
-        Self { profile, timestamp: None, durations, distances }
+    /// Creates `MatrixData`.
+    pub fn new(
+        profile: Profile,
+        timestamp: Option<Timestamp>,
+        durations: Vec<Duration>,
+        distances: Vec<Distance>,
+    ) -> Self {
+        Self { profile, timestamp, durations, distances }
     }
 }
 
 /// Creates time agnostic or time aware routing costs based on matrix data passed.
 pub fn create_matrix_transport_cost(costs: Vec<MatrixData>) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
     if costs.is_empty() {
-        return Err("No matrix data found".to_string());
+        return Err("no matrix data found".to_string());
     }
 
-    let size = (costs.first().unwrap().durations.len() as f64).sqrt() as usize;
+    let size = (costs.first().unwrap().durations.len() as f64).sqrt().round() as usize;
 
     if costs.iter().any(|matrix| matrix.distances.len() != matrix.durations.len()) {
-        return Err("Distance and duration collections have different length".to_string());
+        return Err("distance and duration collections have different length".to_string());
     }
 
-    if costs.iter().any(|matrix| (matrix.distances.len() as f64).sqrt() as usize != size) {
-        return Err("Distance lengths don't match".to_string());
+    if costs.iter().any(|matrix| (matrix.distances.len() as f64).sqrt().round() as usize != size) {
+        return Err("distance lengths don't match".to_string());
     }
 
-    if costs.iter().any(|matrix| (matrix.durations.len() as f64).sqrt() as usize != size) {
-        return Err("Duration lengths don't match".to_string());
+    if costs.iter().any(|matrix| (matrix.durations.len() as f64).sqrt().round() as usize != size) {
+        return Err("duration lengths don't match".to_string());
     }
 
     Ok(if costs.iter().any(|costs| costs.timestamp.is_some()) {
@@ -159,16 +164,17 @@ struct TimeAgnosticMatrixTransportCost {
 }
 
 impl TimeAgnosticMatrixTransportCost {
+    /// Creates an instance of `TimeAgnosticMatrixTransportCost`.
     pub fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
         let mut costs = costs;
         costs.sort_by(|a, b| a.profile.cmp(&b.profile));
 
         if costs.iter().any(|costs| costs.timestamp.is_some()) {
-            return Err("Time aware routing".to_string());
+            return Err("time aware routing".to_string());
         }
 
         if (0..).zip(costs.iter().map(|c| c.profile)).any(|(a, b)| a != b) {
-            return Err("Duplicate profiles can be passed only for time aware routing".to_string());
+            return Err("duplicate profiles can be passed only for time aware routing".to_string());
         }
 
         let (durations, distances) = costs.into_iter().fold((vec![], vec![]), |mut acc, data| {
@@ -199,16 +205,16 @@ struct TimeAwareMatrixTransportCost {
 }
 
 impl TimeAwareMatrixTransportCost {
-    /// Creates a new [`TimeAwareMatrixTransportCost`]
+    /// Creates an instance of `TimeAwareMatrixTransportCost`.
     fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
         if costs.iter().any(|matrix| matrix.timestamp.is_none()) {
-            return Err("Cannot use matrix without timestamp".to_string());
+            return Err("time-aware routing requires all matrices to have timestamp".to_string());
         }
 
         let costs = costs.into_iter().collect_group_by_key(|matrix| matrix.profile);
 
         if costs.iter().any(|(_, matrices)| matrices.len() == 1) {
-            return Err("Should not use time aware matrix routing with single matrix".to_string());
+            return Err("should not use time aware matrix routing with single matrix".to_string());
         }
 
         let costs = costs
@@ -262,7 +268,7 @@ impl TransportCost for TimeAwareMatrixTransportCost {
             Err(matrix_idx) if matrix_idx == matrices.len() => {
                 *matrices.last().unwrap().distances.get(data_idx).unwrap()
             }
-            Err(matrix_idx) => *matrices.get(matrix_idx).unwrap().distances.get(data_idx).unwrap(),
+            Err(matrix_idx) => *matrices.get(matrix_idx - 1).unwrap().distances.get(data_idx).unwrap(),
         }
     }
 }

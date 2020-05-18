@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/format/problem/fleet_reader_test.rs"]
+mod fleet_reader_test;
+
 use crate::extensions::{create_typed_actor_groups, MultiDimensionalCapacity};
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::reader::{add_skills, ApiProblem, ProblemProperties};
@@ -14,12 +18,32 @@ pub fn create_transport_costs(
     api_problem: &ApiProblem,
     matrices: &[Matrix],
 ) -> Result<Arc<dyn TransportCost + Sync + Send>, String> {
+    if !matrices.iter().all(|m| m.profile.is_some()) && !matrices.iter().all(|m| m.profile.is_none()) {
+        return Err("all matrices should have profile set or none of them".to_string());
+    }
+
+    if matrices.iter().any(|m| m.profile.is_none()) && matrices.iter().any(|m| m.timestamp.is_some()) {
+        return Err("when timestamp is set, all matrices should have profile set".to_string());
+    }
+
     let fleet_profiles = get_profile_map(api_problem);
+    if fleet_profiles.len() > matrices.len() {
+        return Err(format!(
+            "not enough routing matrices specified for fleet profiles defined: \
+             {} must be less or equal to {}",
+            fleet_profiles.len(),
+            matrices.len()
+        ));
+    }
 
     let matrix_data = matrices
         .iter()
-        .filter_map(|matrix| fleet_profiles.get(&matrix.profile).map(|profile| (profile, matrix)))
-        .map(|(profile, matrix)| {
+        .enumerate()
+        .map(|(idx, matrix)| {
+            let profile = matrix.profile.as_ref().and_then(|p| fleet_profiles.get(p)).cloned().unwrap_or(idx as i32);
+            (profile, matrix.timestamp.clone(), matrix)
+        })
+        .map(|(profile, timestamp, matrix)| {
             let (durations, distances) = if let Some(error_codes) = &matrix.error_codes {
                 let mut durations: Vec<Duration> = Default::default();
                 let mut distances: Vec<Distance> = Default::default();
@@ -40,14 +64,13 @@ pub fn create_transport_costs(
                 )
             };
 
-            MatrixData::new(*profile, durations, distances)
+            MatrixData::new(profile, timestamp.map(|t| parse_time(&t)), durations, distances)
         })
         .collect::<Vec<_>>();
 
     let matrix_profiles = matrix_data.iter().map(|data| data.profile).collect::<HashSet<_>>().len();
-
     if fleet_profiles.len() != matrix_profiles {
-        return Err("Amount of fleet profiles does not match matrix profiles".to_string());
+        return Err("amount of fleet profiles does not match matrix profiles".to_string());
     }
 
     create_matrix_transport_cost(matrix_data)

@@ -22,10 +22,17 @@ Errors from E0xxx range are generic.
 
 `cannot create transport costs` is returned when problem cannot be matched within routing matrix data passed.
 
+There are two options to consider, when specifying routing matrix data:
+
+- *time dependent VRP* requires all matrices to have `profile` and `timestamp` properties to be se
+- *time agnostic VRP* requires `timestamp` property to be omitted, `profile` property either set or skipped for all matrices
+
+
 ### E0003
 
 `cannot find any solution` is returned when no solution is found. In this case, please submit a bug and share original
 problem and routing matrix.
+
 
 ### E0004
 

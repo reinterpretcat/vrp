@@ -2,7 +2,7 @@
 
 In general, routing matrix has the following schema:
 
-- `profile` (required) is name of vehicle profile
+- `profile` (required for time dependent VRP) is name of vehicle profile
 - `timestamp` (optional) a date in RFC3999 for which routing info is applicable. Can be used for time dependent VRP.
 - `travelTimes` (required) is square matrix of durations in abstract time units represented via single dimensional array
 - `distances` (required) is square matrix of distances in abstract distance unit represented via single dimensional array

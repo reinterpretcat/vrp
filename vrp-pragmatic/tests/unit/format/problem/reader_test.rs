@@ -169,7 +169,7 @@ fn can_read_complex_problem() {
         config: None,
     };
     let matrix = Matrix {
-        profile: "car".to_owned(),
+        profile: Some("car".to_owned()),
         timestamp: None,
         travel_times: vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         distances: vec![2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
@@ -289,7 +289,7 @@ fn can_create_approximation_matrices() {
     assert_eq!(matrices.len(), 4);
 
     for &(profile, duration) in &[("car1", 635), ("car2", 508), ("car3", 1016), ("car4", 508)] {
-        let matrix = matrices.iter().find(|m| m.profile.as_str() == profile).unwrap();
+        let matrix = matrices.iter().find(|m| m.profile.as_ref().unwrap().as_str() == profile).unwrap();
 
         assert!(matrix.error_codes.is_none());
         assert!(matrix.timestamp.is_none());

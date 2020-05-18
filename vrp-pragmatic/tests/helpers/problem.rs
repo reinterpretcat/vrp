@@ -207,7 +207,7 @@ pub fn create_matrix(data: Vec<i64>) -> Matrix {
     assert_eq!((size * size) as usize, data.len());
 
     Matrix {
-        profile: "car".to_owned(),
+        profile: Some("car".to_owned()),
         timestamp: None,
         travel_times: data.clone(),
         distances: data.clone(),

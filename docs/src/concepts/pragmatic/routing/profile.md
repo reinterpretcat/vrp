@@ -23,7 +23,7 @@ Use `-m` option to pass the matrix:
 
 If you don't pass any routing matrix, then [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula) is used to
 calculate distances between geo locations. Durations are calculated using speed value defined via `speed` property in
-each profile. It is optional, default value is `10` which corresponds `10m/s`.
+each profile. It is optional, default value is `10` which corresponds to `10m/s`.
 
 
 ## Multiple profiles
@@ -45,5 +45,6 @@ In order to use this feature, specify more than one routing matrix for each prof
 
 ## Related errors
 
+* [E0002 cannot create transport costs](../errors/index.md#e0002)
 * [E1500 duplicate profile names](../errors/index.md#e1500)
 * [E1501 empty profile collection](../errors/index.md#e1501)

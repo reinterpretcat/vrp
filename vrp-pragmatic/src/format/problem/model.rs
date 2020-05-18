@@ -391,7 +391,7 @@ pub struct Problem {
 #[serde(rename_all = "camelCase")]
 pub struct Matrix {
     /// A name of profile.
-    pub profile: String,
+    pub profile: Option<String>,
 
     /// A date in RFC3999 for which routing info is applicable.
     pub timestamp: Option<String>,
