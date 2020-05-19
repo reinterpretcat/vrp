@@ -108,11 +108,11 @@ pub struct SolutionContext {
 
 impl SolutionContext {
     pub fn get_total_cost(&self) -> Cost {
-        self.routes.iter().fold(Cost::default(), |acc, rc| acc + Self::get_route_cost(rc))
+        self.routes.iter().fold(Cost::default(), |acc, rc| acc + rc.get_route_cost())
     }
 
     pub fn get_max_cost(&self) -> Cost {
-        self.routes.iter().map(Self::get_route_cost).max_by(|&a, &b| compare_floats(a, b)).unwrap_or(0.)
+        self.routes.iter().map(|rc| rc.get_route_cost()).max_by(|&a, &b| compare_floats(a, b)).unwrap_or(0.)
     }
 
     pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
@@ -135,20 +135,6 @@ impl SolutionContext {
             state: self.state.clone(),
         }
     }
-
-    fn get_route_cost(route_ctx: &RouteContext) -> Cost {
-        let get_cost = |costs: &Costs, distance: f64, duration: f64| {
-            costs.fixed
-                + costs.per_distance * distance
-                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
-        };
-
-        let actor = &route_ctx.route.actor;
-        let distance = route_ctx.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
-        let duration = route_ctx.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
-
-        get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)
-    }
 }
 
 /// Specifies insertion context for route.
@@ -166,23 +152,6 @@ pub struct RouteState {
     route_states: HashMap<i32, StateValue>,
     activity_states: HashMap<ActivityWithKey, StateValue>,
     keys: HashSet<i32>,
-}
-
-impl RouteContext {
-    pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
-        let route: &mut Route = unsafe { as_mut(&self.route) };
-        let state: &mut RouteState = unsafe { as_mut(&self.state) };
-
-        (route, state)
-    }
-
-    pub fn route_mut(&mut self) -> &mut Route {
-        unsafe { as_mut(&self.route) }
-    }
-
-    pub fn state_mut(&mut self) -> &mut RouteState {
-        unsafe { as_mut(&self.state) }
-    }
 }
 
 impl RouteContext {
@@ -216,6 +185,39 @@ impl RouteContext {
         });
 
         RouteContext { route: Arc::new(new_route), state: Arc::new(new_state) }
+    }
+
+    pub fn get_route_cost(&self) -> Cost {
+        let get_cost = |costs: &Costs, distance: f64, duration: f64| {
+            costs.fixed
+                + costs.per_distance * distance
+                // NOTE this is incorrect when timing costs are different: fitness value will be
+                // different from actual cost. However we accept this so far as it is simpler for
+                // implementation and pragmatic format does not expose this feature.
+                // TODO calculate actual cost
+                + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
+        };
+
+        let actor = &self.route.actor;
+        let distance = self.state.get_route_state::<f64>(TOTAL_DISTANCE_KEY).cloned().unwrap_or(0.);
+        let duration = self.state.get_route_state::<f64>(TOTAL_DURATION_KEY).cloned().unwrap_or(0.);
+
+        get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)
+    }
+
+    pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
+        let route: &mut Route = unsafe { as_mut(&self.route) };
+        let state: &mut RouteState = unsafe { as_mut(&self.state) };
+
+        (route, state)
+    }
+
+    pub fn route_mut(&mut self) -> &mut Route {
+        unsafe { as_mut(&self.route) }
+    }
+
+    pub fn state_mut(&mut self) -> &mut RouteState {
+        unsafe { as_mut(&self.state) }
     }
 }
 

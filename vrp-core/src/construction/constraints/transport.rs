@@ -173,7 +173,7 @@ impl TransportConstraintModule {
         let start = ctx.route.tour.start().unwrap();
         let end = ctx.route.tour.end().unwrap();
 
-        let total_dur = end.schedule.arrival - start.schedule.departure;
+        let total_dur = end.schedule.departure - start.schedule.departure;
 
         let init = (start.place.location, start.schedule.departure, Distance::default());
         let (_, _, total_dist) = ctx.route.tour.all_activities().skip(1).fold(init, |(loc, dep, total_dist), a| {
