@@ -193,7 +193,8 @@ impl RouteContext {
                 + costs.per_distance * distance
                 // NOTE this is incorrect when timing costs are different: fitness value will be
                 // different from actual cost. However we accept this so far as it is simpler for
-                // implementation and pragmatic format does not expose this feature.
+                // implementation and pragmatic format does not expose this feature
+                // .
                 // TODO calculate actual cost
                 + costs.per_driving_time.max(costs.per_service_time).max(costs.per_waiting_time) * duration
         };

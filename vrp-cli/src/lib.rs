@@ -20,6 +20,7 @@ pub mod extensions;
 use crate::extensions::import::import_problem;
 use crate::extensions::solve::config::{create_builder_from_config, read_config};
 use std::io::{BufReader, BufWriter};
+use std::panic;
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
@@ -32,6 +33,7 @@ mod interop {
     use super::*;
     use std::ffi::{CStr, CString};
     use std::os::raw::c_char;
+    use std::panic::UnwindSafe;
     use std::slice;
     use vrp_pragmatic::format::problem::deserialize_problem;
 
@@ -55,20 +57,29 @@ mod interop {
         };
     }
 
-    /// Returns a list of unique locations to request a routing matrix.
-    /// Problem should be passed in `pragmatic` format.
-    #[no_mangle]
-    extern "C" fn get_routing_locations(problem: *const c_char, success: Callback, failure: Callback) {
-        let problem = to_string(problem);
-        let problem = BufReader::new(problem.as_bytes());
-        let result = deserialize_problem(problem)
-            .map_err(|errors| get_errors_serialized(&errors))
-            .and_then(|problem| get_locations_serialized(&problem));
-
-        call_back(result, success, failure);
+    fn catch_panic<F: FnOnce() -> () + UnwindSafe>(failure: Callback, action: F) {
+        if let Err(err) = panic::catch_unwind(|| action()) {
+            let error = CString::new(format!("fatal: {:?}", err).as_bytes()).unwrap();
+            failure(error.as_ptr());
+        }
     }
 
-    /// Converts problem from format specified by `format` to `pragmatic` format.
+    /// Returns a list of unique locations which can be used to request a routing matrix.
+    /// A `problem` should be passed in `pragmatic` format.
+    #[no_mangle]
+    extern "C" fn get_routing_locations(problem: *const c_char, success: Callback, failure: Callback) {
+        catch_panic(failure, || {
+            let problem = to_string(problem);
+            let problem = BufReader::new(problem.as_bytes());
+            let result = deserialize_problem(problem)
+                .map_err(|errors| get_errors_serialized(&errors))
+                .and_then(|problem| get_locations_serialized(&problem));
+
+            call_back(result, success, failure);
+        });
+    }
+
+    /// Converts `problem` from format specified by `format` to `pragmatic` format.
     #[no_mangle]
     extern "C" fn convert_to_pragmatic(
         format: *const c_char,
@@ -77,25 +88,27 @@ mod interop {
         success: Callback,
         failure: Callback,
     ) {
-        let format = to_string(format);
-        let inputs = unsafe { slice::from_raw_parts(inputs, input_len as usize).to_vec() };
-        let inputs = inputs.iter().map(|p| to_string(*p)).collect::<Vec<_>>();
-        let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
+        catch_panic(failure, || {
+            let format = to_string(format);
+            let inputs = unsafe { slice::from_raw_parts(inputs, input_len as usize).to_vec() };
+            let inputs = inputs.iter().map(|p| to_string(*p)).collect::<Vec<_>>();
+            let readers = inputs.iter().map(|p| BufReader::new(p.as_bytes())).collect::<Vec<_>>();
 
-        match import_problem(format.as_str(), Some(readers)) {
-            Ok(problem) => {
-                let mut buffer = String::new();
-                let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-                serialize_problem(writer, &problem).unwrap();
-                let problem = CString::new(buffer.as_bytes()).unwrap();
+            match import_problem(format.as_str(), Some(readers)) {
+                Ok(problem) => {
+                    let mut buffer = String::new();
+                    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+                    serialize_problem(writer, &problem).unwrap();
+                    let problem = CString::new(buffer.as_bytes()).unwrap();
 
-                success(problem.as_ptr());
+                    success(problem.as_ptr());
+                }
+                Err(err) => {
+                    let error = CString::new(err.as_bytes()).unwrap();
+                    failure(error.as_ptr());
+                }
             }
-            Err(err) => {
-                let error = CString::new(err.as_bytes()).unwrap();
-                failure(error.as_ptr());
-            }
-        }
+        });
     }
 
     /// Solves Vehicle Routing Problem passed in `pragmatic` format.
@@ -108,16 +121,19 @@ mod interop {
         success: Callback,
         failure: Callback,
     ) {
-        let problem = to_string(problem);
-        let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
-        let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
-        let config = to_string(config);
+        catch_panic(failure, || {
+            let problem = to_string(problem);
+            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
+            let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
+            let config = to_string(config);
 
-        let result = if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
-            .map_err(|errors| get_errors_serialized(&errors))
-            .and_then(|problem| get_solution_serialized(&Arc::new(problem), &config));
+            let result =
+                if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
+                    .map_err(|errors| get_errors_serialized(&errors))
+                    .and_then(|problem| get_solution_serialized(&Arc::new(problem), &config));
 
-        call_back(result, success, failure);
+            call_back(result, success, failure);
+        });
     }
 }
 
@@ -131,8 +147,8 @@ mod wasm {
     use super::*;
     use vrp_pragmatic::format::problem::Matrix;
 
-    /// Returns a list of unique locations to request a routing matrix.
-    /// Problem should be passed in `pragmatic` format.
+    /// Returns a list of unique locations which can be used to request a routing matrix.
+    /// A `problem` should be passed in `pragmatic` format.
     #[wasm_bindgen]
     pub fn get_routing_locations(problem: &JsValue) -> Result<JsValue, JsValue> {
         let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
@@ -142,7 +158,7 @@ mod wasm {
             .map_err(|err| JsValue::from_str(err.to_string().as_str()))
     }
 
-    /// Converts problem from format specified by `format` to `pragmatic` format.
+    /// Converts `problem` from format specified by `format` to `pragmatic` format.
     #[wasm_bindgen]
     pub fn convert_to_pragmatic(format: &str, inputs: &JsValue) -> Result<JsValue, JsValue> {
         let inputs: Vec<String> = inputs.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
