@@ -36,9 +36,14 @@ Once pulled the source code, you can build it using `cargo`:
 ```bash
 cargo build --release
 ```
-
 Built binaries can be found in the `./target/release` directory.
 
+Alternatively, you can try to run the following script from the project root:
+
+        ./solve_problem.sh examples/data/pragmatic/objectives/berlin.default.problem.json
+
+It will build the executable and automatically launch the solver with the specified VRP definition. Results are
+stored in the folder where a problem definition is located.
 
 ## Install from Cargo
 
@@ -70,6 +75,21 @@ defined in 'pragmatic' or 'scientific' format using default metaheuristic. For m
 
 If you're using some other language, e.g java, kotlin, javascript, please check `examples` section to see how to call
 the library from it.
+
+
+# Project structure
+
+The project consists of the following parts:
+- **vrp solver code**: the source code of the solver is split into four crates:
+    - *vrp-core*: a core crate with default metaheuristic implementation
+    - *vrp-scientific*: a crate with functionality to solve problems from some of scientific benchmarks on top of the core crate
+    - *vrp-pragmatic*: a crate which provides logic to solve rich VRP using `pragmatic` json format on top of the core crate
+    - *vrp-cli*: a crate which aggregates logic of others crates and exposes them as a library and application
+- **docs**: a source code of the user guide documentation published [here](https://reinterpretcat.github.io/vrp)
+- **examples**: provides various examples:
+    - **data**: a data examples such as problem definition, configuration, etc.
+    - **json-pragmatic**: an example how to solve problem in `pragmatic` json format from rust code using the project crates
+    - **jvm-interop**: a gradle project which demonstrates how to use the library from java and kotlin
 
 
 # Status

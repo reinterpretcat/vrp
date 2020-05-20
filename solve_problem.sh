@@ -12,8 +12,8 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 ALL_ARGS=("$@")
-PROBLEM_FILE_PATH=$1
-PROBLEM_FILE_BASE=${PROBLEM_FILE_PATH%.*}
+PROBLEM_FILE_PATH="$1"
+PROBLEM_FILE_BASE="${PROBLEM_FILE_PATH%.*}"
 REST_ARGS=("${ALL_ARGS[@]:1}")
 
 cargo run -p vrp-cli --release -- solve pragmatic "${PROBLEM_FILE_PATH}" \
