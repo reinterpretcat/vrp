@@ -1,3 +1,6 @@
+//! This module contains an implementation of Density-Based Spatial Clustering of Applications with
+//! Noise (DBSCAN)
+
 #[cfg(test)]
 #[path = "../../../tests/unit/algorithms/dbscan/dbscan_test.rs"]
 mod dbscan_test;

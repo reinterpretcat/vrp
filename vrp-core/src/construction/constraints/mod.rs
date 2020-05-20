@@ -37,22 +37,22 @@
 //! ### Constraint module
 //!
 //! Sometimes you might need multiple constraints with different characteristics to implement some
-//! aspect of VRP variation. This is where [`ConstraintModule`] supposed to be used: it allows you
+//! aspect of VRP variation. This is where `ConstraintModule` supposed to be used: it allows you
 //! to group multiple constraints together keeping implementation details hidden outside of module.
-//! Additionally, [`ConstraintModule`] provides the way to share some state between insertions.
+//! Additionally, `ConstraintModule` provides the way to share some state between insertions.
 //! This is really important as allows you to avoid unneeded computations.
 //!
 //!
 //! ### Sharing state
 //!
-//! You can share some state using [`RouteState`] object which is part of [`RouteContext`]. It is
-//! read-only during insertion evaluation in all constraint types, but it is mutable via [`ConstraintModule`]
+//! You can share some state using `RouteState` object which is part of `RouteContext`. It is
+//! read-only during insertion evaluation in all constraint types, but it is mutable via `ConstraintModule`
 //! methods once best insertion is identified.
 //!
 //!
 //! ### Constraint pipeline
 //!
-//! All constraint modules are organized inside one [`ConstraintPipeline`] which specifies the order
+//! All constraint modules are organized inside one `ConstraintPipeline` which specifies the order
 //! of their execution.
 
 pub const LATEST_ARRIVAL_KEY: i32 = 1;

@@ -85,7 +85,8 @@ The project consists of the following parts:
     - *vrp-scientific*: a crate with functionality to solve problems from some of scientific benchmarks on top of the core crate
     - *vrp-pragmatic*: a crate which provides logic to solve rich VRP using `pragmatic` json format on top of the core crate
     - *vrp-cli*: a crate which aggregates logic of others crates and exposes them as a library and application
-- **docs**: a source code of the user guide documentation published [here](https://reinterpretcat.github.io/vrp)
+- **docs**: a source code of the user guide documentation published [here](https://reinterpretcat.github.io/vrp).
+    Use [mdbook](https://github.com/rust-lang/mdBook) tool to build it locally.
 - **examples**: provides various examples:
     - **data**: a data examples such as problem definition, configuration, etc.
     - **json-pragmatic**: an example how to solve problem in `pragmatic` json format from rust code using the project crates
