@@ -88,9 +88,9 @@ The project consists of the following parts:
 - **docs**: a source code of the user guide documentation published [here](https://reinterpretcat.github.io/vrp).
     Use [mdbook](https://github.com/rust-lang/mdBook) tool to build it locally.
 - **examples**: provides various examples:
-    - **data**: a data examples such as problem definition, configuration, etc.
-    - **json-pragmatic**: an example how to solve problem in `pragmatic` json format from rust code using the project crates
-    - **jvm-interop**: a gradle project which demonstrates how to use the library from java and kotlin
+    - *data*: a data examples such as problem definition, configuration, etc.
+    - *json-pragmatic*: an example how to solve problem in `pragmatic` json format from rust code using the project crates
+    - *jvm-interop*: a gradle project which demonstrates how to use the library from java and kotlin
 
 
 # Status
