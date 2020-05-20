@@ -4,7 +4,7 @@ use crate::models::{Problem, Solution};
 use crate::solver::evolution::EvolutionConfig;
 use crate::solver::mutation::*;
 use crate::solver::termination::*;
-use crate::solver::Solver;
+use crate::solver::{Logger, Solver};
 use crate::utils::{DefaultRandom, TimeQuota};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -85,6 +85,12 @@ impl Builder {
 }
 
 impl Builder {
+    /// Sets logger. Default is one which simply forwards all messages to stdout.
+    pub fn with_logger(mut self, logger: Logger) -> Self {
+        self.config.logger = logger;
+        self
+    }
+
     /// Sets max generations to be run by evolution. Default is 2000.
     pub fn with_max_generations(mut self, limit: Option<usize>) -> Self {
         self.max_generations = limit;

@@ -7,6 +7,9 @@ fn can_read_config() {
 
     let config = read_config(BufReader::new(file)).unwrap();
 
+    assert!(config.logging.is_some());
+    assert!(config.logging.unwrap().enabled);
+
     assert!(config.population.is_some());
     let population = config.population.unwrap();
     assert_eq!(population.initial_methods.unwrap().len(), 3);

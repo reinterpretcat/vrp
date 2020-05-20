@@ -16,6 +16,7 @@ pub struct Config {
     population: Option<PopulationConfig>,
     mutation: Option<MutationConfig>,
     termination: Option<TerminationConfig>,
+    logging: Option<LoggingConfig>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -92,6 +93,11 @@ pub struct TerminationConfig {
 pub struct VariationConfig {
     sample: usize,
     cv: f64,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct LoggingConfig {
+    enabled: bool,
 }
 
 fn configure_from_population(mut builder: Builder, population_config: &Option<PopulationConfig>) -> Builder {
@@ -182,6 +188,15 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
     }
 }
 
+fn configure_from_logging(builder: Builder, logging_config: &Option<LoggingConfig>) -> Builder {
+    let is_enabled = logging_config.as_ref().map(|l| l.enabled).unwrap_or(true);
+    if !is_enabled {
+        builder.with_logger(Arc::new(|_| {}))
+    } else {
+        builder
+    }
+}
+
 /// Reads config from reader.
 pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
     serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{}'", err))
@@ -199,6 +214,7 @@ pub fn create_builder_from_config_file<R: Read>(
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
     let mut builder = Builder::new(problem);
 
+    builder = configure_from_logging(builder, &config.logging);
     builder = configure_from_population(builder, &config.population);
     builder = configure_from_mutation(builder, &config.mutation);
     builder = configure_from_termination(builder, &config.termination);

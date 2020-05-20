@@ -269,5 +269,8 @@
       "sample": 2000,
       "cv": 1
     }
+  },
+  "logging": {
+    "enabled": true
   }
 }
