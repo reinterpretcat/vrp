@@ -50,7 +50,7 @@ pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
                 .help("Half side size of job distribution bounding box. Center is calculated using prototype locations")
                 .short("a")
                 .long(AREA_SIZE_ARG_NAME)
-                .required(true)
+                .required(false)
                 .takes_value(true),
         )
 }
