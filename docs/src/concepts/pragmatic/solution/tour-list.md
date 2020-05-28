@@ -39,7 +39,7 @@ An activity specifies work to be done and has the following structure:
 * **type**:  activity type: `departure`, `arrival`, `break`, `reload`, `pickup` or `delivery`
 * **location** (optional): activity location. Omitted if stop list has one activity
 * **time** (optional): start and end time of activity. Omitted if stop list has one activity
-* **tag** (optional): a job place tag
+* **jobTag** (optional): a job place tag
 
 ## Examples
 

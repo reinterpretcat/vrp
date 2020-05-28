@@ -65,7 +65,6 @@ pub struct Activity {
     pub time: Option<Interval>,
     /// Job tag.
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename(serialize = "tag", deserialize = "tag"))]
     pub job_tag: Option<String>,
 }
 

@@ -17,7 +17,7 @@ defined. Each task has the following properties:
 
 - **places** (required): list of possible places from which only one has to be visited
 - **demand** (optional/required): a task demand. It is required for all job types, except service
-- **tag** (optional): a job tag
+- **tag** (optional): a job tag which will be returned within job's activity in result solution
 
 
 Each `place` consists of the following properties:
