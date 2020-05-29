@@ -54,7 +54,8 @@ fn check_e1201_vehicle_existence(
 
 /// Checks that relation vehicle ids are defined in fleet.
 fn check_e1202_empty_job_list(relations: &[Relation]) -> Result<(), FormatError> {
-    let has_empty_relations = relations.iter().any(|relation| relation.jobs.is_empty());
+    let has_empty_relations =
+        relations.iter().any(|relation| relation.jobs.iter().filter(|id| !is_reserved_job_id(id)).next().is_none());
 
     if has_empty_relations {
         Err(FormatError::new(

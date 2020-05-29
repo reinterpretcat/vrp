@@ -23,6 +23,7 @@ can_detect_relation_errors! {
     case02: (vec!["job1", "job2", "job3"], "vehicle_1", Some(("E1200", "job1, job3"))),
     case03: (vec!["job2"], "vehicle_2", Some(("E1201", "vehicle_2"))),
     case04: (Vec::<&str>::default(), "vehicle_1", Some(("E1202", "jobs list"))),
+    case05: (vec!["departure", "arrival"], "vehicle_1", Some(("E1202", "jobs list"))),
 }
 
 fn can_detect_relation_errors_impl(job_ids: Vec<String>, vehicle_id: String, expected: Option<(&str, &str)>) {

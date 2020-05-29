@@ -110,17 +110,13 @@ fn intersection<T>(left: Vec<T>, right: Vec<T>) -> Vec<T>
 where
     T: PartialEq,
 {
-    let mut common = Vec::new();
-    let mut right = right;
-
-    for e1 in left.into_iter() {
-        if let Some(pos) = right.iter().position(|e2| e1 == *e2) {
-            common.push(e1);
-            right.remove(pos);
-        } else if !common.is_empty() {
-            break;
-        }
+    if right.is_empty() {
+        return vec![];
     }
 
-    common
+    if let Some(position) = left.iter().position(|item| *item == *right.first().unwrap()) {
+        left.into_iter().skip(position).zip(right.into_iter()).filter(|(a, b)| *a == *b).map(|(item, _)| item).collect()
+    } else {
+        vec![]
+    }
 }

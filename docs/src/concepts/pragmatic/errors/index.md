@@ -266,7 +266,8 @@ vehicle ids, not present in `plan.fleet`.
 
 #### E1202
 
-`relation has empty job id list` error is returned when `plan.relations` has relations with empty `jobs` list.
+`relation has empty job id list` error is returned when `plan.relations` has relations with empty `jobs` list or it has
+only reserved ids such as `departure`, `arrival`, `break`, `reload`.
 
 
 #### E1203
