@@ -18,9 +18,8 @@ mod features;
 pub mod extensions;
 
 use crate::extensions::import::import_problem;
-use crate::extensions::solve::config::{create_builder_from_config, read_config};
+use crate::extensions::solve::config::{create_builder_from_config, Config};
 use std::io::{BufReader, BufWriter};
-use std::panic;
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
@@ -31,8 +30,10 @@ use vrp_pragmatic::get_unique_locations;
 #[cfg(not(target_arch = "wasm32"))]
 mod interop {
     use super::*;
+    use crate::extensions::solve::config::read_config;
     use std::ffi::{CStr, CString};
     use std::os::raw::c_char;
+    use std::panic;
     use std::panic::UnwindSafe;
     use std::slice;
     use vrp_pragmatic::format::problem::deserialize_problem;
@@ -125,12 +126,16 @@ mod interop {
             let problem = to_string(problem);
             let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
             let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
-            let config = to_string(config);
 
             let result =
                 if matrices.is_empty() { problem.read_pragmatic() } else { (problem, matrices).read_pragmatic() }
                     .map_err(|errors| get_errors_serialized(&errors))
-                    .and_then(|problem| get_solution_serialized(&Arc::new(problem), &config));
+                    .and_then(|problem| {
+                        read_config(BufReader::new(to_string(config).as_bytes()))
+                            .map_err(|err| to_config_error(err.as_str()))
+                            .map(|config| (problem, config))
+                    })
+                    .and_then(|(problem, config)| get_solution_serialized(Arc::new(problem), config));
 
             call_back(result, success, failure);
         });
@@ -192,12 +197,12 @@ mod wasm {
             )?,
         );
 
-        let config_str = js_sys::JSON::stringify(config)
-            .map(|str| str.to_string())?
+        let config: Config = config
             .into_serde()
-            .map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+            .map_err(|err| to_config_error(&err.to_string()))
+            .map_err(|err| JsValue::from_str(err.as_str()))?;
 
-        get_solution_serialized(&problem, &config_str)
+        get_solution_serialized(problem, config)
             .map(|problem| JsValue::from_str(problem.as_str()))
             .map_err(|err| JsValue::from_str(err.as_str()))
     }
@@ -214,16 +219,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     Ok(buffer)
 }
 
-pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &str) -> Result<String, String> {
-    let config = read_config(BufReader::new(config_str.as_bytes())).map_err(|err| {
-        FormatError::new(
-            "E0004".to_string(),
-            "cannot read config".to_string(),
-            format!("check config definition. Error: '{}'", err),
-        )
-        .to_json()
-    })?;
-
+pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Result<String, String> {
     let (solution, _, metrics) = create_builder_from_config(problem.clone(), &config)
         .and_then(|builder| builder.build())
         .and_then(|solver| solver.solve())
@@ -249,4 +245,13 @@ pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &str) -> 
 
 pub fn get_errors_serialized(errors: &[FormatError]) -> String {
     errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n")
+}
+
+fn to_config_error(err: &str) -> String {
+    FormatError::new(
+        "E0004".to_string(),
+        "cannot read config".to_string(),
+        format!("check config definition. Error: '{}'", err),
+    )
+    .to_json()
 }
