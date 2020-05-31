@@ -17,6 +17,7 @@ PROBLEM_FILE_BASE="${PROBLEM_FILE_PATH%.*}"
 REST_ARGS=("${ALL_ARGS[@]:1}")
 
 cargo run -p vrp-cli --release -- solve pragmatic "${PROBLEM_FILE_PATH}" \
-            -o "${PROBLEM_FILE_BASE}_solution.json"                      \
-            -g "${PROBLEM_FILE_BASE}_solution.geojson"                   \
+            --out-result "${PROBLEM_FILE_BASE}_solution.json"            \
+            --geo-json   "${PROBLEM_FILE_BASE}_solution.geojson"         \
+            --log                                                        \
             "${REST_ARGS[@]}"

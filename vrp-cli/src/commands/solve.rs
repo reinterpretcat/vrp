@@ -8,7 +8,7 @@ use std::sync::Arc;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
-use vrp_core::solver::Builder;
+use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
 use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_scientific::common::read_init_solution;
@@ -27,6 +27,7 @@ const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
 const OUT_RESULT_ARG_NAME: &str = "out-result";
 const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
 const CONFIG_ARG_NAME: &str = "config";
+const LOG_ARG_NAME: &str = "log";
 
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
@@ -185,6 +186,13 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .required(false)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name(LOG_ARG_NAME)
+                .help("Specifies whether default logging is enabled")
+                .long(LOG_ARG_NAME)
+                .required(false)
+                .takes_value(false),
+        )
 }
 
 /// Runs solver commands.
@@ -199,6 +207,11 @@ pub fn run_solve(matches: &ArgMatches) {
     // optional
     let max_generations = parse_int_value::<usize>(matches, GENERATIONS_ARG_NAME, "max generations");
     let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time");
+    let telemetry = Telemetry::new(if matches.is_present(LOG_ARG_NAME) {
+        TelemetryMode::OnlyLogging { logger: Arc::new(|msg| println!("{}", msg)), log_best: 100, log_population: 1000 }
+    } else {
+        TelemetryMode::None
+    });
 
     let cost_variation = matches.value_of(COST_VARIATION_ARG_NAME).map(|arg| {
         if let [sample, threshold] =
@@ -247,6 +260,7 @@ pub fn run_solve(matches: &ArgMatches) {
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
                                 .with_cost_variation(cost_variation)
+                                .with_telemetry(telemetry)
                         };
 
                         let (solution, _) = builder

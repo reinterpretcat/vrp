@@ -176,24 +176,25 @@ impl Builder {
     /// Builds [`Solver`](./struct.Solver.html) instance.
     pub fn build(self) -> Result<Solver, String> {
         let problem = self.config.problem.clone();
-        let mut config = self.config;
 
         let (criterias, quota): (Vec<Box<dyn Termination>>, _) =
             match (self.max_generations, self.max_time, self.cost_variation) {
                 (None, None, None) => {
-                    config.telemetry.log("configured to use default max-generations (2000) and max-time (300secs)");
+                    self.config
+                        .telemetry
+                        .log("configured to use default max-generations (2000) and max-time (300secs)");
                     (vec![Box::new(MaxGeneration::new(2000)), Box::new(MaxTime::new(300.))], None)
                 }
                 _ => {
                     let mut criterias: Vec<Box<dyn Termination>> = vec![];
 
                     if let Some(limit) = self.max_generations {
-                        config.telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
+                        self.config.telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
                         criterias.push(Box::new(MaxGeneration::new(limit)))
                     }
 
                     let quota = if let Some(limit) = self.max_time {
-                        config.telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
+                        self.config.telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
                         criterias.push(Box::new(MaxTime::new(limit as f64)));
                         create_time_quota(limit)
                     } else {
@@ -201,7 +202,7 @@ impl Builder {
                     };
 
                     if let Some((sample, threshold)) = self.cost_variation {
-                        config.telemetry.log(
+                        self.config.telemetry.log(
                             format!(
                                 "configured to use cost variation with sample: {}, threshold: {}",
                                 sample, threshold
@@ -215,6 +216,7 @@ impl Builder {
                 }
             };
 
+        let mut config = self.config;
         config.termination = Box::new(CompositeTermination::new(criterias));
         config.quota = quota;
 

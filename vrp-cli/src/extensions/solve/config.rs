@@ -227,9 +227,7 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
     };
 
     let telemetry_mode = match telemetry_config.as_ref().map(|t| (&t.logging, &t.metrics)) {
-        Some((None, Some(MetricsConfig { enabled, track_population }))) if *enabled => {
-            create_metrics(track_population)
-        }
+        Some((None, Some(MetricsConfig { enabled, track_population }))) if *enabled => create_metrics(track_population),
         Some((Some(LoggingConfig { enabled, log_best, log_population }), None)) if *enabled => {
             create_logging(log_best, log_population)
         }

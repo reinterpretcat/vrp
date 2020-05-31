@@ -9,11 +9,11 @@ fn can_read_config() {
 
     let telemetry = config.telemetry.expect("cannot get telemetry");
     let logging = telemetry.logging.unwrap();
-    assert!(logging.enabled);
+    assert!(!logging.enabled);
     assert_eq!(logging.log_best, Some(100));
     assert_eq!(logging.log_population, Some(1000));
     let metrics = telemetry.metrics.unwrap();
-    assert!(metrics.enabled);
+    assert!(!metrics.enabled);
     assert_eq!(metrics.track_population, Some(1000));
 
     assert!(config.population.is_some());

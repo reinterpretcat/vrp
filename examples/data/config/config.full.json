@@ -272,12 +272,12 @@
   },
   "telemetry": {
     "logging": {
-      "enabled": true,
+      "enabled": false,
       "logBest": 100,
       "logPopulation": 1000
     },
     "metrics": {
-      "enabled": true,
+      "enabled": false,
       "trackPopulation": 1000
     }
   }
