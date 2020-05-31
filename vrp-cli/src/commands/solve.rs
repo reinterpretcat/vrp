@@ -8,7 +8,7 @@ use std::sync::Arc;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
-use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
+use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
 use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_scientific::common::read_init_solution;
@@ -37,7 +37,13 @@ struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Option<Solution>
 #[allow(clippy::type_complexity)]
 struct SolutionWriter(
     pub  Box<
-        dyn Fn(&Problem, Solution, BufWriter<Box<dyn Write>>, Option<BufWriter<Box<dyn Write>>>) -> Result<(), String>,
+        dyn Fn(
+            &Problem,
+            Solution,
+            Option<Metrics>,
+            BufWriter<Box<dyn Write>>,
+            Option<BufWriter<Box<dyn Write>>>,
+        ) -> Result<(), String>,
     >,
 );
 
@@ -54,7 +60,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                     BufReader::new(problem).read_solomon()
                 })),
                 InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
-                SolutionWriter(Box::new(|_, solution, writer, _| solution.write_solomon(writer))),
+                SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_solomon(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         ),
@@ -66,7 +72,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                     BufReader::new(problem).read_lilim()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|_, solution, writer, _| solution.write_lilim(writer))),
+                SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_lilim(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         ),
@@ -84,10 +90,16 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                     .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| None)),
-                SolutionWriter(Box::new(|problem, solution, default_writer, geojson_writer| {
+                SolutionWriter(Box::new(|problem, solution, metrics, default_writer, geojson_writer| {
                     geojson_writer
                         .map_or(Ok(()), |geojson_writer| solution.write_geo_json(problem, geojson_writer))
-                        .and_then(|_| solution.write_pragmatic_json(problem, default_writer))
+                        .and_then(|_| {
+                            if let Some(metrics) = metrics {
+                                (solution, metrics).write_pragmatic_json(problem, default_writer)
+                            } else {
+                                solution.write_pragmatic_json(problem, default_writer)
+                            }
+                        })
                 })),
                 LocationWriter(Box::new(|problem, writer| {
                     let mut writer = writer;
@@ -263,7 +275,7 @@ pub fn run_solve(matches: &ArgMatches) {
                                 .with_telemetry(telemetry)
                         };
 
-                        let (solution, _) = builder
+                        let (solution, _, metrics) = builder
                             .with_solutions(solution.map_or_else(|| vec![], |s| vec![Arc::new(s)]))
                             .build()
                             .and_then(|solver| solver.solve())
@@ -272,7 +284,7 @@ pub fn run_solve(matches: &ArgMatches) {
                                 process::exit(1);
                             });
 
-                        solution_writer.0(&problem, solution, out_buffer, geo_buffer).unwrap()
+                        solution_writer.0(&problem, solution, metrics, out_buffer, geo_buffer).unwrap()
                     }
                     Err(error) => {
                         eprintln!("cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);

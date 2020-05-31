@@ -17,10 +17,14 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Multi};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
+use vrp_core::solver::Metrics;
 
 type ApiActivity = crate::format::solution::model::Activity;
 type ApiSolution = crate::format::solution::model::Solution;
 type ApiSchedule = crate::format::solution::model::Schedule;
+type ApiMetrics = crate::format::solution::model::Metrics;
+type ApiGeneration = crate::format::solution::model::Generation;
+type ApiIndividual = crate::format::solution::model::Individual;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
 
@@ -35,15 +39,27 @@ pub trait PragmaticSolution<W: Write> {
 
 impl<W: Write> PragmaticSolution<W> for Solution {
     fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        let solution = create_solution(problem, &self);
+        let solution = create_solution(problem, &self, None);
         serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
         Ok(())
     }
 
     fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        let solution = create_solution(problem, &self);
+        let solution = create_solution(problem, &self, None);
         serialize_solution_as_geojson(writer, &solution).map_err(|err| err.to_string())?;
         Ok(())
+    }
+}
+
+impl<W: Write> PragmaticSolution<W> for (Solution, Metrics) {
+    fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+        let solution = create_solution(problem, &self.0, Some(&self.1));
+        serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
+        Ok(())
+    }
+
+    fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
+        self.0.write_geo_json(problem, writer)
     }
 }
 
@@ -68,7 +84,7 @@ impl Leg {
 }
 
 /// Creates solution.
-pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
+pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&Metrics>) -> ApiSolution {
     let coord_index = solution
         .extras
         .get("coord_index")
@@ -81,7 +97,7 @@ pub fn create_solution(problem: &Problem, solution: &Solution) -> ApiSolution {
 
     let unassigned = create_unassigned(solution);
 
-    let extras = create_extras(solution);
+    let extras = create_extras(solution, metrics);
 
     ApiSolution { statistic, tours, unassigned, extras }
 }
@@ -323,10 +339,36 @@ fn has_multi_dimensional_capacity(extras: &DomainExtras) -> bool {
     }
 }
 
-fn create_extras(solution: &Solution) -> Option<Extras> {
-    if solution.extras.get("iterations").is_some() {
-        unimplemented!()
+fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extras> {
+    if let Some(metrics) = metrics {
+        Some(Extras {
+            metrics: Some(ApiMetrics {
+                timestamp: metrics.timestamp,
+                duration: metrics.duration,
+                generations: metrics.generations,
+                speed: metrics.speed,
+                evolution: metrics
+                    .evolution
+                    .iter()
+                    .map(|g| ApiGeneration {
+                        number: g.number,
+                        timestamp: g.timestamp,
+                        population: g
+                            .population
+                            .iter()
+                            .map(|i| ApiIndividual {
+                                tours: i.tours,
+                                unassigned: i.unassigned,
+                                cost: i.cost,
+                                improvement: i.improvement,
+                                fitness: i.fitness.clone(),
+                            })
+                            .collect(),
+                    })
+                    .collect(),
+            }),
+        })
+    } else {
+        None
     }
-
-    None
 }

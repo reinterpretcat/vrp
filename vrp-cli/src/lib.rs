@@ -224,7 +224,7 @@ pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &str) -> 
         .to_json()
     })?;
 
-    let (solution, _) = create_builder_from_config(problem.clone(), &config)
+    let (solution, _, metrics) = create_builder_from_config(problem.clone(), &config)
         .and_then(|builder| builder.build())
         .and_then(|solver| solver.solve())
         .or_else(|err| {
@@ -238,7 +238,11 @@ pub fn get_solution_serialized(problem: &Arc<CoreProblem>, config_str: &str) -> 
 
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    solution.write_pragmatic_json(&problem, writer)?;
+    if let Some(metrics) = metrics {
+        (solution, metrics).write_pragmatic_json(&problem, writer)?;
+    } else {
+        solution.write_pragmatic_json(&problem, writer)?;
+    }
 
     Ok(buffer)
 }

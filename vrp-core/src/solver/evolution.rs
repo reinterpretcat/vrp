@@ -64,7 +64,7 @@ impl EvolutionSimulator {
 
     /// Runs evolution for given `problem` using evolution `config`.
     /// Returns populations filled with solutions.
-    pub fn run(mut self) -> Result<(Box<dyn Population>, Metrics), String> {
+    pub fn run(mut self) -> Result<(Box<dyn Population>, Option<Metrics>), String> {
         self.config.telemetry.start();
 
         let mut refinement_ctx = self.create_refinement_ctx()?;
@@ -87,7 +87,7 @@ impl EvolutionSimulator {
 
         self.config.telemetry.on_result(&refinement_ctx);
 
-        Ok((refinement_ctx.population, self.config.telemetry.metrics))
+        Ok((refinement_ctx.population, self.config.telemetry.get_metrics()))
     }
 
     /// Creates refinement context with population containing initial individuals.

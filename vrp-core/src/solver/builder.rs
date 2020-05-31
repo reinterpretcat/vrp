@@ -37,7 +37,7 @@ use std::sync::Arc;
 ///     .with_initial_size(4)
 ///     .build()?;
 /// // run solver and get the best known solution within its cost.
-/// let (solution, cost) = solver.solve()?;
+/// let (solution, cost, _) = solver.solve()?;
 ///
 /// assert_eq!(cost, 42.);
 /// assert_eq!(solution.routes.len(), 1);

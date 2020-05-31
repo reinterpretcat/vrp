@@ -118,26 +118,53 @@ pub struct UnassignedJob {
     pub reasons: Vec<UnassignedJobReason>,
 }
 
-/// Defines iteration model.
+/// Encapsulates different measurements regarding algorithm evaluation.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
-pub struct Iteration {
-    /// Iteration number.
-    pub number: i32,
-    /// Best known cost
-    pub cost: f64,
-    /// Elapsed time in seconds.
-    pub timestamp: f64,
-    /// Amount of tours
+pub struct Metrics {
+    /// Timestamp when algorithm is started.
+    pub timestamp: usize,
+    /// Algorithm duration.
+    pub duration: usize,
+    /// Total amount of generations.
+    pub generations: usize,
+    /// Speed: generations per second.
+    pub speed: f64,
+    /// Evolution progress.
+    pub evolution: Vec<Generation>,
+}
+
+/// Represents information about generation.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+pub struct Generation {
+    /// Generation sequence number.
+    pub number: usize,
+    /// Time since evolution started.
+    pub timestamp: usize,
+    /// Population state.
+    pub population: Vec<Individual>,
+}
+
+/// Keeps essential information about particular individual in population.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Individual {
+    /// Total amount of tours.
     pub tours: usize,
-    /// Amount of unassigned jobs.
+    /// Total amount of unassigned jobs.
     pub unassigned: usize,
+    /// Solution cost.
+    pub cost: f64,
+    /// Solution cost difference from best individual.
+    pub improvement: f64,
+    /// Objectives fitness values.
+    pub fitness: Vec<f64>,
 }
 
 /// Contains extra information.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Extras {
-    /// Stores information about iteration performance.
-    pub performance: Vec<Iteration>,
+    /// A telemetry metrics.
+    pub metrics: Option<Metrics>,
 }
 
 /// A VRP solution.

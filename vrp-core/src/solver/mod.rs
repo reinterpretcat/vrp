@@ -194,23 +194,21 @@ impl Solver {
     /// // build solver using builder with default settings
     /// let solver = Builder::new(problem).build()?;
     /// // run solver and get the best known solution within its cost.
-    /// let (solution, cost) = solver.solve()?;
+    /// let (solution, cost, _) = solver.solve()?;
     ///
     /// assert_eq!(cost, 42.);
     /// assert_eq!(solution.routes.len(), 1);
     /// assert_eq!(solution.unassigned.len(), 0);
     /// # Ok::<(), String>(())
     /// ```
-    pub fn solve(self) -> Result<(Solution, Cost), String> {
-        let (population, _) = EvolutionSimulator::new(self.problem.clone(), self.config)?.run()?;
+    pub fn solve(self) -> Result<(Solution, Cost, Option<Metrics>), String> {
+        let (population, metrics) = EvolutionSimulator::new(self.problem.clone(), self.config)?.run()?;
 
         // NOTE select the first best individual from population
         let insertion_ctx = population.best().ok_or_else(|| "cannot find any solution".to_string())?;
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
         let cost = self.problem.objective.fitness(insertion_ctx);
 
-        // TODO add telemetry metrics to extras
-
-        Ok((solution, cost))
+        Ok((solution, cost, metrics))
     }
 }

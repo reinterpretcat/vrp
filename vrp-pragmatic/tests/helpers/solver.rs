@@ -25,7 +25,7 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
         .solution
         .to_solution(problem.extras.clone());
 
-    let solution = create_solution(problem.as_ref(), &solution);
+    let solution = create_solution(problem.as_ref(), &solution, None);
 
     assert_eq!(CheckerContext::new(problem_copy, matrices_copy, solution.clone()).check().err(), None);
 
@@ -48,7 +48,7 @@ pub fn solve_with_metaheuristic_and_iterations(
 
     let problem = get_core_problem(problem, matrices);
 
-    let (solution, _) = Builder::new(problem.clone())
+    let (solution, _, _) = Builder::new(problem.clone())
         .with_initial_methods(vec![(Box::new(RecreateWithCheapest::default()), 1)])
         .with_max_generations(Some(generations))
         .with_initial_size(1)
@@ -57,7 +57,7 @@ pub fn solve_with_metaheuristic_and_iterations(
         .solve()
         .unwrap_or_else(|err| panic!("cannot solve the problem: {}", err));
 
-    let solution = sort_all_data(create_solution(problem.as_ref(), &solution));
+    let solution = sort_all_data(create_solution(problem.as_ref(), &solution, None));
 
     assert_eq!(CheckerContext::new(problem_copy, matrices_copy, solution.clone()).check().err(), None);
 

@@ -42,8 +42,8 @@ pub struct Individual {
     pub unassigned: usize,
     /// Solution cost.
     pub cost: f64,
-    /// Solution cost difference from best individual.
-    pub cost_difference: f64,
+    /// Solution improvement from best individual.
+    pub improvement: f64,
     /// Objectives fitness values.
     pub fitness: Vec<f64>,
 }
@@ -62,8 +62,7 @@ pub enum TelemetryMode {
 
 /// Provides way to collect metrics and write information into log.
 pub struct Telemetry {
-    pub metrics: Metrics,
-
+    metrics: Metrics,
     time: Timer,
     mode: TelemetryMode,
 }
@@ -191,6 +190,13 @@ impl Telemetry {
         self.metrics.speed = speed;
     }
 
+    pub fn get_metrics(self) -> Option<Metrics> {
+        match &self.mode {
+            TelemetryMode::OnlyMetrics { .. } | TelemetryMode::All { .. } => Some(self.metrics),
+            _ => None,
+        }
+    }
+
     pub fn log(&self, message: &str) {
         match &self.mode {
             TelemetryMode::OnlyLogging { logger, .. } => logger.deref()(message),
@@ -217,7 +223,7 @@ impl Telemetry {
             tours: insertion_ctx.solution.routes.len(),
             unassigned: insertion_ctx.solution.unassigned.len(),
             cost,
-            cost_difference,
+            improvement: cost_difference,
             fitness: fitness_values,
         }
     }
@@ -233,7 +239,7 @@ impl Telemetry {
                     gen_time.elapsed_millis()
                 )),
                 metrics.cost,
-                metrics.cost_difference,
+                metrics.improvement,
                 metrics.tours,
                 metrics.unassigned,
                 metrics.fitness.iter().map(|v| format!("{:.3}", v)).collect::<Vec<_>>().join(", ")
