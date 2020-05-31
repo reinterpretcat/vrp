@@ -3,10 +3,10 @@ use crate::construction::Quota;
 use crate::models::{Problem, Solution};
 use crate::solver::evolution::EvolutionConfig;
 use crate::solver::mutation::*;
+use crate::solver::telemetry::{Telemetry, TelemetryMode};
 use crate::solver::termination::*;
-use crate::solver::{Logger, Solver};
+use crate::solver::Solver;
 use crate::utils::{DefaultRandom, TimeQuota};
-use std::ops::Deref;
 use std::sync::Arc;
 
 /// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent
@@ -78,16 +78,16 @@ impl Builder {
                 ],
                 initial_individuals: vec![],
                 random: Arc::new(DefaultRandom::default()),
-                logger: Arc::new(|msg| println!("{}", msg)),
+                telemetry: Telemetry::new(TelemetryMode::None),
             },
         }
     }
 }
 
 impl Builder {
-    /// Sets logger. Default is one which simply forwards all messages to stdout.
-    pub fn with_logger(mut self, logger: Logger) -> Self {
-        self.config.logger = logger;
+    /// Sets telemetry. Default telemetry is set to do nothing.
+    pub fn with_telemetry(mut self, telemetry: Telemetry) -> Self {
+        self.config.telemetry = telemetry;
         self
     }
 
@@ -117,7 +117,7 @@ impl Builder {
 
     /// Sets initial solutions in population. Default is no solutions in population.
     pub fn with_solutions(mut self, solutions: Vec<Arc<Solution>>) -> Self {
-        self.config.logger.deref()(format!("provided {} initial solutions to start with", solutions.len()));
+        self.config.telemetry.log(format!("provided {} initial solutions to start with", solutions.len()).as_str());
         self.config.initial_individuals = solutions
             .iter()
             .map(|solution| {
@@ -133,21 +133,21 @@ impl Builder {
 
     /// Sets population size. Default is 4.
     pub fn with_population_size(mut self, size: usize) -> Self {
-        self.config.logger.deref()(format!("configured to use population size: {} ", size));
+        self.config.telemetry.log(format!("configured to use population size: {} ", size).as_str());
         self.config.population_size = size;
         self
     }
 
     /// Sets offspring size. Default is 4.
     pub fn with_offspring_size(mut self, size: usize) -> Self {
-        self.config.logger.deref()(format!("configured to use offspring size: {} ", size));
+        self.config.telemetry.log(format!("configured to use offspring size: {} ", size).as_str());
         self.config.offspring_size = size;
         self
     }
 
     /// Sets elite size. Default is 2.
     pub fn with_elite_size(mut self, size: usize) -> Self {
-        self.config.logger.deref()(format!("configured to use elite size: {} ", size));
+        self.config.telemetry.log(format!("configured to use elite size: {} ", size).as_str());
         self.config.elite_size = size;
         self
     }
@@ -156,7 +156,7 @@ impl Builder {
     /// used to take more time than normal refinement process.
     /// Default is 2.
     pub fn with_initial_size(mut self, size: usize) -> Self {
-        self.config.logger.deref()(format!("configured to use initial population size: {} ", size));
+        self.config.telemetry.log(format!("configured to use initial population size: {} ", size).as_str());
         self.config.initial_size = size;
         self
     }
@@ -181,21 +181,19 @@ impl Builder {
         let (criterias, quota): (Vec<Box<dyn Termination>>, _) =
             match (self.max_generations, self.max_time, self.cost_variation) {
                 (None, None, None) => {
-                    config.logger.deref()(
-                        "configured to use default max-generations (2000) and max-time (300secs)".to_string(),
-                    );
+                    config.telemetry.log("configured to use default max-generations (2000) and max-time (300secs)");
                     (vec![Box::new(MaxGeneration::new(2000)), Box::new(MaxTime::new(300.))], None)
                 }
                 _ => {
                     let mut criterias: Vec<Box<dyn Termination>> = vec![];
 
                     if let Some(limit) = self.max_generations {
-                        config.logger.deref()(format!("configured to use max-generations: {}", limit));
+                        config.telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
                         criterias.push(Box::new(MaxGeneration::new(limit)))
                     }
 
                     let quota = if let Some(limit) = self.max_time {
-                        config.logger.deref()(format!("configured to use max-time: {}s", limit));
+                        config.telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
                         criterias.push(Box::new(MaxTime::new(limit as f64)));
                         create_time_quota(limit)
                     } else {
@@ -203,10 +201,13 @@ impl Builder {
                     };
 
                     if let Some((sample, threshold)) = self.cost_variation {
-                        config.logger.deref()(format!(
-                            "configured to use cost variation with sample: {}, threshold: {}",
-                            sample, threshold
-                        ));
+                        config.telemetry.log(
+                            format!(
+                                "configured to use cost variation with sample: {}, threshold: {}",
+                                sample, threshold
+                            )
+                            .as_str(),
+                        );
                         criterias.push(Box::new(CostVariation::new(sample, threshold)))
                     }
 

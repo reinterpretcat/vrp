@@ -270,7 +270,15 @@
       "cv": 1
     }
   },
-  "logging": {
-    "enabled": true
+  "telemetry": {
+    "logging": {
+      "enabled": true,
+      "logBest": 100,
+      "logPopulation": 1000
+    },
+    "metrics": {
+      "enabled": true,
+      "trackPopulation": 1000
+    }
   }
 }

@@ -98,7 +98,6 @@ use crate::models::common::Cost;
 use crate::models::{Problem, Solution};
 use hashbrown::HashMap;
 use std::any::Any;
-use std::ops::Deref;
 use std::sync::Arc;
 
 pub mod mutation;
@@ -109,10 +108,13 @@ mod builder;
 pub use self::builder::Builder;
 
 mod evolution;
-use self::evolution::{run_evolution, EvolutionConfig};
+use self::evolution::{EvolutionConfig, EvolutionSimulator};
 
 mod population;
 pub use self::population::DominancePopulation;
+
+mod telemetry;
+pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
 
 /// A type which encapsulates information needed to perform solution refinement process.
 pub struct RefinementContext {
@@ -164,9 +166,6 @@ impl RefinementContext {
     }
 }
 
-/// A logger type which prints various information regarding the work done by the VRP solver.
-pub type Logger = Arc<dyn Fn(String) -> ()>;
-
 /// A Vehicle Routing Problem Solver based on evolutionary algorithm.
 pub struct Solver {
     /// A VRP problem definition.
@@ -203,21 +202,14 @@ impl Solver {
     /// # Ok::<(), String>(())
     /// ```
     pub fn solve(self) -> Result<(Solution, Cost), String> {
-        let logger = self.config.logger.clone();
-
-        let population = run_evolution(self.problem.clone(), self.config)?;
+        let (population, _) = EvolutionSimulator::new(self.problem.clone(), self.config)?.run()?;
 
         // NOTE select the first best individual from population
         let insertion_ctx = population.best().ok_or_else(|| "cannot find any solution".to_string())?;
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
         let cost = self.problem.objective.fitness(insertion_ctx);
 
-        logger.deref()(format!(
-            "best solution has cost: {}, tours: {}, unassigned: {}",
-            cost,
-            solution.routes.len(),
-            solution.unassigned.len()
-        ));
+        // TODO add telemetry metrics to extras
 
         Ok((solution, cost))
     }

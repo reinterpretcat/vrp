@@ -9,14 +9,14 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
-use vrp_core::solver::Builder;
+use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct Config {
     population: Option<PopulationConfig>,
     mutation: Option<MutationConfig>,
     termination: Option<TerminationConfig>,
-    logging: Option<LoggingConfig>,
+    telemetry: Option<TelemetryConfig>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -96,8 +96,29 @@ pub struct VariationConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+pub struct TelemetryConfig {
+    logging: Option<LoggingConfig>,
+    metrics: Option<MetricsConfig>,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct LoggingConfig {
+    /// Specifies whether logging is enabled. Default is false.
     enabled: bool,
+    /// Specifies how often best individual is tracked. Default is 100 (generations).
+    log_best: Option<usize>,
+    /// Specifies how often population is logged. Default is 1000 (generations).
+    log_population: Option<usize>,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MetricsConfig {
+    /// Specifies whether metrics collection is enabled. Default is false.
+    enabled: bool,
+    /// Specifies how often population is tracked. Default is 1000 (generations).
+    track_population: Option<usize>,
 }
 
 fn configure_from_population(mut builder: Builder, population_config: &Option<PopulationConfig>) -> Builder {
@@ -188,13 +209,48 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
     }
 }
 
-fn configure_from_logging(builder: Builder, logging_config: &Option<LoggingConfig>) -> Builder {
-    let is_enabled = logging_config.as_ref().map(|l| l.enabled).unwrap_or(true);
-    if !is_enabled {
-        builder.with_logger(Arc::new(|_| {}))
-    } else {
-        builder
-    }
+fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Builder {
+    const LOG_BEST: usize = 100;
+    const LOG_POPULATION: usize = 1000;
+    const TRACK_POPULATION: usize = 1000;
+
+    let create_logger = || Arc::new(|msg: &str| println!("{}", msg));
+
+    let create_metrics = |track_population: &Option<usize>| TelemetryMode::OnlyMetrics {
+        track_population: track_population.unwrap_or(TRACK_POPULATION),
+    };
+
+    let create_logging = |log_best: &Option<usize>, log_population: &Option<usize>| TelemetryMode::OnlyLogging {
+        logger: create_logger(),
+        log_best: log_best.unwrap_or(LOG_BEST),
+        log_population: log_population.unwrap_or(LOG_POPULATION),
+    };
+
+    let telemetry_mode = match telemetry_config.as_ref().map(|t| (&t.logging, &t.metrics)) {
+        Some((None, Some(MetricsConfig { enabled, track_population }))) if *enabled => {
+            create_metrics(track_population)
+        }
+        Some((Some(LoggingConfig { enabled, log_best, log_population }), None)) if *enabled => {
+            create_logging(log_best, log_population)
+        }
+        Some((
+            Some(LoggingConfig { enabled: logging_enabled, log_best, log_population }),
+            Some(MetricsConfig { enabled: metrics_enabled, track_population }),
+        )) => match (logging_enabled, metrics_enabled) {
+            (true, true) => TelemetryMode::All {
+                logger: create_logger(),
+                log_best: log_best.unwrap_or(LOG_BEST),
+                log_population: log_population.unwrap_or(LOG_POPULATION),
+                track_population: track_population.unwrap_or(TRACK_POPULATION),
+            },
+            (true, false) => create_logging(log_best, log_population),
+            (false, true) => create_metrics(track_population),
+            _ => TelemetryMode::None,
+        },
+        _ => TelemetryMode::None,
+    };
+
+    builder.with_telemetry(Telemetry::new(telemetry_mode))
 }
 
 /// Reads config from reader.
@@ -214,7 +270,7 @@ pub fn create_builder_from_config_file<R: Read>(
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
     let mut builder = Builder::new(problem);
 
-    builder = configure_from_logging(builder, &config.logging);
+    builder = configure_from_telemetry(builder, &config.telemetry);
     builder = configure_from_population(builder, &config.population);
     builder = configure_from_mutation(builder, &config.mutation);
     builder = configure_from_termination(builder, &config.termination);
