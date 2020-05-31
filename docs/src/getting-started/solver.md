@@ -2,10 +2,10 @@
 
 To run the solver, simply use:
 
-    vrp-cli solve pragmatic problem.json -o solution.json -g solution.geojson
+    vrp-cli solve pragmatic problem.json -o solution.json -g solution.geojson --log
 
-It will produce some log output which contains various information regarding refinement process such as costs, amount
-of routes, time, etc.:
+If you specify `--log` option, it will produce some log output which contains various information regarding refinement
+process such as costs, amount of routes, time, etc.:
 
 ```
 configured to use single approximated routing matrix
