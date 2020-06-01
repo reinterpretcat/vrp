@@ -139,7 +139,7 @@ pub struct Generation {
     /// Generation sequence number.
     pub number: usize,
     /// Time since evolution started.
-    pub timestamp: usize,
+    pub timestamp: f64,
     /// Population state.
     pub population: Vec<Individual>,
 }

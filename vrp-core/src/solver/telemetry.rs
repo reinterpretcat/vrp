@@ -29,7 +29,7 @@ pub struct Generation {
     /// Generation sequence number.
     pub number: usize,
     /// Time since evolution started.
-    pub timestamp: usize,
+    pub timestamp: f64,
     /// Population state.
     pub population: Vec<Individual>,
 }
@@ -135,13 +135,11 @@ impl Telemetry {
             return;
         }
 
-        let timestamp = self.time.elapsed_secs() as usize;
-
         if should_log_population {
             self.log(
                 format!(
                     "[{}s] population state (speed: {:.2} gen/sec):",
-                    timestamp,
+                    self.time.elapsed_secs(),
                     refinement_ctx.generation as f64 / self.time.elapsed_secs_as_f64(),
                 )
                 .as_str(),
@@ -161,7 +159,7 @@ impl Telemetry {
         if should_track_population {
             self.metrics.evolution.push(Generation {
                 number: refinement_ctx.generation,
-                timestamp,
+                timestamp: self.time.elapsed_secs_as_f64() ,
                 population: population_metrics,
             })
         }
