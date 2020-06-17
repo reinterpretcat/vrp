@@ -16,6 +16,8 @@ pub mod helpers;
 #[path = "../tests/integration/known_problems_test.rs"]
 mod known_problems_test;
 
+pub use vrp_core as core;
+
 pub mod common;
 pub mod lilim;
 pub mod solomon;

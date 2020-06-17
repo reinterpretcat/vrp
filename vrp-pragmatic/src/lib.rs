@@ -19,6 +19,8 @@ mod features;
 #[path = "../tests/slow/mod.rs"]
 pub mod slow;
 
+pub use vrp_core as core;
+
 mod constraints;
 mod extensions;
 mod utils;

@@ -15,6 +15,10 @@
 #[path = "../tests/features/mod.rs"]
 mod features;
 
+pub use vrp_core as core;
+pub use vrp_pragmatic as pragmatic;
+pub use vrp_scientific as scientific;
+
 pub mod extensions;
 
 use crate::extensions::import::import_problem;

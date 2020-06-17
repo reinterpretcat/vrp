@@ -3,9 +3,9 @@
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
-use vrp_core::models::{Problem as CoreProblem, Solution as CoreSolution};
-use vrp_core::solver::Builder;
 use vrp_pragmatic::checker::CheckerContext;
+use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
+use vrp_pragmatic::core::solver::Builder;
 use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 use vrp_pragmatic::format::FormatError;

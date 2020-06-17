@@ -159,7 +159,7 @@ impl Telemetry {
         if should_track_population {
             self.metrics.evolution.push(Generation {
                 number: refinement_ctx.generation,
-                timestamp: self.time.elapsed_secs_as_f64() ,
+                timestamp: self.time.elapsed_secs_as_f64(),
                 population: population_metrics,
             })
         }
