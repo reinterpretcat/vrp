@@ -140,7 +140,7 @@ impl ConstraintPipeline {
             if let Some(duplicate) = self.state_keys.get(key) {
                 panic!("Attempt to register constraint with key duplication: {}", duplicate)
             }
-            self.state_keys.insert(key.clone());
+            self.state_keys.insert(*key);
         });
 
         module.get_constraints().for_each(|c| match c {

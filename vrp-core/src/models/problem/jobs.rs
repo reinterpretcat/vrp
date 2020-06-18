@@ -370,7 +370,7 @@ fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<Profile, Costs> {
         .vehicles
         .iter()
         .fold(HashMap::new(), |mut acc, vehicle| {
-            acc.entry(vehicle.profile).or_insert_with(|| vec![]).push(vehicle.costs.clone());
+            acc.entry(vehicle.profile).or_insert_with(Vec::new).push(vehicle.costs.clone());
             acc
         })
         .iter()

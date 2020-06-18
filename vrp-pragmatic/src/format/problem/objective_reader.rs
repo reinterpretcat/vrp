@@ -54,7 +54,7 @@ pub fn create_objective(
         };
 
         let primary_objectives = map_objectives(&objectives.primary);
-        let secondary_objectives = map_objectives(&objectives.secondary.clone().unwrap_or_else(|| vec![]));
+        let secondary_objectives = map_objectives(&objectives.secondary.clone().unwrap_or_else(Vec::new));
 
         ObjectiveCost::new(primary_objectives, secondary_objectives)
     } else {

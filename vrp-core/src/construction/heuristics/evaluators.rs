@@ -432,7 +432,7 @@ fn concat_activities(
     activities: Option<Vec<(Activity, usize)>>,
     activity: (Activity, usize),
 ) -> Vec<(Activity, usize)> {
-    let mut activities = activities.unwrap_or_else(|| vec![]);
+    let mut activities = activities.unwrap_or_else(Vec::new);
     activities.push((activity.0, activity.1));
 
     activities

@@ -38,7 +38,7 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
 
     let relations = api_problem.plan.relations.as_ref().unwrap().iter().fold(HashMap::new(), |mut acc, r| {
         let shift_index = r.shift_index.unwrap_or(0);
-        acc.entry((r.vehicle_id.clone(), shift_index)).or_insert_with(|| vec![]).push(r.clone());
+        acc.entry((r.vehicle_id.clone(), shift_index)).or_insert_with(Vec::new).push(r.clone());
 
         acc
     });

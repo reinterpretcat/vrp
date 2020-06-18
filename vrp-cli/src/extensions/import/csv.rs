@@ -85,7 +85,7 @@ fn read_jobs<R: Read>(reader: BufReader<R>) -> Result<Vec<Job>, Box<dyn Error>> 
     let jobs = read_csv_entries::<CsvJob, _>(reader)?
         .iter()
         .fold(HashMap::new(), |mut acc, job| {
-            acc.entry(&job.id).or_insert_with(|| vec![]).push(job);
+            acc.entry(&job.id).or_insert_with(Vec::new).push(job);
             acc
         })
         .into_iter()
