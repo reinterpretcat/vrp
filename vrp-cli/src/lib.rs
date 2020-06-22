@@ -8,7 +8,8 @@
 //! - [`user guide`](https://reinterpretcat.github.io/vrp) describes how to use cli
 //!   application built from this crate
 //! - `vrp-core` crate implements default metaheuristic
-//!
+
+#![warn(missing_docs)]
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
@@ -212,6 +213,7 @@ mod wasm {
     }
 }
 
+/// Gets locations serialized in json.
 pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     // TODO validate the problem?
 
@@ -223,6 +225,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
     Ok(buffer)
 }
 
+/// Gets solution serialized in json.
 pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Result<String, String> {
     let (solution, _, metrics) = create_builder_from_config(problem.clone(), &config)
         .and_then(|builder| builder.build())
@@ -247,6 +250,7 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
     Ok(buffer)
 }
 
+/// Gets errors serialized in json.
 pub fn get_errors_serialized(errors: &[FormatError]) -> String {
     errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n")
 }

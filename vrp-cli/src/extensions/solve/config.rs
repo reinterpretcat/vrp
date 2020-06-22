@@ -1,3 +1,7 @@
+//! Solver configuration.
+
+#![allow(missing_docs)]
+
 #[cfg(test)]
 #[path = "../../../tests/unit/extensions/solve/config_test.rs"]
 mod config_test;
@@ -11,17 +15,24 @@ use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
 
+/// An algorithm configuration.
 #[derive(Clone, Deserialize, Debug)]
 pub struct Config {
+    /// Specifies population configuration.
     population: Option<PopulationConfig>,
+    /// Specifies mutation operator configuration.
     mutation: Option<MutationConfig>,
+    /// Specifies algorithm termination configuration.
     termination: Option<TerminationConfig>,
+    /// Specifies telemetry configuration.
     telemetry: Option<TelemetryConfig>,
 }
 
+/// A mutation operator configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum MutationConfig {
+    /// A ruin and recreate metaheuristic settings.
     #[serde(rename(deserialize = "ruin-recreate"))]
     RuinRecreate {
         /// Ruin methods.
@@ -31,6 +42,7 @@ pub enum MutationConfig {
     },
 }
 
+/// A ruin method configuration
 #[derive(Clone, Deserialize, Debug)]
 pub struct ConfigRuinGroup {
     methods: Vec<RuinMethod>,
@@ -41,16 +53,22 @@ pub struct ConfigRuinGroup {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum RuinMethod {
+    /// Adjusted string removal method.
     #[serde(rename(deserialize = "adjusted-string"))]
     AdjustedString { probability: f64, lmax: usize, cavg: usize, alpha: f64 },
+    /// Neighbour jobs method
     #[serde(rename(deserialize = "neighbour"))]
     Neighbour { probability: f64, min: usize, max: usize, threshold: f64 },
+    /// Random job removal method.
     #[serde(rename(deserialize = "random-job"))]
     RandomJob { probability: f64, min: usize, max: usize, threshold: f64 },
+    /// Random route removal method.
     #[serde(rename(deserialize = "random-route"))]
     RandomRoute { probability: f64, min: usize, max: usize, threshold: f64 },
+    /// Worst job removal method.
     #[serde(rename(deserialize = "worst-job"))]
     WorstJob { probability: f64, min: usize, max: usize, threshold: f64, skip: usize },
+    /// Clustered jobs removal method.
     #[serde(rename(deserialize = "cluster"))]
     Cluster { probability: f64, min: usize, max: usize, threshold: f64, cmin: usize, cmax: usize },
 }
@@ -59,14 +77,19 @@ pub enum RuinMethod {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum RecreateMethod {
+    /// Cheapest insertion method.
     #[serde(rename(deserialize = "cheapest"))]
     Cheapest { weight: usize },
+    /// Regret insertion method.
     #[serde(rename(deserialize = "regret"))]
     Regret { weight: usize, start: usize, end: usize },
     #[serde(rename(deserialize = "blinks"))]
+    /// Insertion with blinks method.
     Blinks { weight: usize },
     #[serde(rename(deserialize = "gaps"))]
+    /// Insertion with gaps method.
     Gaps { weight: usize, min: usize },
+    /// Nearest neighbour method.
     #[serde(rename(deserialize = "nearest"))]
     Nearest { weight: usize },
 }

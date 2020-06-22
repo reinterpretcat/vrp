@@ -1,3 +1,5 @@
+//! Import command helpers
+
 mod csv;
 use self::csv::read_csv_problem;
 mod hre;
@@ -6,6 +8,7 @@ use self::hre::read_hre_problem;
 use std::io::{BufReader, Read};
 use vrp_pragmatic::format::problem::Problem;
 
+/// Imports solution from specific format into pragmatic.
 pub fn import_problem<R: Read>(input_format: &str, readers: Option<Vec<BufReader<R>>>) -> Result<Problem, String> {
     match (input_format, readers) {
         ("csv", Some(mut readers)) if readers.len() == 2 => {

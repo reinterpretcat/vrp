@@ -1,3 +1,5 @@
+//! Generate command helpers.
+
 mod plan;
 use self::plan::generate_plan;
 
@@ -8,6 +10,7 @@ use std::io::{BufReader, Read};
 use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::FormatError;
 
+/// Generates a pragmatic problem.
 pub fn generate_problem<R: Read>(
     input_format: &str,
     readers: Option<Vec<BufReader<R>>>,
