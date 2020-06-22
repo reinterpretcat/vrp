@@ -17,6 +17,7 @@ pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, Str
 
 /// A trait read write solomon problem.
 pub trait SolomonProblem {
+    /// Reads solomon problem.
     fn read_solomon(self) -> Result<Problem, String>;
 }
 

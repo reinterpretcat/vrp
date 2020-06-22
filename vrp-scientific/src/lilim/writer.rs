@@ -4,6 +4,7 @@ use vrp_core::models::Solution;
 
 /// A trait to write lilim solution.
 pub trait LilimSolution<W: Write> {
+    /// Writes lilim solution.
     fn write_lilim(&self, writer: BufWriter<W>) -> Result<(), String>;
 }
 

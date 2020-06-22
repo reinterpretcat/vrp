@@ -1,17 +1,21 @@
 //! Contains common text reading and writing functionality.
 
+mod init_solution_reader;
+pub use self::init_solution_reader::*;
+
 mod text_reader;
-pub use self::text_reader::*;
+pub(crate) use self::text_reader::*;
 
 mod text_writer;
-pub use self::text_writer::write_text_solution;
+pub(crate) use self::text_writer::*;
 
 /// A trait to get tuple from collection items.
 /// See https://stackoverflow.com/questions/38863781/how-to-create-a-tuple-from-a-vector
-pub trait TryCollect<T> {
+pub(crate) trait TryCollect<T> {
     fn try_collect(&mut self) -> Option<T>;
 }
 
+/// A macro to get tuple from collection items.
 #[macro_export]
 macro_rules! impl_try_collect_tuple {
     () => { };
@@ -29,6 +33,7 @@ macro_rules! impl_try_collect_tuple {
     }
 }
 
+/// A helper macro for getting tuple of collection items.
 #[macro_export]
 macro_rules! try_opt {
     ($e:expr) => {

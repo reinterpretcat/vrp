@@ -4,6 +4,7 @@ use vrp_core::models::Solution;
 
 /// A trait to write solomon solution.
 pub trait SolomonSolution<W: Write> {
+    /// Writes solomon solution.
     fn write_solomon(&self, writer: BufWriter<W>) -> Result<(), String>;
 }
 

@@ -2,7 +2,7 @@ use std::io::{BufWriter, Error, ErrorKind, Write};
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::Solution;
 
-pub fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
+pub(crate) fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
     let mut writer = writer;
 
     if !solution.unassigned.is_empty() {

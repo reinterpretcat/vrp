@@ -14,6 +14,7 @@ use vrp_core::models::Problem;
 
 /// A trait to read lilim problem.
 pub trait LilimProblem {
+    /// Reads lilim problem.
     fn read_lilim(self) -> Result<Problem, String>;
 }
 
