@@ -11,7 +11,6 @@ use vrp_core::construction::constraints::{Demand, DemandDimension};
 use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::problem::*;
 use vrp_core::models::Problem;
-use vrp_core::utils::TryCollect;
 
 /// A trait to read lilim problem.
 pub trait LilimProblem {

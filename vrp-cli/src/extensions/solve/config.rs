@@ -106,7 +106,7 @@ pub struct TelemetryConfig {
 pub struct LoggingConfig {
     /// Specifies whether logging is enabled. Default is false.
     enabled: bool,
-    /// Specifies how often best individual is tracked. Default is 100 (generations).
+    /// Specifies how often best individual is logged. Default is 100 (generations).
     log_best: Option<usize>,
     /// Specifies how often population is logged. Default is 1000 (generations).
     log_population: Option<usize>,

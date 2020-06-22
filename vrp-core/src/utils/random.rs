@@ -43,6 +43,7 @@ pub trait Random {
     }
 }
 
+/// A default random implementation.
 pub struct DefaultRandom {}
 
 impl Random for DefaultRandom {}

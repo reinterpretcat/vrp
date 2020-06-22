@@ -43,6 +43,7 @@ pub struct InsertionFailure {
 /// It is up to implementation to decide whether a list is original consists of jobs to be inserted,
 /// subset, randomized or something else.
 pub trait JobSelector {
+    /// Returns a portion of all jobs.
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a>;
 }
 
@@ -61,8 +62,9 @@ impl JobSelector for AllJobSelector {
     }
 }
 
-/// Reduces job collection into single insertion result.
+/// A job collection reducer.
 pub trait JobMapReducer {
+    /// Reduces job collection into single insertion result
     fn reduce<'a>(
         &'a self,
         ctx: &'a InsertionContext,
@@ -77,6 +79,7 @@ pub struct PairJobMapReducer {
 }
 
 impl PairJobMapReducer {
+    /// Creates a new instance of `PairJobMapReducer`.
     pub fn new(result_selector: Box<dyn ResultSelector + Send + Sync>) -> Self {
         Self { result_selector }
     }
@@ -98,8 +101,9 @@ impl JobMapReducer for PairJobMapReducer {
     }
 }
 
-/// Selects one insertion result from two to promote as best.
+/// Insertion result selector.
 pub trait ResultSelector {
+    /// Selects one insertion result from two to promote as best.
     fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult;
 }
 
@@ -132,12 +136,14 @@ impl Default for InsertionHeuristic {
 }
 
 impl InsertionHeuristic {
+    /// Creates a new instance of `InsertionHeuristic`.
     pub fn new(insertion_position: InsertionPosition) -> Self {
         Self { insertion_position }
     }
 }
 
 impl InsertionHeuristic {
+    /// Runs common insertion heuristic algorithm using given selector and reducer specializations.
     pub fn process(
         &self,
         job_selector: &(dyn JobSelector + Send + Sync),
@@ -166,6 +172,7 @@ impl InsertionHeuristic {
 }
 
 impl InsertionResult {
+    /// Creates result which represents insertion success.
     pub fn make_success(cost: Cost, job: Job, activities: Vec<(Activity, usize)>, route_ctx: RouteContext) -> Self {
         Self::Success(InsertionSuccess { cost, job, activities, context: route_ctx })
     }

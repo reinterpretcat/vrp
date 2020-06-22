@@ -67,6 +67,7 @@ impl Default for JobRemovalLimit {
 }
 
 impl CompositeRuin {
+    /// Creates a new instance of `CompositeRuin` with passed ruin methods.
     pub fn new(ruins: Vec<RuinGroup>) -> Self {
         let weights = ruins.iter().map(|(_, weight)| *weight).collect();
         let ruins = ruins.into_iter().map(|(ruin, _)| ruin).collect();
@@ -74,6 +75,7 @@ impl CompositeRuin {
         Self { ruins, weights }
     }
 
+    /// Creates a new instance of `CompositeRuin` with default ruin methods.
     pub fn new_from_problem(problem: Arc<Problem>) -> Self {
         let adjusted_string_default = Arc::new(AdjustedStringRemoval::default());
         let adjusted_string_aggressive = Arc::new(AdjustedStringRemoval::new(30, 120, 0.02));

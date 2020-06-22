@@ -92,14 +92,14 @@ pub struct Lock {
 }
 
 impl LockDetail {
-    /// Creates a new instance of [`LockDetail`].
+    /// Creates a new instance of `LockDetail`.
     pub fn new(order: LockOrder, position: LockPosition, jobs: Vec<Job>) -> Self {
         Self { order, position, jobs }
     }
 }
 
 impl Lock {
-    /// Creates a new instance of [`Lock`].
+    /// Creates a new instance of `Lock`.
     pub fn new(condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>, details: Vec<LockDetail>) -> Self {
         Self { condition, details }
     }

@@ -56,6 +56,7 @@ pub struct VehicleDetail {
 
 /// Represents a vehicle.
 pub struct Vehicle {
+    /// A vehicle profile.
     pub profile: Profile,
     /// Specifies operating costs for vehicle.
     pub costs: Costs,
@@ -90,19 +91,25 @@ pub struct Actor {
     pub detail: ActorDetail,
 }
 
+/// A grouping function for collection of actors.
 pub type ActorGroupKeyFn = Box<dyn Fn(&[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) -> usize + Send + Sync>>;
 
 /// Represents available resources to serve jobs.
 pub struct Fleet {
+    /// All fleet drivers.
     pub drivers: Vec<Arc<Driver>>,
+    /// All fleet vehicles.
     pub vehicles: Vec<Arc<Vehicle>>,
+    /// All fleet profiles.
     pub profiles: Vec<Profile>,
+    /// All fleet actors.
     pub actors: Vec<Arc<Actor>>,
+    /// A grouped actors.
     pub groups: HashMap<usize, HashSet<Arc<Actor>>>,
 }
 
 impl Fleet {
-    /// Creates a new fleet.
+    /// Creates a new instance of `Fleet`.
     pub fn new(drivers: Vec<Arc<Driver>>, vehicles: Vec<Arc<Vehicle>>, group_key: ActorGroupKeyFn) -> Fleet {
         // TODO we should also consider multiple drivers to support smart vehicle-driver assignment.
         assert_eq!(drivers.len(), 1);

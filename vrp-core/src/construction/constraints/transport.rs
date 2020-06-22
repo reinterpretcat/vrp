@@ -14,6 +14,7 @@ use std::sync::Arc;
 
 // TODO revise rescheduling once routing is sensible to departure time
 
+/// A function which returns travel limits for given actor.
 pub type TravelLimitFunc = Arc<dyn Fn(&Actor) -> (Option<Distance>, Option<Duration>) + Send + Sync>;
 
 /// A module which checks whether vehicle can serve activity taking into account their time windows
@@ -61,6 +62,7 @@ impl ConstraintModule for TransportConstraintModule {
 }
 
 impl TransportConstraintModule {
+    /// Creates a new instance of `TransportConstraintModule`.
     pub fn new(
         activity: Arc<dyn ActivityCost + Send + Sync>,
         transport: Arc<dyn TransportCost + Send + Sync>,

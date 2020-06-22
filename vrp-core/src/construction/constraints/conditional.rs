@@ -31,9 +31,13 @@ where
     FRemoveLocked: Fn(&SolutionContext, &Job) -> bool,
     FPromoteLocked: Fn(&SolutionContext, &Job) -> bool,
 {
+    /// A function which removes job from required list.
     pub remove_required: FRemoveRequired,
+    /// A function which promotes job to required jobs.
     pub promote_required: FPromoteRequired,
+    /// A function which removes job from locked list.
     pub remove_locked: FRemoveLocked,
+    /// A function which promotes job to locked jobs.
     pub promote_locked: FPromoteLocked,
 }
 
@@ -71,6 +75,7 @@ pub struct ConditionalJobModule {
 }
 
 impl ConditionalJobModule {
+    /// Creates a new instance of `ConditionalJobModule`.
     pub fn new(context_transition: Box<dyn JobContextTransition + Send + Sync>) -> Self {
         Self { context_transition, state_keys: vec![], constraints: vec![] }
     }

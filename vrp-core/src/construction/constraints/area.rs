@@ -22,6 +22,7 @@ pub struct AreaModule {
 }
 
 impl AreaModule {
+    /// Creates a new instance of `AreaModule`.
     pub fn new(area_resolver: AreaResolver, location_resolver: LocationResolver, code: i32) -> Self {
         Self {
             constraints: vec![

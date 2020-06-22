@@ -123,7 +123,7 @@ pub struct UnassignedJob {
 pub struct Metrics {
     /// Timestamp when algorithm is started.
     pub timestamp: usize,
-    /// Algorithm duration.
+    /// Total algorithm duration.
     pub duration: usize,
     /// Total amount of generations.
     pub generations: usize,

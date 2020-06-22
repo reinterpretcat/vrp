@@ -95,6 +95,8 @@
 //! ```
 //!
 
+#![warn(missing_docs)]
+
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]
 #[macro_use]

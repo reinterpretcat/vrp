@@ -18,21 +18,27 @@ pub type Cost = f64;
 /// Represents a time window.
 #[derive(Clone, Debug)]
 pub struct TimeWindow {
+    /// Start of time window.
     pub start: Timestamp,
+    /// End of time window.
     pub end: Timestamp,
 }
 
 /// Represents a time offset.
 #[derive(Clone, Debug)]
 pub struct TimeOffset {
+    /// Offset value to start time.
     pub start: Timestamp,
+    /// Offset value to end time.
     pub end: Timestamp,
 }
 
 /// A enum for various time definitions.
 #[derive(Clone, Debug)]
 pub enum TimeSpan {
+    /// A time window variant.
     Window(TimeWindow),
+    /// A time offset variant.
     Offset(TimeOffset),
 }
 
@@ -98,10 +104,12 @@ impl TimeSpan {
         }
     }
 
+    /// Checks that this time span intersects with given time windows.
     pub fn intersects(&self, date: Timestamp, other: &TimeWindow) -> bool {
         self.to_time_window(date).intersects(other)
     }
 
+    /// If time span is time window, then return it. Otherwise, return None.
     pub fn as_time_window(&self) -> Option<TimeWindow> {
         match &self {
             TimeSpan::Window(window) => Some(window.clone()),
@@ -120,6 +128,7 @@ pub struct Schedule {
 }
 
 impl Schedule {
+    /// Creates a new instance of `Schedule`.
     pub fn new(arrival: Timestamp, departure: Timestamp) -> Self {
         Self { arrival, departure }
     }
@@ -142,7 +151,9 @@ pub type Dimensions = HashMap<String, Arc<dyn Any + Send + Sync>>;
 
 /// A trait to return arbitrary typed value by its key.
 pub trait ValueDimension {
+    /// Gets value from dimension with given key.
     fn get_value<T: 'static>(&self, key: &str) -> Option<&T>;
+    /// Sets value in dimension with given key and value.
     fn set_value<T: 'static + Sync + Send>(&mut self, key: &str, value: T);
 }
 
@@ -158,7 +169,9 @@ impl ValueDimension for Dimensions {
 
 /// A trait to get or set id.
 pub trait IdDimension {
+    /// Sets value as id.
     fn set_id(&mut self, id: &str) -> &mut Self;
+    /// Gets id value if present.
     fn get_id(&self) -> Option<&String>;
 }
 

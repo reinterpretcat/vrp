@@ -6,6 +6,7 @@ macro_rules! with_dollar_sign {
     }
 }
 
+/// A macro to a create parameterized test.
 #[macro_export]
 macro_rules! parameterized_test {
     ($name:ident, $args:pat, $body:tt) => {

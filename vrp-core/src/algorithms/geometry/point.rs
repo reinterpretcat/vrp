@@ -7,7 +7,9 @@ use std::hash::{Hash, Hasher};
 /// Represents a point in 2D space.
 #[derive(Clone, Debug)]
 pub struct Point {
+    /// X value.
     pub x: f64,
+    /// Y value.
     pub y: f64,
 }
 

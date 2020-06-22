@@ -29,13 +29,17 @@ pub struct Demand<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'st
 
 /// A trait to get or set capacity.
 pub trait CapacityDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+    /// Sets capacity.
     fn set_capacity(&mut self, demand: Capacity) -> &mut Self;
+    /// Gets capacity.
     fn get_capacity(&self) -> Option<&Capacity>;
 }
 
 /// A trait to get or set demand.
 pub trait DemandDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+    /// Sets demand.
     fn set_demand(&mut self, demand: Demand<Capacity>) -> &mut Self;
+    /// Gets demand.
     fn get_demand(&self) -> Option<&Demand<Capacity>>;
 }
 
@@ -90,10 +94,12 @@ pub struct CapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default +
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     CapacityConstraintModule<Capacity>
 {
+    /// Creates a new instance of `CapacityConstraintModule` without multi trip (reload) functionality
     pub fn new(code: i32) -> Self {
         Self::new_with_multi_trip(code, Arc::new(NoMultiTrip { phantom: PhantomData }))
     }
 
+    /// Creates a new instance of `CapacityConstraintModule` with multi trip (reload) functionality
     pub fn new_with_multi_trip(code: i32, multi_trip: Arc<dyn MultiTrip<Capacity> + Send + Sync>) -> Self {
         Self {
             state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],

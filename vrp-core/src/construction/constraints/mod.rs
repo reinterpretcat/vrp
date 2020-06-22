@@ -55,14 +55,22 @@
 //! All constraint modules are organized inside one `ConstraintPipeline` which specifies the order
 //! of their execution.
 
+/// A key which tracks latest arrival.
 pub const LATEST_ARRIVAL_KEY: i32 = 1;
+/// A key which tracks waiting time.
 pub const WAITING_KEY: i32 = 2;
+/// A key which tracks total distance.
 pub const TOTAL_DISTANCE_KEY: i32 = 3;
+/// A key which track stotal duration.
 pub const TOTAL_DURATION_KEY: i32 = 4;
 
+/// A key which tracks current vehicle capacity.
 pub const CURRENT_CAPACITY_KEY: i32 = 11;
+/// A key which tracks maximum vehicle capacity ahead in route.
 pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
+/// A key which tracks maximum capacity backward in route.
 pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
+/// A key which tracks reload intervals.
 pub const RELOAD_INTERVALS_KEY: i32 = 14;
 
 mod pipeline;

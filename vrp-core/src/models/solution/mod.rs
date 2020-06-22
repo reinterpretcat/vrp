@@ -1,3 +1,5 @@
+//! Solution domain models.
+
 mod route;
 pub use self::route::Activity;
 pub use self::route::Place;

@@ -33,6 +33,7 @@ impl ConstraintModule for StrictLockingModule {
 }
 
 impl StrictLockingModule {
+    /// Creates an instance of `StrictLockingModule`.
     pub fn new(fleet: &Fleet, locks: &[Arc<Lock>], code: i32) -> Self {
         let mut rules = vec![];
         let mut conditions = HashMap::new();

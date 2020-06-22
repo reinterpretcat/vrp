@@ -20,6 +20,7 @@ pub struct ObjectiveCost {
 }
 
 impl ObjectiveCost {
+    /// Creates an instance of `ObjectiveCost`.
     pub fn new(primary_objectives: Vec<TargetObjective>, secondary_objectives: Vec<TargetObjective>) -> Self {
         Self { primary_objectives, secondary_objectives }
     }

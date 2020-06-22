@@ -52,12 +52,31 @@ pub struct Individual {
 pub enum TelemetryMode {
     /// No telemetry at all.
     None,
-    /// Only logging to specified info logger.
-    OnlyLogging { logger: InfoLogger, log_best: usize, log_population: usize },
+    /// Only logging.
+    OnlyLogging {
+        /// A logger type.
+        logger: InfoLogger,
+        /// Specifies how often best individual is logged.
+        log_best: usize,
+        /// Specifies how often population is logged.
+        log_population: usize,
+    },
     /// Only metrics collection.
-    OnlyMetrics { track_population: usize },
+    OnlyMetrics {
+        /// Specifies how often population is tracked.
+        track_population: usize,
+    },
     /// Both logging and metrics collection.
-    All { logger: InfoLogger, log_best: usize, log_population: usize, track_population: usize },
+    All {
+        /// A logger type.
+        logger: InfoLogger,
+        /// Specifies how often best individual is logged.
+        log_best: usize,
+        /// Specifies how often population is logged.
+        log_population: usize,
+        /// Specifies how often population is tracked.
+        track_population: usize,
+    },
 }
 
 /// Provides way to collect metrics and write information into log.
@@ -68,6 +87,7 @@ pub struct Telemetry {
 }
 
 impl Telemetry {
+    /// Creates a new instance of `Telemetry`.
     pub fn new(mode: TelemetryMode) -> Self {
         Self {
             time: Timer::start(),
@@ -76,10 +96,12 @@ impl Telemetry {
         }
     }
 
+    /// Starts telemetry reporting.
     pub fn start(&mut self) {
         self.time = Timer::start();
     }
 
+    /// Reports initial solution statistics.
     pub fn on_initial(&mut self, item_idx: usize, total_items: usize, item_time: Timer) {
         match &self.mode {
             TelemetryMode::OnlyLogging { .. } | TelemetryMode::All { .. } => self.log(
@@ -96,6 +118,7 @@ impl Telemetry {
         };
     }
 
+    /// Reports generation statistics.
     pub fn on_progress(&mut self, refinement_ctx: &RefinementContext, generation_time: Timer) {
         let (log_best, log_population, track_population) = match &self.mode {
             TelemetryMode::None => return,
@@ -125,6 +148,7 @@ impl Telemetry {
         }
     }
 
+    /// Reports population state.
     pub fn on_population(
         &mut self,
         refinement_ctx: &RefinementContext,
@@ -165,6 +189,7 @@ impl Telemetry {
         }
     }
 
+    /// Reports final statistic.
     pub fn on_result(&mut self, refinement_ctx: &RefinementContext) {
         let should_log_population = match &self.mode {
             TelemetryMode::OnlyLogging { .. } => true,
@@ -188,6 +213,7 @@ impl Telemetry {
         self.metrics.speed = speed;
     }
 
+    /// Gets metrics.
     pub fn get_metrics(self) -> Option<Metrics> {
         match &self.mode {
             TelemetryMode::OnlyMetrics { .. } | TelemetryMode::All { .. } => Some(self.metrics),
@@ -195,6 +221,7 @@ impl Telemetry {
         }
     }
 
+    /// Writes lig message.
     pub fn log(&self, message: &str) {
         match &self.mode {
             TelemetryMode::OnlyLogging { logger, .. } => logger.deref()(message),

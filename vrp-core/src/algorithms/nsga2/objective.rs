@@ -28,6 +28,7 @@ pub trait Objective {
 
 /// A multi objective.
 pub trait MultiObjective: Objective {
+    /// Returns collection of objective functions.
     fn objectives<'a>(
         &'a self,
     ) -> Box<dyn Iterator<Item = &Box<dyn Objective<Solution = Self::Solution> + Send + Sync>> + 'a>;

@@ -10,7 +10,6 @@ use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::problem::*;
 use vrp_core::models::Problem;
-use vrp_core::utils::TryCollect;
 
 pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
     SolomonReader { buffer: String::new(), reader, matrix: MatrixFactory::default() }.read_problem()

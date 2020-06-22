@@ -31,6 +31,7 @@ impl Recreate for RecreateWithRegret {
 }
 
 impl RecreateWithRegret {
+    /// Creates a new instance of `RecreateWithRegret`.
     pub fn new(min: usize, max: usize) -> Self {
         Self {
             job_selector: Box::new(AllJobSelector::default()),
@@ -45,6 +46,7 @@ struct RegretJobMapReducer {
 }
 
 impl RegretJobMapReducer {
+    /// Creates a new instance of `RegretJobMapReducer`.
     pub fn new(min: usize, max: usize) -> Self {
         Self { min, max }
     }

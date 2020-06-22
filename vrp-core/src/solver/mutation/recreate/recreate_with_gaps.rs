@@ -32,6 +32,7 @@ pub struct RecreateWithGaps {
 }
 
 impl RecreateWithGaps {
+    /// Creates a new instance of `RecreateWithGaps`.
     pub fn new(min_jobs: usize) -> Self {
         Self {
             job_selector: Box::new(GapsJobSelector { min_jobs }),

@@ -153,6 +153,7 @@ pub struct RecreateWithBlinks<Capacity: Add + Sub + Ord + Copy + Default + Send 
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     RecreateWithBlinks<Capacity>
 {
+    /// Creates a new instance of `RecreateWithBlinks`.
     pub fn new(selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>) -> Self {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {

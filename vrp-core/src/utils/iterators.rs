@@ -5,6 +5,7 @@ use std::hash::Hash;
 
 /// An iterator which collects items into group.
 pub trait CollectGroupBy: Iterator {
+    /// Collects items into group.
     fn collect_group_by_key<K, V, FA>(self, f: FA) -> HashMap<K, Vec<V>>
     where
         Self: Sized + Iterator<Item = V>,
@@ -14,6 +15,7 @@ pub trait CollectGroupBy: Iterator {
         self.map(|v| (f(&v), v)).collect_group_by()
     }
 
+    /// Collects items into group.
     fn collect_group_by<K, V>(self) -> HashMap<K, Vec<V>>
     where
         Self: Sized + Iterator<Item = (K, V)>,

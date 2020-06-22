@@ -41,6 +41,7 @@ pub struct Route {
 }
 
 impl Route {
+    /// Returns a deep copy of `Route`.
     pub fn deep_copy(&self) -> Self {
         Self { actor: self.actor.clone(), tour: self.tour.deep_copy() }
     }
@@ -62,6 +63,7 @@ impl Hash for Route {
 }
 
 impl Activity {
+    /// Creates an activity with a job.
     pub fn new_with_job(job: Arc<Single>) -> Self {
         Activity {
             place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: std::f64::MAX } },
@@ -70,6 +72,7 @@ impl Activity {
         }
     }
 
+    /// Creates a deep copy of `Activity`.
     pub fn deep_copy(&self) -> Self {
         Self {
             place: Place {
@@ -82,6 +85,7 @@ impl Activity {
         }
     }
 
+    /// Checks whether activity has given job.
     pub fn has_same_job(&self, job: &Job) -> bool {
         match self.retrieve_job() {
             Some(j) => match (&j, job) {
@@ -93,6 +97,7 @@ impl Activity {
         }
     }
 
+    /// Returns job if activity has it.
     pub fn retrieve_job(&self) -> Option<Job> {
         match self.job.as_ref() {
             Some(single) => Multi::roots(single).map(Job::Multi).or_else(|| Some(Job::Single(single.clone()))),

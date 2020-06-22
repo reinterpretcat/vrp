@@ -57,6 +57,7 @@ impl InsertionContext {
         });
     }
 
+    /// Creates a deep copy of `InsertionContext`.
     pub fn deep_copy(&self) -> Self {
         InsertionContext {
             problem: self.problem.clone(),
@@ -107,14 +108,17 @@ pub struct SolutionContext {
 }
 
 impl SolutionContext {
+    /// Gets total cost of the solution.
     pub fn get_total_cost(&self) -> Cost {
         self.routes.iter().fold(Cost::default(), |acc, rc| acc + rc.get_route_cost())
     }
 
+    /// Gets the most expensive route cost.
     pub fn get_max_cost(&self) -> Cost {
         self.routes.iter().map(|rc| rc.get_route_cost()).max_by(|&a, &b| compare_floats(a, b)).unwrap_or(0.)
     }
 
+    /// Converts given `SolutionContext` to Solution model.
     pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
         Solution {
             registry: self.registry.deep_copy(),
@@ -124,6 +128,7 @@ impl SolutionContext {
         }
     }
 
+    /// Creates a deep copy of `SolutionContext`.
     pub fn deep_copy(&self) -> Self {
         Self {
             required: self.required.clone(),
@@ -155,6 +160,7 @@ pub struct RouteState {
 }
 
 impl RouteContext {
+    /// Creates a new instance of `RouteContext`.
     pub fn new(actor: Arc<Actor>) -> Self {
         let mut tour = Tour::default();
         tour.set_start(create_start_activity(&actor));
@@ -163,6 +169,7 @@ impl RouteContext {
         RouteContext { route: Arc::new(Route { actor, tour }), state: Arc::new(RouteState::default()) }
     }
 
+    /// Creates a deep copy of `RouteContext`.
     pub fn deep_copy(&self) -> Self {
         let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };
         let mut new_state = RouteState::new_with_sizes(self.state.sizes());
@@ -187,6 +194,7 @@ impl RouteContext {
         RouteContext { route: Arc::new(new_route), state: Arc::new(new_state) }
     }
 
+    /// Gets route cost.
     pub fn get_route_cost(&self) -> Cost {
         let get_cost = |costs: &Costs, distance: f64, duration: f64| {
             costs.fixed
@@ -206,6 +214,7 @@ impl RouteContext {
         get_cost(&actor.vehicle.costs, distance, duration) + get_cost(&actor.driver.costs, distance, duration)
     }
 
+    /// Unwraps given `RouteContext` as pair of mutable references.
     pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
         let route: &mut Route = unsafe { as_mut(&self.route) };
         let state: &mut RouteState = unsafe { as_mut(&self.state) };
@@ -213,10 +222,12 @@ impl RouteContext {
         (route, state)
     }
 
+    /// Returns mutable reference to used `Route`.
     pub fn route_mut(&mut self) -> &mut Route {
         unsafe { as_mut(&self.route) }
     }
 
+    /// Returns mutable reference to used `RouteState`.
     pub fn state_mut(&mut self) -> &mut RouteState {
         unsafe { as_mut(&self.state) }
     }
