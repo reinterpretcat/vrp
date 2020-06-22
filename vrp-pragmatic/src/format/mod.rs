@@ -79,7 +79,7 @@ const PRIORITY_CONSTRAINT_CODE: i32 = 9;
 const AREA_CONSTRAINT_CODE: i32 = 10;
 
 mod coord_index;
-pub use self::coord_index::CoordIndex;
+pub(crate) use self::coord_index::CoordIndex;
 
 pub mod problem;
 pub mod solution;

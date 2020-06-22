@@ -14,7 +14,7 @@ use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
 
-pub fn read_jobs_with_extra_locks(
+pub(crate) fn read_jobs_with_extra_locks(
     api_problem: &ApiProblem,
     props: &ProblemProperties,
     coord_index: &CoordIndex,

@@ -4,8 +4,11 @@ use crate::format::problem::*;
 use crate::format::FormatError;
 use std::collections::HashMap;
 
+/// A validation context which keeps essential information.
 pub struct ValidationContext<'a> {
+    /// An original problem.
     pub problem: &'a Problem,
+    /// Routing matrices.
     pub matrices: Option<&'a Vec<Matrix>>,
     job_index: HashMap<String, Job>,
 }

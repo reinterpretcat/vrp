@@ -14,7 +14,7 @@ use vrp_core::construction::constraints::TravelLimitFunc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
-pub fn create_transport_costs(
+pub(crate) fn create_transport_costs(
     api_problem: &ApiProblem,
     matrices: &[Matrix],
 ) -> Result<Arc<dyn TransportCost + Sync + Send>, String> {
@@ -76,7 +76,7 @@ pub fn create_transport_costs(
     create_matrix_transport_cost(matrix_data)
 }
 
-pub fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
+pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
     let profiles = get_profile_map(api_problem);
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 

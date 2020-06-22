@@ -1,6 +1,7 @@
 //! Pragmatic crates aims to solve real world VRP variations allowing users to specify their problems
 //! via simple **pragmatic** json format.
-//!
+
+#![warn(missing_docs)]
 
 #[cfg(test)]
 #[path = "../tests/helpers/mod.rs"]

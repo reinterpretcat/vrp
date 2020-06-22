@@ -38,6 +38,7 @@ pub type JobIndex = HashMap<String, Job>;
 
 /// Reads specific problem definition from various sources.
 pub trait PragmaticProblem {
+    /// Reads problem defined in pragmatic format.
     fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>>;
 }
 

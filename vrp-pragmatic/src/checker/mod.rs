@@ -10,8 +10,11 @@ use vrp_core::models::common::TimeWindow;
 
 /// Stores problem and solution together and provides some helper methods.
 pub struct CheckerContext {
+    /// An original problem definition.
     pub problem: Problem,
+    /// Routing matrices.
     pub matrices: Option<Vec<Matrix>>,
+    /// Solution to be checked
     pub solution: Solution,
     job_map: HashMap<String, Job>,
 }
@@ -25,12 +28,14 @@ enum ActivityType {
 }
 
 impl CheckerContext {
+    /// Creates an instance of `CheckerContext`
     pub fn new(problem: Problem, matrices: Option<Vec<Matrix>>, solution: Solution) -> Self {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
 
         Self { problem, matrices, solution, job_map }
     }
 
+    /// Performs solution check.
     pub fn check(&self) -> Result<(), String> {
         check_vehicle_load(&self)?;
         check_relations(&self)?;

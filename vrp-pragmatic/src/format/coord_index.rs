@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 /// A helper struct which keeps track of coordinate mapping.
-pub struct CoordIndex {
+pub(crate) struct CoordIndex {
     direct_index: HashMap<Location, usize>,
     reverse_index: HashMap<usize, Location>,
 }
