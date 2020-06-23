@@ -1,0 +1,1977 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "job1",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.59241334763584,
+                  "lng": 13.509744819786375
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job2",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.610666515612586,
+                  "lng": 13.453786792530872
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job3",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.3628424735166,
+                  "lng": 13.685586690455418
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job4",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.354158694373176,
+                  "lng": 13.198893743704613
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job5",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.47351701386327,
+                  "lng": 13.525108402228165
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job6",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.636086845675266,
+                  "lng": 13.380143547660285
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job7",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.67531651688878,
+                  "lng": 13.268343833768421
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job8",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.68782669429366,
+                  "lng": 13.392629486354297
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job9",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.453876558585975,
+                  "lng": 13.533583695468455
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job10",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.518582470827525,
+                  "lng": 13.283509157778187
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job11",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.52127652095051,
+                  "lng": 13.354813445986528
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job12",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.63727944550659,
+                  "lng": 13.52838969316066
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job13",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.33328320929547,
+                  "lng": 13.298023891247492
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job14",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.6094800945752,
+                  "lng": 13.17473717474533
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job15",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.3633790952168,
+                  "lng": 13.690119244921233
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job16",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.61277632365408,
+                  "lng": 13.166953593956075
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job17",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.60601037150603,
+                  "lng": 13.141680795580163
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job18",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.53267346225449,
+                  "lng": 13.509250688075813
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job19",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.34853386154301,
+                  "lng": 13.469140054487543
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job20",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.53605129925688,
+                  "lng": 13.420482298695125
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job21",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.65924681639377,
+                  "lng": 13.472857617022816
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job22",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.42232820994321,
+                  "lng": 13.312769061247431
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job23",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.454776559424914,
+                  "lng": 13.683322791629367
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job24",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.4083377818705,
+                  "lng": 13.299124699213982
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job25",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.360478391970645,
+                  "lng": 13.255506062028111
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job26",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.3635080012747,
+                  "lng": 13.109500432367872
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job27",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.578965456015,
+                  "lng": 13.27882186466296
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job28",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.40084288639392,
+                  "lng": 13.642467594454608
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job29",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.3718310071124,
+                  "lng": 13.620980834946899
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job30",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.65880361047367,
+                  "lng": 13.640566591020225
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job31",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.43069173143306,
+                  "lng": 13.502842135169704
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job32",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.48586391539876,
+                  "lng": 13.11450217644591
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job33",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.43296570060804,
+                  "lng": 13.643991420158999
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job34",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.59071338060169,
+                  "lng": 13.259068086449183
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job35",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.399588593226696,
+                  "lng": 13.221805451831512
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job36",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.64770676684856,
+                  "lng": 13.435025289475222
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job37",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.491837017269816,
+                  "lng": 13.18982821465031
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job38",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.494881636434734,
+                  "lng": 13.529104204156537
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job39",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.631653485148945,
+                  "lng": 13.230994817879122
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job40",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.45324827288764,
+                  "lng": 13.555618915313216
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job41",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.37607935963811,
+                  "lng": 13.270054683436731
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job42",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.53562856312486,
+                  "lng": 13.506496879507567
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job43",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.3426952301891,
+                  "lng": 13.636997885481525
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job44",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.377398393284594,
+                  "lng": 13.183775800854626
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job45",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.62456547524359,
+                  "lng": 13.13252649006201
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job46",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.55793464607724,
+                  "lng": 13.134424862410821
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job47",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.370995663971776,
+                  "lng": 13.663076030364687
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job48",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.41989161003242,
+                  "lng": 13.289129334594884
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job49",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.591077464839174,
+                  "lng": 13.201882839336227
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job50",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.56381625771929,
+                  "lng": 13.673742521573827
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job51",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.557718297397614,
+                  "lng": 13.110025054812244
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job52",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.34167639176646,
+                  "lng": 13.523616947714643
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job53",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.53324585796829,
+                  "lng": 13.512095116612326
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job54",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.463190492456945,
+                  "lng": 13.613554910023778
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job55",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.37820399885522,
+                  "lng": 13.627376328080818
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job56",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.50939620848023,
+                  "lng": 13.295896972982888
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job57",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.65236276668203,
+                  "lng": 13.55552390343792
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job58",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.35763609683896,
+                  "lng": 13.42272947547506
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job59",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.33718374529796,
+                  "lng": 13.482569977035022
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job60",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.67638913963792,
+                  "lng": 13.295440217814877
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job61",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.58151924278057,
+                  "lng": 13.25539853772616
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job62",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.42246426026806,
+                  "lng": 13.486970609679044
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job63",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.41128834763799,
+                  "lng": 13.208754458015237
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job64",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.360619264414396,
+                  "lng": 13.498864635544962
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job65",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.55921059139334,
+                  "lng": 13.112872728563284
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job66",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.66754196859657,
+                  "lng": 13.249953299582554
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job67",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.47473318058734,
+                  "lng": 13.491419263049037
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job68",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.381928399507544,
+                  "lng": 13.645531766368022
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job69",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.4147778018424,
+                  "lng": 13.595621027650239
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job70",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.54628620350716,
+                  "lng": 13.193393002235347
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job71",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.46734369473697,
+                  "lng": 13.474596188207942
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job72",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.599011822773804,
+                  "lng": 13.291448855960471
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job73",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.66057182961985,
+                  "lng": 13.6619449074574
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job74",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.63965379825538,
+                  "lng": 13.107703346260307
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job75",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5382920596089,
+                  "lng": 13.692954956208105
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job76",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.546419236710086,
+                  "lng": 13.648521066343363
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job77",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.35760943580138,
+                  "lng": 13.591393538954229
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job78",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.536265652766076,
+                  "lng": 13.341435525926816
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job79",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.668524790378214,
+                  "lng": 13.68487672335223
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job80",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.631314640286064,
+                  "lng": 13.616872226324961
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job81",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.41255052555488,
+                  "lng": 13.511984771757128
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job82",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.524656589261056,
+                  "lng": 13.104559162654924
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job83",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.53718578293086,
+                  "lng": 13.108609368441504
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job84",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.47728388318167,
+                  "lng": 13.491813033760138
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job85",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.530126233413625,
+                  "lng": 13.40605361203616
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job86",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.48693880758705,
+                  "lng": 13.123420275092405
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job87",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.489009322868526,
+                  "lng": 13.482399771620624
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job88",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.61515628491897,
+                  "lng": 13.581410590638217
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job89",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.35947456437396,
+                  "lng": 13.587159792798506
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job90",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.58334355687185,
+                  "lng": 13.576760681722128
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job91",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.551849807829306,
+                  "lng": 13.643774974919484
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job92",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.63741350704259,
+                  "lng": 13.407535187150431
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job93",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.64682228616754,
+                  "lng": 13.67061605719387
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job94",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.38976740791954,
+                  "lng": 13.681492414757447
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job95",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.55610569276909,
+                  "lng": 13.282173839874588
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job96",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.40757519902939,
+                  "lng": 13.36322753418236
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job97",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.517902205550435,
+                  "lng": 13.26051544799668
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job98",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.502384095575934,
+                  "lng": 13.619297055779487
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job99",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.681404630007094,
+                  "lng": 13.680965987556077
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job100",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.62285634739123,
+                  "lng": 13.691777498111763
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "vehicle",
+        "vehicleIds": [
+          "vehicle_1",
+          "vehicle_2",
+          "vehicle_3",
+          "vehicle_4",
+          "vehicle_5"
+        ],
+        "profile": "car",
+        "costs": {
+          "fixed": 25.0,
+          "distance": 0.0002,
+          "time": 0.005
+        },
+        "shifts": [
+          {
+            "start": {
+              "time": "2020-05-01T09:00:00.00Z",
+              "location": {
+                "lat": 52.4181,
+                "lng": 13.4637
+              }
+            },
+            "end": {
+              "time": "2020-05-01T18:00:00.00Z",
+              "location": {
+                "lat": 52.4181,
+                "lng": 13.4637
+              }
+            },
+            "breaks": [
+              {
+                "time": [
+                  "2020-05-01T12:30:00.00Z",
+                  "2020-05-01T13:00:00.00Z"
+                ],
+                "duration": 3600.0
+              }
+            ]
+          }
+        ],
+        "capacity": [
+          20
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "car",
+        "type": "car"
+      }
+    ]
+  },
+  "objectives": {
+    "primary": [
+      {
+        "type": "minimize-unassigned"
+      },
+      {
+        "type": "minimize-tours"
+      }
+    ],
+    "secondary": [
+      {
+        "type": "minimize-cost"
+      }
+    ]
+  }
+}

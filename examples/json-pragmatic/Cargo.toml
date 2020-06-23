@@ -14,3 +14,10 @@ publish = false
 
 [dependencies]
 vrp-pragmatic = { path = "../../vrp-pragmatic", version = "1.2.4" }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "general_benchmark"
+harness = false
