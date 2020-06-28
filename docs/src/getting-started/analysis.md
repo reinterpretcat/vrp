@@ -13,3 +13,8 @@ as `leaflet`:
 <div id="map"></div>
 
 To return solution in `geojson` format, use extra `-g` or `--geo-json` option.
+
+## Jupyter notebooks
+
+You might want to look at [this project](https://github.com/reinterpretcat/vrp-analysis).
+It provides some scripts and jupyter notebooks in order to perform deeper analysis of algorithm behaviour.

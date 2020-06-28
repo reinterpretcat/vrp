@@ -92,6 +92,10 @@ The project consists of the following parts:
     - *json-pragmatic*: an example how to solve problem in `pragmatic` json format from rust code using the project crates
     - *jvm-interop*: a gradle project which demonstrates how to use the library from java and kotlin
 
+# Dependant projects
+
+* [analysis](https://github.com/reinterpretcat/vrp-analysis): provides way to analyze solutions, algorithm behaviour
+* [API](https://github.com/reinterpretcat/vrp-api): API prototype built using Rust/AWS/Terraform
 
 # Status
 
