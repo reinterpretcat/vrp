@@ -62,7 +62,7 @@ impl JobRemovalLimit {
 
 impl Default for JobRemovalLimit {
     fn default() -> Self {
-        Self { min: 8, max: 32, threshold: 0.2 }
+        Self { min: 8, max: 16, threshold: 0.1 }
     }
 }
 
@@ -77,50 +77,51 @@ impl CompositeRuin {
 
     /// Creates a new instance of `CompositeRuin` with default ruin methods.
     pub fn new_from_problem(problem: Arc<Problem>) -> Self {
-        let adjusted_string_default = Arc::new(AdjustedStringRemoval::default());
-        let adjusted_string_aggressive = Arc::new(AdjustedStringRemoval::new(30, 120, 0.02));
-
-        let cluster_default = Arc::new(ClusterRemoval::new(problem.clone(), 3..9, JobRemovalLimit::default()));
-        let cluster_aggressive = Arc::new(ClusterRemoval::new(problem, 8..16, JobRemovalLimit::new(30, 120, 0.25)));
-
-        let neighbour_removal = Arc::new(NeighbourRemoval::default());
-        let neighbour_aggressive = Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(30, 120, 0.25)));
-
-        let worst_job_default = Arc::new(WorstJobRemoval::default());
-        let random_job_default = Arc::new(RandomJobRemoval::default());
-        let random_route_default = Arc::new(RandomRouteRemoval::default());
+        let random_route = Arc::new(RandomRouteRemoval::default());
+        let random_job = Arc::new(RandomJobRemoval::new(JobRemovalLimit::default()));
 
         Self::new(vec![
             (
                 vec![
-                    (adjusted_string_default.clone(), 1.),
-                    (random_route_default.clone(), 0.05),
-                    (random_job_default.clone(), 0.05),
+                    (Arc::new(AdjustedStringRemoval::default()), 1.),
+                    (random_route.clone(), 0.05),
+                    (random_job.clone(), 0.05),
                 ],
                 100,
             ),
-            (vec![(adjusted_string_aggressive, 1.)], 10),
             (
                 vec![
-                    (cluster_default.clone(), 1.),
-                    (random_route_default.clone(), 0.05),
-                    (random_job_default.clone(), 0.05),
+                    (Arc::new(AdjustedStringRemoval::new(5, 5, 0.01)), 1.),
+                    (Arc::new(ClusterRemoval::new(problem.clone(), 3..6, JobRemovalLimit::new(4, 16, 0.1))), 1.),
                 ],
-                50,
-            ),
-            (vec![(cluster_aggressive, 1.)], 10),
-            (
-                vec![(neighbour_removal, 1.), (random_route_default.clone(), 0.05), (random_job_default.clone(), 0.05)],
-                25,
-            ),
-            (vec![(neighbour_aggressive, 1.)], 10),
-            (
-                vec![(cluster_default, 1.), (adjusted_string_default.clone(), 0.75), (worst_job_default.clone(), 0.5)],
                 10,
             ),
-            (vec![(worst_job_default, 1.), (adjusted_string_default, 0.1)], 10),
-            (vec![(random_job_default.clone(), 1.), (random_route_default.clone(), 0.1)], 10),
-            (vec![(random_route_default, 1.), (random_job_default, 0.1)], 10),
+            (
+                vec![
+                    (Arc::new(ClusterRemoval::new_with_defaults(problem.clone())), 1.),
+                    (random_route.clone(), 0.05),
+                    (random_job.clone(), 0.05),
+                ],
+                10,
+            ),
+            (
+                vec![
+                    (Arc::new(WorstJobRemoval::default()), 1.),
+                    (random_route.clone(), 0.05),
+                    (random_job.clone(), 0.05),
+                ],
+                10,
+            ),
+            (
+                vec![
+                    (Arc::new(NeighbourRemoval::default()), 1.),
+                    (random_route.clone(), 0.05),
+                    (random_job.clone(), 0.05),
+                ],
+                10,
+            ),
+            (vec![(random_job.clone(), 1.), (random_route.clone(), 0.1)], 5),
+            (vec![(random_route, 1.), (random_job, 0.1)], 5),
         ])
     }
 }

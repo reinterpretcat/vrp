@@ -37,6 +37,11 @@ impl ClusterRemoval {
 
         Self { params, limit }
     }
+
+    /// Creates a new instance of `ClusterRemoval` with default parameters.
+    pub fn new_with_defaults(problem: Arc<Problem>) -> Self {
+        Self::new(problem, 3..9, JobRemovalLimit::default())
+    }
 }
 
 impl Ruin for ClusterRemoval {

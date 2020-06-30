@@ -34,7 +34,7 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
 
 /// Runs solver with default metaheuristic and default amount of generations.
 pub fn solve_with_metaheuristic(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
-    solve_with_metaheuristic_and_iterations(problem, matrices, 100)
+    solve_with_metaheuristic_and_iterations(problem, matrices, 200)
 }
 
 /// Runs solver with default metaheuristic and specified amount of generations.

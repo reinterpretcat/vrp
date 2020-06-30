@@ -45,11 +45,11 @@ impl CompositeRecreate {
     pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
         Self::new(vec![
             (Box::new(RecreateWithCheapest::default()), 100),
-            (Box::new(RecreateWithRegret::default()), 90),
-            (Box::new(RecreateWithBlinks::<i32>::default()), 30),
-            (Box::new(RecreateWithRegret::new(5, 8)), 20),
-            (Box::new(RecreateWithGaps::default()), 10),
-            (Box::new(RecreateWithNearestNeighbor::default()), 5),
+            (Box::new(RecreateWithRegret::default()), 10),
+            (Box::new(RecreateWithBlinks::<i32>::default()), 2),
+            (Box::new(RecreateWithRegret::new(2, 4)), 2),
+            (Box::new(RecreateWithGaps::default()), 2),
+            (Box::new(RecreateWithNearestNeighbor::default()), 2),
         ])
     }
 }

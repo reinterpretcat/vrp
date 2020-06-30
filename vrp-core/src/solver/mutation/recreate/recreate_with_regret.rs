@@ -15,7 +15,7 @@ pub struct RecreateWithRegret {
 
 impl Default for RecreateWithRegret {
     fn default() -> Self {
-        RecreateWithRegret::new(2, 4)
+        RecreateWithRegret::new(1, 2)
     }
 }
 

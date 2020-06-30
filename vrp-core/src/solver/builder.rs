@@ -34,7 +34,8 @@ use std::sync::Arc;
 /// let solver = Builder::new(problem)
 ///     .with_max_time(Some(60))
 ///     .with_max_generations(Some(100))
-///     .with_initial_size(4)
+///     .with_initial_size(2)
+///     .with_population_size(4)
 ///     .build()?;
 /// // run solver and get the best known solution within its cost.
 /// let (solution, cost, _) = solver.solve()?;
@@ -65,17 +66,16 @@ impl Builder {
             config: EvolutionConfig {
                 problem: problem.clone(),
                 mutation: Box::new(RuinAndRecreateMutation::new_from_problem(problem)),
-                termination: Box::new(MaxTime::new(300.)),
+                termination: Box::new(CompositeTermination::new(vec![
+                    Box::new(MaxTime::new(300.)),
+                    Box::new(MaxGeneration::new(2000)),
+                ])),
                 quota: None,
+                initial_size: 1,
                 population_size: 4,
-                offspring_size: 4,
+                offspring_size: 2,
                 elite_size: 2,
-                initial_size: 2,
-                initial_methods: vec![
-                    (Box::new(RecreateWithCheapest::default()), 10),
-                    (Box::new(RecreateWithRegret::default()), 10),
-                    (Box::new(RecreateWithBlinks::<i32>::default()), 5),
-                ],
+                initial_methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                 initial_individuals: vec![],
                 random: Arc::new(DefaultRandom::default()),
                 telemetry: Telemetry::new(TelemetryMode::None),
