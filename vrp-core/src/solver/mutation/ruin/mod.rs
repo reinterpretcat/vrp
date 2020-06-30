@@ -98,7 +98,7 @@ impl CompositeRuin {
             ),
             (
                 vec![
-                    (Arc::new(ClusterRemoval::new_with_defaults(problem.clone())), 1.),
+                    (Arc::new(ClusterRemoval::new_with_defaults(problem)), 1.),
                     (random_route.clone(), 0.05),
                     (random_job.clone(), 0.05),
                 ],
