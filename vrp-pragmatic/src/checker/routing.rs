@@ -22,11 +22,12 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
             .get(profile.as_str())
             .and_then(|idx| matrices.get(*idx))
             .ok_or(format!("cannot get matrix for '{}' profile", profile))?;
-        let time_offset = parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.time.departure) as i64;
+        let time_offset =
+            parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.time.departure) as i64;
 
         tour.stops.windows(2).try_fold((time_offset, 0), |(time, total_distance), stops| {
-            let (from, to) = match &stops {
-                &[from, to] => (from, to),
+            let (from, to) = match stops {
+                [from, to] => (from, to),
                 _ => unreachable!(),
             };
 
@@ -75,21 +76,18 @@ fn get_matrices(context: &CheckerContext) -> Result<&Vec<Matrix>, String> {
     Ok(matrices)
 }
 
-fn get_matrix_size(matrices: &Vec<Matrix>) -> usize {
+fn get_matrix_size(matrices: &[Matrix]) -> usize {
     (matrices.first().unwrap().travel_times.len() as f64).sqrt().round() as usize
 }
 
-fn get_matrix_value(idx: usize, matrix_values: &Vec<i64>) -> Result<i64, String> {
+fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> Result<i64, String> {
     matrix_values
         .get(idx)
         .cloned()
         .ok_or_else(|| format!("attempt to get value out of bounds: {} vs {}", idx, matrix_values.len()))
 }
 
-fn get_profile_index<'a>(
-    context: &'a CheckerContext,
-    matrices: &Vec<Matrix>,
-) -> Result<HashMap<&'a str, usize>, String> {
+fn get_profile_index<'a>(context: &'a CheckerContext, matrices: &[Matrix]) -> Result<HashMap<&'a str, usize>, String> {
     let profiles = context.problem.fleet.profiles.len();
     if profiles != matrices.len() {
         return Err(format!(
