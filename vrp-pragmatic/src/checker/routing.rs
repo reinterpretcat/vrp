@@ -25,40 +25,56 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
         let time_offset =
             parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.time.departure) as i64;
 
-        tour.stops.windows(2).try_fold((time_offset, 0), |(time, total_distance), stops| {
-            let (from, to) = match stops {
-                [from, to] => (from, to),
-                _ => unreachable!(),
-            };
+        let (departure_time, total_distance) =
+            tour.stops.windows(2).try_fold((time_offset, 0), |(time, total_distance), stops| {
+                let (from, to) = match stops {
+                    [from, to] => (from, to),
+                    _ => unreachable!(),
+                };
 
-            let from_idx = get_location_index(&from.location, &coord_index)?;
-            let to_idx = get_location_index(&to.location, &coord_index)?;
-            let matrix_idx = from_idx * matrix_size + to_idx;
+                let from_idx = get_location_index(&from.location, &coord_index)?;
+                let to_idx = get_location_index(&to.location, &coord_index)?;
+                let matrix_idx = from_idx * matrix_size + to_idx;
 
-            let distance = get_matrix_value(matrix_idx, &matrix.distances)?;
-            let duration = get_matrix_value(matrix_idx, &matrix.distances)?;
+                let distance = get_matrix_value(matrix_idx, &matrix.distances)?;
+                let duration = get_matrix_value(matrix_idx, &matrix.distances)?;
 
-            let time = time + duration;
-            let total_distance = total_distance + distance as i32;
+                let time = time + duration;
+                let total_distance = total_distance + distance as i32;
 
-            if time != parse_time(&to.time.arrival) as i64 {
-                return Err(format!(
-                    "arrival time mismatch for tour: {}, expected: '{}', got: '{}'",
-                    tour.vehicle_id,
-                    format_time(time as f64),
-                    to.time.arrival
-                ));
-            }
+                if time != parse_time(&to.time.arrival) as i64 {
+                    return Err(format!(
+                        "arrival time mismatch for stop in the tour: {}, expected: '{}', got: '{}'",
+                        tour.vehicle_id,
+                        format_time(time as f64),
+                        to.time.arrival
+                    ));
+                }
 
-            if total_distance != to.distance {
-                return Err(format!(
-                    "distance mismatch for tour: {}, expected: '{}', got: '{}'",
-                    tour.vehicle_id, to.distance, total_distance
-                ));
-            }
+                if total_distance != to.distance {
+                    return Err(format!(
+                        "distance mismatch for stop in the tour: {}, expected: '{}', got: '{}'",
+                        tour.vehicle_id, to.distance, total_distance
+                    ));
+                }
 
-            Ok((parse_time(&to.time.departure) as i64, total_distance))
-        })?;
+                Ok((parse_time(&to.time.departure) as i64, total_distance))
+            })?;
+
+        if total_distance != tour.statistic.distance {
+            return Err(format!(
+                "distance mismatch for tour statistic: {}, expected: '{}', got: '{}'",
+                tour.vehicle_id, tour.statistic.distance, total_distance
+            ));
+        }
+
+        let total_duration = (departure_time - time_offset) as i32;
+        if total_duration != tour.statistic.duration {
+            return Err(format!(
+                "duration mismatch for tour statistic: {}, expected: '{}', got: '{}'",
+                tour.vehicle_id, tour.statistic.duration, total_duration
+            ));
+        }
 
         Ok(())
     })?;
