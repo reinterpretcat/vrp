@@ -46,6 +46,7 @@ impl CheckerContext {
         }
 
         check_assignment(&self)?;
+        check_routing(&self)?;
 
         Ok(())
     }
@@ -240,3 +241,6 @@ use crate::checker::breaks::check_breaks;
 
 mod relations;
 use crate::checker::relations::check_relations;
+
+mod routing;
+use crate::checker::routing::check_routing;
