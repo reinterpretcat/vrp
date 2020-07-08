@@ -25,9 +25,9 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
         let time_offset =
             parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.time.departure) as i64;
 
-        let (departure_time, total_distance) = tour.stops.windows(2).try_fold::<_, _, Result<_, String>>(
+        let (departure_time, total_distance) = tour.stops.windows(2).enumerate().try_fold::<_, _, Result<_, String>>(
             (time_offset, 0),
-            |(time, total_distance), stops| {
+            |(time, total_distance), (leg_idx, stops)| {
                 let (from, to) = match stops {
                     [from, to] => (from, to),
                     _ => unreachable!(),
@@ -43,7 +43,7 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
                 let time = time + duration;
                 let total_distance = total_distance + distance;
 
-                check_stop_statistic(time, total_distance, to, tour)?;
+                check_stop_statistic(time, total_distance, leg_idx + 1, to, tour)?;
 
                 Ok((parse_time(&to.time.departure) as i64, total_distance))
             },
@@ -52,13 +52,14 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
         check_tour_statistic(departure_time, total_distance, time_offset, tour)
     })?;
 
-    Ok(())
+    check_solution_statistic(&context.solution)
 }
 
-fn check_stop_statistic(time: i64, total_distance: i64, to: &Stop, tour: &Tour) -> Result<(), String> {
+fn check_stop_statistic(time: i64, total_distance: i64, stop_idx: usize, to: &Stop, tour: &Tour) -> Result<(), String> {
     if time != parse_time(&to.time.arrival) as i64 {
         return Err(format!(
-            "arrival time mismatch for stop in the tour: {}, expected: '{}', got: '{}'",
+            "arrival time mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
+            stop_idx,
             tour.vehicle_id,
             format_time(time as f64),
             to.time.arrival
@@ -67,8 +68,8 @@ fn check_stop_statistic(time: i64, total_distance: i64, to: &Stop, tour: &Tour) 
 
     if total_distance as i32 != to.distance {
         return Err(format!(
-            "distance mismatch for stop in the tour: {}, expected: '{}', got: '{}'",
-            tour.vehicle_id, to.distance, total_distance
+            "distance mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
+            stop_idx, tour.vehicle_id, total_distance, to.distance,
         ));
     }
 
@@ -79,7 +80,7 @@ fn check_tour_statistic(departure_time: i64, total_distance: i64, time_offset: i
     if total_distance as i32 != tour.statistic.distance {
         return Err(format!(
             "distance mismatch for tour statistic: {}, expected: '{}', got: '{}'",
-            tour.vehicle_id, tour.statistic.distance, total_distance
+            tour.vehicle_id, total_distance, tour.statistic.distance,
         ));
     }
 
@@ -87,11 +88,21 @@ fn check_tour_statistic(departure_time: i64, total_distance: i64, time_offset: i
     if total_duration != tour.statistic.duration {
         return Err(format!(
             "duration mismatch for tour statistic: {}, expected: '{}', got: '{}'",
-            tour.vehicle_id, tour.statistic.duration, total_duration
+            tour.vehicle_id, total_duration, tour.statistic.duration,
         ));
     }
 
     Ok(())
+}
+
+fn check_solution_statistic(solution: &Solution) -> Result<(), String> {
+    let statistic = solution.tours.iter().fold(Statistic::default(), |acc, tour| acc + tour.statistic.clone());
+
+    if statistic != solution.statistic {
+        Err(format!("solution statistic mismatch, expected: '{:?}', got: '{:?}'", statistic, solution.statistic))
+    } else {
+        Ok(())
+    }
 }
 
 fn get_matrices(context: &CheckerContext) -> Result<&Vec<Matrix>, String> {
