@@ -38,7 +38,7 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
                 let matrix_idx = from_idx * matrix_size + to_idx;
 
                 let distance = get_matrix_value(matrix_idx, &matrix.distances)?;
-                let duration = get_matrix_value(matrix_idx, &matrix.distances)?;
+                let duration = get_matrix_value(matrix_idx, &matrix.travel_times)?;
 
                 let time = time + duration;
                 let total_distance = total_distance + distance;
@@ -98,7 +98,8 @@ fn check_tour_statistic(departure_time: i64, total_distance: i64, time_offset: i
 fn check_solution_statistic(solution: &Solution) -> Result<(), String> {
     let statistic = solution.tours.iter().fold(Statistic::default(), |acc, tour| acc + tour.statistic.clone());
 
-    if statistic != solution.statistic {
+    // NOTE cost should be ignored due to floating point issues
+    if statistic.duration != solution.statistic.duration || statistic.distance != solution.statistic.distance {
         Err(format!("solution statistic mismatch, expected: '{:?}', got: '{:?}'", statistic, solution.statistic))
     } else {
         Ok(())

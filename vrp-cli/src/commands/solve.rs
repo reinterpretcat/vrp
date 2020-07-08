@@ -209,7 +209,7 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
         )
         .arg(
             Arg::with_name(CHECK_ARG_NAME)
-                .help("Specifies whether solution checker should be run on final solution")
+                .help("Specifies whether final solution should be checked for feasibility")
                 .long(CHECK_ARG_NAME)
                 .required(false)
                 .takes_value(false),
@@ -337,5 +337,7 @@ fn check_solution(matches: &ArgMatches) {
     if let Err(err) = result {
         eprintln!("{}", err);
         process::exit(1);
+    } else {
+        println!("solution feasibility check is completed successfully");
     }
 }
