@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::process;
 use std::sync::Arc;
+use vrp_cli::extensions::check::check_pragmatic_solution;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
@@ -28,6 +29,7 @@ const OUT_RESULT_ARG_NAME: &str = "out-result";
 const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
 const CONFIG_ARG_NAME: &str = "config";
 const LOG_ARG_NAME: &str = "log";
+const CHECK_ARG_NAME: &str = "check";
 
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
@@ -205,6 +207,13 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .required(false)
                 .takes_value(false),
         )
+        .arg(
+            Arg::with_name(CHECK_ARG_NAME)
+                .help("Specifies whether solution checker should be run on final solution")
+                .long(CHECK_ARG_NAME)
+                .required(false)
+                .takes_value(false),
+        )
 }
 
 /// Runs solver commands.
@@ -224,6 +233,7 @@ pub fn run_solve(matches: &ArgMatches) {
     } else {
         TelemetryMode::None
     });
+    let is_check_requested = matches.is_present(CHECK_ARG_NAME);
 
     let cost_variation = matches.value_of(COST_VARIATION_ARG_NAME).map(|arg| {
         if let [sample, threshold] =
@@ -237,9 +247,7 @@ pub fn run_solve(matches: &ArgMatches) {
     });
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let config = matches.value_of(CONFIG_ARG_NAME).map(|path| open_file(path, "config"));
-    let matrix_files = matches
-        .values_of(MATRIX_ARG_NAME)
-        .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect());
+    let matrix_files = get_matrix_files(matches);
     let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
     let out_geojson = matches.value_of(GEO_JSON_ARG_NAME).map(|path| create_file(path, "out geojson"));
     let is_get_locations_set = matches.is_present(GET_LOCATIONS_ARG_NAME);
@@ -284,7 +292,11 @@ pub fn run_solve(matches: &ArgMatches) {
                                 process::exit(1);
                             });
 
-                        solution_writer.0(&problem, solution, metrics, out_buffer, geo_buffer).unwrap()
+                        solution_writer.0(&problem, solution, metrics, out_buffer, geo_buffer).unwrap();
+
+                        if is_check_requested {
+                            check_solution(matches);
+                        }
                     }
                     Err(error) => {
                         eprintln!("cannot read {} problem from '{}': '{}'", problem_format, problem_path, error);
@@ -297,5 +309,33 @@ pub fn run_solve(matches: &ArgMatches) {
             eprintln!("unknown format: '{}'", problem_format);
             process::exit(1);
         }
+    }
+}
+
+fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
+    matches
+        .values_of(MATRIX_ARG_NAME)
+        .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect())
+}
+
+fn check_solution(matches: &ArgMatches) {
+    let problem_file = matches
+        .value_of(PROBLEM_ARG_NAME)
+        .map(|path| BufReader::new(open_file(path, "problem")))
+        .expect("cannot read problem");
+    let solution_file = matches
+        .value_of(OUT_RESULT_ARG_NAME)
+        .map(|path| BufReader::new(open_file(path, "solution")))
+        .expect("cannot read solution");
+
+    let matrix_files = matches
+        .values_of(MATRIX_ARG_NAME)
+        .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "routing matrix"))).collect());
+
+    let result = check_pragmatic_solution(problem_file, solution_file, matrix_files);
+
+    if let Err(err) = result {
+        eprintln!("{}", err);
+        process::exit(1);
     }
 }

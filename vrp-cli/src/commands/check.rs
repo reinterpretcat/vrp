@@ -1,13 +1,12 @@
 use super::*;
 use std::io::BufReader;
 use std::process;
-use vrp_pragmatic::checker::CheckerContext;
-use vrp_pragmatic::format::problem::deserialize_problem;
-use vrp_pragmatic::format::solution::deserialize_solution;
+use vrp_cli::extensions::check::check_pragmatic_solution;
 
-pub const FORMAT_ARG_NAME: &str = "FORMAT";
-pub const PROBLEM_ARG_NAME: &str = "problem-files";
-pub const SOLUTION_ARG_NAME: &str = "solution-file";
+const FORMAT_ARG_NAME: &str = "FORMAT";
+const PROBLEM_ARG_NAME: &str = "problem-files";
+const SOLUTION_ARG_NAME: &str = "solution-file";
+const MATRIX_ARG_NAME: &str = "matrix";
 
 pub fn get_check_app<'a, 'b>() -> App<'a, 'b> {
     App::new("check")
@@ -36,6 +35,15 @@ pub fn get_check_app<'a, 'b>() -> App<'a, 'b> {
                 .required(true)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name(MATRIX_ARG_NAME)
+                .help("Specifies path to file with routing matrix")
+                .short("m")
+                .long(MATRIX_ARG_NAME)
+                .multiple(true)
+                .required(false)
+                .takes_value(true),
+        )
 }
 
 pub fn run_check(matches: &ArgMatches) {
@@ -44,20 +52,17 @@ pub fn run_check(matches: &ArgMatches) {
         .values_of(PROBLEM_ARG_NAME)
         .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "problem"))).collect::<Vec<_>>());
     let solution_file = matches.value_of(SOLUTION_ARG_NAME).map(|path| BufReader::new(open_file(path, "solution")));
+    let matrix_files = matches
+        .values_of(MATRIX_ARG_NAME)
+        .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "routing matrix"))).collect());
 
     let result = match (input_format, problem_files, solution_file) {
         ("pragmatic", Some(mut problem_files), Some(solution_file)) if problem_files.len() == 1 => {
-            // TODO support matrix
-            let problem_file = problem_files.swap_remove(0);
-
-            deserialize_problem(problem_file)
-                .into_iter()
-                .zip(deserialize_solution(solution_file).into_iter())
-                .map(|(problem, solution)| CheckerContext::new(problem, None, solution).check())
-                .next()
-                .expect("Cannot deserialize problem or solution")
+            check_pragmatic_solution(problem_files.swap_remove(0), solution_file, matrix_files)
         }
-        ("pragmatic", _, _) => Err("pragmatic format expects one problem and one solution file".to_string()),
+        ("pragmatic", _, _) => {
+            Err("pragmatic format expects one problem, one solution file, and optionally matrices".to_string())
+        }
         _ => Err(format!("unknown format: '{}'", input_format)),
     };
 
