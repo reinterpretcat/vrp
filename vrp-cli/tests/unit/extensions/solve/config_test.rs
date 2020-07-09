@@ -18,18 +18,18 @@ fn can_read_config() {
 
     assert!(config.population.is_some());
     let population = config.population.unwrap();
-    assert_eq!(population.initial_methods.unwrap().len(), 3);
-    assert_eq!(population.initial_size, Some(2));
+    assert_eq!(population.initial_methods.unwrap().len(), 1);
+    assert_eq!(population.initial_size, Some(1));
     assert_eq!(population.population_size, Some(4));
-    assert_eq!(population.offspring_size, Some(4));
+    assert_eq!(population.offspring_size, Some(2));
     assert_eq!(population.elite_size, Some(2));
 
     assert!(config.termination.is_some());
     let termination = config.termination.unwrap();
     assert_eq!(termination.max_time, Some(300));
-    assert_eq!(termination.max_generations, Some(2000));
+    assert_eq!(termination.max_generations, Some(3000));
 
     let MutationConfig::RuinRecreate { ruins, recreates } = config.mutation.expect("cannot get mutation");
-    assert_eq!(ruins.len(), 10);
+    assert_eq!(ruins.len(), 7);
     assert_eq!(recreates.len(), 6);
 }

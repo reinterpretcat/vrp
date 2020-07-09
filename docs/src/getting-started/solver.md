@@ -65,7 +65,7 @@ specific amount of generations specified by `sample` and stops algorithm when it
 
 #### Default behavior
 
-By default termination criteria is max 2000 generations or 300 seconds.
+By default termination criteria is max 3000 generations or 300 seconds.
 
 
 ### Writing solution to file

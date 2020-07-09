@@ -4,21 +4,11 @@
       {
         "weight": 10,
         "type": "cheapest"
-      },
-      {
-        "weight": 10,
-        "type": "regret",
-        "start": 2,
-        "end": 4
-      },
-      {
-        "weight": 5,
-        "type": "blinks"
       }
     ],
-    "initialSize": 2,
+    "initialSize": 1,
     "populationSize": 4,
-    "offspringSize": 4,
+    "offspringSize": 2,
     "eliteSize": 2
   },
   "mutation": {
@@ -30,144 +20,25 @@
           {
             "probability": 1,
             "type": "adjusted-string",
-            "lmax": 30,
-            "cavg": 15,
-            "alpha": 0.01
-          },
-          {
-            "probability": 0.05,
-            "type": "random-route",
-            "min": 1,
-            "max": 8,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.05,
-            "type": "random-job",
-            "min": 8,
-            "max": 32,
-            "threshold": 0.2
-          }
-        ]
-      },
-      {
-        "weight": 10,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "adjusted-string",
-            "lmax": 30,
-            "cavg": 120,
-            "alpha": 0.02
-          }
-        ]
-      },
-      {
-        "weight": 50,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "cluster",
-            "min": 8,
-            "max": 32,
-            "cmin": 3,
-            "cmax": 9,
-            "threshold": 0.2
-          },
-          {
-            "probability": 0.05,
-            "type": "random-route",
-            "min": 1,
-            "max": 8,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.05,
-            "type": "random-job",
-            "min": 8,
-            "max": 32,
-            "threshold": 0.2
-          }
-        ]
-      },
-      {
-        "weight": 10,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "cluster",
-            "min": 30,
-            "max": 120,
-            "cmin": 8,
-            "cmax": 16,
-            "threshold": 0.25
-          }
-        ]
-      },
-      {
-        "weight": 50,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "neighbour",
-            "min": 8,
-            "max": 32,
-            "threshold": 0.2
-          },
-          {
-            "probability": 0.05,
-            "type": "random-route",
-            "min": 1,
-            "max": 4,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.05,
-            "type": "random-job",
-            "min": 8,
-            "max": 32,
-            "threshold": 0.2
-          }
-        ]
-      },
-      {
-        "weight": 10,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "neighbour",
-            "min": 30,
-            "max": 120,
-            "threshold": 0.25
-          }
-        ]
-      },
-      {
-        "weight": 10,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "cluster",
-            "min": 8,
-            "max": 32,
-            "cmin": 3,
-            "cmax": 9,
-            "threshold": 0.2
-          },
-          {
-            "probability": 0.75,
-            "type": "adjusted-string",
-            "lmax": 30,
-            "cavg": 15,
+            "lmax": 10,
+            "cavg": 10,
             "alpha": 0.01
           },
           {
             "probability": 0.5,
-            "type": "worst-job",
-            "skip": 4,
+            "type": "cluster",
+            "min": 4,
+            "max": 16,
+            "cmin": 3,
+            "cmax": 6,
+            "threshold": 0.1
+          },
+          {
+            "probability": 0.05,
+            "type": "random-job",
             "min": 8,
-            "max": 32,
-            "threshold": 0.2
+            "max": 16,
+            "threshold": 0.1
           }
         ]
       },
@@ -176,18 +47,17 @@
         "methods": [
           {
             "probability": 1,
-            "type": "worst-job",
-            "skip": 4,
-            "min": 8,
-            "max": 32,
-            "threshold": 0.2
-          },
-          {
-            "probability": 0.1,
             "type": "adjusted-string",
-            "lmax": 30,
-            "cavg": 15,
+            "lmax": 20,
+            "cavg": 20,
             "alpha": 0.01
+          },
+          {
+            "probability": 0.05,
+            "type": "random-job",
+            "min": 8,
+            "max": 16,
+            "threshold": 0.1
           }
         ]
       },
@@ -196,13 +66,22 @@
         "methods": [
           {
             "probability": 1,
-            "type": "random-job",
+            "type": "cluster",
             "min": 8,
-            "max": 32,
-            "threshold": 0.2
+            "max": 16,
+            "cmin": 3,
+            "cmax": 9,
+            "threshold": 0.1
           },
           {
-            "probability": 0.1,
+            "probability": 0.05,
+            "type": "random-job",
+            "min": 8,
+            "max": 16,
+            "threshold": 0.1
+          },
+          {
+            "probability": 0.01,
             "type": "random-route",
             "min": 1,
             "max": 4,
@@ -214,7 +93,79 @@
         "weight": 10,
         "methods": [
           {
+            "probability": 1,
+            "type": "worst-job",
+            "skip": 4,
+            "min": 8,
+            "max": 16,
+            "threshold": 0.1
+          },
+          {
+            "probability": 0.05,
+            "type": "random-job",
+            "min": 8,
+            "max": 16,
+            "threshold": 0.1
+          },
+          {
+            "probability": 0.01,
+            "type": "random-route",
+            "min": 1,
+            "max": 4,
+            "threshold": 0.1
+          }
+        ]
+      },
+      {
+        "weight": 10,
+        "methods": [
+          {
+            "probability": 1,
+            "type": "neighbour",
+            "min": 8,
+            "max": 16,
+            "threshold": 0.1
+          },
+          {
+            "probability": 0.05,
+            "type": "random-job",
+            "min": 8,
+            "max": 16,
+            "threshold": 0.1
+          },
+          {
+            "probability": 0.01,
+            "type": "random-route",
+            "min": 1,
+            "max": 4,
+            "threshold": 0.1
+          }
+        ]
+      },
+      {
+        "weight": 5,
+        "methods": [
+          {
+            "probability": 1,
+            "type": "random-job",
+            "min": 8,
+            "max": 16,
+            "threshold": 0.1
+          },
+          {
             "probability": 0.1,
+            "type": "random-route",
+            "min": 1,
+            "max": 4,
+            "threshold": 0.1
+          }
+        ]
+      },
+      {
+        "weight": 5,
+        "methods": [
+          {
+            "probability": 1,
             "type": "random-route",
             "min": 1,
             "max": 4,
@@ -224,8 +175,8 @@
             "probability": 0.1,
             "type": "random-job",
             "min": 8,
-            "max": 32,
-            "threshold": 0.2
+            "max": 16,
+            "threshold": 0.1
           }
         ]
       }
@@ -236,37 +187,37 @@
         "type": "cheapest"
       },
       {
-        "weight": 90,
+        "weight": 10,
+        "type": "regret",
+        "start": 1,
+        "end": 2
+      },
+      {
+        "weight": 2,
+        "type": "blinks"
+      },
+      {
+        "weight": 2,
         "type": "regret",
         "start": 2,
         "end": 4
       },
       {
-        "weight": 30,
-        "type": "blinks"
-      },
-      {
-        "weight": 20,
-        "type": "regret",
-        "start": 5,
-        "end": 8
-      },
-      {
-        "weight": 10,
+        "weight": 2,
         "type": "gaps",
         "min": 2
       },
       {
-        "weight": 5,
+        "weight": 2,
         "type": "nearest"
       }
     ]
   },
   "termination": {
     "maxTime": 300,
-    "maxGenerations": 2000,
+    "maxGenerations": 3000,
     "variation": {
-      "sample": 2000,
+      "sample": 3000,
       "cv": 1
     }
   },

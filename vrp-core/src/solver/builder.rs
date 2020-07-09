@@ -68,7 +68,7 @@ impl Builder {
                 mutation: Box::new(RuinAndRecreateMutation::new_from_problem(problem)),
                 termination: Box::new(CompositeTermination::new(vec![
                     Box::new(MaxTime::new(300.)),
-                    Box::new(MaxGeneration::new(2000)),
+                    Box::new(MaxGeneration::new(3000)),
                 ])),
                 quota: None,
                 initial_size: 1,
@@ -91,7 +91,7 @@ impl Builder {
         self
     }
 
-    /// Sets max generations to be run by evolution. Default is 2000.
+    /// Sets max generations to be run by evolution. Default is 3000.
     pub fn with_max_generations(mut self, limit: Option<usize>) -> Self {
         self.max_generations = limit;
         self
@@ -182,8 +182,8 @@ impl Builder {
                 (None, None, None) => {
                     self.config
                         .telemetry
-                        .log("configured to use default max-generations (2000) and max-time (300secs)");
-                    (vec![Box::new(MaxGeneration::new(2000)), Box::new(MaxTime::new(300.))], None)
+                        .log("configured to use default max-generations (3000) and max-time (300secs)");
+                    (vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))], None)
                 }
                 _ => {
                     let mut criterias: Vec<Box<dyn Termination>> = vec![];
