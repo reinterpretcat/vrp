@@ -121,8 +121,6 @@ pub struct UnassignedJob {
 /// Encapsulates different measurements regarding algorithm evaluation.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Metrics {
-    /// Timestamp when algorithm is started.
-    pub timestamp: usize,
     /// Total algorithm duration.
     pub duration: usize,
     /// Total amount of generations.

@@ -12,8 +12,6 @@ pub type InfoLogger = Arc<dyn Fn(&str) -> ()>;
 
 /// Encapsulates different measurements regarding algorithm evaluation.
 pub struct Metrics {
-    /// Timestamp when algorithm is started.
-    pub timestamp: usize,
     /// Algorithm duration.
     pub duration: usize,
     /// Total amount of generations.
@@ -91,7 +89,7 @@ impl Telemetry {
     pub fn new(mode: TelemetryMode) -> Self {
         Self {
             time: Timer::start(),
-            metrics: Metrics { timestamp: 0, duration: 0, generations: 0, speed: 0.0, evolution: vec![] },
+            metrics: Metrics { duration: 0, generations: 0, speed: 0.0, evolution: vec![] },
             mode,
         }
     }

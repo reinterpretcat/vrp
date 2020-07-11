@@ -343,7 +343,6 @@ fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extr
     if let Some(metrics) = metrics {
         Some(Extras {
             metrics: Some(ApiMetrics {
-                timestamp: metrics.timestamp,
                 duration: metrics.duration,
                 generations: metrics.generations,
                 speed: metrics.speed,
