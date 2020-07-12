@@ -6,7 +6,7 @@ use crate::models::problem::{Job, TargetConstraint, TargetObjective};
 use crate::solver::objectives::*;
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
-use std::cmp::Ordering::{Equal, Less};
+use std::cmp::Ordering::{Equal, Greater, Less};
 use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
@@ -231,6 +231,20 @@ impl Objective for WorkBalanceObjectives {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
 
+        if let Some(threshold) = self.threshold.clone() {
+            if fitness_a < threshold && fitness_b < threshold {
+                return Equal;
+            }
+
+            if fitness_a < threshold {
+                return Less;
+            }
+
+            if fitness_b < threshold {
+                return Greater;
+            }
+        }
+
         if self.tolerance.map_or(false, |tolerance| (fitness_a - fitness_b).abs() < tolerance) {
             Equal
         } else {
@@ -241,6 +255,20 @@ impl Objective for WorkBalanceObjectives {
     fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
+
+        if let Some(threshold) = self.threshold.clone() {
+            if fitness_a < threshold && fitness_b < threshold {
+                return 0.;
+            }
+
+            if fitness_a < threshold {
+                return threshold - fitness_b;
+            }
+
+            if fitness_b < threshold {
+                return threshold - fitness_a;
+            }
+        }
 
         fitness_a - fitness_b
     }
