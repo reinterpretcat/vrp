@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/extensions/generate/prototype_test.rs"]
+mod prototype_test;
+
 use super::*;
 use vrp_pragmatic::format::problem::Problem;
 

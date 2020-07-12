@@ -1,0 +1,16 @@
+{
+  "termination": {
+    "maxTime": 300
+  },
+  "telemetry": {
+    "logging": {
+      "enabled": true,
+      "logBest": 100,
+      "logPopulation": 1000
+    },
+    "metrics": {
+      "enabled": true,
+      "trackPopulation": 100
+    }
+  }
+}

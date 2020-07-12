@@ -11,6 +11,11 @@
 
 #![warn(missing_docs)]
 
+#[cfg(test)]
+#[path = "../tests/helpers/mod.rs"]
+#[macro_use]
+mod helpers;
+
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 #[path = "../tests/features/mod.rs"]

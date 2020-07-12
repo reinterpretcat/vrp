@@ -43,7 +43,7 @@ pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option
                     demand: if keep_original_demand {
                         task.demand.clone()
                     } else {
-                        Some(get_random_item(demands.as_slice(), &rnd).cloned().unwrap())
+                        get_random_item(demands.as_slice(), &rnd).cloned()
                     },
 
                     tag: None,
