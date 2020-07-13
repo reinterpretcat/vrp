@@ -139,7 +139,7 @@ pub type Individual = InsertionContext;
 
 /// A trait which models a population with individuals (solutions).
 pub trait Population {
-    /// Adds all individuals into the population, sorts, and shrinks population if necessary.
+    /// Adds all individuals into the population, then sorts and shrinks population if necessary.
     fn add_all(&mut self, individuals: Vec<Individual>);
 
     /// Adds an individual into the population.
