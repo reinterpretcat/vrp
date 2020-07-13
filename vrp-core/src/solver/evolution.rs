@@ -24,8 +24,6 @@ pub struct EvolutionConfig {
     pub population_size: usize,
     /// Offspring size.
     pub offspring_size: usize,
-    /// Elite size.
-    pub elite_size: usize,
     /// Initial size of population to be generated.
     pub initial_size: usize,
     /// Create methods to produce initial individuals.
@@ -73,12 +71,23 @@ impl EvolutionSimulator {
         while !self.config.termination.is_termination(&mut refinement_ctx) {
             let generation_time = Timer::start();
 
-            let insertion_ctx =
-                refinement_ctx.population.select().ok_or_else(|| "Empty population".to_string())?.deep_copy();
+            let parents = refinement_ctx
+                .population
+                .ranked()
+                .take(self.config.offspring_size)
+                .map(|(insertion_ctx, _)| insertion_ctx.deep_copy())
+                .collect::<Vec<_>>();
 
-            let insertion_ctx = self.config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
+            let offspring = parents.into_iter().fold(Vec::default(), |mut acc, insertion_ctx| {
+                let individual = self.config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
+                if should_add_solution(&refinement_ctx) {
+                    acc.push(individual)
+                }
 
-            Self::add_solution(&mut refinement_ctx, insertion_ctx);
+                acc
+            });
+
+            refinement_ctx.population.add_all(offspring);
 
             self.config.telemetry.on_progress(&refinement_ctx, generation_time);
 
@@ -94,13 +103,7 @@ impl EvolutionSimulator {
     fn create_refinement_ctx(&mut self) -> Result<RefinementContext, String> {
         let mut refinement_ctx = RefinementContext::new(
             self.problem.clone(),
-            Box::new(DominancePopulation::new(
-                self.problem.clone(),
-                self.config.random.clone(),
-                self.config.population_size,
-                self.config.offspring_size,
-                self.config.elite_size,
-            )),
+            Box::new(DominancePopulation::new(self.problem.clone(), self.config.population_size)),
             std::mem::replace(&mut self.config.quota, None),
         );
 
@@ -130,7 +133,9 @@ impl EvolutionSimulator {
             let insertion_ctx =
                 self.config.initial_methods[method_idx].0.run(&mut refinement_ctx, empty_ctx.deep_copy());
 
-            Self::add_solution(&mut refinement_ctx, insertion_ctx);
+            if should_add_solution(&refinement_ctx) {
+                refinement_ctx.population.add(insertion_ctx);
+            }
 
             self.config.telemetry.on_initial(idx, self.config.initial_size, item_time);
 
@@ -139,14 +144,12 @@ impl EvolutionSimulator {
 
         Ok(refinement_ctx)
     }
+}
 
-    fn add_solution(refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) {
-        let is_quota_reached = refinement_ctx.quota.as_ref().map_or(false, |quota| quota.is_reached());
-        let is_population_empty = refinement_ctx.population.size() == 0;
+fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {
+    let is_quota_reached = refinement_ctx.quota.as_ref().map_or(false, |quota| quota.is_reached());
+    let is_population_empty = refinement_ctx.population.size() == 0;
 
-        // NOTE fix population not to accept solution with worse primary objective fitness as best
-        if is_population_empty || !is_quota_reached {
-            refinement_ctx.population.add(insertion_ctx);
-        }
-    }
+    // TODO fix population not to accept solution with worse primary objective fitness as best
+    is_population_empty || !is_quota_reached
 }

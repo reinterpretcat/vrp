@@ -74,7 +74,6 @@ impl Builder {
                 initial_size: 1,
                 population_size: 4,
                 offspring_size: 2,
-                elite_size: 2,
                 initial_methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                 initial_individuals: vec![],
                 random: Arc::new(DefaultRandom::default()),
@@ -131,24 +130,17 @@ impl Builder {
         self
     }
 
-    /// Sets population size. Default is 4.
+    /// Sets max population size. Default is 4.
     pub fn with_population_size(mut self, size: usize) -> Self {
-        self.config.telemetry.log(format!("configured to use population size: {} ", size).as_str());
+        self.config.telemetry.log(format!("configured to use max population size: {} ", size).as_str());
         self.config.population_size = size;
         self
     }
 
-    /// Sets offspring size. Default is 4.
+    /// Sets max offspring size. Default is 4.
     pub fn with_offspring_size(mut self, size: usize) -> Self {
-        self.config.telemetry.log(format!("configured to use offspring size: {} ", size).as_str());
+        self.config.telemetry.log(format!("configured to use max offspring size: {} ", size).as_str());
         self.config.offspring_size = size;
-        self
-    }
-
-    /// Sets elite size. Default is 2.
-    pub fn with_elite_size(mut self, size: usize) -> Self {
-        self.config.telemetry.log(format!("configured to use elite size: {} ", size).as_str());
-        self.config.elite_size = size;
         self
     }
 

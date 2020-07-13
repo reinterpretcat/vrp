@@ -139,17 +139,14 @@ pub type Individual = InsertionContext;
 
 /// A trait which models a population with individuals (solutions).
 pub trait Population {
+    /// Adds all individuals into the population, sorts, and shrinks population if necessary.
+    fn add_all(&mut self, individuals: Vec<Individual>);
+
     /// Adds an individual into the population.
     fn add(&mut self, individual: Individual);
 
-    /// Returns all solutions from the population sorted according their quality.
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a>;
-
-    /// Returns best solution from the population.
-    fn best(&self) -> Option<&Individual>;
-
-    /// Returns one of solutions from the population.
-    fn select(&self) -> Option<&Individual>;
+    /// Returns individuals within their rank sorted according their quality.
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a>;
 
     /// Returns population size.
     fn size(&self) -> usize;
@@ -205,7 +202,7 @@ impl Solver {
         let (population, metrics) = EvolutionSimulator::new(self.problem.clone(), self.config)?.run()?;
 
         // NOTE select the first best individual from population
-        let insertion_ctx = population.best().ok_or_else(|| "cannot find any solution".to_string())?;
+        let (insertion_ctx, _) = population.ranked().next().ok_or_else(|| "cannot find any solution".to_string())?;
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
         let cost = self.problem.objective.fitness(insertion_ctx);
 

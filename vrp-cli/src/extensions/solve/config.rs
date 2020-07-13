@@ -101,7 +101,6 @@ pub struct PopulationConfig {
     initial_size: Option<usize>,
     population_size: Option<usize>,
     offspring_size: Option<usize>,
-    elite_size: Option<usize>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -157,10 +156,6 @@ fn configure_from_population(mut builder: Builder, population_config: &Option<Po
 
         if let Some(population_size) = &config.population_size {
             builder = builder.with_population_size(*population_size);
-        }
-
-        if let Some(elite_size) = &config.elite_size {
-            builder = builder.with_elite_size(*elite_size);
         }
 
         if let Some(offspring_size) = &config.offspring_size {

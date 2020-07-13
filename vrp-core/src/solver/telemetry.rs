@@ -34,6 +34,8 @@ pub struct Generation {
 
 /// Keeps essential information about particular individual in population.
 pub struct Individual {
+    /// Rank in population.
+    pub rank: usize,
     /// Total amount of tours.
     pub tours: usize,
     /// Total amount of unassigned jobs.
@@ -127,7 +129,7 @@ impl Telemetry {
             }
         };
 
-        if let Some(best_individual) = refinement_ctx.population.best() {
+        if let Some((best_individual, rank)) = refinement_ctx.population.ranked().next() {
             let generation = refinement_ctx.generation;
             let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
             let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0 || generation == 1;
@@ -135,7 +137,7 @@ impl Telemetry {
 
             if should_log_best {
                 self.log_individual(
-                    &self.get_individual_metrics(refinement_ctx, &best_individual),
+                    &self.get_individual_metrics(refinement_ctx, &best_individual, rank),
                     Some((refinement_ctx.generation, generation_time)),
                 )
             }
@@ -170,8 +172,8 @@ impl Telemetry {
 
         let population_metrics = refinement_ctx
             .population
-            .all()
-            .map(|insertion_ctx| self.get_individual_metrics(refinement_ctx, &insertion_ctx))
+            .ranked()
+            .map(|(insertion_ctx, rank)| self.get_individual_metrics(refinement_ctx, &insertion_ctx, rank))
             .collect::<Vec<_>>();
 
         if should_log_population {
@@ -232,6 +234,7 @@ impl Telemetry {
         &self,
         refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
+        rank: usize,
     ) -> Individual {
         let fitness_values = insertion_ctx
             .problem
@@ -243,6 +246,7 @@ impl Telemetry {
         let (cost, cost_difference) = Self::get_fitness(refinement_ctx, insertion_ctx);
 
         Individual {
+            rank,
             tours: insertion_ctx.solution.routes.len(),
             unassigned: insertion_ctx.solution.unassigned.len(),
             cost,
@@ -254,13 +258,14 @@ impl Telemetry {
     fn log_individual(&self, metrics: &Individual, gen_info: Option<(usize, Timer)>) {
         self.log(
             format!(
-                "{}cost: {:.2}({:.3}%), tours: {}, unassigned: {}, fitness: ({})",
+                "{} rank: {}, cost: {:.2}({:.3}%), tours: {}, unassigned: {}, fitness: ({})",
                 gen_info.map_or("\t".to_string(), |(gen, gen_time)| format!(
                     "[{}s] generation {} took {}ms, ",
                     self.time.elapsed_secs(),
                     gen,
                     gen_time.elapsed_millis()
                 )),
+                metrics.rank,
                 metrics.cost,
                 metrics.improvement,
                 metrics.tours,
@@ -276,8 +281,9 @@ impl Telemetry {
 
         let fitness_change = refinement_ctx
             .population
-            .best()
-            .map(|best_ctx| refinement_ctx.problem.objective.fitness(best_ctx))
+            .ranked()
+            .next()
+            .map(|(best_ctx, _)| refinement_ctx.problem.objective.fitness(best_ctx))
             .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.)
             .unwrap_or(0.);
 

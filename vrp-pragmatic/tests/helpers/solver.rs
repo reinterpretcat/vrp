@@ -17,7 +17,7 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
 
     let problem = get_core_problem(problem, matrices);
     let random = Arc::new(DefaultRandom::default());
-    let population = Box::new(DominancePopulation::new(problem.clone(), random.clone(), 8, 4, 2));
+    let population = Box::new(DominancePopulation::new(problem.clone(), 8));
     let mut refinement_ctx = RefinementContext::new(problem.clone(), population, None);
 
     let solution = RecreateWithCheapest::default()

@@ -42,8 +42,9 @@ impl CostVariation {
 
 impl Termination for CostVariation {
     fn is_termination(&self, refinement_ctx: &mut RefinementContext) -> bool {
-        if let Some(best) = refinement_ctx.population.best() {
-            let cost = refinement_ctx.problem.objective.fitness(best);
+        let first_individual = refinement_ctx.population.ranked().next();
+        if let Some((first, _)) = first_individual {
+            let cost = refinement_ctx.problem.objective.fitness(first);
             self.update_and_check(refinement_ctx, cost)
         } else {
             false

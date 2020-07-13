@@ -6,7 +6,6 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
 use crate::models::Problem;
 use crate::solver::{DominancePopulation, Individual, Population};
-use crate::utils::DefaultRandom;
 use std::sync::Arc;
 
 fn create_problem() -> Arc<Problem> {
@@ -31,17 +30,17 @@ fn create_individual(problem: &Arc<Problem>, fitness: f64) -> Individual {
 }
 
 fn get_best_fitness(population: &DominancePopulation) -> f64 {
-    population.problem.objective.fitness(population.best().unwrap())
+    population.problem.objective.fitness(population.ranked().next().unwrap().0)
 }
 
 fn get_all_fitness(population: &DominancePopulation) -> Vec<f64> {
-    population.all().map(|individual| population.problem.objective.fitness(individual)).collect()
+    population.ranked().map(|(individual, _)| population.problem.objective.fitness(individual)).collect()
 }
 
 #[test]
 fn can_maintain_best_order() {
     let problem = create_problem();
-    let mut population = DominancePopulation::new(problem.clone(), Arc::new(DefaultRandom::default()), 2, 1, 1);
+    let mut population = DominancePopulation::new(problem.clone(), 3);
 
     population.add(create_individual(&problem, 100.));
     assert_eq!(population.size(), 1);
@@ -55,18 +54,12 @@ fn can_maintain_best_order() {
     assert_eq!(population.size(), 3);
     assert_eq!(get_best_fitness(&population), 90.);
     assert_eq!(get_all_fitness(&population), &[90., 100., 120.]);
-
-    // cut offspring
-    population.add(create_individual(&problem, 80.));
-    assert_eq!(population.size(), 2);
-    assert_eq!(get_best_fitness(&population), 80.);
-    assert_eq!(get_all_fitness(&population), &[80., 90.]);
 }
 
 #[test]
 fn can_maintain_diversity() {
     let problem = create_problem();
-    let mut population = DominancePopulation::new(problem.clone(), Arc::new(DefaultRandom::default()), 2, 1, 1);
+    let mut population = DominancePopulation::new(problem.clone(), 4);
 
     population.add(create_individual(&problem, 100.));
     assert_eq!(population.size(), 1);
@@ -84,8 +77,8 @@ fn can_maintain_diversity() {
     assert_eq!(get_all_fitness(&population), &[100., 200., 300.]);
 
     population.add(create_individual(&problem, 50.));
-    assert_eq!(get_all_fitness(&population), &[50., 100.]);
+    assert_eq!(get_all_fitness(&population), &[50., 100., 200., 300.]);
 
     population.add(create_individual(&problem, 200.));
-    assert_eq!(get_all_fitness(&population), &[50., 100., 200.]);
+    assert_eq!(get_all_fitness(&population), &[50., 100., 200., 300.]);
 }

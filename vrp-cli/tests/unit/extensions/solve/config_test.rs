@@ -22,7 +22,6 @@ fn can_read_config() {
     assert_eq!(population.initial_size, Some(1));
     assert_eq!(population.population_size, Some(4));
     assert_eq!(population.offspring_size, Some(2));
-    assert_eq!(population.elite_size, Some(2));
 
     assert!(config.termination.is_some());
     let termination = config.termination.unwrap();

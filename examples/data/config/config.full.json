@@ -8,8 +8,7 @@
     ],
     "initialSize": 1,
     "populationSize": 4,
-    "offspringSize": 2,
-    "eliteSize": 2
+    "offspringSize": 2
   },
   "mutation": {
     "type": "ruin-recreate",

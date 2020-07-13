@@ -8,12 +8,12 @@ use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::solver::mutation::{Recreate, RecreateWithCheapest};
 use crate::solver::{DominancePopulation, Population, RefinementContext};
-use crate::utils::{DefaultRandom, Random};
+use crate::utils::Random;
 use std::sync::Arc;
 
 /// Creates default population.
 pub fn create_default_population(problem: Arc<Problem>) -> Box<dyn Population + Sync + Send> {
-    Box::new(DominancePopulation::new(problem, Arc::new(DefaultRandom::default()), 4, 2, 2))
+    Box::new(DominancePopulation::new(problem, 4))
 }
 
 pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext {
