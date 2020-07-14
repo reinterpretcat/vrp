@@ -45,7 +45,7 @@ impl ClusterRemoval {
 }
 
 impl Ruin for ClusterRemoval {
-    fn run(&self, _: &mut RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.random.clone();
 

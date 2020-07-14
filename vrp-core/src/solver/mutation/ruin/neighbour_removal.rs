@@ -22,7 +22,7 @@ impl Default for NeighbourRemoval {
 }
 
 impl Ruin for NeighbourRemoval {
-    fn run(&self, _refinement_ctx: &mut RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 
         let problem = insertion_ctx.problem.clone();

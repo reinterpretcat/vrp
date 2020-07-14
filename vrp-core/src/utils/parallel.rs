@@ -1,5 +1,6 @@
 pub use self::actual::map_reduce;
 pub use self::actual::parallel_collect;
+pub use self::actual::parallel_into_collect;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod actual {
@@ -14,6 +15,16 @@ mod actual {
         R: Send,
     {
         source.par_iter().map(map_op).collect()
+    }
+
+    /// Maps collection and collects results into vector in parallel.
+    pub fn parallel_into_collect<T, F, R>(source: Vec<T>, map_op: F) -> Vec<R>
+    where
+        T: Send + Sync,
+        F: Fn(T) -> R + Sync + Send,
+        R: Send,
+    {
+        source.into_par_iter().map(map_op).collect()
     }
 
     /// Performs map reduce operations in parallel.
@@ -39,6 +50,16 @@ mod actual {
         R: Send,
     {
         source.iter().map(map_op).collect()
+    }
+
+    /// Map collections and collects results into vector synchronously.
+    pub fn parallel_into_collect<T, F, R>(source: Vec<T>, map_op: F) -> Vec<R>
+    where
+        T: Send + Sync,
+        F: Fn(T) -> R + Sync + Send,
+        R: Send,
+    {
+        source.into_iter().map(map_op).collect()
     }
 
     /// Performs map reduce operations synchronously.

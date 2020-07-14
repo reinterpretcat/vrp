@@ -6,7 +6,7 @@ use crate::solver::population::DominancePopulation;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::Termination;
 use crate::solver::{Metrics, Population, RefinementContext};
-use crate::utils::{Random, Timer};
+use crate::utils::{parallel_into_collect, Random, Timer};
 use hashbrown::HashSet;
 use std::sync::Arc;
 
@@ -15,7 +15,7 @@ pub struct EvolutionConfig {
     /// An original problem.
     pub problem: Arc<Problem>,
     /// A mutation applied to population.
-    pub mutation: Box<dyn Mutation>,
+    pub mutation: Box<dyn Mutation + Send + Sync>,
     /// A termination defines when evolution should stop.
     pub termination: Box<dyn Termination>,
     /// A quota for evolution execution.
@@ -28,7 +28,7 @@ pub struct EvolutionConfig {
     /// Initial size of population to be generated.
     pub initial_size: usize,
     /// Create methods to produce initial individuals.
-    pub initial_methods: Vec<(Box<dyn Recreate>, usize)>,
+    pub initial_methods: Vec<(Box<dyn Recreate + Send + Sync>, usize)>,
     /// Initial individuals in population.
     pub initial_individuals: Vec<InsertionContext>,
 
@@ -72,15 +72,9 @@ impl EvolutionSimulator {
         while !self.config.termination.is_termination(&mut refinement_ctx) {
             let generation_time = Timer::start();
 
+            let mutator = &self.config.mutation;
             let parents = self.select_parents(&refinement_ctx);
-            let offspring = parents.into_iter().fold(Vec::default(), |mut acc, insertion_ctx| {
-                let individual = self.config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
-                if should_add_solution(&refinement_ctx) {
-                    acc.push(individual)
-                }
-
-                acc
-            });
+            let offspring = parallel_into_collect(parents, |ctx| mutator.mutate(&refinement_ctx, ctx));
 
             refinement_ctx.population.add_all(offspring);
 
@@ -125,8 +119,7 @@ impl EvolutionSimulator {
                 return Err(());
             }
 
-            let insertion_ctx =
-                self.config.initial_methods[method_idx].0.run(&mut refinement_ctx, empty_ctx.deep_copy());
+            let insertion_ctx = self.config.initial_methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
 
             if should_add_solution(&refinement_ctx) {
                 refinement_ctx.population.add(insertion_ctx);

@@ -125,7 +125,7 @@ pub struct RefinementContext {
     pub population: Box<dyn Population + Sync + Send>,
 
     /// A collection of data associated with refinement process.
-    pub state: HashMap<String, Box<dyn Any>>,
+    pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
 
     /// A quota for refinement process.
     pub quota: Option<Box<dyn Quota + Send + Sync>>,

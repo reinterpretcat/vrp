@@ -21,20 +21,20 @@ use std::sync::Arc;
 pub trait Mutation {
     /// Changes given refinement context and consumes passed insertion context.
     /// Returns an insertion context with potentially new feasible solution.
-    fn mutate(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
+    fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
 /// A mutation operator based on ruin and recreate principle.
 pub struct RuinAndRecreateMutation {
     /// A ruin method.
-    pub ruin: Box<dyn Ruin>,
+    pub ruin: Box<dyn Ruin + Send + Sync>,
     /// A recreate method.
-    pub recreate: Box<dyn Recreate>,
+    pub recreate: Box<dyn Recreate + Send + Sync>,
 }
 
 impl RuinAndRecreateMutation {
     /// Creates a new instance of `RuinAndRecreateMutation` using given ruin and recreate methods.
-    pub fn new(recreate: Box<dyn Recreate>, ruin: Box<dyn Ruin>) -> Self {
+    pub fn new(recreate: Box<dyn Recreate + Send + Sync>, ruin: Box<dyn Ruin + Send + Sync>) -> Self {
         Self { recreate, ruin }
     }
 
@@ -48,7 +48,7 @@ impl RuinAndRecreateMutation {
 }
 
 impl Mutation for RuinAndRecreateMutation {
-    fn mutate(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let insertion_ctx = self.ruin.run(refinement_ctx, insertion_ctx);
 
         self.recreate.run(refinement_ctx, insertion_ctx)

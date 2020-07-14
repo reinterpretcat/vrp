@@ -13,7 +13,7 @@ use std::sync::Arc;
 /// A trait which specifies logic to destroy parts of solution.
 pub trait Ruin {
     /// Ruins given solution and returns a new one with less jobs assigned.
-    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
 mod adjusted_string_removal;
@@ -35,11 +35,11 @@ mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
 
 /// A type which specifies a group of multiple ruin strategies with its probability.
-pub type RuinGroup = (Vec<(Arc<dyn Ruin>, f64)>, usize);
+pub type RuinGroup = (Vec<(Arc<dyn Ruin + Send + Sync>, f64)>, usize);
 
 /// Provides the way to run multiple ruin methods one by one on the same solution.
 pub struct CompositeRuin {
-    ruins: Vec<Vec<(Arc<dyn Ruin>, f64)>>,
+    ruins: Vec<Vec<(Arc<dyn Ruin + Send + Sync>, f64)>>,
     weights: Vec<usize>,
 }
 
@@ -121,7 +121,7 @@ impl CompositeRuin {
 }
 
 impl Ruin for CompositeRuin {
-    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         if insertion_ctx.solution.routes.is_empty() {
             return insertion_ctx;
         }

@@ -22,7 +22,7 @@ impl Default for RandomJobRemoval {
 }
 
 impl Ruin for RandomJobRemoval {
-    fn run(&self, _refinement_ctx: &mut RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         if insertion_ctx.solution.routes.is_empty() {
             return insertion_ctx;
         }

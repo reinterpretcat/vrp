@@ -109,7 +109,7 @@ impl Builder {
     }
 
     /// Sets initial methods used to construct initial population.
-    pub fn with_initial_methods(mut self, initial_methods: Vec<(Box<dyn Recreate>, usize)>) -> Self {
+    pub fn with_initial_methods(mut self, initial_methods: Vec<(Box<dyn Recreate + Send + Sync>, usize)>) -> Self {
         self.config.initial_methods = initial_methods;
         self
     }
@@ -154,7 +154,7 @@ impl Builder {
     }
 
     /// Sets mutation algorithm. Default is ruin and recreate.
-    pub fn with_mutation(mut self, mutation: Box<dyn Mutation>) -> Self {
+    pub fn with_mutation(mut self, mutation: Box<dyn Mutation + Send + Sync>) -> Self {
         self.config.mutation = mutation;
         self
     }

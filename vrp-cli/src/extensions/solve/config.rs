@@ -189,7 +189,7 @@ fn configure_from_termination(mut builder: Builder, termination_config: &Option<
     builder
 }
 
-fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate>, usize) {
+fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send + Sync>, usize) {
     match method {
         RecreateMethod::Cheapest { weight } => (Box::new(RecreateWithCheapest::default()), *weight),
         RecreateMethod::Regret { weight, start, end } => (Box::new(RecreateWithRegret::new(*start, *end)), *weight),
@@ -203,7 +203,7 @@ fn create_ruin_group(problem: &Arc<Problem>, group: &ConfigRuinGroup) -> RuinGro
     (group.methods.iter().map(|r| create_ruin_method(problem, r)).collect(), group.weight)
 }
 
-fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn Ruin>, f64) {
+fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn Ruin + Send + Sync>, f64) {
     match method {
         RuinMethod::AdjustedString { probability, lmax, cavg, alpha } => {
             (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha)), *probability)

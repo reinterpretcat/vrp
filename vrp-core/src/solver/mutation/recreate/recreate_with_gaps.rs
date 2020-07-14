@@ -48,7 +48,7 @@ impl Default for RecreateWithGaps {
 }
 
 impl Recreate for RecreateWithGaps {
-    fn run(&self, refinement_ctx: &mut RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::default().process(
             self.job_selector.as_ref(),
             self.job_reducer.as_ref(),
