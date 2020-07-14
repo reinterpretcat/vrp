@@ -1,5 +1,5 @@
 use crate::algorithms::nsga2::Objective;
-use crate::algorithms::statistics::{get_cv, get_mean};
+use crate::algorithms::statistics::get_cv;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
@@ -201,23 +201,14 @@ struct WorkBalanceObjectives {
 
 impl SoftRouteConstraint for WorkBalanceObjectives {
     fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> f64 {
-        let value = route_ctx
+        let cv = route_ctx
             .state
             .get_route_state::<f64>(self.state_key)
             .cloned()
             .unwrap_or_else(|| self.value_func.deref()(route_ctx));
 
-        if self.threshold.map_or(false, |threshold| value < threshold) {
-            return 0.;
-        }
-
-        let values = self.values_func.deref()(solution_ctx);
-
-        let mean = get_mean(&values);
-        let ratio = (value - mean).max(0.) / mean;
-
-        if ratio.is_normal() {
-            ratio * solution_ctx.get_max_cost()
+        if cv.is_normal() && self.threshold.map_or(true, |threshold| cv > threshold) {
+            cv * solution_ctx.get_max_cost()
         } else {
             0.
         }

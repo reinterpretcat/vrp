@@ -351,15 +351,17 @@ pub enum Objective {
     },
 }
 
-/// Specifies balance objective options.
+/// Specifies balance objective options. At the moment, it uses coefficient of variation as
+/// balancing measure.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct BalanceOptions {
-    /// A relative value in single tour before balancing takes place.
-    /// NOTE: it is soft constraint and might be ignored by decision maker.
+    /// A balancing threshold specifies desired balancing level. Lower values can be ignored in
+    /// favor of another objective.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub threshold: Option<f64>,
 
-    /// A balancing tolerance calculated as variation coefficient.
+    /// A balancing tolerance specifies how much balance values should differ in order
+    /// to be considered not-equal.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tolerance: Option<f64>,
 }
