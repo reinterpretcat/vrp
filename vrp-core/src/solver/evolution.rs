@@ -7,6 +7,7 @@ use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::Termination;
 use crate::solver::{Metrics, Population, RefinementContext};
 use crate::utils::{Random, Timer};
+use hashbrown::HashSet;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -71,13 +72,7 @@ impl EvolutionSimulator {
         while !self.config.termination.is_termination(&mut refinement_ctx) {
             let generation_time = Timer::start();
 
-            let parents = refinement_ctx
-                .population
-                .ranked()
-                .take(self.config.offspring_size)
-                .map(|(insertion_ctx, _)| insertion_ctx.deep_copy())
-                .collect::<Vec<_>>();
-
+            let parents = self.select_parents(&refinement_ctx);
             let offspring = parents.into_iter().fold(Vec::default(), |mut acc, insertion_ctx| {
                 let individual = self.config.mutation.mutate(&mut refinement_ctx, insertion_ctx);
                 if should_add_solution(&refinement_ctx) {
@@ -143,6 +138,39 @@ impl EvolutionSimulator {
         });
 
         Ok(refinement_ctx)
+    }
+
+    fn select_parents(&self, refinement_ctx: &RefinementContext) -> Vec<InsertionContext> {
+        let pareto_opt = refinement_ctx
+            .population
+            .ranked()
+            .filter_map(|(insertion_ctx, rank)| if rank == 0 { Some(insertion_ctx) } else { None })
+            .take(self.config.offspring_size)
+            .collect::<Vec<_>>();
+
+        let extra_parents_size = self.config.offspring_size - pareto_opt.len();
+
+        if extra_parents_size == 0 {
+            return pareto_opt.iter().map(|insertion_ctx| insertion_ctx.deep_copy()).collect();
+        }
+
+        // NOTE use uniform distribution, there might be better alternatives
+        let extra_parents_indices = (0..extra_parents_size)
+            .map(|_| self.config.random.uniform_int(0, extra_parents_size as i32 - 1) as usize)
+            .collect::<HashSet<_>>();
+
+        let skip = pareto_opt.len();
+        pareto_opt
+            .into_iter()
+            .chain(refinement_ctx.population.ranked().skip(skip).enumerate().filter_map(|(idx, (insertion_ctx, _))| {
+                if extra_parents_indices.contains(&idx) {
+                    Some(insertion_ctx)
+                } else {
+                    None
+                }
+            }))
+            .map(|insertion_ctx| insertion_ctx.deep_copy())
+            .collect()
     }
 }
 

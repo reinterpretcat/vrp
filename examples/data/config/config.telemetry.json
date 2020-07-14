@@ -5,8 +5,8 @@
   "telemetry": {
     "logging": {
       "enabled": true,
-      "logBest": 1,
-      "logPopulation": 1
+      "logBest": 100,
+      "logPopulation": 1000
     },
     "metrics": {
       "enabled": true,

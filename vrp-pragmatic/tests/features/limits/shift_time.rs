@@ -2,15 +2,19 @@ use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::helpers::*;
 
+fn create_vehicle_type_with_shift_time_limit(shift_time: f64) -> VehicleType {
+    VehicleType {
+        limits: Some(VehicleLimits { max_distance: None, shift_time: Some(shift_time), allowed_areas: None }),
+        ..create_default_vehicle_type()
+    }
+}
+
 #[test]
 fn can_limit_one_job_by_shift_time() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![100., 0.])], relations: Option::None },
         fleet: Fleet {
-            vehicles: vec![VehicleType {
-                limits: Some(VehicleLimits { max_distance: None, shift_time: Some(99.), allowed_areas: None }),
-                ..create_default_vehicle_type()
-            }],
+            vehicles: vec![create_vehicle_type_with_shift_time_limit(99.)],
             profiles: create_default_profiles(),
         },
         ..create_empty_problem()
@@ -61,10 +65,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
             relations: Option::None,
         },
         fleet: Fleet {
-            vehicles: vec![VehicleType {
-                limits: Some(VehicleLimits { max_distance: None, shift_time: Some(40.), allowed_areas: None }),
-                ..create_default_vehicle_type()
-            }],
+            vehicles: vec![create_vehicle_type_with_shift_time_limit(40.)],
             profiles: create_default_profiles(),
         },
         ..create_empty_problem()
@@ -155,3 +156,25 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
         }
     );
 }
+
+/*#[test]
+fn can_serve_job_when_it_starts_late() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(100, 200)], 10.)],
+            relations: Option::None,
+        },
+        fleet: Fleet {
+            vehicles: vec![create_vehicle_type_with_shift_time_limit(50.)],
+            profiles: create_default_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert_eq!(solution.unassigned, vec![]);
+    assert!(!solution.tours.is_empty());
+}
+*/

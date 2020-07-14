@@ -397,6 +397,7 @@ pub struct Matrix {
     pub timestamp: Option<String>,
 
     /// Travel distances (used to be in seconds).
+    #[serde(alias = "durations")]
     pub travel_times: Vec<i64>,
 
     /// Travel durations (use to be in meters).
