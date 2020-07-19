@@ -236,11 +236,7 @@ impl Objective for WorkBalanceObjectives {
             }
         }
 
-        if self.tolerance.map_or(false, |tolerance| (fitness_a - fitness_b).abs() < tolerance) {
-            Equal
-        } else {
-            compare_floats(fitness_a, fitness_b)
-        }
+        compare_floats(fitness_a, fitness_b)
     }
 
     fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
