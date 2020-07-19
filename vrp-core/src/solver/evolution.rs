@@ -76,7 +76,9 @@ impl EvolutionSimulator {
             let parents = self.select_parents(&refinement_ctx);
             let offspring = parallel_into_collect(parents, |ctx| mutator.mutate(&refinement_ctx, ctx));
 
-            refinement_ctx.population.add_all(offspring);
+            if should_add_solution(&refinement_ctx) {
+                refinement_ctx.population.add_all(offspring);
+            }
 
             self.config.telemetry.on_progress(&refinement_ctx, generation_time);
 
@@ -171,6 +173,6 @@ fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {
     let is_quota_reached = refinement_ctx.quota.as_ref().map_or(false, |quota| quota.is_reached());
     let is_population_empty = refinement_ctx.population.size() == 0;
 
-    // TODO fix population not to accept solution with worse primary objective fitness as best
+    // NOTE when interrupted, population can return solution with worse primary objective fitness values as first
     is_population_empty || !is_quota_reached
 }
