@@ -247,20 +247,6 @@ impl Objective for WorkBalanceObjectives {
         let fitness_a = self.fitness(a);
         let fitness_b = self.fitness(b);
 
-        if let Some(threshold) = self.threshold {
-            if fitness_a < threshold && fitness_b < threshold {
-                return 0.;
-            }
-
-            if fitness_a < threshold {
-                return threshold - fitness_b;
-            }
-
-            if fitness_b < threshold {
-                return threshold - fitness_a;
-            }
-        }
-
         fitness_a - fitness_b
     }
 
