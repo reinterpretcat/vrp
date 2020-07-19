@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/solver/population/population_test.rs"]
 mod population_test;
 
-use crate::algorithms::nsga2::{select_and_rank, Objective};
+use crate::algorithms::nsga2::select_and_rank;
 use crate::models::Problem;
 use crate::solver::{Individual, Population};
 use crate::utils::compare_floats;
@@ -67,28 +67,17 @@ impl DominancePopulation {
 
         // get best order
         let mut best_order =
-            select_and_rank(self.individuals.as_slice(), self.individuals.len(), self.problem.objective.as_ref())
-                .iter()
-                .map(|acd| {
-                    (
-                        acd.rank,
-                        acd.index,
-                        acd.crowding_distance,
-                        self.problem.objective.fitness(self.individuals.get(acd.index).unwrap()),
-                    )
-                })
-                .collect::<Vec<_>>();
+            select_and_rank(self.individuals.as_slice(), self.individuals.len(), self.problem.objective.as_ref());
 
         // TODO there seems to be bug in select_and_rank: empty collection can be returned
         if !best_order.is_empty() {
             // deduplicate best order
-            best_order.dedup_by(|(_, _, a_cd, a_cost), (_, _, b_cd, b_cost)| {
-                compare_floats(*a_cd, *b_cd) == Equal && compare_floats(*a_cost, *b_cost) == Equal
-            });
+            best_order
+                .dedup_by(|a, b| a.rank == b.rank && compare_floats(a.crowding_distance, b.crowding_distance) == Equal);
 
             // TODO avoid deep copy
-            self.individuals = best_order.iter().map(|(_, idx, _, _)| self.individuals[*idx].deep_copy()).collect();
-            self.ranks = best_order.iter().map(|(rank, _, _, _)| *rank).collect();
+            self.ranks = best_order.iter().map(|a| a.rank).collect();
+            self.individuals = best_order.iter().map(|o| self.individuals[o.index].deep_copy()).collect();
         }
 
         debug_assert!(self.individuals.len() == self.ranks.len())
