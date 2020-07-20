@@ -29,7 +29,7 @@ This objectives targeting for some scalar characteristic of solution:
 * `minimize-cost`: minimizes total transport cost calculated for all routes
 * `minimize-unassigned` objective minimizes amount of unassigned jobs. Although, solver tries to minimize amount of
 unassigned jobs all the time, it is possible that solution, discovered during refinement, has more unassigned jobs than
-previously accepted. The reason of that can be conflicting objective (e.g. fleet minimization) and restrictive
+previously accepted. The reason of that can be conflicting objective (e.g. minimize tours) and restrictive
 constraints such as time windows
 * `minimize-tours`: minimizes total amount of tours present in solution
 * `maximize-tours`: maximizes total amount of tours present in solution
@@ -44,9 +44,13 @@ There are four work balance objectives available:
 * `balance-duration`: balances tour durations
 
 Each objective has optional parameters defined by `option` property:
-* `threshold`: a relative value in single tour before balancing takes place, it is soft constraint and might be
- ignored by decision maker
-* `tolerance`: a tolerance by variation coefficient
+* `threshold`: a target coefficient of variation value which specifies desired minimum balancing level. All values below
+threshold are considered equal which helps the search algorithm to optimize conflicting objectives.
+* `tolerance`: a step tolerance by variation coefficient. Algorithm considers two fitness values equal if they differ
+not more than `tolerance` value.
+
+It is recommended to set both option values to guide the search towards optimum for conflicting objectives, e.g. cost
+minimization and any of work balance.
 
 An usage example:
 

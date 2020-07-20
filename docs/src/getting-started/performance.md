@@ -46,4 +46,9 @@ Actual algorithm parameters can be tweaked by supplying configuration file, e.g.
 
 </p></details>
 
-All main parameters are optional and can be omitted to stick with defaults.
+All main parameters are optional and can be omitted to stick with defaults. Check the source code for details.
+
+
+## Intermediate solutions
+
+You can record parameters of intermediate solutions if you enable `telemetry` via configuration file.

@@ -29,7 +29,9 @@
 This objective balances tour distances for all tours:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/objectives/berlin.balance-distance.problem.json:1003:1017}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.balance-distance.problem.json:1003:1021}}
 ```
 
 All used vehicles should have total tour distance close to each other.
+
+The same way you can balance by travel duration using `balance-duration` objective.

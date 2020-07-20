@@ -29,7 +29,7 @@
 This objective balances max load across vehicles:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/objectives/berlin.balance-max-load.problem.json:1003:1017}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.balance-max-load.problem.json:1003:1021}}
 ```
 
 As `minimize-tours` objective is not set, all available vehicles are used serving `10` jobs per vehicle. Result total

@@ -1004,14 +1004,18 @@
     "primary": [
       {
         "type": "minimize-unassigned"
-      },
-      {
-        "type": "balance-max-load"
       }
     ],
     "secondary": [
       {
         "type": "minimize-cost"
+      },
+      {
+        "type": "balance-max-load",
+        "options": {
+          "tolerance": 0.05,
+          "threshold": 0.075
+        }
       }
     ]
   }

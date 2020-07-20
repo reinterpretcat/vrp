@@ -1008,10 +1008,14 @@
     ],
     "secondary": [
       {
-        "type": "balance-distance"
+        "type": "minimize-cost"
       },
       {
-        "type": "minimize-cost"
+        "type": "balance-distance",
+        "options": {
+          "tolerance": 0.05,
+          "threshold": 0.075
+        }
       }
     ]
   }

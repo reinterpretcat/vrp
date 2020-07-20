@@ -1007,14 +1007,18 @@
       },
       {
         "type": "minimize-tours"
-      },
-      {
-        "type": "balance-activities"
       }
     ],
     "secondary": [
       {
         "type": "minimize-cost"
+      },
+      {
+        "type": "balance-activities",
+        "options": {
+          "tolerance": 0.05,
+          "threshold": 0.01
+        }
       }
     ]
   }

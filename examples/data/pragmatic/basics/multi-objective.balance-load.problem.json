@@ -151,8 +151,8 @@
       {
         "type": "balance-max-load",
         "options": {
-          "threshold": 0.5,
-          "tolerance": 0.05
+          "tolerance": 0.05,
+          "threshold": 0.01
         }
       }
     ]
