@@ -39,12 +39,7 @@ impl CheckerContext {
     pub fn check(&self) -> Result<(), String> {
         check_vehicle_load(&self)?;
         check_relations(&self)?;
-
-        if let Err(err) = check_breaks(&self) {
-            // TODO break is soft constraint and can be violated, how to improve checker?
-            println!("break is violated: {}", err);
-        }
-
+        check_breaks(&self)?;
         check_assignment(&self)?;
         check_routing(&self)?;
 

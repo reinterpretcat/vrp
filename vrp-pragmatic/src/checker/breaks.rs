@@ -9,9 +9,10 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each(|tour| {
         let vehicle_shift = context.get_vehicle_shift(tour)?;
         let actual_break_count = tour.stops.iter().try_fold(0, |acc, stop| {
-            stop.activities.windows(2).flat_map(|leg| as_leg_with_break(context, tour, stop, leg)).try_fold(
-                acc,
-                |acc, (from, to, vehicle_break)| {
+            stop.activities
+                .windows(stop.activities.len().min(2))
+                .flat_map(|leg| as_leg_info_with_break(context, tour, stop, leg))
+                .try_fold(acc, |acc, (from_loc, to, vehicle_break)| {
                     // check time
                     let visit_time = get_time_window(stop, to);
                     let break_time_window = get_break_time_window(tour, &vehicle_break)?;
@@ -37,19 +38,17 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                             }
                         }
                         None => {
-                            let prev_location = get_location(stop, from);
-                            if !same_locations(&prev_location, &actual_location) {
+                            if !same_locations(from_loc, &actual_location) {
                                 return Err(format!(
                                     "Break location '{:?}' is invalid: expected previous activity location '{:?}'",
-                                    actual_location, prev_location
+                                    actual_location, from_loc
                                 ));
                             }
                         }
                     }
 
                     Ok(acc + 1)
-                },
-            )
+                })
         })?;
 
         let arrival = tour
@@ -69,7 +68,9 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                 }
             });
 
-        if expected_break_count != actual_break_count {
+        let violated_breaks = get_break_violation_count(&context.solution, tour);
+
+        if expected_break_count != (actual_break_count + violated_breaks) {
             Err(format!(
                 "Amount of breaks does not match, expected: '{}', got '{}'",
                 expected_break_count, actual_break_count
@@ -80,16 +81,22 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
     })
 }
 
-fn as_leg_with_break<'a>(
+fn as_leg_info_with_break<'a>(
     context: &CheckerContext,
     tour: &Tour,
-    stop: &Stop,
+    stop: &'a Stop,
     leg: &'a [Activity],
-) -> Option<(&'a Activity, &'a Activity, VehicleBreak)> {
-    if let [from, to] = leg {
+) -> Option<(&'a Location, &'a Activity, VehicleBreak)> {
+    let leg = match leg {
+        [from, to] => Some((from.location.as_ref().unwrap_or(&stop.location), to)),
+        [to] => Some((&stop.location, to)),
+        _ => None,
+    };
+
+    if let Some((from_loc, to)) = leg {
         if let Ok(activity_type) = context.get_activity_type(tour, stop, to) {
             if let ActivityType::Break(vehicle_break) = activity_type {
-                return Some((from, to, vehicle_break));
+                return Some((from_loc, to, vehicle_break));
             }
         }
     }
@@ -112,4 +119,20 @@ fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<Ti
             Ok(TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap()))
         }
     }
+}
+
+fn get_break_violation_count(solution: &Solution, tour: &Tour) -> usize {
+    solution.violations.as_ref().map_or(0, |violations| {
+        violations
+            .iter()
+            .filter(|v| match v {
+                Violation::Break { vehicle_id, shift_index, .. }
+                    if *vehicle_id == tour.vehicle_id && *shift_index == tour.shift_index =>
+                {
+                    true
+                }
+                _ => false,
+            })
+            .count()
+    })
 }
