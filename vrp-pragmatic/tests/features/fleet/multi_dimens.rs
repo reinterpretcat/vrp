@@ -72,8 +72,7 @@ fn can_use_two_dimensions() {
                     times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }
@@ -113,7 +112,7 @@ fn can_unassign_due_to_dimension_mismatch() {
                     description: "does not fit into any vehicle due to capacity".to_string()
                 }]
             }],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

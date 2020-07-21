@@ -137,8 +137,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                     },
                 },
             ],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         },
     );
 }

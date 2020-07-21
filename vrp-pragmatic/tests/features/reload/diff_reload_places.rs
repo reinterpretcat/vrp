@@ -144,8 +144,7 @@ fn can_use_reloads_with_different_locations() {
                     times: Timing { driving: 38, serving: 9, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

@@ -86,8 +86,7 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
                     times: Timing { driving: 3, serving: 3, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

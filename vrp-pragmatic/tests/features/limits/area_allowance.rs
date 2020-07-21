@@ -46,7 +46,7 @@ fn can_limit_by_area() {
                     description: "cannot be assigned due to area constraint".to_string()
                 }]
             }],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

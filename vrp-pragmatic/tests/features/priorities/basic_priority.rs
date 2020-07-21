@@ -88,8 +88,7 @@ fn can_follow_priorities() {
                     times: Timing { driving: 20, serving: 3, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

@@ -122,8 +122,7 @@ fn can_handle_limited_capacity() {
                     times: Timing { driving: 36, serving: 6, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

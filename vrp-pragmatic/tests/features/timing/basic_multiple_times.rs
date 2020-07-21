@@ -100,8 +100,7 @@ fn can_use_multiple_times() {
                     times: Timing { driving: 100, serving: 0, waiting: 30, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

@@ -42,7 +42,7 @@ fn can_limit_by_max_distance() {
                     description: "cannot be assigned due to max distance constraint of vehicle".to_string()
                 }]
             }],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

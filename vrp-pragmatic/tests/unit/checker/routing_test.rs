@@ -76,8 +76,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i32); 3]) -> So
             ],
             statistic,
         }],
-        unassigned: vec![],
-        extras: None,
+        ..create_empty_solution()
     }
 }
 

@@ -93,8 +93,7 @@ fn can_assign_break_between_jobs() {
                     times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 2 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

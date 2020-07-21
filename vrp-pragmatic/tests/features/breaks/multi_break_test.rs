@@ -122,8 +122,7 @@ fn can_use_two_breaks() {
                     times: Timing { driving: 198, serving: 2, waiting: 0, break_time: 4 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

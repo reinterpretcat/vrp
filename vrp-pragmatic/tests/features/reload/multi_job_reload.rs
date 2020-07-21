@@ -141,8 +141,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                     times: Timing { driving: 14, serving: 8, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

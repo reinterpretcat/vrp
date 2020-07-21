@@ -99,8 +99,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                     times: Timing { driving: 16, serving: 4, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }
@@ -191,8 +190,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                     times: Timing { driving: 12, serving: 3, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

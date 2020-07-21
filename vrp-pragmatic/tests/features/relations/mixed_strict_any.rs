@@ -131,8 +131,7 @@ fn can_use_strict_and_any_relation_for_one_vehicle() {
                     times: Timing { driving: 18, serving: 7, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

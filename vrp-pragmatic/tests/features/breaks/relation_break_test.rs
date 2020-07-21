@@ -109,8 +109,7 @@ fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, 
                     times: Timing { driving: 6, serving: 2, waiting: 0, break_time: 2 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }
@@ -189,8 +188,7 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
                     times: Timing { driving: 6, serving: 2, waiting: 0, break_time: 2 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

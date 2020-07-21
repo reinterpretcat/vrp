@@ -71,8 +71,7 @@ fn can_use_only_deliveries_as_static_demand() {
                     times: Timing { driving: 8, serving: 3, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }
@@ -156,8 +155,7 @@ fn can_use_only_pickups_as_static_demand() {
                     times: Timing { driving: 10, serving: 3, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

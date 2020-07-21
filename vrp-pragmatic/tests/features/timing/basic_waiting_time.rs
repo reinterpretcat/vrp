@@ -73,8 +73,7 @@ fn can_wait_for_job_start() {
                     times: Timing { driving: 4, serving: 0, waiting: 8, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }
@@ -139,8 +138,7 @@ fn can_skip_initial_waiting() {
                     times: Timing { driving: 2, serving: 10, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

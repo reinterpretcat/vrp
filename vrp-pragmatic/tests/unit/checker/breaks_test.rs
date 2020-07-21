@@ -110,8 +110,7 @@ fn can_check_breaks_impl(break_times: VehicleBreakTime, expected_result: Result<
                 times: Timing { driving: 4, serving: 2, waiting: 0, break_time: 2 },
             },
         }],
-        unassigned: vec![],
-        extras: None,
+        ..create_empty_solution()
     };
 
     let result = check_breaks(&CheckerContext::new(problem, None, solution));

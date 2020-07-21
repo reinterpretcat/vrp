@@ -5,16 +5,13 @@ mod writer_test;
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format::coord_index::CoordIndex;
 use crate::format::solution::model::Timing;
-use crate::format::solution::{
-    serialize_solution, serialize_solution_as_geojson, Extras, Interval, Statistic, Stop, Tour, UnassignedJob,
-    UnassignedJobReason,
-};
+use crate::format::solution::*;
 use crate::format::*;
 use crate::format_time;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::{route_intervals, Demand, DemandDimension};
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{Job, Multi};
+use vrp_core::models::problem::Multi;
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::Metrics;
@@ -25,6 +22,7 @@ type ApiSchedule = crate::format::solution::model::Schedule;
 type ApiMetrics = crate::format::solution::model::Metrics;
 type ApiGeneration = crate::format::solution::model::Generation;
 type ApiIndividual = crate::format::solution::model::Individual;
+type DomainSchedule = vrp_core::models::common::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
 
@@ -96,10 +94,11 @@ pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&
     let statistic = tours.iter().fold(Statistic::default(), |acc, tour| acc + tour.statistic.clone());
 
     let unassigned = create_unassigned(solution);
+    let violations = create_violations(solution);
 
     let extras = create_extras(solution, metrics);
 
-    ApiSolution { statistic, tours, unassigned, extras }
+    ApiSolution { statistic, tours, unassigned, violations, extras }
 }
 
 fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> Tour {
@@ -260,12 +259,12 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
     tour
 }
 
-fn format_schedule(schedule: &Schedule) -> ApiSchedule {
+fn format_schedule(schedule: &DomainSchedule) -> ApiSchedule {
     ApiSchedule { arrival: format_time(schedule.arrival), departure: format_time(schedule.departure) }
 }
 
 fn format_as_schedule(schedule: &(f64, f64)) -> ApiSchedule {
-    format_schedule(&Schedule::new(schedule.0, schedule.1))
+    format_schedule(&DomainSchedule::new(schedule.0, schedule.1))
 }
 
 fn calculate_load(current: MultiDimensionalCapacity, act: &Activity, is_multi_dimen: bool) -> MultiDimensionalCapacity {
@@ -274,35 +273,65 @@ fn calculate_load(current: MultiDimensionalCapacity, act: &Activity, is_multi_di
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
 }
 
-fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
-    solution.unassigned.iter().fold(vec![], |mut acc, unassigned| {
-        let reason = match *unassigned.1 {
-            SKILLS_CONSTRAINT_CODE => (1, "cannot serve required skill"),
-            TIME_CONSTRAINT_CODE => (2, "cannot be visited within time window"),
-            CAPACITY_CONSTRAINT_CODE => (3, "does not fit into any vehicle due to capacity"),
-            REACHABLE_CONSTRAINT_CODE => (100, "location unreachable"),
-            DISTANCE_LIMIT_CONSTRAINT_CODE => (101, "cannot be assigned due to max distance constraint of vehicle"),
-            DURATION_LIMIT_CONSTRAINT_CODE => (102, "cannot be assigned due to shift time constraint of vehicle"),
-            BREAK_CONSTRAINT_CODE => (103, "break is not assignable"),
-            LOCKING_CONSTRAINT_CODE => (104, "cannot be served due to relation lock"),
-            PRIORITY_CONSTRAINT_CODE => (105, "cannot be served due to priority"),
-            AREA_CONSTRAINT_CODE => (106, "cannot be assigned due to area constraint"),
-            _ => (0, "unknown"),
-        };
-        let dimens = match unassigned.0 {
-            Job::Single(job) => &job.dimens,
-            Job::Multi(job) => &job.dimens,
-        };
-        acc.push(UnassignedJob {
-            job_id: dimens
-                .get_value::<String>("vehicle_id")
-                .map(|vehicle_id| format!("{}_break", vehicle_id))
-                .unwrap_or_else(|| dimens.get_id().unwrap().clone()),
-            reasons: vec![UnassignedJobReason { code: reason.0, description: reason.1.to_string() }],
-        });
+fn map_code_reason(code: i32) -> (i32, &'static str) {
+    match code {
+        SKILLS_CONSTRAINT_CODE => (1, "cannot serve required skill"),
+        TIME_CONSTRAINT_CODE => (2, "cannot be visited within time window"),
+        CAPACITY_CONSTRAINT_CODE => (3, "does not fit into any vehicle due to capacity"),
+        REACHABLE_CONSTRAINT_CODE => (100, "location unreachable"),
+        DISTANCE_LIMIT_CONSTRAINT_CODE => (101, "cannot be assigned due to max distance constraint of vehicle"),
+        DURATION_LIMIT_CONSTRAINT_CODE => (102, "cannot be assigned due to shift time constraint of vehicle"),
+        BREAK_CONSTRAINT_CODE => (103, "break is not assignable"),
+        LOCKING_CONSTRAINT_CODE => (104, "cannot be served due to relation lock"),
+        PRIORITY_CONSTRAINT_CODE => (105, "cannot be served due to priority"),
+        AREA_CONSTRAINT_CODE => (106, "cannot be assigned due to area constraint"),
+        _ => (0, "unknown"),
+    }
+}
 
-        acc
-    })
+fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
+    let unassigned = solution
+        .unassigned
+        .iter()
+        .filter(|(job, _)| job.dimens().get_value::<String>("vehicle_id").is_none())
+        .map(|(job, code)| {
+            let (code, reason) = map_code_reason(*code);
+            UnassignedJob {
+                job_id: job.dimens().get_id().expect("job id expected").clone(),
+                reasons: vec![UnassignedJobReason { code, description: reason.to_string() }],
+            }
+        })
+        .collect::<Vec<_>>();
+
+    unassigned
+}
+
+fn create_violations(solution: &Solution) -> Option<Vec<Violation>> {
+    // NOTE at the moment only break violation is mapped
+    let violations = solution
+        .unassigned
+        .iter()
+        .filter_map(|(job, code)| {
+            job.dimens()
+                .get_value::<String>("vehicle_id")
+                .cloned()
+                .into_iter()
+                .zip(job.dimens().get_value::<usize>("shift_index").cloned().into_iter())
+                .zip(Some(*code).into_iter())
+                .next()
+        })
+        .map(|((vehicle_id, shift_index), code)| Violation::Break {
+            vehicle_id,
+            shift_index,
+            reason: map_code_reason(code).1.to_string(),
+        })
+        .collect::<Vec<_>>();
+
+    if violations.is_empty() {
+        None
+    } else {
+        Some(violations)
+    }
 }
 
 fn get_activity_type(activity: &Activity) -> Option<&String> {

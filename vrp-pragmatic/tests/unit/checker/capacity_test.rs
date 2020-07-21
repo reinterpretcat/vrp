@@ -176,8 +176,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>
                 times: Timing { driving: 1, serving: 1, waiting: 0, break_time: 0 },
             },
         }],
-        unassigned: vec![],
-        extras: None,
+        ..create_empty_solution()
     };
 
     let result = check_vehicle_load(&CheckerContext::new(problem, None, solution));

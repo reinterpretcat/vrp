@@ -118,6 +118,23 @@ pub struct UnassignedJob {
     pub reasons: Vec<UnassignedJobReason>,
 }
 
+/// Specifies a type of violation.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "type")]
+pub enum Violation {
+    /// A break assignment violation.
+    #[serde(rename(deserialize = "break", serialize = "break"))]
+    Break {
+        /// An id of a vehicle break belong to.
+        vehicle_id: String,
+        /// Index of the shift.
+        shift_index: usize,
+        /// A reason of violation.
+        reason: String,
+    },
+}
+
 /// Encapsulates different measurements regarding algorithm evaluation.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Metrics {
@@ -175,6 +192,8 @@ pub struct Solution {
     pub tours: Vec<Tour>,
     /// List of unassigned jobs.
     pub unassigned: Vec<UnassignedJob>,
+    /// List of constraint violations.
+    pub violations: Option<Vec<Violation>>,
     /// An extra information.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extras: Option<Extras>,

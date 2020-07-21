@@ -220,8 +220,7 @@ mod single {
                     statistic: Default::default(),
                 },
             ],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         };
 
         let result = check_relations(&CheckerContext::new(problem, None, solution)).map_err(|_| ());

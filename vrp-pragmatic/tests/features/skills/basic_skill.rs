@@ -74,8 +74,7 @@ fn can_wait_for_job_start() {
                     times: Timing { driving: 18, serving: 1, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

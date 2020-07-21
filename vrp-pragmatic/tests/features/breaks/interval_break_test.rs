@@ -107,8 +107,7 @@ fn can_assign_interval_break_between_jobs() {
                     times: Timing { driving: 30, serving: 2, waiting: 0, break_time: 2 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }
@@ -254,8 +253,7 @@ fn can_assign_interval_break_with_reload() {
                     times: Timing { driving: 60, serving: 7, waiting: 0, break_time: 2 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

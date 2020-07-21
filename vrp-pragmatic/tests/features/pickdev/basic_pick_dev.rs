@@ -67,8 +67,7 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
                     times: Timing { driving: 4, serving: 2, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

@@ -92,8 +92,7 @@ fn can_assign_replacement_job() {
                     times: Timing { driving: 4, serving: 3, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

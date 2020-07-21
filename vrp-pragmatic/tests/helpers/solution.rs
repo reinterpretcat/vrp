@@ -81,3 +81,7 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
 
     assert_eq!(result, expected);
 }
+
+pub fn create_empty_solution() -> Solution {
+    Solution { statistic: Default::default(), tours: vec![], unassigned: vec![], violations: None, extras: None }
+}

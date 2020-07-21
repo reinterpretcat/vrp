@@ -35,8 +35,7 @@ fn check_vehicles_impl(known_ids: Vec<&str>, tours: Vec<(&str, usize)>, expected
                 statistic: Statistic::default(),
             })
             .collect(),
-        unassigned: vec![],
-        extras: None,
+        ..create_empty_solution()
     };
 
     let result = check_vehicles(&CheckerContext::new(problem, None, solution));
@@ -161,7 +160,7 @@ fn check_jobs_impl(
             .into_iter()
             .map(|job| UnassignedJob { job_id: job.to_string(), reasons: vec![] })
             .collect(),
-        extras: None,
+        ..create_empty_solution()
     };
 
     let result = check_jobs(&CheckerContext::new(problem, None, solution));

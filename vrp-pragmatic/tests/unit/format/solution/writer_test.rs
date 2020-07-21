@@ -70,8 +70,7 @@ fn can_create_solution() {
                     times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }
@@ -159,8 +158,7 @@ fn can_merge_activities_in_one_stop() {
                     times: Timing { driving: 10, serving: 2, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

@@ -57,8 +57,7 @@ fn can_use_vehicle_with_open_end() {
                     times: Timing { driving: 1, serving: 1, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

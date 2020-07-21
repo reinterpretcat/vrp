@@ -46,7 +46,7 @@ fn can_limit_one_job_by_shift_time() {
                     description: "cannot be assigned due to shift time constraint of vehicle".to_string()
                 }]
             }],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }
@@ -152,7 +152,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                     }]
                 }
             ],
-            extras: None,
+            ..create_empty_solution()
         }
     );
 }

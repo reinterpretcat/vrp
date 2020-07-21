@@ -25,6 +25,7 @@
       * [Tour list](concepts/pragmatic/solution/tour-list.md)
       * [Statistic](concepts/pragmatic/solution/statistic.md)
       * [Unassigned jobs](concepts/pragmatic/solution/unassigned-jobs.md)
+      * [Violations](concepts/pragmatic/solution/violations.md)
     * [Error index](concepts/pragmatic/errors/index.md)
   * [Scientific formats](concepts/scientific/index.md)
     * [Solomon benchmark](concepts/scientific/solomon.md)
