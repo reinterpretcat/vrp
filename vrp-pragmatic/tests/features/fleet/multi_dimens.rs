@@ -105,13 +105,13 @@ fn can_unassign_due_to_dimension_mismatch() {
                 times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
             },
             tours: vec![],
-            unassigned: vec![UnassignedJob {
+            unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: 3,
                     description: "does not fit into any vehicle due to capacity".to_string()
                 }]
-            }],
+            }]),
             ..create_empty_solution()
         }
     );

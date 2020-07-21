@@ -83,5 +83,5 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
 }
 
 pub fn create_empty_solution() -> Solution {
-    Solution { statistic: Default::default(), tours: vec![], unassigned: vec![], violations: None, extras: None }
+    Solution { statistic: Default::default(), tours: vec![], unassigned: None, violations: None, extras: None }
 }

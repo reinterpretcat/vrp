@@ -107,7 +107,7 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
         .solution
         .unassigned
         .iter()
-        .filter(|job| !job.job_id.ends_with("_break"))
+        .flat_map(|jobs| jobs.iter().filter(|job| !job.job_id.ends_with("_break")))
         .map(|job| job.job_id.clone())
         .collect::<Vec<_>>();
 

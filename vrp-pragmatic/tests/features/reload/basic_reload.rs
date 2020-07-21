@@ -11,13 +11,13 @@ can_use_vehicle_with_two_tours_and_two_jobs! {
     case01: (vec![
                 create_delivery_job("job1", vec![1., 0.]),
                 create_delivery_job("job2", vec![2., 0.])],
-            vec![]),
+            None),
     case02: (vec![
                create_delivery_job("job1", vec![1., 0.]),
                create_delivery_job("job2", vec![2., 0.]),
                create_delivery_job("job3", vec![3., 0.])
              ],
-             vec![
+             Some(vec![
                UnassignedJob {
                     job_id: "job3".to_string(),
                     reasons: vec![UnassignedJobReason {
@@ -25,10 +25,10 @@ can_use_vehicle_with_two_tours_and_two_jobs! {
                         description: "does not fit into any vehicle due to capacity".to_string()
                     }]
                 }
-             ]),
+             ])),
 }
 
-fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: Vec<UnassignedJob>) {
+fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: Option<Vec<UnassignedJob>>) {
     let problem = Problem {
         plan: Plan { jobs, relations: Option::None },
         fleet: Fleet {

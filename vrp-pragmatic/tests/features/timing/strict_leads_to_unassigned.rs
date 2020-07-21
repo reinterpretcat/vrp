@@ -92,13 +92,13 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                     times: Timing { driving: 80, serving: 0, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![UnassignedJob {
+            unassigned: Some(vec![UnassignedJob {
                 job_id: "job5".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: 2,
                     description: "cannot be visited within time window".to_string()
                 }]
-            }],
+            }]),
             ..create_empty_solution()
         },
     );

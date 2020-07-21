@@ -289,7 +289,7 @@ fn map_code_reason(code: i32) -> (i32, &'static str) {
     }
 }
 
-fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
+fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
     let unassigned = solution
         .unassigned
         .iter()
@@ -303,7 +303,11 @@ fn create_unassigned(solution: &Solution) -> Vec<UnassignedJob> {
         })
         .collect::<Vec<_>>();
 
-    unassigned
+    if unassigned.is_empty() {
+        None
+    } else {
+        Some(unassigned)
+    }
 }
 
 fn create_violations(solution: &Solution) -> Option<Vec<Violation>> {

@@ -29,10 +29,10 @@ fn can_use_vehicle_with_open_end() {
                 times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
             },
             tours: vec![],
-            unassigned: vec![UnassignedJob {
+            unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason { code: 100, description: "location unreachable".to_string() }]
-            }],
+            }]),
             ..create_empty_solution()
         }
     );

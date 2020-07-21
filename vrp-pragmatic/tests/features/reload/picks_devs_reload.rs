@@ -118,13 +118,13 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                     times: Timing { driving: 6, serving: 6, waiting: 0, break_time: 0 },
                 },
             }],
-            unassigned: vec![UnassignedJob {
+            unassigned: Some(vec![UnassignedJob {
                 job_id: "d3".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: 3,
                     description: "does not fit into any vehicle due to capacity".to_string()
                 }],
-            }],
+            }]),
             ..create_empty_solution()
         }
     );

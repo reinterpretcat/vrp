@@ -156,10 +156,9 @@ fn check_jobs_impl(
                 statistic: Statistic::default(),
             })
             .collect(),
-        unassigned: unassigned
-            .into_iter()
-            .map(|job| UnassignedJob { job_id: job.to_string(), reasons: vec![] })
-            .collect(),
+        unassigned: Some(
+            unassigned.into_iter().map(|job| UnassignedJob { job_id: job.to_string(), reasons: vec![] }).collect(),
+        ),
         ..create_empty_solution()
     };
 

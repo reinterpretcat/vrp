@@ -77,7 +77,10 @@ fn sort_all_data(solution: Solution) -> Solution {
     let mut solution = solution;
 
     solution.tours.sort_by(|a, b| a.vehicle_id.partial_cmp(&b.vehicle_id).unwrap_or(Less));
-    solution.unassigned.sort_by(|a, b| a.job_id.partial_cmp(&b.job_id).unwrap_or(Less));
+
+    if let Some(ref mut unassigned) = solution.unassigned {
+        unassigned.sort_by(|a, b| a.job_id.partial_cmp(&b.job_id).unwrap_or(Less));
+    }
 
     solution
 }

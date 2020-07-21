@@ -39,13 +39,13 @@ fn can_limit_by_area() {
                 times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
             },
             tours: vec![],
-            unassigned: vec![UnassignedJob {
+            unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: 106,
                     description: "cannot be assigned due to area constraint".to_string()
                 }]
-            }],
+            }]),
             ..create_empty_solution()
         }
     );

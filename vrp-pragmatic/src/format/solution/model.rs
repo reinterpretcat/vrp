@@ -179,6 +179,7 @@ pub struct Individual {
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Extras {
     /// A telemetry metrics.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub metrics: Option<Metrics>,
 }
 
@@ -188,12 +189,18 @@ pub struct Extras {
 pub struct Solution {
     /// Total statistic.
     pub statistic: Statistic,
+
     /// List of tours.
     pub tours: Vec<Tour>,
+
     /// List of unassigned jobs.
-    pub unassigned: Vec<UnassignedJob>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unassigned: Option<Vec<UnassignedJob>>,
+
     /// List of constraint violations.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub violations: Option<Vec<Violation>>,
+
     /// An extra information.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extras: Option<Extras>,

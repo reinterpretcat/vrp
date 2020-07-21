@@ -35,13 +35,13 @@ fn can_limit_by_max_distance() {
                 times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
             },
             tours: vec![],
-            unassigned: vec![UnassignedJob {
+            unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
                     code: 101,
                     description: "cannot be assigned due to max distance constraint of vehicle".to_string()
                 }]
-            }],
+            }]),
             ..create_empty_solution()
         }
     );
