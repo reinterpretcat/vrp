@@ -8,7 +8,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
-use vrp_core::models::common::{Cost, ValueDimension};
+use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Activity;
 
@@ -17,20 +17,17 @@ use vrp_core::models::solution::Activity;
 pub struct BreakModule {
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
-    /// Controls whether break should be considered as unassigned job
-    demote_breaks_from_unassigned: bool,
 }
 
 impl BreakModule {
-    pub fn new(code: i32, extra_break_cost: Option<Cost>, demote_breaks_from_unassigned: bool) -> Self {
+    pub fn new(code: i32) -> Self {
         Self {
             conditional: ConditionalJobModule::new(create_job_transition()),
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(BreakHardRouteConstraint { code })),
                 ConstraintVariant::HardActivity(Arc::new(BreakHardActivityConstraint { code })),
-                ConstraintVariant::SoftRoute(Arc::new(BreakSoftRouteConstraint { extra_break_cost })),
+                ConstraintVariant::SoftRoute(Arc::new(BreakSoftRouteConstraint {})),
             ],
-            demote_breaks_from_unassigned,
         }
     }
 }
@@ -50,10 +47,6 @@ impl ConstraintModule for BreakModule {
 
         if ctx.required.is_empty() {
             remove_orphan_breaks(ctx);
-
-            if self.demote_breaks_from_unassigned {
-                demote_unassigned_breaks(ctx);
-            }
         }
     }
 
@@ -115,20 +108,19 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
 }
 
 /// Controls whether break is more preferable for insertion or not.
-struct BreakSoftRouteConstraint {
-    /// Allows to control whether break should be preferable for insertion
-    extra_break_cost: Option<Cost>,
-}
+struct BreakSoftRouteConstraint {}
 
 impl SoftRouteConstraint for BreakSoftRouteConstraint {
-    fn estimate_job(&self, _: &SolutionContext, _ctx: &RouteContext, job: &Job) -> f64 {
-        if let Some(cost) = self.extra_break_cost {
-            if let Some(single) = job.as_single() {
-                return if is_break_job(single) { cost } else { 0. };
+    fn estimate_job(&self, solution_ctx: &SolutionContext, _: &RouteContext, job: &Job) -> f64 {
+        if let Some(single) = job.as_single() {
+            if is_break_job(single) {
+                -solution_ctx.get_max_cost()
+            } else {
+                0.
             }
+        } else {
+            0.
         }
-
-        0.
     }
 }
 
@@ -158,24 +150,6 @@ fn is_required_job(ctx: &SolutionContext, job: &Job, default: bool) -> bool {
         }
         Job::Multi(_) => default,
     }
-}
-
-/// Remove some breaks from required jobs as we don't want to consider breaks
-/// as unassigned jobs if they are outside of vehicle's time window
-fn demote_unassigned_breaks(ctx: &mut SolutionContext) {
-    if ctx.unassigned.is_empty() {
-        return;
-    }
-
-    // NOTE remove all breaks from list of unassigned jobs
-    let breaks_set: HashSet<_> = ctx
-        .unassigned
-        .iter()
-        .filter_map(|(job, _)| job.as_single().and_then(|single| get_vehicle_id_from_job(single).map(|_| job.clone())))
-        .collect();
-
-    ctx.unassigned.retain(|job, _| breaks_set.get(job).is_none());
-    ctx.ignored.extend(breaks_set.into_iter());
 }
 
 /// Removes breaks which conditions are violated after ruin:

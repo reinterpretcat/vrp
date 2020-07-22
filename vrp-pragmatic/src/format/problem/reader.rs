@@ -214,7 +214,7 @@ fn create_constraint_pipeline(
     add_capacity_module(&mut constraint, &props);
 
     if props.has_breaks {
-        constraint.add_module(Box::new(BreakModule::new(BREAK_CONSTRAINT_CODE, Some(-100.), false)));
+        constraint.add_module(Box::new(BreakModule::new(BREAK_CONSTRAINT_CODE)));
     }
 
     if props.has_skills {

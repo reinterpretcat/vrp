@@ -8,7 +8,7 @@ fn can_assign_interval_break_between_jobs() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![15., 0.])],
-            relations: Option::None,
+            relations: None,
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -122,7 +122,7 @@ fn can_assign_interval_break_with_reload() {
                 create_delivery_job("job3", vec![20., 0.]),
                 create_delivery_job("job4", vec![25., 0.]),
             ],
-            relations: Option::None,
+            relations: None,
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -255,5 +255,46 @@ fn can_assign_interval_break_with_reload() {
             }],
             ..create_empty_solution()
         }
+    );
+}
+
+#[test]
+#[ignore]
+fn can_consider_departure_rescheduling() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_times("job1", vec![5., 0.], vec![(10, 10)], 1.),
+                create_delivery_job_with_times("job2", vec![10., 0.], vec![(10, 30)], 1.),
+            ],
+            relations: None,
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![VehicleBreak {
+                        time: VehicleBreakTime::TimeOffset(vec![10., 12.]),
+                        duration: 2.0,
+                        locations: None,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            profiles: create_default_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 10);
+
+    assert_eq!(
+        solution.violations,
+        Some(vec![Violation::Break {
+            vehicle_id: "my_vehicle_1".to_string(),
+            shift_index: 0,
+            reason: "cannot be visited within time window".to_string()
+        }])
     );
 }
