@@ -318,7 +318,7 @@ fn create_violations(solution: &Solution) -> Option<Vec<Violation>> {
         .filter(|(job, _)| job.dimens().get_value::<String>("type").map_or(false, |t| t == "break"))
         .map(|(job, code)| Violation::Break {
             vehicle_id: job.dimens().get_value::<String>("vehicle_id").expect("vehicle id").clone(),
-            shift_index: job.dimens().get_value::<usize>("shift_index").expect("shift index").clone(),
+            shift_index: *job.dimens().get_value::<usize>("shift_index").expect("shift index"),
             reason: map_code_reason(*code).1.to_string(),
         })
         .collect::<Vec<_>>();
