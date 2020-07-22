@@ -259,7 +259,6 @@ fn can_assign_interval_break_with_reload() {
 }
 
 #[test]
-#[ignore]
 fn can_consider_departure_rescheduling() {
     let problem = Problem {
         plan: Plan {
@@ -287,7 +286,7 @@ fn can_consider_departure_rescheduling() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 10);
+    let solution = solve_with_cheapest_insertion(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution.violations,

@@ -64,11 +64,15 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
     ConstraintPipeline::default().add_module(Box::new(BreakModule::new(0))).accept_solution_state(&mut solution_ctx);
 
     if break_removed {
-        assert_eq!(solution_ctx.required.len(), 1);
-        assert_eq!(solution_ctx.required.first().unwrap().to_single().dimens.get_id().unwrap().clone(), "break");
+        assert_eq!(solution_ctx.unassigned.len(), 1);
+        assert_eq!(
+            solution_ctx.unassigned.iter().next().unwrap().0.to_single().dimens.get_id().unwrap().clone(),
+            "break"
+        );
     } else {
-        assert!(solution_ctx.required.is_empty());
+        assert!(solution_ctx.unassigned.is_empty());
     }
+    assert!(solution_ctx.required.is_empty());
     assert_eq!(solution_ctx.routes.first().unwrap().route.tour.job_count(), (if break_removed { 2 } else { 3 }));
     assert_eq!(
         solution_ctx.routes.first().unwrap().route.tour.all_activities().len(),

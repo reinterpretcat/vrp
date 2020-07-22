@@ -206,9 +206,9 @@ fn create_constraint_pipeline(
         activity.clone(),
         transport.clone(),
         limits,
-        1,
-        2,
-        3,
+        TIME_CONSTRAINT_CODE,
+        DISTANCE_LIMIT_CONSTRAINT_CODE,
+        DURATION_LIMIT_CONSTRAINT_CODE,
     )));
 
     add_capacity_module(&mut constraint, &props);

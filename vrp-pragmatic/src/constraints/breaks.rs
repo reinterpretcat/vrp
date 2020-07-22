@@ -8,7 +8,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
-use vrp_core::models::common::ValueDimension;
+use vrp_core::models::common::{Schedule, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::Activity;
 
@@ -46,7 +46,7 @@ impl ConstraintModule for BreakModule {
         self.conditional.accept_solution_state(ctx);
 
         if ctx.required.is_empty() {
-            remove_orphan_breaks(ctx);
+            remove_invalid_breaks(ctx);
         }
     }
 
@@ -155,7 +155,8 @@ fn is_required_job(ctx: &SolutionContext, job: &Job, default: bool) -> bool {
 /// Removes breaks which conditions are violated after ruin:
 /// * break without location served separately when original job is removed, but break is kept.
 /// * break is assigned right after departure
-fn remove_orphan_breaks(ctx: &mut SolutionContext) {
+/// * break is defined by interval, but its time is violated. This might happen due to departure time rescheduling.
+fn remove_invalid_breaks(ctx: &mut SolutionContext) {
     let breaks_set = ctx.routes.iter_mut().fold(HashSet::new(), |mut acc, rc: &mut RouteContext| {
         // NOTE assume that first activity is never break (should be always departure)
         let (_, breaks_set) = (0..).zip(rc.route.tour.all_activities()).fold(
@@ -170,8 +171,9 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
 
                     let is_orphan = prev != current && break_job.places.first().and_then(|p| p.location).is_none();
                     let is_dummy = idx == 1;
+                    let is_not_on_time = !is_on_proper_time(rc, break_job, &activity.schedule);
 
-                    if is_orphan || is_dummy {
+                    if is_orphan || is_dummy || is_not_on_time {
                         // NOTE remove break with removed job location
                         breaks.insert(Job::Single(activity.job.as_ref().unwrap().clone()));
                     }
@@ -190,7 +192,7 @@ fn remove_orphan_breaks(ctx: &mut SolutionContext) {
         acc
     });
 
-    ctx.required.extend(breaks_set.into_iter());
+    ctx.unassigned.extend(breaks_set.into_iter().map(|b| (b, 1)));
 }
 
 //region Helpers
@@ -203,18 +205,23 @@ fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
     as_single_job(activity, |job| is_break_job(job))
 }
 
+fn get_break_time_windows<'a>(break_job: &'a Arc<Single>, departure: f64) -> impl Iterator<Item = TimeWindow> + 'a {
+    break_job.places.first().unwrap().times.iter().map(move |span| span.to_time_window(departure))
+}
+
 fn is_time(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
     let departure = rc.route.tour.start().unwrap().schedule.departure;
     let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
+    let actual_shift_time = TimeWindow::new(departure, arrival);
 
-    break_job
-        .places
-        .first()
-        .unwrap()
-        .times
-        .iter()
-        .map(|span| span.to_time_window(departure))
-        .any(|tw| tw.start < arrival)
+    get_break_time_windows(break_job, departure).any(|tw| tw.intersects(&actual_shift_time))
+}
+
+fn is_on_proper_time(rc: &RouteContext, break_job: &Arc<Single>, actual_schedule: &Schedule) -> bool {
+    let departure = rc.route.tour.start().unwrap().schedule.departure;
+    let actual_tw = TimeWindow::new(actual_schedule.arrival, actual_schedule.departure);
+
+    get_break_time_windows(break_job, departure).any(|tw| tw.intersects(&actual_tw))
 }
 
 //endregion
