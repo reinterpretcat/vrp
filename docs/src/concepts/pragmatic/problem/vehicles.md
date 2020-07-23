@@ -61,9 +61,9 @@ used more than once. This is useful for multi day scenarios. An example can be f
 
 Each shift can have the following properties:
 
-- **start** (required) specifies vehicle start place defined via location and earliest departure time
-- **end** (optional) specifies vehicle end place defined via location and latest arrival time. When omitted, then vehicle
-    ends on last job location
+- **start** (required) specifies vehicle start place defined via location, earliest (required) and latest (optional) departure time
+- **end** (optional) specifies vehicle end place defined via location, earliest (reserved) and latest (required) arrival time.
+    When omitted, then vehicle ends on last job location
 - **breaks** (optional) a list of vehicle breaks. A break is specified by:
      - time window or interval after which a break should happen (e.g. between 3 or 4 hours after start)
      - duration of the break

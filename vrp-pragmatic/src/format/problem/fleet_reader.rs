@@ -97,13 +97,13 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             let start = {
                 let location = coord_index.get_by_loc(&shift.start.location).unwrap();
-                let time = parse_time(&shift.start.time);
+                let time = parse_time(&shift.start.earliest);
                 (location, time)
             };
 
             let end = shift.end.as_ref().map(|end| {
                 let location = coord_index.get_by_loc(&end.location).unwrap();
-                let time = parse_time(&end.time);
+                let time = parse_time(&end.latest);
                 (location, time)
             });
 

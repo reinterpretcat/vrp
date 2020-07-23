@@ -118,30 +118,53 @@ pub struct VehicleCosts {
     /// Fixed is cost of vehicle usage per tour.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fixed: Option<f64>,
+
     /// Cost per distance unit.
     pub distance: f64,
+
     /// Cost per time unit.
     pub time: f64,
 }
 
-/// Specifies vehicle place.
+/// Specifies vehicle shift start.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct VehiclePlace {
-    /// Vehicle start or end time.
-    pub time: String,
-    /// Vehicle location.
+pub struct ShiftStart {
+    /// Earliest possible departure date time.
+    pub earliest: String,
+
+    /// Latest possible departure date time. If omitted, departure time
+    /// theoretically can be shifted till arrival. Set this value, if
+    /// you want to limit departure time optimization.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest: Option<String>,
+
+    /// Shift start location.
+    pub location: Location,
+}
+
+/// Specifies vehicle shift end.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct ShiftEnd {
+    /// Earliest possible arrival date time. At the moment, not supported, reserved for future.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub earliest: Option<String>,
+
+    /// Latest possible arrival date time.
+    pub latest: String,
+
+    /// Shift end location.
     pub location: Location,
 }
 
 /// Specifies vehicle shift.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleShift {
-    /// Vehicle start place.
-    pub start: VehiclePlace,
+    /// Vehicle shift start.
+    pub start: ShiftStart,
 
-    /// Vehicle end place.
+    /// Vehicle shift end.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub end: Option<VehiclePlace>,
+    pub end: Option<ShiftEnd>,
 
     /// Vehicle breaks.
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -39,8 +39,8 @@ fn check_e1302_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), FormatE
                 .iter()
                 .map(|shift| {
                     vec![
-                        shift.start.time.clone(),
-                        shift.end.as_ref().map_or_else(|| shift.start.time.clone(), |end| end.time.clone()),
+                        shift.start.earliest.clone(),
+                        shift.end.as_ref().map_or_else(|| shift.start.earliest.clone(), |end| end.latest.clone()),
                     ]
                 })
                 .collect::<Vec<_>>();
@@ -194,8 +194,8 @@ fn check_shift_time_windows(
 
 fn get_shift_time_window(shift: &VehicleShift) -> Option<TimeWindow> {
     get_time_window(
-        &shift.start.time,
-        &shift.end.clone().map_or_else(|| "2200-07-04T00:00:00Z".to_string(), |end| end.time),
+        &shift.start.earliest,
+        &shift.end.clone().map_or_else(|| "2200-07-04T00:00:00Z".to_string(), |end| end.latest),
     )
 }
 

@@ -85,8 +85,8 @@ impl CheckerContext {
             .iter()
             .find(|shift| {
                 let shift_time = TimeWindow::new(
-                    parse_time(&shift.start.time),
-                    shift.end.as_ref().map_or_else(|| std::f64::MAX, |place| parse_time(&place.time)),
+                    parse_time(&shift.start.earliest),
+                    shift.end.as_ref().map_or_else(|| std::f64::MAX, |place| parse_time(&place.latest)),
                 );
                 shift_time.intersects(&tour_time)
             })

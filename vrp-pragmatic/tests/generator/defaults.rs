@@ -70,11 +70,11 @@ pub fn default_costs_prototype() -> impl Strategy<Value = VehicleCosts> {
     ])
 }
 
-pub fn default_vehicle_places_prototype() -> impl Strategy<Value = (VehiclePlace, Option<VehiclePlace>)> {
+pub fn default_shift_places_prototype() -> impl Strategy<Value = (ShiftStart, Option<ShiftEnd>)> {
     generate_location(&DEFAULT_BOUNDING_BOX).prop_flat_map(|location| {
         Just((
-            VehiclePlace { time: default_time_plus_offset(9), location: location.clone() },
-            Some(VehiclePlace { time: default_time_plus_offset(18), location }),
+            ShiftStart { earliest: default_time_plus_offset(9), latest: None, location: location.clone() },
+            Some(ShiftEnd { earliest: None, latest: default_time_plus_offset(18), location }),
         ))
     })
 }
@@ -93,7 +93,7 @@ pub fn default_profiles() -> impl Strategy<Value = Vec<Profile>> {
 
 pub fn default_vehicle_shifts() -> impl Strategy<Value = Vec<VehicleShift>> {
     generate_shifts(
-        generate_shift(default_vehicle_places_prototype(), default_breaks_prototype(), generate_no_reloads()),
+        generate_shift(default_shift_places_prototype(), default_breaks_prototype(), generate_no_reloads()),
         1..2,
     )
 }

@@ -17,14 +17,23 @@ fn can_use_multiple_times_from_vehicle_and_job() {
             vehicles: vec![VehicleType {
                 shifts: vec![
                     VehicleShift {
-                        start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
-                        end: Some(VehiclePlace { time: format_time(99.).to_string(), location: vec![0., 0.].to_loc() }),
+                        start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                        end: Some(ShiftEnd {
+                            earliest: None,
+                            latest: format_time(99.).to_string(),
+                            location: vec![0., 0.].to_loc(),
+                        }),
                         ..create_default_vehicle_shift()
                     },
                     VehicleShift {
-                        start: VehiclePlace { time: format_time(100.), location: vec![0., 0.].to_loc() },
-                        end: Some(VehiclePlace {
-                            time: format_time(200.).to_string(),
+                        start: ShiftStart {
+                            earliest: format_time(100.),
+                            latest: None,
+                            location: vec![0., 0.].to_loc(),
+                        },
+                        end: Some(ShiftEnd {
+                            earliest: None,
+                            latest: format_time(200.).to_string(),
                             location: vec![0., 0.].to_loc(),
                         }),
                         ..create_default_vehicle_shift()

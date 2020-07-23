@@ -14,8 +14,12 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
             vehicles: vec![VehicleType {
                 vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                 shifts: vec![VehicleShift {
-                    start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
-                    end: Some(VehiclePlace { time: format_time(100.).to_string(), location: vec![0., 0.].to_loc() }),
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    end: Some(ShiftEnd {
+                        earliest: None,
+                        latest: format_time(100.).to_string(),
+                        location: vec![0., 0.].to_loc(),
+                    }),
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,

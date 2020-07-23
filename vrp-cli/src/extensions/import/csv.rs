@@ -115,8 +115,8 @@ fn read_vehicles<R: Read>(reader: BufReader<R>) -> Result<Vec<VehicleType>, Box<
                 profile: vehicle.profile,
                 costs: VehicleCosts { fixed: Some(25.), distance: 0.0002, time: 0.005 },
                 shifts: vec![VehicleShift {
-                    start: VehiclePlace { time: vehicle.tw_start, location: depot_location.clone() },
-                    end: Some(VehiclePlace { time: vehicle.tw_end, location: depot_location }),
+                    start: ShiftStart { earliest: vehicle.tw_start, latest: None, location: depot_location.clone() },
+                    end: Some(ShiftEnd { earliest: None, latest: vehicle.tw_end, location: depot_location }),
                     breaks: None,
                     reloads: None,
                 }],

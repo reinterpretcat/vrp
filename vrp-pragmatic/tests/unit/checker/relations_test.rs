@@ -85,9 +85,10 @@ mod single {
                     profile: "car".to_string(),
                     costs: create_default_vehicle_costs(),
                     shifts: vec![VehicleShift {
-                        start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
-                        end: Some(VehiclePlace {
-                            time: format_time(1000.).to_string(),
+                        start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                        end: Some(ShiftEnd {
+                            earliest: None,
+                            latest: format_time(1000.).to_string(),
                             location: vec![0., 0.].to_loc(),
                         }),
                         breaks: Some(vec![VehicleBreak {

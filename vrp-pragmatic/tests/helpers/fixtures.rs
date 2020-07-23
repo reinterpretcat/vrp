@@ -97,14 +97,16 @@ pub const SIMPLE_PROBLEM: &str = r#"
         "shifts": [
           {
             "start": {
-              "time": "2019-07-04T09:00:00Z",
+              "earliest": "2019-07-04T09:00:00Z",
+              "latest": "2019-07-04T09:30:00Z",
               "location": {
                 "lat": 52.4664257,
                 "lng": 13.2812488
               }
             },
             "end": {
-              "time": "2019-07-04T18:00:00Z",
+              "earliest": "2019-07-04T17:30:00Z",
+              "latest": "2019-07-04T18:00:00Z",
               "location": {
                 "lat": 52.4664257,
                 "lng": 13.2812488

@@ -28,8 +28,9 @@ pub fn create_test_vehicle_type() -> VehicleType {
         profile: "car".to_string(),
         costs: VehicleCosts { fixed: None, distance: 0.0, time: 0.0 },
         shifts: vec![VehicleShift {
-            start: VehiclePlace {
-                time: "2020-05-01T09:00:00.00Z".to_string(),
+            start: ShiftStart {
+                earliest: "2020-05-01T09:00:00.00Z".to_string(),
+                latest: None,
                 location: Location { lat: 0.0, lng: 0.0 },
             },
             end: None,

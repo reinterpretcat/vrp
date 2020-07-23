@@ -141,12 +141,14 @@ fn can_read_complex_problem() {
                 profile: "car".to_string(),
                 costs: VehicleCosts { fixed: Some(100.), distance: 1., time: 2. },
                 shifts: vec![VehicleShift {
-                    start: VehiclePlace {
-                        time: "1970-01-01T00:00:00Z".to_string(),
+                    start: ShiftStart {
+                        earliest: "1970-01-01T00:00:00Z".to_string(),
+                        latest: None,
                         location: vec![52.4862, 13.45148].to_loc(),
                     },
-                    end: Some(VehiclePlace {
-                        time: "1970-01-01T00:01:40Z".to_string(),
+                    end: Some(ShiftEnd {
+                        earliest: None,
+                        latest: "1970-01-01T00:01:40Z".to_string(),
                         location: vec![52.4862, 13.45148].to_loc(),
                     }),
                     breaks: Some(vec![VehicleBreak {

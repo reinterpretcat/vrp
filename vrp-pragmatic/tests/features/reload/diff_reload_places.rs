@@ -19,8 +19,12 @@ fn can_use_reloads_with_different_locations() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: VehiclePlace { time: format_time(0.), location: vec![0., 0.].to_loc() },
-                    end: Some(VehiclePlace { time: format_time(1000.), location: vec![32., 0.].to_loc() }),
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    end: Some(ShiftEnd {
+                        earliest: None,
+                        latest: format_time(1000.),
+                        location: vec![32., 0.].to_loc(),
+                    }),
                     breaks: None,
                     reloads: Some(vec![
                         VehicleReload {

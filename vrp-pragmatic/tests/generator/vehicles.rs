@@ -88,7 +88,7 @@ pub fn generate_shifts(
 
 prop_compose! {
    pub fn generate_shift(
-        places_proto: impl Strategy<Value = (VehiclePlace, Option<VehiclePlace>)>,
+        places_proto: impl Strategy<Value = (ShiftStart, Option<ShiftEnd>)>,
         breaks_proto: impl Strategy<Value = Option<Vec<VehicleBreak>>>,
         reloads_proto: impl Strategy<Value = Option<Vec<VehicleReload>>>,
     )

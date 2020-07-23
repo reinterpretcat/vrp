@@ -399,14 +399,16 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                         .shifts
                         .iter()
                         .map(|shift| VehicleShift {
-                            start: VehiclePlace {
-                                time: shift.start.time.clone(),
+                            start: ShiftStart {
+                                earliest: shift.start.time.clone(),
+                                latest: None,
                                 location: to_loc(&shift.start.location),
                             },
-                            end: shift
-                                .end
-                                .as_ref()
-                                .map(|end| VehiclePlace { time: end.time.clone(), location: to_loc(&end.location) }),
+                            end: shift.end.as_ref().map(|end| ShiftEnd {
+                                earliest: None,
+                                latest: end.time.clone(),
+                                location: to_loc(&end.location),
+                            }),
                             breaks: shift.breaks.as_ref().map(|breaks| {
                                 breaks
                                     .iter()
