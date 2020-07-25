@@ -97,8 +97,9 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             let start = {
                 let location = coord_index.get_by_loc(&shift.start.location).unwrap();
-                let time = parse_time(&shift.start.earliest);
-                (location, time)
+                let earliest = parse_time(&shift.start.earliest);
+                let latest = shift.start.latest.as_ref().map(|time| parse_time(&time));
+                (location, earliest, latest)
             };
 
             let end = shift.end.as_ref().map(|end| {
@@ -110,7 +111,7 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
             let details = vec![VehicleDetail {
                 start: Some(VehiclePlace {
                     location: start.0,
-                    time: TimeInterval { earliest: Some(start.1), latest: None },
+                    time: TimeInterval { earliest: Some(start.1), latest: start.2 },
                 }),
                 end: end.map(|(location, time)| VehiclePlace {
                     location,

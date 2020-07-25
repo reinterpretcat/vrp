@@ -170,7 +170,12 @@ impl TransportConstraintModule {
                 first.place.location,
                 last_departure_time,
             );
-            let new_departure_time = last_departure_time.max(first.place.time.start - start_to_first);
+
+            let latest_allowed_departure =
+                ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(std::f64::MAX);
+
+            let new_departure_time =
+                last_departure_time.max(first.place.time.start - start_to_first).min(latest_allowed_departure);
             return Some((last_departure_time, new_departure_time));
         }
         None
