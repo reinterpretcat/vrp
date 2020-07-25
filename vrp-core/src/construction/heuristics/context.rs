@@ -73,7 +73,7 @@ impl InsertionContext {
             if rc.route.tour.has_jobs() {
                 true
             } else {
-                registry.free_actor(&rc.route.actor);
+                registry.free_route(&rc);
                 false
             }
         });
@@ -100,8 +100,8 @@ pub struct SolutionContext {
     /// Set of routes within their state.
     pub routes: Vec<RouteContext>,
 
-    /// Keeps track of used resources.
-    pub registry: Registry,
+    /// Keeps track of used routes and resources.
+    pub registry: RegistryContext,
 
     /// A collection of data associated with solution.
     pub state: HashMap<i32, StateValue>,
@@ -121,7 +121,7 @@ impl SolutionContext {
     /// Converts given `SolutionContext` to Solution model.
     pub fn to_solution(&self, extras: Arc<Extras>) -> Solution {
         Solution {
-            registry: self.registry.deep_copy(),
+            registry: self.registry.resources().deep_copy(),
             routes: self.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
             unassigned: self.unassigned.clone(),
             extras,
@@ -316,6 +316,48 @@ impl RouteState {
     /// Returns size route state storage.
     pub fn sizes(&self) -> (usize, usize) {
         (self.route_states.capacity(), self.activity_states.capacity())
+    }
+}
+
+/// Keeps track on how routes are used.
+pub struct RegistryContext {
+    registry: Registry,
+    index: HashMap<Arc<Actor>, RouteContext>,
+}
+
+impl RegistryContext {
+    /// Creates a new instance of `RouteRegistry`.
+    pub fn new(registry: Registry) -> Self {
+        let index = registry.all().map(|actor| (actor.clone(), RouteContext::new(actor))).collect();
+
+        Self { registry, index }
+    }
+
+    /// Returns underlying registry.
+    pub fn resources(&self) -> &Registry {
+        &self.registry
+    }
+
+    /// Returns next route for insertion.
+    pub fn next<'a>(&'a self) -> impl Iterator<Item = RouteContext> + 'a {
+        self.registry.next().map(move |actor| self.index[&actor].clone())
+    }
+
+    /// Sets this route as used.
+    /// Returns whether the route was already marked as used in the registry.
+    pub fn use_route(&mut self, route: &RouteContext) -> bool {
+        self.registry.use_actor(&route.route.actor)
+    }
+
+    /// Sets this route as unused.
+    /// Returns whether the route was already unused in the registry.
+    pub fn free_route(&mut self, route: &RouteContext) {
+        self.registry.free_actor(&route.route.actor);
+    }
+
+    /// Creates a deep copy of `RegistryContext`.
+    pub fn deep_copy(&self) -> Self {
+        Self { registry: self.registry.deep_copy(), index: self.index.clone() }
     }
 }
 

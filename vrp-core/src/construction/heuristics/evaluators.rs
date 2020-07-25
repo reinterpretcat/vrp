@@ -27,7 +27,7 @@ pub fn evaluate_job_insertion(job: &Job, ctx: &InsertionContext, position: Inser
         .routes
         .iter()
         .cloned()
-        .chain(ctx.solution.registry.next().map(RouteContext::new))
+        .chain(ctx.solution.registry.next())
         .fold(InsertionResult::make_failure(), |acc, route_ctx| {
             evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, Some(acc))
         })

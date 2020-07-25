@@ -3,7 +3,7 @@ use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
-use vrp_core::construction::heuristics::{RouteContext, RouteState, SolutionContext};
+use vrp_core::construction::heuristics::{RegistryContext, RouteContext, RouteState, SolutionContext};
 use vrp_core::models::common::{IdDimension, Location, ValueDimension};
 use vrp_core::models::problem::{Fleet, Single};
 use vrp_core::models::solution::Registry;
@@ -58,7 +58,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
             )),
             state: Arc::new(RouteState::default()),
         }],
-        registry: Registry::new(&fleet),
+        registry: RegistryContext::new(Registry::new(&fleet)),
     };
 
     ConstraintPipeline::default().add_module(Box::new(BreakModule::new(0))).accept_solution_state(&mut solution_ctx);

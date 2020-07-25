@@ -139,7 +139,7 @@ mod timing {
                         .build(),
                 ],
             )],
-            registry: Registry::new(&fleet),
+            registry: RegistryContext::new(Registry::new(&fleet)),
             ..create_empty_solution_context()
         };
 

@@ -25,14 +25,16 @@ impl Registry {
         Self { available: fleet.groups.clone(), index, all: fleet.actors.to_vec() }
     }
 
-    /// Removes actor from the list of available actors.
-    pub fn use_actor(&mut self, actor: &Arc<Actor>) {
-        self.available.get_mut(self.index.get(actor).unwrap()).unwrap().remove(actor);
+    /// Removes an actor from the list of available actors.
+    /// Returns whether the actor was present in the registry.
+    pub fn use_actor(&mut self, actor: &Arc<Actor>) -> bool {
+        self.available.get_mut(self.index.get(actor).unwrap()).unwrap().remove(actor)
     }
 
     /// Adds actor to the list of available actors.
-    pub fn free_actor(&mut self, actor: &Arc<Actor>) {
-        self.available.get_mut(self.index.get(actor).unwrap()).unwrap().insert(actor.clone());
+    /// Returns whether the actor was not present in the registry.
+    pub fn free_actor(&mut self, actor: &Arc<Actor>) -> bool {
+        self.available.get_mut(self.index.get(actor).unwrap()).unwrap().insert(actor.clone())
     }
 
     /// Returns all actors.

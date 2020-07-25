@@ -43,7 +43,7 @@ impl AreaModule {
 }
 
 impl ConstraintModule for AreaModule {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Job) {}
+    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_index: usize, _job: &Job) {}
 
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 

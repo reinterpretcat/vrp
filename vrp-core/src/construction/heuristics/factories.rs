@@ -97,6 +97,8 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
         .filter(|job| locked.get(job).is_none() && reserved.get(job).is_none() && unassigned.get(job).is_none())
         .collect();
 
+    let registry = RegistryContext::new(registry);
+
     let mut ctx = InsertionContext {
         problem: problem.clone(),
         solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry, state },
@@ -132,6 +134,8 @@ pub fn create_insertion_context_from_solution(
             registry.free_actor(&route.actor);
         }
     });
+
+    let registry = RegistryContext::new(registry);
 
     let mut solution = SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry, state };
     problem.constraint.accept_solution_state(&mut solution);

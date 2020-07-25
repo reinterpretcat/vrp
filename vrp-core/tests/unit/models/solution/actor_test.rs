@@ -27,7 +27,9 @@ fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize
     let mut registry = Registry::new(&fleet);
 
     let actors: Vec<Arc<Actor>> = registry.available().take(count).collect();
-    actors.iter().for_each(|a| registry.use_actor(a));
+    actors.iter().for_each(|a| {
+        registry.use_actor(a);
+    });
     assert_eq!(registry.available().count(), expected);
 }
 

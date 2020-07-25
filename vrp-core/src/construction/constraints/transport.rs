@@ -28,7 +28,8 @@ pub struct TransportConstraintModule {
 }
 
 impl ConstraintModule for TransportConstraintModule {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, _job: &Job) {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _job: &Job) {
+        let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
         self.accept_route_state(route_ctx);
     }
 

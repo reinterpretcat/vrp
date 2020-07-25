@@ -1,5 +1,5 @@
 use crate::construction::constraints::ConstraintPipeline;
-use crate::construction::heuristics::{InsertionContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext};
 use crate::helpers::models::problem::*;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs, ObjectiveCost};
@@ -48,7 +48,7 @@ pub fn create_empty_solution_context() -> SolutionContext {
         unassigned: Default::default(),
         locked: Default::default(),
         routes: vec![],
-        registry: Registry::new(&test_fleet()),
+        registry: RegistryContext::new(Registry::new(&test_fleet())),
         state: Default::default(),
     }
 }

@@ -216,21 +216,23 @@ fn finalize_ctx(ctx: &mut InsertionContext) {
 
 fn insert(result: InsertionResult, ctx: &mut InsertionContext) {
     match result {
-        InsertionResult::Success(mut success) => {
-            let job = success.job;
+        InsertionResult::Success(success) => {
+            let is_new_route = ctx.solution.registry.use_route(&success.context);
+            let route_index = ctx.solution.routes.iter().position(|ctx| ctx == &success.context).unwrap_or_else(|| {
+                assert!(is_new_route);
+                ctx.solution.routes.push(success.context.deep_copy());
+                ctx.solution.routes.len() - 1
+            });
 
-            ctx.solution.registry.use_actor(&success.context.route.actor);
-            if !ctx.solution.routes.contains(&success.context) {
-                ctx.solution.routes.push(success.context.clone());
-            }
-
-            let route = success.context.route_mut();
+            let route_ctx = ctx.solution.routes.get_mut(route_index).unwrap();
+            let route = route_ctx.route_mut();
             success.activities.into_iter().for_each(|(a, index)| {
                 route.tour.insert_at(a, index + 1);
             });
 
+            let job = success.job;
             ctx.solution.required.retain(|j| *j != job);
-            ctx.problem.constraint.accept_insertion(&mut ctx.solution, &mut success.context, &job);
+            ctx.problem.constraint.accept_insertion(&mut ctx.solution, route_index, &job);
         }
         InsertionResult::Failure(failure) => {
             if let Some(job) = failure.job {

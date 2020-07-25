@@ -315,7 +315,8 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
     ConstraintModule for CapacityConstraintModule<Capacity>
 {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_ctx: &mut RouteContext, job: &Job) {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
+        let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
         if self.multi_trip.is_reload_job(job) {
             // move all unassigned reloads back to ignored
             let jobs = self.multi_trip.get_reloads(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();

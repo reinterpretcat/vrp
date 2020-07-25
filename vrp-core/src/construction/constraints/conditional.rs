@@ -82,7 +82,7 @@ impl ConditionalJobModule {
 }
 
 impl ConstraintModule for ConditionalJobModule {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, _route_ctx: &mut RouteContext, _job: &Job) {
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, _route_index: usize, _job: &Job) {
         // TODO avoid calling this on each insertion as it is expensive.
         self.accept_solution_state(solution_ctx);
     }

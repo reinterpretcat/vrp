@@ -25,7 +25,7 @@ impl RandomRouteRemoval {
 
     fn remove_whole_route(&self, solution: &mut SolutionContext, route_ctx: &mut RouteContext) {
         solution.routes.retain(|rc| rc != route_ctx);
-        solution.registry.free_actor(&route_ctx.route.actor);
+        solution.registry.free_route(&route_ctx);
         solution.required.extend(route_ctx.route.tour.jobs());
     }
 
