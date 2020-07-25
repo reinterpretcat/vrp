@@ -68,7 +68,7 @@ mod interop {
         };
     }
 
-    fn catch_panic<F: FnOnce() -> () + UnwindSafe>(failure: Callback, action: F) {
+    fn catch_panic<F: FnOnce() + UnwindSafe>(failure: Callback, action: F) {
         if let Err(err) = panic::catch_unwind(|| action()) {
             let error = CString::new(format!("fatal: {:?}", err).as_bytes()).unwrap();
             failure(error.as_ptr());
@@ -235,13 +235,13 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
     let (solution, _, metrics) = create_builder_from_config(problem.clone(), &config)
         .and_then(|builder| builder.build())
         .and_then(|solver| solver.solve())
-        .or_else(|err| {
-            Err(FormatError::new(
+        .map_err(|err| {
+            FormatError::new(
                 "E0003".to_string(),
                 "cannot find any solution".to_string(),
                 format!("please submit a bug and share original problem and routing matrix. Error: '{}'", err),
             )
-            .to_json())
+            .to_json()
         })?;
 
     let mut buffer = String::new();

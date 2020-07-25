@@ -8,7 +8,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 /// A logger type which is called with various information regarding the work done by the VRP solver.
-pub type InfoLogger = Arc<dyn Fn(&str) -> ()>;
+pub type InfoLogger = Arc<dyn Fn(&str)>;
 
 /// Encapsulates different measurements regarding algorithm evaluation.
 pub struct Metrics {
