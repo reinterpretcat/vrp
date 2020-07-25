@@ -166,12 +166,17 @@ pub struct VehicleShift {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<ShiftEnd>,
 
+    /// Vehicle depots. If defined, vehicle starts empty at location, defined in ShiftStart, and
+    /// navigates first to the one of specified depots, e.g. to pickup the goods.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depots: Option<Vec<VehicleReload>>,
+
     /// Vehicle breaks.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub breaks: Option<Vec<VehicleBreak>>,
 
-    /// Vehicle reloads which allows vehicle to return back to the depot (or any other place) in
-    /// order to unload/load goods during single tour.
+    /// Vehicle reloads which allows vehicle to visit place where goods can be loaded or
+    /// unloaded during single tour.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reloads: Option<Vec<VehicleReload>>,
 }

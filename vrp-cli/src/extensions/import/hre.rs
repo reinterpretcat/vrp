@@ -175,14 +175,23 @@ mod models {
     pub struct VehicleShift {
         /// Vehicle start place.
         pub start: VehiclePlace,
+
         /// Vehicle end place.
         pub end: Option<VehiclePlace>,
+
+        /// Vehicle depots.
+        pub depots: Option<Vec<VehicleDepot>>,
+
         /// Vehicle breaks.
         pub breaks: Option<Vec<VehicleBreak>>,
+
         /// Vehicle reloads which allows vehicle to return back to the depot (or any other place) in
         /// order to unload/load goods during single tour.
         pub reloads: Option<Vec<VehicleReload>>,
     }
+
+    /// Vehicle depot.
+    pub type VehicleDepot = JobPlace;
 
     /// Vehicle reload.
     pub type VehicleReload = JobPlace;
@@ -408,6 +417,17 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                                 earliest: None,
                                 latest: end.time.clone(),
                                 location: to_loc(&end.location),
+                            }),
+                            depots: shift.depots.as_ref().map(|depots| {
+                                depots
+                                    .iter()
+                                    .map(|d| VehicleReload {
+                                        location: to_loc(&d.location),
+                                        duration: d.duration,
+                                        times: d.times.clone(),
+                                        tag: d.tag.clone(),
+                                    })
+                                    .collect()
                             }),
                             breaks: shift.breaks.as_ref().map(|breaks| {
                                 breaks

@@ -57,6 +57,7 @@ fn can_check_breaks_impl(
                         latest: format_time(1000.).to_string(),
                         location: vec![0., 0.].to_loc(),
                     }),
+                    depots: None,
                     breaks: Some(vec![VehicleBreak { time: break_times, duration: 0.0, locations: None }]),
                     reloads: None,
                 }],

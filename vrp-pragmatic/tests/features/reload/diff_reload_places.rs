@@ -25,6 +25,7 @@ fn can_use_reloads_with_different_locations() {
                         latest: format_time(1000.),
                         location: vec![32., 0.].to_loc(),
                     }),
+                    depots: None,
                     breaks: None,
                     reloads: Some(vec![
                         VehicleReload {

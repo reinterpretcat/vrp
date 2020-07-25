@@ -93,7 +93,12 @@ pub fn default_profiles() -> impl Strategy<Value = Vec<Profile>> {
 
 pub fn default_vehicle_shifts() -> impl Strategy<Value = Vec<VehicleShift>> {
     generate_shifts(
-        generate_shift(default_shift_places_prototype(), default_breaks_prototype(), generate_no_reloads()),
+        generate_shift(
+            default_shift_places_prototype(),
+            generate_no_depots(),
+            default_breaks_prototype(),
+            generate_no_reloads(),
+        ),
         1..2,
     )
 }

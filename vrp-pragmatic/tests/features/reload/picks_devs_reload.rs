@@ -25,6 +25,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                         latest: format_time(100.).to_string(),
                         location: vec![6., 0.].to_loc(),
                     }),
+                    depots: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,

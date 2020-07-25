@@ -117,6 +117,7 @@ fn read_vehicles<R: Read>(reader: BufReader<R>) -> Result<Vec<VehicleType>, Box<
                 shifts: vec![VehicleShift {
                     start: ShiftStart { earliest: vehicle.tw_start, latest: None, location: depot_location.clone() },
                     end: Some(ShiftEnd { earliest: None, latest: vehicle.tw_end, location: depot_location }),
+                    depots: None,
                     breaks: None,
                     reloads: None,
                 }],

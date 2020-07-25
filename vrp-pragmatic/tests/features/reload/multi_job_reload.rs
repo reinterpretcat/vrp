@@ -29,6 +29,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                         latest: format_time(100.).to_string(),
                         location: vec![10., 0.].to_loc(),
                     }),
+                    depots: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,

@@ -22,6 +22,7 @@ fn can_use_multi_dim_capacity() {
                         latest: format_time(100.).to_string(),
                         location: vec![0., 0.].to_loc(),
                     }),
+                    depots: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,
