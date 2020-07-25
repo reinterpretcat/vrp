@@ -28,7 +28,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
                     }),
                     depots: None,
                     breaks: None,
-                    reloads: Some(vec![VehicleReload {
+                    reloads: Some(vec![VehicleCargoPlace {
                         times: None,
                         location: vec![0., 0.].to_loc(),
                         duration: 2.0,

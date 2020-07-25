@@ -43,7 +43,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>
                     }),
                     depots: None,
                     breaks: None,
-                    reloads: Some(vec![VehicleReload {
+                    reloads: Some(vec![VehicleCargoPlace {
                         times: None,
                         location: vec![0., 0.].to_loc(),
                         duration: 2.0,

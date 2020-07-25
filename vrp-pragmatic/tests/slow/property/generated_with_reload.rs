@@ -4,9 +4,9 @@ use crate::helpers::solve_with_metaheuristic_and_iterations;
 
 use proptest::prelude::*;
 
-fn get_reloads() -> impl Strategy<Value = Option<Vec<VehicleReload>>> {
+fn get_reloads() -> impl Strategy<Value = Option<Vec<VehicleCargoPlace>>> {
     prop::collection::vec(
-        generate_reload(
+        generate_cargo_place(
             generate_location(&DEFAULT_BOUNDING_BOX),
             generate_durations(300..3600),
             generate_no_tags(),

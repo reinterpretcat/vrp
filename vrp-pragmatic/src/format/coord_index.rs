@@ -38,6 +38,10 @@ impl CoordIndex {
                     index.add(&end.location);
                 }
 
+                if let Some(depots) = &shift.depots {
+                    depots.iter().for_each(|depot| index.add(&depot.location));
+                }
+
                 if let Some(breaks) = &shift.breaks {
                     breaks.iter().for_each(|vehicle_break| {
                         if let Some(locations) = &vehicle_break.locations {

@@ -1,7 +1,7 @@
 use crate::extensions::MultiDimensionalCapacity;
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
-use crate::format::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleReload, VehicleType};
+use crate::format::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleCargoPlace, VehicleType};
 use crate::format::Location;
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
@@ -167,12 +167,16 @@ fn read_conditional_jobs(
     let mut jobs = vec![];
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
+            if let Some(depots) = &shift.depots {
+                read_cargo_place_jobs(coord_index, job_index, &mut jobs, vehicle, shift_index, "depot", depots);
+            }
+
             if let Some(breaks) = &shift.breaks {
                 read_breaks(coord_index, job_index, &mut jobs, vehicle, shift_index, breaks);
             }
 
             if let Some(reloads) = &shift.reloads {
-                read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads);
+                read_cargo_place_jobs(coord_index, job_index, &mut jobs, vehicle, shift_index, "reload", reloads);
             }
         }
     });
@@ -228,31 +232,32 @@ fn read_breaks(
         .for_each(|(job_id, single)| add_conditional_job(job_index, jobs, job_id, single));
 }
 
-fn read_reloads(
+fn read_cargo_place_jobs(
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
     jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
-    reloads: &[VehicleReload],
+    job_type: &str,
+    places: &[VehicleCargoPlace],
 ) {
     (1..)
-        .zip(reloads.iter())
-        .flat_map(|(reload_idx, reload)| {
+        .zip(places.iter())
+        .flat_map(|(place_idx, place)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{}_reload_{}", vehicle_id, reload_idx);
-                    let times = parse_times(&reload.times);
+                    let job_id = format!("{}_{}_{}", vehicle_id, job_type, place_idx);
+                    let times = parse_times(&place.times);
 
                     let job = get_conditional_job(
                         coord_index,
                         vehicle_id.clone(),
-                        "reload",
+                        job_type,
                         shift_index,
-                        vec![(Some(reload.location.clone()), reload.duration, times)],
-                        &reload.tag,
+                        vec![(Some(place.location.clone()), place.duration, times)],
+                        &place.tag,
                     );
 
                     (job_id, job)

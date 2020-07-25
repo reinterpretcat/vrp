@@ -38,7 +38,7 @@ prop_compose! {
 }
 
 prop_compose! {
-    pub fn generate_reload(
+    pub fn generate_cargo_place(
       locations: impl Strategy<Value = Location>,
       durations: impl Strategy<Value = f64>,
       tags: impl Strategy<Value = Option<String>>,
@@ -49,8 +49,8 @@ prop_compose! {
      duration in durations,
      tag in tags,
      times in time_windows
-    ) -> VehicleReload {
-        VehicleReload {
+    ) -> VehicleCargoPlace {
+        VehicleCargoPlace {
           times,
           location,
           duration,
@@ -89,9 +89,9 @@ pub fn generate_shifts(
 prop_compose! {
    pub fn generate_shift(
         places_proto: impl Strategy<Value = (ShiftStart, Option<ShiftEnd>)>,
-        depots_proto: impl Strategy<Value = Option<Vec<VehicleReload>>>,
+        depots_proto: impl Strategy<Value = Option<Vec<VehicleCargoPlace>>>,
         breaks_proto: impl Strategy<Value = Option<Vec<VehicleBreak>>>,
-        reloads_proto: impl Strategy<Value = Option<Vec<VehicleReload>>>,
+        reloads_proto: impl Strategy<Value = Option<Vec<VehicleCargoPlace>>>,
     )
     (
      places in places_proto,
@@ -130,13 +130,6 @@ prop_compose! {
 }
 
 prop_compose! {
-    /// Generates no depots.
-    pub fn generate_no_depots()(_ in ".*") -> Option<Vec<VehicleReload>> {
-        None
-    }
-}
-
-prop_compose! {
     /// Generates no breaks.
     pub fn generate_no_breaks()(_ in ".*") -> Option<Vec<VehicleBreak>> {
         None
@@ -144,8 +137,8 @@ prop_compose! {
 }
 
 prop_compose! {
-    /// Generates no reloads.
-    pub fn generate_no_reloads()(_ in ".*") -> Option<Vec<VehicleReload>> {
+    /// Generates no cargo places.
+    pub fn generate_no_cargo_places()(_ in ".*") -> Option<Vec<VehicleCargoPlace>> {
         None
     }
 }

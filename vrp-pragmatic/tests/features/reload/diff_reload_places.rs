@@ -28,13 +28,13 @@ fn can_use_reloads_with_different_locations() {
                     depots: None,
                     breaks: None,
                     reloads: Some(vec![
-                        VehicleReload {
+                        VehicleCargoPlace {
                             times: None,
                             location: vec![12., 0.].to_loc(),
                             duration: 2.0,
                             tag: Some("close".to_string()),
                         },
-                        VehicleReload {
+                        VehicleCargoPlace {
                             times: None,
                             location: vec![33., 0.].to_loc(),
                             duration: 2.0,

@@ -169,7 +169,7 @@ pub struct VehicleShift {
     /// Vehicle depots. If defined, vehicle starts empty at location, defined in ShiftStart, and
     /// navigates first to the one of specified depots, e.g. to pickup the goods.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub depots: Option<Vec<VehicleReload>>,
+    pub depots: Option<Vec<VehicleCargoPlace>>,
 
     /// Vehicle breaks.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -178,19 +178,19 @@ pub struct VehicleShift {
     /// Vehicle reloads which allows vehicle to visit place where goods can be loaded or
     /// unloaded during single tour.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reloads: Option<Vec<VehicleReload>>,
+    pub reloads: Option<Vec<VehicleCargoPlace>>,
 }
 
-/// Specifies a place for reload.
+/// Specifies a place where vehicle can load or unload cargo.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct VehicleReload {
-    /// A reload location.
+pub struct VehicleCargoPlace {
+    /// A place location.
     pub location: Location,
 
-    /// A reload duration (service time).
+    /// A total loading/reloading duration (service time).
     pub duration: f64,
 
-    /// A list of reload time windows with time specified in RFC3339 format.
+    /// A list of time windows with time specified in RFC3339 format.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub times: Option<Vec<Vec<String>>>,
 

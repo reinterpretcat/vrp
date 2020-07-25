@@ -95,9 +95,9 @@ pub fn default_vehicle_shifts() -> impl Strategy<Value = Vec<VehicleShift>> {
     generate_shifts(
         generate_shift(
             default_shift_places_prototype(),
-            generate_no_depots(),
+            generate_no_cargo_places(),
             default_breaks_prototype(),
-            generate_no_reloads(),
+            generate_no_cargo_places(),
         ),
         1..2,
     )

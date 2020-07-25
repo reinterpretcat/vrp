@@ -27,7 +27,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                     }),
                     depots: None,
                     breaks: None,
-                    reloads: Some(vec![VehicleReload {
+                    reloads: Some(vec![VehicleCargoPlace {
                         times: None,
                         location: vec![3., 0.].to_loc(),
                         duration: 2.0,

@@ -24,7 +24,7 @@ enum ActivityType {
     Terminal,
     Job(Job),
     Break(VehicleBreak),
-    Reload(VehicleReload),
+    Reload(VehicleCargoPlace),
 }
 
 impl CheckerContext {

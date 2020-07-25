@@ -22,7 +22,7 @@ fn can_use_one_vehicle_with_reload_instead_of_two() {
                     }),
                     depots: None,
                     breaks: None,
-                    reloads: Some(vec![VehicleReload {
+                    reloads: Some(vec![VehicleCargoPlace {
                         times: None,
                         location: vec![0., 0.].to_loc(),
                         duration: 2.0,

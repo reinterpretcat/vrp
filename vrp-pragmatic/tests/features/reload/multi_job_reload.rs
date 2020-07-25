@@ -31,7 +31,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                     }),
                     depots: None,
                     breaks: None,
-                    reloads: Some(vec![VehicleReload {
+                    reloads: Some(vec![VehicleCargoPlace {
                         times: None,
                         location: vec![0., 0.].to_loc(),
                         duration: 2.0,
@@ -171,13 +171,13 @@ fn can_properly_handle_load_without_capacity_violation() {
                 costs: VehicleCosts { fixed: Some(20.0), distance: 0.002, time: 0.003 },
                 shifts: vec![VehicleShift {
                     reloads: Some(vec![
-                        VehicleReload {
+                        VehicleCargoPlace {
                             times: None,
                             location: Location { lat: 0.0, lng: 0.0 },
                             duration: 2620.0,
                             tag: None,
                         },
-                        VehicleReload {
+                        VehicleCargoPlace {
                             times: None,
                             location: Location { lat: 0.0, lng: 0.0 },
                             duration: 2874.0,

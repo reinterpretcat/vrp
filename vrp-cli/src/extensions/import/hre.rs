@@ -421,7 +421,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                             depots: shift.depots.as_ref().map(|depots| {
                                 depots
                                     .iter()
-                                    .map(|d| VehicleReload {
+                                    .map(|d| VehicleCargoPlace {
                                         location: to_loc(&d.location),
                                         duration: d.duration,
                                         times: d.times.clone(),
@@ -442,7 +442,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
                             reloads: shift.reloads.as_ref().map(|reloads| {
                                 reloads
                                     .iter()
-                                    .map(|r| VehicleReload {
+                                    .map(|r| VehicleCargoPlace {
                                         location: to_loc(&r.location),
                                         duration: r.duration,
                                         times: r.times.clone(),
