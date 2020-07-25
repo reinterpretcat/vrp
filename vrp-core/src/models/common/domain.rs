@@ -42,6 +42,15 @@ pub enum TimeSpan {
     Offset(TimeOffset),
 }
 
+/// Specifies a flexible time interval.
+#[derive(Clone, Debug)]
+pub struct TimeInterval {
+    /// Earliest possible time to start.
+    pub earliest: Option<Timestamp>,
+    /// Latest possible time to stop.
+    pub latest: Option<Timestamp>,
+}
+
 impl TimeWindow {
     /// Creates a new [`TimeWindow`].
     pub fn new(start: Timestamp, end: Timestamp) -> Self {
@@ -118,6 +127,19 @@ impl TimeSpan {
     }
 }
 
+impl Default for TimeInterval {
+    fn default() -> Self {
+        Self { earliest: None, latest: None }
+    }
+}
+
+impl TimeInterval {
+    /// Converts time interval to time window.
+    pub fn to_time_window(&self) -> TimeWindow {
+        TimeWindow { start: self.earliest.unwrap_or(0.), end: self.latest.unwrap_or(std::f64::MAX) }
+    }
+}
+
 /// Represents a schedule.
 #[derive(Clone, Debug)]
 pub struct Schedule {
@@ -183,5 +205,23 @@ impl IdDimension for Dimensions {
 
     fn get_id(&self) -> Option<&String> {
         self.get_value("id")
+    }
+}
+
+impl Hash for TimeInterval {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let earliest = self.earliest.unwrap_or(0.).to_bits() as i64;
+        let latest = self.latest.unwrap_or(std::f64::MAX).to_bits() as i64;
+
+        earliest.hash(state);
+        latest.hash(state);
+    }
+}
+
+impl Eq for TimeInterval {}
+
+impl PartialEq for TimeInterval {
+    fn eq(&self, other: &Self) -> bool {
+        self.earliest == other.earliest && self.latest == other.latest
     }
 }

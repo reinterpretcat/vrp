@@ -118,7 +118,12 @@ impl TransportConstraintModule {
         let actor = ctx.route.actor.clone();
         let init = (
             actor.detail.time.end,
-            actor.detail.end.unwrap_or_else(|| actor.detail.start.unwrap_or_else(|| panic!(OP_START_MSG))),
+            actor
+                .detail
+                .end
+                .as_ref()
+                .unwrap_or_else(|| actor.detail.start.as_ref().unwrap_or_else(|| panic!(OP_START_MSG)))
+                .location,
             0_f64,
         );
 

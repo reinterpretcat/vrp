@@ -27,7 +27,10 @@ pub fn test_vehicle(id: &str) -> Vehicle {
         profile: 0,
         costs: DEFAULT_VEHICLE_COSTS,
         dimens,
-        details: vec![VehicleDetail { start: Some(0), end: Some(0), time: None }],
+        details: vec![VehicleDetail {
+            start: Some(VehiclePlace { location: 0, time: Default::default() }),
+            end: Some(VehiclePlace { location: 0, time: Default::default() }),
+        }],
     }
 }
 

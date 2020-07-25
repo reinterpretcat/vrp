@@ -25,6 +25,8 @@ fn create_activity_at(loc_and_time: usize) -> Activity {
 mod single {
     use super::*;
     use crate::construction::heuristics::evaluators::InsertionPosition;
+    use crate::models::common::TimeInterval;
+    use crate::models::problem::VehiclePlace;
 
     parameterized_test! {can_insert_job_with_location_into_empty_tour, job, {
         can_insert_job_with_location_into_empty_tour_impl(job);
@@ -102,15 +104,15 @@ mod single {
     }}
 
     can_insert_job_with_two_vehicles_and_various_time_constraints! {
-        case1: (3, Some(0), Some(20), "v1", (3.0 + 3.0) * 2.0),
-        case2: (27, Some(0), Some(20), "v2", (7.0 + 7.0) * 2.0),
-        case3: (11, Some(12), Some(20), "v1", (12.0 + 12.0)),
+        case1: (3, 0, 20, "v1", (3.0 + 3.0) * 2.0),
+        case2: (27, 0, 20, "v2", (7.0 + 7.0) * 2.0),
+        case3: (11, 12, 20, "v1", (12.0 + 12.0)),
     }
 
     fn can_insert_job_with_two_vehicles_and_various_time_constraints_impl(
         job_location: Location,
-        v1_end_location: Option<Location>,
-        v2_end_location: Option<Location>,
+        v1_end_location: Location,
+        v2_end_location: Location,
         expected_used_vehicle: &str,
         cost: Cost,
     ) {
@@ -121,17 +123,27 @@ mod single {
                     VehicleBuilder::default()
                         .id("v1")
                         .details(vec![VehicleDetail {
-                            start: Some(0),
-                            end: v1_end_location,
-                            time: Some(TimeWindow { start: 0.0, end: 100.0 }),
+                            start: Some(VehiclePlace {
+                                location: 0,
+                                time: TimeInterval { earliest: Some(0.), latest: None },
+                            }),
+                            end: Some(VehiclePlace {
+                                location: v1_end_location,
+                                time: TimeInterval { earliest: None, latest: Some(100.) },
+                            }),
                         }])
                         .build(),
                     VehicleBuilder::default()
                         .id("v2")
                         .details(vec![VehicleDetail {
-                            start: Some(20),
-                            end: v2_end_location,
-                            time: Some(TimeWindow { start: 0.0, end: 100.0 }),
+                            start: Some(VehiclePlace {
+                                location: 20,
+                                time: TimeInterval { earliest: Some(0.), latest: None },
+                            }),
+                            end: Some(VehiclePlace {
+                                location: v2_end_location,
+                                time: TimeInterval { earliest: None, latest: Some(100.) },
+                            }),
                         }])
                         .build(),
                 ])

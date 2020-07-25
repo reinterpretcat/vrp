@@ -1,6 +1,6 @@
 use crate::helpers::models::problem::{test_driver, test_vehicle_detail, FleetBuilder, VehicleBuilder};
-use crate::models::common::TimeWindow;
-use crate::models::problem::{Actor, VehicleDetail};
+use crate::models::common::TimeInterval;
+use crate::models::problem::{Actor, VehicleDetail, VehiclePlace};
 use crate::models::solution::Registry;
 use std::cmp::Ordering::Less;
 use std::sync::Arc;
@@ -21,13 +21,7 @@ fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize
         .add_driver(test_driver())
         .add_vehicles(vec![
             VehicleBuilder::default().id("v1").details(vec![test_vehicle_detail()]).build(),
-            VehicleBuilder::default()
-                .id("v2")
-                .details(vec![
-                    test_vehicle_detail(),
-                    VehicleDetail { start: Some(1), end: Some(0), time: Some(TimeWindow { start: 0.0, end: 50.0 }) },
-                ])
-                .build(),
+            VehicleBuilder::default().id("v2").details(create_two_test_vehicle_details()).build(),
         ])
         .build();
     let mut registry = Registry::new(&fleet);
@@ -43,21 +37,29 @@ fn can_provide_next_actors_from_registry() {
         .add_driver(test_driver())
         .add_vehicles(vec![
             VehicleBuilder::default().id("v1").details(vec![test_vehicle_detail()]).build(),
-            VehicleBuilder::default()
-                .id("v2")
-                .details(vec![
-                    test_vehicle_detail(),
-                    VehicleDetail { start: Some(1), end: Some(0), time: Some(TimeWindow { start: 0.0, end: 50.0 }) },
-                ])
-                .build(),
+            VehicleBuilder::default().id("v2").details(create_two_test_vehicle_details()).build(),
             VehicleBuilder::default().id("v3").details(vec![test_vehicle_detail()]).build(),
         ])
         .build();
     let registry = Registry::new(&fleet);
 
     let mut actors: Vec<Arc<Actor>> = registry.next().collect();
-    actors.sort_by(|a, b| a.detail.start.partial_cmp(&b.detail.start).unwrap_or(Less));
+    actors.sort_by(|a, b| {
+        let a = a.detail.start.as_ref().map(|s| s.location);
+        let b = b.detail.start.as_ref().map(|s| s.location);
+        a.partial_cmp(&b).unwrap_or(Less)
+    });
     assert_eq!(actors.len(), 2);
-    assert_eq!(actors.first().unwrap().detail.start, Some(0));
-    assert_eq!(actors.last().unwrap().detail.start, Some(1));
+    assert_eq!(actors.first().unwrap().detail.start.as_ref().map(|s| s.location), Some(0));
+    assert_eq!(actors.last().unwrap().detail.start.as_ref().map(|s| s.location), Some(1));
+}
+
+fn create_two_test_vehicle_details() -> Vec<VehicleDetail> {
+    vec![
+        test_vehicle_detail(),
+        VehicleDetail {
+            start: Some(VehiclePlace { location: 1, time: TimeInterval { earliest: Some(0.), latest: None } }),
+            end: Some(VehiclePlace { location: 0, time: TimeInterval { earliest: None, latest: Some(50.) } }),
+        },
+    ]
 }

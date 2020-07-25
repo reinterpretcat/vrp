@@ -1,6 +1,6 @@
 use crate::construction::constraints::CapacityDimension;
 use crate::helpers::models::common::DEFAULT_PROFILE;
-use crate::models::common::{Dimensions, IdDimension, Location, Profile, TimeWindow};
+use crate::models::common::{Dimensions, IdDimension, Location, Profile, TimeInterval, TimeWindow};
 use crate::models::problem::*;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
@@ -31,7 +31,16 @@ pub fn test_driver_with_costs(costs: Costs) -> Driver {
 }
 
 pub fn test_vehicle_detail() -> VehicleDetail {
-    VehicleDetail { start: Some(0), end: Some(0), time: Some(DEFAULT_ACTOR_TIME_WINDOW) }
+    VehicleDetail {
+        start: Some(VehiclePlace {
+            location: 0,
+            time: TimeInterval { earliest: Some(DEFAULT_ACTOR_TIME_WINDOW.start), latest: None },
+        }),
+        end: Some(VehiclePlace {
+            location: 0,
+            time: TimeInterval { earliest: None, latest: Some(DEFAULT_ACTOR_TIME_WINDOW.end) },
+        }),
+    }
 }
 
 pub fn test_vehicle(profile: i32) -> Vehicle {

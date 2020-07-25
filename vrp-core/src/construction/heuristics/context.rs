@@ -339,22 +339,24 @@ type ActivityPlace = crate::models::solution::Place;
 
 /// Creates start activity.
 pub fn create_start_activity(actor: &Arc<Actor>) -> Activity {
+    let start = &actor.detail.start.as_ref().unwrap_or_else(|| unimplemented!("{}", OP_START_MSG));
+    let time = start.time.to_time_window();
+
     Activity {
-        place: ActivityPlace {
-            location: actor.detail.start.unwrap_or_else(|| unimplemented!("{}", OP_START_MSG)),
-            duration: 0.0,
-            time: actor.detail.time.clone(),
-        },
-        schedule: Schedule { arrival: actor.detail.time.start, departure: actor.detail.time.start },
+        schedule: Schedule { arrival: time.start, departure: time.start },
+        place: ActivityPlace { location: start.location, duration: 0.0, time },
         job: None,
     }
 }
 
 /// Creates end activity if it is specified for the actor.
 pub fn create_end_activity(actor: &Arc<Actor>) -> Option<Activity> {
-    actor.detail.end.map(|location| Activity {
-        place: ActivityPlace { location, duration: 0.0, time: actor.detail.time.clone() },
-        schedule: Schedule { arrival: actor.detail.time.end, departure: actor.detail.time.end },
-        job: None,
+    actor.detail.end.as_ref().map(|place| {
+        let time = place.time.to_time_window();
+        Activity {
+            schedule: Schedule { arrival: time.start, departure: time.start },
+            place: ActivityPlace { location: place.location, duration: 0.0, time },
+            job: None,
+        }
     })
 }

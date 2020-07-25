@@ -266,7 +266,7 @@ fn create_index(
             .vehicles
             .iter()
             .filter(|v| v.profile == profile)
-            .flat_map(|v| v.details.iter().map(|d| d.start))
+            .flat_map(|v| v.details.iter().map(|d| d.start.as_ref().map(|s| s.location)))
             .filter(|s| s.is_some())
             .map(|s| s.unwrap())
             .collect();

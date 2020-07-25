@@ -244,9 +244,15 @@ fn can_read_complex_problem() {
 
         assert_eq!(vehicle.details.len(), 1);
         let detail = vehicle.details.first().unwrap();
-        assert_eq!(detail.start.unwrap(), 3);
-        assert_eq!(detail.end.unwrap(), 3);
-        assert_time_window(detail.time.as_ref().unwrap(), &(0., 100.));
+        assert_eq!(detail.start.as_ref().unwrap().location, 3);
+        assert_eq!(detail.end.as_ref().unwrap().location, 3);
+        assert_time_window(
+            &TimeWindow::new(
+                detail.start.as_ref().unwrap().time.earliest.unwrap(),
+                detail.end.as_ref().unwrap().time.latest.unwrap(),
+            ),
+            &(0., 100.),
+        );
         assert_skills(&vehicle.dimens, Some(vec!["unique1".to_string(), "unique2".to_string()]));
     });
 }
@@ -259,8 +265,12 @@ fn can_deserialize_minimal_problem_and_matrix() {
     assert_eq!(problem.jobs.all().collect::<Vec<_>>().len(), 2);
     assert!(problem.locks.is_empty());
 
+    let detail = problem.fleet.vehicles.first().unwrap().details.first().unwrap();
     assert_time_window(
-        problem.fleet.vehicles.first().as_ref().unwrap().details.first().as_ref().unwrap().time.as_ref().unwrap(),
+        &TimeWindow::new(
+            detail.start.as_ref().unwrap().time.earliest.unwrap(),
+            detail.end.as_ref().unwrap().time.latest.unwrap(),
+        ),
         &(1562230800., 1562263200.),
     );
 }

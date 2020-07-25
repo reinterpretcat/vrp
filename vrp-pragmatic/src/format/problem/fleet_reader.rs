@@ -108,9 +108,14 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
             });
 
             let details = vec![VehicleDetail {
-                start: Some(start.0),
-                end: end.map(|end| end.0),
-                time: Some(TimeWindow::new(start.1, end.map_or(std::f64::MAX, |end| end.1))),
+                start: Some(VehiclePlace {
+                    location: start.0,
+                    time: TimeInterval { earliest: Some(start.1), latest: None },
+                }),
+                end: end.map(|(location, time)| VehiclePlace {
+                    location,
+                    time: TimeInterval { earliest: None, latest: Some(time) },
+                }),
             }];
 
             vehicle.vehicle_ids.iter().for_each(|vehicle_id| {

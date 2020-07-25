@@ -1,6 +1,7 @@
 use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::helpers::models::problem::*;
-use crate::models::problem::{Actor, ActorDetail};
+use crate::models::common::TimeInterval;
+use crate::models::problem::{Actor, ActorDetail, VehiclePlace};
 use crate::models::solution::Registry;
 use std::sync::Arc;
 
@@ -9,8 +10,14 @@ pub fn test_actor() -> Arc<Actor> {
         vehicle: Arc::new(test_vehicle(DEFAULT_PROFILE)),
         driver: Arc::new(test_driver()),
         detail: ActorDetail {
-            start: Some(DEFAULT_ACTOR_LOCATION),
-            end: Some(DEFAULT_ACTOR_LOCATION),
+            start: Some(VehiclePlace {
+                location: DEFAULT_ACTOR_LOCATION,
+                time: TimeInterval { earliest: Some(DEFAULT_ACTOR_TIME_WINDOW.start), latest: None },
+            }),
+            end: Some(VehiclePlace {
+                location: DEFAULT_ACTOR_LOCATION,
+                time: TimeInterval { earliest: None, latest: Some(DEFAULT_ACTOR_TIME_WINDOW.end) },
+            }),
             time: DEFAULT_ACTOR_TIME_WINDOW,
         },
     })

@@ -66,9 +66,14 @@ pub(crate) fn create_fleet_with_distance_costs(
                     },
                     dimens,
                     details: vec![VehicleDetail {
-                        start: Some(location),
-                        end: Some(location),
-                        time: Some(time.clone()),
+                        start: Some(VehiclePlace {
+                            location,
+                            time: TimeInterval { earliest: Some(time.start), latest: None },
+                        }),
+                        end: Some(VehiclePlace {
+                            location,
+                            time: TimeInterval { earliest: None, latest: Some(time.end) },
+                        }),
                     }],
                 })
             })

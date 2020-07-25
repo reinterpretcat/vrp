@@ -1,5 +1,5 @@
 use crate::construction::constraints::{ConstraintPipeline, TransportConstraintModule};
-use crate::models::common::{TimeSpan, TimeWindow};
+use crate::models::common::{TimeInterval, TimeSpan, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
 use std::sync::Arc;
@@ -43,7 +43,10 @@ fn create_example_fleet() -> Arc<Fleet> {
         profile: 0,
         costs: Costs { fixed: 0., per_distance: 1., per_driving_time: 0., per_waiting_time: 0., per_service_time: 0. },
         dimens: Default::default(),
-        details: vec![VehicleDetail { start: Some(0), end: None, time: None }],
+        details: vec![VehicleDetail {
+            start: Some(VehiclePlace { location: 0, time: TimeInterval::default() }),
+            end: None,
+        }],
     })];
 
     Arc::new(Fleet::new(drivers, vehicles, Box::new(|_| Box::new(|_| 0))))

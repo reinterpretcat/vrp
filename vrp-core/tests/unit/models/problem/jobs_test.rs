@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::helpers::models::problem::*;
-use crate::models::problem::VehicleDetail;
+use crate::models::problem::{VehicleDetail, VehiclePlace};
 
 struct OnlyDistanceCost {}
 
@@ -164,36 +164,16 @@ returns_proper_job_ranks! {
 }
 
 fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Distance) {
+    let create_vehicle_detail = |start_location: usize| VehicleDetail {
+        start: Some(VehiclePlace { location: start_location, time: TimeInterval::default() }),
+        end: Some(VehiclePlace { location: 0, time: TimeInterval::default() }),
+    };
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::default()
-                .id("v1_1")
-                .profile(1)
-                .details(vec![VehicleDetail {
-                    start: Some(0),
-                    end: Some(0),
-                    time: Some(TimeWindow { start: 0.0, end: 0.0 }),
-                }])
-                .build(),
-            VehicleBuilder::default()
-                .id("v1_2")
-                .profile(1)
-                .details(vec![VehicleDetail {
-                    start: Some(15),
-                    end: Some(0),
-                    time: Some(TimeWindow { start: 0.0, end: 0.0 }),
-                }])
-                .build(),
-            VehicleBuilder::default()
-                .id("v2_1")
-                .profile(3)
-                .details(vec![VehicleDetail {
-                    start: Some(30),
-                    end: Some(0),
-                    time: Some(TimeWindow { start: 0.0, end: 0.0 }),
-                }])
-                .build(),
+            VehicleBuilder::default().id("v1_1").profile(1).details(vec![create_vehicle_detail(0)]).build(),
+            VehicleBuilder::default().id("v1_2").profile(1).details(vec![create_vehicle_detail(15)]).build(),
+            VehicleBuilder::default().id("v2_1").profile(3).details(vec![create_vehicle_detail(30)]).build(),
         ])
         .build();
     let species = vec![

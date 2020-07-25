@@ -1,12 +1,12 @@
 mod timing {
-    use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
+    use crate::construction::constraints::*;
     use crate::construction::heuristics::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
     use crate::helpers::models::domain::create_empty_solution_context;
     use crate::helpers::models::problem::*;
     use crate::helpers::models::solution::*;
-    use crate::models::common::{Location, Schedule, TimeWindow, Timestamp};
-    use crate::models::problem::{Fleet, VehicleDetail};
+    use crate::models::common::{Location, Schedule, TimeInterval, TimeWindow, Timestamp};
+    use crate::models::problem::{VehicleDetail, VehiclePlace};
     use crate::models::solution::{Activity, Place, Registry};
     use crate::utils::compare_floats;
     use std::cmp::Ordering;
@@ -15,133 +15,100 @@ mod timing {
         locations: (Option<Location>, Option<Location>),
         time: Option<(Timestamp, Timestamp)>,
     ) -> VehicleDetail {
-        VehicleDetail { start: locations.0, end: locations.1, time: time.map(|t| TimeWindow { start: t.0, end: t.1 }) }
+        let (start_location, end_location) = locations;
+        VehicleDetail {
+            start: start_location.map(|location| VehiclePlace {
+                location,
+                time: time
+                    .map_or(Default::default(), |(start, _)| TimeInterval { earliest: Some(start), latest: None }),
+            }),
+            end: end_location.map(|location| VehiclePlace {
+                location,
+                time: time.map_or(Default::default(), |(_, end)| TimeInterval { earliest: None, latest: Some(end) }),
+            }),
+        }
     }
 
-    fn create_route_context(fleet: &Fleet, vehicle: &str) -> RouteContext {
-        create_route_context_with_activities(
-            fleet,
-            vehicle,
-            vec![test_activity_with_location(10), test_activity_with_location(20), test_activity_with_location(30)],
-        )
-    }
+    fn create_constraint_pipeline_and_route(
+        vehicle_detail_data: (Location, Location, Timestamp, Timestamp),
+    ) -> (ConstraintPipeline, RouteContext) {
+        let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
-    parameterized_test! {can_properly_handle_fleet_with_4_vehicles, (vehicle, activity, time), {
-        can_properly_handle_fleet_with_4_vehicles_impl(vehicle, activity, time);
-    }}
-
-    can_properly_handle_fleet_with_4_vehicles! {
-        case01: ("v1", 3, 70f64),
-        case02: ("v2", 3, 30f64),
-        case03: ("v3", 3, 90f64),
-        case04: ("v4", 3, 90f64),
-        case05: ("v1", 2, 60f64),
-        case06: ("v2", 2, 20f64),
-        case07: ("v3", 2, 80f64),
-        case08: ("v4", 2, 80f64),
-        case09: ("v1", 1, 50f64),
-        case10: ("v2", 1, 10f64),
-        case11: ("v3", 1, 70f64),
-        case12: ("v4", 1, 70f64),
-    }
-
-    fn can_properly_handle_fleet_with_4_vehicles_impl(vehicle: &str, activity: usize, time: f64) {
         let fleet = FleetBuilder::default()
             .add_driver(test_driver())
-            .add_vehicles(vec![
-                VehicleBuilder::default()
-                    .id("v1")
-                    .details(vec![create_detail((Some(0), None), Some((0.0, 100.0)))])
-                    .build(),
-                VehicleBuilder::default()
-                    .id("v2")
-                    .details(vec![create_detail((Some(0), None), Some((0.0, 60.0)))])
-                    .build(),
-                VehicleBuilder::default()
-                    .id("v3")
-                    .details(vec![create_detail((Some(40), None), Some((0.0, 100.0)))])
-                    .build(),
-                VehicleBuilder::default()
-                    .id("v4")
-                    .details(vec![create_detail((Some(40), None), Some((0.0, 100.0)))])
-                    .build(),
-            ])
+            .add_vehicles(vec![VehicleBuilder::default()
+                .id("v1")
+                .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
+                .build()])
             .build();
-        let mut ctx = create_route_context(&fleet, vehicle);
+        let route_ctx = create_route_context_with_activities(
+            &fleet,
+            "v1",
+            vec![test_activity_with_location(10), test_activity_with_location(20), test_activity_with_location(30)],
+        );
 
-        create_constraint_pipeline_with_transport().accept_route_state(&mut ctx);
-        let result = *ctx.state.get_activity_state::<Timestamp>(1, ctx.route.tour.get(activity).unwrap()).unwrap();
+        (create_constraint_pipeline_with_transport(), route_ctx)
+    }
+
+    parameterized_test! {can_properly_calculate_latest_arrival, (vehicle, activity, time), {
+        can_properly_calculate_latest_arrival_impl(vehicle, activity, time);
+    }}
+
+    can_properly_calculate_latest_arrival! {
+        case01: ((0, 0, 0., 100.), 3, 70.),
+        case02: ((0, 0, 0., 100.), 2, 60.),
+        case03: ((0, 0, 0., 100.), 1, 50.),
+
+        case04: ((0, 0, 0., 60.), 3, 30.),
+        case05: ((0, 0, 0., 60.), 2, 20.),
+        case06: ((0, 0, 0., 60.), 1, 10.),
+
+        case07: ((40, 40, 0., 100.), 3, 90.),
+        case08: ((40, 40, 0., 100.), 1, 70.),
+        case09: ((40, 40, 0., 100.), 2, 80.),
+    }
+
+    fn can_properly_calculate_latest_arrival_impl(
+        vehicle_detail_data: (Location, Location, Timestamp, Timestamp),
+        activity: usize,
+        time: f64,
+    ) {
+        let (pipeline, mut route_ctx) = create_constraint_pipeline_and_route(vehicle_detail_data);
+
+        pipeline.accept_route_state(&mut route_ctx);
+
+        let activity = route_ctx.route.tour.get(activity).unwrap();
+        let result = *route_ctx.state.get_activity_state::<Timestamp>(LATEST_ARRIVAL_KEY, activity).unwrap();
 
         assert_eq!(result, time);
     }
 
-    parameterized_test! {can_properly_handle_fleet_with_6_vehicles, (vehicle, location, departure, prev_index, next_index, expected), {
-        can_properly_handle_fleet_with_6_vehicles_impl(vehicle, location, departure, prev_index, next_index, expected);
+    parameterized_test! {can_detect_activity_constraint_violation, (vehicle_detail_data, location, prev_index, next_index, expected), {
+        can_detect_activity_constraint_violation_impl(vehicle_detail_data, location, prev_index, next_index, expected);
     }}
 
-    can_properly_handle_fleet_with_6_vehicles! {
-        case01: ("v1", 50, 30f64, 3, 4, None),
-        case02: ("v1", 1000, 30f64, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: false })),
-        case03: ("v1", 50, 20f64, 2, 3, None),
-        case04: ("v1", 51, 20f64, 2, 3, Some(ActivityConstraintViolation{ code: 1, stopped: false })),
-        case05: ("v2", 40, 30f64, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: false })),
-        case06: ("v3", 40, 30f64, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: true })),
-        case07: ("v4", 40, 30f64, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: true })),
-        case08: ("v5", 40, 90f64, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: true })),
-        case09: ("v6", 40, 30f64, 2, 3, Some(ActivityConstraintViolation{ code: 1, stopped: true })),
-        case10: ("v6", 40, 10f64, 1, 2, Some(ActivityConstraintViolation{ code: 1, stopped: false })),
-        case11: ("v6", 40, 30f64, 3, 4, None),
+    can_detect_activity_constraint_violation! {
+        case01: ((0, 0, 0., 100.), 50, 3, 4, None),
+        case02: ((0, 0, 0., 100.), 1000, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: false })),
+        case03: ((0, 0, 0., 100.), 50, 2, 3, None),
+        case04: ((0, 0, 0., 100.), 51, 2, 3, Some(ActivityConstraintViolation{ code: 1, stopped: false })),
+        case05: ((0, 0, 0., 60.), 40, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: false })),
+        case06: ((0, 0, 0., 50.), 40, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: true })),
+        case07: ((0, 0, 0., 10.), 40, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: true })),
+        case08: ((0, 0, 60., 100.), 40, 3, 4, Some(ActivityConstraintViolation{ code: 1, stopped: true })),
+        case09: ((0, 40, 0., 40.), 40, 1, 2, Some(ActivityConstraintViolation{ code: 1, stopped: false })),
+        case10: ((0, 40, 0., 40.), 40, 3, 4, None),
     }
 
-    fn can_properly_handle_fleet_with_6_vehicles_impl(
-        vehicle: &str,
+    fn can_detect_activity_constraint_violation_impl(
+        vehicle_detail_data: (Location, Location, Timestamp, Timestamp),
         location: Location,
-        departure: Timestamp,
         prev_index: usize,
         next_index: usize,
         expected: Option<ActivityConstraintViolation>,
     ) {
-        let fleet = FleetBuilder::default()
-            .add_driver(test_driver())
-            .add_vehicles(vec![
-                VehicleBuilder::default()
-                    .id("v1")
-                    .details(vec![create_detail((Some(0), Some(0)), Some((0.0, 100.0)))])
-                    .build(),
-                VehicleBuilder::default()
-                    .id("v2")
-                    .details(vec![create_detail((Some(0), Some(0)), Some((0.0, 60.0)))])
-                    .build(),
-                VehicleBuilder::default()
-                    .id("v3")
-                    .details(vec![create_detail((Some(0), Some(0)), Some((0.0, 50.0)))])
-                    .build(),
-                VehicleBuilder::default()
-                    .id("v4")
-                    .details(vec![create_detail((Some(0), Some(0)), Some((0.0, 10.0)))])
-                    .build(),
-                VehicleBuilder::default()
-                    .id("v5")
-                    .details(vec![create_detail((Some(0), Some(0)), Some((60.0, 100.0)))])
-                    .build(),
-                VehicleBuilder::default()
-                    .id("v6")
-                    .details(vec![create_detail((Some(0), Some(40)), Some((0.0, 40.0)))])
-                    .build(),
-            ])
-            .build();
-        let mut route_ctx = create_route_context(&fleet, vehicle);
-        let pipeline = create_constraint_pipeline_with_transport();
+        let (pipeline, mut route_ctx) = create_constraint_pipeline_and_route(vehicle_detail_data);
         pipeline.accept_route_state(&mut route_ctx);
-        route_ctx
-            .route_mut()
-            .tour
-            .get_mut(prev_index)
-            .map(|a| {
-                a.schedule.departure = departure;
-                a
-            })
-            .unwrap();
 
         let prev = route_ctx.route.tour.get(prev_index).unwrap();
         let target = test_activity_with_location(location);

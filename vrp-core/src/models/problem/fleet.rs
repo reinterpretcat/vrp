@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/models/problem/fleet_test.rs"]
 mod fleet_test;
 
-use crate::models::common::{Dimensions, Location, Profile, TimeWindow};
+use crate::models::common::{Dimensions, Location, Profile, TimeInterval, TimeWindow};
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering::Less;
 use std::hash::{Hash, Hasher};
@@ -23,11 +23,9 @@ pub struct Costs {
     pub per_service_time: f64,
 }
 
-/// Represents driver detail.
-pub struct DriverDetail {
-    /// Time windows when driver can work.
-    pub time: Option<TimeWindow>,
-}
+/// Represents driver detail (reserved for future use).
+#[derive(Clone, Hash, Eq, PartialEq)]
+pub struct DriverDetail {}
 
 /// Represents a driver, person who drives Vehicle.
 /// Introduced to allow the following scenarios:
@@ -37,45 +35,59 @@ pub struct DriverDetail {
 pub struct Driver {
     /// Specifies operating costs for driver.
     pub costs: Costs,
+
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
+
     /// Specifies driver details.
     pub details: Vec<DriverDetail>,
 }
 
-/// Represents a vehicle detail.
-#[derive(Clone, Debug)]
+/// Specifies a vehicle place.
+#[derive(Clone, Hash, Eq, PartialEq)]
+pub struct VehiclePlace {
+    /// Location of a place.
+    pub location: Location,
+
+    /// Time interval when vehicle is allowed to be at this place.
+    pub time: TimeInterval,
+}
+
+/// Represents a vehicle detail (vehicle shift).
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct VehicleDetail {
-    /// Location where vehicle starts.
-    pub start: Option<Location>,
-    /// Location where vehicle ends.
-    pub end: Option<Location>,
-    /// Time windows when driver can work.
-    pub time: Option<TimeWindow>,
+    /// A place where vehicle starts.
+    pub start: Option<VehiclePlace>,
+
+    /// A place where vehicle ends.
+    pub end: Option<VehiclePlace>,
 }
 
 /// Represents a vehicle.
 pub struct Vehicle {
     /// A vehicle profile.
     pub profile: Profile,
+
     /// Specifies operating costs for vehicle.
     pub costs: Costs,
+
     /// Dimensions which contains extra work requirements.
     pub dimens: Dimensions,
+
     /// Specifies vehicle details.
     pub details: Vec<VehicleDetail>,
 }
 
-/// Represents actor detail.
+/// Represents an actor detail.
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct ActorDetail {
-    /// Location where actor starts.
-    pub start: Option<Location>,
+    /// A place where actor's vehicle starts.
+    pub start: Option<VehiclePlace>,
 
-    /// Location where actor ends.
-    pub end: Option<Location>,
+    /// A place where actor's vehicle ends.
+    pub end: Option<VehiclePlace>,
 
-    /// Time windows when actor can work.
+    /// Time window when actor allowed to work.
     pub time: TimeWindow,
 }
 
@@ -98,12 +110,16 @@ pub type ActorGroupKeyFn = Box<dyn Fn(&[Arc<Actor>]) -> Box<dyn Fn(&Arc<Actor>) 
 pub struct Fleet {
     /// All fleet drivers.
     pub drivers: Vec<Arc<Driver>>,
+
     /// All fleet vehicles.
     pub vehicles: Vec<Arc<Vehicle>>,
+
     /// All fleet profiles.
     pub profiles: Vec<Profile>,
+
     /// All fleet actors.
     pub actors: Vec<Arc<Actor>>,
+
     /// A grouped actors.
     pub groups: HashMap<usize, HashSet<Arc<Actor>>>,
 }
@@ -126,9 +142,12 @@ impl Fleet {
                     vehicle: vehicle.clone(),
                     driver: drivers.first().unwrap().clone(),
                     detail: ActorDetail {
-                        start: detail.start,
-                        end: detail.end,
-                        time: detail.time.clone().unwrap_or(TimeWindow { start: 0.0, end: std::f64::MAX }),
+                        start: detail.start.clone(),
+                        end: detail.end.clone(),
+                        time: TimeWindow {
+                            start: detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(0.),
+                            end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(std::f64::MAX),
+                        },
                     },
                 }));
             });
