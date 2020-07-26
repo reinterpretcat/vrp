@@ -226,7 +226,15 @@ fn read_breaks(
                         vec![(None, place.duration, times)]
                     };
 
-                    let job = get_conditional_job(coord_index, vehicle_id.clone(), "break", shift_index, places, &None);
+                    let job = get_conditional_job(
+                        coord_index,
+                        vehicle_id.clone(),
+                        &job_id,
+                        "break",
+                        shift_index,
+                        places,
+                        &None,
+                    );
 
                     (job_id, job)
                 })
@@ -267,6 +275,7 @@ fn read_reloads(
                     let job = get_conditional_job(
                         coord_index,
                         vehicle_id.clone(),
+                        &job_id,
                         "reload",
                         shift_index,
                         vec![(Some(place.location.clone()), place.duration, times)],
@@ -285,13 +294,14 @@ fn read_reloads(
 fn get_conditional_job(
     coord_index: &CoordIndex,
     vehicle_id: String,
+    job_id: &str,
     job_type: &str,
     shift_index: usize,
     places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>,
     tag: &Option<String>,
 ) -> Single {
     let mut single = get_single(places, coord_index);
-    single.dimens.set_id(job_type);
+    single.dimens.set_id(job_id);
     single.dimens.set_value("type", job_type.to_string());
     single.dimens.set_value("shift_index", shift_index);
     single.dimens.set_value("vehicle_id", vehicle_id);
