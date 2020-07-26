@@ -66,6 +66,7 @@ Each shift can have the following properties:
     When omitted, then vehicle ends on last job location
 - **depots** (optional) a list of depot places. When specified, shift start location is not considered as depot and
     vehicle has to navigate first to one of these places.
+    Check example [here](../../../examples/pragmatic/basics/depot.md)
 - **breaks** (optional) a list of vehicle breaks. A break is specified by:
      - time window or interval after which a break should happen (e.g. between 3 or 4 hours after start)
      - duration of the break

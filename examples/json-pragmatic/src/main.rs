@@ -19,6 +19,7 @@ fn main() {
 fn run_examples(base_path: &str) {
     let names: Vec<(_, Option<Vec<&str>>)> = vec![
         ("basics/break.basic", None),
+        ("basics/depot.basic", None),
         ("basics/multi-day.basic", None),
         ("basics/multi-job.basic", None),
         ("basics/multi-job.mixed", None),

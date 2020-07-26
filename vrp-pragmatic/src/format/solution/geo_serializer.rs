@@ -31,15 +31,13 @@ fn slice_to_map(vec: &[(&str, &str)]) -> HashMap<String, String> {
 
 fn get_marker_symbol(stop: &Stop) -> String {
     let contains_activity_type =
-        |activity_type: &str| stop.activities.iter().any(|activity| activity.activity_type == activity_type);
+        |activity_type: &&str| stop.activities.iter().any(|activity| activity.activity_type == *activity_type);
     match (
-        contains_activity_type("departure"),
-        contains_activity_type("arrival"),
-        contains_activity_type("break"),
-        contains_activity_type("reload"),
+        ["departure", "depot", "reload", "arrival"].iter().any(contains_activity_type),
+        contains_activity_type(&"break"),
     ) {
-        (true, ..) | (_, true, ..) | (.., true) => "warehouse",
-        (.., true, _) => "beer",
+        (true, _) => "warehouse",
+        (_, true) => "beer",
         _ => "marker",
     }
     .to_string()

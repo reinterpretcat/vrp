@@ -1,0 +1,115 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "job1",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.52599,
+                  "lng": 13.45413
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job2",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5225,
+                  "lng": 13.4095
+                },
+                "duration": 240.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job3",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5165,
+                  "lng": 13.3808
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "vehicle",
+        "vehicleIds": [
+          "vehicle_1"
+        ],
+        "profile": "normal_car",
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "depots": [
+              {
+                "location": {
+                  "lat": 52.5424,
+                  "lng": 13.4022
+                },
+                "duration": 1800
+              },
+              {
+                "location": {
+                  "lat": 52.53079,
+                  "lng": 13.34709
+                },
+                "duration": 1800
+              }
+            ]
+          }
+        ],
+        "capacity": [
+          10
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car",
+        "type": "car"
+      }
+    ]
+  }
+}

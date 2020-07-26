@@ -1,0 +1,144 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "jobs_ids": "departure",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "marker-color": "#e6194b",
+        "arrival": "2019-07-04T09:00:00Z",
+        "tour_idx": "0",
+        "stop_idx": "0",
+        "departure": "2019-07-04T09:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3884,
+          52.5316
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "departure": "2019-07-04T09:32:32Z",
+        "stop_idx": "1",
+        "tour_idx": "0",
+        "marker-symbol": "warehouse",
+        "jobs_ids": "depot",
+        "arrival": "2019-07-04T09:02:32Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4022,
+          52.5424
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "marker-size": "medium",
+        "tour_idx": "0",
+        "arrival": "2019-07-04T09:37:55Z",
+        "marker-color": "#e6194b",
+        "stop_idx": "2",
+        "marker-symbol": "marker",
+        "jobs_ids": "job3",
+        "departure": "2019-07-04T09:42:55Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3808,
+          52.5165
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "tour_idx": "0",
+        "stop_idx": "3",
+        "marker-size": "medium",
+        "departure": "2019-07-04T09:50:21Z",
+        "arrival": "2019-07-04T09:46:21Z",
+        "jobs_ids": "job2",
+        "marker-color": "#e6194b",
+        "marker-symbol": "marker"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4095,
+          52.5225
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "departure": "2019-07-04T10:00:26Z",
+        "jobs_ids": "job1",
+        "marker-size": "medium",
+        "tour_idx": "0",
+        "marker-symbol": "marker",
+        "stop_idx": "4",
+        "marker-color": "#e6194b",
+        "arrival": "2019-07-04T09:55:26Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.45413,
+          52.52599
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:55:26Z",
+        "tour_idx": "0",
+        "activities": "5",
+        "shift_idx": "0",
+        "departure": "2019-07-04T09:00:00Z",
+        "stroke-width": "4",
+        "vehicle_id": "vehicle_1",
+        "distance": "9854",
+        "stroke": "#e6194b"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3884,
+            52.5316
+          ],
+          [
+            13.4022,
+            52.5424
+          ],
+          [
+            13.3808,
+            52.5165
+          ],
+          [
+            13.4095,
+            52.5225
+          ],
+          [
+            13.45413,
+            52.52599
+          ]
+        ]
+      }
+    }
+  ]
+}
