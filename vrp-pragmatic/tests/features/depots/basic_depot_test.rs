@@ -11,7 +11,6 @@ fn create_problem_with_depots(depots: Option<Vec<VehicleCargoPlace>>) -> Problem
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift { depots, ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
