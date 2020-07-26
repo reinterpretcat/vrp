@@ -29,7 +29,7 @@ use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::*;
-use vrp_core::models::common::{Dimensions, TimeWindow, ValueDimension};
+use vrp_core::models::common::{Dimensions, IdDimension, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::utils::compare_floats;
@@ -294,10 +294,12 @@ fn create_extras(
             "route_modifier".to_owned(),
             Arc::new(move |route_ctx: RouteContext| {
                 let vehicle = &route_ctx.route.actor.vehicle;
-                let vehicle_id = vehicle.dimens.get_value::<String>("id").expect("cannot get vehicle id");
+                let vehicle_id = vehicle.dimens.get_id().expect("cannot get vehicle id");
+                let shift_index = vehicle.dimens.get_value::<String>("shift_index").expect("cannot get shift index");
+                let job_id = format!("{}_depot_{}", vehicle_id, shift_index);
 
                 let result = job_index
-                    .get(&format!("{}_depot", vehicle_id))
+                    .get(&job_id)
                     .map(|job| evaluate_job_constraint_in_route(job, &constraint, &route_ctx, InsertionPosition::Last));
 
                 if let Some(InsertionResult::Success(success)) = result {
