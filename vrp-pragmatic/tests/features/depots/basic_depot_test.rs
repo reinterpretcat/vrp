@@ -3,9 +3,8 @@ use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
-#[test]
-fn can_assign_single_depot() {
-    let problem = Problem {
+fn create_problem_with_depots(depots: Option<Vec<VehicleCargoPlace>>) -> Problem {
+    Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![3., 0.]), create_delivery_job("job2", vec![5., 0.])],
             relations: None,
@@ -13,21 +12,23 @@ fn can_assign_single_depot() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 costs: create_default_vehicle_costs(),
-                shifts: vec![VehicleShift {
-                    depots: Some(vec![VehicleCargoPlace {
-                        location: vec![7., 0.].to_loc(),
-                        duration: 2.0,
-                        times: Some(vec![vec![format_time(10.), format_time(15.)]]),
-                        tag: None,
-                    }]),
-                    ..create_default_vehicle_shift()
-                }],
+                shifts: vec![VehicleShift { depots, ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
             profiles: create_default_profiles(),
         },
         ..create_empty_problem()
-    };
+    }
+}
+
+#[test]
+fn can_assign_single_depot() {
+    let problem = create_problem_with_depots(Some(vec![VehicleCargoPlace {
+        location: vec![7., 0.].to_loc(),
+        duration: 2.0,
+        times: Some(vec![vec![format_time(10.), format_time(15.)]]),
+        tag: None,
+    }]));
     let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
@@ -97,4 +98,20 @@ fn can_assign_single_depot() {
             ..create_empty_solution()
         }
     );
+}
+
+#[test]
+fn can_handle_unassignable_depot() {
+    let problem = create_problem_with_depots(Some(vec![VehicleCargoPlace {
+        location: vec![1001., 0.].to_loc(),
+        duration: 2.0,
+        times: Some(vec![vec![format_time(10.), format_time(15.)]]),
+        tag: None,
+    }]));
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(solution.tours.is_empty());
+    assert_eq!(solution.unassigned.map_or(0, |u| u.len()), 2);
 }
