@@ -132,11 +132,8 @@ struct JobIndex {
 
 /// Represents a rule created from lock model.
 struct Rule {
-    /// Specifies condition when locked jobs can be assigned to specific actor.
     condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
-    /// Specifies lock position.
     position: LockPosition,
-    /// Stores jobs.
     index: JobIndex,
 }
 
@@ -155,17 +152,23 @@ impl Rule {
         self.index.jobs.contains(job)
     }
 
+    /// Checks whether given job is in rule. Such jobs are inserted manually and should not by
+    /// prevented from insertion.
+    fn is_in_rule(&self, job: &Option<Job>) -> bool {
+        job.as_ref().map_or(false, |job| self.contains(job))
+    }
+
     /// Checks whether a new job can be inserted between given prev/next according to after rule.
     fn can_insert_after(&self, job: &Option<Job>, prev: &Option<Job>, next: &Option<Job>) -> bool {
         prev.as_ref().map_or(false, |p| !self.contains(p) || *p == self.index.last)
             && next.as_ref().map_or(true, |n| !self.contains(n))
-            || job.as_ref().map_or(false, |job| self.contains(job))
+            || self.is_in_rule(job)
     }
 
     /// Checks whether a new job can be inserted between given prev/next according to before rule.
     fn can_insert_before(&self, job: &Option<Job>, prev: &Option<Job>, next: &Option<Job>) -> bool {
         next.as_ref().map_or(false, |n| !self.contains(n) || *n == self.index.first)
             && prev.as_ref().map_or(true, |p| !self.contains(p))
-            || job.as_ref().map_or(false, |job| self.contains(job))
+            || self.is_in_rule(job)
     }
 }
