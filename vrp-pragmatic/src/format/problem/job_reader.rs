@@ -165,6 +165,7 @@ fn read_conditional_jobs(
     job_index: &mut JobIndex,
 ) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
+    let locks = vec![];
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             if let Some(depots) = &shift.depots {
@@ -181,7 +182,7 @@ fn read_conditional_jobs(
         }
     });
 
-    (jobs, vec![])
+    (jobs, locks)
 }
 
 fn read_breaks(

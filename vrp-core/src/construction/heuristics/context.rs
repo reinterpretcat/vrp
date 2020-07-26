@@ -328,7 +328,13 @@ pub struct RegistryContext {
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
     pub fn new(registry: Registry) -> Self {
-        let index = registry.all().map(|actor| (actor.clone(), RouteContext::new(actor))).collect();
+        let identity = Box::new(|route_ctx| route_ctx);
+        Self::new_with_modifier(registry, &identity)
+    }
+
+    /// Creates a new instance of `RouteRegistry` using route context modifier.
+    pub fn new_with_modifier<F: Fn(RouteContext) -> RouteContext>(registry: Registry, modifier: &F) -> Self {
+        let index = registry.all().map(|actor| (actor.clone(), modifier(RouteContext::new(actor)))).collect();
 
         Self { registry, index }
     }

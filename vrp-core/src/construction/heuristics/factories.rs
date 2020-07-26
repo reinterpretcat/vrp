@@ -97,7 +97,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
         .filter(|job| locked.get(job).is_none() && reserved.get(job).is_none() && unassigned.get(job).is_none())
         .collect();
 
-    let registry = RegistryContext::new(registry);
+    let registry = create_registry_context(&problem, registry);
 
     let mut ctx = InsertionContext {
         problem: problem.clone(),
@@ -135,10 +135,23 @@ pub fn create_insertion_context_from_solution(
         }
     });
 
-    let registry = RegistryContext::new(registry);
+    let registry = create_registry_context(&problem, registry);
 
     let mut solution = SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry, state };
     problem.constraint.accept_solution_state(&mut solution);
 
     InsertionContext { problem, solution, random }
+}
+
+fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryContext {
+    let modifier = problem
+        .extras
+        .get("route_modifier")
+        .and_then(|s| s.downcast_ref::<Arc<dyn Fn(RouteContext) -> RouteContext>>());
+
+    if let Some(modifier) = modifier {
+        RegistryContext::new_with_modifier(registry, &|route_ctx| modifier(route_ctx))
+    } else {
+        RegistryContext::new(registry)
+    }
 }

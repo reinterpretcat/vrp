@@ -28,6 +28,7 @@ use std::io::{BufReader, Read};
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
+use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{Dimensions, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
@@ -101,7 +102,8 @@ pub struct ProblemProperties {
     has_breaks: bool,
     has_skills: bool,
     has_unreachable_locations: bool,
-    has_reload: bool,
+    has_depots: bool,
+    has_reloads: bool,
     has_priorities: bool,
     has_area_limits: bool,
 }
@@ -167,9 +169,8 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
         read_jobs_with_extra_locks(&api_problem, &problem_props, &coord_index, &fleet, &transport, &mut job_index);
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
     let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
-    let extras = Arc::new(create_extras(&problem_props, coord_index.clone()));
     let mut constraint = create_constraint_pipeline(
-        coord_index,
+        coord_index.clone(),
         &fleet,
         activity.clone(),
         transport.clone(),
@@ -179,12 +180,14 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     );
 
     let objective = create_objective(&api_problem, &mut constraint, &problem_props);
+    let constraint = Arc::new(constraint);
+    let extras = Arc::new(create_extras(constraint.clone(), &problem_props, job_index, coord_index));
 
     Ok(Problem {
         fleet: Arc::new(fleet),
         jobs: Arc::new(jobs),
         locks,
-        constraint: Arc::new(constraint),
+        constraint,
         activity,
         transport,
         objective,
@@ -241,7 +244,7 @@ fn create_constraint_pipeline(
 }
 
 fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemProperties) {
-    constraint.add_module(if props.has_reload {
+    constraint.add_module(if props.has_reloads {
         let threshold = 0.9;
         if props.has_multi_dimen_capacity {
             Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new_with_multi_trip(
@@ -273,13 +276,45 @@ fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIn
     )));
 }
 
-fn create_extras(props: &ProblemProperties, coord_index: Arc<CoordIndex>) -> Extras {
+fn create_extras(
+    constraint: Arc<ConstraintPipeline>,
+    props: &ProblemProperties,
+    job_index: JobIndex,
+    coord_index: Arc<CoordIndex>,
+) -> Extras {
     let mut extras = Extras::default();
     extras.insert(
         "capacity_type".to_string(),
         Arc::new((if props.has_multi_dimen_capacity { "multi" } else { "single" }).to_string()),
     );
     extras.insert("coord_index".to_owned(), coord_index);
+
+    if props.has_depots {
+        extras.insert(
+            "route_modifier".to_owned(),
+            Arc::new(move |route_ctx: RouteContext| {
+                let vehicle = &route_ctx.route.actor.vehicle;
+                let vehicle_id = vehicle.dimens.get_value::<String>("id").expect("cannot get vehicle id");
+
+                let result = job_index
+                    .get(&format!("{}_depot", vehicle_id))
+                    .map(|job| evaluate_job_constraint_in_route(job, &constraint, &route_ctx, InsertionPosition::Last));
+
+                if let Some(InsertionResult::Success(success)) = result {
+                    let mut route_ctx = success.context;
+                    let route = route_ctx.route_mut();
+                    success.activities.into_iter().for_each(|(activity, index)| {
+                        route.tour.insert_at(activity, index + 1);
+                    });
+                    constraint.accept_route_state(&mut route_ctx);
+
+                    route_ctx
+                } else {
+                    route_ctx
+                }
+            }),
+        );
+    }
 
     extras
 }
@@ -307,7 +342,12 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .any(|shift| shift.breaks.as_ref().map_or(false, |b| !b.is_empty()));
 
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
-    let has_reload = api_problem
+    let has_depots = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .any(|t| t.shifts.iter().any(|s| s.depots.as_ref().map_or(false, |depots| !depots.is_empty())));
+    let has_reloads = api_problem
         .fleet
         .vehicles
         .iter()
@@ -325,7 +365,8 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_breaks,
         has_skills,
         has_unreachable_locations,
-        has_reload,
+        has_depots,
+        has_reloads,
         has_priorities,
         has_area_limits,
     }
