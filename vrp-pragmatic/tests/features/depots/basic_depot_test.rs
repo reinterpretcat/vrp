@@ -115,3 +115,39 @@ fn can_handle_unassignable_depot() {
     assert!(solution.tours.is_empty());
     assert_eq!(solution.unassigned.map_or(0, |u| u.len()), 2);
 }
+
+parameterized_test! {can_handle_two_depots, location, {
+    can_handle_two_depots_impl(location);
+}}
+
+can_handle_two_depots! {
+    case01: &[7., 0.],
+    case02: &[1001., 0.],
+}
+
+fn can_handle_two_depots_impl(location: &[f64]) {
+    let problem = create_problem_with_depots(Some(vec![
+        VehicleCargoPlace {
+            location: location.to_vec().to_loc(),
+            duration: 6.,
+            times: Some(vec![vec![format_time(0.), format_time(1000.)]]),
+            tag: None,
+        },
+        VehicleCargoPlace { location: vec![8., 0.].to_loc(), duration: 1., times: None, tag: None },
+    ]));
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert_eq!(solution.tours[0].stops[1].location, vec![8., 0.].to_loc());
+    assert_eq!(solution.tours[0].stops[1].activities[0].activity_type, "depot");
+    assert_eq!(
+        solution.statistic,
+        Statistic {
+            cost: 45.,
+            distance: 16,
+            duration: 19,
+            times: Timing { driving: 16, serving: 3, waiting: 0, break_time: 0 },
+        }
+    );
+}
