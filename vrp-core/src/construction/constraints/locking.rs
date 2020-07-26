@@ -153,13 +153,13 @@ impl Rule {
 
     /// Checks whether new job can be inserted between given after rule's jobs.
     fn can_insert_after(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
-        prev.as_ref().map_or(false, |p| !self.contains(p) || p.clone() == self.index.last)
+        prev.as_ref().map_or(false, |p| !self.contains(p) || *p == self.index.last)
             && next.as_ref().map_or(true, |n| !self.contains(n))
     }
 
     /// Checks whether new job can be inserted between given before rule's jobs.
     fn can_insert_before(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
-        next.as_ref().map_or(false, |n| !self.contains(n) || n.clone() == self.index.first)
+        next.as_ref().map_or(false, |n| !self.contains(n) || *n == self.index.first)
             && prev.as_ref().map_or(true, |p| !self.contains(p))
     }
 }
