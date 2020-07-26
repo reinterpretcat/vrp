@@ -83,6 +83,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
                 unassigned.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, 0))));
             }
             (_, _) => {
+                locked.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
                 ignored.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
             }
         }

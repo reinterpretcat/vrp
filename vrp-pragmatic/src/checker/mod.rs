@@ -23,6 +23,7 @@ pub struct CheckerContext {
 enum ActivityType {
     Terminal,
     Job(Job),
+    Depot(VehicleCargoPlace),
     Break(VehicleBreak),
     Reload(VehicleCargoPlace),
 }
@@ -139,7 +140,12 @@ impl CheckerContext {
                 .and_then(|reload| reload.iter().find(|r| r.location == location && r.tag == activity.job_tag))
                 .map(|r| ActivityType::Reload(r.clone()))
                 .ok_or_else(|| format!("Cannot find reload for tour '{}'", tour.vehicle_id)),
-
+            "depot" => shift
+                .depots
+                .as_ref()
+                .and_then(|depot| depot.iter().find(|d| d.location == location))
+                .map(|d| ActivityType::Depot(d.clone()))
+                .ok_or_else(|| format!("Cannot find depot for tour '{}'", tour.vehicle_id)),
             _ => Err(format!("Unknown activity type: '{}'", activity.activity_type)),
         }
     }
