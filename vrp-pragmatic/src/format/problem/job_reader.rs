@@ -67,11 +67,13 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
                     let job = match job.as_str() {
                         "break" => {
                             break_idx += 1;
-                            job_index.get(format!("{}_break_{}", vehicle_id, break_idx).as_str()).cloned().unwrap()
+                            let break_id = format!("{}_break_{}_{}", vehicle_id, shift_index, break_idx);
+                            job_index.get(&break_id).cloned().unwrap()
                         }
                         "reload" => {
                             reload_idx += 1;
-                            job_index.get(format!("{}_reload_{}", vehicle_id, reload_idx).as_str()).cloned().unwrap()
+                            let reload_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, reload_idx);
+                            job_index.get(&reload_id).cloned().unwrap()
                         }
                         _ => job_index.get(job).unwrap().clone(),
                     };
@@ -169,7 +171,7 @@ fn read_conditional_jobs(
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             if let Some(depots) = &shift.depots {
-                read_cargo_place_jobs(coord_index, job_index, &mut jobs, vehicle, shift_index, "depot", depots);
+                read_depots(coord_index, job_index, &mut jobs, vehicle, shift_index, depots);
             }
 
             if let Some(breaks) = &shift.breaks {
@@ -177,7 +179,7 @@ fn read_conditional_jobs(
             }
 
             if let Some(reloads) = &shift.reloads {
-                read_cargo_place_jobs(coord_index, job_index, &mut jobs, vehicle, shift_index, "reload", reloads);
+                read_reloads(coord_index, job_index, &mut jobs, vehicle, shift_index, reloads);
             }
         }
     });
@@ -213,7 +215,7 @@ fn read_breaks(
                         }
                     };
 
-                    let job_id = format!("{}_break_{}", vehicle_id, break_idx);
+                    let job_id = format!("{}_break_{}_{}", vehicle_id, shift_index, break_idx);
                     let places = if let Some(locations) = &place.locations {
                         assert!(!locations.is_empty());
                         locations
@@ -233,29 +235,39 @@ fn read_breaks(
         .for_each(|(job_id, single)| add_conditional_job(job_index, jobs, job_id, single));
 }
 
-fn read_cargo_place_jobs(
+fn read_depots(
+    _coord_index: &CoordIndex,
+    _job_index: &mut JobIndex,
+    _jobs: &mut Vec<Job>,
+    _vehicle: &VehicleType,
+    _shift_index: usize,
+    _depots: &[VehicleCargoPlace],
+) {
+    // TODO
+}
+
+fn read_reloads(
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
     jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
-    job_type: &str,
-    places: &[VehicleCargoPlace],
+    reloads: &[VehicleCargoPlace],
 ) {
     (1..)
-        .zip(places.iter())
+        .zip(reloads.iter())
         .flat_map(|(place_idx, place)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{}_{}_{}", vehicle_id, job_type, place_idx);
+                    let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, place_idx);
                     let times = parse_times(&place.times);
 
                     let job = get_conditional_job(
                         coord_index,
                         vehicle_id.clone(),
-                        job_type,
+                        "reload",
                         shift_index,
                         vec![(Some(place.location.clone()), place.duration, times)],
                         &place.tag,
