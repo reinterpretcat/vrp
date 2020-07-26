@@ -30,7 +30,7 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{Dimensions, IdDimension, TimeWindow, ValueDimension};
-use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
+use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost, VehicleDetail};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::utils::compare_floats;
 
@@ -292,10 +292,20 @@ fn create_extras(
     if props.has_depots {
         extras.insert(
             "route_modifier".to_owned(),
-            Arc::new(move |route_ctx: RouteContext| {
-                let vehicle = &route_ctx.route.actor.vehicle;
+            Arc::new(RouteModifier::new(move |route_ctx: RouteContext| {
+                let actor = &route_ctx.route.actor;
+                let vehicle = &actor.vehicle;
+
+                // NOTE shift index is not known by core models
+                let shift_index = vehicle
+                    .details
+                    .iter()
+                    .position(|detail| {
+                        *detail == VehicleDetail { start: actor.detail.start.clone(), end: actor.detail.end.clone() }
+                    })
+                    .expect("cannot find shift index");
+
                 let vehicle_id = vehicle.dimens.get_id().expect("cannot get vehicle id");
-                let shift_index = vehicle.dimens.get_value::<String>("shift_index").expect("cannot get shift index");
                 let job_id = format!("{}_depot_{}", vehicle_id, shift_index);
 
                 let result = job_index
@@ -314,7 +324,7 @@ fn create_extras(
                 } else {
                     route_ctx
                 }
-            }),
+            })),
         );
     }
 

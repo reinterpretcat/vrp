@@ -319,6 +319,23 @@ impl RouteState {
     }
 }
 
+/// A wrapper around route context modifier function.
+pub struct RouteModifier {
+    modifier: Arc<dyn Fn(RouteContext) -> RouteContext + Sync + Send>,
+}
+
+impl RouteModifier {
+    /// Creates a new instance of `RouteModifier`.
+    pub fn new<F: 'static + Fn(RouteContext) -> RouteContext + Sync + Send>(modifier: F) -> Self {
+        Self { modifier: Arc::new(modifier) }
+    }
+
+    /// Modifies route context if necessary.
+    pub fn modify(&self, route_ctx: RouteContext) -> RouteContext {
+        self.modifier.deref()(route_ctx)
+    }
+}
+
 /// Keeps track on how routes are used.
 pub struct RegistryContext {
     registry: Registry,
@@ -328,13 +345,12 @@ pub struct RegistryContext {
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
     pub fn new(registry: Registry) -> Self {
-        let identity = Box::new(|route_ctx| route_ctx);
-        Self::new_with_modifier(registry, &identity)
+        Self::new_with_modifier(registry, &RouteModifier::new(|route_ctx| route_ctx))
     }
 
     /// Creates a new instance of `RouteRegistry` using route context modifier.
-    pub fn new_with_modifier<F: Fn(RouteContext) -> RouteContext>(registry: Registry, modifier: &F) -> Self {
-        let index = registry.all().map(|actor| (actor.clone(), modifier(RouteContext::new(actor)))).collect();
+    pub fn new_with_modifier(registry: Registry, modifier: &RouteModifier) -> Self {
+        let index = registry.all().map(|actor| (actor.clone(), modifier.modify(RouteContext::new(actor)))).collect();
 
         Self { registry, index }
     }

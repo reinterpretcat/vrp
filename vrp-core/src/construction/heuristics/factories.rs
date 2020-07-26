@@ -146,13 +146,10 @@ pub fn create_insertion_context_from_solution(
 }
 
 fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryContext {
-    let modifier = problem
-        .extras
-        .get("route_modifier")
-        .and_then(|s| s.downcast_ref::<Arc<dyn Fn(RouteContext) -> RouteContext>>());
+    let modifier = problem.extras.get("route_modifier").and_then(|s| s.downcast_ref::<RouteModifier>());
 
     if let Some(modifier) = modifier {
-        RegistryContext::new_with_modifier(registry, &|route_ctx| modifier(route_ctx))
+        RegistryContext::new_with_modifier(registry, modifier)
     } else {
         RegistryContext::new(registry)
     }
