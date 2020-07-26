@@ -172,7 +172,7 @@ fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), F
     } else {
         Err(FormatError::new(
             "E1306".to_string(),
-            "invalid depot definition in vehicle shift".to_string(),
+            "invalid depots in vehicle shift".to_string(),
             format!(
                 "ensure that all depots have proper time windows and unique locations different \
                  from start location. Vehicle type ids: '{}'",

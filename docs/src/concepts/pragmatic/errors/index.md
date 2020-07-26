@@ -463,6 +463,32 @@ violates one of the following rules:
 }
 ```
 
+#### E1306
+
+`invalid depots in vehicle shift` error is returned when `depots` property in `fleet.vehicles` violates one of the
+following rules:
+
+* has the same location as shift start
+* has depots with the same location
+* has invalid time window
+* has time window outside of  vehicle shift time
+
+```json
+{
+  "depots": [
+    {
+      "location": { "lat": 52.12, "lng":  13.14 },
+      "duration": 900
+    },
+    {
+      /** Error: the same location **/
+      "location": { "lat": 52.12, "lng":  13.14 },
+      "duration": 600
+    }
+  ]
+}
+```
+
 
 ### E15xx: Profiles
 
