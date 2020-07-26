@@ -184,8 +184,8 @@ the second - as end
 }
 ```
 
-To avoid confusion, the following ids are reserved: `departure`, `arrival`, `break`, and `reload`. These ids are not
-allowed to be used within `job.id` property.
+To avoid confusion, the following ids are reserved: `departure`, `arrival`, `depot`, `break`, and `reload`. These
+ids are not allowed to be used within `job.id` property.
 
 
 #### E1105
