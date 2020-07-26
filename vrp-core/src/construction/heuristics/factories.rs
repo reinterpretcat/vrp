@@ -15,6 +15,7 @@ type ActivityPlace = crate::models::solution::Place;
 pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> InsertionContext {
     let mut locked: HashSet<Job> = Default::default();
     let mut reserved: HashSet<Job> = Default::default();
+    let mut ignored: HashSet<Job> = Default::default();
     let mut unassigned: HashMap<Job, i32> = Default::default();
     let mut routes: Vec<RouteContext> = Default::default();
     let mut registry = Registry::new(&problem.fleet);
@@ -24,65 +25,66 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
 
     problem.locks.iter().for_each(|lock| {
         let actor = registry.available().find(|a| lock.condition.deref()(a.as_ref()));
+        match (actor, lock.is_lazy) {
+            (Some(actor), false) => {
+                registry.use_actor(&actor);
+                let mut route_ctx = RouteContext::new(actor);
+                let start = route_ctx.route.tour.start().unwrap_or_else(|| panic!(OP_START_MSG)).place.location;
 
-        if let Some(actor) = actor {
-            registry.use_actor(&actor);
-            let mut route_ctx = RouteContext::new(actor);
-            let start = route_ctx.route.tour.start().unwrap_or_else(|| panic!(OP_START_MSG)).place.location;
+                let create_activity = |single: Arc<Single>, previous_location: usize| {
+                    assert_eq!(single.places.len(), 1);
+                    assert_eq!(single.places.first().unwrap().times.len(), 1);
 
-            let create_activity = |single: Arc<Single>, previous_location: usize| {
-                assert_eq!(single.places.len(), 1);
-                assert_eq!(single.places.first().unwrap().times.len(), 1);
+                    let place = single.places.first().unwrap();
+                    let time = single.places.first().unwrap().times.first().unwrap();
+                    let time = time
+                        .as_time_window()
+                        .unwrap_or_else(|| panic!("Job with no time window is not supported in locks"));
 
-                let place = single.places.first().unwrap();
-                let time = single.places.first().unwrap().times.first().unwrap();
-                let time = time
-                    .as_time_window()
-                    .unwrap_or_else(|| panic!("Job with no time window is not supported in locks"));
+                    Activity {
+                        place: ActivityPlace {
+                            location: place.location.unwrap_or(previous_location),
+                            duration: place.duration,
+                            time,
+                        },
+                        schedule: Schedule { arrival: 0.0, departure: 0.0 },
+                        job: Some(single),
+                    }
+                };
 
-                Activity {
-                    place: ActivityPlace {
-                        location: place.location.unwrap_or(previous_location),
-                        duration: place.duration,
-                        time,
-                    },
-                    schedule: Schedule { arrival: 0.0, departure: 0.0 },
-                    job: Some(single),
-                }
-            };
+                lock.details.iter().fold(start, |acc, detail| {
+                    match detail.order {
+                        LockOrder::Any => reserved.extend(detail.jobs.iter().cloned()),
+                        _ => locked.extend(detail.jobs.iter().cloned()),
+                    }
 
-            lock.details.iter().fold(start, |acc, detail| {
-                match detail.order {
-                    LockOrder::Any => reserved.extend(detail.jobs.iter().cloned()),
-                    _ => locked.extend(detail.jobs.iter().cloned()),
-                }
+                    detail.jobs.iter().fold(acc, |acc, job| {
+                        let activity = match job {
+                            Job::Single(single) => create_activity(single.clone(), acc),
+                            Job::Multi(multi) => {
+                                let idx = sequence_job_usage.get(job).cloned().unwrap_or(0);
+                                sequence_job_usage.insert(job.clone(), idx + 1);
+                                create_activity(multi.jobs.get(idx).unwrap().clone(), acc)
+                            }
+                        };
+                        let last_location = activity.place.location;
+                        route_ctx.route_mut().tour.insert_last(activity);
 
-                detail.jobs.iter().fold(acc, |acc, job| {
-                    let activity = match job {
-                        Job::Single(single) => create_activity(single.clone(), acc),
-                        Job::Multi(multi) => {
-                            let idx = sequence_job_usage.get(job).cloned().unwrap_or(0);
-                            sequence_job_usage.insert(job.clone(), idx + 1);
-                            create_activity(multi.jobs.get(idx).unwrap().clone(), acc)
-                        }
-                    };
-                    let last_location = activity.place.location;
-                    route_ctx.route_mut().tour.insert_last(activity);
-
-                    last_location
-                })
-            });
-
-            problem.constraint.accept_route_state(&mut route_ctx);
-
-            routes.push(route_ctx);
-        } else {
-            lock.details.iter().for_each(|detail| {
-                detail.jobs.iter().for_each(|job| {
-                    // TODO what reason code to use?
-                    unassigned.insert(job.clone(), 0);
+                        last_location
+                    })
                 });
-            });
+
+                problem.constraint.accept_route_state(&mut route_ctx);
+
+                routes.push(route_ctx);
+            }
+            (None, false) => {
+                // TODO what reason code to use?
+                unassigned.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned().map(|j| (j, 0))));
+            }
+            (_, _) => {
+                ignored.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
+            }
         }
     });
 

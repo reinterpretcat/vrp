@@ -89,6 +89,9 @@ pub struct Lock {
     pub condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>,
     /// Specifies lock details.
     pub details: Vec<LockDetail>,
+    /// Specifies whether route is created or not in solution from beginning.
+    /// True means that route is not created till evaluation.
+    pub is_lazy: bool,
 }
 
 impl LockDetail {
@@ -100,7 +103,7 @@ impl LockDetail {
 
 impl Lock {
     /// Creates a new instance of `Lock`.
-    pub fn new(condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>, details: Vec<LockDetail>) -> Self {
-        Self { condition, details }
+    pub fn new(condition: Arc<dyn Fn(&Actor) -> bool + Sync + Send>, details: Vec<LockDetail>, is_lazy: bool) -> Self {
+        Self { condition, details, is_lazy }
     }
 }

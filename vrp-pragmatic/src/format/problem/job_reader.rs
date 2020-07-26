@@ -86,7 +86,7 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
             acc
         });
 
-        acc.push(Arc::new(Lock::new(condition, details)));
+        acc.push(Arc::new(Lock::new(condition, details, false)));
 
         acc
     })

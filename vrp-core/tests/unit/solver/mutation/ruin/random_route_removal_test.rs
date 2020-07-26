@@ -41,6 +41,7 @@ fn can_remove_parts_routes_from_context() {
                 position: LockPosition::Any,
                 jobs: problem.jobs.all().filter(|job| ["c0", "c3"].contains(&get_customer_id(job).as_str())).collect(),
             }],
+            is_lazy: false,
         })],
         ..problem
     };
