@@ -108,7 +108,11 @@ impl HardActivityConstraint for StrictLockingHardActivityConstraint {
     ) -> Option<ActivityConstraintViolation> {
         if let Some(rules) = self.rules.get(&route_ctx.route.actor) {
             let can_insert = rules.iter().all(|rule| {
-                rule.can_insert(&activity_ctx.prev.retrieve_job(), &activity_ctx.next.and_then(|n| n.retrieve_job()))
+                rule.can_insert(
+                    &activity_ctx.target.retrieve_job(),
+                    &activity_ctx.prev.retrieve_job(),
+                    &activity_ctx.next.and_then(|n| n.retrieve_job()),
+                )
             });
 
             if !can_insert {
@@ -137,29 +141,31 @@ struct Rule {
 }
 
 impl Rule {
-    fn contains(&self, job: &Job) -> bool {
-        self.index.jobs.contains(job)
-    }
-
-    /// Checks whether new job can be inserted between given according to rule's jobs.
-    pub fn can_insert(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
+    /// Checks whether a new job can be inserted between given prev/next according to rules.
+    pub fn can_insert(&self, job: &Option<Job>, prev: &Option<Job>, next: &Option<Job>) -> bool {
         match self.position {
-            LockPosition::Any => self.can_insert_after(&prev, &next) || self.can_insert_before(&prev, &next),
-            LockPosition::Departure => self.can_insert_after(&prev, &next),
-            LockPosition::Arrival => self.can_insert_before(&prev, &next),
+            LockPosition::Any => self.can_insert_after(job, prev, next) || self.can_insert_before(job, prev, next),
+            LockPosition::Departure => self.can_insert_after(job, prev, next),
+            LockPosition::Arrival => self.can_insert_before(job, prev, &next),
             LockPosition::Fixed => false,
         }
     }
 
-    /// Checks whether new job can be inserted between given after rule's jobs.
-    fn can_insert_after(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
-        prev.as_ref().map_or(false, |p| !self.contains(p) || *p == self.index.last)
-            && next.as_ref().map_or(true, |n| !self.contains(n))
+    fn contains(&self, job: &Job) -> bool {
+        self.index.jobs.contains(job)
     }
 
-    /// Checks whether new job can be inserted between given before rule's jobs.
-    fn can_insert_before(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
+    /// Checks whether a new job can be inserted between given prev/next according to after rule.
+    fn can_insert_after(&self, job: &Option<Job>, prev: &Option<Job>, next: &Option<Job>) -> bool {
+        prev.as_ref().map_or(false, |p| !self.contains(p) || *p == self.index.last)
+            && next.as_ref().map_or(true, |n| !self.contains(n))
+            || job.as_ref().map_or(false, |job| self.contains(job))
+    }
+
+    /// Checks whether a new job can be inserted between given prev/next according to before rule.
+    fn can_insert_before(&self, job: &Option<Job>, prev: &Option<Job>, next: &Option<Job>) -> bool {
         next.as_ref().map_or(false, |n| !self.contains(n) || *n == self.index.first)
             && prev.as_ref().map_or(true, |p| !self.contains(p))
+            || job.as_ref().map_or(false, |job| self.contains(job))
     }
 }
