@@ -167,11 +167,11 @@ fn read_conditional_jobs(
     job_index: &mut JobIndex,
 ) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
-    let locks = vec![];
+    let mut locks = vec![];
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             if let Some(depots) = &shift.depots {
-                read_depots(coord_index, job_index, &mut jobs, vehicle, shift_index, depots);
+                locks.extend(read_depots(coord_index, job_index, &mut jobs, vehicle, shift_index, depots).into_iter())
             }
 
             if let Some(breaks) = &shift.breaks {
@@ -244,14 +244,48 @@ fn read_breaks(
 }
 
 fn read_depots(
-    _coord_index: &CoordIndex,
-    _job_index: &mut JobIndex,
-    _jobs: &mut Vec<Job>,
-    _vehicle: &VehicleType,
-    _shift_index: usize,
-    _depots: &[VehicleCargoPlace],
-) {
-    // TODO
+    coord_index: &CoordIndex,
+    job_index: &mut JobIndex,
+    jobs: &mut Vec<Job>,
+    vehicle: &VehicleType,
+    shift_index: usize,
+    depots: &[VehicleCargoPlace],
+) -> Vec<Arc<Lock>> {
+    let places = depots
+        .iter()
+        .map(|depot| (Some(depot.location.clone()), depot.duration, parse_times(&depot.times)))
+        .collect::<Vec<_>>();
+
+    vehicle
+        .vehicle_ids
+        .iter()
+        .map(|vehicle_id| {
+            let job_id = format!("{}_depot_{}", vehicle_id, shift_index);
+            let job = get_conditional_job(
+                coord_index,
+                vehicle_id.clone(),
+                &job_id,
+                "depot",
+                shift_index,
+                places.clone(),
+                &None,
+            );
+
+            (vehicle_id.clone(), job_id, job)
+        })
+        .map(|(vehicle_id, job_id, single)| {
+            add_conditional_job(job_index, jobs, job_id.clone(), single);
+            Arc::new(Lock::new(
+                Arc::new(move |actor| actor.vehicle.dimens.get_id().unwrap() == vehicle_id.as_str()),
+                vec![LockDetail {
+                    order: LockOrder::Strict,
+                    position: LockPosition::Departure,
+                    jobs: vec![job_index.get(&job_id).cloned().unwrap()],
+                }],
+                true,
+            ))
+        })
+        .collect()
 }
 
 fn read_reloads(
