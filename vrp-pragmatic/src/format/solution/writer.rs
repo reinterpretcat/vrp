@@ -132,10 +132,16 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
         let (start_idx, start) = if start_idx == 0 {
             let start = route.tour.start().unwrap();
+            let has_depot = route
+                .tour
+                .get(1)
+                .and_then(|activity| activity.retrieve_job())
+                .and_then(|job| job.dimens().get_value::<String>("type").cloned())
+                .map_or(false, |job_type| job_type == "depot");
             tour.stops.push(Stop {
                 location: coord_index.get_by_idx(start.place.location).unwrap(),
                 time: format_schedule(&start.schedule),
-                load: start_delivery.as_vec(),
+                load: if has_depot { MultiDimensionalCapacity::default().as_vec() } else { start_delivery.as_vec() },
                 distance: 0,
                 activities: vec![ApiActivity {
                     job_id: "departure".to_string(),

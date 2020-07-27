@@ -50,7 +50,7 @@ fn can_assign_single_depot() {
                         "departure",
                         "departure",
                         (0., 0.),
-                        2,
+                        0,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:03Z"),
                         0,
                     ),
