@@ -167,7 +167,6 @@ fn has_depot(tour: &Tour) -> bool {
     tour.stops
         .iter()
         .flat_map(|stop| stop.activities.iter())
-        .skip(1)
-        .next()
+        .nth(1)
         .map_or(false, |activity| activity.activity_type == "depot")
 }
