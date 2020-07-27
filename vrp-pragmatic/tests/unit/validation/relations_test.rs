@@ -10,23 +10,37 @@ fn validate_result(ctx: &ValidationContext) -> Option<FormatError> {
     })
 }
 
-parameterized_test! {can_detect_relation_errors, (job_ids, vehicle_id, expected), {
+parameterized_test! {can_detect_relation_errors, (job_ids, vehicle_id, shift_index, expected), {
     can_detect_relation_errors_impl(
         job_ids.iter().map(|id| id.to_string()).collect(),
         vehicle_id.to_string(),
+        shift_index,
         expected,
     );
 }}
 
 can_detect_relation_errors! {
-    case01: (vec!["job2"], "vehicle_1", None),
-    case02: (vec!["job1", "job2", "job3"], "vehicle_1", Some(("E1200", "job1, job3"))),
-    case03: (vec!["job2"], "vehicle_2", Some(("E1201", "vehicle_2"))),
-    case04: (Vec::<&str>::default(), "vehicle_1", Some(("E1202", "jobs list"))),
-    case05: (vec!["departure", "arrival"], "vehicle_1", Some(("E1202", "jobs list"))),
+    case01: (vec!["job2"], "vehicle_1", None, None),
+    case02: (vec!["job1", "job2", "job3"], "vehicle_1", None, Some(("E1200", "job1, job3"))),
+    case03: (vec!["job2"], "vehicle_2", None, Some(("E1201", "vehicle_2"))),
+
+    case04: (Vec::<&str>::default(), "vehicle_1", None, Some(("E1202", "jobs list"))),
+    case05: (vec!["departure", "arrival"], "vehicle_1", None, Some(("E1202", "jobs list"))),
+
+    case06: (vec!["job2"], "vehicle_1", Some(0), None),
+    case07: (vec!["job2"], "vehicle_1", Some(1), Some(("E1205", "vehicle_1"))),
+
+    case08: (vec!["departure", "job2", "break"], "vehicle_1", None, Some(("E1206", "break"))),
+    case09: (vec!["departure", "job2", "depot"], "vehicle_1", None, Some(("E1206", "depot"))),
+    case10: (vec!["departure", "job2", "reload"], "vehicle_1", None, Some(("E1206", "reload"))),
 }
 
-fn can_detect_relation_errors_impl(job_ids: Vec<String>, vehicle_id: String, expected: Option<(&str, &str)>) {
+fn can_detect_relation_errors_impl(
+    job_ids: Vec<String>,
+    vehicle_id: String,
+    shift_index: Option<usize>,
+    expected: Option<(&str, &str)>,
+) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job2", vec![1., 0.])],
@@ -34,7 +48,7 @@ fn can_detect_relation_errors_impl(job_ids: Vec<String>, vehicle_id: String, exp
                 type_field: RelationType::Strict,
                 jobs: job_ids,
                 vehicle_id,
-                shift_index: None,
+                shift_index,
             }]),
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle("vehicle")], profiles: vec![] },

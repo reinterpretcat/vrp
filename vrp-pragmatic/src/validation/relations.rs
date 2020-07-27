@@ -141,6 +141,71 @@ fn check_e1204_job_assigned_to_multiple_vehicles(relations: &[Relation]) -> Resu
     }
 }
 
+fn check_e1205_relation_has_correct_shift_index(
+    relations: &[Relation],
+    vehicle_map: &HashMap<String, &VehicleType>,
+) -> Result<(), FormatError> {
+    let vehicle_ids: Vec<String> = relations
+        .iter()
+        .filter_map(|relation| vehicle_map.get(&relation.vehicle_id).map(|vehicle| (vehicle, relation)))
+        .filter(|(vehicle, relation)| vehicle.shifts.get(relation.shift_index.unwrap_or(0)).is_none())
+        .map(|(_, relation)| relation.vehicle_id.clone())
+        .collect::<Vec<_>>();
+
+    if vehicle_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1205".to_string(),
+            "relation has invalid shift index".to_string(),
+            format!(
+                "check that vehicle has enough shifts defined or correct relation, vehicle ids: '{}'",
+                vehicle_ids.join(", ")
+            ),
+        ))
+    }
+}
+
+/// Checks that relation has no reserved job ids for vehicle shift properties which are not used.
+fn check_e1206_relation_has_no_missing_shift_properties(
+    relations: &[Relation],
+    vehicle_map: &HashMap<String, &VehicleType>,
+) -> Result<(), FormatError> {
+    let vehicle_ids: Vec<String> = relations
+        .iter()
+        .filter_map(|relation| {
+            vehicle_map
+                .get(&relation.vehicle_id)
+                .and_then(|vehicle| vehicle.shifts.get(relation.shift_index.unwrap_or(0)))
+                .map(|vehicle_shift| (vehicle_shift, relation))
+        })
+        .filter(|(vehicle_shift, relation)| {
+            relation.jobs.iter().filter(|job_id| is_reserved_job_id(job_id)).any(|job_id| match job_id.as_str() {
+                "break" => vehicle_shift.breaks.is_none(),
+                "depot" => vehicle_shift.depots.is_none(),
+                "reload" => vehicle_shift.reloads.is_none(),
+                "arrival" => vehicle_shift.end.is_none(),
+                _ => false,
+            })
+        })
+        .map(|(_, relation)| relation.vehicle_id.clone())
+        .collect::<Vec<_>>();
+
+    if vehicle_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1206".to_string(),
+            "relation has special job id which is not defined on vehicle shift".to_string(),
+            format!(
+                "remove special job id or add vehicle shift property \
+            (e.g. break, depot, reload), vehicle ids: '{}'",
+                vehicle_ids.join(", ")
+            ),
+        ))
+    }
+}
+
 /// Validates relations in the plan.
 pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     let vehicle_map = ctx
@@ -156,6 +221,8 @@ pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError
             check_e1202_empty_job_list(relations),
             check_e1203_no_multiple_places_times(ctx, relations),
             check_e1204_job_assigned_to_multiple_vehicles(relations),
+            check_e1205_relation_has_correct_shift_index(relations, &vehicle_map),
+            check_e1206_relation_has_no_missing_shift_properties(relations, &vehicle_map),
         ])
     } else {
         Ok(())
