@@ -1,4 +1,4 @@
-use crate::format::solution::{Activity, Schedule, Solution, Stop};
+use crate::format::solution::{Activity, Schedule, Solution, Stop, Tour};
 use crate::helpers::ToLocation;
 use std::cmp::Ordering::Less;
 use std::collections::HashMap;
@@ -84,4 +84,8 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
 
 pub fn create_empty_solution() -> Solution {
     Solution { statistic: Default::default(), tours: vec![], unassigned: None, violations: None, extras: None }
+}
+
+pub fn get_ids_from_tour(tour: &Tour) -> Vec<Vec<String>> {
+    tour.stops.iter().map(|stop| stop.activities.iter().map(|a| a.job_id.clone()).collect()).collect()
 }

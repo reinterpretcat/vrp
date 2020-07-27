@@ -70,6 +70,10 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
                             let break_id = format!("{}_break_{}_{}", vehicle_id, shift_index, break_idx);
                             job_index.get(&break_id).cloned().unwrap()
                         }
+                        "depot" => {
+                            let depot_id = format!("{}_depot_{}", vehicle_id, shift_index);
+                            job_index.get(&depot_id).cloned().unwrap()
+                        }
                         "reload" => {
                             reload_idx += 1;
                             let reload_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, reload_idx);

@@ -7,7 +7,7 @@ use std::collections::HashSet;
 
 /// Checks relation rules.
 pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
-    let reserved_ids = vec!["departure", "arrival", "break", "reload"].into_iter().collect::<HashSet<_>>();
+    let reserved_ids = vec!["departure", "arrival", "break", "depot", "reload"].into_iter().collect::<HashSet<_>>();
 
     (0_usize..)
         .zip(context.problem.plan.relations.as_ref().map_or(vec![].iter(), |relations| relations.iter()))
