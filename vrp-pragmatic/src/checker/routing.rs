@@ -45,7 +45,7 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
 
                 check_stop_statistic(time, total_distance, leg_idx + 1, to, tour)?;
 
-                Ok((parse_time(&to.time.departure) as i64, total_distance))
+                Ok((parse_time(&to.time.departure) as i64, to.distance))
             },
         )?;
 
@@ -56,7 +56,7 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
 }
 
 fn check_stop_statistic(time: i64, total_distance: i64, stop_idx: usize, to: &Stop, tour: &Tour) -> Result<(), String> {
-    if time != parse_time(&to.time.arrival) as i64 {
+    if (time - parse_time(&to.time.arrival) as i64).abs() > 1 {
         return Err(format!(
             "arrival time mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
             stop_idx,
@@ -66,7 +66,7 @@ fn check_stop_statistic(time: i64, total_distance: i64, stop_idx: usize, to: &St
         ));
     }
 
-    if total_distance as i32 != to.distance {
+    if (total_distance - to.distance).abs() > 1 {
         return Err(format!(
             "distance mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
             stop_idx, tour.vehicle_id, total_distance, to.distance,
@@ -77,15 +77,15 @@ fn check_stop_statistic(time: i64, total_distance: i64, stop_idx: usize, to: &St
 }
 
 fn check_tour_statistic(departure_time: i64, total_distance: i64, time_offset: i64, tour: &Tour) -> Result<(), String> {
-    if total_distance as i32 != tour.statistic.distance {
+    if (total_distance - tour.statistic.distance).abs() > 1 {
         return Err(format!(
             "distance mismatch for tour statistic: {}, expected: '{}', got: '{}'",
             tour.vehicle_id, total_distance, tour.statistic.distance,
         ));
     }
 
-    let total_duration = (departure_time - time_offset) as i32;
-    if total_duration != tour.statistic.duration {
+    let total_duration = departure_time - time_offset;
+    if (total_duration - tour.statistic.duration).abs() > 1 {
         return Err(format!(
             "duration mismatch for tour statistic: {}, expected: '{}', got: '{}'",
             tour.vehicle_id, total_duration, tour.statistic.duration,

@@ -196,7 +196,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     + problem.transport.cost(actor, prev_location, act.place.location, prev_departure);
                 let distance = leg.statistic.distance
                     + problem.transport.distance(vehicle.profile, prev_location, act.place.location, prev_departure)
-                        as i32;
+                        as i64;
 
                 if prev_location != act.place.location {
                     tour.stops.push(Stop {
@@ -228,12 +228,12 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     statistic: Statistic {
                         cost,
                         distance,
-                        duration: leg.statistic.duration + departure as i32 - prev_departure as i32,
+                        duration: leg.statistic.duration + departure as i64 - prev_departure as i64,
                         times: Timing {
-                            driving: leg.statistic.times.driving + driving as i32,
-                            serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i32 }),
-                            waiting: leg.statistic.times.waiting + waiting as i32,
-                            break_time: leg.statistic.times.break_time + (if is_break { serving as i32 } else { 0 }),
+                            driving: leg.statistic.times.driving + driving as i64,
+                            serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i64 }),
+                            waiting: leg.statistic.times.waiting + waiting as i64,
+                            break_time: leg.statistic.times.break_time + (if is_break { serving as i64 } else { 0 }),
                         },
                     },
                     load: Some(load),

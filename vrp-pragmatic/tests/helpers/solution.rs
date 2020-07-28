@@ -9,7 +9,7 @@ pub fn create_stop_with_activity(
     location: (f64, f64),
     load: i32,
     time: (&str, &str),
-    distance: i32,
+    distance: i64,
 ) -> Stop {
     create_stop_with_activity_impl(id, activity_type, location, vec![load], time, distance, None)
 }
@@ -20,7 +20,7 @@ pub fn create_stop_with_activity_md(
     location: (f64, f64),
     load: Vec<i32>,
     time: (&str, &str),
-    distance: i32,
+    distance: i64,
 ) -> Stop {
     create_stop_with_activity_impl(id, activity_type, location, load, time, distance, None)
 }
@@ -31,7 +31,7 @@ pub fn create_stop_with_activity_with_tag(
     location: (f64, f64),
     load: i32,
     time: (&str, &str),
-    distance: i32,
+    distance: i64,
     job_tag: &str,
 ) -> Stop {
     create_stop_with_activity_impl(id, activity_type, location, vec![load], time, distance, Some(job_tag.to_string()))
@@ -43,7 +43,7 @@ fn create_stop_with_activity_impl(
     location: (f64, f64),
     load: Vec<i32>,
     time: (&str, &str),
-    distance: i32,
+    distance: i64,
     job_tag: Option<String>,
 ) -> Stop {
     Stop {

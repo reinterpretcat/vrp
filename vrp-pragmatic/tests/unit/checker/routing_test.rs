@@ -22,7 +22,7 @@ fn create_test_statistic() -> Statistic {
     }
 }
 
-fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i32); 3]) -> Solution {
+fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> Solution {
     let [first, second, third] = stop_data;
     Solution {
         statistic: statistic.clone(),
@@ -102,16 +102,20 @@ parameterized_test! {can_check_stop, (stop_data, expected_result), {
 can_check_stop! {
     case_01: (&[(1., 1), (3., 2), (6., 4)], Ok(())),
 
-    case_02: (&[(2., 1), (3., 2), (6., 4)], Err(duration_error_msg(1, 2, 1))),
-    case_03: (&[(1., 1), (2., 2), (6., 4)], Err(duration_error_msg(2, 2, 3))),
-    case_04: (&[(1., 1), (3., 2), (7., 4)], Err(duration_error_msg(3, 7, 6))),
+    // NOTE due to rounding issues, we have to compare with tolerance 1
+    case_02: (&[(2., 1), (3., 2), (6., 4)], Ok(())),
+    case_03: (&[(1., 1), (3., 1), (6., 4)], Ok(())),
 
-    case_05: (&[(1., 2), (3., 2), (6., 4)], Err(distance_error_msg(1, 2, 1))),
-    case_06: (&[(1., 1), (3., 1), (6., 4)], Err(distance_error_msg(2, 1, 2))),
-    case_07: (&[(1., 1), (3., 2), (6., 5)], Err(distance_error_msg(3, 5, 4))),
+    case_04: (&[(3., 1), (3., 2), (6., 4)], Err(duration_error_msg(1, 3, 1))),
+    case_05: (&[(1., 1), (1., 2), (6., 4)], Err(duration_error_msg(2, 1, 3))),
+    case_06: (&[(1., 1), (3., 2), (8., 4)], Err(duration_error_msg(3, 8, 6))),
+
+    case_07: (&[(1., 3), (3., 2), (6., 4)], Err(distance_error_msg(1, 3, 1))),
+    case_08: (&[(1., 1), (3., 0), (6., 4)], Err(distance_error_msg(2, 0, 2))),
+    case_09: (&[(1., 1), (3., 2), (6., 6)], Err(distance_error_msg(3, 6, 4))),
 }
 
-fn can_check_stop_impl(stop_data: &[(f64, i32); 3], expected_result: Result<(), String>) {
+fn can_check_stop_impl(stop_data: &[(f64, i64); 3], expected_result: Result<(), String>) {
     let problem = create_test_problem();
     let matrix = create_matrix_from_problem(&problem);
     let solution = create_test_solution(create_test_statistic(), stop_data);

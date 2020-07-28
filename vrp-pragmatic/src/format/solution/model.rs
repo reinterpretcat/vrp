@@ -7,14 +7,14 @@ use std::io::{BufReader, BufWriter, Read, Write};
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Timing {
     /// Driving time.
-    pub driving: i32,
+    pub driving: i64,
     /// Serving time.
-    pub serving: i32,
+    pub serving: i64,
     /// Waiting time.
-    pub waiting: i32,
+    pub waiting: i64,
     /// Break time.
     #[serde(rename(serialize = "break", deserialize = "break"))]
-    pub break_time: i32,
+    pub break_time: i64,
 }
 
 /// Represents statistic.
@@ -23,9 +23,9 @@ pub struct Statistic {
     /// Total cost.
     pub cost: f64,
     /// Total distance.
-    pub distance: i32,
+    pub distance: i64,
     /// Total duration.
-    pub duration: i32,
+    pub duration: i64,
     /// Timing statistic.
     pub times: Timing,
 }
@@ -76,7 +76,7 @@ pub struct Stop {
     /// Stop schedule.
     pub time: Schedule,
     /// Distance traveled since departure from start.
-    pub distance: i32,
+    pub distance: i64,
     /// Vehicle load after departure from this stop.
     pub load: Vec<i32>,
     /// Activities performed at the stop.
