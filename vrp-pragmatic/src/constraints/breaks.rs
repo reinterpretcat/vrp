@@ -155,14 +155,12 @@ fn is_required_job(ctx: &SolutionContext, job: &Job, default: bool) -> bool {
 
 /// Removes breaks which conditions are violated after ruin:
 /// * break without location served separately when original job is removed, but break is kept.
-/// * break is assigned right after departure
 /// * break is defined by interval, but its time is violated. This might happen due to departure time rescheduling.
 fn remove_invalid_breaks(ctx: &mut SolutionContext) {
     let breaks_set = ctx.routes.iter_mut().fold(HashSet::new(), |mut acc, rc: &mut RouteContext| {
         // NOTE assume that first activity is never break (should be always departure)
-        let (_, breaks_set) = (0..).zip(rc.route.tour.all_activities()).fold(
-            (0, HashSet::new()),
-            |(prev, mut breaks), (idx, activity)| {
+        let (_, breaks_set) =
+            rc.route.tour.all_activities().fold((0, HashSet::new()), |(prev, mut breaks), activity| {
                 let current = activity.place.location;
 
                 if let Some(break_job) = as_break_job(activity) {
@@ -171,18 +169,16 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
                     assert!(location_count == 0 || location_count == break_job.places.len());
 
                     let is_orphan = prev != current && break_job.places.first().and_then(|p| p.location).is_none();
-                    let is_dummy = idx == 1;
                     let is_not_on_time = !is_on_proper_time(rc, break_job, &activity.schedule);
 
-                    if is_orphan || is_dummy || is_not_on_time {
+                    if is_orphan || is_not_on_time {
                         // NOTE remove break with removed job location
                         breaks.insert(Job::Single(activity.job.as_ref().unwrap().clone()));
                     }
                 }
 
                 (current, breaks)
-            },
-        );
+            });
 
         breaks_set.iter().for_each(|break_job| {
             rc.route_mut().tour.remove(break_job);
