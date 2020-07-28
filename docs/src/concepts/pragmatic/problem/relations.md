@@ -54,6 +54,8 @@ non-feasible solutions (e.g. routes with capacity or time window violation).
 * [E1202 relation has empty job id list](../errors/index.md#e1202)
 * [E1203 strict or sequence relation has job with multiple places or time windows](../errors/index.md#e1203)
 * [E1204 job is assigned to different vehicles in relations](../errors/index.md#e1204)
+* [E1205 relation has invalid shift index](../errors/index.md#e1205)
+* [E1206 relation has special job id which is not defined on vehicle shift](../errors/index.md#e1206)
 
 
 ## Examples

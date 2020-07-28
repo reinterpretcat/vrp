@@ -1,6 +1,6 @@
-# Vehicle depots
+# Variable depot
 
-This example demonstrates how to use depots different from vehicle start location. The problem specifies two depots,
+This example demonstrates how to use a depot different from vehicle start location. The problem specifies two depots,
 one of those is chosen as next from departure stop. Decision is made based on the following criteria:
 
 * how close depot's location to vehicle's start location

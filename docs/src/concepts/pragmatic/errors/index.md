@@ -306,6 +306,19 @@ relations with different vehicle ids:
 To fix this, remove job id from one of relations.
 
 
+#### E1205
+
+`relation has invalid shift index` error is returned when `plan.relations` has `shiftIndex` value and no corresponding
+`shift` is present in list of shifts.
+
+
+#### E1206
+
+`relation has special job id which is not defined on vehicle shift` error is returned when `plan.relations` has reserved
+job id and corresponding property on `fleet.vehicles.shifts` is not defined. Reserved ids are `break`, `depot`, `reload`
+and `arrival`.
+
+
 ### E13xx: Vehicles
 
 These errors are related to `fleet.vehicles` property definition.
