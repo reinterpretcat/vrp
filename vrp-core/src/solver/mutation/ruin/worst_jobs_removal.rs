@@ -2,8 +2,6 @@
 #[path = "../../../../tests/unit/solver/mutation/ruin/worst_jobs_removal_test.rs"]
 mod worst_jobs_removal_test;
 
-extern crate rand;
-
 use super::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::Cost;
@@ -53,7 +51,7 @@ impl Ruin for WorstJobRemoval {
         let mut routes_savings = get_routes_cost_savings(&insertion_ctx);
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
 
-        routes_savings.shuffle(&mut rand::thread_rng());
+        routes_savings.shuffle(&mut insertion_ctx.random.get_rng());
 
         let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
 

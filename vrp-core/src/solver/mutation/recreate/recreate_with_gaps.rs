@@ -1,5 +1,3 @@
-extern crate rand;
-
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
@@ -15,7 +13,7 @@ struct GapsJobSelector {
 impl JobSelector for GapsJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         // TODO we should prefer to always insert locked jobs
-        ctx.solution.required.shuffle(&mut rand::thread_rng());
+        ctx.solution.required.shuffle(&mut ctx.random.get_rng());
 
         // TODO improve formula
         let max_jobs = self.min_jobs.max(ctx.solution.required.len());

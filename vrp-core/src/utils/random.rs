@@ -1,6 +1,4 @@
-extern crate rand;
-
-use self::rand::Rng;
+use rand::prelude::*;
 
 /// Provides the way to use randomized values in generic way.
 pub trait Random {
@@ -11,7 +9,7 @@ pub trait Random {
         }
 
         assert!(min < max);
-        rand::thread_rng().gen_range(min, max + 1)
+        self.get_rng().gen_range(min, max + 1)
     }
 
     /// Produces real random value, uniformly distributed on the closed interval [min, max)
@@ -21,7 +19,7 @@ pub trait Random {
         }
 
         assert!(min < max);
-        rand::thread_rng().gen_range(min, max)
+        self.get_rng().gen_range(min, max)
     }
 
     /// Flips a coin and returns true if it is "heads", false otherwise.
@@ -40,6 +38,11 @@ pub trait Random {
             .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
             .unwrap()
             .1
+    }
+
+    /// Returns RNG.
+    fn get_rng(&self) -> StdRng {
+        StdRng::from_rng(thread_rng()).expect("cannot get RNG")
     }
 }
 

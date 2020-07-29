@@ -1,4 +1,5 @@
 use super::*;
+use vrp_core::utils::DefaultRandom;
 
 #[test]
 fn can_generate_permutations() {
@@ -20,7 +21,8 @@ fn can_generate_permutations() {
 
 #[test]
 fn can_generate_split_permutations() {
-    let job_permutations = get_split_permutations(5, 3, 12);
+    let random = DefaultRandom::default();
+    let job_permutations = get_split_permutations(5, 3, 12, &random);
 
     assert_eq!(job_permutations.len(), 12);
     job_permutations.iter().for_each(|permutation| {
@@ -31,16 +33,17 @@ fn can_generate_split_permutations() {
         assert_eq!(right, 3);
     });
 
-    let job_permutations = get_split_permutations(3, 0, 10);
+    let job_permutations = get_split_permutations(3, 0, 10, &random);
     assert_eq!(job_permutations.len(), 6);
 
-    let job_permutations = get_split_permutations(3, 3, 10);
+    let job_permutations = get_split_permutations(3, 3, 10, &random);
     assert_eq!(job_permutations.len(), 6);
 }
 
 #[test]
 fn can_validate_permutations() {
-    let permutator = VariableJobPermutation::new(5, 3, 12);
+    let random = Arc::new(DefaultRandom::default());
+    let permutator = VariableJobPermutation::new(5, 3, 12, random.clone());
 
     assert!(permutator.validate(&vec![0, 1, 2, 3, 4]));
     assert!(permutator.validate(&vec![0, 2, 1, 3, 4]));
@@ -51,6 +54,6 @@ fn can_validate_permutations() {
     assert!(!permutator.validate(&vec![0, 3, 2, 1, 4]));
     assert!(!permutator.validate(&vec![0, 1, 3, 2, 4]));
 
-    let permutator = VariableJobPermutation::new(3, 1, 3);
+    let permutator = VariableJobPermutation::new(3, 1, 3, random);
     assert!(permutator.validate(&vec![0, 1, 2]));
 }

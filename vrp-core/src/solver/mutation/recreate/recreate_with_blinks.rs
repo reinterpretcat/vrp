@@ -2,8 +2,6 @@
 #[path = "../../../../tests/unit/solver/mutation/recreate/recreate_with_blinks_test.rs"]
 mod recreate_with_blinks_test;
 
-extern crate rand;
-
 use crate::construction::constraints::{Demand, DemandDimension};
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, InsertionResult};
@@ -73,7 +71,7 @@ impl RandomJobSelector {
 
 impl JobSelector for RandomJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut rand::thread_rng());
+        ctx.solution.required.shuffle(&mut ctx.random.get_rng());
 
         Box::new(ctx.solution.required.iter().cloned())
     }

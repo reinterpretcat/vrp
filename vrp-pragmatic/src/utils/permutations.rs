@@ -1,8 +1,8 @@
-extern crate rand;
-
 use rand::seq::IteratorRandom;
 use std::collections::HashSet;
+use std::sync::Arc;
 use vrp_core::models::problem::JobPermutation;
+use vrp_core::utils::Random;
 
 #[cfg(test)]
 #[path = "../../tests/unit/utils/permutations_test.rs"]
@@ -12,18 +12,24 @@ pub struct VariableJobPermutation {
     size: usize,
     split_start_index: usize,
     sample_size: usize,
+    random: Arc<dyn Random + Sync + Send>,
 }
 
 impl VariableJobPermutation {
-    pub fn new(size: usize, split_start_index: usize, sample_size: usize) -> Self {
+    pub fn new(
+        size: usize,
+        split_start_index: usize,
+        sample_size: usize,
+        random: Arc<dyn Random + Sync + Send>,
+    ) -> Self {
         assert!(size > 0);
-        Self { size, split_start_index, sample_size }
+        Self { size, split_start_index, sample_size, random }
     }
 }
 
 impl JobPermutation for VariableJobPermutation {
     fn get(&self) -> Vec<Vec<usize>> {
-        get_split_permutations(self.size, self.split_start_index, self.sample_size)
+        get_split_permutations(self.size, self.split_start_index, self.sample_size, self.random.as_ref())
     }
 
     fn validate(&self, permutation: &[usize]) -> bool {
@@ -66,26 +72,34 @@ impl Iterator for Permutations {
     }
 }
 
-fn generate_sample_permutations(start: usize, end: usize, sample_size: usize) -> Vec<Vec<usize>> {
-    let mut rng = rand::thread_rng();
-
+fn generate_sample_permutations(
+    start: usize,
+    end: usize,
+    sample_size: usize,
+    random: &(dyn Random + Sync + Send),
+) -> Vec<Vec<usize>> {
     get_permutations(start, end)
-        .choose_multiple(&mut rng, sample_size)
+        .choose_multiple(&mut random.get_rng(), sample_size)
         .iter()
         .map(|permutation| permutation.iter().copied().collect::<Vec<usize>>())
         .collect()
 }
 
-fn get_split_permutations(size: usize, split_start_index: usize, sample_size: usize) -> Vec<Vec<usize>> {
+fn get_split_permutations(
+    size: usize,
+    split_start_index: usize,
+    sample_size: usize,
+    random: &(dyn Random + Sync + Send),
+) -> Vec<Vec<usize>> {
     // TODO make it memory efficient somehow
 
     match split_start_index {
-        x if x == 0 || x == size => generate_sample_permutations(0, size - 1, sample_size),
+        x if x == 0 || x == size => generate_sample_permutations(0, size - 1, sample_size, random),
         _ => {
             assert!(size > split_start_index);
 
-            let first = generate_sample_permutations(0, split_start_index - 1, sample_size);
-            let second = generate_sample_permutations(split_start_index, size - 1, sample_size);
+            let first = generate_sample_permutations(0, split_start_index - 1, sample_size, random);
+            let second = generate_sample_permutations(split_start_index, size - 1, sample_size, random);
 
             first
                 .iter()

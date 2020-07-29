@@ -2,7 +2,6 @@
 #[path = "../../../../tests/unit/solver/mutation/ruin/cluster_removal_test.rs"]
 mod cluster_removal_test;
 
-extern crate rand;
 use super::*;
 use crate::algorithms::dbscan::{create_clusters, Cluster, NeighborhoodFn};
 use crate::algorithms::geometry::Point;
@@ -50,7 +49,7 @@ impl Ruin for ClusterRemoval {
         let random = insertion_ctx.random.clone();
 
         let mut clusters = create_job_clusters(&problem, &random, self.params.as_slice());
-        clusters.shuffle(&mut rand::thread_rng());
+        clusters.shuffle(&mut insertion_ctx.random.get_rng());
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
@@ -60,7 +59,7 @@ impl Ruin for ClusterRemoval {
         clusters.iter_mut().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|cluster| {
             let left = affected - removed_jobs.read().unwrap().len();
             if cluster.len() > left {
-                cluster.shuffle(&mut rand::thread_rng());
+                cluster.shuffle(&mut insertion_ctx.random.get_rng());
             }
 
             cluster.iter().filter(|job| !locked.contains(job)).take(left).for_each(|job| {

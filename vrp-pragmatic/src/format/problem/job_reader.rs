@@ -10,6 +10,7 @@ use vrp_core::construction::constraints::{Demand, DemandDimension};
 use vrp_core::models::common::{Dimensions, Duration, IdDimension, TimeOffset, TimeSpan, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
+use vrp_core::utils::Random;
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
@@ -21,8 +22,9 @@ pub(crate) fn read_jobs_with_extra_locks(
     fleet: &Fleet,
     transport: &Arc<dyn TransportCost + Sync + Send>,
     job_index: &mut JobIndex,
+    random: &Arc<dyn Random + Send + Sync>,
 ) -> (Jobs, Vec<Arc<Lock>>) {
-    let (mut jobs, mut locks) = read_required_jobs(api_problem, props, coord_index, job_index);
+    let (mut jobs, mut locks) = read_required_jobs(api_problem, props, coord_index, job_index, random);
     let (conditional_jobs, conditional_locks) = read_conditional_jobs(api_problem, coord_index, job_index);
 
     jobs.extend(conditional_jobs);
@@ -103,6 +105,7 @@ fn read_required_jobs(
     props: &ProblemProperties,
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
+    random: &Arc<dyn Random + Send + Sync>,
 ) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
     let has_multi_dimens = props.has_multi_dimen_capacity;
@@ -153,7 +156,14 @@ fn read_required_jobs(
         assert!(!singles.is_empty());
 
         let problem_job = if singles.len() > 1 {
-            get_multi_job(&job.id, job.priority, &job.skills, singles, job.pickups.as_ref().map_or(0, |p| p.len()))
+            get_multi_job(
+                &job.id,
+                job.priority,
+                &job.skills,
+                singles,
+                job.pickups.as_ref().map_or(0, |p| p.len()),
+                random,
+            )
         } else {
             get_single_job(&job.id, singles.into_iter().next().unwrap(), job.priority, &job.skills)
         };
@@ -409,6 +419,7 @@ fn get_multi_job(
     skills: &Option<Vec<String>>,
     singles: Vec<Single>,
     deliveries_start_index: usize,
+    random: &Arc<dyn Random + Send + Sync>,
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id);
@@ -424,7 +435,12 @@ fn get_multi_job(
         Multi::new_with_permutator(
             singles,
             dimens,
-            Box::new(VariableJobPermutation::new(jobs_len, deliveries_start_index, MULTI_JOB_SAMPLE_SIZE)),
+            Box::new(VariableJobPermutation::new(
+                jobs_len,
+                deliveries_start_index,
+                MULTI_JOB_SAMPLE_SIZE,
+                random.clone(),
+            )),
         )
     };
 

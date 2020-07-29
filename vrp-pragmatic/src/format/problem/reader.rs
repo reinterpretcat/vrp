@@ -32,7 +32,7 @@ use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{Dimensions, IdDimension, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost, VehicleDetail};
 use vrp_core::models::{Extras, Lock, Problem};
-use vrp_core::utils::compare_floats;
+use vrp_core::utils::{compare_floats, DefaultRandom, Random};
 
 pub type ApiProblem = crate::format::problem::Problem;
 pub type JobIndex = HashMap<String, Job>;
@@ -164,9 +164,19 @@ fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Prob
     let activity = Arc::new(OnlyVehicleActivityCost::default());
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
 
+    // TODO pass random from outside as there might be need to have it initialized with seed
+    //      at the moment, this random instance is used only by multi job permutation generator
+    let random: Arc<dyn Random + Send + Sync> = Arc::new(DefaultRandom::default());
     let mut job_index = Default::default();
-    let (jobs, locks) =
-        read_jobs_with_extra_locks(&api_problem, &problem_props, &coord_index, &fleet, &transport, &mut job_index);
+    let (jobs, locks) = read_jobs_with_extra_locks(
+        &api_problem,
+        &problem_props,
+        &coord_index,
+        &fleet,
+        &transport,
+        &mut job_index,
+        &random,
+    );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
     let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
     let mut constraint = create_constraint_pipeline(
