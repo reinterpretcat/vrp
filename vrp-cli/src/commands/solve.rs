@@ -30,6 +30,7 @@ const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
 const CONFIG_ARG_NAME: &str = "config";
 const LOG_ARG_NAME: &str = "log";
 const CHECK_ARG_NAME: &str = "check";
+const RANDOM_SEED_NAME: &str = "seed";
 
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
@@ -214,6 +215,13 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .required(false)
                 .takes_value(false),
         )
+        .arg(
+            Arg::with_name(RANDOM_SEED_NAME)
+                .help("Specifies randomization seed to avoid stochastic behavior")
+                .long(RANDOM_SEED_NAME)
+                .required(false)
+                .takes_value(true),
+        )
 }
 
 /// Runs solver commands.
@@ -251,6 +259,7 @@ pub fn run_solve(matches: &ArgMatches) {
     let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
     let out_geojson = matches.value_of(GEO_JSON_ARG_NAME).map(|path| create_file(path, "out geojson"));
     let is_get_locations_set = matches.is_present(GET_LOCATIONS_ARG_NAME);
+    let seed = parse_int_value::<u64>(matches, RANDOM_SEED_NAME, "seed");
 
     match formats.get(problem_format) {
         Some((problem_reader, init_reader, solution_writer, locations_writer)) => {
@@ -281,6 +290,7 @@ pub fn run_solve(matches: &ArgMatches) {
                                 .with_max_time(max_time)
                                 .with_cost_variation(cost_variation)
                                 .with_telemetry(telemetry)
+                                .with_seed(seed)
                         };
 
                         let (solution, _, metrics) = builder

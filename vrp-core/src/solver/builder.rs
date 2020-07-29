@@ -48,10 +48,16 @@ use std::sync::Arc;
 pub struct Builder {
     /// A max amount generations in evolution.
     pub max_generations: Option<usize>,
+
     /// A max seconds to run evolution.
     pub max_time: Option<usize>,
+
     /// A cost variation parameters for termination criteria.
     pub cost_variation: Option<(usize, f64)>,
+
+    /// A randomization seed
+    pub seed: Option<u64>,
+
     /// An evolution configuration..
     pub config: EvolutionConfig,
 }
@@ -63,6 +69,7 @@ impl Builder {
             max_generations: None,
             max_time: None,
             cost_variation: None,
+            seed: None,
             config: EvolutionConfig {
                 problem: problem.clone(),
                 mutation: Box::new(RuinAndRecreateMutation::new_from_problem(problem)),
@@ -165,6 +172,12 @@ impl Builder {
         self
     }
 
+    /// Sets randomization seed.
+    pub fn with_seed(mut self, seed: Option<u64>) -> Self {
+        self.seed = seed;
+        self
+    }
+
     /// Builds [`Solver`](./struct.Solver.html) instance.
     pub fn build(self) -> Result<Solver, String> {
         let problem = self.config.problem.clone();
@@ -211,6 +224,13 @@ impl Builder {
         let mut config = self.config;
         config.termination = Box::new(CompositeTermination::new(criterias));
         config.quota = quota;
+
+        config.random = Arc::new(if let Some(seed) = self.seed {
+            config.telemetry.log(format!("configured to use seed: {}", seed).as_str());
+            DefaultRandom::new_with_seed(seed)
+        } else {
+            DefaultRandom::default()
+        });
 
         Ok(Solver { problem, config })
     }
