@@ -41,18 +41,33 @@ pub trait Random {
     }
 
     /// Returns RNG.
-    fn get_rng(&self) -> StdRng {
-        StdRng::from_rng(thread_rng()).expect("cannot get RNG")
-    }
+    fn get_rng(&self) -> StdRng;
 }
 
 /// A default random implementation.
-pub struct DefaultRandom {}
+pub struct DefaultRandom {
+    seed: Option<u64>,
+}
 
-impl Random for DefaultRandom {}
+impl DefaultRandom {
+    /// Creates a new instance `DefaultRandom` with seed.
+    pub fn new_with_seed(seed: u64) -> Self {
+        Self { seed: Some(seed) }
+    }
+}
+
+impl Random for DefaultRandom {
+    fn get_rng(&self) -> StdRng {
+        if let Some(ref seed) = self.seed {
+            StdRng::seed_from_u64(*seed)
+        } else {
+            StdRng::from_rng(thread_rng()).expect("cannot get RNG")
+        }
+    }
+}
 
 impl Default for DefaultRandom {
     fn default() -> Self {
-        Self {}
+        Self { seed: None }
     }
 }

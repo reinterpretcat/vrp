@@ -1,4 +1,5 @@
 use crate::utils::Random;
+use rand::prelude::*;
 
 struct FakeDistribution<T> {
     values: Vec<T>,
@@ -42,5 +43,9 @@ impl Random for FakeRandom {
     fn uniform_real(&self, min: f64, max: f64) -> f64 {
         assert!(min < max);
         unsafe { self.const_cast().reals.next() }
+    }
+
+    fn get_rng(&self) -> StdRng {
+        StdRng::seed_from_u64(0)
     }
 }
