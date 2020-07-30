@@ -1,5 +1,4 @@
-use crate::construction::constraints::{Demand, DemandDimension};
-use crate::models::common::{Duration, IdDimension, Location, TimeSpan, TimeWindow, ValueDimension};
+use crate::models::common::*;
 use crate::models::problem::{FixedJobPermutation, Job, Multi, Place, Single};
 use std::sync::Arc;
 
@@ -19,7 +18,7 @@ pub fn test_single() -> Single {
     single
 }
 
-pub fn test_single_with_simple_demand(demand: Demand<i32>) -> Arc<Single> {
+pub fn test_single_with_simple_demand(demand: Demand<SingleDimCapacity>) -> Arc<Single> {
     let mut single = test_single();
     single.dimens.set_demand(demand);
     Arc::new(single)
@@ -87,7 +86,7 @@ impl SingleBuilder {
         self
     }
 
-    pub fn demand(&mut self, demand: Demand<i32>) -> &mut Self {
+    pub fn demand(&mut self, demand: Demand<SingleDimCapacity>) -> &mut Self {
         self.single.dimens.set_demand(demand);
         self
     }

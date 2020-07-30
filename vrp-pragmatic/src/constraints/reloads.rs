@@ -3,26 +3,22 @@ use std::ops::{Add, Deref, Sub};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::RouteContext;
-use vrp_core::models::common::{IdDimension, ValueDimension};
+use vrp_core::models::common::{Capacity, IdDimension, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Route};
 
 /// A strategy to use multi trip with reload jobs.
-pub struct ReloadMultiTrip<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>,
+pub struct ReloadMultiTrip<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+    threshold: Box<dyn Fn(&T) -> T + Send + Sync>,
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    ReloadMultiTrip<Capacity>
-{
-    pub fn new(threshold: Box<dyn Fn(&Capacity) -> Capacity + Send + Sync>) -> Self {
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> ReloadMultiTrip<T> {
+    pub fn new(threshold: Box<dyn Fn(&T) -> T + Send + Sync>) -> Self {
         Self { threshold }
     }
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    MultiTrip<Capacity> for ReloadMultiTrip<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> MultiTrip<T> for ReloadMultiTrip<T> {
     fn is_reload_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| self.is_reload_single(single))
     }
@@ -43,7 +39,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         }
     }
 
-    fn is_reload_needed(&self, current: &Capacity, max_capacity: &Capacity) -> bool {
+    fn is_reload_needed(&self, current: &T, max_capacity: &T) -> bool {
         *current >= self.threshold.deref()(max_capacity)
     }
 

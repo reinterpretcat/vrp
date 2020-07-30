@@ -3,7 +3,7 @@
 mod jobs_test;
 
 use super::*;
-use crate::extensions::MultiDimensionalCapacity;
+use vrp_core::models::common::MultiDimCapacity;
 
 /// Checks that plan has no jobs with duplicate ids.
 fn check_e1100_no_jobs_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
@@ -50,19 +50,17 @@ fn check_e1102_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Re
         if let Some(tasks) = tasks {
             tasks
                 .iter()
-                .map(|task| {
-                    task.demand.clone().map_or_else(MultiDimensionalCapacity::default, MultiDimensionalCapacity::new)
-                })
+                .map(|task| task.demand.clone().map_or_else(MultiDimCapacity::default, MultiDimCapacity::new))
                 .sum()
         } else {
-            MultiDimensionalCapacity::default()
+            MultiDimCapacity::default()
         }
     };
 
     let ids = ctx
         .jobs()
         .filter(|job| has_tasks(&job.pickups) && has_tasks(&job.deliveries))
-        .filter(|job| get_demand(&job.pickups) - get_demand(&job.deliveries) != MultiDimensionalCapacity::default())
+        .filter(|job| get_demand(&job.pickups) - get_demand(&job.deliveries) != MultiDimCapacity::default())
         .map(|job| job.id.clone())
         .collect::<Vec<_>>();
 

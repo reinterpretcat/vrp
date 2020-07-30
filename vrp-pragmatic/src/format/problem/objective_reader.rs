@@ -1,9 +1,9 @@
-use crate::extensions::MultiDimensionalCapacity;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
+use vrp_core::models::common::{MultiDimCapacity, SingleDimCapacity};
 use vrp_core::models::problem::{ObjectiveCost, TargetConstraint, TargetObjective};
 use vrp_core::solver::objectives::*;
 
@@ -73,7 +73,7 @@ fn get_load_balance(
 ) -> (TargetConstraint, TargetObjective) {
     let (threshold, tolerance) = unwrap_options(options);
     if props.has_multi_dimen_capacity {
-        WorkBalance::new_load_balanced::<MultiDimensionalCapacity>(
+        WorkBalance::new_load_balanced::<MultiDimCapacity>(
             threshold,
             tolerance,
             Arc::new(|loaded, total| {
@@ -88,10 +88,10 @@ fn get_load_balance(
             }),
         )
     } else {
-        WorkBalance::new_load_balanced::<i32>(
+        WorkBalance::new_load_balanced::<SingleDimCapacity>(
             threshold,
             tolerance,
-            Arc::new(|loaded, capacity| *loaded as f64 / *capacity as f64),
+            Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
         )
     }
 }

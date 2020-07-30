@@ -4,6 +4,7 @@ use crate::helpers::construction::constraints::create_simple_demand;
 use crate::helpers::construction::heuristics::create_test_insertion_context;
 use crate::helpers::models::problem::test_single_with_simple_demand;
 use crate::helpers::models::solution::create_test_registry;
+use crate::models::common::SingleDimCapacity;
 use crate::models::problem::Job;
 
 parameterized_test! {can_sort_jobs_by_demand, (demands, is_asc_order, expected), {
@@ -22,9 +23,10 @@ fn can_sort_jobs_by_demand_impl(demands: Vec<i32>, is_asc_order: bool, expected:
         insertion_ctx.solution.required.push(Job::Single(test_single_with_simple_demand(create_simple_demand(d))))
     });
 
-    let result = DemandJobSelector::<i32>::new(is_asc_order)
+    let result = DemandJobSelector::<SingleDimCapacity>::new(is_asc_order)
         .select(&mut insertion_ctx)
-        .map(|job| DemandJobSelector::<i32>::get_job_demand(&job).unwrap())
+        .map(|job| DemandJobSelector::<SingleDimCapacity>::get_job_demand(&job).unwrap())
+        .map(|demand| demand.value)
         .collect::<Vec<i32>>();
 
     assert_eq!(result, expected);

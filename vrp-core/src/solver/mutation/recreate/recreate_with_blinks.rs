@@ -2,10 +2,9 @@
 #[path = "../../../../tests/unit/solver/mutation/recreate/recreate_with_blinks_test.rs"]
 mod recreate_with_blinks_test;
 
-use crate::construction::constraints::{Demand, DemandDimension};
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, InsertionResult};
-use crate::models::common::Distance;
+use crate::models::common::*;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::mutation::recreate::Recreate;
@@ -17,23 +16,21 @@ use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::sync::Arc;
 
-struct DemandJobSelector<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+struct DemandJobSelector<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
     asc_order: bool,
-    phantom: PhantomData<Capacity>,
+    phantom: PhantomData<T>,
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    DemandJobSelector<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> DemandJobSelector<T> {
     pub fn new(asc_order: bool) -> Self {
         Self { asc_order, phantom: PhantomData }
     }
 
-    fn get_capacity(demand: &Demand<Capacity>) -> Capacity {
+    fn get_capacity(demand: &Demand<T>) -> T {
         demand.pickup.0 + demand.delivery.0 + demand.pickup.1 + demand.delivery.1
     }
 
-    fn get_job_demand(job: &Job) -> Option<Capacity> {
+    fn get_job_demand(job: &Job) -> Option<T> {
         match job {
             Job::Single(job) => job.dimens.get_demand(),
             Job::Multi(job) => job.jobs.first().and_then(|s| s.dimens.get_demand()),
@@ -42,9 +39,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    JobSelector for DemandJobSelector<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> JobSelector for DemandJobSelector<T> {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
             (None, Some(_)) => Ordering::Less,
@@ -141,16 +136,14 @@ impl ResultSelector for BlinkResultSelector {
 
 /// A recreate method as described in "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) paper by Jan Christiaens, Greet Vanden Berghe.
-pub struct RecreateWithBlinks<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+pub struct RecreateWithBlinks<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,
     weights: Vec<usize>,
-    phantom: PhantomData<Capacity>,
+    phantom: PhantomData<T>,
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    RecreateWithBlinks<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T> {
     /// Creates a new instance of `RecreateWithBlinks`.
     pub fn new(selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>) -> Self {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
@@ -163,23 +156,19 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Default
-    for RecreateWithBlinks<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> Default for RecreateWithBlinks<T> {
     fn default() -> Self {
         Self::new(vec![
             (Box::new(RandomJobSelector::new()), 10),
-            (Box::new(DemandJobSelector::<Capacity>::new(false)), 10),
-            (Box::new(DemandJobSelector::<Capacity>::new(true)), 1),
+            (Box::new(DemandJobSelector::<T>::new(false)), 10),
+            (Box::new(DemandJobSelector::<T>::new(true)), 1),
             (Box::new(RankedJobSelector::new(true)), 5),
             (Box::new(RankedJobSelector::new(false)), 1),
         ])
     }
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Recreate
-    for RecreateWithBlinks<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> Recreate for RecreateWithBlinks<T> {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.random.weighted(self.weights.as_slice());
         let job_selector = self.job_selectors.get(index).unwrap();

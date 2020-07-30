@@ -3,8 +3,8 @@
 mod capacity_test;
 
 use crate::construction::constraints::*;
-use crate::construction::heuristics::{ActivityContext, RouteContext, RouteState, SolutionContext};
-use crate::models::common::{Dimensions, ValueDimension};
+use crate::construction::heuristics::*;
+use crate::models::common::*;
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
 use hashbrown::HashSet;
@@ -13,35 +13,6 @@ use std::marker::PhantomData;
 use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
 use std::sync::Arc;
-
-// TODO to avoid code duplication in generic type definition and implementation,
-
-const CAPACITY_DIMENSION_KEY: &str = "cpc";
-const DEMAND_DIMENSION_KEY: &str = "dmd";
-
-/// Represents job demand, both static and dynamic.
-pub struct Demand<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    /// Keeps static and dynamic pickup amount.
-    pub pickup: (Capacity, Capacity),
-    /// Keeps static and dynamic delivery amount.
-    pub delivery: (Capacity, Capacity),
-}
-
-/// A trait to get or set capacity.
-pub trait CapacityDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    /// Sets capacity.
-    fn set_capacity(&mut self, demand: Capacity) -> &mut Self;
-    /// Gets capacity.
-    fn get_capacity(&self) -> Option<&Capacity>;
-}
-
-/// A trait to get or set demand.
-pub trait DemandDimension<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    /// Sets demand.
-    fn set_demand(&mut self, demand: Demand<Capacity>) -> &mut Self;
-    /// Gets demand.
-    fn get_demand(&self) -> Option<&Demand<Capacity>>;
-}
 
 /// Returns intervals between vehicle terminal and reload activities.
 pub fn route_intervals(route: &Route, is_reload: Box<dyn Fn(&Activity) -> bool + 'static>) -> Vec<(usize, usize)> {
@@ -59,7 +30,7 @@ pub fn route_intervals(route: &Route, is_reload: Box<dyn Fn(&Activity) -> bool +
 }
 
 /// This trait defines multi-trip strategy.
-pub trait MultiTrip<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+pub trait MultiTrip<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
     /// Returns true if job is reload.
     fn is_reload_job(&self, job: &Job) -> bool;
 
@@ -70,7 +41,7 @@ pub trait MultiTrip<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + '
     fn is_assignable(&self, route: &Route, job: &Job) -> bool;
 
     /// Returns true when `current` capacity is close `max_capacity`.
-    fn is_reload_needed(&self, current: &Capacity, max_capacity: &Capacity) -> bool;
+    fn is_reload_needed(&self, current: &T, max_capacity: &T) -> bool;
 
     /// Returns true if route context has reloads.
     fn has_reloads(&self, route_ctx: &RouteContext) -> bool;
@@ -84,15 +55,15 @@ pub trait MultiTrip<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + '
 }
 
 /// A module which checks whether vehicle can handle customer's demand.
-pub struct CapacityConstraintModule<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+pub struct CapacityConstraintModule<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
     state_keys: Vec<i32>,
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
-    multi_trip: Arc<dyn MultiTrip<Capacity> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    CapacityConstraintModule<Capacity>
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output = T> + 'static>
+    CapacityConstraintModule<T>
 {
     /// Creates a new instance of `CapacityConstraintModule` without multi trip (reload) functionality
     pub fn new(code: i32) -> Self {
@@ -100,7 +71,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     /// Creates a new instance of `CapacityConstraintModule` with multi trip (reload) functionality
-    pub fn new_with_multi_trip(code: i32, multi_trip: Arc<dyn MultiTrip<Capacity> + Send + Sync>) -> Self {
+    pub fn new_with_multi_trip(code: i32, multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>) -> Self {
         Self {
             state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],
             conditional: ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
@@ -117,11 +88,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             })),
             constraints: vec![
                 ConstraintVariant::SoftRoute(Arc::new(CapacitySoftRouteConstraint { multi_trip: multi_trip.clone() })),
-                ConstraintVariant::HardRoute(Arc::new(CapacityHardRouteConstraint::<Capacity> {
+                ConstraintVariant::HardRoute(Arc::new(CapacityHardRouteConstraint::<T> {
                     code,
                     multi_trip: multi_trip.clone(),
                 })),
-                ConstraintVariant::HardActivity(Arc::new(CapacityHardActivityConstraint::<Capacity> {
+                ConstraintVariant::HardActivity(Arc::new(CapacityHardActivityConstraint::<T> {
                     code,
                     multi_trip: multi_trip.clone(),
                 })),
@@ -131,28 +102,25 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 
     fn recalculate_states(&self, ctx: &mut RouteContext) {
-        self.actualize_intervals(ctx).into_iter().fold(Capacity::default(), |acc, (start_idx, end_idx)| {
+        self.actualize_intervals(ctx).into_iter().fold(T::default(), |acc, (start_idx, end_idx)| {
             let (route, state) = ctx.as_mut();
 
             // determine static deliveries loaded at the begin and static pickups brought to the end
-            let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                (acc, Capacity::default()),
-                |acc, activity| {
+            let (start_delivery, end_pickup) =
+                route.tour.activities_slice(start_idx, end_idx).iter().fold((acc, T::default()), |acc, activity| {
                     Self::get_demand(activity)
                         .map(|demand| (acc.0 + demand.delivery.0, acc.1 + demand.pickup.0))
                         .unwrap_or_else(|| acc)
-                },
-            );
+                });
 
             // determine actual load at each activity and max discovered in the past
             let (current, _) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                (start_delivery, Capacity::default()),
+                (start_delivery, T::default()),
                 |(current, max), activity| {
-                    let change =
-                        Self::get_demand(activity).map(|demand| demand.change()).unwrap_or_else(Capacity::default);
+                    let change = Self::get_demand(activity).map(|demand| demand.change()).unwrap_or_else(T::default);
 
                     let current = current + change;
-                    let max = std::cmp::max(max, current);
+                    let max = max.max_load(current);
 
                     state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
                     state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity, max);
@@ -162,7 +130,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             );
 
             route.tour.activities_slice(start_idx, end_idx).iter().rev().fold(current, |max, activity| {
-                let max = std::cmp::max(max, *state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
+                let max = max.max_load(*state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
                 state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
                 max
             });
@@ -188,10 +156,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             .end()
             .map(|end| {
                 self.multi_trip.is_reload_needed(
-                    &ctx.state
-                        .get_activity_state(MAX_PAST_CAPACITY_KEY, end)
-                        .cloned()
-                        .unwrap_or_else(Capacity::default),
+                    &ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_else(T::default),
                     ctx.route.actor.vehicle.dimens.get_capacity().unwrap(),
                 )
             })
@@ -235,18 +200,18 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     fn has_demand_violation(
         state: &RouteState,
         pivot: &Activity,
-        capacity: Option<&Capacity>,
-        demand: Option<&Demand<Capacity>>,
+        capacity: Option<&T>,
+        demand: Option<&Demand<T>>,
         stopped: bool,
     ) -> Option<bool> {
         if let Some(demand) = demand {
             if let Some(&capacity) = capacity {
-                let default = Capacity::default();
+                let default = T::default();
 
                 // cannot handle more static deliveries
-                if demand.delivery.0 > default {
+                if demand.delivery.0.is_not_empty() {
                     let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&default);
-                    if past + demand.delivery.0 > capacity {
+                    if !capacity.can_load(&(past + demand.delivery.0)) {
                         return Some(stopped);
                     }
                 }
@@ -254,16 +219,16 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 let change = demand.change();
 
                 // cannot handle more pickups
-                if change > default {
+                if change.is_not_empty() {
                     let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&default);
-                    if future + change > capacity {
+                    if !capacity.can_load(&(future + change)) {
                         return Some(stopped);
                     }
                 }
 
                 // can load more at current
                 let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&default);
-                if current + change <= capacity {
+                if capacity.can_load(&(current + change)) {
                     None
                 } else {
                     Some(false)
@@ -278,11 +243,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn can_handle_demand_on_intervals(
         ctx: &RouteContext,
-        demand: Option<&Demand<Capacity>>,
+        demand: Option<&Demand<T>>,
         insert_idx: Option<usize>,
     ) -> bool {
         let has_demand_violation = |activity: &Activity| {
-            CapacityConstraintModule::<Capacity>::has_demand_violation(
+            CapacityConstraintModule::<T>::has_demand_violation(
                 &ctx.state,
                 activity,
                 ctx.route.actor.vehicle.dimens.get_capacity(),
@@ -307,14 +272,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             .unwrap_or_else(|| has_demand_violation(ctx.route.tour.get(insert_idx.unwrap_or(0)).unwrap()).is_none())
     }
 
-    fn get_demand(activity: &Activity) -> Option<&Demand<Capacity>> {
+    fn get_demand(activity: &Activity) -> Option<&Demand<T>> {
         activity.job.as_ref().and_then(|job| job.dimens.get_demand())
     }
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    ConstraintModule for CapacityConstraintModule<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for CapacityConstraintModule<T> {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
         if self.multi_trip.is_reload_job(job) {
@@ -367,13 +330,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-struct CapacitySoftRouteConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    multi_trip: Arc<dyn MultiTrip<Capacity> + Send + Sync>,
+struct CapacitySoftRouteConstraint<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+    multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    SoftRouteConstraint for CapacitySoftRouteConstraint<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> SoftRouteConstraint for CapacitySoftRouteConstraint<T> {
     fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> f64 {
         if self.multi_trip.is_reload_job(job) {
             0. - ctx.route.actor.vehicle.costs.fixed.max(1000.)
@@ -384,14 +345,12 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 }
 
 /// Locks reload jobs to specific vehicles
-struct CapacityHardRouteConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+struct CapacityHardRouteConstraint<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
     code: i32,
-    multi_trip: Arc<dyn MultiTrip<Capacity> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    HardRouteConstraint for CapacityHardRouteConstraint<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> HardRouteConstraint for CapacityHardRouteConstraint<T> {
     fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if self.multi_trip.is_reload_job(job) {
             return if self.multi_trip.is_assignable(&ctx.route, job) {
@@ -403,10 +362,10 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
         let can_handle = match job {
             Job::Single(job) => {
-                CapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand(), None)
+                CapacityConstraintModule::<T>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand(), None)
             }
             Job::Multi(job) => job.jobs.iter().any(|job| {
-                CapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand(), None)
+                CapacityConstraintModule::<T>::can_handle_demand_on_intervals(ctx, job.dimens.get_demand(), None)
             }),
         };
 
@@ -418,13 +377,13 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
     }
 }
 
-struct CapacityHardActivityConstraint<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
+struct CapacityHardActivityConstraint<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
     code: i32,
-    multi_trip: Arc<dyn MultiTrip<Capacity> + Send + Sync>,
+    multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    HardActivityConstraint for CapacityHardActivityConstraint<Capacity>
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> HardActivityConstraint
+    for CapacityHardActivityConstraint<T>
 {
     fn evaluate_activity(
         &self,
@@ -443,11 +402,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
             };
         };
 
-        let demand = CapacityConstraintModule::<Capacity>::get_demand(activity_ctx.target);
+        let demand = CapacityConstraintModule::<T>::get_demand(activity_ctx.target);
 
         let violation = if activity_ctx.target.retrieve_job().map_or(false, |job| job.as_multi().is_some()) {
             // NOTE multi job has dynamic demand which can go in another interval
-            if CapacityConstraintModule::<Capacity>::can_handle_demand_on_intervals(
+            if CapacityConstraintModule::<T>::can_handle_demand_on_intervals(
                 route_ctx,
                 demand,
                 Some(activity_ctx.index),
@@ -457,7 +416,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
                 Some(false)
             }
         } else {
-            CapacityConstraintModule::<Capacity>::has_demand_violation(
+            CapacityConstraintModule::<T>::has_demand_violation(
                 &route_ctx.state,
                 activity_ctx.prev,
                 route_ctx.route.actor.vehicle.dimens.get_capacity(),
@@ -475,13 +434,11 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 }
 
 /// A no multi trip strategy.
-struct NoMultiTrip<Capacity: Add + Sub + Ord + Copy + Default + Send + Sync + 'static> {
-    phantom: PhantomData<Capacity>,
+struct NoMultiTrip<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+    phantom: PhantomData<T>,
 }
 
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    MultiTrip<Capacity> for NoMultiTrip<Capacity>
-{
+impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> MultiTrip<T> for NoMultiTrip<T> {
     fn is_reload_job(&self, _: &Job) -> bool {
         false
     }
@@ -494,7 +451,7 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
         false
     }
 
-    fn is_reload_needed(&self, _: &Capacity, _: &Capacity) -> bool {
+    fn is_reload_needed(&self, _: &T, _: &T) -> bool {
         false
     }
 
@@ -508,56 +465,5 @@ impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + De
 
     fn get_reloads<'a>(&'a self, _: &'a Route, _: &'a [Job]) -> Box<dyn Iterator<Item = Job> + 'a + Send + Sync> {
         Box::new(empty())
-    }
-}
-
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    Demand<Capacity>
-{
-    /// Returns capacity change as difference between pickup and delivery.
-    pub fn change(&self) -> Capacity {
-        self.pickup.0 + self.pickup.1 - self.delivery.0 - self.delivery.1
-    }
-}
-
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Default
-    for Demand<Capacity>
-{
-    fn default() -> Self {
-        Self { pickup: (Default::default(), Default::default()), delivery: (Default::default(), Default::default()) }
-    }
-}
-
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static> Clone
-    for Demand<Capacity>
-{
-    fn clone(&self) -> Self {
-        Self { pickup: self.pickup, delivery: self.delivery }
-    }
-}
-
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    CapacityDimension<Capacity> for Dimensions
-{
-    fn set_capacity(&mut self, demand: Capacity) -> &mut Self {
-        self.set_value(CAPACITY_DIMENSION_KEY, demand);
-        self
-    }
-
-    fn get_capacity(&self) -> Option<&Capacity> {
-        self.get_value(CAPACITY_DIMENSION_KEY)
-    }
-}
-
-impl<Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static>
-    DemandDimension<Capacity> for Dimensions
-{
-    fn set_demand(&mut self, demand: Demand<Capacity>) -> &mut Self {
-        self.set_value(DEMAND_DIMENSION_KEY, demand);
-        self
-    }
-
-    fn get_demand(&self) -> Option<&Demand<Capacity>> {
-        self.get_value(DEMAND_DIMENSION_KEY)
     }
 }

@@ -15,7 +15,7 @@ use self::fleet_reader::{create_transport_costs, read_fleet, read_limits};
 use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;
 use crate::constraints::*;
-use crate::extensions::{MultiDimensionalCapacity, OnlyVehicleActivityCost};
+use crate::extensions::OnlyVehicleActivityCost;
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::format::*;
@@ -29,7 +29,9 @@ use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::*;
-use vrp_core::models::common::{Dimensions, IdDimension, TimeWindow, ValueDimension};
+use vrp_core::models::common::{
+    Dimensions, IdDimension, MultiDimCapacity, SingleDimCapacity, TimeWindow, ValueDimension,
+};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost, VehicleDetail};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::utils::{compare_floats, DefaultRandom, Random};
@@ -257,20 +259,20 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
     constraint.add_module(if props.has_reloads {
         let threshold = 0.9;
         if props.has_multi_dimen_capacity {
-            Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new_with_multi_trip(
+            Box::new(CapacityConstraintModule::<MultiDimCapacity>::new_with_multi_trip(
                 CAPACITY_CONSTRAINT_CODE,
-                Arc::new(ReloadMultiTrip::new(Box::new(|capacity| *capacity * 0.9))),
+                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
             ))
         } else {
-            Box::new(CapacityConstraintModule::<i32>::new_with_multi_trip(
+            Box::new(CapacityConstraintModule::<SingleDimCapacity>::new_with_multi_trip(
                 CAPACITY_CONSTRAINT_CODE,
-                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| (*capacity as f64 * threshold).round() as i32))),
+                Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
             ))
         }
     } else if props.has_multi_dimen_capacity {
-        Box::new(CapacityConstraintModule::<MultiDimensionalCapacity>::new(CAPACITY_CONSTRAINT_CODE))
+        Box::new(CapacityConstraintModule::<MultiDimCapacity>::new(CAPACITY_CONSTRAINT_CODE))
     } else {
-        Box::new(CapacityConstraintModule::<i32>::new(CAPACITY_CONSTRAINT_CODE))
+        Box::new(CapacityConstraintModule::<SingleDimCapacity>::new(CAPACITY_CONSTRAINT_CODE))
     });
 }
 

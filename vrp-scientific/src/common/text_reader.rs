@@ -54,7 +54,7 @@ pub(crate) fn create_fleet_with_distance_costs(
         (0..number)
             .map(|i| {
                 let mut dimens = create_dimens_with_id("v", i);
-                dimens.set_capacity(capacity as i32);
+                dimens.set_capacity(SingleDimCapacity::new(capacity as i32));
                 Arc::new(Vehicle {
                     profile: 0,
                     costs: Costs {
@@ -101,7 +101,7 @@ pub(crate) fn create_constraint(
         2,
         3,
     )));
-    constraint.add_module(Box::new(CapacityConstraintModule::<i32>::new(4)));
+    constraint.add_module(Box::new(CapacityConstraintModule::<SingleDimCapacity>::new(4)));
     constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
 
     constraint

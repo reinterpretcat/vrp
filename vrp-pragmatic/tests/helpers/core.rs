@@ -1,6 +1,4 @@
-use crate::extensions::MultiDimensionalCapacity;
 use std::sync::Arc;
-use vrp_core::construction::constraints::Demand;
 use vrp_core::construction::heuristics::{create_end_activity, create_start_activity};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
@@ -70,12 +68,12 @@ pub fn create_single_with_location(location: Option<Location>) -> Single {
     }
 }
 
-pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Demand<MultiDimensionalCapacity> {
+pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Demand<MultiDimCapacity> {
     let make = |value| {
         if value == 0 {
-            MultiDimensionalCapacity::default()
+            MultiDimCapacity::default()
         } else {
-            MultiDimensionalCapacity::new(vec![value])
+            MultiDimCapacity::new(vec![value])
         }
     };
 

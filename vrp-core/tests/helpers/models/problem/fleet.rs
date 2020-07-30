@@ -1,6 +1,5 @@
-use crate::construction::constraints::CapacityDimension;
 use crate::helpers::models::common::DEFAULT_PROFILE;
-use crate::models::common::{Dimensions, IdDimension, Location, Profile, TimeInterval, TimeWindow};
+use crate::models::common::*;
 use crate::models::problem::*;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
@@ -88,7 +87,7 @@ impl VehicleBuilder {
     }
 
     pub fn capacity(&mut self, capacity: i32) -> &mut VehicleBuilder {
-        self.vehicle.dimens.set_capacity(capacity);
+        self.vehicle.dimens.set_capacity(SingleDimCapacity::new(capacity));
         self
     }
 

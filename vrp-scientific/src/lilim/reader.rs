@@ -7,8 +7,7 @@ use crate::utils::MatrixFactory;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::constraints::{Demand, DemandDimension};
-use vrp_core::models::common::{TimeSpan, TimeWindow};
+use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::Problem;
 
@@ -113,9 +112,15 @@ impl<R: Read> LilimReader<R> {
     fn create_single_job(&mut self, customer: &JobLine) -> Arc<Single> {
         let mut dimens = create_dimens_with_id("c", customer.id);
         dimens.set_demand(if customer.demand > 0 {
-            Demand::<i32> { pickup: (0, customer.demand as i32), delivery: (0, 0) }
+            Demand::<SingleDimCapacity> {
+                pickup: (SingleDimCapacity::default(), SingleDimCapacity::new(customer.demand as i32)),
+                delivery: (SingleDimCapacity::default(), SingleDimCapacity::default()),
+            }
         } else {
-            Demand::<i32> { pickup: (0, 0), delivery: (0, customer.demand as i32) }
+            Demand::<SingleDimCapacity> {
+                pickup: (SingleDimCapacity::default(), SingleDimCapacity::default()),
+                delivery: (SingleDimCapacity::default(), SingleDimCapacity::new(customer.demand as i32)),
+            }
         });
 
         Arc::new(Single {

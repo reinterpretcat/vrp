@@ -23,6 +23,7 @@ pub use self::recreate_with_regret::RecreateWithRegret;
 
 mod recreate_with_nearest_neighbor;
 pub use self::recreate_with_nearest_neighbor::*;
+use crate::models::common::SingleDimCapacity;
 use crate::models::Problem;
 use std::sync::Arc;
 
@@ -46,7 +47,7 @@ impl CompositeRecreate {
         Self::new(vec![
             (Box::new(RecreateWithCheapest::default()), 100),
             (Box::new(RecreateWithRegret::default()), 10),
-            (Box::new(RecreateWithBlinks::<i32>::default()), 2),
+            (Box::new(RecreateWithBlinks::<SingleDimCapacity>::default()), 2),
             (Box::new(RecreateWithRegret::new(2, 4)), 2),
             (Box::new(RecreateWithGaps::default()), 2),
             (Box::new(RecreateWithNearestNeighbor::default()), 2),

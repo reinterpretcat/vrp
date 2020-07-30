@@ -6,8 +6,7 @@ use crate::common::*;
 use crate::utils::MatrixFactory;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::constraints::*;
-use vrp_core::models::common::{TimeSpan, TimeWindow};
+use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::Problem;
 
@@ -72,7 +71,10 @@ impl<R: Read> TextReader for SolomonReader<R> {
             match self.read_customer() {
                 Ok(customer) => {
                     let mut dimens = create_dimens_with_id("", customer.id);
-                    dimens.set_demand(Demand::<i32> { pickup: (0, 0), delivery: (customer.demand as i32, 0) });
+                    dimens.set_demand(Demand::<SingleDimCapacity> {
+                        pickup: (SingleDimCapacity::default(), SingleDimCapacity::default()),
+                        delivery: (SingleDimCapacity::new(customer.demand as i32), SingleDimCapacity::default()),
+                    });
                     jobs.push(Job::Single(Arc::new(Single {
                         places: vec![Place {
                             location: Some(self.matrix.collect(customer.location)),

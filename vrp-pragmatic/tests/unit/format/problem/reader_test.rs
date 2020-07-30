@@ -1,12 +1,11 @@
 use super::create_approx_matrices;
-use crate::extensions::MultiDimensionalCapacity;
+use crate::format::problem::Profile as FormatProfile;
 use crate::format::problem::*;
 use crate::helpers::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
-use vrp_core::construction::constraints::{Demand, DemandDimension};
-use vrp_core::models::common::{Dimensions, IdDimension, TimeSpan, TimeWindow};
+use vrp_core::models::common::*;
 use vrp_core::models::problem::{Jobs, Multi, Place, Single};
 
 fn get_job(index: usize, jobs: &Jobs) -> vrp_core::models::problem::Job {
@@ -37,7 +36,7 @@ fn assert_time_spans(tws: &Vec<TimeSpan>, expected: Vec<(f64, f64)>) {
     });
 }
 
-fn assert_demand(demand: &Demand<MultiDimensionalCapacity>, expected: &Demand<MultiDimensionalCapacity>) {
+fn assert_demand(demand: &Demand<MultiDimCapacity>, expected: &Demand<MultiDimCapacity>) {
     assert_eq!(demand.pickup.0.as_vec(), expected.pickup.0.as_vec());
     assert_eq!(demand.pickup.1.as_vec(), expected.pickup.1.as_vec());
     assert_eq!(demand.delivery.0.as_vec(), expected.delivery.0.as_vec());
@@ -192,8 +191,8 @@ fn can_read_complex_problem() {
     assert_demand(
         job.dimens.get_demand().unwrap(),
         &Demand {
-            pickup: (MultiDimensionalCapacity::default(), MultiDimensionalCapacity::default()),
-            delivery: (MultiDimensionalCapacity::new(vec![0, 1]), MultiDimensionalCapacity::default()),
+            pickup: (MultiDimCapacity::default(), MultiDimCapacity::default()),
+            delivery: (MultiDimCapacity::new(vec![0, 1]), MultiDimCapacity::default()),
         },
     );
     assert_time_spans(&place.times, vec![(0., 100.), (110., 120.)]);
@@ -289,10 +288,10 @@ fn can_create_approximation_matrices() {
         fleet: Fleet {
             vehicles: vec![],
             profiles: vec![
-                Profile { name: "car1".to_string(), profile_type: "car".to_string(), speed: Some(8.) },
-                Profile { name: "car2".to_string(), profile_type: "car".to_string(), speed: Some(10.) },
-                Profile { name: "car3".to_string(), profile_type: "car".to_string(), speed: Some(5.) },
-                Profile { name: "car4".to_string(), profile_type: "car".to_string(), speed: None },
+                FormatProfile { name: "car1".to_string(), profile_type: "car".to_string(), speed: Some(8.) },
+                FormatProfile { name: "car2".to_string(), profile_type: "car".to_string(), speed: Some(10.) },
+                FormatProfile { name: "car3".to_string(), profile_type: "car".to_string(), speed: Some(5.) },
+                FormatProfile { name: "car4".to_string(), profile_type: "car".to_string(), speed: None },
             ],
         },
         ..create_empty_problem()

@@ -2,6 +2,7 @@ use crate::algorithms::nsga2::Objective;
 use crate::algorithms::statistics::get_cv;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
+use crate::models::common::{Capacity, CapacityDimension};
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
 use crate::solver::objectives::*;
 use crate::utils::compare_floats;
@@ -16,15 +17,12 @@ pub struct WorkBalance {}
 
 impl WorkBalance {
     /// Creates _(constraint, objective)_  type pair which balances max load across all tours.
-    pub fn new_load_balanced<Capacity>(
+    pub fn new_load_balanced<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static>(
         threshold: Option<f64>,
         tolerance: Option<f64>,
-        load_func: Arc<dyn Fn(&Capacity, &Capacity) -> f64 + Send + Sync>,
-    ) -> (TargetConstraint, TargetObjective)
-    where
-        Capacity: Add<Output = Capacity> + Sub<Output = Capacity> + Ord + Copy + Default + Send + Sync + 'static,
-    {
-        let default_capacity = Capacity::default();
+        load_func: Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>,
+    ) -> (TargetConstraint, TargetObjective) {
+        let default_capacity = T::default();
         let default_intervals = vec![(0_usize, 0_usize)];
 
         let get_load_ratio = Arc::new(move |ctx: &RouteContext| {
@@ -37,7 +35,7 @@ impl WorkBalance {
                 .map(|(start, _)| ctx.route.tour.get(*start).unwrap())
                 .map(|activity| {
                     ctx.state
-                        .get_activity_state::<Capacity>(MAX_FUTURE_CAPACITY_KEY, activity)
+                        .get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity)
                         .unwrap_or_else(|| &default_capacity)
                 })
                 .map(|max_load| load_func.deref()(max_load, capacity))
