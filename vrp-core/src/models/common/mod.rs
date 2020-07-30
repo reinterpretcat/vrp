@@ -1,7 +1,7 @@
 //! Common models.
 
-mod capacity;
-pub use self::capacity::*;
+mod load;
+pub use self::load::*;
 
 mod primitives;
 pub use self::primitives::*;

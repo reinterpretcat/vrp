@@ -2,7 +2,7 @@ use crate::algorithms::nsga2::Objective;
 use crate::algorithms::statistics::get_cv;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
-use crate::models::common::{Capacity, CapacityDimension};
+use crate::models::common::{CapacityDimension, Load};
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
 use crate::solver::objectives::*;
 use crate::utils::compare_floats;
@@ -17,7 +17,7 @@ pub struct WorkBalance {}
 
 impl WorkBalance {
     /// Creates _(constraint, objective)_  type pair which balances max load across all tours.
-    pub fn new_load_balanced<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static>(
+    pub fn new_load_balanced<T: Load + Add<Output = T> + Sub<Output = T> + 'static>(
         threshold: Option<f64>,
         tolerance: Option<f64>,
         load_func: Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>,

@@ -110,7 +110,7 @@ fn read_required_jobs(
 
     let get_single_from_task = |task: &JobTask, activity_type: &str, is_static_demand: bool| {
         let absent = (empty(), empty());
-        let capacity = task.demand.clone().map_or_else(empty, MultiDimCapacity::new);
+        let capacity = task.demand.clone().map_or_else(empty, MultiDimLoad::new);
         let demand = if is_static_demand { (capacity, empty()) } else { (empty(), capacity) };
 
         let demand = match activity_type {
@@ -380,7 +380,7 @@ fn get_single(places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>, coord_in
 
 fn get_single_with_extras(
     places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>,
-    demand: Demand<MultiDimCapacity>,
+    demand: Demand<MultiDimLoad>,
     tag: &Option<String>,
     activity_type: &str,
     has_multi_dimens: bool,
@@ -391,14 +391,8 @@ fn get_single_with_extras(
         single.dimens.set_demand(demand);
     } else {
         single.dimens.set_demand(Demand {
-            pickup: (
-                SingleDimCapacity::new(demand.pickup.0.capacity[0]),
-                SingleDimCapacity::new(demand.pickup.1.capacity[0]),
-            ),
-            delivery: (
-                SingleDimCapacity::new(demand.delivery.0.capacity[0]),
-                SingleDimCapacity::new(demand.delivery.1.capacity[0]),
-            ),
+            pickup: (SingleDimLoad::new(demand.pickup.0.load[0]), SingleDimLoad::new(demand.pickup.1.load[0])),
+            delivery: (SingleDimLoad::new(demand.delivery.0.load[0]), SingleDimLoad::new(demand.delivery.1.load[0])),
         });
     }
     single.dimens.set_value("type", activity_type.to_string());
@@ -470,8 +464,8 @@ fn add_priority(dimens: &mut Dimensions, priority: Option<i32>) {
     }
 }
 
-fn empty() -> MultiDimCapacity {
-    MultiDimCapacity::default()
+fn empty() -> MultiDimLoad {
+    MultiDimLoad::default()
 }
 
 fn parse_times(times: &Option<Vec<Vec<String>>>) -> Vec<TimeSpan> {

@@ -16,12 +16,12 @@ use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::sync::Arc;
 
-struct DemandJobSelector<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+struct DemandJobSelector<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
     asc_order: bool,
     phantom: PhantomData<T>,
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> DemandJobSelector<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> DemandJobSelector<T> {
     pub fn new(asc_order: bool) -> Self {
         Self { asc_order, phantom: PhantomData }
     }
@@ -39,7 +39,7 @@ impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> DemandJobSelecto
     }
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> JobSelector for DemandJobSelector<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> JobSelector for DemandJobSelector<T> {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
             (None, Some(_)) => Ordering::Less,
@@ -136,14 +136,14 @@ impl ResultSelector for BlinkResultSelector {
 
 /// A recreate method as described in "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) paper by Jan Christiaens, Greet Vanden Berghe.
-pub struct RecreateWithBlinks<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+pub struct RecreateWithBlinks<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,
     weights: Vec<usize>,
     phantom: PhantomData<T>,
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T> {
     /// Creates a new instance of `RecreateWithBlinks`.
     pub fn new(selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>) -> Self {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
@@ -156,7 +156,7 @@ impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlin
     }
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> Default for RecreateWithBlinks<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Default for RecreateWithBlinks<T> {
     fn default() -> Self {
         Self::new(vec![
             (Box::new(RandomJobSelector::new()), 10),
@@ -168,7 +168,7 @@ impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> Default for Recr
     }
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> Recreate for RecreateWithBlinks<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Recreate for RecreateWithBlinks<T> {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.random.weighted(self.weights.as_slice());
         let job_selector = self.job_selectors.get(index).unwrap();

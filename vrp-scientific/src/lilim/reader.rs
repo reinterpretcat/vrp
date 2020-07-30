@@ -112,14 +112,14 @@ impl<R: Read> LilimReader<R> {
     fn create_single_job(&mut self, customer: &JobLine) -> Arc<Single> {
         let mut dimens = create_dimens_with_id("c", customer.id);
         dimens.set_demand(if customer.demand > 0 {
-            Demand::<SingleDimCapacity> {
-                pickup: (SingleDimCapacity::default(), SingleDimCapacity::new(customer.demand as i32)),
-                delivery: (SingleDimCapacity::default(), SingleDimCapacity::default()),
+            Demand::<SingleDimLoad> {
+                pickup: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand as i32)),
+                delivery: (SingleDimLoad::default(), SingleDimLoad::default()),
             }
         } else {
-            Demand::<SingleDimCapacity> {
-                pickup: (SingleDimCapacity::default(), SingleDimCapacity::default()),
-                delivery: (SingleDimCapacity::default(), SingleDimCapacity::new(customer.demand as i32)),
+            Demand::<SingleDimLoad> {
+                pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
+                delivery: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand as i32)),
             }
         });
 

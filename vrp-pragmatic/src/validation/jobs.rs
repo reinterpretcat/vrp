@@ -3,7 +3,7 @@
 mod jobs_test;
 
 use super::*;
-use vrp_core::models::common::MultiDimCapacity;
+use vrp_core::models::common::MultiDimLoad;
 
 /// Checks that plan has no jobs with duplicate ids.
 fn check_e1100_no_jobs_with_duplicate_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
@@ -48,19 +48,16 @@ fn check_e1102_multiple_pickups_deliveries_demand(ctx: &ValidationContext) -> Re
     let has_tasks = |tasks: &Option<Vec<JobTask>>| tasks.as_ref().map_or(false, |tasks| !tasks.is_empty());
     let get_demand = |tasks: &Option<Vec<JobTask>>| {
         if let Some(tasks) = tasks {
-            tasks
-                .iter()
-                .map(|task| task.demand.clone().map_or_else(MultiDimCapacity::default, MultiDimCapacity::new))
-                .sum()
+            tasks.iter().map(|task| task.demand.clone().map_or_else(MultiDimLoad::default, MultiDimLoad::new)).sum()
         } else {
-            MultiDimCapacity::default()
+            MultiDimLoad::default()
         }
     };
 
     let ids = ctx
         .jobs()
         .filter(|job| has_tasks(&job.pickups) && has_tasks(&job.deliveries))
-        .filter(|job| get_demand(&job.pickups) - get_demand(&job.deliveries) != MultiDimCapacity::default())
+        .filter(|job| get_demand(&job.pickups) - get_demand(&job.deliveries) != MultiDimLoad::default())
         .map(|job| job.id.clone())
         .collect::<Vec<_>>();
 

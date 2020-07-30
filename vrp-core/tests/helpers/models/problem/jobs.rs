@@ -18,7 +18,7 @@ pub fn test_single() -> Single {
     single
 }
 
-pub fn test_single_with_simple_demand(demand: Demand<SingleDimCapacity>) -> Arc<Single> {
+pub fn test_single_with_simple_demand(demand: Demand<SingleDimLoad>) -> Arc<Single> {
     let mut single = test_single();
     single.dimens.set_demand(demand);
     Arc::new(single)
@@ -86,7 +86,7 @@ impl SingleBuilder {
         self
     }
 
-    pub fn demand(&mut self, demand: Demand<SingleDimCapacity>) -> &mut Self {
+    pub fn demand(&mut self, demand: Demand<SingleDimLoad>) -> &mut Self {
         self.single.dimens.set_demand(demand);
         self
     }

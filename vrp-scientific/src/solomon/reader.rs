@@ -71,9 +71,9 @@ impl<R: Read> TextReader for SolomonReader<R> {
             match self.read_customer() {
                 Ok(customer) => {
                     let mut dimens = create_dimens_with_id("", customer.id);
-                    dimens.set_demand(Demand::<SingleDimCapacity> {
-                        pickup: (SingleDimCapacity::default(), SingleDimCapacity::default()),
-                        delivery: (SingleDimCapacity::new(customer.demand as i32), SingleDimCapacity::default()),
+                    dimens.set_demand(Demand::<SingleDimLoad> {
+                        pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
+                        delivery: (SingleDimLoad::new(customer.demand as i32), SingleDimLoad::default()),
                     });
                     jobs.push(Job::Single(Arc::new(Single {
                         places: vec![Place {

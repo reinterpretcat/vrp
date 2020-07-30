@@ -1,6 +1,6 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/models/domain/capacity_test.rs"]
-mod capacity_test;
+#[path = "../../../tests/unit/models/domain/load_test.rs"]
+mod load_test;
 
 use crate::models::common::{Dimensions, ValueDimension};
 use std::cmp::Ordering;
@@ -9,30 +9,30 @@ use std::ops::{Add, Mul, Sub};
 
 const CAPACITY_DIMENSION_KEY: &str = "cpc";
 const DEMAND_DIMENSION_KEY: &str = "dmd";
-const CAPACITY_DIMENSION_SIZE: usize = 8;
+const LOAD_DIMENSION_SIZE: usize = 8;
 
-/// Represents a vehicle load type.
-pub trait Capacity: Add + Sub + Ord + Copy + Default + Send + Sync {
-    /// Returns true if capacity is not an empty.
+/// Represents a load type used to represent customer's demand or vehicle's load.
+pub trait Load: Add + Sub + Ord + Copy + Default + Send + Sync {
+    /// Returns true if it represents an empty load.
     fn is_not_empty(&self) -> bool;
 
-    /// Returns max capacity value.
+    /// Returns max load value.
     fn max_load(self, other: Self) -> Self;
 
     /// Returns true if `other` can be loaded into existing capacity.
-    fn can_load(&self, other: &Self) -> bool;
+    fn can_fit(&self, other: &Self) -> bool;
 }
 
 /// Represents job demand, both static and dynamic.
-pub struct Demand<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+pub struct Demand<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
     /// Keeps static and dynamic pickup amount.
     pub pickup: (T, T),
     /// Keeps static and dynamic delivery amount.
     pub delivery: (T, T),
 }
 
-/// A trait to get or set capacity.
-pub trait CapacityDimension<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+/// A trait to get or set vehicle's capacity.
+pub trait CapacityDimension<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
     /// Sets capacity.
     fn set_capacity(&mut self, demand: T) -> &mut Self;
     /// Gets capacity.
@@ -40,33 +40,33 @@ pub trait CapacityDimension<T: Capacity + Add<Output = T> + Sub<Output = T> + 's
 }
 
 /// A trait to get or set demand.
-pub trait DemandDimension<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+pub trait DemandDimension<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
     /// Sets demand.
     fn set_demand(&mut self, demand: Demand<T>) -> &mut Self;
     /// Gets demand.
     fn get_demand(&self) -> Option<&Demand<T>>;
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> Demand<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Demand<T> {
     /// Returns capacity change as difference between pickup and delivery.
     pub fn change(&self) -> T {
         self.pickup.0 + self.pickup.1 - self.delivery.0 - self.delivery.1
     }
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> Default for Demand<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Default for Demand<T> {
     fn default() -> Self {
         Self { pickup: (Default::default(), Default::default()), delivery: (Default::default(), Default::default()) }
     }
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> Clone for Demand<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Clone for Demand<T> {
     fn clone(&self) -> Self {
         Self { pickup: self.pickup, delivery: self.delivery }
     }
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> CapacityDimension<T> for Dimensions {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> CapacityDimension<T> for Dimensions {
     fn set_capacity(&mut self, demand: T) -> &mut Self {
         self.set_value(CAPACITY_DIMENSION_KEY, demand);
         self
@@ -77,7 +77,7 @@ impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> CapacityDimensio
     }
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> DemandDimension<T> for Dimensions {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> DemandDimension<T> for Dimensions {
     fn set_demand(&mut self, demand: Demand<T>) -> &mut Self {
         self.set_value(DEMAND_DIMENSION_KEY, demand);
         self
@@ -88,27 +88,27 @@ impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> DemandDimension<
     }
 }
 
-/// Specifies single dimensional capacity type.
+/// Specifies single dimensional load type.
 #[derive(Clone, Copy, Debug)]
-pub struct SingleDimCapacity {
-    /// An actual capacity value.
+pub struct SingleDimLoad {
+    /// An actual load value.
     pub value: i32,
 }
 
-impl SingleDimCapacity {
-    /// Creates a new instance of `SingleDimCapacity`.
+impl SingleDimLoad {
+    /// Creates a new instance of `SingleDimLoad`.
     pub fn new(value: i32) -> Self {
         Self { value }
     }
 }
 
-impl Default for SingleDimCapacity {
+impl Default for SingleDimLoad {
     fn default() -> Self {
         Self { value: 0 }
     }
 }
 
-impl Capacity for SingleDimCapacity {
+impl Load for SingleDimLoad {
     fn is_not_empty(&self) -> bool {
         self.value != 0
     }
@@ -118,12 +118,12 @@ impl Capacity for SingleDimCapacity {
         Self { value }
     }
 
-    fn can_load(&self, other: &Self) -> bool {
+    fn can_fit(&self, other: &Self) -> bool {
         self.value >= other.value
     }
 }
 
-impl Add for SingleDimCapacity {
+impl Add for SingleDimLoad {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -132,7 +132,7 @@ impl Add for SingleDimCapacity {
     }
 }
 
-impl Sub for SingleDimCapacity {
+impl Sub for SingleDimLoad {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -141,27 +141,27 @@ impl Sub for SingleDimCapacity {
     }
 }
 
-impl Ord for SingleDimCapacity {
+impl Ord for SingleDimLoad {
     fn cmp(&self, other: &Self) -> Ordering {
         self.value.cmp(&other.value)
     }
 }
 
-impl PartialOrd for SingleDimCapacity {
+impl PartialOrd for SingleDimLoad {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Eq for SingleDimCapacity {}
+impl Eq for SingleDimLoad {}
 
-impl PartialEq for SingleDimCapacity {
+impl PartialEq for SingleDimLoad {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl Mul<f64> for SingleDimCapacity {
+impl Mul<f64> for SingleDimLoad {
     type Output = Self;
 
     fn mul(self, value: f64) -> Self::Output {
@@ -169,30 +169,30 @@ impl Mul<f64> for SingleDimCapacity {
     }
 }
 
-/// Specifies multi dimensional capacity type.
+/// Specifies multi dimensional load type.
 #[derive(Clone, Copy, Debug)]
-pub struct MultiDimCapacity {
-    /// Capacity data.
-    pub capacity: [i32; CAPACITY_DIMENSION_SIZE],
+pub struct MultiDimLoad {
+    /// Load data.
+    pub load: [i32; LOAD_DIMENSION_SIZE],
     /// Actual used size.
     pub size: usize,
 }
 
-impl MultiDimCapacity {
-    /// Creates a new instance of `MultiDimCapacity`.
+impl MultiDimLoad {
+    /// Creates a new instance of `MultiDimLoad`.
     pub fn new(data: Vec<i32>) -> Self {
-        assert!(data.len() <= CAPACITY_DIMENSION_SIZE);
+        assert!(data.len() <= LOAD_DIMENSION_SIZE);
 
-        let mut capacity = [0; CAPACITY_DIMENSION_SIZE];
+        let mut load = [0; LOAD_DIMENSION_SIZE];
         for (idx, value) in data.iter().enumerate() {
-            capacity[idx] = *value;
+            load[idx] = *value;
         }
 
-        Self { capacity, size: data.len() }
+        Self { load, size: data.len() }
     }
 
     fn get(&self, idx: usize) -> i32 {
-        self.capacity[idx]
+        self.load[idx]
     }
 
     /// Converts to vector representation.
@@ -200,43 +200,43 @@ impl MultiDimCapacity {
         if self.size == 0 {
             vec![0]
         } else {
-            self.capacity[..self.size].to_vec()
+            self.load[..self.size].to_vec()
         }
     }
 }
 
-impl Capacity for MultiDimCapacity {
+impl Load for MultiDimLoad {
     fn is_not_empty(&self) -> bool {
-        self.size == 0 || self.capacity.iter().any(|v| *v != 0)
+        self.size == 0 || self.load.iter().any(|v| *v != 0)
     }
 
     fn max_load(self, other: Self) -> Self {
         let mut result = self;
-        result.capacity.iter_mut().zip(other.capacity.iter()).for_each(|(a, b)| *a = (*a).max(*b));
+        result.load.iter_mut().zip(other.load.iter()).for_each(|(a, b)| *a = (*a).max(*b));
 
         result
     }
 
-    fn can_load(&self, other: &Self) -> bool {
-        self.capacity.iter().zip(other.capacity.iter()).all(|(a, b)| a >= b)
+    fn can_fit(&self, other: &Self) -> bool {
+        self.load.iter().zip(other.load.iter()).all(|(a, b)| a >= b)
     }
 }
 
-impl Default for MultiDimCapacity {
+impl Default for MultiDimLoad {
     fn default() -> Self {
-        Self { capacity: [0; CAPACITY_DIMENSION_SIZE], size: 0 }
+        Self { load: [0; LOAD_DIMENSION_SIZE], size: 0 }
     }
 }
 
-impl Add for MultiDimCapacity {
+impl Add for MultiDimLoad {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        fn sum(acc: MultiDimCapacity, rhs: &MultiDimCapacity) -> MultiDimCapacity {
+        fn sum(acc: MultiDimLoad, rhs: &MultiDimLoad) -> MultiDimLoad {
             let mut dimens = acc;
 
-            for (idx, value) in rhs.capacity.iter().enumerate() {
-                dimens.capacity[idx] += *value;
+            for (idx, value) in rhs.load.iter().enumerate() {
+                dimens.load[idx] += *value;
             }
 
             dimens.size = dimens.size.max(rhs.size);
@@ -244,7 +244,7 @@ impl Add for MultiDimCapacity {
             dimens
         }
 
-        if self.capacity.len() >= rhs.capacity.len() {
+        if self.load.len() >= rhs.load.len() {
             sum(self, &rhs)
         } else {
             sum(rhs, &self)
@@ -252,14 +252,14 @@ impl Add for MultiDimCapacity {
     }
 }
 
-impl Sub for MultiDimCapacity {
+impl Sub for MultiDimLoad {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
         let mut dimens = self;
 
-        for (idx, value) in rhs.capacity.iter().enumerate() {
-            dimens.capacity[idx] -= *value;
+        for (idx, value) in rhs.load.iter().enumerate() {
+            dimens.load[idx] -= *value;
         }
 
         dimens.size = dimens.size.max(rhs.size);
@@ -268,9 +268,9 @@ impl Sub for MultiDimCapacity {
     }
 }
 
-impl Ord for MultiDimCapacity {
+impl Ord for MultiDimLoad {
     fn cmp(&self, other: &Self) -> Ordering {
-        let size = self.capacity.len().max(other.capacity.len());
+        let size = self.load.len().max(other.load.len());
         (0..size).fold(Ordering::Equal, |acc, idx| match acc {
             Ordering::Greater => Ordering::Greater,
             Ordering::Equal => self.get(idx).cmp(&other.get(idx)),
@@ -285,27 +285,27 @@ impl Ord for MultiDimCapacity {
     }
 }
 
-impl PartialOrd for MultiDimCapacity {
+impl PartialOrd for MultiDimLoad {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Eq for MultiDimCapacity {}
+impl Eq for MultiDimLoad {}
 
-impl PartialEq for MultiDimCapacity {
+impl PartialEq for MultiDimLoad {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl Mul<f64> for MultiDimCapacity {
+impl Mul<f64> for MultiDimLoad {
     type Output = Self;
 
     fn mul(self, value: f64) -> Self::Output {
         let mut dimens = self;
 
-        dimens.capacity.iter_mut().for_each(|item| {
+        dimens.load.iter_mut().for_each(|item| {
             *item = (*item as f64 * value).round() as i32;
         });
 
@@ -313,8 +313,8 @@ impl Mul<f64> for MultiDimCapacity {
     }
 }
 
-impl Sum for MultiDimCapacity {
-    fn sum<I: Iterator<Item = MultiDimCapacity>>(iter: I) -> Self {
-        iter.fold(MultiDimCapacity::default(), |acc, item| item + acc)
+impl Sum for MultiDimLoad {
+    fn sum<I: Iterator<Item = MultiDimLoad>>(iter: I) -> Self {
+        iter.fold(MultiDimLoad::default(), |acc, item| item + acc)
     }
 }

@@ -11,7 +11,7 @@ extern crate serde_json;
 use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::models::common::SingleDimCapacity;
+use vrp_core::models::common::SingleDimLoad;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
@@ -194,7 +194,7 @@ fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send +
     match method {
         RecreateMethod::Cheapest { weight } => (Box::new(RecreateWithCheapest::default()), *weight),
         RecreateMethod::Regret { weight, start, end } => (Box::new(RecreateWithRegret::new(*start, *end)), *weight),
-        RecreateMethod::Blinks { weight } => (Box::new(RecreateWithBlinks::<SingleDimCapacity>::default()), *weight),
+        RecreateMethod::Blinks { weight } => (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), *weight),
         RecreateMethod::Gaps { weight, min } => (Box::new(RecreateWithGaps::new(*min)), *weight),
         RecreateMethod::Nearest { weight } => (Box::new(RecreateWithNearestNeighbor::default()), *weight),
     }

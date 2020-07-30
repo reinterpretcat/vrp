@@ -35,7 +35,7 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
 }
 
 pub fn get_vehicle_capacity(problem: &Problem) -> i32 {
-    let capacity: &SingleDimCapacity = problem.fleet.vehicles.iter().next().unwrap().dimens.get_capacity().unwrap();
+    let capacity: &SingleDimLoad = problem.fleet.vehicles.iter().next().unwrap().dimens.get_capacity().unwrap();
     capacity.value
 }
 
@@ -77,7 +77,7 @@ pub fn get_job_durations(problem: &Problem) -> Vec<f64> {
         .collect()
 }
 
-pub fn get_job_simple_demand(job: &Job) -> &Demand<SingleDimCapacity> {
+pub fn get_job_simple_demand(job: &Job) -> &Demand<SingleDimLoad> {
     match job {
         Job::Single(single) => &single.dimens,
         Job::Multi(multi) => &multi.dimens,

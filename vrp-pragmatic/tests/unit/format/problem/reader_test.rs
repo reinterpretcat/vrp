@@ -36,7 +36,7 @@ fn assert_time_spans(tws: &Vec<TimeSpan>, expected: Vec<(f64, f64)>) {
     });
 }
 
-fn assert_demand(demand: &Demand<MultiDimCapacity>, expected: &Demand<MultiDimCapacity>) {
+fn assert_demand(demand: &Demand<MultiDimLoad>, expected: &Demand<MultiDimLoad>) {
     assert_eq!(demand.pickup.0.as_vec(), expected.pickup.0.as_vec());
     assert_eq!(demand.pickup.1.as_vec(), expected.pickup.1.as_vec());
     assert_eq!(demand.delivery.0.as_vec(), expected.delivery.0.as_vec());
@@ -191,8 +191,8 @@ fn can_read_complex_problem() {
     assert_demand(
         job.dimens.get_demand().unwrap(),
         &Demand {
-            pickup: (MultiDimCapacity::default(), MultiDimCapacity::default()),
-            delivery: (MultiDimCapacity::new(vec![0, 1]), MultiDimCapacity::default()),
+            pickup: (MultiDimLoad::default(), MultiDimLoad::default()),
+            delivery: (MultiDimLoad::new(vec![0, 1]), MultiDimLoad::default()),
         },
     );
     assert_time_spans(&place.times, vec![(0., 100.), (110., 120.)]);

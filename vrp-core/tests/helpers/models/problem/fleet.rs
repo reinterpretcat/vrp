@@ -87,7 +87,7 @@ impl VehicleBuilder {
     }
 
     pub fn capacity(&mut self, capacity: i32) -> &mut VehicleBuilder {
-        self.vehicle.dimens.set_capacity(SingleDimCapacity::new(capacity));
+        self.vehicle.dimens.set_capacity(SingleDimLoad::new(capacity));
         self
     }
 

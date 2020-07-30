@@ -129,9 +129,9 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 }
 
                 if props.has_multi_dimen_capacity {
-                    dimens.set_capacity(MultiDimCapacity::new(vehicle.capacity.clone()));
+                    dimens.set_capacity(MultiDimLoad::new(vehicle.capacity.clone()));
                 } else {
-                    dimens.set_capacity(SingleDimCapacity::new(*vehicle.capacity.first().unwrap()));
+                    dimens.set_capacity(SingleDimLoad::new(*vehicle.capacity.first().unwrap()));
                 }
                 add_skills(&mut dimens, &vehicle.skills);
 

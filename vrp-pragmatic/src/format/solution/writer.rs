@@ -62,16 +62,12 @@ impl<W: Write> PragmaticSolution<W> for (Solution, Metrics) {
 
 struct Leg {
     pub last_detail: Option<(DomainLocation, Timestamp)>,
-    pub load: Option<MultiDimCapacity>,
+    pub load: Option<MultiDimLoad>,
     pub statistic: Statistic,
 }
 
 impl Leg {
-    fn new(
-        last_detail: Option<(DomainLocation, Timestamp)>,
-        load: Option<MultiDimCapacity>,
-        statistic: Statistic,
-    ) -> Self {
+    fn new(last_detail: Option<(DomainLocation, Timestamp)>, load: Option<MultiDimLoad>, statistic: Statistic) -> Self {
         Self { last_detail, load, statistic }
     }
 
@@ -118,13 +114,13 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
     let mut leg = intervals.into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
         let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-            (leg.load.unwrap_or_else(MultiDimCapacity::default), MultiDimCapacity::default()),
+            (leg.load.unwrap_or_else(MultiDimLoad::default), MultiDimLoad::default()),
             |acc, activity| {
                 let (delivery, pickup) = activity
                     .job
                     .as_ref()
                     .and_then(|job| get_capacity(&job.dimens, is_multi_dimen).map(|d| (d.delivery.0, d.pickup.0)))
-                    .unwrap_or((MultiDimCapacity::default(), MultiDimCapacity::default()));
+                    .unwrap_or((MultiDimLoad::default(), MultiDimLoad::default()));
                 (acc.0 + delivery, acc.1 + pickup)
             },
         );
@@ -140,7 +136,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
             tour.stops.push(Stop {
                 location: coord_index.get_by_idx(start.place.location).unwrap(),
                 time: format_schedule(&start.schedule),
-                load: if has_depot { MultiDimCapacity::default().as_vec() } else { start_delivery.as_vec() },
+                load: if has_depot { MultiDimLoad::default().as_vec() } else { start_delivery.as_vec() },
                 distance: 0,
                 activities: vec![ApiActivity {
                     job_id: "departure".to_string(),
@@ -165,7 +161,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 } else {
                     // NOTE arrival must have zero load
                     let dimen_size = leg.load.unwrap().size;
-                    MultiDimCapacity::new(vec![0; dimen_size])
+                    MultiDimLoad::new(vec![0; dimen_size])
                 };
 
                 let activity_type = activity_type.unwrap_or_else(|| "arrival".to_string());
@@ -272,7 +268,7 @@ fn format_as_schedule(schedule: &(f64, f64)) -> ApiSchedule {
     format_schedule(&DomainSchedule::new(schedule.0, schedule.1))
 }
 
-fn calculate_load(current: MultiDimCapacity, act: &Activity, is_multi_dimen: bool) -> MultiDimCapacity {
+fn calculate_load(current: MultiDimLoad, act: &Activity, is_multi_dimen: bool) -> MultiDimLoad {
     let job = act.job.as_ref();
     let demand = job.and_then(|job| get_capacity(&job.dimens, is_multi_dimen)).unwrap_or_default();
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
@@ -339,18 +335,18 @@ fn get_activity_type(activity: &Activity) -> Option<&String> {
     activity.job.as_ref().and_then(|single| single.dimens.get_value::<String>("type"))
 }
 
-fn get_capacity(dimens: &Dimensions, is_multi_dimen: bool) -> Option<Demand<MultiDimCapacity>> {
+fn get_capacity(dimens: &Dimensions, is_multi_dimen: bool) -> Option<Demand<MultiDimLoad>> {
     if is_multi_dimen {
         dimens.get_demand().cloned()
     } else {
-        let create_capacity = |capacity: SingleDimCapacity| {
+        let create_capacity = |capacity: SingleDimLoad| {
             if capacity.value == 0 {
-                MultiDimCapacity::default()
+                MultiDimLoad::default()
             } else {
-                MultiDimCapacity::new(vec![capacity.value])
+                MultiDimLoad::new(vec![capacity.value])
             }
         };
-        dimens.get_demand().map(|demand: &Demand<SingleDimCapacity>| Demand {
+        dimens.get_demand().map(|demand: &Demand<SingleDimLoad>| Demand {
             pickup: (create_capacity(demand.pickup.0), create_capacity(demand.pickup.1)),
             delivery: (create_capacity(demand.delivery.0), create_capacity(demand.delivery.1)),
         })

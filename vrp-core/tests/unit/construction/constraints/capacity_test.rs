@@ -4,7 +4,7 @@ use crate::helpers::construction::constraints::*;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::common::SingleDimCapacity;
+use crate::models::common::SingleDimLoad;
 use crate::models::problem::{Job, Vehicle};
 use crate::models::solution::Activity;
 
@@ -17,7 +17,7 @@ fn create_activity_violation(stopped: bool) -> Option<ActivityConstraintViolatio
 }
 
 fn get_simple_capacity_state(key: i32, state: &RouteState, activity: Option<&Activity>) -> i32 {
-    state.get_activity_state::<SingleDimCapacity>(key, activity.unwrap()).expect("expect single capacity").value
+    state.get_activity_state::<SingleDimLoad>(key, activity.unwrap()).expect("expect single capacity").value
 }
 
 parameterized_test! {can_calculate_current_capacity_state_values, (s1, s2, s3, start, end, exp_s1, exp_s2, exp_s3), {

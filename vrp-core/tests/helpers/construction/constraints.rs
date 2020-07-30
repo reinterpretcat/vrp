@@ -1,18 +1,18 @@
 use crate::construction::constraints::*;
 use crate::helpers::models::problem::{TestActivityCost, TestTransportCost};
-use crate::models::common::{Demand, SingleDimCapacity};
+use crate::models::common::{Demand, SingleDimLoad};
 use std::sync::Arc;
 
-pub fn create_simple_demand(size: i32) -> Demand<SingleDimCapacity> {
+pub fn create_simple_demand(size: i32) -> Demand<SingleDimLoad> {
     if size > 0 {
-        Demand::<SingleDimCapacity> {
-            pickup: (SingleDimCapacity::new(size), SingleDimCapacity::default()),
-            delivery: (SingleDimCapacity::default(), SingleDimCapacity::default()),
+        Demand::<SingleDimLoad> {
+            pickup: (SingleDimLoad::new(size), SingleDimLoad::default()),
+            delivery: (SingleDimLoad::default(), SingleDimLoad::default()),
         }
     } else {
-        Demand::<SingleDimCapacity> {
-            pickup: (SingleDimCapacity::default(), SingleDimCapacity::default()),
-            delivery: (SingleDimCapacity::new(-size), SingleDimCapacity::default()),
+        Demand::<SingleDimLoad> {
+            pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
+            delivery: (SingleDimLoad::new(-size), SingleDimLoad::default()),
         }
     }
 }
@@ -35,5 +35,5 @@ pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
 }
 
 pub fn create_constraint_pipeline_with_simple_capacity() -> ConstraintPipeline {
-    create_constraint_pipeline_with_module(Box::new(CapacityConstraintModule::<SingleDimCapacity>::new(2)))
+    create_constraint_pipeline_with_module(Box::new(CapacityConstraintModule::<SingleDimLoad>::new(2)))
 }

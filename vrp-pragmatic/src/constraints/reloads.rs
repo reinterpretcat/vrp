@@ -3,22 +3,22 @@ use std::ops::{Add, Deref, Sub};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::RouteContext;
-use vrp_core::models::common::{Capacity, IdDimension, ValueDimension};
+use vrp_core::models::common::{IdDimension, Load, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Route};
 
 /// A strategy to use multi trip with reload jobs.
-pub struct ReloadMultiTrip<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> {
+pub struct ReloadMultiTrip<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
     threshold: Box<dyn Fn(&T) -> T + Send + Sync>,
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> ReloadMultiTrip<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ReloadMultiTrip<T> {
     pub fn new(threshold: Box<dyn Fn(&T) -> T + Send + Sync>) -> Self {
         Self { threshold }
     }
 }
 
-impl<T: Capacity + Add<Output = T> + Sub<Output = T> + 'static> MultiTrip<T> for ReloadMultiTrip<T> {
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> MultiTrip<T> for ReloadMultiTrip<T> {
     fn is_reload_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| self.is_reload_single(single))
     }

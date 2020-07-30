@@ -4,14 +4,14 @@ mod capacity_test;
 
 use super::*;
 use std::iter::once;
-use vrp_core::models::common::{Capacity, MultiDimCapacity};
+use vrp_core::models::common::{Load, MultiDimLoad};
 
 /// Checks that vehicle load is assigned correctly. The following rules are checked:
 /// * max vehicle's capacity is not violated
 /// * load change is correct
 pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each(|tour| {
-        let capacity = MultiDimCapacity::new(context.get_vehicle(tour.vehicle_id.as_str())?.capacity.clone());
+        let capacity = MultiDimLoad::new(context.get_vehicle(tour.vehicle_id.as_str())?.capacity.clone());
 
         let legs = (0_usize..)
             .zip(tour.stops.windows(2))
@@ -46,7 +46,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
 
         intervals
             .iter()
-            .try_fold::<_, _, Result<_, String>>(MultiDimCapacity::default(), |acc, interval| {
+            .try_fold::<_, _, Result<_, String>>(MultiDimLoad::default(), |acc, interval| {
                 let (start_delivery, end_pickup) = interval
                     .iter()
                     .flat_map(|(_, (from, to))| once(from).chain(once(to)))
@@ -58,7 +58,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                             .map(move |activity| (activity.clone(), context.get_activity_type(tour, stop, activity)))
                     })
                     .try_fold::<_, _, Result<_, String>>(
-                        (acc, MultiDimCapacity::default()),
+                        (acc, MultiDimLoad::default()),
                         |acc, (activity, activity_type)| {
                             let activity_type = activity_type?;
                             let demand = get_demand(context, &activity, &activity_type)?;
@@ -72,15 +72,15 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                     )?;
 
                 let end_capacity = interval.iter().try_fold(start_delivery, |acc, (idx, (from, to))| {
-                    let from_load = MultiDimCapacity::new(from.load.clone());
-                    let to_load = MultiDimCapacity::new(to.load.clone());
+                    let from_load = MultiDimLoad::new(from.load.clone());
+                    let to_load = MultiDimLoad::new(to.load.clone());
 
-                    if !capacity.can_load(&from_load) || !capacity.can_load(&to_load) {
+                    if !capacity.can_fit(&from_load) || !capacity.can_fit(&to_load) {
                         return Err(format!("Load exceeds capacity in tour '{}'", tour.vehicle_id));
                     }
 
                     let change = to.activities.iter().try_fold::<_, _, Result<_, String>>(
-                        MultiDimCapacity::default(),
+                        MultiDimLoad::default(),
                         |acc, activity| {
                             let activity_type = context.get_activity_type(tour, to, activity)?;
                             let (demand_type, demand) =
@@ -133,18 +133,18 @@ fn get_demand(
     context: &CheckerContext,
     activity: &Activity,
     activity_type: &ActivityType,
-) -> Result<(DemandType, MultiDimCapacity), String> {
+) -> Result<(DemandType, MultiDimLoad), String> {
     let (is_dynamic, demand) = context.visit_job(
         activity,
         &activity_type,
         |job, task| {
             let is_dynamic = job.pickups.as_ref().map_or(false, |p| !p.is_empty())
                 && job.deliveries.as_ref().map_or(false, |p| !p.is_empty());
-            let demand = task.demand.clone().map_or_else(MultiDimCapacity::default, MultiDimCapacity::new);
+            let demand = task.demand.clone().map_or_else(MultiDimLoad::default, MultiDimLoad::new);
 
             (is_dynamic, demand)
         },
-        || (false, MultiDimCapacity::default()),
+        || (false, MultiDimLoad::default()),
     )?;
 
     let demand_type = match (is_dynamic, activity.activity_type.as_ref()) {

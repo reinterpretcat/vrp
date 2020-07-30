@@ -3,7 +3,7 @@ use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
-use vrp_core::models::common::{MultiDimCapacity, SingleDimCapacity};
+use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{ObjectiveCost, TargetConstraint, TargetObjective};
 use vrp_core::solver::objectives::*;
 
@@ -73,14 +73,14 @@ fn get_load_balance(
 ) -> (TargetConstraint, TargetObjective) {
     let (threshold, tolerance) = unwrap_options(options);
     if props.has_multi_dimen_capacity {
-        WorkBalance::new_load_balanced::<MultiDimCapacity>(
+        WorkBalance::new_load_balanced::<MultiDimLoad>(
             threshold,
             tolerance,
             Arc::new(|loaded, total| {
                 let mut max_ratio = 0_f64;
 
-                for (idx, value) in total.capacity.iter().enumerate() {
-                    let ratio = loaded.capacity[idx] as f64 / *value as f64;
+                for (idx, value) in total.load.iter().enumerate() {
+                    let ratio = loaded.load[idx] as f64 / *value as f64;
                     max_ratio = max_ratio.max(ratio);
                 }
 
@@ -88,7 +88,7 @@ fn get_load_balance(
             }),
         )
     } else {
-        WorkBalance::new_load_balanced::<SingleDimCapacity>(
+        WorkBalance::new_load_balanced::<SingleDimLoad>(
             threshold,
             tolerance,
             Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
