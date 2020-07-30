@@ -1,7 +1,6 @@
 [![](https://docs.rs/vrp-core/badge.svg)](https://docs.rs/vrp-core)
 [![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli)
-![minimum rustc 1.31](https://img.shields.io/badge/rustc-1.31+-red.svg)
-![Rust](https://github.com/reinterpretcat/vrp/workflows/Rust/badge.svg?branch=master)
+![build](https://github.com/reinterpretcat/vrp/workflows/build/badge.svg)
 
 ![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
 
@@ -14,7 +13,7 @@ default metaheuristic implementation which can be roughly described as
 
 # Getting started
 
-Please check documentation [here](https://reinterpretcat.github.io/vrp).
+Please check [A Vehicle Routing Problem Solver Documentation](https://reinterpretcat.github.io/vrp).
 
 
 # Design goal
@@ -94,8 +93,8 @@ The project consists of the following parts:
 
 # Dependant projects
 
-* [analysis](https://github.com/reinterpretcat/vrp-analysis): provides way to analyze solutions, algorithm behaviour
-* [API](https://github.com/reinterpretcat/vrp-api): API prototype built using Rust/AWS/Terraform
+* [analysis](https://github.com/reinterpretcat/vrp-analysis): provides way to analyze solutions, algorithm behaviour (WIP)
+* [api](https://github.com/reinterpretcat/vrp-api): API prototype built using Rust/AWS/Terraform (PoC)
 
 # Status
 

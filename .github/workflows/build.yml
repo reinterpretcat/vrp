@@ -1,4 +1,4 @@
-name: Rust
+name: build
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
+    - name: Release build
       run: cargo build --release --verbose
     - name: Run tests
       run: cargo test --release --verbose
