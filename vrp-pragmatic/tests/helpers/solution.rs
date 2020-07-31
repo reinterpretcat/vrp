@@ -82,6 +82,16 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
     assert_eq!(result, expected);
 }
 
+pub fn create_empty_tour() -> Tour {
+    Tour {
+        vehicle_id: "".to_string(),
+        type_id: "".to_string(),
+        shift_index: 0,
+        stops: vec![],
+        statistic: Default::default(),
+    }
+}
+
 pub fn create_empty_solution() -> Solution {
     Solution { statistic: Default::default(), tours: vec![], unassigned: None, violations: None, extras: None }
 }

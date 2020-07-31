@@ -60,7 +60,7 @@ Ensure that your `$PATH` is properly configured to source the crates binaries, a
 `vrp-cli` crate is designed to use on problems defined in scientific or custom (aka 'pragmatic') format:
 
 ```bash
-vrp-cli solve pragmatic problem_definition.json -m routing_matrix.json --max-time=120`
+vrp-cli solve pragmatic problem_definition.json -m routing_matrix.json --max-time=120
 ```
 
 Please refer to crate docs for more details.

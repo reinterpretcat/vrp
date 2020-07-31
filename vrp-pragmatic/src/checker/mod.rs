@@ -43,6 +43,7 @@ impl CheckerContext {
         check_breaks(&self)?;
         check_assignment(&self)?;
         check_routing(&self)?;
+        check_limits(&self)?;
 
         Ok(())
     }
@@ -236,6 +237,9 @@ use crate::checker::assignment::check_assignment;
 
 mod capacity;
 use crate::checker::capacity::check_vehicle_load;
+
+mod limits;
+use crate::checker::limits::check_limits;
 
 mod breaks;
 use crate::checker::breaks::check_breaks;
