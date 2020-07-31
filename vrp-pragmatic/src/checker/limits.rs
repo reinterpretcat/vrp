@@ -14,7 +14,7 @@ pub fn check_limits(context: &CheckerContext) -> Result<(), String> {
         let vehicle = context.get_vehicle(tour.vehicle_id.as_str())?;
 
         if let Some(ref limits) = vehicle.limits {
-            if let Some(max_distance) = limits.max_distance.clone() {
+            if let Some(max_distance) = limits.max_distance {
                 if tour.statistic.distance as f64 > max_distance {
                     return Err(format!(
                         "max distance limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
@@ -23,7 +23,7 @@ pub fn check_limits(context: &CheckerContext) -> Result<(), String> {
                 }
             }
 
-            if let Some(shift_time) = limits.shift_time.clone() {
+            if let Some(shift_time) = limits.shift_time {
                 if tour.statistic.duration as f64 > shift_time {
                     return Err(format!(
                         "shift time limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
