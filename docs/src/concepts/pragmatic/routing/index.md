@@ -5,6 +5,4 @@ locations in the problem. Getting this data is not a part of the solver, you nee
 Once received, it has to be passed within VRP definition in specific routing matrix format.
 
 When no routing matrix information supplied, the solver uses haversine distance approximation. See more information
-about such behavior in [experiments section](../../../getting-started/experiments.md).
-
-
+about such behavior [here](../../../getting-started/routing.md).
