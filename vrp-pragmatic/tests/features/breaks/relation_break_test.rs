@@ -1,12 +1,31 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
+use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
 
-fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
+fn get_permissive_break_time() -> VehicleBreakTime {
+    VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)])
+}
+
+fn get_challenging_break_time() -> VehicleBreakTime {
+    VehicleBreakTime::TimeWindow(vec![format_time(10.), format_time(15.)])
+}
+
+fn get_solution(
+    relation_type: RelationType,
+    job_duration: f64,
+    break_locations: Option<Vec<Location>>,
+    break_time: VehicleBreakTime,
+    jobs: Vec<String>,
+    perform_check: bool,
+) -> Solution {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
+            jobs: vec![
+                create_delivery_job_with_duration("job1", vec![1., 0.], job_duration),
+                create_delivery_job_with_duration("job2", vec![2., 0.], job_duration),
+            ],
             relations: Some(vec![Relation {
                 type_field: relation_type,
                 jobs,
@@ -17,11 +36,7 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    breaks: Some(vec![VehicleBreak {
-                        time: VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)]),
-                        duration: 2.0,
-                        locations: Some(vec![vec![3., 0.].to_loc()]),
-                    }]),
+                    breaks: Some(vec![VehicleBreak { time: break_time, duration: 2.0, locations: break_locations }]),
                     ..create_default_vehicle_shift()
                 }],
                 ..create_default_vehicle_type()
@@ -32,7 +47,11 @@ fn get_solution(relation_type: RelationType, jobs: Vec<String>) -> Solution {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    solve_with_metaheuristic(problem, Some(vec![matrix]))
+    if perform_check {
+        solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 100)
+    } else {
+        solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 100)
+    }
 }
 
 parameterized_test! {can_use_break_between_two_jobs_in_relation, relation_type, {
@@ -45,7 +64,8 @@ can_use_break_between_two_jobs_in_relation! {
 }
 
 fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
-    let solution = get_solution(relation_type, jobs);
+    let solution =
+        get_solution(relation_type, 1., Some(vec![vec![3., 0.].to_loc()]), get_permissive_break_time(), jobs, true);
 
     assert_eq!(
         solution,
@@ -124,7 +144,8 @@ can_use_break_last_in_relation! {
 }
 
 fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
-    let solution = get_solution(relation_type, jobs);
+    let solution =
+        get_solution(relation_type, 1., Some(vec![vec![3., 0.].to_loc()]), get_permissive_break_time(), jobs, true);
 
     assert_eq!(
         solution,
@@ -191,4 +212,22 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
             ..create_empty_solution()
         }
     );
+}
+
+#[test]
+fn can_stick_to_relation_ignoring_constraint() {
+    let relation_type = RelationType::Strict;
+    let jobs = to_strings(vec!["departure", "job1", "job2", "break"]);
+    let expected = vec![
+        to_strings(vec!["departure"]),
+        to_strings(vec!["job1"]),
+        to_strings(vec!["job2", "break"]),
+        to_strings(vec!["arrival"]),
+    ];
+
+    let solution = get_solution(relation_type, 10., None, get_challenging_break_time(), jobs, false);
+
+    assert_eq!(solution.tours.len(), 1);
+    assert!(solution.unassigned.is_none());
+    assert_eq!(get_ids_from_tour(&solution.tours[0]), expected);
 }

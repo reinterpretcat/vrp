@@ -157,39 +157,57 @@ fn is_required_job(ctx: &SolutionContext, job: &Job, default: bool) -> bool {
 /// * break without location served separately when original job is removed, but break is kept.
 /// * break is defined by interval, but its time is violated. This might happen due to departure time rescheduling.
 fn remove_invalid_breaks(ctx: &mut SolutionContext) {
-    let breaks_set = ctx.routes.iter_mut().fold(HashSet::new(), |mut acc, rc: &mut RouteContext| {
-        // NOTE assume that first activity is never break (should be always departure)
-        let (_, breaks_set) =
-            rc.route.tour.all_activities().fold((0, HashSet::new()), |(prev, mut breaks), activity| {
-                let current = activity.place.location;
+    let breaks_to_remove = ctx
+        .routes
+        .iter()
+        .flat_map(|rc| {
+            rc.route
+                .tour
+                .all_activities()
+                .fold((0, HashSet::new()), |(prev, mut breaks), activity| {
+                    let current = activity.place.location;
 
-                if let Some(break_job) = as_break_job(activity) {
-                    // NOTE break should have location defined for all places or for none of them
-                    let location_count = break_job.places.iter().filter(|p| p.location.is_some()).count();
-                    assert!(location_count == 0 || location_count == break_job.places.len());
+                    if let Some(break_single) = as_break_job(activity) {
+                        let break_job = Job::Single(break_single.clone());
+                        let is_locked = ctx.locked.contains(&break_job);
 
-                    let is_orphan = prev != current && break_job.places.first().and_then(|p| p.location).is_none();
-                    let is_not_on_time = !is_on_proper_time(rc, break_job, &activity.schedule);
+                        if !is_locked {
+                            // NOTE break should have location defined for all places or for none of them
+                            let location_count = break_single.places.iter().filter(|p| p.location.is_some()).count();
+                            assert!(location_count == 0 || location_count == break_single.places.len());
 
-                    if is_orphan || is_not_on_time {
-                        // NOTE remove break with removed job location
-                        breaks.insert(Job::Single(activity.job.as_ref().unwrap().clone()));
+                            let is_orphan =
+                                prev != current && break_single.places.first().and_then(|p| p.location).is_none();
+                            let is_not_on_time = !is_on_proper_time(rc, break_single, &activity.schedule);
+
+                            if is_orphan || is_not_on_time {
+                                // NOTE remove break with removed job location
+                                breaks.insert(Job::Single(activity.job.as_ref().unwrap().clone()));
+                            }
+                        }
                     }
-                }
 
-                (current, breaks)
-            });
+                    (current, breaks)
+                })
+                .1
+                .into_iter()
+        })
+        .collect::<Vec<_>>();
 
-        breaks_set.iter().for_each(|break_job| {
-            rc.route_mut().tour.remove(break_job);
-        });
-
-        acc.extend(breaks_set.into_iter());
-
-        acc
+    breaks_to_remove.iter().for_each(|break_job| {
+        let _ =
+            ctx.routes.iter_mut().try_for_each(
+                |rc| {
+                    if rc.route_mut().tour.remove(break_job) {
+                        Err(())
+                    } else {
+                        Ok(())
+                    }
+                },
+            );
     });
 
-    ctx.unassigned.extend(breaks_set.into_iter().map(|b| (b, 1)));
+    ctx.unassigned.extend(breaks_to_remove.into_iter().map(|b| (b, 1)));
 }
 
 //region Helpers
