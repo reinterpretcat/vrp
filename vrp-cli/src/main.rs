@@ -10,7 +10,6 @@ fn main() {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod cli {
-    extern crate clap;
     use super::commands::import::{get_import_app, run_import};
     use super::commands::solve::{get_solve_app, run_solve};
     use crate::commands::check::{get_check_app, run_check};

@@ -16,9 +16,9 @@ or distances):
 
 |    |    |    |
 |----|----|----|
-|  0 | BA | CA |
-| AB |  0 | CB |
-| AC | BC |  0 |
+|  0 | AB | AC |
+| BA |  0 | BC |
+| CA | CB |  0 |
 
 
 where
@@ -27,7 +27,7 @@ where
 
 As single dimensional array it looks like:
 
-    [0,BA,CA,AB,0,CB,AC,BC,0]
+    [0,AB,AC,BA,0,BC,CA,CB,0]
 
 
 `vrp-cli` command provides a helper command to get it as well as `pragmatic` lib exposes method to get the list
