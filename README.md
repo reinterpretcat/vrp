@@ -54,6 +54,14 @@ cargo install vrp-cli
 
 Ensure that your `$PATH` is properly configured to source the crates binaries, and then run solver using the `vrp-cli` command.
 
+## Install from Docker
+
+With the following commands, you can build and run solver using `Dockerfile` provided:
+
+```bash
+docker build -t vrp_solver .
+docker run -it -v $(pwd):/repo --rm vrp_solver
+```
 
 ## Use from command line
 
