@@ -8,12 +8,13 @@ use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::{IdDimension, ValueDimension};
-use vrp_core::models::problem::Actor;
+use vrp_core::models::problem::{Actor, Job, Single};
 use vrp_core::models::solution::{Registry, Route};
 use vrp_core::models::{Problem, Solution};
 
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Tour as FormatTour;
+use std::iter::once;
 use vrp_core::models::solution::Tour as CoreTour;
 
 type ActorKey = (String, String, usize);
@@ -37,7 +38,7 @@ pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>
 
         tour.stops.iter().try_for_each(|stop| {
             stop.activities.iter().try_for_each::<_, Result<_, String>>(|activity| {
-                try_insert_activity(&actor_key, &mut core_route, tour, activity, job_index)
+                try_insert_activity(&mut core_route, tour, activity, job_index)
             })
         })?;
 
@@ -90,24 +91,48 @@ fn create_core_route(actor: Arc<Actor>) -> Route {
 }
 
 fn try_insert_activity(
-    _actor_key: &ActorKey,
-    _route: &mut Route,
-    _tour: &FormatTour,
+    route: &mut Route,
+    tour: &FormatTour,
     activity: &FormatActivity,
-    _job_index: &JobIndex,
+    job_index: &JobIndex,
 ) -> Result<(), String> {
-    match activity.activity_type.as_str() {
+    let activity_type = activity.activity_type.as_str();
+    match activity_type {
         "departure" | "arrival" => Ok(()),
         "pickup" | "delivery" | "replacement" | "service" => {
-            // TODO handle multi job
-            Ok(())
+            let job =
+                job_index.get(&activity.job_id).ok_or_else(|| format!("unknown job id: '{}'", activity.job_id))?;
+            let singles: Box<dyn Iterator<Item = &Arc<_>>> = match job {
+                Job::Single(single) => Box::new(once(single)),
+                Job::Multi(multi) => Box::new(multi.jobs.iter()),
+            };
+            let single = singles
+                .filter(|single| is_activity_to_single_match(activity, single))
+                .next()
+                .ok_or_else(|| format!("cannot match job '{}'", activity.job_id))?;
+
+            try_insert_single(route, single)
         }
         "break" | "depot" | "reload" => {
-            // TODO determine index
-            //let job_index = 0;
-            //let job_id = format!("{}_{}_{}_{}", vehicle_id, activity.activity_type, shift_index, job_index);
-            Ok(())
+            let single = (1..)
+                .map(|idx| format!("{}_{}_{}_{}", tour.vehicle_id, activity_type, tour.shift_index, idx))
+                .map(|job_id| job_index.get(&job_id))
+                .take_while(|job| job.is_some())
+                .filter_map(|job| job.and_then(|job| job.as_single()))
+                .filter(|single| is_activity_to_single_match(activity, single))
+                .next()
+                .ok_or_else(|| format!("cannot match '{}' for '{}'", activity_type, tour.vehicle_id))?;
+
+            try_insert_single(route, single)
         }
         _ => Err(format!("unknown activity type: {}", activity.activity_type)),
     }
+}
+
+fn is_activity_to_single_match(_activity: &FormatActivity, _single: &Single) -> bool {
+    unimplemented!()
+}
+
+fn try_insert_single(_route: &mut Route, _single: &Arc<Single>) -> Result<(), String> {
+    unimplemented!()
 }
