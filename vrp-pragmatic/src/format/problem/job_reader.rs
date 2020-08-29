@@ -8,7 +8,7 @@ use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
-use vrp_core::utils::Random;
+use vrp_core::utils::{CollectGroupBy, Random};
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
@@ -59,32 +59,28 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
                 _ => LockPosition::Any,
             };
 
-            let (_, _, jobs) = rel
+            let (_, jobs) = rel
                 .jobs
                 .iter()
                 .filter(|job| job.as_str() != "departure" && job.as_str() != "arrival")
-                .fold((0_usize, 0_usize, vec![]), |(mut break_idx, mut reload_idx, mut jobs), job| {
-                    let job = match job.as_str() {
-                        "break" => {
-                            break_idx += 1;
-                            let break_id = format!("{}_break_{}_{}", vehicle_id, shift_index, break_idx);
-                            job_index.get(&break_id).cloned().unwrap()
+                .fold((HashMap::<String, _>::default(), vec![]), |(mut indexer, mut jobs), job| {
+                    let job_id = match job.as_str() {
+                        "break" | "depot" | "reload" => {
+                            let entry = indexer.entry(job.clone()).or_insert(1_usize);
+                            let job_index = *entry;
+                            *entry = *entry + 1;
+                            format!("{}_{}_{}_{}", vehicle_id, job, shift_index, job_index)
                         }
-                        "depot" => {
-                            let depot_id = format!("{}_depot_{}", vehicle_id, shift_index);
-                            job_index.get(&depot_id).cloned().unwrap()
-                        }
-                        "reload" => {
-                            reload_idx += 1;
-                            let reload_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, reload_idx);
-                            job_index.get(&reload_id).cloned().unwrap()
-                        }
-                        _ => job_index.get(job).unwrap().clone(),
+                        _ => job.clone(),
                     };
+                    let job = job_index
+                        .get(&job_id)
+                        .cloned()
+                        .unwrap_or_else(|| panic!(format!("cannot find job with id: '{};", job_id)));
 
                     jobs.push(job);
 
-                    (break_idx, reload_idx, jobs)
+                    (indexer, jobs)
                 });
 
             acc.push(LockDetail::new(order, position, jobs));
@@ -263,36 +259,28 @@ fn read_depots(
     shift_index: usize,
     depots: &[VehicleCargoPlace],
 ) -> Vec<Arc<Lock>> {
-    let places = depots
-        .iter()
-        .map(|depot| (Some(depot.location.clone()), depot.duration, parse_times(&depot.times)))
-        .collect::<Vec<_>>();
-
-    vehicle
-        .vehicle_ids
-        .iter()
-        .map(|vehicle_id| {
-            let job_id = format!("{}_depot_{}", vehicle_id, shift_index);
-            let job = get_conditional_job(
-                coord_index,
-                vehicle_id.clone(),
-                &job_id,
-                "depot",
-                shift_index,
-                places.clone(),
-                &None,
-            );
-
-            (vehicle_id.clone(), job_id, job)
-        })
+    get_cargo_jobs("depot", coord_index, vehicle, shift_index, depots)
+        .into_iter()
         .map(|(vehicle_id, job_id, single)| {
             add_conditional_job(job_index, jobs, job_id.clone(), single);
+            (vehicle_id, job_id)
+        })
+        .collect_group_by_key(|(vehicle_id, _)| vehicle_id.clone())
+        .into_iter()
+        .map(|(vehicle_id, job_ids)| {
             Arc::new(Lock::new(
-                Arc::new(move |actor| actor.vehicle.dimens.get_id().unwrap() == vehicle_id.as_str()),
+                Arc::new(move |actor| {
+                    let dimens = &actor.vehicle.dimens;
+                    let other_id = dimens.get_id().unwrap();
+                    let other_index = *dimens.get_value::<usize>("shift_index").unwrap();
+
+                    other_id == vehicle_id.as_str() && other_index == shift_index
+                }),
                 vec![LockDetail {
                     order: LockOrder::Strict,
                     position: LockPosition::Departure,
-                    jobs: vec![job_index.get(&job_id).cloned().unwrap()],
+                    // NOTE this is workaround to allow select the cheapest depot later
+                    jobs: job_ids.into_iter().map(|(_, job_id)| job_index.get(&job_id).unwrap().clone()).collect(),
                 }],
                 true,
             ))
@@ -308,33 +296,43 @@ fn read_reloads(
     shift_index: usize,
     reloads: &[VehicleCargoPlace],
 ) {
+    get_cargo_jobs("reload", coord_index, vehicle, shift_index, reloads).into_iter().for_each(|(_, job_id, single)| {
+        add_conditional_job(job_index, jobs, job_id, single);
+    });
+}
+
+fn get_cargo_jobs(
+    job_type: &str,
+    coord_index: &CoordIndex,
+    vehicle: &VehicleType,
+    shift_index: usize,
+    cargo_places: &[VehicleCargoPlace],
+) -> Vec<(String, String, Single)> {
     (1..)
-        .zip(reloads.iter())
+        .zip(cargo_places.iter())
         .flat_map(|(place_idx, place)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, place_idx);
+                    let job_id = format!("{}_{}_{}_{}", vehicle_id, job_type, shift_index, place_idx);
                     let times = parse_times(&place.times);
 
                     let job = get_conditional_job(
                         coord_index,
                         vehicle_id.clone(),
                         &job_id,
-                        "reload",
+                        job_type,
                         shift_index,
                         vec![(Some(place.location.clone()), place.duration, times)],
                         &place.tag,
                     );
 
-                    (job_id, job)
+                    (vehicle_id.clone(), job_id, job)
                 })
                 .collect::<Vec<_>>()
         })
-        .for_each(|(job_id, single)| {
-            add_conditional_job(job_index, jobs, job_id, single);
-        });
+        .collect()
 }
 
 fn get_conditional_job(

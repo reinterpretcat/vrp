@@ -15,7 +15,7 @@ use self::fleet_reader::{create_transport_costs, read_fleet, read_limits};
 use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;
 use crate::constraints::*;
-use crate::extensions::OnlyVehicleActivityCost;
+use crate::extensions::{get_route_modifier, OnlyVehicleActivityCost};
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::format::*;
@@ -28,8 +28,7 @@ use std::io::{BufReader, Read};
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::heuristics::*;
-use vrp_core::models::common::{Dimensions, IdDimension, MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
+use vrp_core::models::common::{Dimensions, MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::utils::{compare_floats, DefaultRandom, Random};
@@ -302,34 +301,7 @@ fn create_extras(
     extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
 
     if props.has_depots {
-        extras.insert(
-            "route_modifier".to_owned(),
-            Arc::new(RouteModifier::new(move |route_ctx: RouteContext| {
-                let actor = &route_ctx.route.actor;
-                let vehicle = &actor.vehicle;
-
-                let shift_index = vehicle.dimens.get_value::<usize>("shift_index").expect("cannot find shift index");
-                let vehicle_id = vehicle.dimens.get_id().expect("cannot get vehicle id");
-                let job_id = format!("{}_depot_{}", vehicle_id, shift_index);
-
-                let result = job_index
-                    .get(&job_id)
-                    .map(|job| evaluate_job_constraint_in_route(job, &constraint, &route_ctx, InsertionPosition::Last));
-
-                if let Some(InsertionResult::Success(success)) = result {
-                    let mut route_ctx = success.context;
-                    let route = route_ctx.route_mut();
-                    success.activities.into_iter().for_each(|(activity, index)| {
-                        route.tour.insert_at(activity, index + 1);
-                    });
-                    constraint.accept_route_state(&mut route_ctx);
-
-                    route_ctx
-                } else {
-                    route_ctx
-                }
-            })),
-        );
+        extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(constraint, job_index)));
     }
 
     extras

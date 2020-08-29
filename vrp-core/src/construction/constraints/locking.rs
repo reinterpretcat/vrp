@@ -140,12 +140,13 @@ struct Rule {
 impl Rule {
     /// Checks whether a new job can be inserted between given prev/next according to rules.
     pub fn can_insert(&self, job: &Option<Job>, prev: &Option<Job>, next: &Option<Job>) -> bool {
-        match self.position {
-            LockPosition::Any => self.can_insert_after(job, prev, next) || self.can_insert_before(job, prev, next),
-            LockPosition::Departure => self.can_insert_after(job, prev, next),
-            LockPosition::Arrival => self.can_insert_before(job, prev, &next),
-            LockPosition::Fixed => false,
-        }
+        self.is_in_rule(job)
+            || match self.position {
+                LockPosition::Any => self.can_insert_after(prev, next) || self.can_insert_before(prev, next),
+                LockPosition::Departure => self.can_insert_after(prev, next),
+                LockPosition::Arrival => self.can_insert_before(prev, &next),
+                LockPosition::Fixed => false,
+            }
     }
 
     fn contains(&self, job: &Job) -> bool {
@@ -159,16 +160,14 @@ impl Rule {
     }
 
     /// Checks whether a new job can be inserted between given prev/next according to after rule.
-    fn can_insert_after(&self, job: &Option<Job>, prev: &Option<Job>, next: &Option<Job>) -> bool {
+    fn can_insert_after(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
         prev.as_ref().map_or(false, |p| !self.contains(p) || *p == self.index.last)
             && next.as_ref().map_or(true, |n| !self.contains(n))
-            || self.is_in_rule(job)
     }
 
     /// Checks whether a new job can be inserted between given prev/next according to before rule.
-    fn can_insert_before(&self, job: &Option<Job>, prev: &Option<Job>, next: &Option<Job>) -> bool {
+    fn can_insert_before(&self, prev: &Option<Job>, next: &Option<Job>) -> bool {
         next.as_ref().map_or(false, |n| !self.contains(n) || *n == self.index.first)
             && prev.as_ref().map_or(true, |p| !self.contains(p))
-            || self.is_in_rule(job)
     }
 }

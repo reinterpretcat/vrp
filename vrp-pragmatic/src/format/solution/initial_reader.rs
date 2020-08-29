@@ -13,9 +13,10 @@ use vrp_core::models::solution::{Registry, Route};
 use vrp_core::models::{Problem, Solution};
 
 use crate::format::solution::Activity as FormatActivity;
-
-use vrp_core::models::solution::Activity as CoreActivity;
+use crate::format::solution::Tour as FormatTour;
 use vrp_core::models::solution::Tour as CoreTour;
+
+type ActorKey = (String, String, usize);
 
 /// Reads initial solution from buffer.
 /// NOTE: Solution feasibility is not checked.
@@ -36,9 +37,7 @@ pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>
 
         tour.stops.iter().try_for_each(|stop| {
             stop.activities.iter().try_for_each::<_, Result<_, String>>(|activity| {
-                let core_activity = create_core_activity(activity)?;
-                core_route.tour.insert_last(core_activity);
-                Ok(())
+                try_insert_activity(&actor_key, &mut core_route, tour, activity, job_index)
             })
         })?;
 
@@ -75,7 +74,7 @@ fn get_job_index(problem: &Problem) -> &JobIndex {
         .unwrap_or_else(|| panic!("cannot get job index!"))
 }
 
-fn get_actor_key(actor: &Actor) -> (String, String, usize) {
+fn get_actor_key(actor: &Actor) -> ActorKey {
     let dimens = &actor.vehicle.dimens;
 
     let vehicle_id = dimens.get_id().cloned().expect("cannot get vehicle id!");
@@ -90,6 +89,25 @@ fn create_core_route(actor: Arc<Actor>) -> Route {
     Route { actor, tour }
 }
 
-fn create_core_activity(_activity: &FormatActivity) -> Result<CoreActivity, String> {
-    unimplemented!()
+fn try_insert_activity(
+    _actor_key: &ActorKey,
+    _route: &mut Route,
+    _tour: &FormatTour,
+    activity: &FormatActivity,
+    _job_index: &JobIndex,
+) -> Result<(), String> {
+    match activity.activity_type.as_str() {
+        "departure" | "arrival" => Ok(()),
+        "pickup" | "delivery" | "replacement" | "service" => {
+            // TODO handle multi job
+            Ok(())
+        }
+        "break" | "depot" | "reload" => {
+            // TODO determine index
+            //let job_index = 0;
+            //let job_id = format!("{}_{}_{}_{}", vehicle_id, activity.activity_type, shift_index, job_index);
+            Ok(())
+        }
+        _ => Err(format!("unknown activity type: {}", activity.activity_type)),
+    }
 }
