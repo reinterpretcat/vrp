@@ -4,10 +4,10 @@ mod transport_test;
 
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
-use crate::construction::OP_START_MSG;
 use crate::models::common::{Cost, Distance, Duration, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, Actor, Job, Single, TransportCost};
 use crate::models::solution::Activity;
+use crate::models::OP_START_MSG;
 use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;

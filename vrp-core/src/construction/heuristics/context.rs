@@ -4,8 +4,7 @@ mod context_test;
 
 use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::factories::*;
-use crate::construction::OP_START_MSG;
-use crate::models::common::{Cost, Schedule};
+use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
@@ -123,7 +122,7 @@ impl SolutionContext {
         Solution {
             registry: self.registry.resources().deep_copy(),
             routes: self.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
-            unassigned: self.unassigned.clone(),
+            unassigned: self.unassigned.iter().map(|(job, code)| (job.clone(), *code)).collect(),
             extras,
         }
     }
@@ -162,10 +161,7 @@ pub struct RouteState {
 impl RouteContext {
     /// Creates a new instance of `RouteContext`.
     pub fn new(actor: Arc<Actor>) -> Self {
-        let mut tour = Tour::default();
-        tour.set_start(create_start_activity(&actor));
-        create_end_activity(&actor).map(|end| tour.set_end(end));
-
+        let tour = Tour::new(&actor);
         RouteContext { route: Arc::new(Route { actor, tour }), state: Arc::new(RouteState::default()) }
     }
 
@@ -399,28 +395,3 @@ pub struct ActivityContext<'a> {
 }
 
 type ActivityWithKey = (usize, i32);
-type ActivityPlace = crate::models::solution::Place;
-
-/// Creates start activity.
-pub fn create_start_activity(actor: &Arc<Actor>) -> Activity {
-    let start = &actor.detail.start.as_ref().unwrap_or_else(|| unimplemented!("{}", OP_START_MSG));
-    let time = start.time.to_time_window();
-
-    Activity {
-        schedule: Schedule { arrival: time.start, departure: time.start },
-        place: ActivityPlace { location: start.location, duration: 0.0, time },
-        job: None,
-    }
-}
-
-/// Creates end activity if it is specified for the actor.
-pub fn create_end_activity(actor: &Arc<Actor>) -> Option<Activity> {
-    actor.detail.end.as_ref().map(|place| {
-        let time = place.time.to_time_window();
-        Activity {
-            schedule: Schedule { arrival: time.start, departure: time.start },
-            place: ActivityPlace { location: place.location, duration: 0.0, time },
-            job: None,
-        }
-    })
-}

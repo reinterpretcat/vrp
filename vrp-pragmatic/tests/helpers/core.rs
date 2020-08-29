@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use vrp_core::construction::heuristics::{create_end_activity, create_start_activity};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;
@@ -34,9 +33,7 @@ pub fn test_vehicle(id: &str) -> Vehicle {
 
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
     let actor = fleet.actors.iter().filter(|a| a.vehicle.dimens.get_id().unwrap() == vehicle).next().unwrap().clone();
-    let mut tour = Tour::default();
-    tour.set_start(create_start_activity(&actor));
-    create_end_activity(&actor).map(|end| tour.set_end(end));
+    let mut tour = Tour::new(&actor);
 
     activities.into_iter().enumerate().for_each(|(index, a)| {
         tour.insert_at(a, index + 1);

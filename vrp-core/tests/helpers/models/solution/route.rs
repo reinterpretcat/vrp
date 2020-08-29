@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{create_end_activity, create_start_activity, RouteContext, RouteState};
+use crate::construction::heuristics::{RouteContext, RouteState};
 use crate::helpers::models::problem::*;
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Fleet, Single};
@@ -87,9 +87,7 @@ pub fn create_route_with_start_end_activities(
 
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
     let actor = get_test_actor_from_fleet(fleet, vehicle);
-    let mut tour = Tour::default();
-    tour.set_start(create_start_activity(&actor));
-    create_end_activity(&actor).map(|end| tour.set_end(end));
+    let tour = Tour::new(actor.as_ref());
 
     create_route(actor, tour, activities)
 }

@@ -1,5 +1,7 @@
 //! A collection of models to represent problem and solution in Vehicle Routing Problem domain.
 
+pub(crate) const OP_START_MSG: &str = "Optional start is not yet implemented.";
+
 pub mod common;
 
 mod domain;

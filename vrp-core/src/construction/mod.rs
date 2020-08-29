@@ -16,7 +16,5 @@ pub trait Quota {
     fn is_reached(&self) -> bool;
 }
 
-const OP_START_MSG: &str = "Optional start is not yet implemented.";
-
 pub mod constraints;
 pub mod heuristics;

@@ -30,11 +30,12 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{Dimensions, IdDimension, MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
-use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost, VehicleDetail};
+use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::utils::{compare_floats, DefaultRandom, Random};
 
 pub type ApiProblem = crate::format::problem::Problem;
+/// An job id to job index.
 pub type JobIndex = HashMap<String, Job>;
 
 /// Reads specific problem definition from various sources.

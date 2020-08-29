@@ -43,8 +43,8 @@ pub struct Solution {
     /// List of assigned routes.
     pub routes: Vec<Route>,
 
-    /// Map of unassigned jobs within reason code.
-    pub unassigned: HashMap<Job, i32>,
+    /// List of unassigned jobs within reason code.
+    pub unassigned: Vec<(Job, i32)>,
 
     /// Specifies index for storing extra data of arbitrary type.
     pub extras: Arc<Extras>,

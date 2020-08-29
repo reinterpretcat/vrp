@@ -12,9 +12,8 @@ use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
 use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
-use vrp_scientific::common::read_init_solution;
 use vrp_scientific::lilim::{LilimProblem, LilimSolution};
-use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
+use vrp_scientific::solomon::{read_init_solution, SolomonProblem, SolomonSolution};
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";

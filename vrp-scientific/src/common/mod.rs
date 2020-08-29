@@ -1,8 +1,5 @@
 //! Contains common text reading and writing functionality.
 
-mod init_solution_reader;
-pub use self::init_solution_reader::*;
-
 mod text_reader;
 pub(crate) use self::text_reader::*;
 

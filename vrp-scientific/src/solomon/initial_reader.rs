@@ -6,13 +6,13 @@ use crate::common::read_line;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::heuristics::{create_end_activity, create_start_activity};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::{Activity, Registry, Route, Tour};
 use vrp_core::models::{Problem, Solution};
 
 /// Reads initial solution from a buffer.
+/// NOTE: Solution feasibility is not checked.
 pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Problem>) -> Result<Solution, String> {
     let mut buffer = String::new();
 
@@ -35,9 +35,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                 });
 
                 let actor = solution.registry.next().next().unwrap();
-                let mut tour = Tour::default();
-                tour.set_start(create_start_activity(&actor));
-                create_end_activity(&actor).map(|end| tour.set_end(end));
+                let mut tour = Tour::new(&actor);
 
                 route.last().unwrap().split_whitespace().for_each(|id| {
                     let single = id_map.get(id).unwrap();

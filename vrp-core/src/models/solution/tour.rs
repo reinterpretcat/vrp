@@ -2,8 +2,10 @@
 #[path = "../../../tests/unit/models/solution/tour_test.rs"]
 mod tour_test;
 
-use crate::models::problem::Job;
-use crate::models::solution::Activity;
+use crate::models::common::Schedule;
+use crate::models::problem::{Actor, Job};
+use crate::models::solution::{Activity, Place};
+use crate::models::OP_START_MSG;
 use hashbrown::HashSet;
 use std::iter::once;
 use std::ops::RangeBounds;
@@ -28,6 +30,15 @@ impl Default for Tour {
 }
 
 impl Tour {
+    /// Creates a new tour with start and optional end using actor properties.
+    pub fn new(actor: &Actor) -> Self {
+        let mut tour = Self::default();
+        tour.set_start(create_start_activity(&actor));
+        create_end_activity(&actor).map(|end| tour.set_end(end));
+
+        tour
+    }
+
     /// Sets tour start.
     pub fn set_start(&mut self, activity: Activity) -> &mut Tour {
         assert!(activity.job.is_none());
@@ -202,4 +213,28 @@ impl Tour {
             is_closed: self.is_closed,
         }
     }
+}
+
+/// Creates start activity.
+fn create_start_activity(actor: &Actor) -> Activity {
+    let start = &actor.detail.start.as_ref().unwrap_or_else(|| unimplemented!("{}", OP_START_MSG));
+    let time = start.time.to_time_window();
+
+    Activity {
+        schedule: Schedule { arrival: time.start, departure: time.start },
+        place: Place { location: start.location, duration: 0.0, time },
+        job: None,
+    }
+}
+
+/// Creates end activity if it is specified for the actor.
+fn create_end_activity(actor: &Actor) -> Option<Activity> {
+    actor.detail.end.as_ref().map(|place| {
+        let time = place.time.to_time_window();
+        Activity {
+            schedule: Schedule { arrival: time.start, departure: time.start },
+            place: Place { location: place.location, duration: 0.0, time },
+            job: None,
+        }
+    })
 }
