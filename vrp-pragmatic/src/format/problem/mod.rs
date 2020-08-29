@@ -5,4 +5,5 @@ mod model;
 pub use self::model::*;
 
 mod reader;
+pub use self::reader::JobIndex;
 pub use self::reader::PragmaticProblem;

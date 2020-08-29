@@ -280,7 +280,7 @@ fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIn
         Arc::new(move |location| {
             coord_index
                 .get_by_idx(location)
-                .map_or_else(|| panic!("Cannot find location!"), |location| (location.lat, location.lng))
+                .map_or_else(|| panic!("cannot find location!"), |location| (location.lat, location.lng))
         }),
         AREA_CONSTRAINT_CODE,
     )));
@@ -298,6 +298,7 @@ fn create_extras(
         Arc::new((if props.has_multi_dimen_capacity { "multi" } else { "single" }).to_string()),
     );
     extras.insert("coord_index".to_owned(), coord_index);
+    extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
 
     if props.has_depots {
         extras.insert(
@@ -306,15 +307,7 @@ fn create_extras(
                 let actor = &route_ctx.route.actor;
                 let vehicle = &actor.vehicle;
 
-                // NOTE shift index is not known by core models
-                let shift_index = vehicle
-                    .details
-                    .iter()
-                    .position(|detail| {
-                        *detail == VehicleDetail { start: actor.detail.start.clone(), end: actor.detail.end.clone() }
-                    })
-                    .expect("cannot find shift index");
-
+                let shift_index = vehicle.dimens.get_value::<usize>("shift_index").expect("cannot find shift index");
                 let vehicle_id = vehicle.dimens.get_id().expect("cannot get vehicle id");
                 let job_id = format!("{}_depot_{}", vehicle_id, shift_index);
 
