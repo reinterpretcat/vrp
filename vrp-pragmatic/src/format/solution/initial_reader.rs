@@ -73,6 +73,15 @@ pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>
     Ok(Solution { registry, routes, unassigned, extras: problem.extras.clone() })
 }
 
+struct ActivityContext<'a> {
+    route_start_time: Timestamp,
+    location: Location,
+    time: TimeWindow,
+    act_type: &'a String,
+    job_id: &'a String,
+    tag: Option<&'a String>,
+}
+
 fn get_job_index(problem: &Problem) -> &JobIndex {
     problem
         .extras
@@ -112,20 +121,26 @@ fn try_insert_activity(
     job_index: &JobIndex,
     coord_index: &CoordIndex,
 ) -> Result<(), String> {
-    let act_type = activity.activity_type.as_str();
-    let act_tag = activity.job_tag.as_ref();
-    let act_time = activity
-        .time
-        .as_ref()
-        .map(|time| TimeWindow::new(parse_time(&time.start), parse_time(&time.end)))
-        .unwrap_or_else(|| TimeWindow::new(parse_time(&stop.time.arrival), parse_time(&stop.time.departure)));
-    let act_location = coord_index
-        .get_by_loc(activity.location.as_ref().unwrap_or(&stop.location))
-        .ok_or_else(|| format!("cannot get location for activity for job '{}'", activity.job_id))?;
-    let route_start_time =
-        tour.stops.first().map(|stop| parse_time(&stop.time.departure)).ok_or_else(|| "empty route".to_owned())?;
+    let activity_ctx = ActivityContext {
+        route_start_time: tour
+            .stops
+            .first()
+            .map(|stop| parse_time(&stop.time.departure))
+            .ok_or_else(|| "empty route".to_owned())?,
+        location: coord_index
+            .get_by_loc(activity.location.as_ref().unwrap_or(&stop.location))
+            .ok_or_else(|| format!("cannot get location for activity for job '{}'", activity.job_id))?,
+        time: activity
+            .time
+            .as_ref()
+            .map(|time| TimeWindow::new(parse_time(&time.start), parse_time(&time.end)))
+            .unwrap_or_else(|| TimeWindow::new(parse_time(&stop.time.arrival), parse_time(&stop.time.departure))),
+        act_type: &activity.activity_type,
+        job_id: &activity.job_id,
+        tag: activity.job_tag.as_ref(),
+    };
 
-    match act_type {
+    match activity_ctx.act_type.as_str() {
         "departure" | "arrival" => Ok(()),
         "pickup" | "delivery" | "replacement" | "service" => {
             let job =
@@ -145,43 +160,23 @@ fn try_insert_activity(
                 }
             };
             let single = singles
-                .filter(|single| {
-                    is_correct_single(
-                        single,
-                        route_start_time,
-                        true,
-                        act_location,
-                        &act_time,
-                        &activity.job_id,
-                        act_tag,
-                    )
-                })
+                .filter(|single| is_correct_single(single, true, &activity_ctx))
                 .next()
                 .ok_or_else(|| format!("cannot match job '{}'", activity.job_id))?;
 
-            try_insert_single(route, single, act_location)
+            try_insert_single(route, single, activity_ctx.location)
         }
         "break" | "depot" | "reload" => {
             let single = (1..)
-                .map(|idx| format!("{}_{}_{}_{}", tour.vehicle_id, act_type, tour.shift_index, idx))
+                .map(|idx| format!("{}_{}_{}_{}", tour.vehicle_id, activity_ctx.act_type, tour.shift_index, idx))
                 .map(|job_id| job_index.get(&job_id))
                 .take_while(|job| job.is_some())
                 .filter_map(|job| job.and_then(|job| job.as_single()))
-                .filter(|single| {
-                    is_correct_single(
-                        single,
-                        route_start_time,
-                        false,
-                        act_location,
-                        &act_time,
-                        &activity.job_id,
-                        act_tag,
-                    )
-                })
+                .filter(|single| is_correct_single(single, false, &activity_ctx))
                 .next()
-                .ok_or_else(|| format!("cannot match '{}' for '{}'", act_type, tour.vehicle_id))?;
+                .ok_or_else(|| format!("cannot match '{}' for '{}'", activity_ctx.act_type, tour.vehicle_id))?;
 
-            try_insert_single(route, single, act_location)
+            try_insert_single(route, single, activity_ctx.location)
         }
         _ => Err(format!("unknown activity type: {}", activity.activity_type)),
     }
@@ -191,16 +186,8 @@ fn get_tag(single: &Single) -> Option<&String> {
     single.dimens.get_value::<String>("tag")
 }
 
-fn is_correct_single(
-    single: &Arc<Single>,
-    route_start_time: Timestamp,
-    is_job_activity: bool,
-    act_location: Location,
-    act_time: &TimeWindow,
-    act_job_id: &String,
-    act_tag: Option<&String>,
-) -> bool {
-    let job_id = create_activity(single.clone(), act_location)
+fn is_correct_single<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'a ActivityContext) -> bool {
+    let job_id = create_activity(single.clone(), activity_ctx.location)
         .retrieve_job()
         .unwrap()
         .dimens()
@@ -208,8 +195,8 @@ fn is_correct_single(
         .cloned()
         .expect("cannot get job id");
 
-    let is_same_ids = *act_job_id == job_id;
-    let is_same_tags = match (get_tag(single), act_tag) {
+    let is_same_ids = *activity_ctx.job_id == job_id;
+    let is_same_tags = match (get_tag(single), activity_ctx.tag) {
         (Some(job_tag), Some(activity_tag)) => job_tag == activity_tag,
         (None, None) => true,
         _ => false,
@@ -219,8 +206,9 @@ fn is_correct_single(
         (true, true, _) => true,
         (true, false, true) => false,
         (true, false, false) => single.places.iter().any(|place| {
-            let is_same_location = place.location.map_or(true, |l| l == act_location);
-            let is_proper_time = place.times.iter().any(|time| time.intersects(route_start_time, act_time));
+            let is_same_location = place.location.map_or(true, |l| l == activity_ctx.location);
+            let is_proper_time =
+                place.times.iter().any(|time| time.intersects(activity_ctx.route_start_time, &activity_ctx.time));
 
             is_same_location && is_proper_time
         }),
