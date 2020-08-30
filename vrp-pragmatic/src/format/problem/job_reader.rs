@@ -279,7 +279,7 @@ fn read_depots(
                 vec![LockDetail {
                     order: LockOrder::Strict,
                     position: LockPosition::Departure,
-                    // NOTE this is workaround to allow select the cheapest depot later
+                    // NOTE this is workaround to allow selection of the cheapest depot later
                     jobs: job_ids.into_iter().map(|(_, job_id)| job_index.get(&job_id).unwrap().clone()).collect(),
                 }],
                 true,
