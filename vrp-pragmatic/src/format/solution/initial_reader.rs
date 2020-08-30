@@ -5,11 +5,12 @@ mod initial_reader_test;
 use crate::format::problem::JobIndex;
 use crate::format::solution::deserialize_solution;
 use crate::format::CoordIndex;
-use std::collections::HashMap;
+use crate::parse_time;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::iter::once;
 use std::sync::Arc;
-use vrp_core::models::common::{IdDimension, Location, Schedule, TimeWindow, ValueDimension};
+use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Job, Single};
 use vrp_core::models::solution::{Activity, Place, Registry, Route};
 use vrp_core::models::{Problem, Solution};
@@ -111,13 +112,20 @@ fn try_insert_activity(
     job_index: &JobIndex,
     coord_index: &CoordIndex,
 ) -> Result<(), String> {
-    let activity_type = activity.activity_type.as_str();
-    let tag = activity.job_tag.as_ref();
-    let location = coord_index
+    let act_type = activity.activity_type.as_str();
+    let act_tag = activity.job_tag.as_ref();
+    let act_time = activity
+        .time
+        .as_ref()
+        .map(|time| TimeWindow::new(parse_time(&time.start), parse_time(&time.end)))
+        .unwrap_or_else(|| TimeWindow::new(parse_time(&stop.time.arrival), parse_time(&stop.time.departure)));
+    let act_location = coord_index
         .get_by_loc(activity.location.as_ref().unwrap_or(&stop.location))
         .ok_or_else(|| format!("cannot get location for activity for job '{}'", activity.job_id))?;
+    let route_start_time =
+        tour.stops.first().map(|stop| parse_time(&stop.time.departure)).ok_or_else(|| "empty route".to_owned())?;
 
-    match activity_type {
+    match act_type {
         "departure" | "arrival" => Ok(()),
         "pickup" | "delivery" | "replacement" | "service" => {
             let job =
@@ -125,44 +133,106 @@ fn try_insert_activity(
             let singles: Box<dyn Iterator<Item = &Arc<_>>> = match job {
                 Job::Single(single) => Box::new(once(single)),
                 Job::Multi(multi) => {
-                    // TODO check that all single jobs have unique tags
+                    let tags = multi.jobs.iter().filter_map(|job| get_tag(job).cloned()).collect::<HashSet<_>>();
+                    if tags.len() < multi.jobs.len() {
+                        return Err(format!(
+                            "initial solution requires multi job to have unique tags, check '{}' job",
+                            activity.job_id
+                        ));
+                    }
+
                     Box::new(multi.jobs.iter())
                 }
             };
             let single = singles
-                .filter(|single| is_correct_single(single, location, tag))
+                .filter(|single| {
+                    is_correct_single(
+                        single,
+                        route_start_time,
+                        true,
+                        act_location,
+                        &act_time,
+                        &activity.job_id,
+                        act_tag,
+                    )
+                })
                 .next()
                 .ok_or_else(|| format!("cannot match job '{}'", activity.job_id))?;
 
-            try_insert_single(route, single)
+            try_insert_single(route, single, act_location)
         }
         "break" | "depot" | "reload" => {
             let single = (1..)
-                .map(|idx| format!("{}_{}_{}_{}", tour.vehicle_id, activity_type, tour.shift_index, idx))
+                .map(|idx| format!("{}_{}_{}_{}", tour.vehicle_id, act_type, tour.shift_index, idx))
                 .map(|job_id| job_index.get(&job_id))
                 .take_while(|job| job.is_some())
                 .filter_map(|job| job.and_then(|job| job.as_single()))
-                .filter(|single| is_correct_single(single, location, tag))
+                .filter(|single| {
+                    is_correct_single(
+                        single,
+                        route_start_time,
+                        false,
+                        act_location,
+                        &act_time,
+                        &activity.job_id,
+                        act_tag,
+                    )
+                })
                 .next()
-                .ok_or_else(|| format!("cannot match '{}' for '{}'", activity_type, tour.vehicle_id))?;
+                .ok_or_else(|| format!("cannot match '{}' for '{}'", act_type, tour.vehicle_id))?;
 
-            try_insert_single(route, single)
+            try_insert_single(route, single, act_location)
         }
         _ => Err(format!("unknown activity type: {}", activity.activity_type)),
     }
 }
 
-fn is_correct_single(single: &Arc<Single>, location: Location, _tag: Option<&String>) -> bool {
-    let _job_id =
-        create_activity(single.clone(), location).retrieve_job().unwrap().dimens().get_id().expect("cannot get job id");
-
-    // TODO read tag from single and compare
-
-    unimplemented!()
+fn get_tag(single: &Single) -> Option<&String> {
+    single.dimens.get_value::<String>("tag")
 }
 
-fn try_insert_single(_route: &mut Route, _single: &Arc<Single>) -> Result<(), String> {
-    unimplemented!()
+fn is_correct_single(
+    single: &Arc<Single>,
+    route_start_time: Timestamp,
+    is_job_activity: bool,
+    act_location: Location,
+    act_time: &TimeWindow,
+    act_job_id: &String,
+    act_tag: Option<&String>,
+) -> bool {
+    let job_id = create_activity(single.clone(), act_location)
+        .retrieve_job()
+        .unwrap()
+        .dimens()
+        .get_id()
+        .cloned()
+        .expect("cannot get job id");
+
+    let is_same_ids = *act_job_id == job_id;
+    let is_same_tags = match (get_tag(single), act_tag) {
+        (Some(job_tag), Some(activity_tag)) => job_tag == activity_tag,
+        (None, None) => true,
+        _ => false,
+    };
+
+    match (is_same_tags, is_same_ids, is_job_activity) {
+        (true, true, _) => true,
+        (true, false, true) => false,
+        (true, false, false) => single.places.iter().any(|place| {
+            let is_same_location = place.location.map_or(true, |l| l == act_location);
+            let is_proper_time = place.times.iter().any(|time| time.intersects(route_start_time, act_time));
+
+            is_same_location && is_proper_time
+        }),
+        _ => false,
+    }
+}
+
+fn try_insert_single(route: &mut Route, single: &Arc<Single>, location: Location) -> Result<(), String> {
+    let activity = create_activity(single.clone(), location);
+    route.tour.insert_last(activity);
+
+    Ok(())
 }
 
 fn create_activity(single: Arc<Single>, location: Location) -> CoreActivity {
