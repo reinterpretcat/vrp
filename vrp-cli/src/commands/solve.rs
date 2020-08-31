@@ -13,7 +13,10 @@ use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
 use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_scientific::lilim::{LilimProblem, LilimSolution};
-use vrp_scientific::solomon::{read_init_solution, SolomonProblem, SolomonSolution};
+use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
+
+use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
+use vrp_scientific::solomon::read_init_solution as read_init_solomon;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -61,7 +64,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                     assert!(matrices.is_none());
                     BufReader::new(problem).read_solomon()
                 })),
-                InitSolutionReader(Box::new(|file, problem| read_init_solution(BufReader::new(file), problem).ok())),
+                InitSolutionReader(Box::new(|file, problem| read_init_solomon(BufReader::new(file), problem).ok())),
                 SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_solomon(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
@@ -73,7 +76,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                     assert!(matrices.is_none());
                     BufReader::new(problem).read_lilim()
                 })),
-                InitSolutionReader(Box::new(|_file, _problem| None)),
+                InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
                 SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_lilim(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
@@ -91,7 +94,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                     }
                     .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
                 })),
-                InitSolutionReader(Box::new(|_file, _problem| None)),
+                InitSolutionReader(Box::new(|file, problem| read_init_pragmatic(BufReader::new(file), problem).ok())),
                 SolutionWriter(Box::new(|problem, solution, metrics, default_writer, geojson_writer| {
                     geojson_writer
                         .map_or(Ok(()), |geojson_writer| solution.write_geo_json(problem, geojson_writer))
