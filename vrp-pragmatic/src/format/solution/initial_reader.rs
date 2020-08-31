@@ -39,7 +39,7 @@ pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>
                 actor_index.get(&actor_key).ok_or_else(|| format!("cannot find vehicle for {:?}", actor_key))?.clone();
             registry.use_actor(&actor);
 
-            let mut core_route = create_core_route(actor);
+            let mut core_route = create_core_route(actor, tour)?;
 
             tour.stops.iter().try_for_each(|stop| {
                 stop.activities.iter().try_for_each::<_, Result<_, String>>(|activity| {
@@ -109,9 +109,16 @@ fn get_actor_key(actor: &Actor) -> ActorKey {
     (vehicle_id, type_id, shift_index)
 }
 
-fn create_core_route(actor: Arc<Actor>) -> Route {
-    let tour = CoreTour::new(&actor);
-    Route { actor, tour }
+fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Route, String> {
+    let mut core_tour = CoreTour::new(&actor);
+
+    // NOTE this is necessary to keep departure time optimization
+    let departure_time =
+        &format_tour.stops.first().as_ref().ok_or_else(|| format!("empty tour in init solution"))?.time.departure;
+    core_tour.all_activities_mut().next().expect("cannot get start activity from core tour").schedule.departure =
+        parse_time(departure_time);
+
+    Ok(Route { actor, tour: core_tour })
 }
 
 fn try_insert_activity(
