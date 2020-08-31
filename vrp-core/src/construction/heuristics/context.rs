@@ -35,10 +35,13 @@ impl InsertionContext {
     /// Creates insertion context from existing solution.
     pub fn new_from_solution(
         problem: Arc<Problem>,
-        solution: (Arc<Solution>, Option<Cost>),
+        solution: (Solution, Option<Cost>),
         random: Arc<dyn Random + Send + Sync>,
     ) -> Self {
-        create_insertion_context_from_solution(problem, solution, random)
+        let mut ctx = create_insertion_context_from_solution(problem, solution, random);
+        ctx.restore();
+
+        ctx
     }
 
     /// Restores valid context state.

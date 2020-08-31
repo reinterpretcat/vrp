@@ -120,14 +120,14 @@ pub fn create_multi_job(
     pickups: Vec<((f64, f64), f64, Vec<i32>)>,
     deliveries: Vec<((f64, f64), f64, Vec<i32>)>,
 ) -> Job {
-    let create_tasks = |tasks: Vec<((f64, f64), f64, Vec<i32>)>| {
+    let create_tasks = |tasks: Vec<((f64, f64), f64, Vec<i32>)>, prefix: &str| {
         let tasks = tasks
             .into_iter()
             .enumerate()
             .map(|(i, (location, duration, demand))| JobTask {
                 places: vec![JobPlace { duration, ..create_job_place(vec![location.0, location.1]) }],
                 demand: Some(demand),
-                tag: Some((i + 1).to_string()),
+                tag: Some(format!("{}{}", prefix, i + 1)),
             })
             .collect::<Vec<_>>();
 
@@ -138,7 +138,7 @@ pub fn create_multi_job(
         }
     };
 
-    Job { pickups: create_tasks(pickups), deliveries: create_tasks(deliveries), ..create_job(id) }
+    Job { pickups: create_tasks(pickups, "p"), deliveries: create_tasks(deliveries, "d"), ..create_job(id) }
 }
 
 pub fn create_default_vehicle_shift() -> VehicleShift {

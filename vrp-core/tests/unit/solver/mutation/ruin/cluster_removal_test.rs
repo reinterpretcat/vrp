@@ -124,11 +124,8 @@ fn can_ruin_jobs_impl(limit: usize, cluster_size: Range<usize>, expected: usize)
     let limit = JobRemovalLimit::new(limit, limit, 1.);
     let (problem, solution) = generate_matrix_routes(8, 1, |_| (vec![0.; 64], create_test_distances()));
     let problem = Arc::new(problem);
-    let insertion_ctx = InsertionContext::new_from_solution(
-        problem.clone(),
-        (Arc::new(solution), None),
-        Arc::new(DefaultRandom::default()),
-    );
+    let insertion_ctx =
+        InsertionContext::new_from_solution(problem.clone(), (solution, None), Arc::new(DefaultRandom::default()));
 
     let insertion_ctx = ClusterRemoval::new(problem, cluster_size, limit)
         .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);

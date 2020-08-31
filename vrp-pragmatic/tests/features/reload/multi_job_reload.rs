@@ -102,7 +102,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                         2,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
                         6,
-                        "1",
+                        "p1",
                     ),
                     create_stop_with_activity(
                         "simple3",
@@ -119,7 +119,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                         2,
                         ("1970-01-01T00:00:18Z", "1970-01-01T00:00:19Z"),
                         12,
-                        "2",
+                        "p2",
                     ),
                     create_stop_with_activity_with_tag(
                         "multi",
@@ -128,7 +128,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                         0,
                         ("1970-01-01T00:00:20Z", "1970-01-01T00:00:21Z"),
                         13,
-                        "1",
+                        "d1",
                     ),
                     create_stop_with_activity(
                         "arrival",

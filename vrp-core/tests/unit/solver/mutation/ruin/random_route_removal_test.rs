@@ -15,7 +15,7 @@ fn can_remove_whole_routes_from_context() {
     let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, |data| (data.clone(), data));
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
-        (Arc::new(solution), None),
+        (solution, None),
         Arc::new(FakeRandom::new(ints, vec![])),
     );
 
@@ -47,7 +47,7 @@ fn can_remove_parts_routes_from_context() {
     };
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
-        (Arc::new(solution), None),
+        (solution, None),
         Arc::new(FakeRandom::new(ints, vec![])),
     );
 

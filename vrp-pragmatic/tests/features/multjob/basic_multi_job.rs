@@ -63,7 +63,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                         1,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
                         2,
-                        "1"
+                        "p1"
                     ),
                     create_stop_with_activity_with_tag(
                         "multi",
@@ -72,7 +72,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                         2,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
                         8,
-                        "2"
+                        "p2"
                     ),
                     create_stop_with_activity_with_tag(
                         "multi",
@@ -81,7 +81,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                         0,
                         ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
                         10,
-                        "1"
+                        "d1"
                     ),
                     create_stop_with_activity(
                         "arrival",
@@ -154,7 +154,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                         1,
                         ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
                         2,
-                        "2"
+                        "p2"
                     ),
                     create_stop_with_activity_with_tag(
                         "multi",
@@ -163,7 +163,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                         2,
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
                         4,
-                        "1"
+                        "p1"
                     ),
                     create_stop_with_activity_with_tag(
                         "multi",
@@ -172,7 +172,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                         0,
                         ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
                         6,
-                        "1"
+                        "d1"
                     ),
                     create_stop_with_activity(
                         "arrival",

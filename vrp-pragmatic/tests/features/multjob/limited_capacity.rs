@@ -59,7 +59,7 @@ fn can_handle_limited_capacity() {
                         1,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
                         1,
-                        "1",
+                        "p1",
                     ),
                     create_stop_with_activity_with_tag(
                         "multi_1",
@@ -68,7 +68,7 @@ fn can_handle_limited_capacity() {
                         2,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
                         2,
-                        "2",
+                        "p2",
                     ),
                     create_stop_with_activity_with_tag(
                         "multi_1",
@@ -77,7 +77,7 @@ fn can_handle_limited_capacity() {
                         0,
                         ("1970-01-01T00:00:12Z", "1970-01-01T00:00:13Z"),
                         10,
-                        "1",
+                        "d1",
                     ),
                     create_stop_with_activity_with_tag(
                         "multi_2",
@@ -86,7 +86,7 @@ fn can_handle_limited_capacity() {
                         1,
                         ("1970-01-01T00:00:20Z", "1970-01-01T00:00:21Z"),
                         17,
-                        "1",
+                        "p1",
                     ),
                     create_stop_with_activity_with_tag(
                         "multi_2",
@@ -95,7 +95,7 @@ fn can_handle_limited_capacity() {
                         2,
                         ("1970-01-01T00:00:22Z", "1970-01-01T00:00:23Z"),
                         18,
-                        "2",
+                        "p2",
                     ),
                     create_stop_with_activity_with_tag(
                         "multi_2",
@@ -104,7 +104,7 @@ fn can_handle_limited_capacity() {
                         0,
                         ("1970-01-01T00:00:30Z", "1970-01-01T00:00:31Z"),
                         25,
-                        "1",
+                        "d1",
                     ),
                     create_stop_with_activity(
                         "arrival",

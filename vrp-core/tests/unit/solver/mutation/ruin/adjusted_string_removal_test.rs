@@ -45,7 +45,7 @@ fn can_ruin_solution_with_matrix_routes_impl(
     let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, |data| (data.clone(), data));
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
-        (Arc::new(solution), None),
+        (solution, None),
         Arc::new(FakeRandom::new(ints, reals)),
     );
 

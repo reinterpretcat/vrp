@@ -52,7 +52,7 @@ fn can_use_only_deliveries_as_static_demand() {
                         1,
                         ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
                         2,
-                        "2"
+                        "d2"
                     ),
                     create_stop_with_activity_with_tag(
                         "job1",
@@ -61,7 +61,7 @@ fn can_use_only_deliveries_as_static_demand() {
                         0,
                         ("1970-01-01T00:00:09Z", "1970-01-01T00:00:11Z"),
                         8,
-                        "1"
+                        "d1"
                     )
                 ],
                 statistic: Statistic {
@@ -132,7 +132,7 @@ fn can_use_only_pickups_as_static_demand() {
                         1,
                         ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
                         2,
-                        "2"
+                        "p2"
                     ),
                     create_stop_with_activity_with_tag(
                         "job1",
@@ -141,7 +141,7 @@ fn can_use_only_pickups_as_static_demand() {
                         2,
                         ("1970-01-01T00:00:09Z", "1970-01-01T00:00:11Z"),
                         8,
-                        "1"
+                        "p1"
                     ),
                     create_stop_with_activity(
                         "arrival",

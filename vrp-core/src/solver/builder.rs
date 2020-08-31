@@ -122,14 +122,14 @@ impl Builder {
     }
 
     /// Sets initial solutions in population. Default is no solutions in population.
-    pub fn with_solutions(mut self, solutions: Vec<Arc<Solution>>) -> Self {
+    pub fn with_solutions(mut self, solutions: Vec<Solution>) -> Self {
         self.config.telemetry.log(format!("provided {} initial solutions to start with", solutions.len()).as_str());
         self.config.initial_individuals = solutions
-            .iter()
+            .into_iter()
             .map(|solution| {
                 InsertionContext::new_from_solution(
                     self.config.problem.clone(),
-                    (solution.clone(), None),
+                    (solution, None),
                     Arc::new(DefaultRandom::default()),
                 )
             })

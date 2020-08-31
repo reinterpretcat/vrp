@@ -116,11 +116,10 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
 /// Creates insertion context from existing solution.
 pub fn create_insertion_context_from_solution(
     problem: Arc<Problem>,
-    solution: (Arc<Solution>, Option<Cost>),
+    solution: (Solution, Option<Cost>),
     random: Arc<dyn Random + Send + Sync>,
 ) -> InsertionContext {
-    let jobs: Vec<Job> = solution.0.unassigned.iter().map(|(job, _)| job.clone()).collect();
-    let unassigned = Default::default();
+    let unassigned = solution.0.unassigned.iter().cloned().collect();
     let locked = problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
         acc.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
         acc
@@ -140,7 +139,8 @@ pub fn create_insertion_context_from_solution(
 
     let registry = create_registry_context(&problem, registry);
 
-    let mut solution = SolutionContext { required: jobs, ignored: vec![], unassigned, locked, routes, registry, state };
+    let mut solution =
+        SolutionContext { required: vec![], ignored: vec![], unassigned, locked, routes, registry, state };
     problem.constraint.accept_solution_state(&mut solution);
 
     InsertionContext { problem, solution, random }
