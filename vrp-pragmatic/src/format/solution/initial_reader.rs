@@ -114,7 +114,7 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
 
     // NOTE this is necessary to keep departure time optimization
     let departure_time =
-        &format_tour.stops.first().as_ref().ok_or_else(|| format!("empty tour in init solution"))?.time.departure;
+        &format_tour.stops.first().as_ref().ok_or_else(|| "empty tour in init solution".to_string())?.time.departure;
     core_tour.all_activities_mut().next().expect("cannot get start activity from core tour").schedule.departure =
         parse_time(departure_time);
 

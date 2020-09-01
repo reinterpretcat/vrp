@@ -68,7 +68,7 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
                         "break" | "depot" | "reload" => {
                             let entry = indexer.entry(job.clone()).or_insert(1_usize);
                             let job_index = *entry;
-                            *entry = *entry + 1;
+                            *entry += 1;
                             format!("{}_{}_{}_{}", vehicle_id, job, shift_index, job_index)
                         }
                         _ => job.clone(),
