@@ -63,8 +63,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
     serialize_solution(writer, solution).expect("cannot serialize test solution");
 
-    let core_solution = read_init_solution(BufReader::new(buffer.as_bytes()), core_problem.clone())
-        .unwrap_or_else(|err| panic!(format!("cannot read solution: {}", err)));
+    let core_solution = read_init_solution(BufReader::new(buffer.as_bytes()), core_problem.clone())?;
 
     // NOTE: get statistic/tours updated
     let insertion_ctx = InsertionContext::new_from_solution(
@@ -185,4 +184,26 @@ fn can_read_basic_init_solution() {
         get_init_solution(problem, &solution).unwrap_or_else(|err| panic!("cannot get solution: {}", err));
 
     assert_eq!(result_solution, solution);
+}
+
+#[test]
+fn can_handle_error_in_init_solution() {
+    let problem = create_basic_problem(create_default_breaks());
+    let solution = Solution {
+        statistic: Default::default(),
+        tours: vec![Tour {
+            vehicle_id: "my_vehicle_1".to_string(),
+            type_id: "my_vehicle".to_string(),
+            shift_index: 0,
+            stops: vec![],
+            statistic: Default::default(),
+        }],
+        unassigned: None,
+        violations: None,
+        extras: None,
+    };
+
+    let result_solution = get_init_solution(problem, &solution);
+
+    assert_eq!(result_solution, Err("empty tour in init solution".to_owned()));
 }
