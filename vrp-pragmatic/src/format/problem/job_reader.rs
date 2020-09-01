@@ -261,13 +261,24 @@ fn read_depots(
 ) -> Vec<Arc<Lock>> {
     get_cargo_jobs("depot", coord_index, vehicle, shift_index, depots)
         .into_iter()
-        .map(|(vehicle_id, job_id, single)| {
-            add_conditional_job(job_index, jobs, job_id.clone(), single);
-            (vehicle_id, job_id)
-        })
+        .map(|(vehicle_id, _, single)| (vehicle_id, single))
         .collect_group_by_key(|(vehicle_id, _)| vehicle_id.clone())
         .into_iter()
-        .map(|(vehicle_id, job_ids)| {
+        .map(|(vehicle_id, singles)| {
+            let (places, dimens): (_, Vec<Dimensions>) = singles
+                .into_iter()
+                .map(|(_, single)| {
+                    assert_eq!(single.places.len(), 1);
+                    (single.places.first().cloned().unwrap(), single.dimens)
+                })
+                .unzip();
+
+            let job_id = format!("{}_depot_{}_1", vehicle_id, shift_index);
+            let mut dimens = dimens.first().cloned().unwrap();
+            dimens.set_id(&job_id);
+
+            add_conditional_job(job_index, jobs, job_id.clone(), Single { places, dimens });
+
             Arc::new(Lock::new(
                 Arc::new(move |actor| {
                     let dimens = &actor.vehicle.dimens;
@@ -279,8 +290,7 @@ fn read_depots(
                 vec![LockDetail {
                     order: LockOrder::Strict,
                     position: LockPosition::Departure,
-                    // NOTE this is workaround to allow selection of the cheapest depot later
-                    jobs: job_ids.into_iter().map(|(_, job_id)| job_index.get(&job_id).unwrap().clone()).collect(),
+                    jobs: vec![job_index.get(&job_id).unwrap().clone()],
                 }],
                 true,
             ))

@@ -115,38 +115,42 @@ fn can_handle_unassignable_depot() {
     assert_eq!(solution.unassigned.map_or(0, |u| u.len()), 2);
 }
 
-parameterized_test! {can_handle_two_depots, location, {
-    can_handle_two_depots_impl(location);
+parameterized_test! {can_handle_two_depots, (first_depot, second_depot, expected_location, expected_cost), {
+    can_handle_two_depots_impl(first_depot, second_depot, expected_location, expected_cost);
 }}
 
 can_handle_two_depots! {
-    case01: &[7., 0.],
-    case02: &[1001., 0.],
+    case01: ((&[7., 0.], 6.), (&[8., 0.], 1.), &[8., 0.], 45.),
+    case02: ((&[1001., 0.], 1.), (&[8., 0.], 6.), &[8., 0.], 50.),
+    case03: ((&[7., 0.], 1.), (&[8., 0.], 1.), &[7., 0.], 41.),
 }
 
-fn can_handle_two_depots_impl(location: &[f64]) {
+fn can_handle_two_depots_impl(
+    first_depot: (&[f64; 2], f64),
+    second_depot: (&[f64; 2], f64),
+    expected_location: &[f64; 2],
+    expected_cost: f64,
+) {
     let problem = create_problem_with_depots(Some(vec![
         VehicleCargoPlace {
-            location: location.to_vec().to_loc(),
-            duration: 6.,
+            location: first_depot.0.to_vec().to_loc(),
+            duration: first_depot.1,
             times: Some(vec![vec![format_time(0.), format_time(1000.)]]),
             tag: None,
         },
-        VehicleCargoPlace { location: vec![8., 0.].to_loc(), duration: 1., times: None, tag: None },
+        VehicleCargoPlace {
+            location: second_depot.0.to_vec().to_loc(),
+            duration: second_depot.1,
+            times: None,
+            tag: None,
+        },
     ]));
     let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(solution.tours[0].stops[1].location, vec![8., 0.].to_loc());
+    assert!(!solution.tours.is_empty());
+    assert_eq!(solution.tours[0].stops[1].location, expected_location.to_vec().to_loc());
     assert_eq!(solution.tours[0].stops[1].activities[0].activity_type, "depot");
-    assert_eq!(
-        solution.statistic,
-        Statistic {
-            cost: 45.,
-            distance: 16,
-            duration: 19,
-            times: Timing { driving: 16, serving: 3, waiting: 0, break_time: 0 },
-        }
-    );
+    assert_eq!(solution.statistic.cost, expected_cost);
 }
