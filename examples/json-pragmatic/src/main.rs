@@ -31,6 +31,7 @@ fn run_examples(base_path: &str) {
         ("basics/reload.basic", None),
         ("basics/reload.multi", None),
         ("simple.basic", None),
+        ("simple.index", Some(vec!["simple.basic.matrix"])),
         ("basics/skills.basic", None),
         ("basics/unassigned.unreachable", None),
     ];
