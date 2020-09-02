@@ -58,6 +58,37 @@ fn can_estimate_epsilon_impl(
     assert_eq!((estimate_epsilon(&problem, nth_neighbor) * 1000.).round() / 1000., expected);
 }
 
+parameterized_test! {can_estimate_epsilon_having_zero_costs, min_points, {
+    can_estimate_epsilon_having_zero_costs_impl(min_points);
+}}
+
+can_estimate_epsilon_having_zero_costs! {
+    case_01: 1,
+    case_02: 2,
+    case_03: 3,
+    case_04: 4,
+}
+
+fn can_estimate_epsilon_having_zero_costs_impl(min_points: usize) {
+    let (problem, _) = generate_matrix_routes(8, 1, |_| {
+        let distances = generate_matrix_distances_from_points(&[
+            p(0., 0.),
+            p(0., 0.),
+            p(0., 0.),
+            p(0., 0.),
+            p(5., 0.),
+            p(10., 0.),
+            p(20., 0.),
+            p(30., 0.),
+        ]);
+        (vec![0.; 64], distances)
+    });
+
+    let costs = get_average_costs(&problem, min_points);
+
+    assert!(costs.iter().all(|cost| *cost > 0.));
+}
+
 parameterized_test! {can_create_job_clusters, (param, expected), {
     can_create_job_clusters_impl(param, expected);
 }}

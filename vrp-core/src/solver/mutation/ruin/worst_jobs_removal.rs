@@ -4,7 +4,7 @@ mod worst_jobs_removal_test;
 
 use super::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
-use crate::models::common::Cost;
+use crate::models::common::{Cost, Timestamp};
 use crate::models::problem::{Actor, Job, TransportCost};
 use crate::models::solution::Activity;
 use crate::solver::RefinementContext;
@@ -67,7 +67,8 @@ impl Ruin for WorstJobRemoval {
                         .chain(
                             problem
                                 .jobs
-                                .neighbors(rc.route.actor.vehicle.profile, &job, Default::default())
+                                .neighbors(rc.route.actor.vehicle.profile, &job, Timestamp::default())
+                                .filter(|(_, cost)| *cost > 0.)
                                 .map(|(job, _)| job)
                                 .cloned(),
                         )

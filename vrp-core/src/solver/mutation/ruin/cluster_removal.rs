@@ -6,6 +6,7 @@ use super::*;
 use crate::algorithms::dbscan::{create_clusters, Cluster, NeighborhoodFn};
 use crate::algorithms::geometry::Point;
 use crate::construction::heuristics::InsertionContext;
+use crate::models::common::Timestamp;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::RefinementContext;
@@ -116,7 +117,8 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
         problem.jobs.all().enumerate().for_each(|(idx, job)| {
             acc[idx] += problem
                 .jobs
-                .neighbors(profile, &job, 0.)
+                .neighbors(profile, &job, Timestamp::default())
+                .filter(|(_, cost)| *cost > 0.)
                 .nth(min_points - 1)
                 // TODO consider time window difference as extra cost?
                 .map(|(_, cost)| *cost)
