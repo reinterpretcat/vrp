@@ -280,7 +280,7 @@ fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIn
         Arc::new(move |location| {
             coord_index
                 .get_by_idx(location)
-                .map_or_else(|| panic!("cannot find location!"), |location| (location.lat, location.lng))
+                .map_or_else(|| panic!("cannot find location!"), |location| location.to_lat_lng())
         }),
         AREA_CONSTRAINT_CODE,
     )));

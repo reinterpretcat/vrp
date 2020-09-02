@@ -6,19 +6,41 @@ extern crate serde_json;
 use serde::{Deserialize, Serialize};
 use std::io::BufWriter;
 
-/// A location type represented by latitude and longitude.
+/// Represents a location type.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Location {
-    /// Latitude.
-    pub lat: f64,
-    /// Longitude.
-    pub lng: f64,
+#[serde(untagged)]
+pub enum Location {
+    /// A location type represented by geocoordinate with latitude and longitude.
+    Coordinate {
+        /// Latitude.
+        lat: f64,
+        /// Longitude.
+        lng: f64,
+    },
+    /// A location type represented by index reference in routing matrix.
+    Reference {
+        /// An index in routing matrix.
+        index: usize,
+    },
 }
 
 impl Location {
-    /// Creates new `[Location]`.
-    pub fn new(lat: f64, lng: f64) -> Self {
-        Self { lat, lng }
+    /// Creates a new `[Location]` as coordinate.
+    pub fn new_coordinate(lat: f64, lng: f64) -> Self {
+        Self::Coordinate { lat, lng }
+    }
+
+    /// Creates a new `[Location]` as index reference.
+    pub fn new_reference(index: usize) -> Self {
+        Self::Reference { index }
+    }
+
+    /// Returns lat lng if location is coordinate, panics otherwise.
+    pub fn to_lat_lng(&self) -> (f64, f64) {
+        match self {
+            Self::Coordinate { lat, lng } => (*lat, *lng),
+            _ => unreachable!("expect coordinate"),
+        }
     }
 }
 

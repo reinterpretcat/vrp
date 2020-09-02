@@ -173,13 +173,13 @@ fn can_properly_handle_load_without_capacity_violation() {
                     reloads: Some(vec![
                         VehicleCargoPlace {
                             times: None,
-                            location: Location { lat: 0.0, lng: 0.0 },
+                            location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                             duration: 2620.0,
                             tag: None,
                         },
                         VehicleCargoPlace {
                             times: None,
-                            location: Location { lat: 0.0, lng: 0.0 },
+                            location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                             duration: 2874.0,
                             tag: None,
                         },

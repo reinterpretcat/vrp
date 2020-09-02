@@ -11,8 +11,10 @@ fn assert_time_windows(actual: &Option<Vec<Vec<String>>>, expected: (&str, &str)
 }
 
 fn assert_location(actual: &Location, expected: (f64, f64)) {
-    assert_eq!(actual.lat, expected.0);
-    assert_eq!(actual.lng, expected.1);
+    let (lat, lng) = actual.to_lat_lng();
+
+    assert_eq!(lat, expected.0);
+    assert_eq!(lng, expected.1);
 }
 
 fn assert_demand(actual: &Option<Vec<i32>>, expected: i32) {

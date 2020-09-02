@@ -313,7 +313,7 @@ mod models {
 }
 
 fn to_loc(loc: &models::Location) -> Location {
-    Location { lat: loc.lat, lng: loc.lng }
+    Location::Coordinate { lat: loc.lat, lng: loc.lng }
 }
 
 pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, FormatError> {

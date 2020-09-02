@@ -228,10 +228,6 @@ fn get_location(stop: &Stop, activity: &Activity) -> Location {
     activity.location.as_ref().unwrap_or_else(|| &stop.location).clone()
 }
 
-fn same_locations(left: &Location, right: &Location) -> bool {
-    (left.lat - right.lat).abs() < std::f64::EPSILON && (left.lng - right.lng).abs() < std::f64::EPSILON
-}
-
 mod assignment;
 use crate::checker::assignment::check_assignment;
 

@@ -1,5 +1,6 @@
 use super::Solution;
 use crate::format::solution::{Stop, Tour};
+use crate::format::Location;
 use serde::Serialize;
 use serde_json::Error;
 use std::collections::HashMap;
@@ -55,7 +56,7 @@ fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) ->
             ("departure", stop.time.departure.as_str()),
             ("jobs_ids", stop.activities.iter().map(|a| a.job_id.clone()).collect::<Vec<_>>().join(",").as_str()),
         ]),
-        geometry: Geometry::Point { coordinates: (stop.location.lng, stop.location.lat) },
+        geometry: Geometry::Point { coordinates: get_lng_lat(&stop.location) },
     }
 }
 
@@ -73,7 +74,7 @@ fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Feature {
             ("stroke", color),
         ]),
         geometry: Geometry::LineString {
-            coordinates: tour.stops.iter().map(|stop| (stop.location.lng, stop.location.lat)).collect(),
+            coordinates: tour.stops.iter().map(|stop| get_lng_lat(&stop.location)).collect(),
         },
     }
 }
@@ -109,6 +110,12 @@ fn get_color_inverse(idx: usize) -> String {
     let idx = (COLOR_LIST.len() - idx) % COLOR_LIST.len();
 
     (**COLOR_LIST.get(idx).as_ref().unwrap()).to_string()
+}
+
+fn get_lng_lat(location: &Location) -> (f64, f64) {
+    let (lat, lng) = location.to_lat_lng();
+
+    (lng, lat)
 }
 
 type ColorList = &'static [&'static str; 15];

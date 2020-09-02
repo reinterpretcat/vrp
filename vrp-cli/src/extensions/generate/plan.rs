@@ -75,13 +75,13 @@ pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option
     Ok(Plan { jobs, relations: None })
 }
 
-fn get_bounding_box_from_plan(plan: &Plan) -> (Location, Location) {
+fn get_bounding_box_from_plan(plan: &Plan) -> ((f64, f64), (f64, f64)) {
     let mut lat_min = std::f64::MAX;
     let mut lat_max = std::f64::MIN;
     let mut lng_min = std::f64::MAX;
     let mut lng_max = std::f64::MIN;
 
-    get_plan_places(&plan).map(|job_place| &job_place.location).cloned().for_each(|Location { lat, lng }| {
+    get_plan_places(&plan).map(|job_place| job_place.location.to_lat_lng()).for_each(|(lat, lng)| {
         lat_min = lat_min.min(lat);
         lat_max = lat_max.max(lat);
 
@@ -89,18 +89,18 @@ fn get_bounding_box_from_plan(plan: &Plan) -> (Location, Location) {
         lng_max = lng_max.max(lng);
     });
 
-    (Location { lat: lat_min, lng: lng_min }, Location { lat: lat_max, lng: lng_max })
+    ((lat_min, lng_min), (lat_max, lng_max))
 }
 
-fn get_bounding_box_from_size(plan: &Plan, area_size: f64) -> (Location, Location) {
+fn get_bounding_box_from_size(plan: &Plan, area_size: f64) -> ((f64, f64), (f64, f64)) {
     const WGS84_A: f64 = 6_378_137.0;
     const WGS84_B: f64 = 6_356_752.3;
     let deg_to_rad = |deg| std::f64::consts::PI * deg / 180.;
     let rad_to_deg = |rad| 180. * rad / std::f64::consts::PI;
 
-    let (min, max) = get_bounding_box_from_plan(plan);
-    let center_lat = min.lat + (max.lat - min.lat) / 2.;
-    let center_lng = min.lng + (max.lng - min.lng) / 2.;
+    let ((min_lat, min_lng), (max_lat, max_lng)) = get_bounding_box_from_plan(plan);
+    let center_lat = min_lat + (max_lat - min_lat) / 2.;
+    let center_lng = min_lng + (max_lng - min_lng) / 2.;
 
     let lat = deg_to_rad(center_lat);
     let lng = deg_to_rad(center_lng);
@@ -121,7 +121,7 @@ fn get_bounding_box_from_size(plan: &Plan, area_size: f64) -> (Location, Locatio
     let lon_min = rad_to_deg(lng - half_size / pradius);
     let lon_max = rad_to_deg(lng + half_size / pradius);
 
-    (Location { lat: lat_min, lng: lon_min }, Location { lat: lat_max, lng: lon_max })
+    ((lat_min, lon_min), (lat_max, lon_max))
 }
 
 fn get_plan_time_windows(plan: &Plan) -> Vec<Vec<Vec<String>>> {
@@ -163,9 +163,9 @@ fn get_random_item<'a, T>(items: &'a [T], rnd: &DefaultRandom) -> Option<&'a T> 
     items.get(idx)
 }
 
-fn get_random_location(bounding_box: &(Location, Location), rnd: &DefaultRandom) -> Location {
-    let lat = rnd.uniform_real(bounding_box.0.lat, bounding_box.1.lat);
-    let lng = rnd.uniform_real(bounding_box.0.lng, bounding_box.1.lng);
+fn get_random_location(bounding_box: &((f64, f64), (f64, f64)), rnd: &DefaultRandom) -> Location {
+    let lat = rnd.uniform_real((bounding_box.0).0, (bounding_box.1).0);
+    let lng = rnd.uniform_real((bounding_box.0).1, (bounding_box.1).1);
 
-    Location { lat, lng }
+    Location::Coordinate { lat, lng }
 }

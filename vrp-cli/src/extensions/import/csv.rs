@@ -65,7 +65,7 @@ fn parse_tw(start: Option<String>, end: Option<String>) -> Option<Vec<String>> {
 fn read_jobs<R: Read>(reader: BufReader<R>) -> Result<Vec<Job>, Box<dyn Error>> {
     let get_task = |job: &CsvJob| JobTask {
         places: vec![JobPlace {
-            location: Location { lat: job.lat, lng: job.lng },
+            location: Location::Coordinate { lat: job.lat, lng: job.lng },
             duration: job.duration as f64 * 60.,
             times: parse_tw(job.tw_start.clone(), job.tw_end.clone()).map(|tw| vec![tw]),
         }],
@@ -107,7 +107,7 @@ fn read_vehicles<R: Read>(reader: BufReader<R>) -> Result<Vec<VehicleType>, Box<
     let vehicles = read_csv_entries::<CsvVehicle, _>(reader)?
         .into_iter()
         .map(|vehicle| {
-            let depot_location = Location { lat: vehicle.lat, lng: vehicle.lng };
+            let depot_location = Location::Coordinate { lat: vehicle.lat, lng: vehicle.lng };
 
             VehicleType {
                 type_id: vehicle.id.clone(),

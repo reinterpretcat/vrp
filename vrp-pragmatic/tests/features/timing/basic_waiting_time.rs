@@ -157,7 +157,7 @@ fn can_consider_latest_departure_time() {
                     start: ShiftStart {
                         earliest: "1970-01-01T00:00:00Z".to_string(),
                         latest: Some("1970-01-01T00:00:05Z".to_string()),
-                        location: Location { lat: 0.0, lng: 0.0 },
+                        location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                     },
                     ..create_default_vehicle_shift()
                 }],

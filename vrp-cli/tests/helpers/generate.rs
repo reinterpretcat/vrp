@@ -18,7 +18,7 @@ fn create_empty_job_task() -> JobTask {
 }
 
 fn create_empty_job_place() -> JobPlace {
-    JobPlace { location: Location { lat: 0.0, lng: 0.0 }, duration: 0.0, times: None }
+    JobPlace { location: Location::Coordinate { lat: 0.0, lng: 0.0 }, duration: 0.0, times: None }
 }
 
 pub fn create_test_vehicle_type() -> VehicleType {
@@ -31,7 +31,7 @@ pub fn create_test_vehicle_type() -> VehicleType {
             start: ShiftStart {
                 earliest: "2020-05-01T09:00:00.00Z".to_string(),
                 latest: None,
-                location: Location { lat: 0.0, lng: 0.0 },
+                location: Location::Coordinate { lat: 0.0, lng: 0.0 },
             },
             end: None,
             depots: None,
@@ -56,7 +56,7 @@ pub fn create_test_job(lat: f64, lng: f64) -> Job {
     Job {
         pickups: Some(vec![JobTask {
             places: vec![JobPlace {
-                location: Location { lat, lng },
+                location: Location::Coordinate { lat, lng },
                 times: Some(vec![create_test_time_window()]),
                 ..create_empty_job_place()
             }],

@@ -4,7 +4,7 @@ use crate::format_time;
 use crate::helpers::*;
 
 fn coord(lat: f64, lng: f64) -> Location {
-    Location { lat, lng }
+    Location::Coordinate { lat, lng }
 }
 
 parameterized_test! {can_detect_invalid_area, (allowed_areas, expected), {
@@ -62,7 +62,7 @@ fn can_detect_invalid_depots_impl(depots: &[(f64, Option<Vec<Vec<String>>>)], ex
             .into_iter()
             .cloned()
             .map(|(lat, times)| VehicleCargoPlace {
-                location: Location { lat, lng: 0. },
+                location: Location::Coordinate { lat, lng: 0. },
                 duration: 1.,
                 times,
                 tag: None,

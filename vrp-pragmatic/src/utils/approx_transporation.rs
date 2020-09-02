@@ -24,11 +24,14 @@ pub fn get_approx_transportation(locations: &[Location], speeds: &[f64]) -> Vec<
 
 /// Gets distance between two points using haversine formula.
 fn get_distance(p1: &Location, p2: &Location) -> f64 {
-    let d_lat = degree_rad(p1.lat - p2.lat);
-    let d_lng = degree_rad(p1.lng - p2.lng);
+    let (p1_lat, p1_lng) = as_lat_lon(p1.clone());
+    let (p2_lat, p2_lng) = as_lat_lon(p2.clone());
 
-    let lat1 = degree_rad(p1.lat);
-    let lat2 = degree_rad(p2.lat);
+    let d_lat = degree_rad(p1_lat - p2_lat);
+    let d_lng = degree_rad(p1_lng - p2_lng);
+
+    let lat1 = degree_rad(p1_lat);
+    let lat2 = degree_rad(p2_lat);
 
     let a =
         (d_lat / 2.).sin() * (d_lat / 2.).sin() + (d_lng / 2.).sin() * (d_lng / 2.).sin() * (lat1).cos() * (lat2).cos();
@@ -58,4 +61,11 @@ fn wgs84_earth_radius(lat: f64) -> f64 {
     let bd = WGS84_B * lat.sin();
 
     ((an * an + bn * bn) / (ad * ad + bd * bd)).sqrt()
+}
+
+fn as_lat_lon(location: Location) -> (f64, f64) {
+    match location {
+        Location::Coordinate { lat, lng } => (lat, lng),
+        _ => panic!("approximation requires coordinates"),
+    }
 }

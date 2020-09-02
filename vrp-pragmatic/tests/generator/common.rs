@@ -13,12 +13,12 @@ pub fn from_hours(hours: i32) -> Duration {
 
 prop_compose! {
     /// Generates location inside given bounding box.
-    pub fn generate_location(bounding_box: &(Location, Location))
+    pub fn generate_location(bounding_box: &((f64, f64), (f64, f64)))
     (
-     lat in bounding_box.0.lat..bounding_box.1.lat,
-     lng in bounding_box.0.lng..bounding_box.1.lng
+     lat in bounding_box.0.0..bounding_box.1.0,
+     lng in bounding_box.0.1..bounding_box.1.1
     ) -> Location {
-        Location { lat, lng }
+        Location::Coordinate { lat, lng }
     }
 }
 

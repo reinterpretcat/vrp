@@ -4,16 +4,16 @@ use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData};
 
 fn get_test_locations() -> Vec<Location> {
     vec![
-        Location { lat: 52.52599, lng: 13.45413 },
-        Location { lat: 52.5225, lng: 13.4095 },
-        Location { lat: 52.5165, lng: 13.3808 },
+        Location::Coordinate { lat: 52.52599, lng: 13.45413 },
+        Location::Coordinate { lat: 52.5225, lng: 13.4095 },
+        Location::Coordinate { lat: 52.5165, lng: 13.3808 },
     ]
 }
 
 #[test]
 fn can_calculate_distance_between_two_locations() {
-    let l1 = Location { lat: 52.52599, lng: 13.45413 };
-    let l2 = Location { lat: 52.5165, lng: 13.3808 };
+    let l1 = Location::Coordinate { lat: 52.52599, lng: 13.45413 };
+    let l2 = Location::Coordinate { lat: 52.5165, lng: 13.3808 };
 
     let distance = get_distance(&l1, &l2);
 

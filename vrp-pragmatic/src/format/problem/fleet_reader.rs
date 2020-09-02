@@ -90,7 +90,7 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
 
         let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
         let areas = vehicle.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map(|areas| {
-            areas.iter().map(|area| area.iter().map(|l| (l.lat, l.lng)).collect::<Vec<_>>()).collect::<Vec<_>>()
+            areas.iter().map(|area| area.iter().map(|l| l.to_lat_lng()).collect::<Vec<_>>()).collect::<Vec<_>>()
         });
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {

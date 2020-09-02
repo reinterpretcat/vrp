@@ -2,14 +2,12 @@
 
 use super::*;
 use crate::format::problem::*;
-use crate::format::Location;
 use crate::helpers::create_default_profiles;
 use crate::{format_time, parse_time};
 
 pub const START_DAY: &str = "2020-07-04T00:00:00Z";
 
-pub const DEFAULT_BOUNDING_BOX: (Location, Location) =
-    (Location { lat: 52.4240, lng: 13.2148 }, Location { lat: 52.5937, lng: 13.5970 });
+pub const DEFAULT_BOUNDING_BOX: ((f64, f64), (f64, f64)) = ((52.4240, 13.2148), (52.5937, 13.5970));
 
 pub fn default_time_plus_offset(offset: i32) -> String {
     format_time(parse_time(&START_DAY.to_string()) + from_hours(offset).as_secs_f64())

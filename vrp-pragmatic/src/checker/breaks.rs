@@ -27,9 +27,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                     let actual_location = get_location(stop, to);
                     match &vehicle_break.locations {
                         Some(locations) => {
-                            let is_correct =
-                                locations.iter().any(|location| same_locations(&actual_location, location));
-
+                            let is_correct = locations.iter().any(|location| actual_location == *location);
                             if !is_correct {
                                 return Err(format!(
                                     "Break location '{:?}' is invalid: expected one of '{:?}'",
@@ -38,7 +36,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                             }
                         }
                         None => {
-                            if !same_locations(from_loc, &actual_location) {
+                            if *from_loc != actual_location {
                                 return Err(format!(
                                     "Break location '{:?}' is invalid: expected previous activity location '{:?}'",
                                     actual_location, from_loc

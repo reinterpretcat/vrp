@@ -86,17 +86,26 @@ impl Eq for Location {}
 
 impl PartialEq for Location {
     fn eq(&self, other: &Self) -> bool {
-        self.lat == other.lat && self.lng == other.lng
+        match (self, other) {
+            (Location::Coordinate { lat: l_lat, lng: l_lng }, Location::Coordinate { lat: r_lat, lng: r_lng }) => {
+                (l_lat - r_lat).abs() < std::f64::EPSILON && (l_lng - r_lng).abs() < std::f64::EPSILON
+            }
+            (Location::Reference { index: left }, Location::Reference { index: right }) => left == right,
+            _ => unreachable!("locations of different types"),
+        }
     }
 }
 
 impl Hash for Location {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        write_hash(self.lat, state);
-        write_hash(self.lng, state);
+        match self {
+            Location::Coordinate { lat, lng } => {
+                state.write_u64(lat.to_bits());
+                state.write_u64(lng.to_bits());
+            }
+            Location::Reference { index } => {
+                state.write_usize(*index);
+            }
+        }
     }
-}
-
-fn write_hash<H: Hasher>(value: f64, state: &mut H) {
-    state.write_u64(value.to_bits());
 }

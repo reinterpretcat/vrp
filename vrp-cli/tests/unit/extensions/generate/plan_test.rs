@@ -8,8 +8,8 @@ fn can_generate_bounding_box() {
         relations: None,
     };
 
-    let (Location { lat: min_lat, lng: min_lng }, Location { lat: max_lat, lng: max_lng }) =
-        get_bounding_box_from_plan(&plan);
+    let ((min_lat, min_lng), (max_lat, max_lng)) = get_bounding_box_from_plan(&plan);
+
     assert_eq!(min_lat, -1.);
     assert_eq!(min_lng, 0.);
     assert_eq!(max_lat, 3.);

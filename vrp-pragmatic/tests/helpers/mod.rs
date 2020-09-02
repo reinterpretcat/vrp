@@ -10,7 +10,7 @@ pub trait ToLocation {
 impl ToLocation for Vec<f64> {
     fn to_loc(&self) -> Location {
         assert_eq!(self.len(), 2);
-        Location::new(*self.get(0).unwrap(), *self.get(1).unwrap())
+        Location::new_coordinate(*self.get(0).unwrap(), *self.get(1).unwrap())
     }
 }
 

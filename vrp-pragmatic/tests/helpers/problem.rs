@@ -228,7 +228,11 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
         .iter()
         .cloned()
         .flat_map(|a| {
-            unique.iter().map(move |b| ((a.lat - b.lat).powf(2.) + (a.lng - b.lng).powf(2.)).sqrt().round() as i64)
+            let (a_lat, a_lng) = a.to_lat_lng();
+            unique.iter().map(move |b| {
+                let (b_lat, b_lng) = b.to_lat_lng();
+                ((a_lat - b_lat).powf(2.) + (a_lng - b_lng).powf(2.)).sqrt().round() as i64
+            })
         })
         .collect();
 
