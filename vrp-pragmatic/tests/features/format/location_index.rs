@@ -1,0 +1,124 @@
+use crate::format::problem::*;
+use crate::format::solution::*;
+use crate::format::Location;
+use crate::format_time;
+use crate::helpers::*;
+
+fn create_job_with_location_index(id: &str, index: usize) -> Job {
+    Job {
+        id: id.to_string(),
+        pickups: None,
+        deliveries: Some(vec![JobTask {
+            places: vec![JobPlace { times: None, location: Location::Reference { index }, duration: 1. }],
+            demand: Some(vec![1]),
+            tag: None,
+        }]),
+        replacements: None,
+        services: None,
+        priority: None,
+        skills: None,
+    }
+}
+
+fn create_test_problem() -> Problem {
+    Problem {
+        plan: Plan {
+            jobs: vec![create_job_with_location_index("job1", 0), create_job_with_location_index("job2", 1)],
+            relations: None,
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: None,
+                        location: Location::Reference { index: 2 },
+                    },
+                    ..create_default_open_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            profiles: create_default_profiles(),
+        },
+        ..create_empty_problem()
+    }
+}
+
+fn create_test_matrix() -> Matrix {
+    Matrix {
+        profile: Some("car".to_string()),
+        timestamp: None,
+        travel_times: vec![0, 3, 3, 1, 0, 3, 3, 2, 0],
+        distances: vec![0, 3, 3, 1, 0, 3, 3, 2, 0],
+        error_codes: None,
+    }
+}
+
+#[test]
+fn can_use_location_index() {
+    let problem = create_test_problem();
+    let matrix = create_test_matrix();
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert_eq!(
+        solution,
+        Solution {
+            statistic: Statistic {
+                cost: 18.,
+                distance: 3,
+                duration: 5,
+                times: Timing { driving: 3, serving: 2, waiting: 0, break_time: 0 }
+            },
+            tours: vec![Tour {
+                vehicle_id: "my_vehicle_1".to_string(),
+                type_id: "my_vehicle".to_string(),
+                shift_index: 0,
+                stops: vec![
+                    Stop {
+                        location: Location::Reference { index: 2 },
+                        ..create_stop_with_activity(
+                            "departure",
+                            "departure",
+                            (0., 0.),
+                            2,
+                            ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                            0
+                        )
+                    },
+                    Stop {
+                        location: Location::Reference { index: 1 },
+                        ..create_stop_with_activity(
+                            "job2",
+                            "delivery",
+                            (0., 0.),
+                            1,
+                            ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
+                            2
+                        )
+                    },
+                    Stop {
+                        location: Location::Reference { index: 0 },
+                        ..create_stop_with_activity(
+                            "job1",
+                            "delivery",
+                            (0., 0.),
+                            0,
+                            ("1970-01-01T00:00:04Z", "1970-01-01T00:00:05Z"),
+                            3
+                        )
+                    }
+                ],
+                statistic: Statistic {
+                    cost: 18.,
+                    distance: 3,
+                    duration: 5,
+                    times: Timing { driving: 3, serving: 2, waiting: 0, break_time: 0 }
+                }
+            }],
+            unassigned: None,
+            violations: None,
+            extras: None
+        }
+    );
+}

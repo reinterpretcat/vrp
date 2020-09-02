@@ -3,6 +3,7 @@
 mod breaks;
 mod depots;
 mod fleet;
+mod format;
 mod limits;
 mod multjob;
 mod pickdev;

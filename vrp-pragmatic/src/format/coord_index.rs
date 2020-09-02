@@ -56,12 +56,28 @@ impl CoordIndex {
             });
         });
 
+        let (has_coordinates, has_indices) =
+            index.direct_index.iter().fold((false, false), |(has_coordinates, has_indices), (location, _)| {
+                match location {
+                    Location::Coordinate { lat: _, lng: _ } => (true, has_indices),
+                    Location::Reference { index: _ } => (has_coordinates, true),
+                }
+            });
+
+        if has_coordinates && has_indices {
+            unreachable!("problem has both coordinates and indices as locations");
+        }
+
         index
     }
 
     pub fn add(&mut self, location: &Location) {
         if self.direct_index.get(location).is_none() {
-            let value = self.direct_index.len();
+            let value = match location {
+                Location::Coordinate { lat: _, lng: _ } => self.direct_index.len(),
+                Location::Reference { index } => *index,
+            };
+
             self.direct_index.insert(location.clone(), value);
             self.reverse_index.insert(value, location.clone());
         }
