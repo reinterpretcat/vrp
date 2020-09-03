@@ -7,7 +7,7 @@ use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::Termination;
 use crate::solver::{Metrics, Population, RefinementContext};
 use crate::utils::{parallel_into_collect, Random, Timer};
-use hashbrown::HashSet;
+use std::iter::once;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -134,35 +134,21 @@ impl EvolutionSimulator {
     }
 
     fn select_parents(&self, refinement_ctx: &RefinementContext) -> Vec<InsertionContext> {
-        let pareto_opt = refinement_ctx
+        let top_best_individuals = refinement_ctx
             .population
             .ranked()
             .filter_map(|(insertion_ctx, rank)| if rank == 0 { Some(insertion_ctx) } else { None })
             .take(self.config.offspring_size)
             .collect::<Vec<_>>();
 
-        let extra_parents_size = self.config.offspring_size - pareto_opt.len();
-
-        if extra_parents_size == 0 {
-            return pareto_opt.iter().map(|insertion_ctx| insertion_ctx.deep_copy()).collect();
-        }
-
-        // NOTE use uniform distribution, there might be better alternatives
-        let extra_parents_indices = (0..extra_parents_size)
-            .map(|_| self.config.random.uniform_int(0, extra_parents_size as i32 - 1) as usize)
-            .collect::<HashSet<_>>();
-
-        let skip = pareto_opt.len();
-        pareto_opt
-            .into_iter()
-            .chain(refinement_ctx.population.ranked().skip(skip).enumerate().filter_map(|(idx, (insertion_ctx, _))| {
-                if extra_parents_indices.contains(&idx) {
-                    Some(insertion_ctx)
-                } else {
-                    None
-                }
-            }))
-            .map(|insertion_ctx| insertion_ctx.deep_copy())
+        once(0_usize)
+            .chain(
+                (1..self.config.offspring_size)
+                    .map(|_| self.config.random.uniform_int(0, top_best_individuals.len() as i32) as usize),
+            )
+            .take(self.config.offspring_size)
+            .filter_map(|idx| top_best_individuals.get(idx))
+            .map(|individual| individual.deep_copy())
             .collect()
     }
 }
