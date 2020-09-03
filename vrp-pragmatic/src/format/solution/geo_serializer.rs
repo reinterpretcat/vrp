@@ -102,7 +102,7 @@ pub fn serialize_solution_as_geojson<W: Write>(writer: BufWriter<W>, solution: &
         writer,
         &FeatureCollection { features: stop_markers.into_iter().chain(stop_lines.into_iter()).collect() },
     )
-    .map_err(|err| Error::from(err))
+    .map_err(Error::from)
 }
 
 fn get_color(idx: usize) -> String {
