@@ -100,26 +100,24 @@ impl EvolutionSimulator {
 
         std::mem::replace(&mut self.config.initial_individuals, vec![])
             .into_iter()
+            .zip(0_usize..)
             .take(self.config.initial_size)
-            .for_each(|ctx| refinement_ctx.population.add(ctx));
+            .for_each(|(ctx, idx)| {
+                self.config.telemetry.on_initial(idx, self.config.initial_size, Timer::start());
+                refinement_ctx.population.add(ctx)
+            });
 
         let weights = self.config.initial_methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
         let empty_ctx = InsertionContext::new(self.problem.clone(), self.config.random.clone());
 
-        let indices: Vec<_> = if self.config.initial_size <= self.config.initial_methods.len() {
-            (0..self.config.initial_size).collect()
-        } else {
-            (refinement_ctx.population.size()..self.config.initial_size)
-                .map(|_| self.config.random.weighted(weights.as_slice()))
-                .collect()
-        };
-
-        let _ = indices.into_iter().enumerate().try_for_each(|(idx, method_idx)| {
+        let _ = (refinement_ctx.population.size()..self.config.initial_size).try_for_each(|idx| {
             let item_time = Timer::start();
 
             if self.config.termination.is_termination(&mut refinement_ctx) {
                 return Err(());
             }
+
+            let method_idx = self.config.random.weighted(weights.as_slice());
 
             let insertion_ctx = self.config.initial_methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
 
