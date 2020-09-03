@@ -52,7 +52,7 @@ impl<R: Read> PragmaticProblem for (BufReader<R>, Vec<BufReader<R>>) {
             matrices.push(deserialize_matrix(matrix)?);
         }
 
-        map_to_problem(problem, matrices)
+        map_to_problem_with_matrices(problem, matrices)
     }
 }
 
@@ -73,7 +73,7 @@ impl PragmaticProblem for (String, Vec<String>) {
             matrices.push(deserialize_matrix(BufReader::new(matrix.as_bytes()))?);
         }
 
-        map_to_problem(problem, matrices)
+        map_to_problem_with_matrices(problem, matrices)
     }
 }
 
@@ -87,7 +87,7 @@ impl PragmaticProblem for String {
 
 impl PragmaticProblem for (ApiProblem, Vec<Matrix>) {
     fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
-        map_to_problem(self.0, self.1)
+        map_to_problem_with_matrices(self.0, self.1)
     }
 }
 
@@ -144,16 +144,26 @@ fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
 }
 
 fn map_to_problem_with_approx(problem: ApiProblem) -> Result<Problem, Vec<FormatError>> {
-    let matrices = create_approx_matrices(&problem);
-    map_to_problem(problem, matrices)
+    let coord_index = CoordIndex::new(&problem);
+    let matrices = if coord_index.get_used_types().1 { vec![] } else { create_approx_matrices(&problem) };
+    map_to_problem(problem, matrices, coord_index)
 }
 
-fn map_to_problem(api_problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, Vec<FormatError>> {
+fn map_to_problem_with_matrices(problem: ApiProblem, matrices: Vec<Matrix>) -> Result<Problem, Vec<FormatError>> {
+    let coord_index = CoordIndex::new(&problem);
+    map_to_problem(problem, matrices, coord_index)
+}
+
+fn map_to_problem(
+    api_problem: ApiProblem,
+    matrices: Vec<Matrix>,
+    coord_index: CoordIndex,
+) -> Result<Problem, Vec<FormatError>> {
     ValidationContext::new(&api_problem, Some(&matrices)).validate()?;
 
     let problem_props = get_problem_properties(&api_problem, &matrices);
 
-    let coord_index = Arc::new(CoordIndex::new(&api_problem));
+    let coord_index = Arc::new(coord_index);
     let transport = create_transport_costs(&api_problem, &matrices).map_err(|err| {
         vec![FormatError::new(
             "E0002".to_string(),

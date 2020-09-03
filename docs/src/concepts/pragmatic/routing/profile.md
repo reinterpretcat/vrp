@@ -42,9 +42,3 @@ See [multiple profiles example](../../../examples/pragmatic/basics/profiles.md).
 
 In order to use this feature, specify more than one routing matrix for each profile with timestamp property set.
 
-
-## Related errors
-
-* [E0002 cannot create transport costs](../errors/index.md#e0002)
-* [E1500 duplicate profile names](../errors/index.md#e1500)
-* [E1501 empty profile collection](../errors/index.md#e1501)

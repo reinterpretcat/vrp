@@ -2,9 +2,8 @@ use super::Solution;
 use crate::format::solution::{Stop, Tour};
 use crate::format::Location;
 use serde::Serialize;
-use serde_json::Error;
 use std::collections::HashMap;
-use std::io::{BufWriter, Write};
+use std::io::{BufWriter, Error, ErrorKind, Write};
 
 #[derive(Clone, Serialize, Debug)]
 #[serde(tag = "type")]
@@ -44,8 +43,8 @@ fn get_marker_symbol(stop: &Stop) -> String {
     .to_string()
 }
 
-fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) -> Feature {
-    Feature {
+fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) -> Result<Feature, Error> {
+    Ok(Feature {
         properties: slice_to_map(&[
             ("marker-color", color),
             ("marker-size", "medium"),
@@ -56,12 +55,14 @@ fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) ->
             ("departure", stop.time.departure.as_str()),
             ("jobs_ids", stop.activities.iter().map(|a| a.job_id.clone()).collect::<Vec<_>>().join(",").as_str()),
         ]),
-        geometry: Geometry::Point { coordinates: get_lng_lat(&stop.location) },
-    }
+        geometry: Geometry::Point { coordinates: get_lng_lat(&stop.location)? },
+    })
 }
 
-fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Feature {
-    Feature {
+fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Result<Feature, Error> {
+    let coordinates = tour.stops.iter().map(|stop| get_lng_lat(&stop.location)).collect::<Result<_, Error>>()?;
+
+    Ok(Feature {
         properties: slice_to_map(&[
             ("vehicle_id", tour.vehicle_id.as_str()),
             ("tour_idx", tour_idx.to_string().as_str()),
@@ -73,27 +74,35 @@ fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Feature {
             ("stroke-width", "4"),
             ("stroke", color),
         ]),
-        geometry: Geometry::LineString {
-            coordinates: tour.stops.iter().map(|stop| get_lng_lat(&stop.location)).collect(),
-        },
-    }
+        geometry: Geometry::LineString { coordinates },
+    })
 }
 
 /// Serializes solution into geo json format.
 pub fn serialize_solution_as_geojson<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
-    let stop_markers = solution.tours.iter().enumerate().flat_map(|(tour_idx, tour)| {
-        tour.stops.iter().enumerate().map(move |(stop_idx, stop)| {
-            get_stop_point(tour_idx, stop_idx, &stop, get_color_inverse(tour_idx).as_str())
+    let stop_markers = solution
+        .tours
+        .iter()
+        .enumerate()
+        .flat_map(|(tour_idx, tour)| {
+            tour.stops.iter().enumerate().map(move |(stop_idx, stop)| {
+                get_stop_point(tour_idx, stop_idx, &stop, get_color_inverse(tour_idx).as_str())
+            })
         })
-    });
+        .collect::<Result<Vec<_>, _>>()?;
 
     let stop_lines = solution
         .tours
         .iter()
         .enumerate()
-        .map(|(tour_idx, tour)| get_tour_line(tour_idx, tour, get_color(tour_idx).as_str()));
+        .map(|(tour_idx, tour)| get_tour_line(tour_idx, tour, get_color(tour_idx).as_str()))
+        .collect::<Result<Vec<_>, _>>()?;
 
-    serde_json::to_writer_pretty(writer, &FeatureCollection { features: stop_markers.chain(stop_lines).collect() })
+    serde_json::to_writer_pretty(
+        writer,
+        &FeatureCollection { features: stop_markers.into_iter().chain(stop_lines.into_iter()).collect() },
+    )
+    .map_err(|err| Error::from(err))
 }
 
 fn get_color(idx: usize) -> String {
@@ -112,10 +121,13 @@ fn get_color_inverse(idx: usize) -> String {
     (**COLOR_LIST.get(idx).as_ref().unwrap()).to_string()
 }
 
-fn get_lng_lat(location: &Location) -> (f64, f64) {
-    let (lat, lng) = location.to_lat_lng();
-
-    (lng, lat)
+fn get_lng_lat(location: &Location) -> Result<(f64, f64), Error> {
+    match location {
+        Location::Coordinate { lat, lng } => Ok((*lng, *lat)),
+        Location::Reference { index: _ } => {
+            Err(Error::new(ErrorKind::InvalidData, "geojson cannot be used with location indices"))
+        }
+    }
 }
 
 type ColorList = &'static [&'static str; 15];

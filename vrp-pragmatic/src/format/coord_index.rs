@@ -56,18 +56,6 @@ impl CoordIndex {
             });
         });
 
-        let (has_coordinates, has_indices) =
-            index.direct_index.iter().fold((false, false), |(has_coordinates, has_indices), (location, _)| {
-                match location {
-                    Location::Coordinate { lat: _, lng: _ } => (true, has_indices),
-                    Location::Reference { index: _ } => (has_coordinates, true),
-                }
-            });
-
-        if has_coordinates && has_indices {
-            unreachable!("problem has both coordinates and indices as locations");
-        }
-
         index
     }
 
@@ -96,6 +84,18 @@ impl CoordIndex {
         sorted_pairs.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
         sorted_pairs.iter().map(|pair| pair.1.clone()).collect()
     }
+
+    pub fn max_index(&self) -> Option<usize> {
+        self.reverse_index.keys().max().cloned()
+    }
+
+    /// Returns types of locations in form (has_coordinates, has_indices).
+    pub fn get_used_types(&self) -> (bool, bool) {
+        self.direct_index.iter().fold((false, false), |(has_coordinates, has_indices), (location, _)| match location {
+            Location::Coordinate { lat: _, lng: _ } => (true, has_indices),
+            Location::Reference { index: _ } => (has_coordinates, true),
+        })
+    }
 }
 
 impl Eq for Location {}
@@ -107,7 +107,7 @@ impl PartialEq for Location {
                 (l_lat - r_lat).abs() < std::f64::EPSILON && (l_lng - r_lng).abs() < std::f64::EPSILON
             }
             (Location::Reference { index: left }, Location::Reference { index: right }) => left == right,
-            _ => unreachable!("locations of different types"),
+            _ => false,
         }
     }
 }

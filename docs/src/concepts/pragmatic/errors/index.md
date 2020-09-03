@@ -503,9 +503,9 @@ following rules:
 ```
 
 
-### E15xx: Profiles
+### E15xx: Routing profiles
 
-These errors are related to `fleet.profiles` property definition.
+These errors are related to routing locations and `fleet.profiles` property definitions.
 
 
 #### E1500
@@ -539,6 +539,33 @@ To fix the issue, remove all duplicates.
   "profiles": []
 }
 ```
+
+#### E1502
+
+`mixing different location types` error is returned when problem contains locations in different formats. In order to
+fix the issue, change the problem definition to use one specific location type: index reference or geocoordinate.
+
+
+#### E1503
+
+`location indices requires routing matrix to be specified` is returned when location indices are used, but no
+routing matrix provided.
+
+
+#### E1504
+
+`area limit constraint requires coordinates to be used everywhere` is returned when  location indices are used within
+area limit on `fleet.types.limits.allowedAreas`.
+
+
+#### E1505
+
+`amount of locations does not match matrix dimension` is returned when:
+
+* location indices are used and max index is greater than matrix size
+* amount of total locations is higher than matrix size
+
+Check locations in problem definition and matrix size.
 
 
 ### E16xx: Objectives

@@ -1,7 +1,7 @@
 //! This module provides functionality to validate problem definition for logical correctness.
 
 use crate::format::problem::*;
-use crate::format::FormatError;
+use crate::format::{CoordIndex, FormatError};
 use std::collections::HashMap;
 
 /// A validation context which keeps essential information.
@@ -10,6 +10,8 @@ pub struct ValidationContext<'a> {
     pub problem: &'a Problem,
     /// Routing matrices.
     pub matrices: Option<&'a Vec<Matrix>>,
+
+    coord_index: CoordIndex,
     job_index: HashMap<String, Job>,
 }
 
@@ -29,7 +31,7 @@ mod relations;
 use self::relations::validate_relations;
 
 mod routing;
-use self::routing::validate_profiles;
+use self::routing::validate_routing;
 
 impl<'a> ValidationContext<'a> {
     /// Creates an instance of `ValidationContext`.
@@ -37,6 +39,7 @@ impl<'a> ValidationContext<'a> {
         Self {
             problem,
             matrices,
+            coord_index: CoordIndex::new(problem),
             job_index: problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect(),
         }
     }
@@ -48,7 +51,7 @@ impl<'a> ValidationContext<'a> {
             .into_iter()
             .chain(validate_vehicles(&self).err().into_iter())
             .chain(validate_objectives(&self).err().into_iter())
-            .chain(validate_profiles(&self).err().into_iter())
+            .chain(validate_routing(&self).err().into_iter())
             .chain(validate_relations(&self).err().into_iter())
             .flatten()
             .collect::<Vec<_>>();

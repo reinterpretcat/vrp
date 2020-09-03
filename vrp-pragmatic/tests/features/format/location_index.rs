@@ -4,26 +4,10 @@ use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
 
-fn create_job_with_location_index(id: &str, index: usize) -> Job {
-    Job {
-        id: id.to_string(),
-        pickups: None,
-        deliveries: Some(vec![JobTask {
-            places: vec![JobPlace { times: None, location: Location::Reference { index }, duration: 1. }],
-            demand: Some(vec![1]),
-            tag: None,
-        }]),
-        replacements: None,
-        services: None,
-        priority: None,
-        skills: None,
-    }
-}
-
 fn create_test_problem() -> Problem {
     Problem {
         plan: Plan {
-            jobs: vec![create_job_with_location_index("job1", 0), create_job_with_location_index("job2", 1)],
+            jobs: vec![create_delivery_job_with_index("job1", 0), create_delivery_job_with_index("job2", 1)],
             relations: None,
         },
         fleet: Fleet {

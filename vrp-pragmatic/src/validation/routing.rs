@@ -28,7 +28,108 @@ fn check_e1501_empty_profiles(ctx: &ValidationContext) -> Result<(), FormatError
     }
 }
 
-/// Validates profiles from the fleet.
-pub fn validate_profiles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
-    combine_error_results(&[check_e1500_duplicated_profiles(ctx), check_e1501_empty_profiles(ctx)])
+/// Checks that only one type of location is used.
+fn check_e1502_no_location_type_mix(_ctx: &ValidationContext, location_types: (bool, bool)) -> Result<(), FormatError> {
+    let (has_coordinates, has_indices) = location_types;
+
+    if has_coordinates && has_indices {
+        Err(FormatError::new(
+            "E1502".to_string(),
+            "mixing different location types".to_string(),
+            "use either coordinates or indices for all locations".to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+/// Checks that routing matrix is supplied when location indices are used.
+fn check_e1503_no_matrix_when_indices_used(
+    ctx: &ValidationContext,
+    location_types: (bool, bool),
+) -> Result<(), FormatError> {
+    let (_, has_indices) = location_types;
+
+    if has_indices && ctx.matrices.map_or(true, |matrices| matrices.is_empty()) {
+        Err(FormatError::new(
+            "E1503".to_string(),
+            "location indices requires routing matrix to be specified".to_string(),
+            "either use coordinates everywhere or specify routing matrix".to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+/// Checks that area limit constraint is not used with location indices.
+fn check_e1504_limit_areas_cannot_be_used_with_indices(
+    ctx: &ValidationContext,
+    location_types: (bool, bool),
+) -> Result<(), FormatError> {
+    let (_, has_indices) = location_types;
+
+    if has_indices {
+        let has_areas = ctx
+            .problem
+            .fleet
+            .vehicles
+            .iter()
+            .filter_map(|vehicle| vehicle.limits.as_ref())
+            .filter_map(|limits| limits.allowed_areas.as_ref())
+            .next()
+            .is_some();
+        if has_areas {
+            return Err(FormatError::new(
+                "E1504".to_string(),
+                "area limit constraint requires coordinates to be used everywhere".to_string(),
+                "either use coordinates everywhere or remove area limits".to_string(),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Checks that coord index has a proper maximum index for
+fn check_e1505_index_size_mismatch(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let (max_index, matrix_size, is_correct_index): _ = ctx
+        .coord_index
+        .max_index()
+        .into_iter()
+        .zip(
+            ctx.matrices
+                .and_then(|matrices| matrices.first())
+                .map(|matrix| (matrix.distances.len() as f64).sqrt().round() as usize),
+        )
+        .next()
+        .map_or((0_usize, 0_usize, true), |(max_index, matrix_size)| {
+            (max_index, matrix_size, max_index + 1 == matrix_size)
+        });
+
+    if !is_correct_index {
+        Err(FormatError::new(
+            "E1505".to_string(),
+            "amount of locations does not match matrix dimension".to_string(),
+            format!(
+                "check matrix size: max location index ('{}') should be less than matrix size ('{}')",
+                max_index, matrix_size
+            ),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+/// Validates routing rules.
+pub fn validate_routing(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
+    let location_types = ctx.coord_index.get_used_types();
+
+    combine_error_results(&[
+        check_e1500_duplicated_profiles(ctx),
+        check_e1501_empty_profiles(ctx),
+        check_e1502_no_location_type_mix(ctx, location_types),
+        check_e1503_no_matrix_when_indices_used(ctx, location_types),
+        check_e1504_limit_areas_cannot_be_used_with_indices(ctx, location_types),
+        check_e1505_index_size_mismatch(ctx),
+    ])
 }

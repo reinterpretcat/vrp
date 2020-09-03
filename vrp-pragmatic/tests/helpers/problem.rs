@@ -1,5 +1,5 @@
 use crate::format::problem::*;
-use crate::format::CoordIndex;
+use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
 
@@ -111,6 +111,17 @@ pub fn create_pickup_delivery_job_with_params(
             tag: None,
         }]),
 
+        ..create_job(id)
+    }
+}
+
+pub fn create_delivery_job_with_index(id: &str, index: usize) -> Job {
+    Job {
+        deliveries: Some(vec![JobTask {
+            places: vec![JobPlace { times: None, location: Location::Reference { index }, duration: 1. }],
+            demand: Some(vec![1]),
+            tag: None,
+        }]),
         ..create_job(id)
     }
 }

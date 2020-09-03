@@ -52,3 +52,6 @@ Routing matrix example:
 ```json
 {{#include ../../../../../examples/data/pragmatic/simple.basic.matrix.json}}
 ```
+
+If you have already your routing matrix, you can use location indices instead of geocoordinates as described
+[here](../routing/index.md#location-format).
