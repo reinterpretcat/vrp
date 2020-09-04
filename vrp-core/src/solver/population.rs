@@ -40,14 +40,19 @@ impl DominancePopulation {
 impl Population for DominancePopulation {
     fn add_all(&mut self, individuals: Vec<Individual>) {
         individuals.into_iter().for_each(|individual| {
-            self.add_individual(individual);
+            self.individuals.push(individual);
+            self.ranks.push(0);
         });
 
+        self.sort();
         self.ensure_max_population_size();
     }
 
     fn add(&mut self, individual: Individual) {
-        self.add_individual(individual);
+        self.individuals.push(individual);
+        self.ranks.push(0);
+
+        self.sort();
         self.ensure_max_population_size();
     }
 
@@ -61,10 +66,7 @@ impl Population for DominancePopulation {
 }
 
 impl DominancePopulation {
-    fn add_individual(&mut self, individual: Individual) {
-        self.individuals.push(individual);
-        self.ranks.push(0);
-
+    fn sort(&mut self) {
         // get best order
         let mut best_order =
             select_and_rank(self.individuals.as_slice(), self.individuals.len(), self.problem.objective.as_ref());
