@@ -17,7 +17,7 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
     let coord_index = CoordIndex::new(&context.problem);
 
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
-        let profile = &context.get_vehicle(tour.vehicle_id.as_str())?.profile;
+        let profile = &context.get_vehicle(&tour.vehicle_id)?.profile;
         let matrix = profile_index
             .get(profile.as_str())
             .and_then(|idx| matrices.get(*idx))

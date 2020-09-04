@@ -49,12 +49,12 @@ impl CheckerContext {
     }
 
     /// Gets vehicle by its id.
-    fn get_vehicle(&self, vehicle_id: &str) -> Result<&VehicleType, String> {
+    fn get_vehicle(&self, vehicle_id: &String) -> Result<&VehicleType, String> {
         self.problem
             .fleet
             .vehicles
             .iter()
-            .find(|v| vehicle_id.starts_with(v.type_id.as_str()))
+            .find(|v| v.vehicle_ids.contains(vehicle_id))
             .ok_or_else(|| format!("Cannot find vehicle with id '{}'", vehicle_id))
     }
 
@@ -82,7 +82,7 @@ impl CheckerContext {
             parse_time(&tour.stops.last().as_ref().ok_or_else(|| "Cannot get last activity".to_string())?.time.arrival),
         );
 
-        self.get_vehicle(tour.vehicle_id.as_str())?
+        self.get_vehicle(&tour.vehicle_id)?
             .shifts
             .iter()
             .find(|shift| {

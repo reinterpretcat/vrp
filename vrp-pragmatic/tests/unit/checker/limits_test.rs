@@ -4,7 +4,11 @@ use crate::helpers::*;
 fn create_test_problem(limits: Option<VehicleLimits>) -> Problem {
     Problem {
         fleet: Fleet {
-            vehicles: vec![VehicleType { limits, ..create_default_vehicle_type() }],
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["some_real_vehicle".to_string()],
+                limits,
+                ..create_default_vehicle_type()
+            }],
             profiles: create_default_profiles(),
         },
         ..create_empty_problem()
@@ -14,7 +18,7 @@ fn create_test_problem(limits: Option<VehicleLimits>) -> Problem {
 fn create_test_solution(statistic: Statistic) -> Solution {
     Solution {
         tours: vec![Tour {
-            vehicle_id: "my_vehicle_1".to_string(),
+            vehicle_id: "some_real_vehicle".to_string(),
             type_id: "my_vehicle".to_string(),
             shift_index: 0,
             stops: vec![],
@@ -28,7 +32,7 @@ fn create_test_solution(statistic: Statistic) -> Solution {
 parameterized_test! {can_check_shift_and_distance_limit, (max_distance, shift_time, actual, expected_result), {
     let expected_result = if let Err(prefix_msg) = expected_result {
         Err(format!(
-            "{} violation, expected: not more than {}, got: {}, vehicle id 'my_vehicle_1', shift index: 0",
+            "{} violation, expected: not more than {}, got: {}, vehicle id 'some_real_vehicle', shift index: 0",
             prefix_msg, max_distance.unwrap_or_else(|| shift_time.unwrap()), actual,
         ))
     } else {

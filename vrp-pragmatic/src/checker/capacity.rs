@@ -11,7 +11,7 @@ use vrp_core::models::common::{Load, MultiDimLoad};
 /// * load change is correct
 pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each(|tour| {
-        let capacity = MultiDimLoad::new(context.get_vehicle(tour.vehicle_id.as_str())?.capacity.clone());
+        let capacity = MultiDimLoad::new(context.get_vehicle(&tour.vehicle_id)?.capacity.clone());
 
         let legs = (0_usize..)
             .zip(tour.stops.windows(2))

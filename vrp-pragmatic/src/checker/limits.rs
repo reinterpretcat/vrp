@@ -11,7 +11,7 @@ use super::*;
 /// NOTE to ensure distance/duration correctness, routing check should be performed first.
 pub fn check_limits(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
-        let vehicle = context.get_vehicle(tour.vehicle_id.as_str())?;
+        let vehicle = context.get_vehicle(&tour.vehicle_id)?;
 
         if let Some(ref limits) = vehicle.limits {
             if let Some(max_distance) = limits.max_distance {
