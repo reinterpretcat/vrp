@@ -1,6 +1,4 @@
 use super::*;
-use crate::helpers::algorithms::nsga2::*;
-use std::cmp::Ordering;
 
 fn create_matrix_data(
     profile: Profile,
@@ -81,19 +79,4 @@ fn can_interpolate_durations() {
 
     assert_eq!(costs.distance(0, 0, 1, 0.), 1.);
     assert_eq!(costs.distance(1, 0, 1, 0.), 5.);
-}
-
-#[test]
-fn can_compare_non_dominant_relations() {
-    let objective = PairMultiObjective::new(vec![]);
-    let a = &Pair(1, 2);
-    let b = &Pair(2, 1);
-
-    // Non-domination due to reflexivity
-    assert_eq!(Ordering::Equal, objective.total_order(a, a));
-    assert_eq!(Ordering::Equal, objective.total_order(b, b));
-
-    // Non-domination
-    assert_eq!(Ordering::Equal, objective.total_order(a, b));
-    assert_eq!(Ordering::Equal, objective.total_order(b, a));
 }

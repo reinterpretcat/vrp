@@ -1,84 +1,84 @@
-use super::Pair;
 use crate::algorithms::nsga2::{dominance_order, MultiObjective, Objective};
-use crate::helpers::algorithms::nsga2::Triple;
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
 
-pub struct PairObjective1;
-pub struct PairObjective2;
-pub struct PairObjective3;
+pub type SliceObjective = Box<dyn Objective<Solution = Vec<f64>> + Send + Sync>;
 
-impl Objective for PairObjective1 {
-    type Solution = Pair;
+pub struct SliceDimensionObjective {
+    dimension: usize,
+}
+
+impl SliceDimensionObjective {
+    pub fn new(dimension: usize) -> Self {
+        Self { dimension }
+    }
+}
+
+impl Objective for SliceDimensionObjective {
+    type Solution = Vec<f64>;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        a.0.cmp(&b.0)
+        compare_floats(a[self.dimension], b[self.dimension])
     }
 
     fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        (a.0 as f64) - (b.0 as f64)
+        a[self.dimension] - b[self.dimension]
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.0 as f64
+        solution[self.dimension]
     }
 }
 
-impl Objective for PairObjective2 {
-    type Solution = Pair;
+pub struct SliceSumObjective;
+
+impl<'a> Objective for SliceSumObjective {
+    type Solution = Vec<f64>;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        a.1.cmp(&b.1)
+        compare_floats(self.fitness(a), self.fitness(b))
     }
 
     fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        (a.1 as f64) - (b.1 as f64)
+        self.fitness(a) - self.fitness(b)
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.1 as f64
+        solution.iter().sum::<f64>()
     }
 }
 
-impl Objective for PairObjective3 {
-    type Solution = Pair;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        (a.0 + a.1).cmp(&(b.0 + b.1))
-    }
-
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        (a.0 + a.1) as f64 - (b.0 + b.1) as f64
-    }
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        (solution.0 + solution.1) as f64
-    }
+pub struct SliceMultiObjective {
+    objectives: Vec<SliceObjective>,
 }
 
-pub type PairObjective = Box<dyn Objective<Solution = Pair> + Send + Sync>;
-
-pub struct PairMultiObjective {
-    objectives: Vec<PairObjective>,
-}
-
-impl PairMultiObjective {
-    pub fn new(objectives: Vec<PairObjective>) -> Self {
+impl SliceMultiObjective {
+    pub fn new(objectives: Vec<SliceObjective>) -> Self {
         Self { objectives }
     }
 }
 
-impl Objective for PairMultiObjective {
-    type Solution = Pair;
+impl Default for SliceMultiObjective {
+    fn default() -> Self {
+        SliceMultiObjective { objectives: Default::default() }
+    }
+}
+
+impl Objective for SliceMultiObjective {
+    type Solution = Vec<f64>;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        if a.0 < b.0 && a.1 <= b.1 {
+        // TODO support more dimensions if necessary
+        assert_eq!(a.len(), 2);
+        assert_eq!(a.len(), b.len());
+
+        if a[0] < b[0] && a[1] <= b[1] {
             Ordering::Less
-        } else if a.0 <= b.0 && a.1 < b.1 {
+        } else if a[0] <= b[0] && a[1] < b[1] {
             Ordering::Less
-        } else if a.0 > b.0 && a.1 >= b.1 {
+        } else if a[0] > b[0] && a[1] >= b[1] {
             Ordering::Greater
-        } else if a.0 >= b.0 && a.1 > b.1 {
+        } else if a[0] >= b[0] && a[1] > b[1] {
             Ordering::Greater
         } else {
             Ordering::Equal
@@ -94,81 +94,25 @@ impl Objective for PairMultiObjective {
     }
 }
 
-impl MultiObjective for PairMultiObjective {
-    fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &PairObjective> + 'a> {
+impl MultiObjective for SliceMultiObjective {
+    fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &SliceObjective> + 'a> {
         Box::new(self.objectives.iter())
     }
 }
 
-// TODO merge pair and triple objectives to have single common types
-
-pub struct TripleObjective1;
-pub struct TripleObjective2;
-pub struct TripleObjective3;
-
-impl Objective for TripleObjective1 {
-    type Solution = Triple;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        compare_floats(a.0, b.0)
-    }
-
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        a.0 - b.0
-    }
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.0
-    }
+pub struct SliceHierarchicalObjective {
+    primary_objectives: Vec<SliceObjective>,
+    secondary_objectives: Vec<SliceObjective>,
 }
 
-impl Objective for TripleObjective2 {
-    type Solution = Triple;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        compare_floats(a.1, b.1)
-    }
-
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        a.1 - b.1
-    }
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.1
-    }
-}
-
-impl Objective for TripleObjective3 {
-    type Solution = Triple;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        compare_floats(a.2, b.2)
-    }
-
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        a.2 - b.2
-    }
-
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.2
-    }
-}
-
-pub type TripleObjective = Box<dyn Objective<Solution = Triple> + Send + Sync>;
-
-pub struct TupleHierarchicalObjective {
-    primary_objectives: Vec<TripleObjective>,
-    secondary_objectives: Vec<TripleObjective>,
-}
-
-impl TupleHierarchicalObjective {
-    pub fn new(primary_objectives: Vec<TripleObjective>, secondary_objectives: Vec<TripleObjective>) -> Self {
+impl SliceHierarchicalObjective {
+    pub fn new(primary_objectives: Vec<SliceObjective>, secondary_objectives: Vec<SliceObjective>) -> Self {
         Self { primary_objectives, secondary_objectives }
     }
 }
 
-impl Objective for TupleHierarchicalObjective {
-    type Solution = Triple;
+impl Objective for SliceHierarchicalObjective {
+    type Solution = Vec<f64>;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
         match dominance_order(a, b, &self.primary_objectives) {
@@ -178,16 +122,16 @@ impl Objective for TupleHierarchicalObjective {
     }
 
     fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
-        unreachable!()
+        unimplemented!()
     }
 
-    fn fitness(&self, solution: &Self::Solution) -> f64 {
-        solution.2
+    fn fitness(&self, _solution: &Self::Solution) -> f64 {
+        unimplemented!()
     }
 }
 
-impl MultiObjective for TupleHierarchicalObjective {
-    fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &TripleObjective> + 'a> {
+impl MultiObjective for SliceHierarchicalObjective {
+    fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &SliceObjective> + 'a> {
         Box::new(self.primary_objectives.iter().chain(self.secondary_objectives.iter()))
     }
 }
