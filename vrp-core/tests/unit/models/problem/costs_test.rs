@@ -85,9 +85,9 @@ fn can_interpolate_durations() {
 
 #[test]
 fn can_compare_non_dominant_relations() {
-    let objective = TupleMultiObjective::new(vec![]);
-    let a = &Tuple(1, 2);
-    let b = &Tuple(2, 1);
+    let objective = PairMultiObjective::new(vec![]);
+    let a = &Pair(1, 2);
+    let b = &Pair(2, 1);
 
     // Non-domination due to reflexivity
     assert_eq!(Ordering::Equal, objective.total_order(a, a));

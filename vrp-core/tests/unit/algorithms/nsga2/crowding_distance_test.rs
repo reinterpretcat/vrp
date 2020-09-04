@@ -5,12 +5,12 @@ use crate::helpers::algorithms::nsga2::*;
 #[test]
 fn can_get_crowding_distance() {
     // construct a multi objective over a Tuple
-    let mo = TupleMultiObjective::new(vec![Box::new(Objective1), Box::new(Objective2)]);
+    let mo = PairMultiObjective::new(vec![Box::new(PairObjective1), Box::new(PairObjective2)]);
 
-    let a = Tuple(1, 3);
-    let b = Tuple(3, 1);
-    let c = Tuple(3, 3);
-    let d = Tuple(2, 2);
+    let a = Pair(1, 3);
+    let b = Pair(3, 1);
+    let c = Pair(3, 3);
+    let d = Pair(2, 2);
 
     let solutions = vec![a, b, c, d];
 

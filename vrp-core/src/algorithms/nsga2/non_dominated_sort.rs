@@ -12,6 +12,7 @@
 #[path = "../../../tests/unit/algorithms/nsga2/non_dominated_sort_test.rs"]
 mod non_dominated_sort_test;
 use crate::algorithms::nsga2::Objective;
+use hashbrown::HashSet;
 use std::cmp::Ordering;
 
 type SolutionIdx = usize;
@@ -47,14 +48,20 @@ impl<'f, 's: 'f, S: 's> Front<'s, S> {
         let mut next_front = previous_front;
         next_front.clear();
 
-        for &p_i in current_front.iter() {
-            for &q_i in dominated_solutions[p_i].iter() {
-                debug_assert!(domination_count[q_i] > 0);
-                domination_count[q_i] -= 1;
-                if domination_count[q_i] == 0 {
-                    // q_i is not dominated by any other solution. it belongs to the next front.
-                    next_front.push(q_i);
+        // NOTE: loop to handle non transient relationship in solutions introduced by hierarchical objective
+        loop {
+            for &p_i in current_front.iter() {
+                for &q_i in dominated_solutions[p_i].iter() {
+                    domination_count[q_i] -= 1;
+                    if domination_count[q_i] == 0 {
+                        // q_i is not dominated by any other solution. it belongs to the next front.
+                        next_front.push(q_i);
+                    }
                 }
+            }
+
+            if !next_front.is_empty() || domination_count.iter().all(|v| *v == 0) {
+                break;
             }
         }
 
@@ -125,6 +132,28 @@ where
         if domination_count[p_i] == 0 {
             current_front.push(p_i);
         }
+    }
+
+    // non transient relationship in solutions, e.g.:
+    //
+    // A < B    B > A    C < A
+    // A > C    B > C    C > B
+    //
+    // this might occur with hierarchical objective
+    if current_front.is_empty() {
+        let min = *domination_count.iter().min().expect("domination count should not be empty");
+        let ids = domination_count
+            .iter()
+            .enumerate()
+            .filter(|(_, count)| **count == min)
+            .map(|(idx, _)| idx)
+            .collect::<HashSet<_>>();
+
+        dominated_solutions.iter_mut().enumerate().filter(|(idx, _)| ids.contains(idx)).for_each(|(_, domindated)| {
+            domindated.retain(|idx| !ids.contains(idx));
+        });
+
+        current_front.extend(ids.into_iter());
     }
 
     Front { dominated_solutions, domination_count, previous_front: Vec::new(), current_front, rank: 0, solutions }
