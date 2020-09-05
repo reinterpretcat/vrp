@@ -116,6 +116,9 @@ pub use self::population::DominancePopulation;
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
 
+/// A key to store solution order information.
+pub const SOLUTION_ORDER_KEY: i32 = 100;
+
 /// A type which encapsulates information needed to perform solution refinement process.
 pub struct RefinementContext {
     /// Original problem definition.
