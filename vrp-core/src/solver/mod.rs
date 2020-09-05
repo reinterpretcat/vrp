@@ -148,6 +148,9 @@ pub trait Population {
     /// Adds an individual into the population.
     fn add(&mut self, individual: Individual);
 
+    /// Gets nth individual from population.
+    fn nth(&self, idx: usize) -> Option<&Individual>;
+
     /// Returns individuals within their rank sorted according their quality.
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a>;
 

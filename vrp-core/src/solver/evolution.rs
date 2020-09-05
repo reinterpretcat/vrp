@@ -134,20 +134,15 @@ impl EvolutionSimulator {
     }
 
     fn select_parents(&self, refinement_ctx: &RefinementContext) -> Vec<InsertionContext> {
-        let top_best_individuals = refinement_ctx
-            .population
-            .ranked()
-            .filter_map(|(insertion_ctx, rank)| if rank == 0 { Some(insertion_ctx) } else { None })
-            .take(self.config.offspring_size)
-            .collect::<Vec<_>>();
+        assert!(refinement_ctx.population.size() > 0);
 
         once(0_usize)
             .chain(
                 (1..self.config.offspring_size)
-                    .map(|_| self.config.random.uniform_int(0, top_best_individuals.len() as i32) as usize),
+                    .map(|_| self.config.random.uniform_int(0, refinement_ctx.population.size() as i32 - 1) as usize),
             )
             .take(self.config.offspring_size)
-            .filter_map(|idx| top_best_individuals.get(idx))
+            .filter_map(|idx| refinement_ctx.population.nth(idx))
             .map(|individual| individual.deep_copy())
             .collect()
     }

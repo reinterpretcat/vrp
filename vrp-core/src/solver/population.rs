@@ -62,6 +62,10 @@ impl Population for DominancePopulation {
         self.ensure_max_population_size();
     }
 
+    fn nth(&self, idx: usize) -> Option<&Individual> {
+        self.individuals.get(idx)
+    }
+
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
         Box::new(self.individuals.iter().map(|individual| (individual, Self::gen_dominance_order(individual).rank)))
     }
@@ -106,6 +110,7 @@ impl DominancePopulation {
         self.individuals.dedup_by(|a, b| {
             let a = Self::gen_dominance_order(a);
             let b = Self::gen_dominance_order(b);
+
             a.rank == b.rank && compare_floats(a.crowding_distance, b.crowding_distance) == Ordering::Equal
         });
     }
