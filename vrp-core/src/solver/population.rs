@@ -27,7 +27,8 @@ pub struct DominancePopulation {
 /// Contains ordering information about individual in population.
 #[derive(Clone, Debug)]
 struct DominanceOrder {
-    index: usize,
+    orig_index: usize,
+    seq_index: usize,
     rank: usize,
     crowding_distance: f64,
 }
@@ -75,32 +76,30 @@ impl DominancePopulation {
         let objective = self.problem.objective.clone();
 
         // get best order
-        let mut best_order = select_and_rank(self.individuals.as_slice(), self.individuals.len(), objective.as_ref())
+        let best_order = select_and_rank(self.individuals.as_slice(), self.individuals.len(), objective.as_ref())
             .into_iter()
-            .map(|acc| DominanceOrder { index: acc.index, rank: acc.rank, crowding_distance: acc.crowding_distance })
+            .zip(0..)
+            .map(|(acc, idx)| DominanceOrder {
+                orig_index: acc.index,
+                seq_index: idx,
+                rank: acc.rank,
+                crowding_distance: acc.crowding_distance,
+            })
             .collect::<Vec<_>>();
 
         assert_eq!(self.individuals.len(), best_order.len());
 
         // remember dominance order
-        best_order.iter().for_each(|order| {
-            self.individuals[order.index].solution.state.insert(SOLUTION_ORDER_KEY, Arc::new(order.clone()));
+        best_order.into_iter().for_each(|order| {
+            self.individuals[order.orig_index].solution.state.insert(SOLUTION_ORDER_KEY, Arc::new(order));
         });
 
-        // sort individuals in place according to best order
-        (0..best_order.len() - 1).for_each(|i| {
-            let j = best_order[i].index;
-            if j != i {
-                let mut k = i + 1;
-                loop {
-                    if best_order[k].index == i {
-                        break;
-                    }
-                    k += 1;
-                }
-                best_order.swap(i, k);
-                self.individuals.swap(i, j);
-            }
+        // sort by best order
+        self.individuals.sort_by(|a, b| {
+            let a = Self::gen_dominance_order(a);
+            let b = Self::gen_dominance_order(b);
+
+            a.seq_index.cmp(&b.seq_index)
         });
 
         // deduplicate population
