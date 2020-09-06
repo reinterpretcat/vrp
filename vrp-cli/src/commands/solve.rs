@@ -292,6 +292,7 @@ pub fn run_solve(matches: &ArgMatches) {
                                 .with_max_time(max_time)
                                 .with_cost_variation(cost_variation)
                                 .with_telemetry(telemetry)
+                                .with_offspring(Some(num_cpus::get()), None, None, None)
                                 .with_seed(seed)
                         };
 
