@@ -49,12 +49,12 @@ impl CheckerContext {
     }
 
     /// Gets vehicle by its id.
-    fn get_vehicle(&self, vehicle_id: &String) -> Result<&VehicleType, String> {
+    fn get_vehicle(&self, vehicle_id: &str) -> Result<&VehicleType, String> {
         self.problem
             .fleet
             .vehicles
             .iter()
-            .find(|v| v.vehicle_ids.contains(vehicle_id))
+            .find(|v| v.vehicle_ids.contains(&vehicle_id.to_string()))
             .ok_or_else(|| format!("Cannot find vehicle with id '{}'", vehicle_id))
     }
 
