@@ -112,15 +112,14 @@ impl EvolutionSimulator {
                     (1_usize..=gens).fold(ctx, |parent, idx| {
                         let child = mutator.mutate(&refinement_ctx, parent.deep_copy());
 
-                        let skip_chance = random.uniform_real(0., 1.);
-                        let skip_probability = get_skip_probability(idx, gens, offspring_cfg.steepness);
+                        let use_worse_chance = random.uniform_real(0., 1.);
+                        let use_worse_probability = get_use_worse_probability(idx, gens, offspring_cfg.steepness);
+                        let is_child_better = refinement_ctx.population.cmp(&child, &parent) == Ordering::Less;
 
-                        if skip_chance < skip_probability
-                            || refinement_ctx.population.cmp(&parent, &child) == Ordering::Greater
-                        {
-                            parent
-                        } else {
+                        if use_worse_chance < use_worse_probability || is_child_better {
                             child
+                        } else {
+                            parent
                         }
                     })
                 } else {
@@ -209,6 +208,6 @@ fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {
     is_population_empty || !is_quota_reached
 }
 
-fn get_skip_probability(current: usize, total: usize, steepness: f64) -> f64 {
+fn get_use_worse_probability(current: usize, total: usize, steepness: f64) -> f64 {
     1. - (current as f64 / total as f64).powf(steepness)
 }
