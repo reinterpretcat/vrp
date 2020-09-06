@@ -7,7 +7,9 @@ use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::Termination;
 use crate::solver::{Metrics, Population, RefinementContext};
 use crate::utils::{parallel_into_collect, Random, Timer};
+use std::cmp::Ordering;
 use std::iter::once;
+use std::ops::Range;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -20,22 +22,44 @@ pub struct EvolutionConfig {
     pub termination: Box<dyn Termination>,
     /// A quota for evolution execution.
     pub quota: Option<Box<dyn Quota + Send + Sync>>,
-
-    /// Population size.
-    pub population_size: usize,
-    /// Offspring size.
-    pub offspring_size: usize,
-    /// Initial size of population to be generated.
-    pub initial_size: usize,
-    /// Create methods to produce initial individuals.
-    pub initial_methods: Vec<(Box<dyn Recreate + Send + Sync>, usize)>,
-    /// Initial individuals in population.
-    pub initial_individuals: Vec<InsertionContext>,
-
+    /// A population configuration
+    pub population: PopulationConfig,
     /// Random generator.
     pub random: Arc<dyn Random + Send + Sync>,
     /// A telemetry to be used.
     pub telemetry: Telemetry,
+}
+
+/// Contains population specific properties.
+pub struct PopulationConfig {
+    /// Max population size.
+    pub size: usize,
+    /// An initial solution config.
+    pub initial: InitialConfig,
+    /// An offspring config.
+    pub offspring: OffspringConfig,
+}
+
+/// An initial solutions configuration.
+pub struct InitialConfig {
+    /// Initial size of population to be generated.
+    pub size: usize,
+    /// Create methods to produce initial individuals.
+    pub methods: Vec<(Box<dyn Recreate + Send + Sync>, usize)>,
+    /// Initial individuals in population.
+    pub individuals: Vec<InsertionContext>,
+}
+
+/// An offspring configuration.
+pub struct OffspringConfig {
+    /// Offspring size.
+    pub size: usize,
+    /// A chance to have a branch.
+    pub chance: f64,
+    /// A range of generations in branch.
+    pub generations: Range<usize>,
+    /// An acceptance curve steepness used in formula `1 - (x/total_generations)^steepness`.
+    pub steepness: usize,
 }
 
 /// An entity which simulates evolution process.
@@ -46,16 +70,20 @@ pub struct EvolutionSimulator {
 
 impl EvolutionSimulator {
     pub fn new(problem: Arc<Problem>, config: EvolutionConfig) -> Result<Self, String> {
-        if config.initial_size < 1 {
+        if config.population.initial.size < 1 {
             return Err("initial size should be greater than 0".to_string());
         }
 
-        if config.initial_size > config.population_size {
+        if config.population.initial.size > config.population.size {
             return Err("initial size should be less or equal population size".to_string());
         }
 
-        if config.initial_methods.is_empty() {
+        if config.population.initial.methods.is_empty() {
             return Err("at least one initial method has to be specified".to_string());
+        }
+
+        if config.population.offspring.size < 1 {
+            return Err("offspring size should be greater than 0".to_string());
         }
 
         Ok(Self { problem, config })
@@ -74,7 +102,31 @@ impl EvolutionSimulator {
 
             let mutator = &self.config.mutation;
             let parents = self.select_parents(&refinement_ctx);
-            let offspring = parallel_into_collect(parents, |ctx| mutator.mutate(&refinement_ctx, ctx));
+            let offspring_cfg = &self.config.population.offspring;
+            let offspring = parallel_into_collect(parents, |ctx| {
+                let is_branch = ctx.random.uniform_real(0., 1.) < offspring_cfg.chance;
+                if is_branch {
+                    let random = ctx.random.clone();
+                    let (min, max) = (offspring_cfg.generations.start as i32, offspring_cfg.generations.end as i32);
+                    let gens = random.uniform_int(min, max) as usize;
+                    (1_usize..=gens).fold(ctx, |parent, idx| {
+                        let child = mutator.mutate(&refinement_ctx, parent.deep_copy());
+
+                        let skip_chance = random.uniform_real(0., 1.);
+                        let skip_probability = get_skip_probability(idx, gens, offspring_cfg.steepness);
+
+                        if skip_chance < skip_probability
+                            || refinement_ctx.population.cmp(&parent, &child) == Ordering::Greater
+                        {
+                            parent
+                        } else {
+                            child
+                        }
+                    })
+                } else {
+                    mutator.mutate(&refinement_ctx, ctx)
+                }
+            });
 
             if should_add_solution(&refinement_ctx) {
                 refinement_ctx.population.add_all(offspring);
@@ -94,23 +146,23 @@ impl EvolutionSimulator {
     fn create_refinement_ctx(&mut self) -> Result<RefinementContext, String> {
         let mut refinement_ctx = RefinementContext::new(
             self.problem.clone(),
-            Box::new(DominancePopulation::new(self.problem.clone(), self.config.population_size)),
+            Box::new(DominancePopulation::new(self.problem.clone(), self.config.population.size)),
             std::mem::replace(&mut self.config.quota, None),
         );
 
-        std::mem::replace(&mut self.config.initial_individuals, vec![])
+        std::mem::replace(&mut self.config.population.initial.individuals, vec![])
             .into_iter()
             .zip(0_usize..)
-            .take(self.config.initial_size)
+            .take(self.config.population.initial.size)
             .for_each(|(ctx, idx)| {
-                self.config.telemetry.on_initial(idx, self.config.initial_size, Timer::start());
+                self.config.telemetry.on_initial(idx, self.config.population.initial.size, Timer::start());
                 refinement_ctx.population.add(ctx)
             });
 
-        let weights = self.config.initial_methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
+        let weights = self.config.population.initial.methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
         let empty_ctx = InsertionContext::new(self.problem.clone(), self.config.random.clone());
 
-        let _ = (refinement_ctx.population.size()..self.config.initial_size).try_for_each(|idx| {
+        let _ = (refinement_ctx.population.size()..self.config.population.initial.size).try_for_each(|idx| {
             let item_time = Timer::start();
 
             if self.config.termination.is_termination(&mut refinement_ctx) {
@@ -119,13 +171,14 @@ impl EvolutionSimulator {
 
             let method_idx = self.config.random.weighted(weights.as_slice());
 
-            let insertion_ctx = self.config.initial_methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
+            let insertion_ctx =
+                self.config.population.initial.methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
 
             if should_add_solution(&refinement_ctx) {
                 refinement_ctx.population.add(insertion_ctx);
             }
 
-            self.config.telemetry.on_initial(idx, self.config.initial_size, item_time);
+            self.config.telemetry.on_initial(idx, self.config.population.initial.size, item_time);
 
             Ok(())
         });
@@ -138,10 +191,10 @@ impl EvolutionSimulator {
 
         once(0_usize)
             .chain(
-                (1..self.config.offspring_size)
+                (1..self.config.population.offspring.size)
                     .map(|_| self.config.random.uniform_int(0, refinement_ctx.population.size() as i32 - 1) as usize),
             )
-            .take(self.config.offspring_size)
+            .take(self.config.population.offspring.size)
             .filter_map(|idx| refinement_ctx.population.nth(idx))
             .map(|individual| individual.deep_copy())
             .collect()
@@ -154,4 +207,8 @@ fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {
 
     // NOTE when interrupted, population can return solution with worse primary objective fitness values as first
     is_population_empty || !is_quota_reached
+}
+
+fn get_skip_probability(current: usize, total: usize, steepness: usize) -> f64 {
+    1. - ((current / total) as f64).powf(steepness as f64)
 }

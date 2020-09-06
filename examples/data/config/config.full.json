@@ -1,14 +1,26 @@
 {
   "population": {
-    "initialMethods": [
-      {
-        "weight": 10,
-        "type": "cheapest"
+    "initial": {
+      "size": 1,
+      "methods": [
+        {
+          "weight": 10,
+          "type": "cheapest"
+        }
+      ]
+    },
+    "offspring": {
+      "size": 4,
+      "branching": {
+        "chance": 0.2,
+        "steepness": 3,
+        "generations": {
+          "min": 4,
+          "max": 6
+        }
       }
-    ],
-    "initialSize": 1,
-    "populationSize": 4,
-    "offspringSize": 2
+    },
+    "size": 4
   },
   "mutation": {
     "type": "ruin-recreate",

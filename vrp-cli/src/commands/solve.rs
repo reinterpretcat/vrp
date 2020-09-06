@@ -296,7 +296,7 @@ pub fn run_solve(matches: &ArgMatches) {
                         };
 
                         let (solution, _, metrics) = builder
-                            .with_solutions(solution.map_or_else(Vec::new, |s| vec![s]))
+                            .with_init_solutions(solution.map_or_else(Vec::new, |s| vec![s]))
                             .build()
                             .and_then(|solver| solver.solve())
                             .unwrap_or_else(|err| {

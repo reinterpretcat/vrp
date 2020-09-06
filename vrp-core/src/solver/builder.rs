@@ -1,12 +1,13 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::{Problem, Solution};
-use crate::solver::evolution::EvolutionConfig;
+use crate::solver::evolution::{EvolutionConfig, InitialConfig, OffspringConfig, PopulationConfig};
 use crate::solver::mutation::*;
 use crate::solver::telemetry::{Telemetry, TelemetryMode};
 use crate::solver::termination::*;
 use crate::solver::Solver;
 use crate::utils::{DefaultRandom, TimeQuota};
+use std::ops::Range;
 use std::sync::Arc;
 
 /// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent
@@ -34,8 +35,6 @@ use std::sync::Arc;
 /// let solver = Builder::new(problem)
 ///     .with_max_time(Some(60))
 ///     .with_max_generations(Some(100))
-///     .with_initial_size(2)
-///     .with_population_size(4)
 ///     .build()?;
 /// // run solver and get the best known solution within its cost.
 /// let (solution, cost, _) = solver.solve()?;
@@ -78,13 +77,17 @@ impl Builder {
                     Box::new(MaxGeneration::new(3000)),
                 ])),
                 quota: None,
-                initial_size: 1,
-                population_size: 4,
-                offspring_size: 2,
-                initial_methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
-                initial_individuals: vec![],
                 random: Arc::new(DefaultRandom::default()),
                 telemetry: Telemetry::new(TelemetryMode::None),
+                population: PopulationConfig {
+                    size: 4,
+                    initial: InitialConfig {
+                        size: 1,
+                        methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
+                        individuals: vec![],
+                    },
+                    offspring: OffspringConfig { size: 4, chance: 0.2, generations: 4..6, steepness: 3 },
+                },
             },
         }
     }
@@ -115,16 +118,29 @@ impl Builder {
         self
     }
 
-    /// Sets initial methods used to construct initial population.
-    pub fn with_initial_methods(mut self, initial_methods: Vec<(Box<dyn Recreate + Send + Sync>, usize)>) -> Self {
-        self.config.initial_methods = initial_methods;
+    /// Sets initial parameters used to construct initial population.
+    pub fn with_init_params(
+        mut self,
+        size: Option<usize>,
+        initial_methods: Option<Vec<(Box<dyn Recreate + Send + Sync>, usize)>>,
+    ) -> Self {
+        self.config.telemetry.log("configured to use custom initial population parameters");
+
+        if let Some(size) = size {
+            self.config.population.initial.size = size;
+        }
+
+        if let Some(initial_methods) = initial_methods {
+            self.config.population.initial.methods = initial_methods;
+        }
+
         self
     }
 
     /// Sets initial solutions in population. Default is no solutions in population.
-    pub fn with_solutions(mut self, solutions: Vec<Solution>) -> Self {
+    pub fn with_init_solutions(mut self, solutions: Vec<Solution>) -> Self {
         self.config.telemetry.log(format!("provided {} initial solutions to start with", solutions.len()).as_str());
-        self.config.initial_individuals = solutions
+        self.config.population.initial.individuals = solutions
             .into_iter()
             .map(|solution| {
                 InsertionContext::new_from_solution(
@@ -140,40 +156,46 @@ impl Builder {
     /// Sets max population size. Default is 4.
     pub fn with_population_size(mut self, size: usize) -> Self {
         self.config.telemetry.log(format!("configured to use max population size: {} ", size).as_str());
-        self.config.population_size = size;
+        self.config.population.size = size;
         self
     }
 
-    /// Sets max offspring size. Default is 4.
-    pub fn with_offspring_size(mut self, size: usize) -> Self {
-        self.config.telemetry.log(format!("configured to use max offspring size: {} ", size).as_str());
-        self.config.offspring_size = size;
-        self
-    }
-
-    /// Sets initial population size. Each initial individual is constructed separately which
-    /// used to take more time than normal refinement process.
-    /// Default is 2.
-    pub fn with_initial_size(mut self, size: usize) -> Self {
-        self.config.telemetry.log(format!("configured to use initial population size: {} ", size).as_str());
-        self.config.initial_size = size;
+    /// Sets offspring configuration.
+    pub fn with_offspring(
+        mut self,
+        size: Option<usize>,
+        chance: Option<f64>,
+        generations: Option<Range<usize>>,
+        steepness: Option<usize>,
+    ) -> Self {
+        self.config.telemetry.log("configured to use custom offspring parameters");
+        let old = self.config.population.offspring;
+        self.config.population.offspring = OffspringConfig {
+            size: size.unwrap_or(old.size),
+            chance: chance.unwrap_or(old.chance),
+            generations: generations.unwrap_or(old.generations),
+            steepness: steepness.unwrap_or(old.steepness),
+        };
         self
     }
 
     /// Sets mutation algorithm. Default is ruin and recreate.
     pub fn with_mutation(mut self, mutation: Box<dyn Mutation + Send + Sync>) -> Self {
+        self.config.telemetry.log("configured to use custom mutation parameters");
         self.config.mutation = mutation;
         self
     }
 
     /// Sets termination algorithm. Default is max time and max generations.
     pub fn with_termination(mut self, termination: Box<dyn Termination>) -> Self {
+        self.config.telemetry.log("configured to use custom termination parameters");
         self.config.termination = termination;
         self
     }
 
     /// Sets randomization seed.
     pub fn with_seed(mut self, seed: Option<u64>) -> Self {
+        self.config.telemetry.log("configured to use custom seed parameters");
         self.seed = seed;
         self
     }

@@ -51,9 +51,8 @@ pub fn solve_with_metaheuristic_and_iterations_without_check(
 pub fn solve(problem: Problem, matrices: Option<Vec<Matrix>>, generations: usize, perform_check: bool) -> Solution {
     get_core_solution(problem, matrices, perform_check, |problem: Arc<CoreProblem>| {
         let (solution, _, _) = Builder::new(problem)
-            .with_initial_methods(vec![(Box::new(RecreateWithCheapest::default()), 1)])
             .with_max_generations(Some(generations))
-            .with_initial_size(1)
+            .with_offspring(Some(2), Some(0.1), Some(2..3), None)
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
             .solve()

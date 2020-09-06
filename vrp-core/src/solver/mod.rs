@@ -115,6 +115,7 @@ pub use self::population::DominancePopulation;
 
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
+use std::cmp::Ordering;
 
 /// A key to store solution order information.
 pub const SOLUTION_ORDER_KEY: i32 = 100;
@@ -150,6 +151,9 @@ pub trait Population {
 
     /// Gets nth individual from population.
     fn nth(&self, idx: usize) -> Option<&Individual>;
+
+    /// Compares two solutions the same way as population does.
+    fn cmp(&self, a: &Individual, b: &Individual) -> Ordering;
 
     /// Returns individuals within their rank sorted according their quality.
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a>;

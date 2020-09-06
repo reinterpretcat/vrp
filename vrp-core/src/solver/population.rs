@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/solver/population/population_test.rs"]
 mod population_test;
 
-use crate::algorithms::nsga2::select_and_rank;
+use crate::algorithms::nsga2::{select_and_rank, Objective};
 use crate::models::Problem;
 use crate::solver::{Individual, Population, SOLUTION_ORDER_KEY};
 use crate::utils::compare_floats;
@@ -64,6 +64,10 @@ impl Population for DominancePopulation {
 
     fn nth(&self, idx: usize) -> Option<&Individual> {
         self.individuals.get(idx)
+    }
+
+    fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
+        self.problem.objective.total_order(a, b)
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {

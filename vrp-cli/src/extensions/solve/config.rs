@@ -98,10 +98,38 @@ pub enum RecreateMethod {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PopulationConfig {
-    initial_methods: Option<Vec<RecreateMethod>>,
-    initial_size: Option<usize>,
-    population_size: Option<usize>,
-    offspring_size: Option<usize>,
+    initial: Option<InitialConfig>,
+    offspring: Option<OffspringConfig>,
+    size: Option<usize>,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct InitialConfig {
+    pub size: Option<usize>,
+    pub methods: Option<Vec<RecreateMethod>>,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct OffspringConfig {
+    pub size: Option<usize>,
+    pub branching: Option<BranchingConfig>,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct BranchingConfig {
+    pub chance: Option<f64>,
+    pub steepness: Option<usize>,
+    pub generations: Option<MinMaxConfig>,
+}
+
+#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MinMaxConfig {
+    pub min: usize,
+    pub max: usize,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -146,21 +174,27 @@ pub struct MetricsConfig {
 
 fn configure_from_population(mut builder: Builder, population_config: &Option<PopulationConfig>) -> Builder {
     if let Some(config) = population_config {
-        if let Some(methods) = &config.initial_methods {
-            builder =
-                builder.with_initial_methods(methods.iter().map(|method| create_recreate_method(method)).collect());
+        if let Some(initial) = &config.initial {
+            builder = builder.with_init_params(
+                initial.size,
+                initial
+                    .methods
+                    .as_ref()
+                    .map(|methods| methods.iter().map(|method| create_recreate_method(method)).collect()),
+            );
         }
 
-        if let Some(initial_size) = &config.initial_size {
-            builder = builder.with_initial_size(*initial_size);
-        }
-
-        if let Some(population_size) = &config.population_size {
+        if let Some(population_size) = &config.size {
             builder = builder.with_population_size(*population_size);
         }
 
-        if let Some(offspring_size) = &config.offspring_size {
-            builder = builder.with_offspring_size(*offspring_size);
+        if let Some(offspring) = &config.offspring {
+            builder = builder.with_offspring(
+                offspring.size,
+                offspring.branching.as_ref().and_then(|b| b.chance),
+                offspring.branching.as_ref().and_then(|b| b.generations.as_ref()).map(|gens| gens.min..gens.max),
+                offspring.branching.as_ref().and_then(|b| b.steepness),
+            );
         }
     }
 
