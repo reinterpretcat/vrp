@@ -59,7 +59,7 @@ pub struct OffspringConfig {
     /// A range of generations in branch.
     pub generations: Range<usize>,
     /// An acceptance curve steepness used in formula `1 - (x/total_generations)^steepness`.
-    pub steepness: usize,
+    pub steepness: f64,
 }
 
 /// An entity which simulates evolution process.
@@ -209,6 +209,6 @@ fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {
     is_population_empty || !is_quota_reached
 }
 
-fn get_skip_probability(current: usize, total: usize, steepness: usize) -> f64 {
-    1. - ((current / total) as f64).powf(steepness as f64)
+fn get_skip_probability(current: usize, total: usize, steepness: f64) -> f64 {
+    1. - (current as f64 / total as f64).powf(steepness)
 }

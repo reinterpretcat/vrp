@@ -13,7 +13,7 @@
       "size": 4,
       "branching": {
         "chance": 0.2,
-        "steepness": 3,
+        "steepness": 1.5,
         "generations": {
           "min": 4,
           "max": 6

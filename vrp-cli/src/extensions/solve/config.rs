@@ -121,7 +121,7 @@ pub struct OffspringConfig {
 #[serde(rename_all = "camelCase")]
 pub struct BranchingConfig {
     pub chance: Option<f64>,
-    pub steepness: Option<usize>,
+    pub steepness: Option<f64>,
     pub generations: Option<MinMaxConfig>,
 }
 

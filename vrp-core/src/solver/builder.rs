@@ -86,7 +86,7 @@ impl Builder {
                         methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                         individuals: vec![],
                     },
-                    offspring: OffspringConfig { size: 4, chance: 0.2, generations: 4..6, steepness: 3 },
+                    offspring: OffspringConfig { size: 4, chance: 0.2, generations: 4..6, steepness: 1.5 },
                 },
             },
         }
@@ -166,7 +166,7 @@ impl Builder {
         size: Option<usize>,
         chance: Option<f64>,
         generations: Option<Range<usize>>,
-        steepness: Option<usize>,
+        steepness: Option<f64>,
     ) -> Self {
         self.config.telemetry.log("configured to use custom offspring parameters");
         let old = self.config.population.offspring;
