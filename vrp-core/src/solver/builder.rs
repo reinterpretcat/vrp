@@ -86,7 +86,7 @@ impl Builder {
                         methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                         individuals: vec![],
                     },
-                    offspring: OffspringConfig { size: 4, chance: 0.2, generations: 4..6, steepness: 1.5 },
+                    offspring: OffspringConfig { size: 4, chance: 0.001, generations: 4..6, steepness: 1.5 },
                 },
             },
         }

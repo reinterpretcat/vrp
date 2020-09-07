@@ -12,7 +12,7 @@
     "offspring": {
       "size": 4,
       "branching": {
-        "chance": 0.2,
+        "chance": 0.001,
         "steepness": 1.5,
         "generations": {
           "min": 4,

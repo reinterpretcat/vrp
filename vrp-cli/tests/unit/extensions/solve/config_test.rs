@@ -27,7 +27,7 @@ fn can_read_config() {
     assert_eq!(offspring.size, Some(4));
 
     let branching = offspring.branching.expect("no branching config");
-    assert_eq!(branching.chance, Some(0.2));
+    assert_eq!(branching.chance, Some(0.001));
     assert_eq!(branching.steepness, Some(1.5));
     assert_eq!(branching.generations, Some(MinMaxConfig { min: 4, max: 6 }));
 
