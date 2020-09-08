@@ -6,7 +6,7 @@ use crate::solver::mutation::*;
 use crate::solver::telemetry::{Telemetry, TelemetryMode};
 use crate::solver::termination::*;
 use crate::solver::Solver;
-use crate::utils::{DefaultRandom, TimeQuota};
+use crate::utils::{get_cpus, DefaultRandom, TimeQuota};
 use std::ops::Range;
 use std::sync::Arc;
 
@@ -86,7 +86,7 @@ impl Builder {
                         methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                         individuals: vec![],
                     },
-                    offspring: OffspringConfig { size: 4, chance: 0.001, generations: 4..6, steepness: 1.5 },
+                    offspring: OffspringConfig { size: get_cpus(), chance: 0.001, generations: 4..6, steepness: 1.5 },
                 },
             },
         }
