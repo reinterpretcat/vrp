@@ -236,7 +236,7 @@ impl Telemetry {
         }
     }
 
-    /// Writes lig message.
+    /// Writes log message.
     pub fn log(&self, message: &str) {
         match &self.mode {
             TelemetryMode::OnlyLogging { logger, .. } => logger.deref()(message),
