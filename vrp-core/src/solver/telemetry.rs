@@ -28,6 +28,12 @@ pub struct Generation {
     pub number: usize,
     /// Time since evolution started.
     pub timestamp: f64,
+    /// Overall improvement ratio.
+    pub i_all_ratio: f64,
+    /// Improvement ratio last 1000 generations.
+    pub i_1000_ratio: f64,
+    /// True if this generation considered as improvement.
+    pub is_improvement: bool,
     /// Population state.
     pub population: Vec<Individual>,
 }
@@ -84,6 +90,7 @@ pub struct Telemetry {
     metrics: Metrics,
     time: Timer,
     mode: TelemetryMode,
+    improvement_tracker: ImprovementTracker,
 }
 
 impl Telemetry {
@@ -93,6 +100,7 @@ impl Telemetry {
             time: Timer::start(),
             metrics: Metrics { duration: 0, generations: 0, speed: 0.0, evolution: vec![] },
             mode,
+            improvement_tracker: ImprovementTracker::new(1000),
         }
     }
 
@@ -119,7 +127,7 @@ impl Telemetry {
     }
 
     /// Reports generation statistics.
-    pub fn on_progress(&mut self, refinement_ctx: &RefinementContext, generation_time: Timer) {
+    pub fn on_generation(&mut self, refinement_ctx: &RefinementContext, generation_time: Timer, is_improved: bool) {
         let (log_best, log_population, track_population) = match &self.mode {
             TelemetryMode::None => return,
             TelemetryMode::OnlyLogging { log_best, log_population, .. } => (Some(log_best), Some(log_population), None),
@@ -128,6 +136,8 @@ impl Telemetry {
                 (Some(log_best), Some(log_population), Some(track_population))
             }
         };
+
+        self.improvement_tracker.track(refinement_ctx.generation, is_improved);
 
         if let Some((best_individual, rank)) = refinement_ctx.population.ranked().next() {
             let generation = refinement_ctx.generation;
@@ -149,7 +159,7 @@ impl Telemetry {
     }
 
     /// Reports population state.
-    pub fn on_population(
+    fn on_population(
         &mut self,
         refinement_ctx: &RefinementContext,
         should_log_population: bool,
@@ -162,9 +172,11 @@ impl Telemetry {
         if should_log_population {
             self.log(
                 format!(
-                    "[{}s] population state (speed: {:.2} gen/sec):",
+                    "[{}s] population state (speed: {:.2} gen/sec, improvement ratio: {:.3}:{:.3}):",
                     self.time.elapsed_secs(),
                     refinement_ctx.generation as f64 / self.time.elapsed_secs_as_f64(),
+                    self.improvement_tracker.i_all_ratio,
+                    self.improvement_tracker.i_1000_ratio,
                 )
                 .as_str(),
             );
@@ -184,6 +196,9 @@ impl Telemetry {
             self.metrics.evolution.push(Generation {
                 number: refinement_ctx.generation,
                 timestamp: self.time.elapsed_secs_as_f64(),
+                i_all_ratio: self.improvement_tracker.i_all_ratio,
+                i_1000_ratio: self.improvement_tracker.i_1000_ratio,
+                is_improvement: self.improvement_tracker.is_last_improved,
                 population: population_metrics,
             })
         }
@@ -288,5 +303,43 @@ impl Telemetry {
             .unwrap_or(0.);
 
         (fitness_value, fitness_change)
+    }
+}
+
+struct ImprovementTracker {
+    buffer: Vec<bool>,
+    total_improvements: usize,
+
+    pub i_all_ratio: f64,
+    pub i_1000_ratio: f64,
+    pub is_last_improved: bool,
+}
+
+impl ImprovementTracker {
+    pub fn new(size: usize) -> Self {
+        Self {
+            buffer: vec![false; size],
+            total_improvements: 0,
+            i_all_ratio: 0.,
+            i_1000_ratio: 0.,
+            is_last_improved: false,
+        }
+    }
+
+    pub fn track(&mut self, generation: usize, is_improved: bool) {
+        assert!(generation > 0);
+        let length = self.buffer.len();
+
+        if is_improved {
+            self.total_improvements += 1;
+        }
+
+        self.is_last_improved = is_improved;
+        self.buffer[(generation - 1) % length] = is_improved;
+
+        let improvements = (0..generation).zip(self.buffer.iter()).filter(|(_, is_improved)| **is_improved).count();
+
+        self.i_all_ratio = (self.total_improvements as f64) / (generation as f64);
+        self.i_1000_ratio = (improvements as f64) / (generation.min(self.buffer.len()) as f64);
     }
 }

@@ -127,11 +127,10 @@ impl EvolutionSimulator {
                 }
             });
 
-            if should_add_solution(&refinement_ctx) {
-                refinement_ctx.population.add_all(offspring);
-            }
+            let is_improved =
+                if should_add_solution(&refinement_ctx) { refinement_ctx.population.add_all(offspring) } else { false };
 
-            self.config.telemetry.on_progress(&refinement_ctx, generation_time);
+            self.config.telemetry.on_generation(&refinement_ctx, generation_time, is_improved);
 
             refinement_ctx.generation += 1;
         }
@@ -155,7 +154,7 @@ impl EvolutionSimulator {
             .take(self.config.population.initial.size)
             .for_each(|(ctx, idx)| {
                 self.config.telemetry.on_initial(idx, self.config.population.initial.size, Timer::start());
-                refinement_ctx.population.add(ctx)
+                refinement_ctx.population.add(ctx);
             });
 
         let weights = self.config.population.initial.methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();

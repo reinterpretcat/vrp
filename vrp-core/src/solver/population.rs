@@ -46,20 +46,26 @@ impl DominancePopulation {
 }
 
 impl Population for DominancePopulation {
-    fn add_all(&mut self, individuals: Vec<Individual>) {
+    fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
+        let was_empty = self.size() == 0;
+
         individuals.into_iter().for_each(|individual| {
             self.individuals.push(individual);
         });
 
         self.sort();
         self.ensure_max_population_size();
+        self.is_improved(was_empty)
     }
 
-    fn add(&mut self, individual: Individual) {
+    fn add(&mut self, individual: Individual) -> bool {
+        let was_empty = self.size() == 0;
+
         self.individuals.push(individual);
 
         self.sort();
         self.ensure_max_population_size();
+        self.is_improved(was_empty)
     }
 
     fn nth(&self, idx: usize) -> Option<&Individual> {
@@ -127,5 +133,14 @@ impl DominancePopulation {
 
     fn gen_dominance_order(individual: &Individual) -> &DominanceOrder {
         individual.solution.state.get(&SOLUTION_ORDER_KEY).and_then(|s| s.downcast_ref::<DominanceOrder>()).unwrap()
+    }
+
+    fn is_improved(&self, was_empty: bool) -> bool {
+        was_empty
+            || self
+                .individuals
+                .first()
+                .map(Self::gen_dominance_order)
+                .map_or(false, |dominance_order| dominance_order.orig_index != dominance_order.seq_index)
     }
 }

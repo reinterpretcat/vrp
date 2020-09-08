@@ -82,3 +82,38 @@ fn can_maintain_diversity() {
     population.add(create_individual(&problem, 200.));
     assert_eq!(get_all_fitness(&population), &[50., 100., 200., 300.]);
 }
+
+#[test]
+fn can_check_improvement() {
+    let problem = create_problem();
+    let mut population = DominancePopulation::new(problem.clone(), 4);
+
+    assert_eq!(true, population.add(create_individual(&problem, 100.)));
+    assert_eq!(false, population.add(create_individual(&problem, 100.)));
+    assert_eq!(false, population.add(create_individual(&problem, 200.)));
+    assert_eq!(false, population.add(create_individual(&problem, 100.)));
+    assert_eq!(true, population.add(create_individual(&problem, 50.)));
+    assert_eq!(false, population.add(create_individual(&problem, 90.)));
+    assert_eq!(false, population.add(create_individual(&problem, 60.)));
+    assert_eq!(true, population.add(create_individual(&problem, 20.)));
+
+    assert_eq!(
+        false,
+        population.add_all(vec![
+            create_individual(&problem, 100.),
+            create_individual(&problem, 110.),
+            create_individual(&problem, 20.),
+        ])
+    );
+    assert_eq!(
+        true,
+        population.add_all(vec![
+            create_individual(&problem, 100.),
+            create_individual(&problem, 10.),
+            create_individual(&problem, 20.),
+        ])
+    );
+
+    assert_eq!(false, population.add(create_individual(&problem, 20.)));
+    assert_eq!(true, population.add(create_individual(&problem, 5.)));
+}

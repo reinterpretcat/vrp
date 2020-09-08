@@ -144,10 +144,12 @@ pub type Individual = InsertionContext;
 /// A trait which models a population with individuals (solutions).
 pub trait Population {
     /// Adds all individuals into the population, then sorts and shrinks population if necessary.
-    fn add_all(&mut self, individuals: Vec<Individual>);
+    /// Returns true if any of newly added individuals is considered as best known.
+    fn add_all(&mut self, individuals: Vec<Individual>) -> bool;
 
     /// Adds an individual into the population.
-    fn add(&mut self, individual: Individual);
+    /// Returns true if newly added individual is considered as best known.
+    fn add(&mut self, individual: Individual) -> bool;
 
     /// Gets nth individual from population.
     fn nth(&self, idx: usize) -> Option<&Individual>;

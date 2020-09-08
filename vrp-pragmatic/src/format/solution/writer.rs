@@ -378,6 +378,9 @@ fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extr
                     .map(|g| ApiGeneration {
                         number: g.number,
                         timestamp: g.timestamp,
+                        i_all_ratio: g.i_all_ratio,
+                        i_1000_ratio: g.i_1000_ratio,
+                        is_improvement: g.is_improvement,
                         population: g
                             .population
                             .iter()

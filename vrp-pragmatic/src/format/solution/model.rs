@@ -150,11 +150,18 @@ pub struct Metrics {
 
 /// Represents information about generation.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Generation {
     /// Generation sequence number.
     pub number: usize,
     /// Time since evolution started.
     pub timestamp: f64,
+    /// Overall improvement ratio.
+    pub i_all_ratio: f64,
+    /// Improvement ratio last 1000 generations.
+    pub i_1000_ratio: f64,
+    /// True if this generation considered as improvement.
+    pub is_improvement: bool,
     /// Population state.
     pub population: Vec<Individual>,
 }
