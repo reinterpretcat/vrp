@@ -9,17 +9,21 @@ use crate::utils::DefaultRandom;
 use std::sync::Arc;
 
 pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> Arc<Problem> {
-    create_empty_problem_with_constraint_and_fleet(constraint, test_fleet())
+    create_problem_with_constraint_jobs_and_fleet(constraint, vec![], test_fleet())
 }
 
 pub fn create_empty_problem() -> Arc<Problem> {
     create_empty_problem_with_constraint(ConstraintPipeline::default())
 }
 
-pub fn create_empty_problem_with_constraint_and_fleet(constraint: ConstraintPipeline, fleet: Fleet) -> Arc<Problem> {
+pub fn create_problem_with_constraint_jobs_and_fleet(
+    constraint: ConstraintPipeline,
+    jobs: Vec<Job>,
+    fleet: Fleet,
+) -> Arc<Problem> {
     let transport = TestTransportCost::new_shared();
     let fleet = Arc::new(fleet);
-    let jobs = Arc::new(Jobs::new(fleet.as_ref(), vec![], &transport));
+    let jobs = Arc::new(Jobs::new(fleet.as_ref(), jobs, &transport));
     Arc::new(Problem {
         fleet,
         jobs,

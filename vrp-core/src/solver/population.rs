@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/solver/population/population_test.rs"]
 mod population_test;
 
-use crate::algorithms::nsga2::{select_and_rank, Objective};
+use crate::algorithms::nsga2::{select_and_rank, MultiObjective, Objective};
 use crate::models::Problem;
 use crate::solver::{Individual, Population, SOLUTION_ORDER_KEY};
 use crate::utils::compare_floats;
@@ -118,10 +118,18 @@ impl DominancePopulation {
 
         // deduplicate population
         self.individuals.dedup_by(|a, b| {
-            let a = Self::gen_dominance_order(a);
-            let b = Self::gen_dominance_order(b);
+            let order_a = Self::gen_dominance_order(a);
+            let order_b = Self::gen_dominance_order(b);
 
-            a.rank == b.rank && compare_floats(a.crowding_distance, b.crowding_distance) == Ordering::Equal
+            if order_a.rank == order_b.rank {
+                // TODO investigate why just using crowding distance here does not work
+                let fitness_a = objective.objectives().map(|o| o.fitness(a));
+                let fitness_b = objective.objectives().map(|o| o.fitness(b));
+
+                fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
+            } else {
+                false
+            }
         });
     }
 
@@ -131,10 +139,6 @@ impl DominancePopulation {
         }
     }
 
-    fn gen_dominance_order(individual: &Individual) -> &DominanceOrder {
-        individual.solution.state.get(&SOLUTION_ORDER_KEY).and_then(|s| s.downcast_ref::<DominanceOrder>()).unwrap()
-    }
-
     fn is_improved(&self, was_empty: bool) -> bool {
         was_empty
             || self
@@ -142,5 +146,9 @@ impl DominancePopulation {
                 .first()
                 .map(Self::gen_dominance_order)
                 .map_or(false, |dominance_order| dominance_order.orig_index != dominance_order.seq_index)
+    }
+
+    fn gen_dominance_order(individual: &Individual) -> &DominanceOrder {
+        individual.solution.state.get(&SOLUTION_ORDER_KEY).and_then(|s| s.downcast_ref::<DominanceOrder>()).unwrap()
     }
 }

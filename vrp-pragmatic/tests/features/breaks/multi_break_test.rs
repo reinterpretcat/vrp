@@ -35,7 +35,7 @@ fn can_use_two_breaks() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 10);
 
     assert_eq!(
         solution,
