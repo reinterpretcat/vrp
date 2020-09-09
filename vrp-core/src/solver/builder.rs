@@ -86,7 +86,12 @@ impl Builder {
                         methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                         individuals: vec![],
                     },
-                    offspring: OffspringConfig { size: get_cpus(), chance: 0.001, generations: 4..6, steepness: 1.5 },
+                    offspring: OffspringConfig {
+                        size: get_cpus(),
+                        chance: (0.0001, 0.1, 0.001),
+                        generations: 2..4,
+                        steepness: 1.5,
+                    },
                 },
             },
         }
@@ -164,7 +169,7 @@ impl Builder {
     pub fn with_offspring(
         mut self,
         size: Option<usize>,
-        chance: Option<f64>,
+        chance: Option<(f64, f64, f64)>,
         generations: Option<Range<usize>>,
         steepness: Option<f64>,
     ) -> Self {

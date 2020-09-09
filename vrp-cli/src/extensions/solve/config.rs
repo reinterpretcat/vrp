@@ -120,9 +120,16 @@ pub struct OffspringConfig {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct BranchingConfig {
-    pub chance: Option<f64>,
+    pub chance: Option<BranchingChance>,
     pub steepness: Option<f64>,
     pub generations: Option<MinMaxConfig>,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct BranchingChance {
+    pub normal: f64,
+    pub intensive: f64,
+    pub threshold: f64,
 }
 
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
@@ -189,11 +196,12 @@ fn configure_from_population(mut builder: Builder, population_config: &Option<Po
         }
 
         if let Some(offspring) = &config.offspring {
+            let bc = offspring.branching.as_ref();
             builder = builder.with_offspring(
                 offspring.size,
-                offspring.branching.as_ref().and_then(|b| b.chance),
-                offspring.branching.as_ref().and_then(|b| b.generations.as_ref()).map(|gens| gens.min..gens.max),
-                offspring.branching.as_ref().and_then(|b| b.steepness),
+                bc.and_then(|b| b.chance.as_ref()).map(|chance| (chance.normal, chance.intensive, chance.threshold)),
+                bc.and_then(|b| b.generations.as_ref()).map(|gens| gens.min..gens.max),
+                bc.and_then(|b| b.steepness),
             );
         }
     }

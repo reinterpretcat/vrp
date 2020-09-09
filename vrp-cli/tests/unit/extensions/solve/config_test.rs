@@ -27,9 +27,10 @@ fn can_read_config() {
     assert_eq!(offspring.size, Some(4));
 
     let branching = offspring.branching.expect("no branching config");
-    assert_eq!(branching.chance, Some(0.001));
+    let chance = branching.chance.expect("no branching chance");
+    assert_eq!((chance.normal, chance.intensive, chance.threshold), (0.0001, 0.1, 0.001));
     assert_eq!(branching.steepness, Some(1.5));
-    assert_eq!(branching.generations, Some(MinMaxConfig { min: 4, max: 6 }));
+    assert_eq!(branching.generations, Some(MinMaxConfig { min: 2, max: 4 }));
 
     let termination = config.termination.expect("no termination config");
     assert_eq!(termination.max_time, Some(300));

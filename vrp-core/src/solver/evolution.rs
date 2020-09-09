@@ -54,8 +54,8 @@ pub struct InitialConfig {
 pub struct OffspringConfig {
     /// Offspring size.
     pub size: usize,
-    /// A chance to have a branch.
-    pub chance: f64,
+    /// A chance to have a branch as (normal probability, intensive probability, improvement threshold).
+    pub chance: (f64, f64, f64),
     /// A range of generations in branch.
     pub generations: Range<usize>,
     /// An acceptance curve steepness used in formula `1 - (x/total_generations)^steepness`.
@@ -103,8 +103,10 @@ impl EvolutionSimulator {
             let mutator = &self.config.mutation;
             let parents = self.select_parents(&refinement_ctx);
             let offspring_cfg = &self.config.population.offspring;
+            let branching_chance = self.get_branching_chance();
+
             let offspring = parallel_into_collect(parents, |ctx| {
-                let is_branch = ctx.random.uniform_real(0., 1.) < offspring_cfg.chance;
+                let is_branch = ctx.random.uniform_real(0., 1.) < branching_chance;
                 if is_branch {
                     let random = ctx.random.clone();
                     let (min, max) = (offspring_cfg.generations.start as i32, offspring_cfg.generations.end as i32);
@@ -196,6 +198,15 @@ impl EvolutionSimulator {
             .filter_map(|idx| refinement_ctx.population.nth(idx))
             .map(|individual| individual.deep_copy())
             .collect()
+    }
+
+    fn get_branching_chance(&self) -> f64 {
+        let (normal, intensive, threshold) = self.config.population.offspring.chance;
+        if self.config.telemetry.get_improvement_ratio().1 < threshold {
+            intensive
+        } else {
+            normal
+        }
     }
 }
 

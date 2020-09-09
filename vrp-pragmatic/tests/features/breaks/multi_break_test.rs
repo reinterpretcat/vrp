@@ -13,6 +13,11 @@ fn can_use_two_breaks() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: vec![0., 0.].to_loc()
+                    },
                     breaks: Some(vec![
                         VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
@@ -35,7 +40,7 @@ fn can_use_two_breaks() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic_and_iterations_without_check(problem, Some(vec![matrix]), 10);
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert_eq!(
         solution,

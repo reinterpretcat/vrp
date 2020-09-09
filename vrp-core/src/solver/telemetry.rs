@@ -245,6 +245,11 @@ impl Telemetry {
         }
     }
 
+    /// Gets current improvement ratio as (all the time, last 1000 generations) pair.
+    pub fn get_improvement_ratio(&self) -> (f64, f64) {
+        return (self.improvement_tracker.i_all_ratio, self.improvement_tracker.i_1000_ratio);
+    }
+
     fn get_individual_metrics(
         &self,
         refinement_ctx: &RefinementContext,
