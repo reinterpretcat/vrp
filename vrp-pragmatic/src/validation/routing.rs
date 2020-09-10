@@ -111,7 +111,7 @@ fn check_e1505_index_size_mismatch(ctx: &ValidationContext) -> Result<(), Format
             "E1505".to_string(),
             "amount of locations does not match matrix dimension".to_string(),
             format!(
-                "check matrix size: max location index ('{}') should be less than matrix size ('{}')",
+                "check matrix size: max location index '{}' + 1 should be equal to matrix size ('{}')",
                 max_index, matrix_size
             ),
         ))
