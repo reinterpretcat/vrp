@@ -108,8 +108,8 @@ It should generate `wasm` build + some javascript files for you. To test it, use
         // config provides the way to tweak algorithm behavior
         const config = {
             "termination": {
-                 "max_time": 10,
-                 "max_generations": 1000
+                 "maxTime": 10,
+                 "maxGenerations": 1000
             }
         };
 
