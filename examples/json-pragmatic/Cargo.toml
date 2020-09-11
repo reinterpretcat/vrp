@@ -1,6 +1,6 @@
 [package]
 name = "json-pragmatic"
-version = "1.5.1"
+version = "1.5.2"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -13,7 +13,7 @@ description = "An examples for solving rich VRP"
 publish = false
 
 [dependencies]
-vrp-pragmatic = { path = "../../vrp-pragmatic", version = "1.5.1" }
+vrp-pragmatic = { path = "../../vrp-pragmatic", version = "1.5.2" }
 
 [dev-dependencies]
 criterion = "0.3.3"
