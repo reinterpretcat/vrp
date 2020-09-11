@@ -52,6 +52,11 @@ impl<'f, 's: 'f, S: 's> Front<'s, S> {
         loop {
             for &p_i in current_front.iter() {
                 for &q_i in dominated_solutions[p_i].iter() {
+                    if domination_count[q_i] == 0 {
+                        // TODO investigate why this happens
+                        continue;
+                    }
+
                     domination_count[q_i] -= 1;
                     if domination_count[q_i] == 0 {
                         // q_i is not dominated by any other solution. it belongs to the next front.
