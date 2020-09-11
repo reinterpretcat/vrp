@@ -37,7 +37,7 @@ const RANDOM_SEED_NAME: &str = "seed";
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
 
-struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Option<Solution>>);
+struct InitSolutionReader(pub Box<dyn Fn(File, Arc<Problem>) -> Result<Solution, String>>);
 
 #[allow(clippy::type_complexity)]
 struct SolutionWriter(
@@ -64,7 +64,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                     assert!(matrices.is_none());
                     BufReader::new(problem).read_solomon()
                 })),
-                InitSolutionReader(Box::new(|file, problem| read_init_solomon(BufReader::new(file), problem).ok())),
+                InitSolutionReader(Box::new(|file, problem| read_init_solomon(BufReader::new(file), problem))),
                 SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_solomon(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
@@ -94,7 +94,7 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                     }
                     .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
                 })),
-                InitSolutionReader(Box::new(|file, problem| read_init_pragmatic(BufReader::new(file), problem).ok())),
+                InitSolutionReader(Box::new(|file, problem| read_init_pragmatic(BufReader::new(file), problem))),
                 SolutionWriter(Box::new(|problem, solution, metrics, default_writer, geojson_writer| {
                     geojson_writer
                         .map_or(Ok(()), |geojson_writer| solution.write_geo_json(problem, geojson_writer))
@@ -277,7 +277,18 @@ pub fn run_solve(matches: &ArgMatches) {
                 match problem_reader.0(problem_file, matrix_files) {
                     Ok(problem) => {
                         let problem = Arc::new(problem);
-                        let solution = init_solution.and_then(|file| init_reader.0(file, problem.clone()));
+                        let solutions = init_solution.map_or_else(
+                            || vec![],
+                            |file| {
+                                init_reader.0(file, problem.clone())
+                                    .map_err(|err| {
+                                        eprintln!("cannot read initial solution '{}'", err);
+                                        process::exit(1);
+                                    })
+                                    .map(|solution| vec![solution])
+                                    .unwrap()
+                            },
+                        );
 
                         let builder = if let Some(config) = config {
                             create_builder_from_config_file(problem.clone(), BufReader::new(config)).unwrap_or_else(
@@ -296,7 +307,7 @@ pub fn run_solve(matches: &ArgMatches) {
                         };
 
                         let (solution, _, metrics) = builder
-                            .with_init_solutions(solution.map_or_else(Vec::new, |s| vec![s]))
+                            .with_init_solutions(solutions)
                             .build()
                             .and_then(|solver| solver.solve())
                             .unwrap_or_else(|err| {

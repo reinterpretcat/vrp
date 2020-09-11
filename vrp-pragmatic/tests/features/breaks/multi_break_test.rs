@@ -16,7 +16,7 @@ fn can_use_two_breaks() {
                     start: ShiftStart {
                         earliest: format_time(0.),
                         latest: Some(format_time(0.)),
-                        location: vec![0., 0.].to_loc()
+                        location: vec![0., 0.].to_loc(),
                     },
                     breaks: Some(vec![
                         VehicleBreak {
