@@ -277,18 +277,15 @@ pub fn run_solve(matches: &ArgMatches) {
                 match problem_reader.0(problem_file, matrix_files) {
                     Ok(problem) => {
                         let problem = Arc::new(problem);
-                        let solutions = init_solution.map_or_else(
-                            || vec![],
-                            |file| {
-                                init_reader.0(file, problem.clone())
-                                    .map_err(|err| {
-                                        eprintln!("cannot read initial solution '{}'", err);
-                                        process::exit(1);
-                                    })
-                                    .map(|solution| vec![solution])
-                                    .unwrap()
-                            },
-                        );
+                        let solutions = init_solution.map_or_else(Vec::new, |file| {
+                            init_reader.0(file, problem.clone())
+                                .map_err(|err| {
+                                    eprintln!("cannot read initial solution '{}'", err);
+                                    process::exit(1);
+                                })
+                                .map(|solution| vec![solution])
+                                .unwrap()
+                        });
 
                         let builder = if let Some(config) = config {
                             create_builder_from_config_file(problem.clone(), BufReader::new(config)).unwrap_or_else(
