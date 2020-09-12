@@ -18,4 +18,4 @@ need to acquire routing matrix.
 
 The speed is `10m/s` by default and can be tweaked by setting optional `speed` property in a each profile separately.
 
-To use this feature, simply omit `-m` parameter.
+To use this feature, simply do not pass any matrix by omitting `-m` parameter.

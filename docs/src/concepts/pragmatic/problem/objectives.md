@@ -71,6 +71,54 @@ Here, cost minimization is a secondary objective which corresponds to a classica
 by `Solomon` benchmark.
 
 
+## Hints
+
+* if you're getting unassigned jobs, want to minimize their count, but not all vehicles are used, then try the following
+objective:
+
+```json
+"objectives": {
+    "primary": [
+      {
+        "type": "minimize-unassigned"
+      }
+    ],
+    "secondary": [
+      {
+        "type": "minimize-cost"
+      }
+    ]
+  }
+```
+
+* if you're using balancing objective and getting high cost or non-realistic, but balanced routes, try to add a tolerance
+and threshold to balancing objective:
+
+```json
+"objectives": {
+    "primary": [
+      {
+        "type": "minimize-unassigned"
+      },
+      {
+        "type": "minimize-tours"
+      }
+    ],
+    "secondary": [
+      {
+        "type": "minimize-cost"
+      },
+      {
+        "type": "balance-distance",
+        "options": {
+          "tolerance": 0.01,
+          "threshold": 0.005
+        }
+      }
+    ]
+    }
+```
+
 ## Related errors
 
 * [E1600 an empty objective specified](../errors/index.md#e1600)

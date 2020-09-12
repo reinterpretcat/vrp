@@ -10,27 +10,22 @@ process such as costs, amount of routes, time, etc.:
 ```
 configured to use single approximated routing matrix
 provided 0 initial solutions to start with
-configured to use max-generations 1000
-[0s] created 1 of 2 initial solutions in 2ms
-[0s] created 2 of 2 initial solutions in 0ms
-[0s] population state (speed: 272.68 gen/sec):
-        cost: 114.29 (0.000%), tours: 2, unassigned: 0
-        cost: 117.58 (2.876%), tours: 2, unassigned: 1
-[0s] generation 100 took 0ms, cost: 69.70, tours: 2, unassigned: 0
+configured to use max-time: 5s
+[0s] created 1 of 1 initial solutions in 5ms
+[0s] population state (speed: 123.55 gen/sec, improvement ratio: 1.000:1.000):
+         rank: 0, cost: 518.91(0.000%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 518.913)
+         rank: 1, cost: 520.10(0.229%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 520.103)
+         rank: 2, cost: 522.22(0.637%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 522.221)
+         rank: 3, cost: 522.54(0.699%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 522.541)
+[0s] generation 100 took 2ms,  rank: 0, cost: 512.84(0.000%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 512.836)
 ..
-[0s] generation 800 took 0ms, cost: 69.70, tours: 2, unassigned: 0
-[0s] generation 900 took 0ms, cost: 69.70, tours: 2, unassigned: 0
-[0s] population state (speed: 7498.72 gen/sec):
-        cost: 69.70 (0.000%), tours: 2, unassigned: 0
-        cost: 69.47 (-0.319%), tours: 2, unassigned: 0
-        cost: 69.76 (0.089%), tours: 2, unassigned: 0
-        cost: 69.54 (-0.230%), tours: 2, unassigned: 0
-        cost: 71.76 (2.966%), tours: 2, unassigned: 0
-        cost: 113.12 (62.307%), tours: 2, unassigned: 0
-        cost: 114.29 (63.988%), tours: 2, unassigned: 0
-[0s] total generations: 1000, speed: 7495.83 gen/sec
-best solution has cost: 69.6964, tours: 2, unassigned: 0
-
+[4s] generation 1900 took 2ms,  rank: 0, cost: 506.64(0.000%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.644)
+[5s] population state (speed: 393.37 gen/sec, improvement ratio: 0.032:0.005):
+         rank: 0, cost: 506.46(0.000%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.458)
+         rank: 1, cost: 506.48(0.005%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.484)
+         rank: 2, cost: 506.49(0.007%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.494)
+         rank: 3, cost: 506.51(0.010%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.509)
+[5s] total generations: 1967, speed: 393.37 gen/sec
 ```
 Once the problem is solved, it will save solution in `pragmatic` and `geojson` (optional) format.
 
@@ -39,7 +34,7 @@ Once the problem is solved, it will save solution in `pragmatic` and `geojson` (
 ### Termination criteria
 
 Termination criteria defines when refinement algorithm should stop and return best known solution. At the moment, there
-are two types.
+are three types which can be used simultaneously:
 
 #### Max time
 
@@ -65,7 +60,7 @@ specific amount of generations specified by `sample` and stops algorithm when it
 
 #### Default behavior
 
-By default termination criteria is max 3000 generations or 300 seconds.
+By default termination criteria is max 3000 generations and 300 seconds at max.
 
 
 ### Writing solution to file
