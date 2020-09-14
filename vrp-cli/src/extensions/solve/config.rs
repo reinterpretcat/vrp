@@ -213,7 +213,7 @@ fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<Mutati
     if let Some(config) = mutation_config {
         let MutationConfig::RuinRecreate { ruins, recreates } = config;
         let problem = builder.config.problem.clone();
-        builder = builder.with_mutation(Box::new(RuinAndRecreateMutation::new(
+        builder = builder.with_mutation(Box::new(RuinAndRecreate::new(
             Box::new(CompositeRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect())),
             Box::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(&problem, g)).collect())),
         )));

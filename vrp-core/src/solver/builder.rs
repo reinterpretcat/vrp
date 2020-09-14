@@ -71,7 +71,7 @@ impl Builder {
             seed: None,
             config: EvolutionConfig {
                 problem: problem.clone(),
-                mutation: Box::new(RuinAndRecreateMutation::new_from_problem(problem)),
+                mutation: Box::new(RuinAndRecreate::new_from_problem(problem)),
                 termination: Box::new(CompositeTermination::new(vec![
                     Box::new(MaxTime::new(300.)),
                     Box::new(MaxGeneration::new(3000)),
