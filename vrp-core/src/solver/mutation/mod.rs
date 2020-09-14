@@ -15,6 +15,9 @@ pub use self::recreate::*;
 mod ruin;
 pub use self::ruin::*;
 
+mod naive_branching;
+pub use self::naive_branching::NaiveBranching;
+
 mod ruin_recreate;
 pub use self::ruin_recreate::RuinAndRecreate;
 
@@ -23,7 +26,13 @@ use std::sync::Arc;
 
 /// A trait which defines mutation behavior.
 pub trait Mutation {
-    /// Changes given refinement context and consumes passed insertion context.
-    /// Returns an insertion context with potentially new feasible solution.
-    fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
+    /// Mutates passed insertion context.
+    fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
+
+    /// Mutates passed insertion contexts.
+    fn mutate_all(
+        &self,
+        refinement_ctx: &RefinementContext,
+        individuals: Vec<InsertionContext>,
+    ) -> Vec<InsertionContext>;
 }

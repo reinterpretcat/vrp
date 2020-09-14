@@ -15,7 +15,7 @@ can_detect_termination! {
 
 fn can_detect_termination_impl(generation: usize, limit: usize, expected: bool) {
     let mut refinement_ctx = create_default_refinement_ctx(create_empty_problem());
-    refinement_ctx.generation = generation;
+    refinement_ctx.statistics.generation = generation;
 
     let result = MaxGeneration::new(limit).is_termination(&mut refinement_ctx);
 

@@ -30,9 +30,9 @@ impl CostVariation {
             .downcast_mut::<Vec<f64>>()
             .unwrap();
 
-        costs[refinement_ctx.generation % self.sample] = cost;
+        costs[refinement_ctx.statistics.generation % self.sample] = cost;
 
-        refinement_ctx.generation >= (self.sample - 1) && self.check_threshold(costs)
+        refinement_ctx.statistics.generation >= (self.sample - 1) && self.check_threshold(costs)
     }
 
     fn check_threshold(&self, costs: &[f64]) -> bool {

@@ -2,7 +2,7 @@
 
 use crate::algorithms::nsga2::{MultiObjective, Objective};
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::RefinementContext;
+use crate::solver::{RefinementContext, Statistics};
 use crate::utils::Timer;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -124,10 +124,13 @@ impl Telemetry {
             ),
             _ => {}
         };
+        self.metrics.generations += 1;
     }
 
     /// Reports generation statistics.
     pub fn on_generation(&mut self, refinement_ctx: &RefinementContext, generation_time: Timer, is_improved: bool) {
+        self.metrics.generations += 1;
+
         let (log_best, log_population, track_population) = match &self.mode {
             TelemetryMode::None => return,
             TelemetryMode::OnlyLogging { log_best, log_population, .. } => (Some(log_best), Some(log_population), None),
@@ -137,10 +140,11 @@ impl Telemetry {
             }
         };
 
-        self.improvement_tracker.track(refinement_ctx.generation, is_improved);
+        let generation = refinement_ctx.statistics.generation;
+
+        self.improvement_tracker.track(generation, is_improved);
 
         if let Some((best_individual, rank)) = refinement_ctx.population.ranked().next() {
-            let generation = refinement_ctx.generation;
             let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
             let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0 || generation == 1;
             let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0 || generation == 1;
@@ -148,7 +152,7 @@ impl Telemetry {
             if should_log_best {
                 self.log_individual(
                     &self.get_individual_metrics(refinement_ctx, &best_individual, rank),
-                    Some((refinement_ctx.generation, generation_time)),
+                    Some((refinement_ctx.statistics.generation, generation_time)),
                 )
             }
 
@@ -174,7 +178,7 @@ impl Telemetry {
                 format!(
                     "[{}s] population state (speed: {:.2} gen/sec, improvement ratio: {:.3}:{:.3}):",
                     self.time.elapsed_secs(),
-                    refinement_ctx.generation as f64 / self.time.elapsed_secs_as_f64(),
+                    refinement_ctx.statistics.generation as f64 / self.time.elapsed_secs_as_f64(),
                     self.improvement_tracker.i_all_ratio,
                     self.improvement_tracker.i_1000_ratio,
                 )
@@ -194,7 +198,7 @@ impl Telemetry {
 
         if should_track_population {
             self.metrics.evolution.push(Generation {
-                number: refinement_ctx.generation,
+                number: refinement_ctx.statistics.generation,
                 timestamp: self.time.elapsed_secs_as_f64(),
                 i_all_ratio: self.improvement_tracker.i_all_ratio,
                 i_1000_ratio: self.improvement_tracker.i_1000_ratio,
@@ -216,15 +220,17 @@ impl Telemetry {
         self.on_population(refinement_ctx, should_log_population, false);
 
         let elapsed = self.time.elapsed_secs() as usize;
-        let speed = refinement_ctx.generation as f64 / self.time.elapsed_secs_as_f64();
+        let speed = refinement_ctx.statistics.generation as f64 / self.time.elapsed_secs_as_f64();
 
         self.log(
-            format!("[{}s] total generations: {}, speed: {:.2} gen/sec", elapsed, refinement_ctx.generation, speed)
-                .as_str(),
+            format!(
+                "[{}s] total generations: {}, speed: {:.2} gen/sec",
+                elapsed, refinement_ctx.statistics.generation, speed
+            )
+            .as_str(),
         );
 
         self.metrics.duration = elapsed;
-        self.metrics.generations = refinement_ctx.generation;
         self.metrics.speed = speed;
     }
 
@@ -245,9 +251,13 @@ impl Telemetry {
         }
     }
 
-    /// Gets current improvement ratio as (all the time, last 1000 generations) pair.
-    pub fn get_improvement_ratio(&self) -> (f64, f64) {
-        (self.improvement_tracker.i_all_ratio, self.improvement_tracker.i_1000_ratio)
+    /// Gets evolution progress statistics.
+    pub fn get_statistics(&self) -> Statistics {
+        Statistics {
+            generation: self.metrics.generations,
+            improvement_all_ratio: self.improvement_tracker.i_all_ratio,
+            improvement_1000_ratio: self.improvement_tracker.i_1000_ratio,
+        }
     }
 
     fn get_individual_metrics(
@@ -332,7 +342,6 @@ impl ImprovementTracker {
     }
 
     pub fn track(&mut self, generation: usize, is_improved: bool) {
-        assert!(generation > 0);
         let length = self.buffer.len();
 
         if is_improved {
@@ -340,11 +349,11 @@ impl ImprovementTracker {
         }
 
         self.is_last_improved = is_improved;
-        self.buffer[(generation - 1) % length] = is_improved;
+        self.buffer[generation % length] = is_improved;
 
         let improvements = (0..generation).zip(self.buffer.iter()).filter(|(_, is_improved)| **is_improved).count();
 
-        self.i_all_ratio = (self.total_improvements as f64) / (generation as f64);
-        self.i_1000_ratio = (improvements as f64) / (generation.min(self.buffer.len()) as f64);
+        self.i_all_ratio = (self.total_improvements as f64) / ((generation + 1) as f64);
+        self.i_1000_ratio = (improvements as f64) / ((generation + 1).min(self.buffer.len()) as f64);
     }
 }

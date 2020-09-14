@@ -17,7 +17,7 @@ fn can_detect_termination_impl(capacity: usize, threshold: f64, delta: f64, expe
 
     let result = (0..capacity)
         .map(|i| {
-            refinement_ctx.generation = i;
+            refinement_ctx.statistics.generation = i;
             let cost = 1. + (i + 1) as f64 * delta;
 
             termination.update_and_check(&mut refinement_ctx, cost)

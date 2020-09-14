@@ -6,8 +6,7 @@ use crate::solver::population::DominancePopulation;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::Termination;
 use crate::solver::{Metrics, Population, RefinementContext};
-use crate::utils::{parallel_into_collect, Random, Timer};
-use std::cmp::Ordering;
+use crate::utils::{Random, Timer};
 use std::iter::once;
 use std::ops::Range;
 use std::sync::Arc;
@@ -100,41 +99,16 @@ impl EvolutionSimulator {
         while !self.config.termination.is_termination(&mut refinement_ctx) {
             let generation_time = Timer::start();
 
-            let mutator = &self.config.mutation;
             let parents = self.select_parents(&refinement_ctx);
-            let offspring_cfg = &self.config.population.offspring;
-            let branching_chance = self.get_branching_chance();
 
-            let offspring = parallel_into_collect(parents, |ctx| {
-                let is_branch = ctx.random.uniform_real(0., 1.) < branching_chance;
-                if is_branch {
-                    let random = ctx.random.clone();
-                    let (min, max) = (offspring_cfg.generations.start as i32, offspring_cfg.generations.end as i32);
-                    let gens = random.uniform_int(min, max) as usize;
-                    (1_usize..=gens).fold(ctx, |parent, idx| {
-                        let child = mutator.mutate(&refinement_ctx, parent.deep_copy());
-
-                        let use_worse_chance = random.uniform_real(0., 1.);
-                        let use_worse_probability = get_use_worse_probability(idx, gens, offspring_cfg.steepness);
-                        let is_child_better = refinement_ctx.population.cmp(&child, &parent) == Ordering::Less;
-
-                        if use_worse_chance < use_worse_probability || is_child_better {
-                            child
-                        } else {
-                            parent
-                        }
-                    })
-                } else {
-                    mutator.mutate(&refinement_ctx, ctx)
-                }
-            });
+            let offspring = self.config.mutation.mutate_all(&refinement_ctx, parents);
 
             let is_improved =
                 if should_add_solution(&refinement_ctx) { refinement_ctx.population.add_all(offspring) } else { false };
 
             self.config.telemetry.on_generation(&refinement_ctx, generation_time, is_improved);
 
-            refinement_ctx.generation += 1;
+            refinement_ctx.statistics = self.config.telemetry.get_statistics();
         }
 
         self.config.telemetry.on_result(&refinement_ctx);
@@ -199,15 +173,6 @@ impl EvolutionSimulator {
             .map(|individual| individual.deep_copy())
             .collect()
     }
-
-    fn get_branching_chance(&self) -> f64 {
-        let (normal, intensive, threshold) = self.config.population.offspring.chance;
-        if self.config.telemetry.get_improvement_ratio().1 < threshold {
-            intensive
-        } else {
-            normal
-        }
-    }
 }
 
 fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {
@@ -216,8 +181,4 @@ fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {
 
     // NOTE when interrupted, population can return solution with worse primary objective fitness values as first
     is_population_empty || !is_quota_reached
-}
-
-fn get_use_worse_probability(current: usize, total: usize, steepness: f64) -> f64 {
-    1. - (current as f64 / total as f64).powf(steepness)
 }

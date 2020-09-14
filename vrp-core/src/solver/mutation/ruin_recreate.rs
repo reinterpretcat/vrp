@@ -1,13 +1,13 @@
 ///! Contains a mutation operator based on ruin and recreate principle.
-
 use super::*;
+use crate::utils::parallel_into_collect2;
 
 /// A mutation operator based on ruin and recreate principle.
 pub struct RuinAndRecreate {
     /// A ruin method.
-    pub ruin: Box<dyn Ruin + Send + Sync>,
+    ruin: Box<dyn Ruin + Send + Sync>,
     /// A recreate method.
-    pub recreate: Box<dyn Recreate + Send + Sync>,
+    recreate: Box<dyn Recreate + Send + Sync>,
 }
 
 impl RuinAndRecreate {
@@ -26,9 +26,21 @@ impl RuinAndRecreate {
 }
 
 impl Mutation for RuinAndRecreate {
-    fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let insertion_ctx = self.ruin.run(refinement_ctx, insertion_ctx);
 
         self.recreate.run(refinement_ctx, insertion_ctx)
+    }
+
+    fn mutate_all(
+        &self,
+        refinement_ctx: &RefinementContext,
+        individuals: Vec<InsertionContext>,
+    ) -> Vec<InsertionContext> {
+        parallel_into_collect2(
+            individuals,
+            |insertion_ctx| self.ruin.run(refinement_ctx, insertion_ctx),
+            |insertion_ctx| self.recreate.run(refinement_ctx, insertion_ctx),
+        )
     }
 }

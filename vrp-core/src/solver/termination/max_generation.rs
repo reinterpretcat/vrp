@@ -19,6 +19,6 @@ impl MaxGeneration {
 
 impl Termination for MaxGeneration {
     fn is_termination(&self, refinement_ctx: &mut RefinementContext) -> bool {
-        refinement_ctx.generation > self.limit
+        refinement_ctx.statistics.generation > self.limit
     }
 }

@@ -134,8 +134,20 @@ pub struct RefinementContext {
     /// A quota for refinement process.
     pub quota: Option<Box<dyn Quota + Send + Sync>>,
 
+    /// A refinement statistics.
+    pub statistics: Statistics,
+}
+
+/// A refinement statistics to track evolution progress.
+pub struct Statistics {
     /// A number which specifies refinement generation.
     pub generation: usize,
+
+    /// An improvement ratio from beginning.
+    pub improvement_all_ratio: f64,
+
+    /// An improvement ratio for last 1000 iterations.
+    pub improvement_1000_ratio: f64,
 }
 
 /// Represents solution in population defined as actual solution.
@@ -171,7 +183,13 @@ impl RefinementContext {
         population: Box<dyn Population + Sync + Send>,
         quota: Option<Box<dyn Quota + Send + Sync>>,
     ) -> Self {
-        Self { problem, population, state: Default::default(), quota, generation: 1 }
+        Self { problem, population, state: Default::default(), quota, statistics: Statistics::default() }
+    }
+}
+
+impl Default for Statistics {
+    fn default() -> Self {
+        Self { generation: 0, improvement_all_ratio: 0., improvement_1000_ratio: 0. }
     }
 }
 
