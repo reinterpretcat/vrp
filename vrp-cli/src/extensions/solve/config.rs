@@ -9,6 +9,7 @@ mod config_test;
 extern crate serde_json;
 
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
@@ -29,13 +30,49 @@ pub struct Config {
     telemetry: Option<TelemetryConfig>,
 }
 
+/// A mutation configuration.
+#[derive(Clone, Deserialize, Debug)]
+pub struct MutationConfig {
+    /// A name of mutation from the collection.
+    name: String,
+    /// Collection of available mutation metaheuristics.
+    collection: Vec<MutationType>,
+}
+
 /// A mutation operator configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
-pub enum MutationConfig {
+pub enum MutationType {
+    /// A naive branching metaheurstic settings.
+    #[serde(rename(deserialize = "naive-branching"))]
+    NaiveBranching {
+        /// A name of metaheurisic instance.
+        name: String,
+        /// A name of inner metaheurisic instance.
+        inner: String,
+        /// Specifies branching chance settings.
+        chance: BranchingChance,
+        /// Specifies steepness parameter for acceptance probability.
+        steepness: f64,
+        /// Specifies generations range inside a branch.
+        generations: MinMaxConfig,
+    },
+
+    /// A metaheuristic which is composition of other metaheuristics with their
+    /// probability weights.
+    #[serde(rename(deserialize = "weighted-composite"))]
+    WeightedComposite {
+        /// A name of metaheurisic instance.
+        name: String,
+        /// A collection of inner metaheuristics.
+        inners: Vec<NameWeight>,
+    },
+
     /// A ruin and recreate metaheuristic settings.
     #[serde(rename(deserialize = "ruin-recreate"))]
     RuinRecreate {
+        /// A name of metaheurisic instance.
+        name: String,
         /// Ruin methods.
         ruins: Vec<ConfigRuinGroup>,
         /// Recreate methods.
@@ -99,8 +136,8 @@ pub enum RecreateMethod {
 #[serde(rename_all = "camelCase")]
 pub struct PopulationConfig {
     initial: Option<InitialConfig>,
-    offspring: Option<OffspringConfig>,
-    size: Option<usize>,
+    offspring_size: Option<usize>,
+    max_size: Option<usize>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -108,35 +145,6 @@ pub struct PopulationConfig {
 pub struct InitialConfig {
     pub size: Option<usize>,
     pub methods: Option<Vec<RecreateMethod>>,
-}
-
-#[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct OffspringConfig {
-    pub size: Option<usize>,
-    pub branching: Option<BranchingConfig>,
-}
-
-#[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct BranchingConfig {
-    pub chance: Option<BranchingChance>,
-    pub steepness: Option<f64>,
-    pub generations: Option<MinMaxConfig>,
-}
-
-#[derive(Clone, Deserialize, Debug)]
-pub struct BranchingChance {
-    pub normal: f64,
-    pub intensive: f64,
-    pub threshold: f64,
-}
-
-#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct MinMaxConfig {
-    pub min: usize,
-    pub max: usize,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -179,7 +187,37 @@ pub struct MetricsConfig {
     track_population: Option<usize>,
 }
 
-fn configure_from_population(mut builder: Builder, population_config: &Option<PopulationConfig>) -> Builder {
+#[derive(Clone, Deserialize, Debug)]
+
+pub struct BranchingConfig {
+    pub chance: BranchingChance,
+    pub steepness: f64,
+    pub generations: MinMaxConfig,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct BranchingChance {
+    pub normal: f64,
+    pub intensive: f64,
+    pub threshold: f64,
+}
+
+#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+pub struct MinMaxConfig {
+    pub min: usize,
+    pub max: usize,
+}
+
+#[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+pub struct NameWeight {
+    pub name: String,
+    pub weight: usize,
+}
+
+fn configure_from_population(
+    mut builder: Builder,
+    population_config: &Option<PopulationConfig>,
+) -> Result<Builder, String> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
             builder = builder.with_init_params(
@@ -191,45 +229,84 @@ fn configure_from_population(mut builder: Builder, population_config: &Option<Po
             );
         }
 
-        if let Some(population_size) = &config.size {
+        if let Some(population_size) = &config.max_size {
             builder = builder.with_population_size(*population_size);
         }
 
-        if let Some(offspring) = &config.offspring {
-            let bc = offspring.branching.as_ref();
-            builder = builder.with_offspring(
-                offspring.size,
-                bc.and_then(|b| b.chance.as_ref()).map(|chance| (chance.normal, chance.intensive, chance.threshold)),
-                bc.and_then(|b| b.generations.as_ref()).map(|gens| gens.min..gens.max),
-                bc.and_then(|b| b.steepness),
-            );
+        if let Some(offspring_size) = &config.offspring_size {
+            builder = builder.with_offspring_size(*offspring_size);
         }
     }
 
-    builder
+    Ok(builder)
 }
 
-fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<MutationConfig>) -> Builder {
+type NamedMutations = HashMap<String, Arc<dyn Mutation + Send + Sync>>;
+
+fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<MutationConfig>) -> Result<Builder, String> {
     if let Some(config) = mutation_config {
-        let MutationConfig::RuinRecreate { ruins, recreates } = config;
-        let problem = builder.config.problem.clone();
-        builder = builder.with_mutation(Box::new(RuinAndRecreate::new(
-            Box::new(CompositeRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect())),
-            Box::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(&problem, g)).collect())),
-        )));
+        let get_mutation_by_name = |mutations: &NamedMutations, name: &String| {
+            mutations
+                .get(name)
+                .cloned()
+                .ok_or_else(|| format!("cannot find {} mutation, make sure that it is defined before used", name))
+        };
+        let mutations = config.collection.iter().try_fold::<_, _, Result<_, String>>(
+            NamedMutations::default(),
+            |mut mutations, type_cfg| {
+                let (name, mutation): (_, Arc<dyn Mutation + Send + Sync>) = match type_cfg {
+                    MutationType::RuinRecreate { name, ruins, recreates } => {
+                        let ruin = Box::new(CompositeRuin::new(
+                            ruins.iter().map(|g| create_ruin_group(&builder.config.problem, g)).collect(),
+                        ));
+                        let recreate = Box::new(CompositeRecreate::new(
+                            recreates.iter().map(|r| create_recreate_method(r)).collect(),
+                        ));
+                        (name.clone(), Arc::new(RuinAndRecreate::new(recreate, ruin)))
+                    }
+                    MutationType::WeightedComposite { name, inners } => {
+                        let inners = inners
+                            .iter()
+                            .map(|nw| get_mutation_by_name(&mutations, &nw.name).map(|mutation| (mutation, nw.weight)))
+                            .collect::<Result<Vec<_>, _>>()?;
+                        (name.clone(), Arc::new(WeightedComposite::new(inners)))
+                    }
+                    MutationType::NaiveBranching { name, inner, chance, steepness, generations } => (
+                        name.clone(),
+                        Arc::new(NaiveBranching::new(
+                            get_mutation_by_name(&mutations, inner)?,
+                            (chance.normal, chance.intensive, chance.threshold),
+                            *steepness,
+                            generations.min..generations.max,
+                        )),
+                    ),
+                };
+
+                mutations.insert(name, mutation);
+
+                Ok(mutations)
+            },
+        )?;
+
+        let mutation = get_mutation_by_name(&mutations, &config.name)?.clone();
+
+        builder = builder.with_mutation(mutation);
     }
 
-    builder
+    Ok(builder)
 }
 
-fn configure_from_termination(mut builder: Builder, termination_config: &Option<TerminationConfig>) -> Builder {
+fn configure_from_termination(
+    mut builder: Builder,
+    termination_config: &Option<TerminationConfig>,
+) -> Result<Builder, String> {
     if let Some(config) = termination_config {
         builder = builder.with_max_time(config.max_time);
         builder = builder.with_max_generations(config.max_generations);
         builder = builder.with_cost_variation(config.variation.as_ref().map(|v| (v.sample, v.cv)));
     }
 
-    builder
+    Ok(builder)
 }
 
 fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send + Sync>, usize) {
@@ -270,7 +347,7 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
     }
 }
 
-fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Builder {
+fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Result<Builder, String> {
     const LOG_BEST: usize = 100;
     const LOG_POPULATION: usize = 1000;
     const TRACK_POPULATION: usize = 1000;
@@ -309,7 +386,7 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
         _ => TelemetryMode::None,
     };
 
-    builder.with_telemetry(Telemetry::new(telemetry_mode))
+    Ok(builder.with_telemetry(Telemetry::new(telemetry_mode)))
 }
 
 /// Reads config from reader.
@@ -329,10 +406,10 @@ pub fn create_builder_from_config_file<R: Read>(
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
     let mut builder = Builder::new(problem);
 
-    builder = configure_from_telemetry(builder, &config.telemetry);
-    builder = configure_from_population(builder, &config.population);
-    builder = configure_from_mutation(builder, &config.mutation);
-    builder = configure_from_termination(builder, &config.termination);
+    builder = configure_from_telemetry(builder, &config.telemetry)?;
+    builder = configure_from_population(builder, &config.population)?;
+    builder = configure_from_mutation(builder, &config.mutation)?;
+    builder = configure_from_termination(builder, &config.termination)?;
 
     Ok(builder)
 }

@@ -6,15 +6,24 @@ use std::ops::Range;
 
 /// A mutation operator which uses naive branching strategy to avoid local optimum.
 pub struct NaiveBranching {
-    inner: Box<dyn Mutation + Send + Sync>,
-
+    inner: Arc<dyn Mutation + Send + Sync>,
     normal_chance: f64,
     intensive_chance: f64,
     threshold: f64,
-
     steepness: f64,
-
     generations: Range<usize>,
+}
+
+impl NaiveBranching {
+    /// Creates a new instance of `NaiveBranching`.
+    pub fn new(
+        inner: Arc<dyn Mutation + Send + Sync>,
+        chance: (f64, f64, f64),
+        steepness: f64,
+        generations: Range<usize>,
+    ) -> Self {
+        Self { inner, normal_chance: chance.0, intensive_chance: chance.1, threshold: chance.2, steepness, generations }
+    }
 }
 
 impl Mutation for NaiveBranching {

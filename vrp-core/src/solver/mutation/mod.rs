@@ -21,6 +21,9 @@ pub use self::naive_branching::NaiveBranching;
 mod ruin_recreate;
 pub use self::ruin_recreate::RuinAndRecreate;
 
+mod weighted_composite;
+pub use self::weighted_composite::WeightedComposite;
+
 use crate::models::Problem;
 use std::sync::Arc;
 

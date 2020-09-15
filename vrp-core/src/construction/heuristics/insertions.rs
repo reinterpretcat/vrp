@@ -7,6 +7,7 @@ use crate::models::solution::Activity;
 use crate::utils::map_reduce;
 use std::borrow::Borrow;
 use std::ops::Deref;
+use std::sync::Arc;
 
 /// Specifies insertion result variant.
 pub enum InsertionResult {
@@ -149,7 +150,7 @@ impl InsertionHeuristic {
         job_selector: &(dyn JobSelector + Send + Sync),
         job_reducer: &(dyn JobMapReducer + Send + Sync),
         ctx: InsertionContext,
-        quota: &Option<Box<dyn Quota + Send + Sync>>,
+        quota: &Option<Arc<dyn Quota + Send + Sync>>,
     ) -> InsertionContext {
         let mut ctx = ctx;
 

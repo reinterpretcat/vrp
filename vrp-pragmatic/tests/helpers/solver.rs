@@ -52,7 +52,7 @@ pub fn solve(problem: Problem, matrices: Option<Vec<Matrix>>, generations: usize
     get_core_solution(problem, matrices, perform_check, |problem: Arc<CoreProblem>| {
         let (solution, _, _) = Builder::new(problem)
             .with_max_generations(Some(generations))
-            .with_offspring(Some(2), None, None, None)
+            .with_offspring_size(2)
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
             .solve()

@@ -1,7 +1,6 @@
 pub use self::actual::map_reduce;
 pub use self::actual::parallel_collect;
 pub use self::actual::parallel_into_collect;
-pub use self::actual::parallel_into_collect2;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod actual {
@@ -26,19 +25,6 @@ mod actual {
         R: Send,
     {
         source.into_par_iter().map(map_op).collect()
-    }
-
-    /// Applies two different map operations on vector data.
-    /// TODO is there better way to do this?
-    pub fn parallel_into_collect2<T, F1, R1, F2, R2>(source: Vec<T>, map_op1: F1, map_op2: F2) -> Vec<R2>
-    where
-        T: Send + Sync,
-        F1: Fn(T) -> R1 + Sync + Send,
-        F2: Fn(R1) -> R2 + Sync + Send,
-        R1: Send,
-        R2: Send,
-    {
-        source.into_par_iter().map(map_op1).map(map_op2).collect()
     }
 
     /// Performs map reduce operations in parallel.
@@ -74,18 +60,6 @@ mod actual {
         R: Send,
     {
         source.into_iter().map(map_op).collect()
-    }
-
-    /// Applies two different map operations on vector data.
-    pub fn parallel_into_collect2<T, F1, R1, F2, R2>(source: Vec<T>, map_op1: F1, map_op2: F2) -> Vec<R>
-    where
-        T: Send + Sync,
-        F1: Fn(T) -> R1 + Sync + Send,
-        F2: Fn(R1) -> R2 + Sync + Send,
-        R1: Send,
-        R2: Send,
-    {
-        source.into_iter().map(map_op1).map(map_op2).collect()
     }
 
     /// Performs map reduce operations synchronously.

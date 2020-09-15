@@ -4,14 +4,232 @@
       "size": 1,
       "methods": [
         {
-          "weight": 10,
+          "weight": 1,
           "type": "cheapest"
         }
       ]
     },
-    "offspring": {
-      "size": 4,
-      "branching": {
+    "offspringSize": 4,
+    "maxSize": 4
+  },
+  "mutation": {
+    "name": "default-branching",
+    "collection": [
+      {
+        "type": "ruin-recreate",
+        "name": "default-ruin-recreate",
+        "ruins": [
+          {
+            "weight": 100,
+            "methods": [
+              {
+                "probability": 1,
+                "type": "adjusted-string",
+                "lmax": 10,
+                "cavg": 10,
+                "alpha": 0.01
+              },
+              {
+                "probability": 0.05,
+                "type": "random-job",
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              }
+            ]
+          },
+          {
+            "weight": 10,
+            "methods": [
+              {
+                "probability": 1,
+                "type": "adjusted-string",
+                "lmax": 20,
+                "cavg": 20,
+                "alpha": 0.01
+              },
+              {
+                "probability": 0.05,
+                "type": "random-job",
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.01,
+                "type": "random-route",
+                "min": 1,
+                "max": 4,
+                "threshold": 0.1
+              }
+            ]
+          },
+          {
+            "weight": 10,
+            "methods": [
+              {
+                "probability": 1,
+                "type": "worst-job",
+                "skip": 4,
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.05,
+                "type": "random-job",
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.01,
+                "type": "random-route",
+                "min": 1,
+                "max": 4,
+                "threshold": 0.1
+              }
+            ]
+          },
+          {
+            "weight": 10,
+            "methods": [
+              {
+                "probability": 1,
+                "type": "neighbour",
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.05,
+                "type": "random-job",
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.01,
+                "type": "random-route",
+                "min": 1,
+                "max": 4,
+                "threshold": 0.1
+              }
+            ]
+          },
+          {
+            "weight": 5,
+            "methods": [
+              {
+                "probability": 1,
+                "type": "random-job",
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.1,
+                "type": "random-route",
+                "min": 1,
+                "max": 4,
+                "threshold": 0.1
+              }
+            ]
+          },
+          {
+            "weight": 5,
+            "methods": [
+              {
+                "probability": 1,
+                "type": "random-route",
+                "min": 1,
+                "max": 4,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.1,
+                "type": "random-job",
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              }
+            ]
+          },
+          {
+            "weight": 1,
+            "methods": [
+              {
+                "probability": 1,
+                "type": "cluster",
+                "min": 8,
+                "max": 16,
+                "cmin": 3,
+                "cmax": 9,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.05,
+                "type": "random-job",
+                "min": 8,
+                "max": 16,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.01,
+                "type": "random-route",
+                "min": 1,
+                "max": 4,
+                "threshold": 0.1
+              }
+            ]
+          }
+        ],
+        "recreates": [
+          {
+            "weight": 100,
+            "type": "cheapest"
+          },
+          {
+            "weight": 10,
+            "type": "regret",
+            "start": 1,
+            "end": 2
+          },
+          {
+            "weight": 2,
+            "type": "blinks"
+          },
+          {
+            "weight": 2,
+            "type": "regret",
+            "start": 2,
+            "end": 4
+          },
+          {
+            "weight": 2,
+            "type": "gaps",
+            "min": 2
+          },
+          {
+            "weight": 2,
+            "type": "nearest"
+          }
+        ]
+      },
+      {
+        "type": "weighted-composite",
+        "name": "default-composite",
+        "inners": [
+          {
+            "name": "default-ruin-recreate",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "type": "naive-branching",
+        "name": "default-branching",
+        "inner": "default-composite",
         "chance": {
           "normal": 0.0001,
           "intensive": 0.1,
@@ -22,207 +240,6 @@
           "min": 2,
           "max": 4
         }
-      }
-    },
-    "size": 4
-  },
-  "mutation": {
-    "type": "ruin-recreate",
-    "ruins": [
-      {
-        "weight": 100,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "adjusted-string",
-            "lmax": 10,
-            "cavg": 10,
-            "alpha": 0.01
-          },
-          {
-            "probability": 0.05,
-            "type": "random-job",
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          }
-        ]
-      },
-      {
-        "weight": 10,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "adjusted-string",
-            "lmax": 20,
-            "cavg": 20,
-            "alpha": 0.01
-          },
-          {
-            "probability": 0.05,
-            "type": "random-job",
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.01,
-            "type": "random-route",
-            "min": 1,
-            "max": 4,
-            "threshold": 0.1
-          }
-        ]
-      },
-      {
-        "weight": 10,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "worst-job",
-            "skip": 4,
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.05,
-            "type": "random-job",
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.01,
-            "type": "random-route",
-            "min": 1,
-            "max": 4,
-            "threshold": 0.1
-          }
-        ]
-      },
-      {
-        "weight": 10,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "neighbour",
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.05,
-            "type": "random-job",
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.01,
-            "type": "random-route",
-            "min": 1,
-            "max": 4,
-            "threshold": 0.1
-          }
-        ]
-      },
-      {
-        "weight": 5,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "random-job",
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.1,
-            "type": "random-route",
-            "min": 1,
-            "max": 4,
-            "threshold": 0.1
-          }
-        ]
-      },
-      {
-        "weight": 5,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "random-route",
-            "min": 1,
-            "max": 4,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.1,
-            "type": "random-job",
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          }
-        ]
-      },
-      {
-        "weight": 1,
-        "methods": [
-          {
-            "probability": 1,
-            "type": "cluster",
-            "min": 8,
-            "max": 16,
-            "cmin": 3,
-            "cmax": 9,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.05,
-            "type": "random-job",
-            "min": 8,
-            "max": 16,
-            "threshold": 0.1
-          },
-          {
-            "probability": 0.01,
-            "type": "random-route",
-            "min": 1,
-            "max": 4,
-            "threshold": 0.1
-          }
-        ]
-      }
-    ],
-    "recreates": [
-      {
-        "weight": 100,
-        "type": "cheapest"
-      },
-      {
-        "weight": 10,
-        "type": "regret",
-        "start": 1,
-        "end": 2
-      },
-      {
-        "weight": 2,
-        "type": "blinks"
-      },
-      {
-        "weight": 2,
-        "type": "regret",
-        "start": 2,
-        "end": 4
-      },
-      {
-        "weight": 2,
-        "type": "gaps",
-        "min": 2
-      },
-      {
-        "weight": 2,
-        "type": "nearest"
       }
     ]
   },

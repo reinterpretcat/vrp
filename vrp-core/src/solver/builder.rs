@@ -1,13 +1,12 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::{Problem, Solution};
-use crate::solver::evolution::{EvolutionConfig, InitialConfig, OffspringConfig, PopulationConfig};
+use crate::solver::evolution::{EvolutionConfig, InitialConfig, PopulationConfig};
 use crate::solver::mutation::*;
 use crate::solver::telemetry::{Telemetry, TelemetryMode};
 use crate::solver::termination::*;
 use crate::solver::Solver;
 use crate::utils::{get_cpus, DefaultRandom, TimeQuota};
-use std::ops::Range;
 use std::sync::Arc;
 
 /// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent
@@ -71,8 +70,13 @@ impl Builder {
             seed: None,
             config: EvolutionConfig {
                 problem: problem.clone(),
-                mutation: Box::new(RuinAndRecreate::new_from_problem(problem)),
-                termination: Box::new(CompositeTermination::new(vec![
+                mutation: Arc::new(NaiveBranching::new(
+                    Arc::new(RuinAndRecreate::new_from_problem(problem)),
+                    (0.0001, 0.1, 0.001),
+                    1.5,
+                    2..4,
+                )),
+                termination: Arc::new(CompositeTermination::new(vec![
                     Box::new(MaxTime::new(300.)),
                     Box::new(MaxGeneration::new(3000)),
                 ])),
@@ -80,17 +84,12 @@ impl Builder {
                 random: Arc::new(DefaultRandom::default()),
                 telemetry: Telemetry::new(TelemetryMode::None),
                 population: PopulationConfig {
-                    size: 4,
+                    max_size: 4,
+                    offspring_size: get_cpus(),
                     initial: InitialConfig {
                         size: 1,
                         methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                         individuals: vec![],
-                    },
-                    offspring: OffspringConfig {
-                        size: get_cpus(),
-                        chance: (0.0001, 0.1, 0.001),
-                        generations: 2..4,
-                        steepness: 1.5,
                     },
                 },
             },
@@ -160,39 +159,27 @@ impl Builder {
 
     /// Sets max population size. Default is 4.
     pub fn with_population_size(mut self, size: usize) -> Self {
-        self.config.telemetry.log(format!("configured to use max population size: {} ", size).as_str());
-        self.config.population.size = size;
+        self.config.telemetry.log(&format!("configured to use max population size: {}", size));
+        self.config.population.max_size = size;
         self
     }
 
-    /// Sets offspring configuration.
-    pub fn with_offspring(
-        mut self,
-        size: Option<usize>,
-        chance: Option<(f64, f64, f64)>,
-        generations: Option<Range<usize>>,
-        steepness: Option<f64>,
-    ) -> Self {
-        self.config.telemetry.log("configured to use custom offspring parameters");
-        let old = self.config.population.offspring;
-        self.config.population.offspring = OffspringConfig {
-            size: size.unwrap_or(old.size),
-            chance: chance.unwrap_or(old.chance),
-            generations: generations.unwrap_or(old.generations),
-            steepness: steepness.unwrap_or(old.steepness),
-        };
+    /// Sets offspring size. Default is cpu numbers.
+    pub fn with_offspring_size(mut self, size: usize) -> Self {
+        self.config.telemetry.log(&format!("configured to use offspring size: {}", size));
+        self.config.population.offspring_size = size;
         self
     }
 
     /// Sets mutation algorithm. Default is ruin and recreate.
-    pub fn with_mutation(mut self, mutation: Box<dyn Mutation + Send + Sync>) -> Self {
+    pub fn with_mutation(mut self, mutation: Arc<dyn Mutation + Send + Sync>) -> Self {
         self.config.telemetry.log("configured to use custom mutation parameters");
         self.config.mutation = mutation;
         self
     }
 
     /// Sets termination algorithm. Default is max time and max generations.
-    pub fn with_termination(mut self, termination: Box<dyn Termination>) -> Self {
+    pub fn with_termination(mut self, termination: Arc<dyn Termination>) -> Self {
         self.config.telemetry.log("configured to use custom termination parameters");
         self.config.termination = termination;
         self
@@ -249,7 +236,7 @@ impl Builder {
             };
 
         let mut config = self.config;
-        config.termination = Box::new(CompositeTermination::new(criterias));
+        config.termination = Arc::new(CompositeTermination::new(criterias));
         config.quota = quota;
 
         config.random = Arc::new(if let Some(seed) = self.seed {
@@ -263,6 +250,6 @@ impl Builder {
     }
 }
 
-fn create_time_quota(limit: usize) -> Option<Box<dyn Quota + Sync + Send>> {
-    Some(Box::new(TimeQuota::new(limit as f64)))
+fn create_time_quota(limit: usize) -> Option<Arc<dyn Quota + Sync + Send>> {
+    Some(Arc::new(TimeQuota::new(limit as f64)))
 }

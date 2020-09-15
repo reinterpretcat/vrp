@@ -8,7 +8,6 @@ use crate::solver::termination::Termination;
 use crate::solver::{Metrics, Population, RefinementContext};
 use crate::utils::{Random, Timer};
 use std::iter::once;
-use std::ops::Range;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -16,11 +15,11 @@ pub struct EvolutionConfig {
     /// An original problem.
     pub problem: Arc<Problem>,
     /// A mutation applied to population.
-    pub mutation: Box<dyn Mutation + Send + Sync>,
+    pub mutation: Arc<dyn Mutation + Send + Sync>,
     /// A termination defines when evolution should stop.
-    pub termination: Box<dyn Termination>,
+    pub termination: Arc<dyn Termination>,
     /// A quota for evolution execution.
-    pub quota: Option<Box<dyn Quota + Send + Sync>>,
+    pub quota: Option<Arc<dyn Quota + Send + Sync>>,
     /// A population configuration
     pub population: PopulationConfig,
     /// Random generator.
@@ -31,12 +30,12 @@ pub struct EvolutionConfig {
 
 /// Contains population specific properties.
 pub struct PopulationConfig {
-    /// Max population size.
-    pub size: usize,
     /// An initial solution config.
     pub initial: InitialConfig,
-    /// An offspring config.
-    pub offspring: OffspringConfig,
+    /// Max population size.
+    pub max_size: usize,
+    /// Offspring size.
+    pub offspring_size: usize,
 }
 
 /// An initial solutions configuration.
@@ -47,18 +46,6 @@ pub struct InitialConfig {
     pub methods: Vec<(Box<dyn Recreate + Send + Sync>, usize)>,
     /// Initial individuals in population.
     pub individuals: Vec<InsertionContext>,
-}
-
-/// An offspring configuration.
-pub struct OffspringConfig {
-    /// Offspring size.
-    pub size: usize,
-    /// A chance to have a branch as (normal probability, intensive probability, improvement threshold).
-    pub chance: (f64, f64, f64),
-    /// A range of generations in branch.
-    pub generations: Range<usize>,
-    /// An acceptance curve steepness used in formula `1 - (x/total_generations)^steepness`.
-    pub steepness: f64,
 }
 
 /// An entity which simulates evolution process.
@@ -73,7 +60,7 @@ impl EvolutionSimulator {
             return Err("initial size should be greater than 0".to_string());
         }
 
-        if config.population.initial.size > config.population.size {
+        if config.population.initial.size > config.population.max_size {
             return Err("initial size should be less or equal population size".to_string());
         }
 
@@ -81,7 +68,7 @@ impl EvolutionSimulator {
             return Err("at least one initial method has to be specified".to_string());
         }
 
-        if config.population.offspring.size < 1 {
+        if config.population.offspring_size < 1 {
             return Err("offspring size should be greater than 0".to_string());
         }
 
@@ -120,7 +107,7 @@ impl EvolutionSimulator {
     fn create_refinement_ctx(&mut self) -> Result<RefinementContext, String> {
         let mut refinement_ctx = RefinementContext::new(
             self.problem.clone(),
-            Box::new(DominancePopulation::new(self.problem.clone(), self.config.population.size)),
+            Box::new(DominancePopulation::new(self.problem.clone(), self.config.population.max_size)),
             std::mem::replace(&mut self.config.quota, None),
         );
 
@@ -165,10 +152,10 @@ impl EvolutionSimulator {
 
         once(0_usize)
             .chain(
-                (1..self.config.population.offspring.size)
+                (1..self.config.population.offspring_size)
                     .map(|_| self.config.random.uniform_int(0, refinement_ctx.population.size() as i32 - 1) as usize),
             )
-            .take(self.config.population.offspring.size)
+            .take(self.config.population.offspring_size)
             .filter_map(|idx| refinement_ctx.population.nth(idx))
             .map(|individual| individual.deep_copy())
             .collect()

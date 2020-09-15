@@ -17,26 +17,18 @@ fn can_read_config() {
     assert_eq!(metrics.track_population, Some(1000));
 
     let population = config.population.expect("no population config");
-    assert_eq!(population.size, Some(4));
+    assert_eq!(population.max_size, Some(4));
+    assert_eq!(population.offspring_size, Some(4));
 
     let initial = population.initial.expect("no initial population config");
     assert_eq!(initial.methods.unwrap().len(), 1);
     assert_eq!(initial.size, Some(1));
 
-    let offspring = population.offspring.expect("no offspring config");
-    assert_eq!(offspring.size, Some(4));
-
-    let branching = offspring.branching.expect("no branching config");
-    let chance = branching.chance.expect("no branching chance");
-    assert_eq!((chance.normal, chance.intensive, chance.threshold), (0.0001, 0.1, 0.001));
-    assert_eq!(branching.steepness, Some(1.5));
-    assert_eq!(branching.generations, Some(MinMaxConfig { min: 2, max: 4 }));
-
     let termination = config.termination.expect("no termination config");
     assert_eq!(termination.max_time, Some(300));
     assert_eq!(termination.max_generations, Some(3000));
 
-    let MutationConfig::RuinRecreate { ruins, recreates } = config.mutation.expect("cannot get mutation");
-    assert_eq!(ruins.len(), 7);
-    assert_eq!(recreates.len(), 6);
+    let mutation_config = config.mutation.expect("cannot get mutation");
+    assert_eq!(mutation_config.name, "default-branching");
+    assert_eq!(mutation_config.collection.len(), 3);
 }

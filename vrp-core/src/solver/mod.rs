@@ -132,7 +132,7 @@ pub struct RefinementContext {
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
 
     /// A quota for refinement process.
-    pub quota: Option<Box<dyn Quota + Send + Sync>>,
+    pub quota: Option<Arc<dyn Quota + Send + Sync>>,
 
     /// A refinement statistics.
     pub statistics: Statistics,
@@ -181,7 +181,7 @@ impl RefinementContext {
     pub fn new(
         problem: Arc<Problem>,
         population: Box<dyn Population + Sync + Send>,
-        quota: Option<Box<dyn Quota + Send + Sync>>,
+        quota: Option<Arc<dyn Quota + Send + Sync>>,
     ) -> Self {
         Self { problem, population, state: Default::default(), quota, statistics: Statistics::default() }
     }

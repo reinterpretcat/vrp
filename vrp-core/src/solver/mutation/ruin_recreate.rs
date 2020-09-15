@@ -1,6 +1,6 @@
 ///! Contains a mutation operator based on ruin and recreate principle.
 use super::*;
-use crate::utils::parallel_into_collect2;
+use crate::utils::parallel_into_collect;
 
 /// A mutation operator based on ruin and recreate principle.
 pub struct RuinAndRecreate {
@@ -37,10 +37,6 @@ impl Mutation for RuinAndRecreate {
         refinement_ctx: &RefinementContext,
         individuals: Vec<InsertionContext>,
     ) -> Vec<InsertionContext> {
-        parallel_into_collect2(
-            individuals,
-            |insertion_ctx| self.ruin.run(refinement_ctx, insertion_ctx),
-            |insertion_ctx| self.recreate.run(refinement_ctx, insertion_ctx),
-        )
+        parallel_into_collect(individuals, |insertion_ctx| self.mutate_one(refinement_ctx, insertion_ctx))
     }
 }
