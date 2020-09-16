@@ -8,7 +8,13 @@ use super::*;
 pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each(|tour| {
         let vehicle_shift = context.get_vehicle_shift(tour)?;
-        let actual_break_count = tour.stops.iter().try_fold(0, |acc, stop| {
+        let actual_break_count = tour
+            .stops
+            .iter()
+            .flat_map(|stop| stop.activities.iter())
+            .filter(|activity| activity.activity_type == "break")
+            .count();
+        let matched_break_count = tour.stops.iter().try_fold(0, |acc, stop| {
             stop.activities
                 .windows(stop.activities.len().min(2))
                 .flat_map(|leg| as_leg_info_with_break(context, tour, stop, leg))
@@ -48,6 +54,13 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                     Ok(acc + 1)
                 })
         })?;
+
+        if actual_break_count != matched_break_count {
+            return Err(format!(
+                "Cannot match all breaks, matched: '{}', actual '{}' for vehicle '{}', shift index '{}'",
+                matched_break_count, actual_break_count, tour.vehicle_id, tour.shift_index
+            ));
+        }
 
         let arrival = tour
             .stops

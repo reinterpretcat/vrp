@@ -10,35 +10,67 @@ fn test_violations() -> Option<Vec<Violation>> {
     }])
 }
 
-const BREAK_ERROR_MSG: &str = "Amount of breaks does not match, expected: '1', got '0' for vehicle 'my_vehicle_1', shift index '0'";
+fn get_matched_break_error_msg(matched: usize, actual: usize) -> Result<(), String> {
+    Err(format!(
+        "Cannot match all breaks, matched: '{}', actual '{}' for vehicle 'my_vehicle_1', shift index '0'",
+        matched, actual
+    ))
+}
 
-parameterized_test! {can_check_breaks, (break_times, violations, expected_result), {
-    can_check_breaks_impl(break_times, violations, expected_result);
+fn get_total_break_error_msg(expected: usize, actual: usize) -> Result<(), String> {
+    Err(format!(
+        "Amount of breaks does not match, expected: '{}', got '{}' for vehicle 'my_vehicle_1', shift index '0'",
+        expected, actual
+    ))
+}
+
+fn get_offset_break(start: f64, end: f64) -> VehicleBreakTime {
+    VehicleBreakTime::TimeOffset(vec![start, end])
+}
+
+fn get_time_break(start: f64, end: f64) -> VehicleBreakTime {
+    VehicleBreakTime::TimeWindow(vec![format_time(start), format_time(end)])
+}
+
+parameterized_test! {can_check_breaks, (break_times, violations, has_break, expected_result), {
+    can_check_breaks_impl(break_times, violations, has_break, expected_result);
 }}
 
 can_check_breaks! {
-    case01: (VehicleBreakTime::TimeOffset(vec![2., 5.]), None, Ok(())),
-    case02: (VehicleBreakTime::TimeOffset(vec![3., 6.]), None, Ok(())),
+    case01: (get_offset_break(2., 5.), None, true, Ok(())),
+    case02: (get_offset_break(2., 5.), test_violations(), true, get_total_break_error_msg(1, 2)),
+    case03: (get_offset_break(2., 5.), None, false, get_total_break_error_msg(1, 0)),
 
-    case03: (VehicleBreakTime::TimeOffset(vec![0., 1.]), test_violations(), Ok(())),
-    case04: (VehicleBreakTime::TimeOffset(vec![0., 1.]), None, Err(BREAK_ERROR_MSG.to_owned())),
+    case04: (get_offset_break(3., 6.), None, true, Ok(())),
 
-    case05: (VehicleBreakTime::TimeOffset(vec![7., 10.]), test_violations(), Ok(())),
-    case06: (VehicleBreakTime::TimeOffset(vec![7., 10.]), None, Err(BREAK_ERROR_MSG.to_owned())),
+    case05: (get_offset_break(0., 1.), None, true, get_matched_break_error_msg(0, 1)),
+    case06: (get_offset_break(0., 1.), test_violations(), true, get_matched_break_error_msg(0, 1)),
+    case07: (get_offset_break(0., 1.), None, false, get_total_break_error_msg(1, 0)),
+    case08: (get_offset_break(0., 1.), test_violations(), false, Ok(())),
 
-    case07: (VehicleBreakTime::TimeWindow(vec![format_time(2.), format_time(5.)]), None, Ok(())),
-    case08: (VehicleBreakTime::TimeWindow(vec![format_time(3.), format_time(6.)]), None, Ok(())),
+    case09: (get_offset_break(0., 1.), None, true, get_matched_break_error_msg(0, 1)),
 
-    case09: (VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1.)]), test_violations(), Ok(())),
-    case10: (VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1.)]), None, Err(BREAK_ERROR_MSG.to_owned())),
+    case10: (get_offset_break(7., 10.), test_violations(), false, Ok(())),
+    case11: (get_offset_break(7., 10.), None, true, get_matched_break_error_msg(0, 1)),
 
-    case11: (VehicleBreakTime::TimeWindow(vec![format_time(7.), format_time(10.)]), test_violations(), Ok(())),
-    case12: (VehicleBreakTime::TimeWindow(vec![format_time(7.), format_time(10.)]), None, Err(BREAK_ERROR_MSG.to_owned())),
+    case12: (get_time_break(2., 5.), None, true, Ok(())),
+
+    case13: (get_time_break(3., 6.), None, true, Ok(())),
+    case14: (get_time_break(3., 6.), test_violations(), true, get_total_break_error_msg(1, 2)),
+
+    case15: (get_time_break(0., 1.), test_violations(), false, Ok(())),
+    case16: (get_time_break(0., 1.), test_violations(), true, get_matched_break_error_msg(0, 1)),
+    case17: (get_time_break(0., 1.), None, true, get_matched_break_error_msg(0, 1)),
+
+    case18: (get_time_break(7., 10.), test_violations(), false, Ok(())),
+    case19: (get_time_break(7., 10.), test_violations(), true, get_matched_break_error_msg(0, 1)),
+    case20: (get_time_break(7., 10.), None, true, get_matched_break_error_msg(0, 1)),
 }
 
 fn can_check_breaks_impl(
     break_times: VehicleBreakTime,
     violations: Option<Vec<Violation>>,
+    has_break: bool,
     expected_result: Result<(), String>,
 ) {
     let problem = Problem {
@@ -56,7 +88,7 @@ fn can_check_breaks_impl(
                         location: vec![0., 0.].to_loc(),
                     }),
                     depots: None,
-                    breaks: Some(vec![VehicleBreak { time: break_times, duration: 0.0, locations: None }]),
+                    breaks: Some(vec![VehicleBreak { time: break_times, duration: 2.0, locations: None }]),
                     reloads: None,
                 }],
                 capacity: vec![5],
@@ -66,6 +98,24 @@ fn can_check_breaks_impl(
         },
         ..create_empty_problem()
     };
+
+    let mut activities = vec![Activity {
+        job_id: "job2".to_string(),
+        activity_type: "delivery".to_string(),
+        location: None,
+        time: Some(Interval { start: "1970-01-01T00:00:03Z".to_string(), end: "1970-01-01T00:00:04Z".to_string() }),
+        job_tag: None,
+    }];
+    if has_break {
+        activities.push(Activity {
+            job_id: "break".to_string(),
+            activity_type: "break".to_string(),
+            location: None,
+            time: Some(Interval { start: "1970-01-01T00:00:04Z".to_string(), end: "1970-01-01T00:00:06Z".to_string() }),
+            job_tag: None,
+        });
+    }
+
     let solution = Solution {
         statistic: Statistic {
             cost: 22.,
@@ -102,22 +152,7 @@ fn can_check_breaks_impl(
                     },
                     distance: 2,
                     load: vec![0],
-                    activities: vec![
-                        Activity {
-                            job_id: "job2".to_string(),
-                            activity_type: "delivery".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None,
-                        },
-                        Activity {
-                            job_id: "break".to_string(),
-                            activity_type: "break".to_string(),
-                            location: None,
-                            time: None,
-                            job_tag: None,
-                        },
-                    ],
+                    activities,
                 },
                 create_stop_with_activity(
                     "arrival",
