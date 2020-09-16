@@ -28,6 +28,8 @@ pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>
     let solution = deserialize_solution(solution).map_err(|err| format!("cannot deserialize solution: {}", err))?;
 
     let mut registry = Registry::new(&problem.fleet);
+    let mut added_jobs = HashSet::default();
+
     let actor_index = registry.all().map(|actor| (get_actor_key(actor.as_ref()), actor)).collect::<HashMap<_, _>>();
     let coord_index = get_coord_index(problem.as_ref());
     let job_index = get_job_index(problem.as_ref());
@@ -43,7 +45,7 @@ pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>
 
             tour.stops.iter().try_for_each(|stop| {
                 stop.activities.iter().try_for_each::<_, Result<_, String>>(|activity| {
-                    try_insert_activity(&mut core_route, tour, stop, activity, job_index, coord_index)
+                    try_insert_activity(&mut core_route, tour, stop, activity, job_index, coord_index, &mut added_jobs)
                 })
             })?;
 
@@ -52,7 +54,7 @@ pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>
             Ok(routes)
         })?;
 
-    let unassigned = solution.unassigned.unwrap_or_default().iter().try_fold::<Vec<_>, _, Result<_, String>>(
+    let mut unassigned = solution.unassigned.unwrap_or_default().iter().try_fold::<Vec<_>, _, Result<_, String>>(
         Default::default(),
         |mut acc, unassigned_job| {
             let job = job_index
@@ -65,11 +67,14 @@ pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>
                 .map(|reason| reason.code)
                 .ok_or_else(|| format!("cannot get reason for: {:?}", unassigned_job))?;
 
+            added_jobs.insert(job.clone());
             acc.push((job, code));
 
             Ok(acc)
         },
     )?;
+
+    unassigned.extend(problem.jobs.all().filter(|job| added_jobs.get(job).is_none()).map(|job| (job, 0)));
 
     Ok(Solution { registry, routes, unassigned, extras: problem.extras.clone() })
 }
@@ -128,6 +133,7 @@ fn try_insert_activity(
     activity: &FormatActivity,
     job_index: &JobIndex,
     coord_index: &CoordIndex,
+    added_jobs: &mut HashSet<Job>,
 ) -> Result<(), String> {
     let activity_ctx = ActivityContext {
         route_start_time: tour
@@ -154,7 +160,10 @@ fn try_insert_activity(
             let job =
                 job_index.get(&activity.job_id).ok_or_else(|| format!("unknown job id: '{}'", activity.job_id))?;
             let singles: Box<dyn Iterator<Item = &Arc<_>>> = match job {
-                Job::Single(single) => Box::new(once(single)),
+                Job::Single(single) => {
+                    added_jobs.insert(Job::Single(single.clone()));
+                    Box::new(once(single))
+                }
                 Job::Multi(multi) => {
                     let tags = multi.jobs.iter().filter_map(|job| get_tag(job).cloned()).collect::<HashSet<_>>();
                     if tags.len() < multi.jobs.len() {
@@ -164,6 +173,7 @@ fn try_insert_activity(
                         ));
                     }
 
+                    added_jobs.insert(Job::Multi(multi.clone()));
                     Box::new(multi.jobs.iter())
                 }
             };
@@ -175,15 +185,16 @@ fn try_insert_activity(
             try_insert_new_activity(route, single, place)
         }
         "break" | "depot" | "reload" => {
-            let (single, place) = (1..)
+            let (job, single, place) = (1..)
                 .map(|idx| format!("{}_{}_{}_{}", tour.vehicle_id, activity_ctx.act_type, tour.shift_index, idx))
                 .map(|job_id| job_index.get(&job_id))
                 .take_while(|job| job.is_some())
-                .filter_map(|job| job.and_then(|job| job.as_single()))
-                .filter_map(|single| match_place(single, false, &activity_ctx).map(|place| (single, place)))
+                .filter_map(|job| job.and_then(|job| job.as_single().map(|s| (job, s))))
+                .filter_map(|(job, single)| match_place(single, false, &activity_ctx).map(|place| (job, single, place)))
                 .next()
                 .ok_or_else(|| format!("cannot match '{}' for '{}'", activity_ctx.act_type, tour.vehicle_id))?;
 
+            added_jobs.insert(job.clone());
             try_insert_new_activity(route, single, place)
         }
         _ => Err(format!("unknown activity type: {}", activity.activity_type)),
