@@ -69,8 +69,8 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
 
         if expected_break_count != total_break_count {
             Err(format!(
-                "Amount of breaks does not match, expected: '{}', got '{}'",
-                expected_break_count, total_break_count
+                "Amount of breaks does not match, expected: '{}', got '{}' for vehicle '{}', shift index '{}'",
+                expected_break_count, total_break_count, tour.vehicle_id, tour.shift_index
             ))
         } else {
             Ok(())

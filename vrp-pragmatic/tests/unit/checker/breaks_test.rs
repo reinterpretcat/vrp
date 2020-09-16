@@ -10,6 +10,8 @@ fn test_violations() -> Option<Vec<Violation>> {
     }])
 }
 
+const BREAK_ERROR_MSG: &str = "Amount of breaks does not match, expected: '1', got '0' for vehicle 'my_vehicle_1', shift index '0'";
+
 parameterized_test! {can_check_breaks, (break_times, violations, expected_result), {
     can_check_breaks_impl(break_times, violations, expected_result);
 }}
@@ -19,23 +21,19 @@ can_check_breaks! {
     case02: (VehicleBreakTime::TimeOffset(vec![3., 6.]), None, Ok(())),
 
     case03: (VehicleBreakTime::TimeOffset(vec![0., 1.]), test_violations(), Ok(())),
-    case04: (VehicleBreakTime::TimeOffset(vec![0., 1.]), None,
-            Err("Amount of breaks does not match, expected: '1', got '0'".to_owned())),
+    case04: (VehicleBreakTime::TimeOffset(vec![0., 1.]), None, Err(BREAK_ERROR_MSG.to_owned())),
 
     case05: (VehicleBreakTime::TimeOffset(vec![7., 10.]), test_violations(), Ok(())),
-    case06: (VehicleBreakTime::TimeOffset(vec![7., 10.]), None,
-            Err("Amount of breaks does not match, expected: '1', got '0'".to_owned())),
+    case06: (VehicleBreakTime::TimeOffset(vec![7., 10.]), None, Err(BREAK_ERROR_MSG.to_owned())),
 
     case07: (VehicleBreakTime::TimeWindow(vec![format_time(2.), format_time(5.)]), None, Ok(())),
     case08: (VehicleBreakTime::TimeWindow(vec![format_time(3.), format_time(6.)]), None, Ok(())),
 
     case09: (VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1.)]), test_violations(), Ok(())),
-    case10: (VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1.)]), None,
-             Err("Amount of breaks does not match, expected: '1', got '0'".to_owned())),
+    case10: (VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1.)]), None, Err(BREAK_ERROR_MSG.to_owned())),
 
     case11: (VehicleBreakTime::TimeWindow(vec![format_time(7.), format_time(10.)]), test_violations(), Ok(())),
-    case12: (VehicleBreakTime::TimeWindow(vec![format_time(7.), format_time(10.)]), None,
-             Err("Amount of breaks does not match, expected: '1', got '0'".to_owned())),
+    case12: (VehicleBreakTime::TimeWindow(vec![format_time(7.), format_time(10.)]), None, Err(BREAK_ERROR_MSG.to_owned())),
 }
 
 fn can_check_breaks_impl(
