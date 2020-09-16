@@ -9,8 +9,17 @@
         }
       ]
     },
-    "offspringSize": 4,
     "maxSize": 4
+  },
+  "selection": {
+    "name": "default-naive",
+    "collection": [
+      {
+        "name": "default-naive",
+        "type": "naive",
+        "offspring_size": 4
+      }
+    ]
   },
   "mutation": {
     "name": "default-branching",

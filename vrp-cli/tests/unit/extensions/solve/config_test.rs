@@ -18,11 +18,14 @@ fn can_read_config() {
 
     let population = config.population.expect("no population config");
     assert_eq!(population.max_size, Some(4));
-    assert_eq!(population.offspring_size, Some(4));
 
     let initial = population.initial.expect("no initial population config");
     assert_eq!(initial.methods.unwrap().len(), 1);
     assert_eq!(initial.size, Some(1));
+
+    let selection = config.selection.expect("no selection config");
+    assert_eq!(selection.name, "default-naive");
+    assert_eq!(selection.collection.len(), 1);
 
     let termination = config.termination.expect("no termination config");
     assert_eq!(termination.max_time, Some(300));

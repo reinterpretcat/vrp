@@ -102,6 +102,7 @@ use std::sync::Arc;
 
 pub mod mutation;
 pub mod objectives;
+pub mod selection;
 pub mod termination;
 
 mod builder;
@@ -115,6 +116,7 @@ pub use self::population::DominancePopulation;
 
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
+
 use std::cmp::Ordering;
 
 /// A key to store solution order information.

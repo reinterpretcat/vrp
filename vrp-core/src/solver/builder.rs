@@ -3,6 +3,7 @@ use crate::construction::Quota;
 use crate::models::{Problem, Solution};
 use crate::solver::evolution::{EvolutionConfig, InitialConfig, PopulationConfig};
 use crate::solver::mutation::*;
+use crate::solver::selection::{NaiveSelection, Selection};
 use crate::solver::telemetry::{Telemetry, TelemetryMode};
 use crate::solver::termination::*;
 use crate::solver::Solver;
@@ -70,6 +71,7 @@ impl Builder {
             seed: None,
             config: EvolutionConfig {
                 problem: problem.clone(),
+                selection: Arc::new(NaiveSelection::new(get_cpus())),
                 mutation: Arc::new(NaiveBranching::new(
                     Arc::new(RuinAndRecreate::new_from_problem(problem)),
                     (0.0001, 0.1, 0.001),
@@ -85,7 +87,6 @@ impl Builder {
                 telemetry: Telemetry::new(TelemetryMode::None),
                 population: PopulationConfig {
                     max_size: 4,
-                    offspring_size: get_cpus(),
                     initial: InitialConfig {
                         size: 1,
                         methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
@@ -164,16 +165,16 @@ impl Builder {
         self
     }
 
-    /// Sets offspring size. Default is cpu numbers.
-    pub fn with_offspring_size(mut self, size: usize) -> Self {
-        self.config.telemetry.log(&format!("configured to use offspring size: {}", size));
-        self.config.population.offspring_size = size;
+    /// Sets selection algorithm. Default is naive selection.
+    pub fn with_selection(mut self, selection: Arc<dyn Selection + Send + Sync>) -> Self {
+        self.config.telemetry.log("configured to use custom selection");
+        self.config.selection = selection;
         self
     }
 
     /// Sets mutation algorithm. Default is ruin and recreate.
     pub fn with_mutation(mut self, mutation: Arc<dyn Mutation + Send + Sync>) -> Self {
-        self.config.telemetry.log("configured to use custom mutation parameters");
+        self.config.telemetry.log("configured to use custom mutation");
         self.config.mutation = mutation;
         self
     }

@@ -3,17 +3,19 @@ use crate::construction::Quota;
 use crate::models::Problem;
 use crate::solver::mutation::{Mutation, Recreate};
 use crate::solver::population::DominancePopulation;
+use crate::solver::selection::Selection;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::Termination;
 use crate::solver::{Metrics, Population, RefinementContext};
 use crate::utils::{Random, Timer};
-use std::iter::once;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
 pub struct EvolutionConfig {
     /// An original problem.
     pub problem: Arc<Problem>,
+    /// A selection defines parents to be selected on each generation.
+    pub selection: Arc<dyn Selection>,
     /// A mutation applied to population.
     pub mutation: Arc<dyn Mutation + Send + Sync>,
     /// A termination defines when evolution should stop.
@@ -34,8 +36,6 @@ pub struct PopulationConfig {
     pub initial: InitialConfig,
     /// Max population size.
     pub max_size: usize,
-    /// Offspring size.
-    pub offspring_size: usize,
 }
 
 /// An initial solutions configuration.
@@ -68,10 +68,6 @@ impl EvolutionSimulator {
             return Err("at least one initial method has to be specified".to_string());
         }
 
-        if config.population.offspring_size < 1 {
-            return Err("offspring size should be greater than 0".to_string());
-        }
-
         Ok(Self { problem, config })
     }
 
@@ -82,11 +78,10 @@ impl EvolutionSimulator {
 
         let mut refinement_ctx = self.create_refinement_ctx()?;
 
-        // NOTE at the moment, only one solution is produced per generation
         while !self.config.termination.is_termination(&mut refinement_ctx) {
             let generation_time = Timer::start();
 
-            let parents = self.select_parents(&refinement_ctx);
+            let parents = self.config.selection.select_parents(&refinement_ctx);
 
             let offspring = self.config.mutation.mutate_all(&refinement_ctx, parents);
 
@@ -145,20 +140,6 @@ impl EvolutionSimulator {
         });
 
         Ok(refinement_ctx)
-    }
-
-    fn select_parents(&self, refinement_ctx: &RefinementContext) -> Vec<InsertionContext> {
-        assert!(refinement_ctx.population.size() > 0);
-
-        once(0_usize)
-            .chain(
-                (1..self.config.population.offspring_size)
-                    .map(|_| self.config.random.uniform_int(0, refinement_ctx.population.size() as i32 - 1) as usize),
-            )
-            .take(self.config.population.offspring_size)
-            .filter_map(|idx| refinement_ctx.population.nth(idx))
-            .map(|individual| individual.deep_copy())
-            .collect()
     }
 }
 

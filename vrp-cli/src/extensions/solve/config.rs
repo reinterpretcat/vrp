@@ -15,6 +15,7 @@ use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
+use vrp_core::solver::selection::NaiveSelection;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
 
 /// An algorithm configuration.
@@ -23,6 +24,8 @@ pub struct Config {
     /// Specifies population configuration.
     population: Option<PopulationConfig>,
     /// Specifies mutation operator configuration.
+    selection: Option<SelectionConfig>,
+    /// Specifies mutation operator configuration.
     mutation: Option<MutationConfig>,
     /// Specifies algorithm termination configuration.
     termination: Option<TerminationConfig>,
@@ -30,10 +33,48 @@ pub struct Config {
     telemetry: Option<TelemetryConfig>,
 }
 
+/// A population configuration.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PopulationConfig {
+    initial: Option<InitialConfig>,
+    max_size: Option<usize>,
+}
+
+/// An initial solution configuration.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct InitialConfig {
+    pub size: Option<usize>,
+    pub methods: Option<Vec<RecreateMethod>>,
+}
+
+/// A selection configuration.
+#[derive(Clone, Deserialize, Debug)]
+pub struct SelectionConfig {
+    /// A name of used selection from the collection.
+    name: String,
+    /// Collection of available selection algorithms.
+    collection: Vec<SelectionType>,
+}
+
+/// A selection operator configuration.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum SelectionType {
+    #[serde(rename(deserialize = "naive"))]
+    Naive {
+        /// A name of selection operator.
+        name: String,
+        /// A size of offspring.
+        offspring_size: usize,
+    },
+}
+
 /// A mutation configuration.
 #[derive(Clone, Deserialize, Debug)]
 pub struct MutationConfig {
-    /// A name of mutation from the collection.
+    /// A name of used mutation from the collection.
     name: String,
     /// Collection of available mutation metaheuristics.
     collection: Vec<MutationType>,
@@ -134,21 +175,6 @@ pub enum RecreateMethod {
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct PopulationConfig {
-    initial: Option<InitialConfig>,
-    offspring_size: Option<usize>,
-    max_size: Option<usize>,
-}
-
-#[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct InitialConfig {
-    pub size: Option<usize>,
-    pub methods: Option<Vec<RecreateMethod>>,
-}
-
-#[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
 pub struct TerminationConfig {
     max_time: Option<usize>,
     max_generations: Option<usize>,
@@ -232,10 +258,28 @@ fn configure_from_population(
         if let Some(population_size) = &config.max_size {
             builder = builder.with_population_size(*population_size);
         }
+    }
 
-        if let Some(offspring_size) = &config.offspring_size {
-            builder = builder.with_offspring_size(*offspring_size);
-        }
+    Ok(builder)
+}
+
+fn configure_from_selection(
+    mut builder: Builder,
+    selection_config: &Option<SelectionConfig>,
+) -> Result<Builder, String> {
+    if let Some(config) = selection_config {
+        let selections = config
+            .collection
+            .iter()
+            .map(|item| match item {
+                SelectionType::Naive { name, offspring_size } => (name, Arc::new(NaiveSelection::new(*offspring_size))),
+            })
+            .collect::<HashMap<_, _>>();
+
+        let selection =
+            selections.get(&config.name).cloned().ok_or_else(|| format!("cannot find {} selection", config.name))?;
+
+        builder = builder.with_selection(selection);
     }
 
     Ok(builder)
@@ -408,6 +452,7 @@ pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Res
 
     builder = configure_from_telemetry(builder, &config.telemetry)?;
     builder = configure_from_population(builder, &config.population)?;
+    builder = configure_from_selection(builder, &config.selection)?;
     builder = configure_from_mutation(builder, &config.mutation)?;
     builder = configure_from_termination(builder, &config.termination)?;
 
