@@ -3,7 +3,7 @@
 mod assignment_test;
 
 use super::*;
-use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
+use crate::format::solution::activity_matcher::try_match_job;
 use crate::format::{get_coord_index, get_job_index};
 use std::collections::HashSet;
 
@@ -11,7 +11,7 @@ use std::collections::HashSet;
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), String> {
     check_vehicles(ctx)?;
     check_jobs_presence(ctx)?;
-    check_jobs_constraints(ctx)?;
+    check_jobs_match(ctx)?;
 
     Ok(())
 }
@@ -148,21 +148,33 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
 }
 
 /// Checks job constraint violations.
-fn check_jobs_constraints(ctx: &CheckerContext) -> Result<(), String> {
-    ctx.solution.tours.iter().try_for_each(|tour| {
-        tour.stops.iter().try_for_each(|stop| {
-            stop.activities.iter().try_for_each(|activity| {
-                if let Some(JobInfo(_job, _single, _place, _time)) = try_match_job(
-                    tour,
-                    stop,
-                    activity,
-                    get_job_index(&ctx.core_problem),
-                    get_coord_index(&ctx.core_problem),
-                )? {
-                    // TODO
-                }
-                Ok(())
+fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
+    let job_ids = ctx
+        .solution
+        .tours
+        .iter()
+        .flat_map(move |tour| {
+            tour.stops.iter().flat_map(move |stop| {
+                stop.activities
+                    .iter()
+                    .filter(move |activity| {
+                        try_match_job(
+                            tour,
+                            stop,
+                            activity,
+                            get_job_index(&ctx.core_problem),
+                            get_coord_index(&ctx.core_problem),
+                        )
+                        .is_err()
+                    })
+                    .map(|activity| activity.job_id.clone())
             })
         })
-    })
+        .collect::<Vec<_>>();
+
+    if !job_ids.is_empty() {
+        return Err(format!("cannot match activity job ids: {}", job_ids.join(", ")));
+    }
+
+    Ok(())
 }
