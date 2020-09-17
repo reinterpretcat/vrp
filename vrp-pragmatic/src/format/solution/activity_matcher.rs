@@ -11,6 +11,9 @@ use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
 
+/// Aggregates job specific information for a job activity.
+pub(crate) struct JobInfo(pub Job, pub Arc<Single>, pub Place, pub TimeWindow);
+
 /// Tries to match given activity to core job models. None is returned in case of
 /// non-job activity (departure, arrival).
 pub(crate) fn try_match_job(
@@ -19,7 +22,7 @@ pub(crate) fn try_match_job(
     activity: &FormatActivity,
     job_index: &JobIndex,
     coord_index: &CoordIndex,
-) -> Result<Option<(Job, Arc<Single>, Place, TimeWindow)>, String> {
+) -> Result<Option<JobInfo>, String> {
     let ctx = ActivityContext {
         route_start_time: tour
             .stops
@@ -63,7 +66,7 @@ pub(crate) fn try_match_job(
                 .next()
                 .ok_or_else(|| format!("cannot match job '{}'", activity.job_id))?;
 
-            Ok(Some((job.clone(), single.clone(), place, ctx.time)))
+            Ok(Some(JobInfo(job.clone(), single.clone(), place, ctx.time)))
         }
         "break" | "depot" | "reload" => Ok(Some(
             (1..)
@@ -72,7 +75,7 @@ pub(crate) fn try_match_job(
                 .take_while(|job| job.is_some())
                 .filter_map(|job| job.and_then(|job| job.as_single().map(|s| (job.clone(), s.clone()))))
                 .filter_map(|(job, single)| {
-                    match_place(&single, false, &ctx).map(|place| (job, single, place, ctx.time.clone()))
+                    match_place(&single, false, &ctx).map(|place| JobInfo(job, single, place, ctx.time.clone()))
                 })
                 .next()
                 .ok_or_else(|| format!("cannot match '{}' for '{}'", ctx.act_type, tour.vehicle_id))?,

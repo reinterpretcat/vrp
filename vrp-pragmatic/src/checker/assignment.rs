@@ -3,7 +3,7 @@
 mod assignment_test;
 
 use super::*;
-use crate::format::solution::activity_matcher::try_match_job;
+use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
 use crate::format::{get_coord_index, get_job_index};
 use std::collections::HashSet;
 
@@ -152,7 +152,7 @@ fn check_jobs_constraints(ctx: &CheckerContext) -> Result<(), String> {
     ctx.solution.tours.iter().try_for_each(|tour| {
         tour.stops.iter().try_for_each(|stop| {
             stop.activities.iter().try_for_each(|activity| {
-                if let Some((_job, _single, _place, _time)) = try_match_job(
+                if let Some(JobInfo(_job, _single, _place, _time)) = try_match_job(
                     tour,
                     stop,
                     activity,

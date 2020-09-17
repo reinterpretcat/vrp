@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
-use crate::format::solution::activity_matcher::try_match_job;
+use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
 use crate::format::solution::deserialize_solution;
 use crate::format::{get_coord_index, get_job_index, CoordIndex, JobIndex};
 use crate::parse_time;
@@ -87,8 +87,8 @@ fn try_insert_activity(
     coord_index: &CoordIndex,
     added_jobs: &mut HashSet<Job>,
 ) -> Result<(), String> {
-    if let Some((job, single, place, time)) = try_match_job(tour, stop, activity, job_index, coord_index)? {
-        added_jobs.insert(job.clone());
+    if let Some(JobInfo(job, single, place, time)) = try_match_job(tour, stop, activity, job_index, coord_index)? {
+        added_jobs.insert(job);
         try_insert_new_activity(route, single, place, time)?;
     }
 
