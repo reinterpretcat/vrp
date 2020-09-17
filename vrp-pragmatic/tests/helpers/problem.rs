@@ -79,8 +79,8 @@ pub fn create_service_job(id: &str, location: Vec<f64>) -> Job {
 
 pub fn create_pickup_delivery_job(id: &str, pickup_location: Vec<f64>, delivery_location: Vec<f64>) -> Job {
     Job {
-        pickups: Some(vec![create_task(pickup_location.clone())]),
-        deliveries: Some(vec![create_task(delivery_location.clone())]),
+        pickups: Some(vec![JobTask { tag: Some("p1".to_string()), ..create_task(pickup_location.clone()) }]),
+        deliveries: Some(vec![JobTask { tag: Some("d1".to_string()), ..create_task(delivery_location.clone()) }]),
         ..create_job(id)
     }
 }
@@ -99,7 +99,7 @@ pub fn create_pickup_delivery_job_with_params(
                 ..create_job_place(pickup.0.clone())
             }],
             demand: Some(demand.clone()),
-            tag: None,
+            tag: Some("p1".to_string()),
         }]),
         deliveries: Some(vec![JobTask {
             places: vec![JobPlace {
@@ -108,7 +108,7 @@ pub fn create_pickup_delivery_job_with_params(
                 ..create_job_place(delivery.0.clone())
             }],
             demand: Some(demand.clone()),
-            tag: None,
+            tag: Some("d1".to_string()),
         }]),
 
         ..create_job(id)

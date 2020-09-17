@@ -35,21 +35,23 @@ fn can_use_one_pickup_delivery_job_with_one_vehicle() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "job1",
                         "pickup",
                         (1., 0.),
                         1,
                         ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                        1
+                        1,
+                        "p1"
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "job1",
                         "delivery",
                         (2., 0.),
                         0,
                         ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
-                        2
+                        2,
+                        "d1"
                     ),
                     create_stop_with_activity(
                         "arrival",

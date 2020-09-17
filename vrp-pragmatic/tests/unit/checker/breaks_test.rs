@@ -1,6 +1,7 @@
 use super::*;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::models::examples::create_example_problem;
 
 fn test_violations() -> Option<Vec<Violation>> {
     Some(vec![Violation::Break {
@@ -174,7 +175,7 @@ fn can_check_breaks_impl(
         ..create_empty_solution()
     };
 
-    let result = check_breaks(&CheckerContext::new(problem, None, solution));
+    let result = check_breaks(&CheckerContext::new(create_example_problem(), problem, None, solution));
 
     assert_eq!(result, expected_result);
 }

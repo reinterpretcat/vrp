@@ -78,11 +78,7 @@ impl Leg {
 
 /// Creates solution.
 pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&Metrics>) -> ApiSolution {
-    let coord_index = solution
-        .extras
-        .get("coord_index")
-        .and_then(|s| s.downcast_ref::<CoordIndex>())
-        .unwrap_or_else(|| panic!("Cannot get coord index!"));
+    let coord_index = get_coord_index(problem);
 
     let tours = solution.routes.iter().map(|r| create_tour(problem, r, coord_index)).collect::<Vec<Tour>>();
 

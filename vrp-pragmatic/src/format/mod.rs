@@ -4,7 +4,16 @@
 
 extern crate serde_json;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::BufWriter;
+use vrp_core::models::problem::Job as CoreJob;
+use vrp_core::models::Problem as CoreProblem;
+
+mod coord_index;
+pub(crate) use self::coord_index::CoordIndex;
+
+pub mod problem;
+pub mod solution;
 
 /// Represents a location type.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -100,8 +109,23 @@ const REACHABLE_CONSTRAINT_CODE: i32 = 8;
 const PRIORITY_CONSTRAINT_CODE: i32 = 9;
 const AREA_CONSTRAINT_CODE: i32 = 10;
 
-mod coord_index;
-pub(crate) use self::coord_index::CoordIndex;
+/// An job id to job index.
+pub type JobIndex = HashMap<String, CoreJob>;
 
-pub mod problem;
-pub mod solution;
+/// Gets job index from core problem definition.
+pub(crate) fn get_job_index(problem: &CoreProblem) -> &JobIndex {
+    problem
+        .extras
+        .get("job_index")
+        .and_then(|s| s.downcast_ref::<JobIndex>())
+        .unwrap_or_else(|| panic!("cannot get job index!"))
+}
+
+/// Gets coord index from core problem definition.
+pub(crate) fn get_coord_index(problem: &CoreProblem) -> &CoordIndex {
+    problem
+        .extras
+        .get("coord_index")
+        .and_then(|s| s.downcast_ref::<CoordIndex>())
+        .unwrap_or_else(|| panic!("Cannot get coord index!"))
+}

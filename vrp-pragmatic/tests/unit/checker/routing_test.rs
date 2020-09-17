@@ -1,6 +1,7 @@
 use super::*;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::models::examples::create_example_problem;
 
 fn create_test_problem() -> Problem {
     Problem {
@@ -120,7 +121,7 @@ fn can_check_stop_impl(stop_data: &[(f64, i64); 3], expected_result: Result<(), 
     let matrix = create_matrix_from_problem(&problem);
     let solution = create_test_solution(create_test_statistic(), stop_data);
 
-    let result = check_routing(&CheckerContext::new(problem, Some(vec![matrix]), solution));
+    let result = check_routing(&CheckerContext::new(create_example_problem(), problem, Some(vec![matrix]), solution));
 
     assert_eq!(result, expected_result);
 }
@@ -148,7 +149,7 @@ fn can_check_tour_statistic_impl(statistic: Statistic, expected_result: Result<(
     let matrix = create_matrix_from_problem(&problem);
     let solution = create_test_solution(statistic, &[(1., 1), (3., 2), (6., 4)]);
 
-    let result = check_routing(&CheckerContext::new(problem, Some(vec![matrix]), solution));
+    let result = check_routing(&CheckerContext::new(create_example_problem(), problem, Some(vec![matrix]), solution));
 
     assert_eq!(result, expected_result);
 }
@@ -161,7 +162,7 @@ fn can_check_solution_statistic() {
     let wrong_statistic = Statistic { duration: 1, ..create_test_statistic() };
     let solution = Solution { statistic: wrong_statistic.clone(), ..solution };
 
-    let result = check_routing(&CheckerContext::new(problem, Some(vec![matrix]), solution));
+    let result = check_routing(&CheckerContext::new(create_example_problem(), problem, Some(vec![matrix]), solution));
 
     assert_eq!(
         result,

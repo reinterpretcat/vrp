@@ -52,37 +52,41 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "job1",
                         "pickup",
                         (20., 0.),
                         1,
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                        10
+                        10,
+                        "p1"
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "job2",
                         "pickup",
                         (5., 0.),
                         2,
                         ("1970-01-01T00:00:26Z", "1970-01-01T00:00:27Z"),
-                        25
+                        25,
+                        "p1"
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "job1",
                         "delivery",
                         (15., 0.),
                         1,
                         ("1970-01-01T00:00:37Z", "1970-01-01T00:00:38Z"),
-                        35
+                        35,
+                        "d1"
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "job2",
                         "delivery",
                         (20., 0.),
                         0,
                         ("1970-01-01T00:00:43Z", "1970-01-01T00:00:44Z"),
-                        40
+                        40,
+                        "d1"
                     ),
                     create_stop_with_activity(
                         "arrival",

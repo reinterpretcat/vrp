@@ -5,6 +5,7 @@ use crate::helpers::*;
 mod single {
     use super::*;
     use crate::format::solution::Tour as VehicleTour;
+    use vrp_core::models::examples::create_example_problem;
     use RelationType::{Any, Sequence, Strict};
 
     fn create_relation(job_ids: Vec<&str>, relation_type: RelationType) -> Relation {
@@ -225,7 +226,8 @@ mod single {
             ..create_empty_solution()
         };
 
-        let result = check_relations(&CheckerContext::new(problem, None, solution)).map_err(|_| ());
+        let result =
+            check_relations(&CheckerContext::new(create_example_problem(), problem, None, solution)).map_err(|_| ());
 
         assert_eq!(result, expected_result);
     }

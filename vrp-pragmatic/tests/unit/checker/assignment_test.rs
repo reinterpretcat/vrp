@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::*;
+use vrp_core::models::examples::create_example_problem;
 
 parameterized_test! {check_vehicles, (known_ids, tours, expected_result), {
     check_vehicles_impl(known_ids, tours, expected_result);
@@ -38,7 +39,7 @@ fn check_vehicles_impl(known_ids: Vec<&str>, tours: Vec<(&str, usize)>, expected
         ..create_empty_solution()
     };
 
-    let result = check_vehicles(&CheckerContext::new(problem, None, solution));
+    let result = check_vehicles(&CheckerContext::new(create_example_problem(), problem, None, solution));
 
     assert_eq!(result.map_err(|_| ()), expected_result);
 }
@@ -120,7 +121,15 @@ fn check_jobs_impl(
     expected_result: Result<(), String>,
 ) {
     let create_tasks = |tgt: &str, tasks: &Vec<&str>| {
-        tasks.iter().filter(|&t| *t == tgt).map(|_| JobTask { places: vec![], demand: None, tag: None }).collect()
+        (1..)
+            .zip(tasks.iter())
+            .filter(|(_, t)| **t == tgt)
+            .map(|(idx, _)| JobTask {
+                places: vec![],
+                demand: if tgt != "service" { Some(vec![1]) } else { None },
+                tag: Some(format!("{}{}", tgt, idx)),
+            })
+            .collect()
     };
 
     let create_stop = |stop: (&str, &str)| create_stop_with_activity(stop.0, stop.1, (0., 0.), 0, ("", ""), 0);
@@ -141,7 +150,7 @@ fn check_jobs_impl(
                 .collect(),
             relations: None,
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: vec![] },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
         ..create_empty_problem()
     };
     let solution = Solution {
@@ -162,7 +171,7 @@ fn check_jobs_impl(
         ..create_empty_solution()
     };
 
-    let result = check_jobs(&CheckerContext::new(problem, None, solution));
+    let result = check_jobs_presence(&CheckerContext::new(create_example_problem(), problem, None, solution));
 
     assert_eq!(result, expected_result);
 }

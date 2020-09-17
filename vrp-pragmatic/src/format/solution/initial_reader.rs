@@ -2,10 +2,9 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
-use crate::format::problem::JobIndex;
 use crate::format::solution::activity_matcher::try_match_job;
 use crate::format::solution::deserialize_solution;
-use crate::format::CoordIndex;
+use crate::format::{get_coord_index, get_job_index, CoordIndex, JobIndex};
 use crate::parse_time;
 use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read};
@@ -94,22 +93,6 @@ fn try_insert_activity(
     }
 
     Ok(())
-}
-
-fn get_job_index(problem: &Problem) -> &JobIndex {
-    problem
-        .extras
-        .get("job_index")
-        .and_then(|s| s.downcast_ref::<JobIndex>())
-        .unwrap_or_else(|| panic!("cannot get job index!"))
-}
-
-fn get_coord_index(problem: &Problem) -> &CoordIndex {
-    problem
-        .extras
-        .get("coord_index")
-        .and_then(|s| s.downcast_ref::<CoordIndex>())
-        .unwrap_or_else(|| panic!("Cannot get coord index!"))
 }
 
 fn get_actor_key(actor: &Actor) -> ActorKey {

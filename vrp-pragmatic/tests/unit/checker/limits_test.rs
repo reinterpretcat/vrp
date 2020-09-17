@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::*;
+use vrp_core::models::examples::create_example_problem;
 
 fn create_test_problem(limits: Option<VehicleLimits>) -> Problem {
     Problem {
@@ -62,7 +63,7 @@ pub fn can_check_shift_and_distance_limit_impl(
     let problem = create_test_problem(Some(VehicleLimits { max_distance, shift_time, allowed_areas: None }));
     let solution = create_test_solution(Statistic { distance: actual, duration: actual, ..Statistic::default() });
 
-    let result = check_limits(&CheckerContext::new(problem, None, solution));
+    let result = check_limits(&CheckerContext::new(create_example_problem(), problem, None, solution));
 
     assert_eq!(result, expected);
 }

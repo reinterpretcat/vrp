@@ -3,12 +3,15 @@
 mod assignment_test;
 
 use super::*;
+use crate::format::solution::activity_matcher::try_match_job;
+use crate::format::{get_coord_index, get_job_index};
 use std::collections::HashSet;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), String> {
     check_vehicles(ctx)?;
-    check_jobs(ctx)?;
+    check_jobs_presence(ctx)?;
+    check_jobs_constraints(ctx)?;
 
     Ok(())
 }
@@ -33,7 +36,8 @@ fn check_vehicles(ctx: &CheckerContext) -> Result<(), String> {
     Ok(())
 }
 
-fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
+/// Checks job task rules.
+fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
     struct JobAssignment {
         pub tour_info: (String, usize),
         pub pickups: Vec<usize>,
@@ -141,4 +145,24 @@ fn check_jobs(ctx: &CheckerContext) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+/// Checks job constraint violations.
+fn check_jobs_constraints(ctx: &CheckerContext) -> Result<(), String> {
+    ctx.solution.tours.iter().try_for_each(|tour| {
+        tour.stops.iter().try_for_each(|stop| {
+            stop.activities.iter().try_for_each(|activity| {
+                if let Some((_job, _single, _place, _time)) = try_match_job(
+                    tour,
+                    stop,
+                    activity,
+                    get_job_index(&ctx.core_problem),
+                    get_coord_index(&ctx.core_problem),
+                )? {
+                    // TODO
+                }
+                Ok(())
+            })
+        })
+    })
 }

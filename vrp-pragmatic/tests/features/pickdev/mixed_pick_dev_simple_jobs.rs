@@ -42,13 +42,14 @@ fn can_use_one_pickup_delivery_and_two_deliveries_with_one_vehicle() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "job2",
                         "pickup",
                         (2., 0.),
                         3,
                         ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
-                        2
+                        2,
+                        "p1"
                     ),
                     create_stop_with_activity(
                         "job3",
@@ -58,13 +59,14 @@ fn can_use_one_pickup_delivery_and_two_deliveries_with_one_vehicle() {
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
                         4
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "job2",
                         "delivery",
                         (3., 0.),
                         1,
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
-                        5
+                        5,
+                        "d1"
                     ),
                     create_stop_with_activity(
                         "job1",

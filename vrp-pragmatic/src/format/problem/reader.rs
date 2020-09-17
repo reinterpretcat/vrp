@@ -23,19 +23,17 @@ use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
 use crate::{get_unique_locations, parse_time};
 use std::cmp::Ordering::Equal;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::io::{BufReader, Read};
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{Dimensions, MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
-use vrp_core::models::problem::{ActivityCost, Fleet, Job, TransportCost};
+use vrp_core::models::problem::{ActivityCost, Fleet, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::utils::{compare_floats, DefaultRandom, Random};
 
 pub type ApiProblem = crate::format::problem::Problem;
-/// An job id to job index.
-pub type JobIndex = HashMap<String, Job>;
 
 /// Reads specific problem definition from various sources.
 pub trait PragmaticProblem {
@@ -94,6 +92,16 @@ impl PragmaticProblem for (ApiProblem, Vec<Matrix>) {
 impl PragmaticProblem for ApiProblem {
     fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
         map_to_problem_with_approx(self)
+    }
+}
+
+impl PragmaticProblem for (ApiProblem, Option<Vec<Matrix>>) {
+    fn read_pragmatic(self) -> Result<Problem, Vec<FormatError>> {
+        if let Some(matrices) = self.1 {
+            (self.0, matrices).read_pragmatic()
+        } else {
+            self.0.read_pragmatic()
+        }
     }
 }
 

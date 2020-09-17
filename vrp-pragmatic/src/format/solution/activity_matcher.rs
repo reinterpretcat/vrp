@@ -1,5 +1,4 @@
-use crate::format::problem::JobIndex;
-use crate::format::CoordIndex;
+use crate::format::{CoordIndex, JobIndex};
 use crate::parse_time;
 use std::collections::HashSet;
 use std::iter::once;
@@ -51,7 +50,7 @@ pub(crate) fn try_match_job(
                     let tags = multi.jobs.iter().filter_map(|job| get_tag(job).cloned()).collect::<HashSet<_>>();
                     if tags.len() < multi.jobs.len() {
                         return Err(format!(
-                            "initial solution requires multi job to have unique tags, check '{}' job",
+                            "cannot check multi job without unique tags, check '{}' job",
                             activity.job_id
                         ));
                     }

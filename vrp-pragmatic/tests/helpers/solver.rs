@@ -77,20 +77,23 @@ fn get_core_solution<F: Fn(Arc<CoreProblem>) -> CoreSolution>(
     perform_check: bool,
     solve_func: F,
 ) -> Solution {
-    let problem_copy = problem.clone();
-    let matrices_copy = matrices.clone();
+    let format_problem = problem.clone();
+    let format_matrices = matrices.clone();
 
-    let problem = get_core_problem(problem, matrices);
+    let core_problem = get_core_problem(problem, matrices);
 
-    let solution = solve_func(problem.clone());
+    let core_solution = solve_func(core_problem.clone());
 
-    let solution = sort_all_data(create_solution(&problem, &solution, None));
+    let format_solution = sort_all_data(create_solution(&core_problem, &core_solution, None));
 
     if perform_check {
-        assert_eq!(CheckerContext::new(problem_copy, matrices_copy, solution.clone()).check().err(), None);
+        assert_eq!(
+            CheckerContext::new(core_problem, format_problem, format_matrices, format_solution.clone()).check().err(),
+            None
+        );
     }
 
-    sort_all_data(solution)
+    sort_all_data(format_solution)
 }
 
 /// Sorts some solution properties in lexicographical order to simplify test assertions.

@@ -1,4 +1,4 @@
-use crate::format::problem::JobIndex;
+use crate::format::JobIndex;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::*;

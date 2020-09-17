@@ -7,6 +7,7 @@ use crate::format::Location;
 use crate::parse_time;
 use std::collections::HashMap;
 use vrp_core::models::common::TimeWindow;
+use vrp_core::models::Problem as CoreProblem;
 
 /// Stores problem and solution together and provides some helper methods.
 pub struct CheckerContext {
@@ -16,7 +17,9 @@ pub struct CheckerContext {
     pub matrices: Option<Vec<Matrix>>,
     /// Solution to be checked
     pub solution: Solution,
+
     job_map: HashMap<String, Job>,
+    core_problem: Arc<CoreProblem>,
 }
 
 /// Represents all possible activity types.
@@ -30,10 +33,15 @@ enum ActivityType {
 
 impl CheckerContext {
     /// Creates an instance of `CheckerContext`
-    pub fn new(problem: Problem, matrices: Option<Vec<Matrix>>, solution: Solution) -> Self {
+    pub fn new(
+        core_problem: Arc<CoreProblem>,
+        problem: Problem,
+        matrices: Option<Vec<Matrix>>,
+        solution: Solution,
+    ) -> Self {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
 
-        Self { problem, matrices, solution, job_map }
+        Self { problem, matrices, solution, job_map, core_problem }
     }
 
     /// Performs solution check.
@@ -245,3 +253,4 @@ use crate::checker::relations::check_relations;
 
 mod routing;
 use crate::checker::routing::check_routing;
+use std::sync::Arc;

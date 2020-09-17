@@ -6,7 +6,7 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_pragmatic::core::solver::Builder;
-use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem, Problem};
+use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 use vrp_pragmatic::format::FormatError;
 
@@ -37,47 +37,49 @@ fn run_examples(base_path: &str) {
     ];
 
     for (name, matrices) in names {
-        let problem = BufReader::new(open_file(format!["{}/{}.problem.json", base_path, name].as_str()));
+        let problem = get_pragmatic_problem(base_path, name);
 
-        let problem = Arc::new(
-            if let Some(matrices) = matrices {
-                let matrices = matrices
-                    .iter()
-                    .map(|path| BufReader::new(open_file(format!["{}/{}.json", base_path, path].as_str())))
-                    .collect();
-                (problem, matrices).read_pragmatic()
-            } else {
-                problem.read_pragmatic()
-            }
-            .unwrap_or_else(|errors| {
-                panic!("cannot read pragmatic problem:\n{}", FormatError::format_many(errors.as_slice(), "\t\n"))
-            }),
-        );
+        let (core_problem, problem, matrices) = if let Some(matrices) = matrices {
+            let matrices = matrices
+                .iter()
+                .map(|path| deserialize_matrix(open_file(format!["{}/{}.json", base_path, path].as_str())))
+                .collect::<Result<Vec<Matrix>, _>>()
+                .unwrap_or_else(|errors| {
+                    panic!("cannot read matrix: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
+                });
+            ((problem.clone(), matrices.clone()).read_pragmatic(), problem, Some(matrices))
+        } else {
+            (problem.clone().read_pragmatic(), problem, None)
+        };
 
-        let (solution, _, _) = Builder::new(problem.clone())
+        let core_problem = Arc::new(core_problem.unwrap_or_else(|errors| {
+            panic!("cannot read pragmatic problem: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
+        }));
+
+        let (solution, _, _) = Builder::new(core_problem.clone())
             .with_max_generations(Some(100))
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
             .solve()
             .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
 
-        let solution = get_pragmatic_solution(&Arc::try_unwrap(problem).ok().unwrap(), &solution);
-        let problem = get_pragmatic_problem(base_path, name);
+        let solution = get_pragmatic_solution(&core_problem, &solution);
 
-        // TODO use matrices
-        if let Err(err) = CheckerContext::new(problem, None, solution).check() {
+        if let Err(err) = CheckerContext::new(core_problem, problem, matrices, solution).check() {
             panic!("unfeasible solution in '{}': '{}'", name, err);
         }
     }
 }
 
-fn open_file(path: &str) -> File {
+fn open_file(path: &str) -> BufReader<File> {
     println!("Reading '{}'", path);
-    File::open(path).unwrap_or_else(|err| panic!(format!("cannot open {} file: '{}'", path, err.to_string())))
+    BufReader::new(
+        File::open(path).unwrap_or_else(|err| panic!(format!("cannot open {} file: '{}'", path, err.to_string()))),
+    )
 }
 
 fn get_pragmatic_problem(base_path: &str, name: &str) -> Problem {
-    deserialize_problem(BufReader::new(open_file(format!["{}/{}.problem.json", base_path, name].as_str()))).unwrap()
+    deserialize_problem(open_file(format!["{}/{}.problem.json", base_path, name].as_str())).unwrap()
 }
 
 fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {

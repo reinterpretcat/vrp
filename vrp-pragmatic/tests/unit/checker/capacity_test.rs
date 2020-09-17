@@ -1,6 +1,7 @@
 use super::*;
 use crate::format_time;
 use crate::helpers::*;
+use vrp_core::models::examples::create_example_problem;
 
 parameterized_test! {can_check_load, (stop_loads, expected_result), {
     can_check_load_impl(stop_loads, expected_result);
@@ -98,7 +99,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>
                             activity_type: "pickup".to_string(),
                             location: None,
                             time: None,
-                            job_tag: None,
+                            job_tag: Some("p1".to_string()),
                         },
                     ],
                 },
@@ -157,13 +158,14 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>
                     ("1970-01-01T00:00:11Z", "1970-01-01T00:00:12Z"),
                     5,
                 ),
-                create_stop_with_activity(
+                create_stop_with_activity_with_tag(
                     "job5",
                     "delivery",
                     (5., 0.),
                     *stop_loads.get(5).unwrap(),
                     ("1970-01-01T00:00:13Z", "1970-01-01T00:00:14Z"),
                     6,
+                    "d1",
                 ),
                 create_stop_with_activity(
                     "arrival",
@@ -184,7 +186,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>
         ..create_empty_solution()
     };
 
-    let result = check_vehicle_load(&CheckerContext::new(problem, None, solution));
+    let result = check_vehicle_load(&CheckerContext::new(create_example_problem(), problem, None, solution));
 
     assert_eq!(result, expected_result);
 }

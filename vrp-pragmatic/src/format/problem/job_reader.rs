@@ -1,7 +1,7 @@
 use crate::format::coord_index::CoordIndex;
-use crate::format::problem::reader::{add_skills, parse_time_window, ApiProblem, JobIndex, ProblemProperties};
+use crate::format::problem::reader::{add_skills, parse_time_window, ApiProblem, ProblemProperties};
 use crate::format::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleCargoPlace, VehicleType};
-use crate::format::Location;
+use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
