@@ -3,6 +3,8 @@
 mod model;
 pub use self::model::*;
 
+pub(crate) mod activity_matcher;
+
 mod geo_serializer;
 pub use self::geo_serializer::serialize_solution_as_geojson;
 
