@@ -60,7 +60,7 @@ where capacity is decreased based on `job.deliveries.demand` values. Each delive
 Pickup and delivery job is a job with both `job.pickups` and `job.deliveries` properties specified:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:58:92}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:58:94}}
 ```
 
 The vehicle picks some `goods` at one or multiple `job.pickups.location`, which leads to capacity growth, and brings
@@ -82,7 +82,7 @@ places to one single customer".
 Another example is one pickup and two deliveries:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-job.basic.problem.json:56:107}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-job.basic.problem.json:56:109}}
 ```
 
 
@@ -114,12 +114,16 @@ This job models some work without demand (e.g. handyman visit).
 You can specify multiple tasks properties to get some mixed job:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.problem.json:55:118}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.problem.json:55:121}}
 ```
 
 Similar pickup and delivery job, all these tasks has to be executed or none of them. The order is not specified except
 pickups must be scheduled before any delivery, replacement or service.
 
+
+Hint
+
+Use `tag` property on each job task if you want to use initial solution or checker features.
 
 ## Related errors
 

@@ -31,7 +31,7 @@ between.
 In contrast to `sequence` relation, `strict` locks jobs to certain vehicle without ability to insert new jobs in between:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/relation-strict.basic.problem.json:82:89}}
+{{#include ../../../../../examples/data/pragmatic/basics/relation-strict.basic.problem.json:82:90}}
 ```
 
 In this example, new jobs can be inserted only after job with id `job1`.
