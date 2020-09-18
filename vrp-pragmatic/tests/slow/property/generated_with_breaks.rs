@@ -1,7 +1,6 @@
 use crate::format::problem::*;
-use crate::generator::*;
-
 use crate::format::Location;
+use crate::generator::*;
 use crate::helpers::solve_with_metaheuristic_and_iterations;
 use proptest::prelude::*;
 
@@ -41,8 +40,8 @@ fn get_break_times() -> impl Strategy<Value = VehicleBreakTime> {
 prop_compose! {
     fn get_break_offset_time()
     (
-     start in 100..500,
-     length in 10..200
+     start in 3600..14400,
+     length in 600..1800
     ) -> VehicleBreakTime {
         VehicleBreakTime::TimeOffset(vec![start as f64, (start + length) as f64])
     }

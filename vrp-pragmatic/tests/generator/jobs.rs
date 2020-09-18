@@ -54,10 +54,10 @@ prop_compose! {
        Job {
             id: Uuid::new_v4().to_string(),
             pickups: Some(vec![
-             JobTask { places: vec![pickup], demand: demand.clone(), tag: None}
+             JobTask { places: vec![pickup], demand: demand.clone(), tag: Some("p1".to_owned())}
             ]),
             deliveries: Some(vec![
-             JobTask { places: vec![delivery], demand: demand.clone(), tag: None}
+             JobTask { places: vec![delivery], demand: demand.clone(), tag: Some("d1".to_owned())}
             ]),
             replacements: None,
             services: None,

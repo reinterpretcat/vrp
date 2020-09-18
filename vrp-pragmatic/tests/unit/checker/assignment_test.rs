@@ -236,5 +236,5 @@ fn can_detect_time_window_violation() {
 
     let result = check_assignment(&CheckerContext::new(core_problem, problem, None, solution));
 
-    assert_eq!(result, Err("cannot match activity job ids: job1".to_owned()));
+    assert_eq!(result, Err("cannot match activities to jobs: job1:<no tag>".to_owned()));
 }

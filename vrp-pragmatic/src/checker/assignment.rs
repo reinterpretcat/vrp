@@ -167,13 +167,19 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                         )
                         .is_err()
                     })
-                    .map(|activity| activity.job_id.clone())
+                    .map(|activity| {
+                        format!(
+                            "{}:{}",
+                            activity.job_id.clone(),
+                            activity.job_tag.as_ref().unwrap_or(&"<no tag>".to_string())
+                        )
+                    })
             })
         })
         .collect::<Vec<_>>();
 
     if !job_ids.is_empty() {
-        return Err(format!("cannot match activity job ids: {}", job_ids.join(", ")));
+        return Err(format!("cannot match activities to jobs: {}", job_ids.join(", ")));
     }
 
     Ok(())
