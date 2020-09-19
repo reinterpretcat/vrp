@@ -124,12 +124,15 @@ impl Telemetry {
             ),
             _ => {}
         };
-        self.metrics.generations += 1;
     }
 
     /// Reports generation statistics.
     pub fn on_generation(&mut self, refinement_ctx: &RefinementContext, generation_time: Timer, is_improved: bool) {
+        assert_eq!(refinement_ctx.statistics.generation, self.metrics.generations);
+
         self.metrics.generations += 1;
+        let generation = self.metrics.generations;
+        self.improvement_tracker.track(generation, is_improved);
 
         let (log_best, log_population, track_population) = match &self.mode {
             TelemetryMode::None => return,
@@ -139,10 +142,6 @@ impl Telemetry {
                 (Some(log_best), Some(log_population), Some(track_population))
             }
         };
-
-        let generation = refinement_ctx.statistics.generation;
-
-        self.improvement_tracker.track(generation, is_improved);
 
         if let Some((best_individual, rank)) = refinement_ctx.population.ranked().next() {
             let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
