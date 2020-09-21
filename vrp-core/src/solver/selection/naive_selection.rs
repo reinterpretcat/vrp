@@ -1,5 +1,9 @@
 //! Contains a selection which uses naive approach to select parents for offspring.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/selection/naive_selection_test.rs"]
+mod naive_selection_test;
+
 use super::*;
 use std::iter::once;
 

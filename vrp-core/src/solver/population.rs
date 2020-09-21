@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../tests/unit/solver/population/population_test.rs"]
+#[path = "../../tests/unit/solver/population_test.rs"]
 mod population_test;
 
 use crate::algorithms::nsga2::{select_and_rank, MultiObjective, Objective};

@@ -1,13 +1,17 @@
+#[cfg(test)]
+#[path = "../../tests/unit/solver/evolution_test.rs"]
+mod evolution_test;
+
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::Problem;
-use crate::solver::mutation::{Mutation, Recreate};
+use crate::solver::mutation::*;
 use crate::solver::population::DominancePopulation;
-use crate::solver::selection::Selection;
+use crate::solver::selection::{NaiveSelection, Selection};
 use crate::solver::telemetry::Telemetry;
-use crate::solver::termination::Termination;
-use crate::solver::{Metrics, Population, RefinementContext};
-use crate::utils::{Random, Timer};
+use crate::solver::termination::*;
+use crate::solver::{Metrics, Population, RefinementContext, TelemetryMode};
+use crate::utils::{get_cpus, DefaultRandom, Random, Timer};
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -48,14 +52,43 @@ pub struct InitialConfig {
     pub individuals: Vec<InsertionContext>,
 }
 
+impl EvolutionConfig {
+    pub fn new(problem: Arc<Problem>) -> Self {
+        Self {
+            problem: problem.clone(),
+            selection: Arc::new(NaiveSelection::new(get_cpus())),
+            mutation: Arc::new(NaiveBranching::new(
+                Arc::new(RuinAndRecreate::new_from_problem(problem)),
+                (0.0001, 0.1, 0.001),
+                1.5,
+                2..4,
+            )),
+            termination: Arc::new(CompositeTermination::new(vec![
+                Box::new(MaxTime::new(300.)),
+                Box::new(MaxGeneration::new(3000)),
+            ])),
+            quota: None,
+            random: Arc::new(DefaultRandom::default()),
+            telemetry: Telemetry::new(TelemetryMode::None),
+            population: PopulationConfig {
+                max_size: 4,
+                initial: InitialConfig {
+                    size: 1,
+                    methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
+                    individuals: vec![],
+                },
+            },
+        }
+    }
+}
+
 /// An entity which simulates evolution process.
 pub struct EvolutionSimulator {
-    problem: Arc<Problem>,
     config: EvolutionConfig,
 }
 
 impl EvolutionSimulator {
-    pub fn new(problem: Arc<Problem>, config: EvolutionConfig) -> Result<Self, String> {
+    pub fn new(config: EvolutionConfig) -> Result<Self, String> {
         if config.population.initial.size < 1 {
             return Err("initial size should be greater than 0".to_string());
         }
@@ -68,7 +101,7 @@ impl EvolutionSimulator {
             return Err("at least one initial method has to be specified".to_string());
         }
 
-        Ok(Self { problem, config })
+        Ok(Self { config })
     }
 
     /// Runs evolution for given `problem` using evolution `config`.
@@ -78,7 +111,7 @@ impl EvolutionSimulator {
 
         let mut refinement_ctx = self.create_refinement_ctx()?;
 
-        while !self.config.termination.is_termination(&mut refinement_ctx) {
+        while !self.should_stop(&mut refinement_ctx) {
             let generation_time = Timer::start();
 
             let parents = self.config.selection.select_parents(&refinement_ctx);
@@ -101,8 +134,8 @@ impl EvolutionSimulator {
     /// Creates refinement context with population containing initial individuals.
     fn create_refinement_ctx(&mut self) -> Result<RefinementContext, String> {
         let mut refinement_ctx = RefinementContext::new(
-            self.problem.clone(),
-            Box::new(DominancePopulation::new(self.problem.clone(), self.config.population.max_size)),
+            self.config.problem.clone(),
+            Box::new(DominancePopulation::new(self.config.problem.clone(), self.config.population.max_size)),
             std::mem::replace(&mut self.config.quota, None),
         );
 
@@ -116,7 +149,7 @@ impl EvolutionSimulator {
             });
 
         let weights = self.config.population.initial.methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
-        let empty_ctx = InsertionContext::new(self.problem.clone(), self.config.random.clone());
+        let empty_ctx = InsertionContext::new(self.config.problem.clone(), self.config.random.clone());
 
         let _ = (refinement_ctx.population.size()..self.config.population.initial.size).try_for_each(|idx| {
             let item_time = Timer::start();
@@ -140,6 +173,13 @@ impl EvolutionSimulator {
         });
 
         Ok(refinement_ctx)
+    }
+
+    fn should_stop(&self, refinement_ctx: &mut RefinementContext) -> bool {
+        let is_terminated = self.config.termination.is_termination(refinement_ctx);
+        let is_quota_reached = refinement_ctx.quota.as_ref().map_or(false, |q| q.is_reached());
+
+        is_terminated || is_quota_reached
     }
 }
 

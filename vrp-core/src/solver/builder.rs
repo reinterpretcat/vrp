@@ -1,13 +1,12 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::{Problem, Solution};
-use crate::solver::evolution::{EvolutionConfig, InitialConfig, PopulationConfig};
+use crate::solver::evolution::EvolutionConfig;
 use crate::solver::mutation::*;
-use crate::solver::selection::{NaiveSelection, Selection};
-use crate::solver::telemetry::{Telemetry, TelemetryMode};
+use crate::solver::selection::Selection;
 use crate::solver::termination::*;
-use crate::solver::Solver;
-use crate::utils::{get_cpus, DefaultRandom, TimeQuota};
+use crate::solver::{Solver, Telemetry};
+use crate::utils::{DefaultRandom, TimeQuota};
 use std::sync::Arc;
 
 /// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent
@@ -69,31 +68,7 @@ impl Builder {
             max_time: None,
             cost_variation: None,
             seed: None,
-            config: EvolutionConfig {
-                problem: problem.clone(),
-                selection: Arc::new(NaiveSelection::new(get_cpus())),
-                mutation: Arc::new(NaiveBranching::new(
-                    Arc::new(RuinAndRecreate::new_from_problem(problem)),
-                    (0.0001, 0.1, 0.001),
-                    1.5,
-                    2..4,
-                )),
-                termination: Arc::new(CompositeTermination::new(vec![
-                    Box::new(MaxTime::new(300.)),
-                    Box::new(MaxGeneration::new(3000)),
-                ])),
-                quota: None,
-                random: Arc::new(DefaultRandom::default()),
-                telemetry: Telemetry::new(TelemetryMode::None),
-                population: PopulationConfig {
-                    max_size: 4,
-                    initial: InitialConfig {
-                        size: 1,
-                        methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
-                        individuals: vec![],
-                    },
-                },
-            },
+            config: EvolutionConfig::new(problem),
         }
     }
 }
@@ -188,7 +163,9 @@ impl Builder {
 
     /// Sets randomization seed.
     pub fn with_seed(mut self, seed: Option<u64>) -> Self {
-        self.config.telemetry.log("configured to use custom seed parameters");
+        if seed.is_some() {
+            self.config.telemetry.log("configured to use custom seed parameters");
+        }
         self.seed = seed;
         self
     }

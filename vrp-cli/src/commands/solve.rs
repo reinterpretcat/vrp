@@ -89,7 +89,6 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                         let matrices = matrices.into_iter().map(BufReader::new).collect();
                         (BufReader::new(problem), matrices).read_pragmatic()
                     } else {
-                        println!("configured to use single approximated routing matrix");
                         BufReader::new(problem).read_pragmatic()
                     }
                     .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
