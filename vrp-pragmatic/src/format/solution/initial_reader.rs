@@ -109,10 +109,32 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
     let mut core_tour = CoreTour::new(&actor);
 
     // NOTE this is necessary to keep departure time optimization
-    let departure_time =
-        &format_tour.stops.first().as_ref().ok_or_else(|| "empty tour in init solution".to_string())?.time.departure;
-    core_tour.all_activities_mut().next().expect("cannot get start activity from core tour").schedule.departure =
-        parse_time(departure_time);
+    let set_activity_time = |format_stop: &FormatStop, core_activity: &mut Activity| -> Result<(), String> {
+        if format_stop.activities.len() > 1 {
+            // TODO need to adapt try_match_job
+            return Err(format!(
+                "vehicle '{}' has served jobs at depot location which is not supported in initial solution",
+                format_tour.vehicle_id
+            ));
+        }
+
+        core_activity.schedule.arrival = parse_time(&format_stop.time.arrival);
+        core_activity.schedule.departure = parse_time(&format_stop.time.departure);
+
+        Ok(())
+    };
+
+    let start_stop = format_tour.stops.first().ok_or_else(|| "empty tour in init solution".to_string())?;
+    let core_start = core_tour.all_activities_mut().next().expect("cannot get start activity from core tour");
+
+    set_activity_time(start_stop, core_start)?;
+
+    if core_tour.end().is_some() {
+        let end_stop = format_tour.stops.last().unwrap();
+        let core_end = core_tour.all_activities_mut().last().unwrap();
+
+        set_activity_time(end_stop, core_end)?;
+    }
 
     Ok(Route { actor, tour: core_tour })
 }

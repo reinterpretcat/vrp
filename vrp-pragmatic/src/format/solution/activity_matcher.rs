@@ -114,15 +114,22 @@ fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'
 
                 is_same_location && is_proper_time
             })
-            .map(|place| Place {
-                location: activity_ctx.location,
-                duration: place.duration,
-                time: place
+            .map(|place| {
+                let time = place
                     .times
                     .iter()
                     .find(|time| time.intersects(activity_ctx.route_start_time, &activity_ctx.time))
-                    .unwrap()
-                    .to_time_window(activity_ctx.route_start_time),
+                    .unwrap();
+
+                let time = match time {
+                    TimeSpan::Window(tw) => tw.clone(),
+                    // NOTE we don't know when original start should be
+                    TimeSpan::Offset(offset) => {
+                        TimeWindow::new(activity_ctx.time.start, activity_ctx.route_start_time + offset.end)
+                    }
+                };
+
+                Place { location: activity_ctx.location, duration: place.duration, time }
             }),
         _ => None,
     }
