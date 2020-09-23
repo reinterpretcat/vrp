@@ -27,7 +27,7 @@ pub fn evaluate_job_insertion(
     route_selector: &(dyn RouteSelector + Send + Sync),
     position: InsertionPosition,
 ) -> InsertionResult {
-    route_selector.select(ctx).fold(InsertionResult::make_failure(), |acc, route_ctx| {
+    route_selector.select(ctx, job).fold(InsertionResult::make_failure(), |acc, route_ctx| {
         evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, Some(acc))
     })
 }

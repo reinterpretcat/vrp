@@ -21,6 +21,9 @@ pub use self::recreate_with_blinks::RecreateWithBlinks;
 mod recreate_with_regret;
 pub use self::recreate_with_regret::RecreateWithRegret;
 
+mod recreate_with_subset;
+pub use self::recreate_with_subset::RecreateWithSubset;
+
 mod recreate_with_nearest_neighbor;
 pub use self::recreate_with_nearest_neighbor::*;
 use crate::models::common::SingleDimLoad;

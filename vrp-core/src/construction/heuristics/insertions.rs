@@ -44,7 +44,7 @@ pub struct InsertionFailure {
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
 pub trait RouteSelector {
     /// Returns routes for job insertion.
-    fn select<'a>(&'a self, ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = RouteContext> + 'a>;
+    fn select<'a>(&'a self, ctx: &'a InsertionContext, job: &Job) -> Box<dyn Iterator<Item = RouteContext> + 'a>;
 }
 
 /// Returns a list of all possible routes for insertion.
@@ -57,7 +57,7 @@ impl Default for AllRouteSelector {
 }
 
 impl RouteSelector for AllRouteSelector {
-    fn select<'a>(&'a self, ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
+    fn select<'a>(&'a self, ctx: &'a InsertionContext, _job: &Job) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
         Box::new(ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next()))
     }
 }
