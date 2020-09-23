@@ -21,15 +21,15 @@ pub enum InsertionPosition {
 
 /// Evaluates possibility to preform insertion from given insertion context in all available
 /// routes at given position constraint.
-pub fn evaluate_job_insertion(job: &Job, ctx: &InsertionContext, position: InsertionPosition) -> InsertionResult {
-    ctx.solution
-        .routes
-        .iter()
-        .cloned()
-        .chain(ctx.solution.registry.next())
-        .fold(InsertionResult::make_failure(), |acc, route_ctx| {
-            evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, Some(acc))
-        })
+pub fn evaluate_job_insertion(
+    job: &Job,
+    ctx: &InsertionContext,
+    route_selector: &(dyn RouteSelector + Send + Sync),
+    position: InsertionPosition,
+) -> InsertionResult {
+    route_selector.select(ctx).fold(InsertionResult::make_failure(), |acc, route_ctx| {
+        evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, Some(acc))
+    })
 }
 
 /// Evaluates possibility to preform insertion from given insertion context in given route

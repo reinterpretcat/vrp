@@ -40,7 +40,7 @@ mod single {
     fn can_insert_job_with_location_into_empty_tour_impl(job: Job) {
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -88,7 +88,7 @@ mod single {
         let constraint = create_constraint_pipeline_with_transport();
         let ctx = create_insertion_context(registry, constraint, routes);
 
-        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -152,7 +152,7 @@ mod single {
         let job = Job::Single(test_single_with_location(Some(job_location)));
         let ctx = create_test_insertion_context(registry);
 
-        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -168,7 +168,7 @@ mod single {
         let job = Job::Single(test_single_with_location(Some(1111)));
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
@@ -200,7 +200,7 @@ mod multi {
             .build();
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, 28.0);
@@ -226,7 +226,7 @@ mod multi {
         let job = job.build();
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
@@ -267,7 +267,7 @@ mod multi {
         });
         let job = job.build();
 
-        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, cost);
@@ -287,7 +287,7 @@ mod multi {
             .job(SingleBuilder::default().id("s3").location(Some(15)).build())
             .build();
 
-        let result = evaluate_job_insertion(&job, &ctx, InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, 60.0);

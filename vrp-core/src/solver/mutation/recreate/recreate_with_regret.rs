@@ -9,6 +9,7 @@ use std::ops::Deref;
 
 /// A recreate strategy which uses regret insertion heuristic to insert jobs into solution.
 pub struct RecreateWithRegret {
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
     job_selector: Box<dyn JobSelector + Send + Sync>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
@@ -22,6 +23,7 @@ impl Default for RecreateWithRegret {
 impl Recreate for RecreateWithRegret {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::default().process(
+            self.route_selector.as_ref(),
             self.job_selector.as_ref(),
             self.job_reducer.as_ref(),
             insertion_ctx,
@@ -34,6 +36,7 @@ impl RecreateWithRegret {
     /// Creates a new instance of `RecreateWithRegret`.
     pub fn new(min: usize, max: usize) -> Self {
         Self {
+            route_selector: Box::new(AllRouteSelector::default()),
             job_selector: Box::new(AllJobSelector::default()),
             job_reducer: Box::new(RegretJobMapReducer::new(min, max)),
         }

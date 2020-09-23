@@ -40,9 +40,30 @@ pub struct InsertionFailure {
     pub job: Option<Job>,
 }
 
+/// On each insertion step, selects a list of routes where jobs can be inserted.
+/// It is up to implementation to decide whether list consists of all possible routes or just some subset.
+pub trait RouteSelector {
+    /// Returns routes for job insertion.
+    fn select<'a>(&'a self, ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = RouteContext> + 'a>;
+}
+
+/// Returns a list of all possible routes for insertion.
+pub struct AllRouteSelector {}
+
+impl Default for AllRouteSelector {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+impl RouteSelector for AllRouteSelector {
+    fn select<'a>(&'a self, ctx: &'a InsertionContext) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
+        Box::new(ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next()))
+    }
+}
+
 /// On each insertion step, selects a list of jobs to be inserted.
-/// It is up to implementation to decide whether a list is original consists of jobs to be inserted,
-/// subset, randomized or something else.
+/// It is up to implementation to decide whether list consists of all jobs or just some subset.
 pub trait JobSelector {
     /// Returns a portion of all jobs.
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a>;
@@ -147,6 +168,7 @@ impl InsertionHeuristic {
     /// Runs common insertion heuristic algorithm using given selector and reducer specializations.
     pub fn process(
         &self,
+        route_selector: &(dyn RouteSelector + Send + Sync),
         job_selector: &(dyn JobSelector + Send + Sync),
         job_reducer: &(dyn JobMapReducer + Send + Sync),
         ctx: InsertionContext,
@@ -161,7 +183,7 @@ impl InsertionHeuristic {
             let result = job_reducer.reduce(
                 &ctx,
                 jobs,
-                Box::new(|job| evaluate_job_insertion(&job, &ctx, self.insertion_position)),
+                Box::new(|job| evaluate_job_insertion(&job, &ctx, route_selector, self.insertion_position)),
             );
             insert(result, &mut ctx);
         }
