@@ -1,4 +1,5 @@
 FROM rust:1.46-alpine AS Builder
+LABEL maintainer="ilya.builuk@gmail.com"
 
 RUN apk add --no-cache musl-dev
 
