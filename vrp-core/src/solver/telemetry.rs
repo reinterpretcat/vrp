@@ -127,12 +127,17 @@ impl Telemetry {
     }
 
     /// Reports generation statistics.
-    pub fn on_generation(&mut self, refinement_ctx: &RefinementContext, generation_time: Timer, is_improved: bool) {
-        assert_eq!(refinement_ctx.statistics.generation, self.metrics.generations);
-
-        self.metrics.generations += 1;
+    pub fn on_generation(&mut self, refinement_ctx: &mut RefinementContext, generation_time: Timer, is_improved: bool) {
         let generation = self.metrics.generations;
         self.improvement_tracker.track(generation, is_improved);
+
+        refinement_ctx.statistics = Statistics {
+            generation: self.metrics.generations,
+            improvement_all_ratio: self.improvement_tracker.i_all_ratio,
+            improvement_1000_ratio: self.improvement_tracker.i_1000_ratio,
+        };
+
+        self.metrics.generations += 1;
 
         let (log_best, log_population, track_population) = match &self.mode {
             TelemetryMode::None => return,
@@ -145,8 +150,8 @@ impl Telemetry {
 
         if let Some((best_individual, rank)) = refinement_ctx.population.ranked().next() {
             let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
-            let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0 || generation == 1;
-            let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0 || generation == 1;
+            let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0;
+            let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0;
 
             if should_log_best {
                 self.log_individual(
@@ -250,15 +255,6 @@ impl Telemetry {
         }
     }
 
-    /// Gets evolution progress statistics.
-    pub fn get_statistics(&self) -> Statistics {
-        Statistics {
-            generation: self.metrics.generations,
-            improvement_all_ratio: self.improvement_tracker.i_all_ratio,
-            improvement_1000_ratio: self.improvement_tracker.i_1000_ratio,
-        }
-    }
-
     fn get_individual_metrics(
         &self,
         refinement_ctx: &RefinementContext,
@@ -350,7 +346,7 @@ impl ImprovementTracker {
         self.is_last_improved = is_improved;
         self.buffer[generation % length] = is_improved;
 
-        let improvements = (0..generation).zip(self.buffer.iter()).filter(|(_, is_improved)| **is_improved).count();
+        let improvements = (0..generation + 1).zip(self.buffer.iter()).filter(|(_, is_improved)| **is_improved).count();
 
         self.i_all_ratio = (self.total_improvements as f64) / ((generation + 1) as f64);
         self.i_1000_ratio = (improvements as f64) / ((generation + 1).min(self.buffer.len()) as f64);

@@ -121,9 +121,7 @@ impl EvolutionSimulator {
             let is_improved =
                 if should_add_solution(&refinement_ctx) { refinement_ctx.population.add_all(offspring) } else { false };
 
-            self.config.telemetry.on_generation(&refinement_ctx, generation_time, is_improved);
-
-            refinement_ctx.statistics = self.config.telemetry.get_statistics();
+            self.config.telemetry.on_generation(&mut refinement_ctx, generation_time, is_improved);
         }
 
         self.config.telemetry.on_result(&refinement_ctx);
@@ -151,6 +149,7 @@ impl EvolutionSimulator {
         let weights = self.config.population.initial.methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
         let empty_ctx = InsertionContext::new(self.config.problem.clone(), self.config.random.clone());
 
+        let initial_time = Timer::start();
         let _ = (refinement_ctx.population.size()..self.config.population.initial.size).try_for_each(|idx| {
             let item_time = Timer::start();
 
@@ -171,6 +170,8 @@ impl EvolutionSimulator {
 
             Ok(())
         });
+
+        self.config.telemetry.on_generation(&mut refinement_ctx, initial_time, true);
 
         Ok(refinement_ctx)
     }
