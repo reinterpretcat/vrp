@@ -177,7 +177,7 @@ impl Multi {
     }
 }
 
-type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, Cost)>;
+type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, HashMap<Job, Cost>, Cost)>;
 
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
@@ -207,9 +207,14 @@ impl Jobs {
         self.index.get(&profile).unwrap().get(job).unwrap().0.iter()
     }
 
+    /// Returns cost distance between two jobs.
+    pub fn distance(&self, profile: Profile, from: &Job, to: &Job, _: Timestamp) -> Cost {
+        *self.index.get(&profile).unwrap().get(from).unwrap().1.get(to).unwrap()
+    }
+
     /// Returns job rank as relative cost from any vehicle's start position.
     pub fn rank(&self, profile: Profile, job: &Job) -> Cost {
-        self.index.get(&profile).unwrap().get(job).unwrap().1
+        self.index.get(&profile).unwrap().get(job).unwrap().2
     }
 
     /// Returns amount of jobs.
@@ -273,12 +278,12 @@ fn create_index(
 
         // create job index
         let item = jobs.iter().cloned().fold(HashMap::new(), |mut acc, job| {
-            let mut job_costs: Vec<(Job, Cost)> = jobs
+            let mut sorted_job_costs: Vec<(Job, Cost)> = jobs
                 .iter()
                 .filter(|j| **j != job)
                 .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, &job, j)))
                 .collect();
-            job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
+            sorted_job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
 
             let fleet_costs = starts
                 .iter()
@@ -287,7 +292,9 @@ fn create_index(
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                 .unwrap_or(DEFAULT_COST);
 
-            acc.insert(job, (job_costs, fleet_costs));
+            let job_costs_map = sorted_job_costs.iter().cloned().collect::<HashMap<_, _>>();
+
+            acc.insert(job, (sorted_job_costs, job_costs_map, fleet_costs));
             acc
         });
 
