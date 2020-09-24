@@ -142,8 +142,12 @@ impl EvolutionSimulator {
             .zip(0_usize..)
             .take(self.config.population.initial.size)
             .for_each(|(ctx, idx)| {
-                self.config.telemetry.on_initial(idx, self.config.population.initial.size, Timer::start());
-                refinement_ctx.population.add(ctx);
+                if should_add_solution(&refinement_ctx) {
+                    self.config.telemetry.on_initial(idx, self.config.population.initial.size, Timer::start());
+                    refinement_ctx.population.add(ctx);
+                } else {
+                    self.config.telemetry.log(format!("skipping provided initial solution {}", idx).as_str())
+                }
             });
 
         let weights = self.config.population.initial.methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
@@ -164,14 +168,19 @@ impl EvolutionSimulator {
 
             if should_add_solution(&refinement_ctx) {
                 refinement_ctx.population.add(insertion_ctx);
+                self.config.telemetry.on_initial(idx, self.config.population.initial.size, item_time);
+            } else {
+                self.config.telemetry.log(format!("skipping built initial solution {}", idx).as_str())
             }
-
-            self.config.telemetry.on_initial(idx, self.config.population.initial.size, item_time);
 
             Ok(())
         });
 
-        self.config.telemetry.on_generation(&mut refinement_ctx, initial_time, true);
+        if refinement_ctx.population.size() > 0 {
+            self.config.telemetry.on_generation(&mut refinement_ctx, initial_time, true);
+        } else {
+            self.config.telemetry.log("created an empty population")
+        }
 
         Ok(refinement_ctx)
     }

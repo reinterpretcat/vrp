@@ -62,5 +62,5 @@ fn can_use_quota() {
 
     let metrics = metrics.expect("metrics are empty");
     assert_eq!(metrics.generations, 0);
-    assert!(metrics.evolution.is_empty());
+    assert_eq!(metrics.evolution.len(), 1);
 }

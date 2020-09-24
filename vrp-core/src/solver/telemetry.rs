@@ -91,6 +91,7 @@ pub struct Telemetry {
     time: Timer,
     mode: TelemetryMode,
     improvement_tracker: ImprovementTracker,
+    next_generation: Option<usize>,
 }
 
 impl Telemetry {
@@ -101,6 +102,7 @@ impl Telemetry {
             metrics: Metrics { duration: 0, generations: 0, speed: 0.0, evolution: vec![] },
             mode,
             improvement_tracker: ImprovementTracker::new(1000),
+            next_generation: None,
         }
     }
 
@@ -128,16 +130,18 @@ impl Telemetry {
 
     /// Reports generation statistics.
     pub fn on_generation(&mut self, refinement_ctx: &mut RefinementContext, generation_time: Timer, is_improved: bool) {
-        let generation = self.metrics.generations;
+        let generation = self.next_generation.unwrap_or(0);
+
+        self.metrics.generations = generation;
         self.improvement_tracker.track(generation, is_improved);
 
         refinement_ctx.statistics = Statistics {
-            generation: self.metrics.generations,
+            generation,
             improvement_all_ratio: self.improvement_tracker.i_all_ratio,
             improvement_1000_ratio: self.improvement_tracker.i_1000_ratio,
         };
 
-        self.metrics.generations += 1;
+        self.next_generation = Some(generation + 1);
 
         let (log_best, log_population, track_population) = match &self.mode {
             TelemetryMode::None => return,
