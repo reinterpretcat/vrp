@@ -7,21 +7,29 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-
+  test-build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
-    - name: Release build
-      run: cargo build --release --verbose
-    - name: Run tests
+    - name: Build and run tests
       run: cargo test --verbose
     - name: Run clippy
       uses: actions-rs/cargo@v1
       with:
         command: clippy
         args: --all-features -- -D warnings
+
+  release-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Release build
+      run: cargo build --release --verbose
+
+  wasm-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
     - name: WebAssembly build
       run: |
         curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
