@@ -10,12 +10,6 @@ This project provides the way to solve multiple variations of **Vehicle Routing 
 default metaheuristic implementation which can be roughly described as
 `Multi-objective Parthenogenesis based Evolutionary Algorithm with Ruin and Recreate Mutation Operator`.
 
-
-# Getting started
-
-Please check [A Vehicle Routing Problem Solver Documentation](https://reinterpretcat.github.io/vrp).
-
-
 # Design goal
 
 Although performance is constantly in focus, the main idea behind design is extensibility: the project
@@ -23,10 +17,43 @@ aims to support a wide range of VRP variations known as Rich VRP. This is achiev
 points: custom constraints, objective functions, acceptance criteria, etc.
 
 
-# How to use
+# Getting started
 
-VRP solver is built in Rust. To install it, use `cargo install` or pull the source code from `master`.
+For general installation steps and basic usage options, please check next sections. More detailed overview of features
+is presented in [A Vehicle Routing Problem Solver Documentation](https://reinterpretcat.github.io/vrp).
 
+
+# Installation
+
+You can install vrp solver using three different ways:
+
+## Install from Docker
+
+The fastest way to get vrp solver on your environment is to use `docker` image:
+
+* **run public image** from `Github Container Registry`:
+
+```bash
+    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.5.6
+```
+
+* **build image locally** using `Dockerfile` provided:
+
+```bash
+docker build -t vrp_solver .
+docker run -it -v $(pwd):/repo --rm vrp_solver
+```
+
+Please note that the docker image is built using `musl`, not `glibc` standard library. So there might be some performance
+implications.
+
+## Install from Cargo
+
+You can install vrp solver `cli` tool directly with `cargo install`:
+
+    cargo install vrp-cli
+
+Ensure that your `$PATH` is properly configured to source the crates binaries, and then run solver using the `vrp-cli` command.
 
 ## Install from source
 
@@ -43,33 +70,19 @@ Alternatively, you can try to run the following script from the project root:
 It will build the executable and automatically launch the solver with the specified VRP definition. Results are
 stored in the folder where a problem definition is located.
 
-## Install from Cargo
 
-You can install vrp solver `cli` tool directly with `cargo install`:
+# Usage
 
-    cargo install vrp-cli
-
-
-Ensure that your `$PATH` is properly configured to source the crates binaries, and then run solver using the `vrp-cli` command.
-
-## Install from Docker
-
-With the following commands, you can build and run solver using `Dockerfile` provided:
-
-```bash
-docker build -t vrp_solver .
-docker run -it -v $(pwd):/repo --rm vrp_solver
-```
+Use can use vrp solver either from command line or from code:
 
 ## Use from command line
 
-`vrp-cli` crate is designed to use on problems defined in scientific or custom (aka `pragmatic`) format:
+`vrp-cli` crate is designed to use on problems defined in scientific or custom json (aka `pragmatic`) format:
 
     vrp-cli solve pragmatic problem_definition.json -m routing_matrix.json --max-time=120
 
 Please refer to [getting started](https://reinterpretcat.github.io/vrp/getting-started/index.html) section in
 the documentation for more details.
-
 
 ## Use from code
 
@@ -97,10 +110,6 @@ The project consists of the following parts:
     - *json-pragmatic*: an example how to solve problem in `pragmatic` json format from rust code using the project crates
     - *jvm-interop*: a gradle project which demonstrates how to use the library from java and kotlin
 
-# Dependant projects
-
-* [analysis](https://github.com/reinterpretcat/vrp-analysis): provides way to analyze solutions, algorithm behaviour (WIP)
-* [api](https://github.com/reinterpretcat/vrp-api): API prototype built using Rust/AWS/Terraform (PoC)
 
 # Status
 

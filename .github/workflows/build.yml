@@ -10,7 +10,8 @@ jobs:
   test-build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - name: Check out the repo
+      uses: actions/checkout@v2
     - name: Build and run tests
       run: cargo test --verbose
     - name: Run clippy
@@ -22,16 +23,23 @@ jobs:
   release-build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - name: Check out the repo
+      uses: actions/checkout@v2
     - name: Release build
       run: cargo build --release --verbose
 
   wasm-build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: WebAssembly build
+    - name: Check out the repo
+      uses: actions/checkout@v2
+    - name: Build WebAssembly
       run: |
         curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
         cd vrp-cli
         wasm-pack build --target web
+    - name: Upload WebAssembly artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: vrp_cli_wasm
+        path: vrp-cli/pkg/

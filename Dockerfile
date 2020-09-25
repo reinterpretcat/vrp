@@ -1,5 +1,11 @@
 FROM rust:1.46-alpine AS Builder
-LABEL maintainer="ilya.builuk@gmail.com"
+
+LABEL maintainer="Ilya Builuk <ilya.builuk@gmail.com>" \
+      org.opencontainers.image.title="A Vehicle Routing Problem solver CLI" \
+      org.opencontainers.image.description="A tool to solve real world Vehicle Routing Problems" \
+      org.opencontainers.image.source="https://github.com/reinterpretcat/vrp" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.authors="Ilya Builuk <ilya.builuk@gmail.com>"
 
 RUN apk add --no-cache musl-dev
 
