@@ -1,4 +1,4 @@
-name: Publish Docker image
+name: Publish packages
 on:
   workflow_dispatch:
     inputs:
@@ -15,7 +15,7 @@ jobs:
         uses: docker/build-push-action@v1
         with:
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
+          password: ${{ secrets.CR_PAT }}
+          registry: ghcr.io
           repository: reinterpretcat/vrp/vrp-cli
           tags: ${{ github.event.inputs.tag }}
