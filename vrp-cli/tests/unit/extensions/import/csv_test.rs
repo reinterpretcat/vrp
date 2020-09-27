@@ -1,4 +1,5 @@
 use super::*;
+use crate::extensions::import::import_problem;
 
 #[test]
 fn can_read_jobs() {
@@ -43,5 +44,37 @@ job2,52.5165,13.3808,3,,
     assert_eq!(result.code, "E0000");
     assert_eq!(result.cause, "cannot read jobs");
     assert_eq!(result.action, "check jobs definition");
-    assert!(result.details.is_some())
+    assert!(result.details.is_some());
+
+    let result =
+        import_problem("csv", Some(vec![BufReader::new(invalid_jobs.as_bytes()), BufReader::new("".as_bytes())]))
+            .err()
+            .expect("Should return error!");
+
+    assert_eq!(result, "cannot read csv: E0000, cause: 'cannot read jobs', action: 'check jobs definition'.");
+}
+
+parameterized_test! {can_handle_invalid_input_amount, input_size, {
+        can_handle_invalid_input_amount_impl(input_size);
+}}
+
+can_handle_invalid_input_amount! {
+        case01: None,
+        case02: Some(0),
+        case03: Some(1),
+        case04: Some(3),
+}
+
+fn can_handle_invalid_input_amount_impl(input_size: Option<usize>) {
+    let jobs_csv = r"
+ID,LAT,LNG,DEMAND,DURATION,TW_START,TW_END
+job1,52.5225,13.4095,1,3,,
+";
+
+    let result =
+        import_problem("csv", input_size.map(|size| (0..size).map(|_| BufReader::new(jobs_csv.as_bytes())).collect()))
+            .err()
+            .expect("Should return error!");
+
+    assert_eq!(result, "csv format expects two files with jobs and vehicles as an input");
 }

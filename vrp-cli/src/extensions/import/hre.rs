@@ -1,5 +1,9 @@
 //! Import from an another json format logic.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/extensions/import/hre_test.rs"]
+mod hre_test;
+
 extern crate serde_json;
 
 use serde::{Deserialize, Serialize};
