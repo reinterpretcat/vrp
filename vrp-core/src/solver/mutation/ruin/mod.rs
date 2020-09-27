@@ -84,12 +84,12 @@ impl CompositeRuin {
             (
                 vec![
                     (Arc::new(AdjustedStringRemoval::default()), 1.),
+                    (Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(2, 8, 0.1))), 0.1),
                     (random_job.clone(), 0.05),
                     (random_route.clone(), 0.01),
                 ],
                 100,
             ),
-            (vec![(Arc::new(AdjustedStringRemoval::new(20, 20, 0.1)), 1.), (random_job.clone(), 0.05)], 10),
             (
                 vec![
                     (Arc::new(WorstJobRemoval::default()), 1.),
@@ -106,8 +106,8 @@ impl CompositeRuin {
                 ],
                 10,
             ),
-            (vec![(random_job.clone(), 1.), (random_route.clone(), 0.1)], 5),
-            (vec![(random_route.clone(), 1.), (random_job.clone(), 0.1)], 5),
+            (vec![(random_job.clone(), 1.), (random_route.clone(), 0.1)], 2),
+            (vec![(random_route.clone(), 1.), (random_job.clone(), 0.1)], 2),
             (
                 vec![
                     (Arc::new(ClusterRemoval::new_with_defaults(problem)), 1.),

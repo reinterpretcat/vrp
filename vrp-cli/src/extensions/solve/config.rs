@@ -17,6 +17,7 @@ use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::selection::NaiveSelection;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
+use vrp_core::utils::get_cpus;
 
 /// An algorithm configuration.
 #[derive(Clone, Deserialize, Debug)]
@@ -61,13 +62,14 @@ pub struct SelectionConfig {
 /// A selection operator configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
+#[serde(rename_all = "camelCase")]
 pub enum SelectionType {
     #[serde(rename(deserialize = "naive"))]
     Naive {
         /// A name of selection operator.
         name: String,
         /// A size of offspring.
-        offspring_size: usize,
+        offspring_size: Option<usize>,
     },
 }
 
@@ -272,7 +274,9 @@ fn configure_from_selection(
             .collection
             .iter()
             .map(|item| match item {
-                SelectionType::Naive { name, offspring_size } => (name, Arc::new(NaiveSelection::new(*offspring_size))),
+                SelectionType::Naive { name, offspring_size } => {
+                    (name, Arc::new(NaiveSelection::new(offspring_size.unwrap_or_else(|| get_cpus()))))
+                }
             })
             .collect::<HashMap<_, _>>();
 

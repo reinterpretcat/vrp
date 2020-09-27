@@ -45,12 +45,13 @@ impl CompositeRecreate {
     /// strategies.
     pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
         Self::new(vec![
-            (Box::new(RecreateWithCheapest::default()), 100),
-            (Box::new(RecreateWithRegret::default()), 10),
-            (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), 2),
-            (Box::new(RecreateWithRegret::new(2, 4)), 2),
-            (Box::new(RecreateWithGaps::default()), 2),
-            (Box::new(RecreateWithNearestNeighbor::default()), 2),
+            (Box::new(RecreateWithRegret::new(1, 2)), 100),
+            (Box::new(RecreateWithRegret::new(3, 4)), 5),
+            (Box::new(RecreateWithGaps::default()), 5),
+            // TODO use dimension size from problem
+            (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), 5),
+            (Box::new(RecreateWithRegret::new(4, 8)), 2),
+            (Box::new(RecreateWithNearestNeighbor::default()), 1),
         ])
     }
 }

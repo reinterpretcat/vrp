@@ -46,12 +46,17 @@ impl RecreateWithRegret {
 struct RegretJobMapReducer {
     min: usize,
     max: usize,
+
+    inner_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
 
 impl RegretJobMapReducer {
     /// Creates a new instance of `RegretJobMapReducer`.
     pub fn new(min: usize, max: usize) -> Self {
-        Self { min, max }
+        assert!(min > 0);
+        assert!(min <= max);
+
+        Self { min, max, inner_reducer: Box::new(PairJobMapReducer::new(Box::new(BestResultSelector::default()))) }
     }
 }
 
@@ -63,6 +68,13 @@ impl JobMapReducer for RegretJobMapReducer {
         jobs: Vec<Job>,
         map: Box<dyn Fn(&Job) -> InsertionResult + Send + Sync + 'a>,
     ) -> InsertionResult {
+        let regret_index = ctx.random.uniform_int(self.min as i32, self.max as i32);
+
+        // NOTE no need to proceed with regret, fallback to more performant reducer
+        if regret_index == 1 || jobs.len() == 1 {
+            return self.inner_reducer.reduce(ctx, jobs, map);
+        }
+
         let mut results = parallel_collect(&jobs, |job| map.deref()(&job));
 
         results.sort_by(|a, b| match (a, b) {
@@ -72,8 +84,7 @@ impl JobMapReducer for RegretJobMapReducer {
             (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Equal,
         });
 
-        let regret_index =
-            ctx.random.uniform_int(self.min as i32, self.max as i32).min(results.len() as i32) as usize - 1;
+        let regret_index = regret_index.min(results.len() as i32) as usize - 1;
 
         let insertion_result = results
             .drain(regret_index..=regret_index)
