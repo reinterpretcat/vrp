@@ -137,6 +137,15 @@ impl EvolutionSimulator {
             std::mem::replace(&mut self.config.quota, None),
         );
 
+        self.config.telemetry.log(
+            format!(
+                "problem has total jobs: {}, actors: {}",
+                self.config.problem.jobs.size(),
+                self.config.problem.fleet.actors.len()
+            )
+            .as_str(),
+        );
+
         std::mem::replace(&mut self.config.population.initial.individuals, vec![])
             .into_iter()
             .zip(0_usize..)
