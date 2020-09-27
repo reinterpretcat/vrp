@@ -1,5 +1,9 @@
 //! A module which provides the logic to collect metrics about algorithm execution and simple logging.
 
+#[cfg(test)]
+#[path = "../../tests/unit/solver/telemetry_test.rs"]
+mod telemetry_test;
+
 use crate::algorithms::nsga2::{MultiObjective, Objective};
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::{RefinementContext, Statistics};
