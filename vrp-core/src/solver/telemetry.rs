@@ -289,7 +289,7 @@ impl Telemetry {
             format!(
                 "{} rank: {}, cost: {:.2}({:.3}%), tours: {}, unassigned: {}, fitness: ({})",
                 gen_info.map_or("\t".to_string(), |(gen, gen_time)| format!(
-                    "[{}s] generation {} took {}ms, ",
+                    "[{}s] generation {} took {}ms,",
                     self.time.elapsed_secs(),
                     gen,
                     gen_time.elapsed_millis()
