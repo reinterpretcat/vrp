@@ -275,7 +275,7 @@ fn configure_from_selection(
             .iter()
             .map(|item| match item {
                 SelectionType::Naive { name, offspring_size } => {
-                    (name, Arc::new(NaiveSelection::new(offspring_size.unwrap_or_else(|| get_cpus()))))
+                    (name, Arc::new(NaiveSelection::new(offspring_size.unwrap_or_else(get_cpus))))
                 }
             })
             .collect::<HashMap<_, _>>();
