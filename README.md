@@ -1,6 +1,7 @@
 [![](https://docs.rs/vrp-core/badge.svg)](https://docs.rs/vrp-core)
 [![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli)
 ![build](https://github.com/reinterpretcat/vrp/workflows/build/badge.svg)
+[![codecov](https://codecov.io/gh/reinterpretcat/vrp/branch/master/graph/badge.svg)](https://codecov.io/gh/reinterpretcat/vrp)
 
 ![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
 

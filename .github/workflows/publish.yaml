@@ -13,6 +13,7 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
+
       - name: Push to GitHub Container Registry
         uses: docker/build-push-action@v1
         with:
@@ -28,6 +29,7 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
+
       - name: Publish all packages from workspace
         run: |
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
@@ -42,15 +44,18 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
+
       - name: Build WebAssembly artefact
         run: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
           cd vrp-cli
           wasm-pack build --target web
+
       - name: Archive artifacts
         uses: montudor/action-zip@v0.1.0
         with:
           args: zip -qq -r vrp_cli_wasm.zip vrp-cli/pkg
+
       - name: Create tag and release on github repo
         id: create_release
         uses: actions/create-release@v1
@@ -61,6 +66,7 @@ jobs:
           release_name: ${{ github.event.inputs.release_tag }}
           draft: false
           prerelease: false
+
       - name: Upload release asset
         uses: actions/upload-release-asset@v1
         env:
