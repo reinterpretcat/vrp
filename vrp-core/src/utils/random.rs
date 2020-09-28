@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/utils/random_test.rs"]
+mod random_test;
+
 use rand::prelude::*;
 
 /// Provides the way to use randomized values in generic way.

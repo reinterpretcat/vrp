@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/common/text_writer_test.rs"]
+mod text_writer_test;
+
 use std::io::{BufWriter, Error, ErrorKind, Write};
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::Solution;
