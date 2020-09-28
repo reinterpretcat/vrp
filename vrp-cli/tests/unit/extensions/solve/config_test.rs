@@ -1,5 +1,6 @@
 use super::*;
 use std::fs::File;
+use vrp_core::models::examples::create_example_problem;
 
 #[test]
 fn can_read_config() {
@@ -34,4 +35,22 @@ fn can_read_config() {
     let mutation_config = config.mutation.expect("cannot get mutation");
     assert_eq!(mutation_config.name, "default-branching");
     assert_eq!(mutation_config.collection.len(), 3);
+}
+
+#[test]
+fn can_create_builder_from_config() {
+    let file = File::open("../examples/data/config/config.full.json").expect("cannot read config from file");
+    let config = read_config(BufReader::new(file)).unwrap();
+    let problem = create_example_problem();
+
+    let builder = create_builder_from_config(problem.clone(), &config).unwrap();
+
+    assert!(builder.seed.is_none());
+    assert_eq!(builder.config.problem.as_ref() as *const Problem, problem.as_ref() as *const Problem);
+    assert_eq!(builder.config.population.max_size, 4);
+    assert_eq!(builder.config.population.initial.size, 1);
+    assert_eq!(builder.config.population.initial.individuals.len(), 0);
+    assert_eq!(builder.config.population.initial.methods.len(), 1);
+    assert_eq!(builder.max_time, Some(300));
+    assert_eq!(builder.max_generations, Some(3000));
 }
