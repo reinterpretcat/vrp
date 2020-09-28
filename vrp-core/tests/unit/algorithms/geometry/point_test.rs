@@ -20,3 +20,12 @@ pub fn can_calculate_distance_to_line() {
 
     assert_eq!(round(c.distance_to_line(&a, &b)), 5.506);
 }
+
+#[test]
+pub fn can_calculate_distance_to_segment() {
+    let a = Point::new(0., 0.);
+    let b = Point::new(1., 0.);
+    let c = Point::new(4., 2.);
+
+    assert_eq!(round(c.distance_to_segment(&a, &b)), round(13_f64.sqrt()));
+}
