@@ -242,6 +242,12 @@ pub struct NameWeight {
     pub weight: usize,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self { population: None, selection: None, mutation: None, termination: None, telemetry: None }
+    }
+}
+
 fn configure_from_population(
     mut builder: Builder,
     population_config: &Option<PopulationConfig>,
