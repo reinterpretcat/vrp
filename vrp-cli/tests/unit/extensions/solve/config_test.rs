@@ -54,3 +54,14 @@ fn can_create_builder_from_config() {
     assert_eq!(builder.max_time, Some(300));
     assert_eq!(builder.max_generations, Some(3000));
 }
+
+#[test]
+fn can_create_default_config() {
+    let config = Config::default();
+
+    assert!(config.population.is_none());
+    assert!(config.selection.is_none());
+    assert!(config.mutation.is_none());
+    assert!(config.termination.is_none());
+    assert!(config.telemetry.is_none());
+}

@@ -23,15 +23,15 @@ use vrp_core::utils::get_cpus;
 #[derive(Clone, Deserialize, Debug)]
 pub struct Config {
     /// Specifies population configuration.
-    population: Option<PopulationConfig>,
+    pub population: Option<PopulationConfig>,
     /// Specifies mutation operator configuration.
-    selection: Option<SelectionConfig>,
+    pub selection: Option<SelectionConfig>,
     /// Specifies mutation operator configuration.
-    mutation: Option<MutationConfig>,
+    pub mutation: Option<MutationConfig>,
     /// Specifies algorithm termination configuration.
-    termination: Option<TerminationConfig>,
+    pub termination: Option<TerminationConfig>,
     /// Specifies telemetry configuration.
-    telemetry: Option<TelemetryConfig>,
+    pub telemetry: Option<TelemetryConfig>,
 }
 
 /// A population configuration.
