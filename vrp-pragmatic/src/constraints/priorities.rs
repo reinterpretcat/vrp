@@ -1,9 +1,11 @@
+use std::cmp::Ordering;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::Job;
+use vrp_core::utils::compare_floats;
 
 /** Adds some extra penalty to jobs with priority bigger than 1. */
 pub struct PriorityModule {
@@ -43,7 +45,12 @@ struct PrioritySoftRouteConstraint {}
 
 impl SoftRouteConstraint for PrioritySoftRouteConstraint {
     fn estimate_job(&self, solution_ctx: &SolutionContext, _: &RouteContext, job: &Job) -> f64 {
-        get_priority(job).map_or(0., |priority| ((priority - 1) as f64 * solution_ctx.get_max_cost().max(1E9)))
+        get_priority(job).map_or(0., |priority| {
+            let solution_cost = solution_ctx.get_max_cost();
+            let penalty = if compare_floats(solution_cost, 0.) == Ordering::Equal { 1E9 } else { solution_cost * 2. };
+
+            (priority - 1) as f64 * penalty
+        })
     }
 }
 
