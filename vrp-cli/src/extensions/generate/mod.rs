@@ -3,10 +3,14 @@
 mod plan;
 use self::plan::generate_plan;
 
+mod fleet;
+use self::fleet::generate_fleet;
+
 mod prototype;
-pub use self::prototype::generate_from_prototype;
+use self::prototype::generate_from_prototype;
 
 use std::io::{BufReader, Read};
+use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
 use vrp_pragmatic::format::FormatError;
 
@@ -15,6 +19,7 @@ pub fn generate_problem<R: Read>(
     input_format: &str,
     readers: Option<Vec<BufReader<R>>>,
     job_size: usize,
+    vehicles_size: usize,
     area_size: Option<f64>,
 ) -> Result<Problem, String> {
     match (input_format, readers) {
@@ -25,8 +30,17 @@ pub fn generate_problem<R: Read>(
             let problem_reader = readers.swap_remove(0);
             let problem_proto = deserialize_problem(problem_reader)
                 .map_err(|errors| FormatError::format_many(errors.as_slice(), "\t\n"))?;
-            generate_from_prototype(&problem_proto, job_size, area_size)
+            generate_from_prototype(&problem_proto, job_size, vehicles_size, area_size)
         }
         _ => Err(format!("unknown format: '{}'", input_format)),
     }
+}
+
+fn get_random_item<'a, T>(items: &'a [T], rnd: &DefaultRandom) -> Option<&'a T> {
+    if items.is_empty() {
+        return None;
+    }
+
+    let idx = rnd.uniform_int(0, items.len() as i32 - 1) as usize;
+    items.get(idx)
 }

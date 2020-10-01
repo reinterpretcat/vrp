@@ -8,6 +8,7 @@ pub const FORMAT_ARG_NAME: &str = "FORMAT";
 pub const PROTOTYPES_ARG_NAME: &str = "prototypes";
 pub const OUT_RESULT_ARG_NAME: &str = "out-result";
 pub const JOBS_SIZE_ARG_NAME: &str = "jobs-size";
+pub const VEHICLES_SIZE_ARG_NAME: &str = "vehicles-size";
 pub const AREA_SIZE_ARG_NAME: &str = "area-size";
 
 pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
@@ -46,6 +47,14 @@ pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name(VEHICLES_SIZE_ARG_NAME)
+                .help("Amount of vehicle types in the fleet of generated problem")
+                .short("v")
+                .long(VEHICLES_SIZE_ARG_NAME)
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name(AREA_SIZE_ARG_NAME)
                 .help("Half side size of job distribution bounding box. Center is calculated using prototype locations")
                 .short("a")
@@ -61,9 +70,10 @@ pub fn run_generate(matches: &ArgMatches) {
         .values_of(PROTOTYPES_ARG_NAME)
         .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "input"))).collect::<Vec<_>>());
     let jobs_size = parse_int_value::<usize>(matches, JOBS_SIZE_ARG_NAME, "jobs size").unwrap();
+    let vehicles_size = parse_int_value::<usize>(matches, VEHICLES_SIZE_ARG_NAME, "vehicles size").unwrap();
     let area_size = parse_float_value::<f64>(matches, AREA_SIZE_ARG_NAME, "area size");
 
-    match generate_problem(input_format, input_files, jobs_size, area_size) {
+    match generate_problem(input_format, input_files, jobs_size, vehicles_size, area_size) {
         Ok(problem) => {
             let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
             let out_buffer = create_write_buffer(out_result);

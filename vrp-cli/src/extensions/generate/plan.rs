@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/extensions/generate/plan_test.rs"]
 mod plan_test;
 
+use super::get_random_item;
 use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
 use vrp_pragmatic::format::Location;
@@ -9,7 +10,7 @@ use vrp_pragmatic::format::Location;
 /// Generates a new plan for given problem with amount of jobs specified by`jobs_size` and
 /// bounding box of size `area_size` (half size in meters). When not specified, jobs bounding
 /// box is used.
-pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option<f64>) -> Result<Plan, String> {
+pub(crate) fn generate_plan(problem_proto: &Problem, jobs_size: usize, area_size: Option<f64>) -> Result<Plan, String> {
     let rnd = DefaultRandom::default();
 
     let bounding_box = if let Some(area_size) = area_size {
@@ -52,7 +53,7 @@ pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option
         })
     };
 
-    let jobs = (1..=job_size)
+    let jobs = (1..=jobs_size)
         .map(|job_idx| {
             let job_proto = get_random_item(problem_proto.plan.jobs.as_slice(), &rnd).unwrap();
 
@@ -152,15 +153,6 @@ fn get_job_tasks(job: &Job) -> impl Iterator<Item = &JobTask> {
         .chain(job.deliveries.iter().flat_map(|tasks| tasks.iter()))
         .chain(job.replacements.iter().flat_map(|tasks| tasks.iter()))
         .chain(job.services.iter().flat_map(|tasks| tasks.iter()))
-}
-
-fn get_random_item<'a, T>(items: &'a [T], rnd: &DefaultRandom) -> Option<&'a T> {
-    if items.is_empty() {
-        return None;
-    }
-
-    let idx = rnd.uniform_int(0, items.len() as i32 - 1) as usize;
-    items.get(idx)
 }
 
 fn get_random_location(bounding_box: &((f64, f64), (f64, f64)), rnd: &DefaultRandom) -> Location {

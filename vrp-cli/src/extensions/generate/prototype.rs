@@ -10,14 +10,19 @@ use vrp_pragmatic::format::problem::Problem;
 /// Its main goal is to discover problem space by generating many, potentially unrealistic, problems
 /// using property based approach. This implementation, in contrast, focuses on generating realistic
 /// problems.
-pub fn generate_from_prototype(problem: &Problem, job_size: usize, area_size: Option<f64>) -> Result<Problem, String> {
+pub(crate) fn generate_from_prototype(
+    problem: &Problem,
+    jobs_size: usize,
+    vehicle_types_size: usize,
+    area_size: Option<f64>,
+) -> Result<Problem, String> {
     if problem.plan.jobs.len() < 3 {
         return Err("at least three jobs should be defined".to_string());
     }
 
     Ok(Problem {
-        plan: generate_plan(&problem, job_size, area_size)?,
-        fleet: problem.fleet.clone(),
+        plan: generate_plan(&problem, jobs_size, area_size)?,
+        fleet: generate_fleet(&problem, vehicle_types_size)?,
         objectives: problem.objectives.clone(),
         config: problem.config.clone(),
     })

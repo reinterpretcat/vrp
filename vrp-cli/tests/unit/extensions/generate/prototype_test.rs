@@ -19,8 +19,8 @@ fn can_generate_jobs_with_time_windows() {
         config: None,
     };
 
-    let result =
-        generate_from_prototype(&problem, 10, None).unwrap_or_else(|err| panic!(format!("cannot generate: '{}'", err)));
+    let result = generate_from_prototype(&problem, 10, 2, None)
+        .unwrap_or_else(|err| panic!(format!("cannot generate: '{}'", err)));
 
     assert_eq!(result.plan.jobs.len(), 10);
     assert_eq!(
