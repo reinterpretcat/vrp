@@ -12,12 +12,15 @@ fn can_limit_by_area() {
                 limits: Some(VehicleLimits {
                     max_distance: None,
                     shift_time: None,
-                    allowed_areas: Some(vec![vec![
-                        Location::new_coordinate(-5., -5.),
-                        Location::new_coordinate(5., -5.),
-                        Location::new_coordinate(5., 5.),
-                        Location::new_coordinate(-5., 5.),
-                    ]]),
+                    allowed_areas: Some(vec![AreaLimit {
+                        priority: None,
+                        outer_shape: vec![
+                            Location::new_coordinate(-5., -5.),
+                            Location::new_coordinate(5., -5.),
+                            Location::new_coordinate(5., 5.),
+                            Location::new_coordinate(-5., 5.),
+                        ],
+                    }]),
                 }),
                 ..create_default_vehicle_type()
             }],

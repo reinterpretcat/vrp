@@ -130,7 +130,7 @@ fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<
                 .limits
                 .as_ref()
                 .and_then(|l| l.allowed_areas.as_ref())
-                .map_or(false, |areas| areas.is_empty() || areas.iter().any(|area| area.len() < 3))
+                .map_or(false, |areas| areas.is_empty() || areas.iter().any(|area| area.outer_shape.len() < 3))
         })
         .map(|vehicle| vehicle.type_id.to_string())
         .collect::<Vec<_>>();

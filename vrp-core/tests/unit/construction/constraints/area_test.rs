@@ -3,31 +3,23 @@ use crate::helpers::construction::constraints::create_constraint_pipeline_with_m
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::common::ValueDimension;
+use crate::models::common::{Cost, ValueDimension};
 use crate::models::problem::Fleet;
 
-fn create_fleet() -> Fleet {
-    let mut vehicle1 = test_vehicle_with_id("v1");
-    vehicle1.dimens.set_value("areas", vec![vec![(-5., -5.), (-5., 5.), (5., 5.), (5., -5.)]]);
+fn create_fleet(areas: Vec<Area>) -> Fleet {
+    let mut vehicle = test_vehicle_with_id("v1");
+    vehicle.dimens.set_value("areas", areas);
 
     FleetBuilder::default()
         .add_driver(test_driver())
-        .add_vehicle(vehicle1)
+        .add_vehicle(vehicle)
         .add_vehicle(test_vehicle_with_id("v2"))
         .build()
 }
 
 fn create_area_constraint_pipeline() -> ConstraintPipeline {
     create_constraint_pipeline_with_module(Box::new(AreaModule::new(
-        Arc::new({
-            move |actor| {
-                if get_vehicle_id(&actor.vehicle) == "v1" {
-                    actor.vehicle.dimens.get_value::<Vec<Vec<(f64, f64)>>>("areas")
-                } else {
-                    None
-                }
-            }
-        }),
+        Arc::new(move |actor| actor.vehicle.dimens.get_value::<Vec<Area>>("areas")),
         Arc::new(|location| (location as f64, 0.)),
         2,
     )))
@@ -54,8 +46,9 @@ fn can_check_single_job_impl(
     activity_location: Location,
     expected: (Option<()>, Option<()>),
 ) {
+    let areas = vec![Area { priority: None, outer_shape: vec![(-5., -5.), (-5., 5.), (5., 5.), (5., -5.)] }];
     let solution_ctx = create_empty_solution_context();
-    let route_ctx = create_route_context_with_activities(&create_fleet(), vehicle_id, vec![]);
+    let route_ctx = create_route_context_with_activities(&create_fleet(areas), vehicle_id, vec![]);
     let activity_ctx = ActivityContext {
         index: 0,
         prev: &test_activity_without_job(),
@@ -89,8 +82,9 @@ can_check_multi_job! {
 }
 
 fn can_check_multi_job_impl(job_locations: Vec<Option<Location>>, expected: Option<()>) {
+    let areas = vec![Area { priority: None, outer_shape: vec![(-5., -5.), (-5., 5.), (5., 5.), (5., -5.)] }];
     let solution_ctx = create_empty_solution_context();
-    let route_ctx = create_route_context_with_activities(&create_fleet(), "v1", vec![]);
+    let route_ctx = create_route_context_with_activities(&create_fleet(areas), "v1", vec![]);
     let pipeline = create_area_constraint_pipeline();
     let mut builder = MultiBuilder::default();
     job_locations.into_iter().for_each(|location| {
@@ -135,4 +129,50 @@ fn can_check_location_in_area() {
     let polygon =
         vec![(52.481171, 13.4107070), (52.480248, 13.4101200), (52.480237, 13.4062790), (52.481161, 13.4062610)];
     assert_eq!(is_location_in_area(&(52.480890, 13.4081030), &polygon), true);
+}
+
+parameterized_test! {can_estimate_activity_with_penalty, (priority, route_cost, expected), {
+    can_estimate_activity_with_penalty_impl(priority, route_cost, expected);
+}}
+
+can_estimate_activity_with_penalty! {
+    case01: (None, None, 0.),
+    case02: (Some(1), None, 0.),
+    case03: (Some(2), None, 1E9),
+    case04: (Some(3), None, 2E9),
+
+    case05: (None, Some(100.), 0.),
+    case06: (Some(1), Some(100.), 0.),
+    case07: (Some(2), Some(100.), 400.),
+
+    case08: (None, Some(0.), 0.),
+    case09: (Some(1), Some(0.), 0.),
+    case10: (Some(2), Some(0.), 1E9),
+    case11: (Some(3), Some(0.), 2E9),
+}
+
+fn can_estimate_activity_with_penalty_impl(priority: Option<usize>, route_cost: Option<Cost>, expected_cost: Cost) {
+    let areas = vec![Area { priority, outer_shape: vec![(-1., -1.), (-1., 1.), (1., 1.), (1., -1.)] }];
+    let area_constraint = AreaSoftActivityConstraint {
+        area_resolver: Arc::new(move |actor| actor.vehicle.dimens.get_value::<Vec<Area>>("areas")),
+        location_resolver: Arc::new(|location| (location as f64, 0.)),
+    };
+
+    let mut route_ctx = create_route_context_with_activities(&create_fleet(areas), "v1", vec![]);
+
+    if let Some(route_cost) = route_cost {
+        route_ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, route_cost);
+    }
+
+    let cost = area_constraint.estimate_activity(
+        &route_ctx,
+        &ActivityContext {
+            index: 0,
+            prev: &test_activity_with_location(1),
+            target: &test_activity_with_location(0),
+            next: None,
+        },
+    );
+
+    assert_eq!(cost, expected_cost);
 }

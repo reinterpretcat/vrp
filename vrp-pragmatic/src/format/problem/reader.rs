@@ -294,7 +294,7 @@ fn add_capacity_module(constraint: &mut ConstraintPipeline, props: &ProblemPrope
 
 fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIndex>) {
     constraint.add_module(Box::new(AreaModule::new(
-        Arc::new(|actor| actor.vehicle.dimens.get_value::<Vec<Vec<(f64, f64)>>>("areas")),
+        Arc::new(|actor| actor.vehicle.dimens.get_value::<Vec<Area>>("areas")),
         Arc::new(move |location| {
             coord_index
                 .get_by_idx(location)

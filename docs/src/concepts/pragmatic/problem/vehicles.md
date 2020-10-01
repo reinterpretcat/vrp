@@ -32,15 +32,19 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 
 - **skills** (optional): vehicle skills needed by some jobs
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:122:124}}
+{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:120:122}}
 ```
 
 - **limits** (optional): vehicle limits. There are two:
     
     - **shiftTime** (optional): max shift time
     - **maxDistance** (optional): max distance
-    - **allowedAreas** (optional): a list of areas where vehicle is allowed to serve jobs. Each area is closed polygon
-      specified by coordinates. No area restrictions when omitted.
+    - **allowedAreas** (optional): a list of areas where vehicle is allowed to serve jobs. Each area is defined by:
+        * _priority_ (optional): an area priority, bigger value - less important. You can use this property to prioritize
+        jobs in one area over another.
+        * _outerShape_ (required): closed polygon specified by coordinates.
+
+        No area restrictions when omitted.
 
 An example:
 

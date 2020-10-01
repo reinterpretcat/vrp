@@ -9,7 +9,7 @@ use crate::format::problem::Matrix;
 use crate::parse_time;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use vrp_core::construction::constraints::TravelLimitFunc;
+use vrp_core::construction::constraints::{Area, TravelLimitFunc};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
@@ -89,8 +89,14 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         };
 
         let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
-        let areas = vehicle.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map(|areas| {
-            areas.iter().map(|area| area.iter().map(|l| l.to_lat_lng()).collect::<Vec<_>>()).collect::<Vec<_>>()
+        let mut areas = vehicle.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map(|areas| {
+            areas
+                .iter()
+                .map(|area| Area {
+                    priority: area.priority,
+                    outer_shape: area.outer_shape.iter().map(|l| l.to_lat_lng()).collect::<Vec<_>>(),
+                })
+                .collect::<Vec<_>>()
         });
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
@@ -124,7 +130,7 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 dimens.set_value("shift_index", shift_index);
                 dimens.set_id(vehicle_id);
 
-                if let Some(areas) = areas.clone() {
+                if let Some(areas) = areas.take() {
                     dimens.set_value("areas", areas);
                 }
 

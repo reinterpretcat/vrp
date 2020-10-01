@@ -216,7 +216,18 @@ pub struct VehicleLimits {
     /// Specifies a list of areas where vehicle can serve jobs.
     /// No area restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub allowed_areas: Option<Vec<Vec<Location>>>,
+    pub allowed_areas: Option<Vec<AreaLimit>>,
+}
+
+/// Specifies area limit.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaLimit {
+    /// An area priority, bigger value - less important.
+    /// Default is 1.
+    pub priority: Option<usize>,
+    /// An area outer shape.
+    pub outer_shape: Vec<Location>,
 }
 
 /// Vehicle break time variant.

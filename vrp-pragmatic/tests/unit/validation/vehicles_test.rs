@@ -23,11 +23,17 @@ can_detect_invalid_area! {
     case08: (Some(vec![vec![coord(0., 0.), coord(0., 1.), coord(1., 1.)], vec![coord(0., 1.)]]), Some(())),
 }
 
-fn can_detect_invalid_area_impl(allowed_areas: Option<Vec<Vec<Location>>>, expected: Option<()>) {
+fn can_detect_invalid_area_impl(allowed_shapes: Option<Vec<Vec<Location>>>, expected: Option<()>) {
     let problem = Problem {
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                limits: Some(VehicleLimits { max_distance: None, shift_time: None, allowed_areas }),
+                limits: Some(VehicleLimits {
+                    max_distance: None,
+                    shift_time: None,
+                    allowed_areas: allowed_shapes.map(|shapes| {
+                        shapes.into_iter().map(|shape| AreaLimit { priority: None, outer_shape: shape }).collect()
+                    }),
+                }),
                 ..create_default_vehicle_type()
             }],
             profiles: vec![],
