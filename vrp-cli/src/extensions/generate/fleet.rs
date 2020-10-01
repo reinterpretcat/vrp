@@ -20,7 +20,7 @@ pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize)
     let vehicles = (1..=vehicle_types_size)
         .map(|type_idx| {
             let type_id = format!("type{}", type_idx);
-            let vehicles = get_random_item(vehicles_sizes.as_slice(), &rnd).expect("cannot find any capacity").clone();
+            let vehicles = *get_random_item(vehicles_sizes.as_slice(), &rnd).expect("cannot find any capacity");
             VehicleType {
                 type_id,
                 vehicle_ids: (1..=vehicles).map(|vehicle_idx| format!("type{}_{}", type_idx, vehicle_idx)).collect(),
