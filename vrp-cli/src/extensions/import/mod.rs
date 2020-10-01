@@ -1,9 +1,10 @@
 //! Import command helpers
 
 mod csv;
-use self::csv::read_csv_problem;
+pub use self::csv::*;
+
 mod hre;
-use self::hre::read_hre_problem;
+pub use self::hre::*;
 
 use std::io::{BufReader, Read};
 use vrp_pragmatic::format::problem::Problem;

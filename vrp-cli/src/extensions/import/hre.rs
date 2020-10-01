@@ -7,7 +7,8 @@ mod hre_test;
 extern crate serde_json;
 
 use serde::{Deserialize, Serialize};
-use std::io::{BufReader, Read};
+use serde_json::Error;
+use std::io::{BufReader, BufWriter, Read, Write};
 use vrp_pragmatic::format::problem::*;
 use vrp_pragmatic::format::{FormatError, Location};
 
@@ -320,6 +321,7 @@ fn to_loc(loc: &models::Location) -> Location {
     Location::Coordinate { lat: loc.lat, lng: loc.lng }
 }
 
+/// Reads hre problem and converts it to pragmatic format.
 pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, FormatError> {
     let job_place_mapper = |job: &models::Job, place: &models::JobPlace| JobTask {
         places: vec![JobPlace {
@@ -475,4 +477,9 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
         objectives: None,
         config: None,
     })
+}
+
+/// Converts pragmatic problem to hre and writes it.
+pub fn write_hre_problem<W: Write>(_writer: BufWriter<W>, _pragmatic_problem: &Problem) -> Result<(), Error> {
+    unimplemented!()
 }

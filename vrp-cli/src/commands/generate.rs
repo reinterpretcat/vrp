@@ -2,6 +2,7 @@ use super::*;
 use std::io::BufReader;
 use std::process;
 use vrp_cli::extensions::generate::generate_problem;
+use vrp_cli::extensions::import::write_hre_problem;
 use vrp_pragmatic::format::problem::serialize_problem;
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";
@@ -18,7 +19,7 @@ pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
             Arg::with_name(FORMAT_ARG_NAME)
                 .help("Specifies input type")
                 .required(true)
-                .possible_values(&["pragmatic"])
+                .possible_values(&["pragmatic", "hre"])
                 .index(1),
         )
         .arg(
@@ -77,7 +78,17 @@ pub fn run_generate(matches: &ArgMatches) {
         Ok(problem) => {
             let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
             let out_buffer = create_write_buffer(out_result);
-            if let Err(err) = serialize_problem(out_buffer, &problem) {
+
+            let result = match input_format {
+                "pragmatic" => serialize_problem(out_buffer, &problem),
+                "hre" => write_hre_problem(out_buffer, &problem),
+                _ => {
+                    eprintln!("Unknown output format: '{}'", input_format);
+                    process::exit(1);
+                }
+            };
+
+            if let Err(err) = result {
                 eprintln!("Cannot serialize result problem: '{}'", err);
                 process::exit(1);
             }
