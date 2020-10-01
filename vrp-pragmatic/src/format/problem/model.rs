@@ -473,6 +473,17 @@ pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<F
     })
 }
 
+/// Deserializes json list of locations from `BufReader`.
+pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Location>, Vec<FormatError>> {
+    serde_json::from_reader(reader).map_err(|err| {
+        vec![FormatError::new(
+            "E0000".to_string(),
+            "cannot deserialize locations".to_string(),
+            format!("check input json: '{}'", err),
+        )]
+    })
+}
+
 /// Serializes `problem` in json from `writer`.
 pub fn serialize_problem<W: Write>(writer: BufWriter<W>, problem: &Problem) -> Result<(), Error> {
     serde_json::to_writer_pretty(writer, problem)

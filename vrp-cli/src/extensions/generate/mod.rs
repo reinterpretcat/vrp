@@ -11,18 +11,25 @@ use self::prototype::generate_from_prototype;
 
 use std::io::{BufReader, Read};
 use vrp_core::utils::{DefaultRandom, Random};
-use vrp_pragmatic::format::problem::{deserialize_problem, Problem};
+use vrp_pragmatic::format::problem::*;
 use vrp_pragmatic::format::FormatError;
 
 /// Generates a pragmatic problem.
 pub fn generate_problem<R: Read>(
     input_format: &str,
-    readers: Option<Vec<BufReader<R>>>,
+    prototype_readers: Option<Vec<BufReader<R>>>,
+    locations_reader: Option<BufReader<R>>,
     job_size: usize,
     vehicles_size: usize,
     area_size: Option<f64>,
 ) -> Result<Problem, String> {
-    match (input_format, readers) {
+    let locations = if let Some(locations_reader) = locations_reader {
+        Some(deserialize_locations(locations_reader).map_err(|err| FormatError::format_many(err.as_slice(), "\n"))?)
+    } else {
+        None
+    };
+
+    match (input_format, prototype_readers) {
         ("pragmatic", Some(readers)) if readers.len() != 1 => {
             Err(format!("expecting one input file, specified: '{}'", readers.len()))
         }
@@ -30,7 +37,7 @@ pub fn generate_problem<R: Read>(
             let problem_reader = readers.swap_remove(0);
             let problem_proto = deserialize_problem(problem_reader)
                 .map_err(|errors| FormatError::format_many(errors.as_slice(), "\t\n"))?;
-            generate_from_prototype(&problem_proto, job_size, vehicles_size, area_size)
+            generate_from_prototype(&problem_proto, locations, job_size, vehicles_size, area_size)
         }
         _ => Err(format!("unknown format: '{}'", input_format)),
     }

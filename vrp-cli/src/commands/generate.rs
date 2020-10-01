@@ -12,6 +12,7 @@ pub const PROTOTYPES_ARG_NAME: &str = "prototypes";
 pub const OUT_RESULT_ARG_NAME: &str = "out-result";
 pub const JOBS_SIZE_ARG_NAME: &str = "jobs-size";
 pub const VEHICLES_SIZE_ARG_NAME: &str = "vehicles-size";
+pub const LOCATIONS_ARG_NAME: &str = "locations";
 pub const AREA_SIZE_ARG_NAME: &str = "area-size";
 
 pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
@@ -35,9 +36,17 @@ pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
         )
         .arg(
             Arg::with_name(OUT_RESULT_ARG_NAME)
-                .help("Specifies path to file for result output")
+                .help("Specifies path to the file for result output")
                 .short("o")
                 .long(OUT_RESULT_ARG_NAME)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(LOCATIONS_ARG_NAME)
+                .help("Specifies path to the file with a list of job locations")
+                .short("l")
+                .long(LOCATIONS_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
@@ -72,11 +81,13 @@ pub fn run_generate(matches: &ArgMatches) {
     let input_files = matches
         .values_of(PROTOTYPES_ARG_NAME)
         .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "input"))).collect::<Vec<_>>());
+    let locations_file = matches.value_of(LOCATIONS_ARG_NAME).map(|path| BufReader::new(open_file(path, "locations")));
+
     let jobs_size = parse_int_value::<usize>(matches, JOBS_SIZE_ARG_NAME, "jobs size").unwrap();
     let vehicles_size = parse_int_value::<usize>(matches, VEHICLES_SIZE_ARG_NAME, "vehicles size").unwrap();
     let area_size = parse_float_value::<f64>(matches, AREA_SIZE_ARG_NAME, "area size");
 
-    match generate_problem(input_format, input_files, jobs_size, vehicles_size, area_size) {
+    match generate_problem(input_format, input_files, locations_file, jobs_size, vehicles_size, area_size) {
         Ok(problem) => {
             if let Err(errors) = ValidationContext::new(&problem, None).validate() {
                 eprintln!(
