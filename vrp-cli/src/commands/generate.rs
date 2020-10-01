@@ -4,6 +4,8 @@ use std::process;
 use vrp_cli::extensions::generate::generate_problem;
 use vrp_cli::extensions::import::write_hre_problem;
 use vrp_pragmatic::format::problem::serialize_problem;
+use vrp_pragmatic::format::FormatError;
+use vrp_pragmatic::validation::ValidationContext;
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";
 pub const PROTOTYPES_ARG_NAME: &str = "prototypes";
@@ -76,6 +78,13 @@ pub fn run_generate(matches: &ArgMatches) {
 
     match generate_problem(input_format, input_files, jobs_size, vehicles_size, area_size) {
         Ok(problem) => {
+            if let Err(errors) = ValidationContext::new(&problem, None).validate() {
+                eprintln!(
+                    "Generated problem has some validation errors:\n{}",
+                    FormatError::format_many(errors.as_slice(), "\n")
+                );
+            };
+
             let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
             let out_buffer = create_write_buffer(out_result);
 
@@ -91,6 +100,8 @@ pub fn run_generate(matches: &ArgMatches) {
             if let Err(err) = result {
                 eprintln!("Cannot serialize result problem: '{}'", err);
                 process::exit(1);
+            } else {
+                println!("Problem has been generated");
             }
         }
         Err(err) => {
