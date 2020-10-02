@@ -1,4 +1,5 @@
 use super::*;
+use crate::helpers::generate::*;
 
 #[test]
 fn can_import_hre_problem() {
@@ -200,4 +201,169 @@ fn can_import_hre_problem() {
     assert_eq!(shift.breaks.as_ref().unwrap().len(), 1);
     assert_eq!(shift.depots.as_ref().unwrap().len(), 1);
     assert_eq!(shift.reloads.as_ref().unwrap().len(), 1);
+}
+
+#[test]
+fn can_write_hre_problem() {
+    let pragmatic_problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                Job {
+                    id: "job1".to_string(),
+                    pickups: Some(vec![JobTask {
+                        places: vec![JobPlace {
+                            location: Location::Coordinate { lat: 1., lng: 0. },
+                            times: Some(vec![create_test_time_window()]),
+                            ..create_empty_job_place()
+                        }],
+                        demand: Some(vec![1]),
+                        ..create_empty_job_task()
+                    }]),
+                    skills: Some(vec!["skill1".to_string()]),
+                    ..create_empty_job()
+                },
+                Job {
+                    id: "job2".to_string(),
+                    deliveries: Some(vec![JobTask {
+                        places: vec![JobPlace {
+                            location: Location::Coordinate { lat: 2., lng: 0. },
+                            times: Some(vec![create_test_time_window()]),
+                            ..create_empty_job_place()
+                        }],
+                        demand: Some(vec![1]),
+                        ..create_empty_job_task()
+                    }]),
+                    ..create_empty_job()
+                },
+                Job {
+                    id: "job3".to_string(),
+                    pickups: Some(vec![JobTask {
+                        places: vec![JobPlace {
+                            location: Location::Coordinate { lat: 3., lng: 0. },
+                            times: Some(vec![create_test_time_window()]),
+                            ..create_empty_job_place()
+                        }],
+                        demand: Some(vec![1]),
+                        ..create_empty_job_task()
+                    }]),
+                    deliveries: Some(vec![JobTask {
+                        places: vec![JobPlace {
+                            location: Location::Coordinate { lat: 4., lng: 0. },
+                            times: Some(vec![create_test_time_window()]),
+                            ..create_empty_job_place()
+                        }],
+                        demand: Some(vec![1]),
+                        ..create_empty_job_task()
+                    }]),
+                    ..create_empty_job()
+                },
+                Job {
+                    id: "job4".to_string(),
+                    pickups: Some(vec![
+                        JobTask {
+                            places: vec![JobPlace {
+                                location: Location::Coordinate { lat: 5., lng: 0. },
+                                times: Some(vec![create_test_time_window()]),
+                                ..create_empty_job_place()
+                            }],
+                            demand: Some(vec![1]),
+                            ..create_empty_job_task()
+                        },
+                        JobTask {
+                            places: vec![JobPlace {
+                                location: Location::Coordinate { lat: 6., lng: 0. },
+                                times: Some(vec![create_test_time_window()]),
+                                ..create_empty_job_place()
+                            }],
+                            demand: Some(vec![1]),
+                            ..create_empty_job_task()
+                        },
+                    ]),
+                    deliveries: Some(vec![JobTask {
+                        places: vec![JobPlace {
+                            location: Location::Coordinate { lat: 4., lng: 0. },
+                            times: Some(vec![create_test_time_window()]),
+                            ..create_empty_job_place()
+                        }],
+                        demand: Some(vec![1]),
+                        ..create_empty_job_task()
+                    }]),
+                    ..create_empty_job()
+                },
+            ],
+            relations: Some(vec![
+                Relation {
+                    type_field: RelationType::Any,
+                    jobs: vec!["job1".to_string()],
+                    vehicle_id: "vehicle_1".to_string(),
+                    shift_index: None,
+                },
+                Relation {
+                    type_field: RelationType::Sequence,
+                    jobs: vec!["job1".to_string()],
+                    vehicle_id: "vehicle_1".to_string(),
+                    shift_index: None,
+                },
+                Relation {
+                    type_field: RelationType::Strict,
+                    jobs: vec!["job1".to_string()],
+                    vehicle_id: "vehicle_1".to_string(),
+                    shift_index: None,
+                },
+            ]),
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                type_id: "vehicle".to_string(),
+                vehicle_ids: vec!["vehicle_1".to_string()],
+                profile: "car".to_string(),
+                costs: VehicleCosts { fixed: None, distance: 0.0, time: 0.0 },
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: "2020-05-01T09:00:00.00Z".to_string(),
+                        latest: None,
+                        location: Location::Coordinate { lat: 0.0, lng: 0.0 },
+                    },
+                    end: Some(ShiftEnd {
+                        earliest: None,
+                        latest: "2020-05-01T18:00:00.00Z".to_string(),
+                        location: Location::Coordinate { lat: 0.0, lng: 0.0 },
+                    }),
+                    depots: None,
+                    breaks: Some(vec![VehicleBreak {
+                        time: VehicleBreakTime::TimeWindow(vec![
+                            "2020-05-01T12:00:00.00Z".to_string(),
+                            "2020-05-01T13:00:00.00Z".to_string(),
+                        ]),
+                        duration: 1800.,
+                        locations: None,
+                    }]),
+                    reloads: None,
+                }],
+                capacity: vec![10],
+                skills: Some(vec!["skill1".to_string()]),
+                limits: Some(VehicleLimits {
+                    max_distance: Some(10000.),
+                    shift_time: Some(14400.),
+                    allowed_areas: None,
+                }),
+            }],
+            profiles: vec![Profile { name: "normal_car".to_string(), profile_type: "car".to_string(), speed: None }],
+        },
+        objectives: None,
+        config: None,
+    };
+    let mut buffer = String::new();
+    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+
+    write_hre_problem(writer, &pragmatic_problem).unwrap();
+
+    let hre_problem: models::Problem =
+        serde_json::from_reader(BufReader::new(buffer.as_bytes())).expect("cannot read hre problem");
+
+    // TODO improve check
+    assert_eq!(hre_problem.plan.jobs.len(), 4);
+    assert_eq!(hre_problem.plan.relations.map_or(0, |relations| relations.len()), 3);
+    assert_eq!(hre_problem.fleet.types.len(), 1);
+    assert_eq!(hre_problem.fleet.profiles.len(), 1);
 }

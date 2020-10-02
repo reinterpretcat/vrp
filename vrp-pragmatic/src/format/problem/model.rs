@@ -6,8 +6,7 @@ extern crate serde_json;
 
 use crate::format::{FormatError, Location};
 use serde::{Deserialize, Serialize};
-use serde_json::Error;
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Error, Read, Write};
 
 // region Plan
 
@@ -486,5 +485,5 @@ pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Locati
 
 /// Serializes `problem` in json from `writer`.
 pub fn serialize_problem<W: Write>(writer: BufWriter<W>, problem: &Problem) -> Result<(), Error> {
-    serde_json::to_writer_pretty(writer, problem)
+    serde_json::to_writer_pretty(writer, problem).map_err(Error::from)
 }

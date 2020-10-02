@@ -1,7 +1,6 @@
 use crate::format::Location;
 use serde::{Deserialize, Serialize};
-use serde_json::Error;
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Error, Read, Write};
 
 /// Timing statistic.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
@@ -215,10 +214,10 @@ pub struct Solution {
 
 /// Serializes solution into json format.
 pub fn serialize_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
-    serde_json::to_writer_pretty(writer, solution)
+    serde_json::to_writer_pretty(writer, solution).map_err(Error::from)
 }
 
 /// Deserializes solution from json format.
 pub fn deserialize_solution<R: Read>(reader: BufReader<R>) -> Result<Solution, Error> {
-    serde_json::from_reader(reader)
+    serde_json::from_reader(reader).map_err(Error::from)
 }

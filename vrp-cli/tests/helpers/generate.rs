@@ -1,7 +1,7 @@
 use vrp_pragmatic::format::problem::*;
 use vrp_pragmatic::format::Location;
 
-fn create_empty_job() -> Job {
+pub fn create_empty_job() -> Job {
     Job {
         id: "".to_string(),
         pickups: None,
@@ -13,11 +13,11 @@ fn create_empty_job() -> Job {
     }
 }
 
-fn create_empty_job_task() -> JobTask {
+pub fn create_empty_job_task() -> JobTask {
     JobTask { places: vec![], demand: None, tag: None }
 }
 
-fn create_empty_job_place() -> JobPlace {
+pub fn create_empty_job_place() -> JobPlace {
     JobPlace { location: Location::Coordinate { lat: 0.0, lng: 0.0 }, duration: 0.0, times: None }
 }
 
