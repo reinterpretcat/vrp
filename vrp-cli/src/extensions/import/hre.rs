@@ -48,6 +48,7 @@ mod models {
         /// Vehicle id.
         pub vehicle_id: String,
         /// Vehicle shift index.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub shift_index: Option<usize>,
     }
 
@@ -55,12 +56,14 @@ mod models {
     #[derive(Clone, Deserialize, Debug, Serialize)]
     pub struct JobPlace {
         /// A list of job time windows with time specified in RFC3339 format.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub times: Option<Vec<Vec<String>>>,
         /// Job location.
         pub location: Location,
         /// Job duration (service time).
         pub duration: f64,
         /// An tag which will be propagated back within corresponding activity in solution.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub tag: Option<String>,
     }
 
@@ -72,8 +75,10 @@ mod models {
     #[derive(Clone, Deserialize, Debug, Serialize)]
     pub struct JobPlaces {
         /// Pickup place.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub pickup: Option<JobPlace>,
         /// Delivery place.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub delivery: Option<JobPlace>,
     }
 
@@ -87,8 +92,10 @@ mod models {
         /// Job demand.
         pub demand: Vec<i32>,
         /// Job priority, bigger value - less important.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub priority: Option<i32>,
         /// Job skills.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub skills: Option<Vec<String>>,
     }
 
@@ -96,6 +103,7 @@ mod models {
     #[derive(Clone, Deserialize, Debug, Serialize)]
     pub struct MultiJobPlace {
         /// A list of sub job time windows with time specified in RFC3339 format.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub times: Option<Vec<Vec<String>>>,
         /// Sub job location.
         pub location: Location,
@@ -104,6 +112,7 @@ mod models {
         /// Sub job demand.
         pub demand: Vec<i32>,
         /// An tag which will be propagated back within corresponding activity in solution.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub tag: Option<String>,
     }
 
@@ -125,8 +134,10 @@ mod models {
         /// Multi job places.
         pub places: MultiJobPlaces,
         /// Job priority, bigger value - less important.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub priority: Option<i32>,
         /// Multi job skills.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub skills: Option<Vec<String>>,
     }
 
@@ -146,6 +157,7 @@ mod models {
         /// List of jobs.
         pub jobs: Vec<JobVariant>,
         /// List of relations between jobs and vehicles.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub relations: Option<Vec<Relation>>,
     }
 
@@ -157,6 +169,7 @@ mod models {
     #[derive(Clone, Deserialize, Debug, Serialize)]
     pub struct VehicleCosts {
         /// Fixed is cost of vehicle usage per tour.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub fixed: Option<f64>,
         /// Cost per distance unit.
         pub distance: f64,
@@ -181,16 +194,20 @@ mod models {
         pub start: VehiclePlace,
 
         /// Vehicle end place.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub end: Option<VehiclePlace>,
 
         /// Vehicle depots.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub depots: Option<Vec<VehicleDepot>>,
 
         /// Vehicle breaks.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub breaks: Option<Vec<VehicleBreak>>,
 
         /// Vehicle reloads which allows vehicle to return back to the depot (or any other place) in
         /// order to unload/load goods during single tour.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub reloads: Option<Vec<VehicleReload>>,
     }
 
@@ -205,8 +222,11 @@ mod models {
     #[serde(rename_all = "camelCase")]
     pub struct VehicleLimits {
         /// Max traveling distance per shift/tour.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub max_distance: Option<f64>,
+
         /// Max time per shift/tour.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub shift_time: Option<f64>,
     }
 
@@ -215,9 +235,12 @@ mod models {
     pub struct VehicleBreak {
         /// Break time.
         pub times: Vec<Vec<String>>,
+
         /// Break duration.
         pub duration: f64,
+
         /// Break location.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub location: Option<Location>,
     }
 
@@ -236,9 +259,13 @@ mod models {
         pub capacity: Vec<i32>,
         /// Vehicle amount.
         pub amount: i32,
+
         /// Vehicle skills.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub skills: Option<Vec<String>>,
+
         /// Vehicle limits.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub limits: Option<VehicleLimits>,
     }
 
@@ -267,36 +294,7 @@ mod models {
 
     /// Specifies extra configuration.
     #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct Config {
-        /// Features config.
-        pub features: Option<Features>,
-    }
-
-    /// Specifies features config.
-    #[derive(Clone, Deserialize, Debug, Serialize)]
-    #[serde(rename_all = "camelCase")]
-    pub struct Features {
-        /// Even distribution of the jobs across tours. By default, is off.
-        pub even_distribution: Option<EvenDistribution>,
-        /// Tweaks priority weight. Default value is 100.
-        pub priority: Option<Priority>,
-    }
-
-    /// Configuration to tweak even distribution of the jobs across tours.
-    #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct EvenDistribution {
-        /// Enable or disable.
-        pub enabled: bool,
-        /// A fraction of this cost is applied when jobs are assigned to the tour.
-        pub extra_cost: Option<f64>,
-    }
-
-    /// Configuration to tweak even distribution of the jobs across tours.
-    #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct Priority {
-        /// A cost for formula: `extra_cost = (priority - 1) * weight_cost`.
-        pub weight_cost: f64,
-    }
+    pub struct Config {}
 
     // endregion
 
@@ -309,7 +307,9 @@ mod models {
         pub plan: Plan,
         /// Problem resources: vehicles to be used, routing info.
         pub fleet: Fleet,
+
         /// Extra configuration.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub config: Option<Config>,
     }
 
