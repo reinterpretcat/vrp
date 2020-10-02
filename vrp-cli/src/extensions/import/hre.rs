@@ -386,7 +386,7 @@ mod models {
                                 pickups: job_tasks_to_multi_job_place(&job.pickups)?,
                                 deliveries: job_tasks_to_multi_job_place(&job.deliveries)?,
                             },
-                            priority: job.priority.clone(),
+                            priority: job.priority,
                             skills: job.skills.clone(),
                         })
                     } else {
@@ -399,14 +399,14 @@ mod models {
                             demand: job
                                 .pickups
                                 .as_ref()
-                                .or(job.deliveries.as_ref())
+                                .or_else(|| job.deliveries.as_ref())
                                 .ok_or("no pickups and deliveries")?
                                 .first()
                                 .ok_or("no job task")?
                                 .demand
                                 .clone()
                                 .ok_or("no demand")?,
-                            priority: job.priority.clone(),
+                            priority: job.priority,
                             skills: job.skills.clone(),
                         })
                     })
