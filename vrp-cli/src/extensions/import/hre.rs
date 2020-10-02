@@ -555,7 +555,7 @@ fn to_pragmatic_loc(loc: &models::Location) -> Location {
 }
 
 /// Reads hre problem and converts it to pragmatic format.
-pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, FormatError> {
+pub fn deserialize_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, FormatError> {
     let job_place_mapper = |job: &models::Job, place: &models::JobPlace| JobTask {
         places: vec![JobPlace {
             location: to_pragmatic_loc(&place.location),
@@ -713,7 +713,7 @@ pub fn read_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Format
 }
 
 /// Converts pragmatic problem to hre and writes it.
-pub fn write_hre_problem<W: Write>(writer: BufWriter<W>, pragmatic_problem: &Problem) -> Result<(), Error> {
+pub fn serialize_hre_problem<W: Write>(writer: BufWriter<W>, pragmatic_problem: &Problem) -> Result<(), Error> {
     let hre_problem =
         models::convert_to_hre(pragmatic_problem).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
 

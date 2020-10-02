@@ -20,7 +20,7 @@ pub fn import_problem<R: Read>(input_format: &str, readers: Option<Vec<BufReader
         ("csv", _) => Err("csv format expects two files with jobs and vehicles as an input".to_string()),
         ("hre", Some(mut readers)) if readers.len() == 1 => {
             let problem = readers.swap_remove(0);
-            read_hre_problem(problem).map_err(|err| format!("cannot read problem from hre json: '{}'", err))
+            deserialize_hre_problem(problem).map_err(|err| format!("cannot read problem from hre json: '{}'", err))
         }
         ("hre", _) => Err("hre format expects one input file".to_string()),
         _ => Err(format!("unknown format: '{}'", input_format)),

@@ -164,7 +164,7 @@ fn can_import_hre_problem() {
 }
     "#;
 
-    let problem = read_hre_problem(BufReader::new(hre_problem.as_bytes())).expect("Cannot read hre problem");
+    let problem = deserialize_hre_problem(BufReader::new(hre_problem.as_bytes())).expect("Cannot read hre problem");
 
     assert_eq!(problem.plan.jobs.len(), 2);
     assert_eq!(problem.plan.relations.as_ref().unwrap().len(), 1);
@@ -356,7 +356,7 @@ fn can_write_hre_problem() {
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
-    write_hre_problem(writer, &pragmatic_problem).unwrap();
+    serialize_hre_problem(writer, &pragmatic_problem).unwrap();
 
     let hre_problem: models::Problem =
         serde_json::from_reader(BufReader::new(buffer.as_bytes())).expect("cannot read hre problem");
