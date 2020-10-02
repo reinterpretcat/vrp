@@ -1,17 +1,23 @@
 # Installation
 
-VRP solver is built in Rust. To install it, either download a version from the [vrp releases](https://github.com/reinterpretcat/vrp/releases)
-page, use `cargo install` or pull the source code from `master`.
+## Install from Docker
+
+The fastest way to get vrp solver on your environment is to use public `docker` image from `Github Container Registry`:
+
+```bash
+    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.5.7
+```
 
 ## Install from source
 
-Once pulled the source code, you can build it using `cargo`:
+VRP solver is built in Rust. You would need to install `cargo` to built it:
 
 ```bash
 cargo build --release
 ```
 
 Built binaries can be found in the `./target/release` directory.
+
 
 ## Install from Cargo
 
