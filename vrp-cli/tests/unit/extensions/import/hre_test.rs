@@ -329,7 +329,12 @@ fn can_write_hre_problem() {
                         latest: "2020-05-01T18:00:00.00Z".to_string(),
                         location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                     }),
-                    depots: None,
+                    depots: Some(vec![VehicleCargoPlace {
+                        location: Location::Coordinate { lat: 0.0, lng: 0.0 },
+                        duration: 1800.,
+                        times: Some(vec![create_test_time_window()]),
+                        tag: Some("depot".to_string()),
+                    }]),
                     breaks: Some(vec![VehicleBreak {
                         time: VehicleBreakTime::TimeWindow(vec![
                             "2020-05-01T12:00:00.00Z".to_string(),
