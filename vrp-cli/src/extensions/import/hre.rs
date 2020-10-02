@@ -322,7 +322,7 @@ mod models {
         }
     }
 
-    pub fn convert_to_hre(problem: &vrp_pragmatic::format::problem::Problem) -> Result<Problem, String> {
+    fn create_hre_plan(plan: &vrp_pragmatic::format::problem::Plan) -> Result<Plan, String> {
         let job_tasks_to_job_place =
             |job_tasks: &Option<Vec<vrp_pragmatic::format::problem::JobTask>>| -> Result<Option<JobPlace>, String> {
                 if let Some(job_tasks) = &job_tasks {
@@ -361,192 +361,193 @@ mod models {
                 }
             };
 
-        Ok(Problem {
-            plan: Plan {
-                jobs: problem
-                    .plan
-                    .jobs
-                    .iter()
-                    .map(|job| {
-                        if job.services.as_ref().map_or(false, |t| !t.is_empty())
-                            || job.replacements.as_ref().map_or(false, |t| !t.is_empty())
-                        {
-                            return Err("service or replacement jobs are not supported by hre format".to_string());
-                        }
+        Ok(Plan {
+            jobs: plan
+                .jobs
+                .iter()
+                .map(|job| {
+                    if job.services.as_ref().map_or(false, |t| !t.is_empty())
+                        || job.replacements.as_ref().map_or(false, |t| !t.is_empty())
+                    {
+                        return Err("service or replacement jobs are not supported by hre format".to_string());
+                    }
 
-                        let pickups = job.pickups.as_ref().map_or(0, |t| t.len());
-                        let deliveries = job.deliveries.as_ref().map_or(0, |t| t.len());
+                    let pickups = job.pickups.as_ref().map_or(0, |t| t.len());
+                    let deliveries = job.deliveries.as_ref().map_or(0, |t| t.len());
 
-                        if pickups == 0 && deliveries == 0 {
-                            return Err(format!("No pickups and deliveries in the job '{}'", job.id));
-                        }
+                    if pickups == 0 && deliveries == 0 {
+                        return Err(format!("No pickups and deliveries in the job '{}'", job.id));
+                    }
 
-                        Ok(if pickups > 1 || deliveries > 1 {
-                            JobVariant::Multi(MultiJob {
-                                id: job.id.clone(),
-                                places: MultiJobPlaces {
-                                    pickups: job_tasks_to_multi_job_place(&job.pickups)?,
-                                    deliveries: job_tasks_to_multi_job_place(&job.deliveries)?,
-                                },
-                                priority: job.priority.clone(),
-                                skills: job.skills.clone(),
-                            })
-                        } else {
-                            JobVariant::Single(Job {
-                                id: job.id.clone(),
-                                places: JobPlaces {
-                                    pickup: job_tasks_to_job_place(&job.pickups)?,
-                                    delivery: job_tasks_to_job_place(&job.deliveries)?,
-                                },
-                                demand: job
-                                    .pickups
-                                    .as_ref()
-                                    .or(job.deliveries.as_ref())
-                                    .ok_or("no pickups and deliveries")?
-                                    .first()
-                                    .ok_or("no job task")?
-                                    .demand
-                                    .clone()
-                                    .ok_or("no demand")?,
-                                priority: job.priority.clone(),
-                                skills: job.skills.clone(),
-                            })
+                    Ok(if pickups > 1 || deliveries > 1 {
+                        JobVariant::Multi(MultiJob {
+                            id: job.id.clone(),
+                            places: MultiJobPlaces {
+                                pickups: job_tasks_to_multi_job_place(&job.pickups)?,
+                                deliveries: job_tasks_to_multi_job_place(&job.deliveries)?,
+                            },
+                            priority: job.priority.clone(),
+                            skills: job.skills.clone(),
+                        })
+                    } else {
+                        JobVariant::Single(Job {
+                            id: job.id.clone(),
+                            places: JobPlaces {
+                                pickup: job_tasks_to_job_place(&job.pickups)?,
+                                delivery: job_tasks_to_job_place(&job.deliveries)?,
+                            },
+                            demand: job
+                                .pickups
+                                .as_ref()
+                                .or(job.deliveries.as_ref())
+                                .ok_or("no pickups and deliveries")?
+                                .first()
+                                .ok_or("no job task")?
+                                .demand
+                                .clone()
+                                .ok_or("no demand")?,
+                            priority: job.priority.clone(),
+                            skills: job.skills.clone(),
                         })
                     })
-                    .collect::<Result<Vec<_>, String>>()?,
-                relations: problem.plan.relations.as_ref().map(|relations| {
-                    relations
-                        .iter()
-                        .map(|relation| Relation {
-                            type_field: match relation.type_field {
-                                vrp_pragmatic::format::problem::RelationType::Strict => RelationType::Sequence,
-                                vrp_pragmatic::format::problem::RelationType::Sequence => RelationType::Flexible,
-                                vrp_pragmatic::format::problem::RelationType::Any => RelationType::Tour,
-                            },
-                            jobs: relation.jobs.clone(),
-                            vehicle_id: relation.vehicle_id.clone(),
-                            shift_index: None,
-                        })
-                        .collect()
-                }),
-            },
-            fleet: Fleet {
-                types: problem
-                    .fleet
-                    .vehicles
+                })
+                .collect::<Result<Vec<_>, String>>()?,
+            relations: plan.relations.as_ref().map(|relations| {
+                relations
                     .iter()
-                    .map(|vehicle| {
-                        Ok(VehicleType {
-                            id: vehicle.type_id.clone(),
-                            profile: "".to_string(),
-                            costs: VehicleCosts {
-                                fixed: vehicle.costs.fixed,
-                                distance: vehicle.costs.distance,
-                                time: vehicle.costs.time,
-                            },
-                            shifts: vehicle
-                                .shifts
-                                .iter()
-                                .map(|shift| {
-                                    Ok(VehicleShift {
-                                        start: VehiclePlace {
-                                            time: shift.start.earliest.clone(),
-                                            location: to_hre_loc(&shift.start.location)?,
-                                        },
-                                        end: if let Some(end) = &shift.end {
-                                            Some(VehiclePlace {
-                                                time: end.latest.clone(),
-                                                location: to_hre_loc(&shift.start.location)?,
-                                            })
-                                        } else {
-                                            None
-                                        },
-                                        depots: if let Some(depots) = &shift.depots {
-                                            Some(
-                                                depots
-                                                    .iter()
-                                                    .map(|depot| {
-                                                        Ok(VehicleDepot {
-                                                            times: depot.times.clone(),
-                                                            location: to_hre_loc(&depot.location)?,
-                                                            duration: depot.duration,
-                                                            tag: depot.tag.clone(),
-                                                        })
-                                                    })
-                                                    .collect::<Result<Vec<_>, String>>()?,
-                                            )
-                                        } else {
-                                            None
-                                        },
-                                        breaks: if let Some(breaks) = &shift.breaks {
-                                            Some(
-                                                breaks
-                                                    .iter()
-                                                    .map(|br| {
-                                                        Ok(VehicleBreak {
-                                                            times: match &br.time {
-                                                                VehicleBreakTime::TimeWindow(times) => {
-                                                                    Ok(vec![times.clone()])
-                                                                }
-                                                                _ => Err("hre format does not support offset break"),
-                                                            }?,
-                                                            duration: br.duration,
-                                                            location: if let Some(locations) = br.locations.as_ref() {
-                                                                locations
-                                                                    .iter()
-                                                                    .map(|loc| to_hre_loc(loc))
-                                                                    .collect::<Result<Vec<_>, String>>()?
-                                                                    .first()
-                                                                    .cloned()
-                                                            } else {
-                                                                None
-                                                            },
-                                                        })
-                                                    })
-                                                    .collect::<Result<Vec<_>, String>>()?,
-                                            )
-                                        } else {
-                                            None
-                                        },
-                                        reloads: if let Some(reloads) = &shift.reloads {
-                                            Some(
-                                                reloads
-                                                    .iter()
-                                                    .map(|reload| {
-                                                        Ok(VehicleReload {
-                                                            times: reload.times.clone(),
-                                                            location: to_hre_loc(&reload.location)?,
-                                                            duration: reload.duration,
-                                                            tag: reload.tag.clone(),
-                                                        })
-                                                    })
-                                                    .collect::<Result<Vec<_>, String>>()?,
-                                            )
-                                        } else {
-                                            None
-                                        },
-                                    })
-                                })
-                                .collect::<Result<Vec<_>, String>>()?,
-                            capacity: vehicle.capacity.clone(),
-                            amount: vehicle.vehicle_ids.len() as i32,
-                            skills: vehicle.skills.clone(),
-                            limits: vehicle.limits.as_ref().map(|limits| VehicleLimits {
-                                max_distance: limits.max_distance,
-                                shift_time: limits.shift_time,
-                            }),
-                        })
+                    .map(|relation| Relation {
+                        type_field: match relation.type_field {
+                            vrp_pragmatic::format::problem::RelationType::Strict => RelationType::Sequence,
+                            vrp_pragmatic::format::problem::RelationType::Sequence => RelationType::Flexible,
+                            vrp_pragmatic::format::problem::RelationType::Any => RelationType::Tour,
+                        },
+                        jobs: relation.jobs.clone(),
+                        vehicle_id: relation.vehicle_id.clone(),
+                        shift_index: None,
                     })
-                    .collect::<Result<Vec<_>, String>>()?,
-                profiles: problem
-                    .fleet
-                    .profiles
-                    .iter()
-                    .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone() })
-                    .collect(),
-            },
-            config: None,
+                    .collect()
+            }),
         })
+    }
+
+    fn create_hre_fleet(fleet: &vrp_pragmatic::format::problem::Fleet) -> Result<Fleet, String> {
+        Ok(Fleet {
+            types: fleet
+                .vehicles
+                .iter()
+                .map(|vehicle| {
+                    Ok(VehicleType {
+                        id: vehicle.type_id.clone(),
+                        profile: "".to_string(),
+                        costs: VehicleCosts {
+                            fixed: vehicle.costs.fixed,
+                            distance: vehicle.costs.distance,
+                            time: vehicle.costs.time,
+                        },
+                        shifts: vehicle
+                            .shifts
+                            .iter()
+                            .map(|shift| {
+                                Ok(VehicleShift {
+                                    start: VehiclePlace {
+                                        time: shift.start.earliest.clone(),
+                                        location: to_hre_loc(&shift.start.location)?,
+                                    },
+                                    end: if let Some(end) = &shift.end {
+                                        Some(VehiclePlace {
+                                            time: end.latest.clone(),
+                                            location: to_hre_loc(&shift.start.location)?,
+                                        })
+                                    } else {
+                                        None
+                                    },
+                                    depots: if let Some(depots) = &shift.depots {
+                                        Some(
+                                            depots
+                                                .iter()
+                                                .map(|depot| {
+                                                    Ok(VehicleDepot {
+                                                        times: depot.times.clone(),
+                                                        location: to_hre_loc(&depot.location)?,
+                                                        duration: depot.duration,
+                                                        tag: depot.tag.clone(),
+                                                    })
+                                                })
+                                                .collect::<Result<Vec<_>, String>>()?,
+                                        )
+                                    } else {
+                                        None
+                                    },
+                                    breaks: if let Some(breaks) = &shift.breaks {
+                                        Some(
+                                            breaks
+                                                .iter()
+                                                .map(|br| {
+                                                    Ok(VehicleBreak {
+                                                        times: match &br.time {
+                                                            VehicleBreakTime::TimeWindow(times) => {
+                                                                Ok(vec![times.clone()])
+                                                            }
+                                                            _ => Err("hre format does not support offset break"),
+                                                        }?,
+                                                        duration: br.duration,
+                                                        location: if let Some(locations) = br.locations.as_ref() {
+                                                            locations
+                                                                .iter()
+                                                                .map(|loc| to_hre_loc(loc))
+                                                                .collect::<Result<Vec<_>, String>>()?
+                                                                .first()
+                                                                .cloned()
+                                                        } else {
+                                                            None
+                                                        },
+                                                    })
+                                                })
+                                                .collect::<Result<Vec<_>, String>>()?,
+                                        )
+                                    } else {
+                                        None
+                                    },
+                                    reloads: if let Some(reloads) = &shift.reloads {
+                                        Some(
+                                            reloads
+                                                .iter()
+                                                .map(|reload| {
+                                                    Ok(VehicleReload {
+                                                        times: reload.times.clone(),
+                                                        location: to_hre_loc(&reload.location)?,
+                                                        duration: reload.duration,
+                                                        tag: reload.tag.clone(),
+                                                    })
+                                                })
+                                                .collect::<Result<Vec<_>, String>>()?,
+                                        )
+                                    } else {
+                                        None
+                                    },
+                                })
+                            })
+                            .collect::<Result<Vec<_>, String>>()?,
+                        capacity: vehicle.capacity.clone(),
+                        amount: vehicle.vehicle_ids.len() as i32,
+                        skills: vehicle.skills.clone(),
+                        limits: vehicle.limits.as_ref().map(|limits| VehicleLimits {
+                            max_distance: limits.max_distance,
+                            shift_time: limits.shift_time,
+                        }),
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?,
+            profiles: fleet
+                .profiles
+                .iter()
+                .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone() })
+                .collect(),
+        })
+    }
+
+    pub fn convert_to_hre(problem: &vrp_pragmatic::format::problem::Problem) -> Result<Problem, String> {
+        Ok(Problem { plan: create_hre_plan(&problem.plan)?, fleet: create_hre_fleet(&problem.fleet)?, config: None })
     }
 }
 
