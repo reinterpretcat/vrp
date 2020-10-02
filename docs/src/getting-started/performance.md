@@ -2,6 +2,7 @@
 
 This section is mostly intended for developers and researchers who is interested to understand the solver's performance.
 
+
 ## A generate command
 
 A `generate` command is designed to simplify the process of generating realistic problems in `pragmatic` format.
@@ -9,16 +10,20 @@ It has the following parameters:
 
 - **type** (required): a format of the problem. So far, only `pragmatic` is supported
 - **prototypes** (required): a list of files with problem prototype definition. At the moment, it has to be path to
-     problem in pragmatic format. The prototype problem should contain at least three prototype jobs, which are used
-     with equal probability to generate other jobs in plan. Other properties like `objectives`, `fleet` are copied as is
+     problem in pragmatic format. The prototype problem should contain at least three prototype jobs and one vehicle type,
+     their properties are used with equal probability to generate jobs/vehicles in the problem. Other properties like
+     `objectives`, `profiles` are copied as is
 - **output** (required): a path where to store generated problem
 - **jobs size** (required): amount of jobs to be generated in the plan.
+- **vehicles size** (required): amount of vehicle types to be generated in the fleet.
 - **area size** (optional): half size of the bounding box's side (in meters). The center is identified from bounding box
     of prototype jobs which is used also when the parameter is omitted.
+- **locations** (optional): a path to the file with list of locations which should be used for jobs instead of generated
+    randomly inside specific bounding box.
 
 Using `generate` command, you can quickly generate different VRP variants. Usage example:
 
-        vrp-cli generate pragmatic -p prototype.json -o generated.json -j 100 -a 10000
+        vrp-cli generate pragmatic -p prototype.json -o generated.json -j 100 -v 5 -a 10000
 
 This command generates a new problem definition with 100 jobs spread uniformly in bounding box with half side 10000 meters.
 

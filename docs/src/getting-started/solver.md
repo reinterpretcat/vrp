@@ -57,6 +57,9 @@ Cost variation stops refinement process when cost does not significantly change:
 It calculates [coefficient of variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) of cost change over
 specific amount of generations specified by `sample` and stops algorithm when it is below specified `threshold`.
 
+### Initial solution
+
+You can supply initial solution to start with using `-i` option.
 
 #### Default behavior
 
