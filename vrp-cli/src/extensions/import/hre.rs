@@ -438,7 +438,7 @@ mod models {
                 .map(|vehicle| {
                     Ok(VehicleType {
                         id: vehicle.type_id.clone(),
-                        profile: "".to_string(),
+                        profile: vehicle.profile.clone(),
                         costs: VehicleCosts {
                             fixed: vehicle.costs.fixed,
                             distance: vehicle.costs.distance,
