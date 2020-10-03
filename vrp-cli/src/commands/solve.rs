@@ -10,9 +10,6 @@ use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
-use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
-use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
-use vrp_pragmatic::format::solution::PragmaticSolution;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -88,6 +85,10 @@ fn add_scientific(formats: &mut FormatMap) {
 }
 
 fn add_pragmatic(formats: &mut FormatMap) {
+    use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
+    use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
+    use vrp_pragmatic::format::solution::PragmaticSolution;
+
     formats.insert(
         "pragmatic",
         (
