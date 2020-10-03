@@ -176,9 +176,10 @@ mod actual {
     use vrp_pragmatic::format::problem::Problem;
     use vrp_pragmatic::format::FormatError;
 
+    /// A stub method for reading problem from csv format.
     pub fn read_csv_problem<R1: Read, R2: Read>(
-        jobs_reader: BufReader<R1>,
-        vehicles_reader: BufReader<R2>,
+        _jobs_reader: BufReader<R1>,
+        _vehicles_reader: BufReader<R2>,
     ) -> Result<Problem, FormatError> {
         unreachable!("csv-format feature is not included")
     }
