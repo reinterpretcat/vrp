@@ -1,6 +1,6 @@
 [package]
 name = "vrp-core"
-version = "1.5.7"
+version = "1.5.8"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
