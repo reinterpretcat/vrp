@@ -1,5 +1,7 @@
 use super::*;
 use crate::helpers::generate::*;
+use vrp_pragmatic::format::problem::*;
+use vrp_pragmatic::format::Location;
 
 #[test]
 fn can_import_hre_problem() {

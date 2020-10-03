@@ -1,18 +1,18 @@
 //! Import from an another json format logic.
 
+#[cfg(feature = "hre-format")]
 #[cfg(test)]
 #[path = "../../../tests/unit/extensions/import/hre_test.rs"]
 mod hre_test;
 
 extern crate serde_json;
 
-use serde::{Deserialize, Serialize};
 use std::io::{BufReader, BufWriter, Error, ErrorKind, Read, Write};
-use vrp_pragmatic::format::problem::*;
-use vrp_pragmatic::format::{FormatError, Location};
+use vrp_pragmatic::format::problem::Problem;
 
+#[cfg(feature = "hre-format")]
 mod models {
-    use super::*;
+    use serde::{Deserialize, Serialize};
 
     #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct Location {
@@ -314,6 +314,194 @@ mod models {
     }
 
     // endregion
+}
+
+#[cfg(feature = "hre-format")]
+mod deserialize {
+    use super::models;
+    use std::io::{BufReader, Error, ErrorKind, Read};
+    use vrp_pragmatic::format::problem::*;
+    use vrp_pragmatic::format::Location;
+
+    fn to_pragmatic_loc(loc: &models::Location) -> Location {
+        Location::Coordinate { lat: loc.lat, lng: loc.lng }
+    }
+
+    fn create_pragmatic_plan(plan: &models::Plan) -> Result<Plan, String> {
+        let job_place_mapper = |job: &models::Job, place: &models::JobPlace| JobTask {
+            places: vec![JobPlace {
+                location: to_pragmatic_loc(&place.location),
+                duration: place.duration,
+                times: place.times.clone(),
+            }],
+            demand: Some(job.demand.clone()),
+            tag: place.tag.clone(),
+        };
+
+        let multi_job_place_mapper = |places: &Vec<models::MultiJobPlace>| {
+            if places.is_empty() {
+                None
+            } else {
+                Some(
+                    places
+                        .iter()
+                        .map(|place| JobTask {
+                            places: vec![JobPlace {
+                                location: to_pragmatic_loc(&place.location),
+                                duration: place.duration,
+                                times: place.times.clone(),
+                            }],
+                            demand: Some(place.demand.clone()),
+                            tag: place.tag.clone(),
+                        })
+                        .collect(),
+                )
+            }
+        };
+
+        Ok(Plan {
+            jobs: plan
+                .jobs
+                .iter()
+                .map(|job| match job {
+                    models::JobVariant::Single(job) => Job {
+                        id: job.id.clone(),
+                        pickups: job.places.pickup.as_ref().map(|place| vec![job_place_mapper(job, place)]),
+                        deliveries: job.places.delivery.as_ref().map(|place| vec![job_place_mapper(job, place)]),
+                        replacements: None,
+                        services: None,
+                        priority: job.priority.as_ref().copied(),
+                        skills: job.skills.clone(),
+                    },
+                    models::JobVariant::Multi(job) => Job {
+                        id: job.id.clone(),
+                        pickups: multi_job_place_mapper(&job.places.pickups),
+                        deliveries: multi_job_place_mapper(&job.places.deliveries),
+                        replacements: None,
+                        services: None,
+                        priority: job.priority.as_ref().copied(),
+                        skills: job.skills.clone(),
+                    },
+                })
+                .collect(),
+            relations: plan.relations.as_ref().map(|relations| {
+                relations
+                    .iter()
+                    .map(|r| Relation {
+                        type_field: match r.type_field {
+                            models::RelationType::Sequence => RelationType::Strict,
+                            models::RelationType::Flexible => RelationType::Sequence,
+                            models::RelationType::Tour => RelationType::Any,
+                        },
+                        jobs: r.jobs.clone(),
+                        vehicle_id: r.vehicle_id.clone(),
+                        shift_index: r.shift_index,
+                    })
+                    .collect()
+            }),
+        })
+    }
+
+    fn create_pragmatic_fleet(fleet: &models::Fleet) -> Result<Fleet, String> {
+        Ok(Fleet {
+            vehicles: fleet
+                .types
+                .iter()
+                .map(|v| VehicleType {
+                    type_id: v.id.clone(),
+                    vehicle_ids: (1..=v.amount).map(|seq| format!("{}_{}", v.id, seq)).collect(),
+                    profile: v.profile.clone(),
+                    costs: VehicleCosts { fixed: v.costs.fixed, distance: v.costs.distance, time: v.costs.time },
+                    shifts: v
+                        .shifts
+                        .iter()
+                        .map(|shift| VehicleShift {
+                            start: ShiftStart {
+                                earliest: shift.start.time.clone(),
+                                latest: None,
+                                location: to_pragmatic_loc(&shift.start.location),
+                            },
+                            end: shift.end.as_ref().map(|end| ShiftEnd {
+                                earliest: None,
+                                latest: end.time.clone(),
+                                location: to_pragmatic_loc(&end.location),
+                            }),
+                            depots: shift.depots.as_ref().map(|depots| {
+                                depots
+                                    .iter()
+                                    .map(|d| VehicleCargoPlace {
+                                        location: to_pragmatic_loc(&d.location),
+                                        duration: d.duration,
+                                        times: d.times.clone(),
+                                        tag: d.tag.clone(),
+                                    })
+                                    .collect()
+                            }),
+                            breaks: shift.breaks.as_ref().map(|breaks| {
+                                breaks
+                                    .iter()
+                                    .map(|b| VehicleBreak {
+                                        time: VehicleBreakTime::TimeWindow(b.times.first().unwrap().clone()),
+                                        duration: b.duration,
+                                        locations: b.location.as_ref().map(|l| vec![to_pragmatic_loc(l)]),
+                                    })
+                                    .collect()
+                            }),
+                            reloads: shift.reloads.as_ref().map(|reloads| {
+                                reloads
+                                    .iter()
+                                    .map(|r| VehicleCargoPlace {
+                                        location: to_pragmatic_loc(&r.location),
+                                        duration: r.duration,
+                                        times: r.times.clone(),
+                                        tag: r.tag.clone(),
+                                    })
+                                    .collect()
+                            }),
+                        })
+                        .collect(),
+                    capacity: v.capacity.clone(),
+                    skills: v.skills.clone(),
+                    limits: v.limits.as_ref().map(|l| VehicleLimits {
+                        max_distance: l.max_distance,
+                        shift_time: l.shift_time,
+                        allowed_areas: None,
+                    }),
+                })
+                .collect(),
+            profiles: fleet
+                .profiles
+                .iter()
+                .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone(), speed: None })
+                .collect(),
+        })
+    }
+
+    pub fn convert_to_pragmatic<R: Read>(reader: BufReader<R>) -> Result<Problem, Error> {
+        let hre_problem: models::Problem =
+            serde_json::from_reader(reader).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
+
+        let plan = create_pragmatic_plan(&hre_problem.plan).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
+        let fleet =
+            create_pragmatic_fleet(&hre_problem.fleet).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
+
+        Ok(Problem { plan, fleet, objectives: None, config: None })
+    }
+}
+
+#[cfg(not(feature = "hre-format"))]
+mod deserialize {
+    use super::*;
+    pub fn convert_to_pragmatic<R: Read>(_reader: BufReader<R>) -> Result<Problem, Error> {
+        unreachable!()
+    }
+}
+
+#[cfg(feature = "hre-format")]
+mod serialize {
+    use super::models::*;
+    use std::io::{BufWriter, Error, ErrorKind, Write};
+    use vrp_pragmatic::format::problem::VehicleBreakTime;
 
     fn to_hre_loc(loc: &vrp_pragmatic::format::Location) -> Result<Location, String> {
         match loc.clone() {
@@ -546,177 +734,40 @@ mod models {
         })
     }
 
-    pub fn convert_to_hre(problem: &vrp_pragmatic::format::problem::Problem) -> Result<Problem, String> {
-        Ok(Problem { plan: create_hre_plan(&problem.plan)?, fleet: create_hre_fleet(&problem.fleet)?, config: None })
+    pub fn write_as_hre<W: Write>(
+        writer: BufWriter<W>,
+        problem: &vrp_pragmatic::format::problem::Problem,
+    ) -> Result<(), Error> {
+        let plan = create_hre_plan(&problem.plan).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
+        let fleet = create_hre_fleet(&problem.fleet).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
+        let hre_problem = Problem { plan, fleet, config: None };
+
+        serde_json::to_writer_pretty(writer, &hre_problem).map_err(Error::from)
     }
 }
 
-fn to_pragmatic_loc(loc: &models::Location) -> Location {
-    Location::Coordinate { lat: loc.lat, lng: loc.lng }
-}
-
-/// Reads hre problem and converts it to pragmatic format.
-pub fn deserialize_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, FormatError> {
-    let job_place_mapper = |job: &models::Job, place: &models::JobPlace| JobTask {
-        places: vec![JobPlace {
-            location: to_pragmatic_loc(&place.location),
-            duration: place.duration,
-            times: place.times.clone(),
-        }],
-        demand: Some(job.demand.clone()),
-        tag: place.tag.clone(),
-    };
-
-    let multi_job_place_mapper = |places: &Vec<models::MultiJobPlace>| {
-        if places.is_empty() {
-            None
-        } else {
-            Some(
-                places
-                    .iter()
-                    .map(|place| JobTask {
-                        places: vec![JobPlace {
-                            location: to_pragmatic_loc(&place.location),
-                            duration: place.duration,
-                            times: place.times.clone(),
-                        }],
-                        demand: Some(place.demand.clone()),
-                        tag: place.tag.clone(),
-                    })
-                    .collect(),
-            )
-        }
-    };
-
-    let hre_problem: models::Problem = serde_json::from_reader(reader)
-        .map_err(|err| FormatError::new("E0000".to_string(), err.to_string(), "Check input json".to_string()))?;
-
-    Ok(Problem {
-        plan: Plan {
-            jobs: hre_problem
-                .plan
-                .jobs
-                .iter()
-                .map(|job| match job {
-                    models::JobVariant::Single(job) => Job {
-                        id: job.id.clone(),
-                        pickups: job.places.pickup.as_ref().map(|place| vec![job_place_mapper(job, place)]),
-                        deliveries: job.places.delivery.as_ref().map(|place| vec![job_place_mapper(job, place)]),
-                        replacements: None,
-                        services: None,
-                        priority: job.priority.as_ref().copied(),
-                        skills: job.skills.clone(),
-                    },
-                    models::JobVariant::Multi(job) => Job {
-                        id: job.id.clone(),
-                        pickups: multi_job_place_mapper(&job.places.pickups),
-                        deliveries: multi_job_place_mapper(&job.places.deliveries),
-                        replacements: None,
-                        services: None,
-                        priority: job.priority.as_ref().copied(),
-                        skills: job.skills.clone(),
-                    },
-                })
-                .collect(),
-            relations: hre_problem.plan.relations.map(|relations| {
-                relations
-                    .iter()
-                    .map(|r| Relation {
-                        type_field: match r.type_field {
-                            models::RelationType::Sequence => RelationType::Strict,
-                            models::RelationType::Flexible => RelationType::Sequence,
-                            models::RelationType::Tour => RelationType::Any,
-                        },
-                        jobs: r.jobs.clone(),
-                        vehicle_id: r.vehicle_id.clone(),
-                        shift_index: r.shift_index,
-                    })
-                    .collect()
-            }),
-        },
-        fleet: Fleet {
-            vehicles: hre_problem
-                .fleet
-                .types
-                .iter()
-                .map(|v| VehicleType {
-                    type_id: v.id.clone(),
-                    vehicle_ids: (1..=v.amount).map(|seq| format!("{}_{}", v.id, seq)).collect(),
-                    profile: v.profile.clone(),
-                    costs: VehicleCosts { fixed: v.costs.fixed, distance: v.costs.distance, time: v.costs.time },
-                    shifts: v
-                        .shifts
-                        .iter()
-                        .map(|shift| VehicleShift {
-                            start: ShiftStart {
-                                earliest: shift.start.time.clone(),
-                                latest: None,
-                                location: to_pragmatic_loc(&shift.start.location),
-                            },
-                            end: shift.end.as_ref().map(|end| ShiftEnd {
-                                earliest: None,
-                                latest: end.time.clone(),
-                                location: to_pragmatic_loc(&end.location),
-                            }),
-                            depots: shift.depots.as_ref().map(|depots| {
-                                depots
-                                    .iter()
-                                    .map(|d| VehicleCargoPlace {
-                                        location: to_pragmatic_loc(&d.location),
-                                        duration: d.duration,
-                                        times: d.times.clone(),
-                                        tag: d.tag.clone(),
-                                    })
-                                    .collect()
-                            }),
-                            breaks: shift.breaks.as_ref().map(|breaks| {
-                                breaks
-                                    .iter()
-                                    .map(|b| VehicleBreak {
-                                        time: VehicleBreakTime::TimeWindow(b.times.first().unwrap().clone()),
-                                        duration: b.duration,
-                                        locations: b.location.as_ref().map(|l| vec![to_pragmatic_loc(l)]),
-                                    })
-                                    .collect()
-                            }),
-                            reloads: shift.reloads.as_ref().map(|reloads| {
-                                reloads
-                                    .iter()
-                                    .map(|r| VehicleCargoPlace {
-                                        location: to_pragmatic_loc(&r.location),
-                                        duration: r.duration,
-                                        times: r.times.clone(),
-                                        tag: r.tag.clone(),
-                                    })
-                                    .collect()
-                            }),
-                        })
-                        .collect(),
-                    capacity: v.capacity.clone(),
-                    skills: v.skills.clone(),
-                    limits: v.limits.as_ref().map(|l| VehicleLimits {
-                        max_distance: l.max_distance,
-                        shift_time: l.shift_time,
-                        allowed_areas: None,
-                    }),
-                })
-                .collect(),
-            profiles: hre_problem
-                .fleet
-                .profiles
-                .iter()
-                .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone(), speed: None })
-                .collect(),
-        },
-        objectives: None,
-        config: None,
-    })
+#[cfg(not(feature = "hre-format"))]
+mod serialize {
+    use super::*;
+    pub fn write_as_hre<W: Write>(_writer: BufWriter<W>, _problem: &Problem) -> Result<(), Error> {
+        unreachable!()
+    }
 }
 
 /// Converts pragmatic problem to hre and writes it.
 pub fn serialize_hre_problem<W: Write>(writer: BufWriter<W>, pragmatic_problem: &Problem) -> Result<(), Error> {
-    let hre_problem =
-        models::convert_to_hre(pragmatic_problem).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
+    if cfg!(feature = "hre-format") {
+        serialize::write_as_hre(writer, pragmatic_problem)
+    } else {
+        Err(Error::new(ErrorKind::Other, "hre format is not enabled"))
+    }
+}
 
-    serde_json::to_writer_pretty(writer, &hre_problem).map_err(Error::from)
+/// Reads hre problem and converts it to pragmatic format.
+pub fn deserialize_hre_problem<R: Read>(reader: BufReader<R>) -> Result<Problem, Error> {
+    if cfg!(feature = "hre-format") {
+        deserialize::convert_to_pragmatic(reader)
+    } else {
+        Err(Error::new(ErrorKind::Other, "hre format is not enabled"))
+    }
 }
