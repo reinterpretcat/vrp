@@ -27,6 +27,7 @@ mod lib_test;
 
 pub use vrp_core as core;
 pub use vrp_pragmatic as pragmatic;
+#[cfg(feature = "scientific-format")]
 pub use vrp_scientific as scientific;
 
 pub mod extensions;

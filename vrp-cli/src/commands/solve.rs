@@ -11,12 +11,8 @@ use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
 use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
-use vrp_pragmatic::format::solution::PragmaticSolution;
-use vrp_scientific::lilim::{LilimProblem, LilimSolution};
-use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
-
 use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
-use vrp_scientific::solomon::read_init_solution as read_init_solomon;
+use vrp_pragmatic::format::solution::PragmaticSolution;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -55,9 +51,16 @@ struct SolutionWriter(
 #[allow(clippy::type_complexity)]
 struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<(), String>>);
 
-fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)> {
-    vec![
-        (
+#[allow(clippy::type_complexity)]
+type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)>;
+
+fn add_scientific(formats: &mut FormatMap) {
+    if cfg!(feature = "scientific-format") {
+        use vrp_scientific::lilim::{LilimProblem, LilimSolution};
+        use vrp_scientific::solomon::read_init_solution as read_init_solomon;
+        use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
+
+        formats.insert(
             "solomon",
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
@@ -68,8 +71,8 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                 SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_solomon(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
-        ),
-        (
+        );
+        formats.insert(
             "lilim",
             (
                 ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
@@ -80,43 +83,53 @@ fn get_formats<'a>() -> HashMap<&'a str, (ProblemReader, InitSolutionReader, Sol
                 SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_lilim(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
-        ),
+        );
+    }
+}
+
+fn add_pragmatic(formats: &mut FormatMap) {
+    formats.insert(
+        "pragmatic",
         (
-            "pragmatic",
-            (
-                ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
-                    if let Some(matrices) = matrices {
-                        let matrices = matrices.into_iter().map(BufReader::new).collect();
-                        (BufReader::new(problem), matrices).read_pragmatic()
-                    } else {
-                        BufReader::new(problem).read_pragmatic()
-                    }
-                    .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
-                })),
-                InitSolutionReader(Box::new(|file, problem| read_init_pragmatic(BufReader::new(file), problem))),
-                SolutionWriter(Box::new(|problem, solution, metrics, default_writer, geojson_writer| {
-                    geojson_writer
-                        .map_or(Ok(()), |geojson_writer| solution.write_geo_json(problem, geojson_writer))
-                        .and_then(|_| {
-                            if let Some(metrics) = metrics {
-                                (solution, metrics).write_pragmatic_json(problem, default_writer)
-                            } else {
-                                solution.write_pragmatic_json(problem, default_writer)
-                            }
-                        })
-                })),
-                LocationWriter(Box::new(|problem, writer| {
-                    let mut writer = writer;
-                    deserialize_problem(BufReader::new(problem))
-                        .map_err(|errors| get_errors_serialized(&errors))
-                        .and_then(|problem| get_locations_serialized(&problem))
-                        .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
-                })),
-            ),
+            ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
+                if let Some(matrices) = matrices {
+                    let matrices = matrices.into_iter().map(BufReader::new).collect();
+                    (BufReader::new(problem), matrices).read_pragmatic()
+                } else {
+                    BufReader::new(problem).read_pragmatic()
+                }
+                .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
+            })),
+            InitSolutionReader(Box::new(|file, problem| read_init_pragmatic(BufReader::new(file), problem))),
+            SolutionWriter(Box::new(|problem, solution, metrics, default_writer, geojson_writer| {
+                geojson_writer
+                    .map_or(Ok(()), |geojson_writer| solution.write_geo_json(problem, geojson_writer))
+                    .and_then(|_| {
+                        if let Some(metrics) = metrics {
+                            (solution, metrics).write_pragmatic_json(problem, default_writer)
+                        } else {
+                            solution.write_pragmatic_json(problem, default_writer)
+                        }
+                    })
+            })),
+            LocationWriter(Box::new(|problem, writer| {
+                let mut writer = writer;
+                deserialize_problem(BufReader::new(problem))
+                    .map_err(|errors| get_errors_serialized(&errors))
+                    .and_then(|problem| get_locations_serialized(&problem))
+                    .and_then(|locations| writer.write_all(locations.as_bytes()).map_err(|err| err.to_string()))
+            })),
         ),
-    ]
-    .into_iter()
-    .collect()
+    );
+}
+
+fn get_formats<'a>() -> FormatMap<'a> {
+    let mut formats = FormatMap::default();
+
+    add_scientific(&mut formats);
+    add_pragmatic(&mut formats);
+
+    formats
 }
 
 pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
