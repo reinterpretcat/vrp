@@ -9,23 +9,26 @@ pub trait Recreate {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
+mod recreate_with_blinks;
+pub use self::recreate_with_blinks::RecreateWithBlinks;
+
 mod recreate_with_cheapest;
 pub use self::recreate_with_cheapest::RecreateWithCheapest;
 
 mod recreate_with_gaps;
 pub use self::recreate_with_gaps::RecreateWithGaps;
 
-mod recreate_with_blinks;
-pub use self::recreate_with_blinks::RecreateWithBlinks;
+mod recreate_with_nearest_neighbor;
+pub use self::recreate_with_nearest_neighbor::RecreateWithNearestNeighbor;
+
+mod recreate_with_perturbation;
+pub use self::recreate_with_perturbation::RecreateWithPerturbation;
 
 mod recreate_with_skip_best;
 pub use self::recreate_with_skip_best::RecreateWithSkipBest;
 
-mod recreate_with_nearest_neighbor;
-pub use self::recreate_with_nearest_neighbor::*;
-
-mod recreate_with_perturbation;
-pub use self::recreate_with_perturbation::*;
+mod recreate_with_regret;
+pub use self::recreate_with_regret::RecreateWithRegret;
 
 use crate::models::common::SingleDimLoad;
 use crate::models::Problem;
