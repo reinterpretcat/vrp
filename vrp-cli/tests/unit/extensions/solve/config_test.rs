@@ -10,7 +10,7 @@ fn can_read_config() {
 
     let telemetry = config.telemetry.expect("no telemetry config");
     let logging = telemetry.logging.expect("no logging config");
-    assert!(!logging.enabled);
+    assert!(logging.enabled);
     assert_eq!(logging.log_best, Some(100));
     assert_eq!(logging.log_population, Some(1000));
     let metrics = telemetry.metrics.unwrap();

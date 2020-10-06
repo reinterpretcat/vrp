@@ -23,6 +23,10 @@ pub use self::recreate_with_regret::RecreateWithRegret;
 
 mod recreate_with_nearest_neighbor;
 pub use self::recreate_with_nearest_neighbor::*;
+
+mod recreate_with_perturbation;
+pub use self::recreate_with_perturbation::*;
+
 use crate::models::common::SingleDimLoad;
 use crate::models::Problem;
 use std::sync::Arc;
@@ -46,6 +50,7 @@ impl CompositeRecreate {
     pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
         Self::new(vec![
             (Box::new(RecreateWithRegret::new(1, 2)), 100),
+            (Box::new(RecreateWithPerturbation::default()), 10),
             (Box::new(RecreateWithRegret::new(3, 4)), 5),
             (Box::new(RecreateWithGaps::default()), 5),
             // TODO use dimension size from problem

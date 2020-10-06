@@ -173,6 +173,8 @@ pub enum RecreateMethod {
     /// Nearest neighbour method.
     #[serde(rename(deserialize = "nearest"))]
     Nearest { weight: usize },
+    #[serde(rename(deserialize = "perturbation"))]
+    Perturbation { weight: usize, probability: f64, min: f64, max: f64 },
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -370,6 +372,9 @@ fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send +
         RecreateMethod::Blinks { weight } => (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), *weight),
         RecreateMethod::Gaps { weight, min } => (Box::new(RecreateWithGaps::new(*min)), *weight),
         RecreateMethod::Nearest { weight } => (Box::new(RecreateWithNearestNeighbor::default()), *weight),
+        RecreateMethod::Perturbation { weight, probability, min, max } => {
+            (Box::new(RecreateWithPerturbation::new(*probability, *min, *max)), *weight)
+        }
     }
 }
 

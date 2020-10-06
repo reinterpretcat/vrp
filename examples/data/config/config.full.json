@@ -188,6 +188,13 @@
             "end": 2
           },
           {
+            "weight": 10,
+            "type": "perturbation",
+            "probability": 0.33,
+            "min": 0.8,
+            "max": 1.2
+          },
+          {
             "weight": 5,
             "type": "regret",
             "start": 3,
@@ -251,7 +258,7 @@
   },
   "telemetry": {
     "logging": {
-      "enabled": false,
+      "enabled": true,
       "logBest": 100,
       "logPopulation": 1000
     },
