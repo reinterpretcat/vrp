@@ -188,9 +188,9 @@
             "end": 2
           },
           {
-            "weight": 50,
+            "weight": 20,
             "type": "regret",
-            "start": 1,
+            "start": 2,
             "end": 3
           },
           {
