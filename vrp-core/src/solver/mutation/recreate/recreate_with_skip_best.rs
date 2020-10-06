@@ -7,20 +7,20 @@ use crate::utils::parallel_collect;
 use std::cmp::Ordering::*;
 use std::ops::Deref;
 
-/// A recreate strategy which uses regret insertion heuristic to insert jobs into solution.
-pub struct RecreateWithRegret {
+/// A recreate strategy which skips best job insertion for insertion.
+pub struct RecreateWithSkipBest {
     route_selector: Box<dyn RouteSelector + Send + Sync>,
     job_selector: Box<dyn JobSelector + Send + Sync>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
 
-impl Default for RecreateWithRegret {
+impl Default for RecreateWithSkipBest {
     fn default() -> Self {
-        RecreateWithRegret::new(1, 2)
+        RecreateWithSkipBest::new(1, 2)
     }
 }
 
-impl Recreate for RecreateWithRegret {
+impl Recreate for RecreateWithSkipBest {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::default().process(
             self.route_selector.as_ref(),
@@ -32,26 +32,26 @@ impl Recreate for RecreateWithRegret {
     }
 }
 
-impl RecreateWithRegret {
-    /// Creates a new instance of `RecreateWithRegret`.
+impl RecreateWithSkipBest {
+    /// Creates a new instance of `RecreateWithSkipBest`.
     pub fn new(min: usize, max: usize) -> Self {
         Self {
             route_selector: Box::new(AllRouteSelector::default()),
             job_selector: Box::new(AllJobSelector::default()),
-            job_reducer: Box::new(RegretJobMapReducer::new(min, max)),
+            job_reducer: Box::new(SkipBestJobMapReducer::new(min, max)),
         }
     }
 }
 
-struct RegretJobMapReducer {
+struct SkipBestJobMapReducer {
     min: usize,
     max: usize,
 
     inner_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
 
-impl RegretJobMapReducer {
-    /// Creates a new instance of `RegretJobMapReducer`.
+impl SkipBestJobMapReducer {
+    /// Creates a new instance of `SkipBestJobMapReducer`.
     pub fn new(min: usize, max: usize) -> Self {
         assert!(min > 0);
         assert!(min <= max);
@@ -60,7 +60,7 @@ impl RegretJobMapReducer {
     }
 }
 
-impl JobMapReducer for RegretJobMapReducer {
+impl JobMapReducer for SkipBestJobMapReducer {
     #[allow(clippy::let_and_return)]
     fn reduce<'a>(
         &'a self,
@@ -68,10 +68,10 @@ impl JobMapReducer for RegretJobMapReducer {
         jobs: Vec<Job>,
         map: Box<dyn Fn(&Job) -> InsertionResult + Send + Sync + 'a>,
     ) -> InsertionResult {
-        let regret_index = ctx.random.uniform_int(self.min as i32, self.max as i32);
+        let skip_index = ctx.random.uniform_int(self.min as i32, self.max as i32);
 
-        // NOTE no need to proceed with regret, fallback to more performant reducer
-        if regret_index == 1 || jobs.len() == 1 {
+        // NOTE no need to proceed with skip, fallback to more performant reducer
+        if skip_index == 1 || jobs.len() == 1 {
             return self.inner_reducer.reduce(ctx, jobs, map);
         }
 
@@ -84,10 +84,10 @@ impl JobMapReducer for RegretJobMapReducer {
             (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Equal,
         });
 
-        let regret_index = regret_index.min(results.len() as i32) as usize - 1;
+        let skip_index = skip_index.min(results.len() as i32) as usize - 1;
 
         let insertion_result = results
-            .drain(regret_index..=regret_index)
+            .drain(skip_index..=skip_index)
             .next()
             .unwrap_or_else(|| panic!("Unexpected insertion results length"));
 

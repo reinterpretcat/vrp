@@ -183,7 +183,7 @@
         "recreates": [
           {
             "weight": 100,
-            "type": "regret",
+            "type": "skip-best",
             "start": 1,
             "end": 2
           },
@@ -196,7 +196,7 @@
           },
           {
             "weight": 5,
-            "type": "regret",
+            "type": "skip-best",
             "start": 3,
             "end": 4
           },
@@ -211,7 +211,7 @@
           },
           {
             "weight": 2,
-            "type": "regret",
+            "type": "skip-best",
             "start": 4,
             "end": 8
           },

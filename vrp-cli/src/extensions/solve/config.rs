@@ -161,9 +161,9 @@ pub enum RecreateMethod {
     /// Cheapest insertion method.
     #[serde(rename(deserialize = "cheapest"))]
     Cheapest { weight: usize },
-    /// Regret insertion method.
-    #[serde(rename(deserialize = "regret"))]
-    Regret { weight: usize, start: usize, end: usize },
+    /// SkipBest insertion method.
+    #[serde(rename(deserialize = "skip-best"))]
+    SkipBest { weight: usize, start: usize, end: usize },
     #[serde(rename(deserialize = "blinks"))]
     /// Insertion with blinks method.
     Blinks { weight: usize },
@@ -368,7 +368,7 @@ fn configure_from_termination(
 fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send + Sync>, usize) {
     match method {
         RecreateMethod::Cheapest { weight } => (Box::new(RecreateWithCheapest::default()), *weight),
-        RecreateMethod::Regret { weight, start, end } => (Box::new(RecreateWithRegret::new(*start, *end)), *weight),
+        RecreateMethod::SkipBest { weight, start, end } => (Box::new(RecreateWithSkipBest::new(*start, *end)), *weight),
         RecreateMethod::Blinks { weight } => (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), *weight),
         RecreateMethod::Gaps { weight, min } => (Box::new(RecreateWithGaps::new(*min)), *weight),
         RecreateMethod::Nearest { weight } => (Box::new(RecreateWithNearestNeighbor::default()), *weight),
