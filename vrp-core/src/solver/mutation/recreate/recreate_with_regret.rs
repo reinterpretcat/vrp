@@ -86,6 +86,10 @@ impl JobMapReducer for RegretJobMapReducer {
             .collect_group_by_key::<Job, InsertionSuccess, _>(|success| success.job.clone())
             .into_iter()
             .filter_map(|(_, mut success)| {
+                if success.len() < regret_index {
+                    return None;
+                }
+
                 success.sort_by(|a, b| compare_floats(a.cost, b.cost));
 
                 let (_, mut job_results) = success.into_iter().fold(
