@@ -8,8 +8,8 @@ use hashbrown::HashSet;
 use std::ops::Deref;
 
 /// A recreate strategy which computes the difference in cost of inserting customer in its
-/// best, 2nd best, kth best route, where `k` is a user-defined parameter. Then it inserts the
-/// customer in its least cost position.
+/// best and kth best route, where `k` is a user-defined parameter. Then it inserts the
+/// customer with the max difference in its least cost position.
 pub struct RecreateWithRegret {
     route_selector: Box<dyn RouteSelector + Send + Sync>,
     job_selector: Box<dyn JobSelector + Send + Sync>,

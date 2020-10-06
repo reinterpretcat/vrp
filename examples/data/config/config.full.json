@@ -182,10 +182,16 @@
         ],
         "recreates": [
           {
-            "weight": 100,
+            "weight": 50,
             "type": "skip-best",
             "start": 1,
             "end": 2
+          },
+          {
+            "weight": 50,
+            "type": "regret",
+            "start": 1,
+            "end": 3
           },
           {
             "weight": 10,
