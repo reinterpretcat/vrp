@@ -6,7 +6,6 @@ use crate::models::problem::Job;
 use crate::models::solution::Activity;
 use crate::utils::map_reduce;
 use std::borrow::Borrow;
-use std::ops::Deref;
 use std::sync::Arc;
 
 /// Specifies insertion result variant.
@@ -91,19 +90,23 @@ pub trait JobMapReducer {
         &'a self,
         ctx: &'a InsertionContext,
         jobs: Vec<Job>,
-        map: Box<dyn Fn(&Job) -> InsertionResult + Send + Sync + 'a>,
+        insertion_position: InsertionPosition,
     ) -> InsertionResult;
 }
 
 /// A job map reducer which compares pairs of insertion results and pick one from those.
 pub struct PairJobMapReducer {
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
 }
 
 impl PairJobMapReducer {
     /// Creates a new instance of `PairJobMapReducer`.
-    pub fn new(result_selector: Box<dyn ResultSelector + Send + Sync>) -> Self {
-        Self { result_selector }
+    pub fn new(
+        route_selector: Box<dyn RouteSelector + Send + Sync>,
+        result_selector: Box<dyn ResultSelector + Send + Sync>,
+    ) -> Self {
+        Self { route_selector, result_selector }
     }
 }
 
@@ -112,11 +115,11 @@ impl JobMapReducer for PairJobMapReducer {
         &'a self,
         ctx: &'a InsertionContext,
         jobs: Vec<Job>,
-        map: Box<dyn Fn(&Job) -> InsertionResult + Send + Sync + 'a>,
+        insertion_position: InsertionPosition,
     ) -> InsertionResult {
         map_reduce(
             &jobs,
-            |job| map.deref()(&job),
+            |job| evaluate_job_insertion(&job, &ctx, self.route_selector.as_ref(), insertion_position),
             InsertionResult::make_failure,
             |a, b| self.result_selector.select(&ctx, a, b),
         )
@@ -168,7 +171,6 @@ impl InsertionHeuristic {
     /// Runs common insertion heuristic algorithm using given selector and reducer specializations.
     pub fn process(
         &self,
-        route_selector: &(dyn RouteSelector + Send + Sync),
         job_selector: &(dyn JobSelector + Send + Sync),
         job_reducer: &(dyn JobMapReducer + Send + Sync),
         ctx: InsertionContext,
@@ -180,11 +182,7 @@ impl InsertionHeuristic {
 
         while !ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Job>>();
-            let result = job_reducer.reduce(
-                &ctx,
-                jobs,
-                Box::new(|job| evaluate_job_insertion(&job, &ctx, route_selector, self.insertion_position)),
-            );
+            let result = job_reducer.reduce(&ctx, jobs, self.insertion_position);
             insert(result, &mut ctx);
         }
 

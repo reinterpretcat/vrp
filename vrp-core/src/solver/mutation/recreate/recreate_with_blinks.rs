@@ -137,7 +137,6 @@ impl ResultSelector for BlinkResultSelector {
 /// A recreate method as described in "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) paper by Jan Christiaens, Greet Vanden Berghe.
 pub struct RecreateWithBlinks<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,
     weights: Vec<usize>,
@@ -149,9 +148,11 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T
     pub fn new(selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>) -> Self {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
-            route_selector: Box::new(AllRouteSelector::default()),
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
-            job_reducer: Box::new(PairJobMapReducer::new(Box::new(BlinkResultSelector::default()))),
+            job_reducer: Box::new(PairJobMapReducer::new(
+                Box::new(AllRouteSelector::default()),
+                Box::new(BlinkResultSelector::default()),
+            )),
             weights,
             phantom: PhantomData,
         }
@@ -175,7 +176,6 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Recreate for Recreat
         let index = insertion_ctx.random.weighted(self.weights.as_slice());
         let job_selector = self.job_selectors.get(index).unwrap();
         InsertionHeuristic::default().process(
-            self.route_selector.as_ref(),
             job_selector.as_ref(),
             self.job_reducer.as_ref(),
             insertion_ctx,

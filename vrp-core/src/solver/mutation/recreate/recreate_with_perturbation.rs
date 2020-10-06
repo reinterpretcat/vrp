@@ -6,7 +6,6 @@ use crate::utils::Random;
 
 /// A recreate method which perturbs the cost by a factor to introduce randomization.
 pub struct RecreateWithPerturbation {
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
     job_selector: Box<dyn JobSelector + Send + Sync>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
@@ -21,13 +20,11 @@ impl RecreateWithPerturbation {
     /// Creates a new instance of `RecreateWithPerturbation`.
     pub fn new(probability: f64, min: f64, max: f64) -> Self {
         Self {
-            route_selector: Box::new(AllRouteSelector::default()),
             job_selector: Box::new(AllJobSelector::default()),
-            job_reducer: Box::new(PairJobMapReducer::new(Box::new(CostPerturbationResultSelector::new(
-                probability,
-                min,
-                max,
-            )))),
+            job_reducer: Box::new(PairJobMapReducer::new(
+                Box::new(AllRouteSelector::default()),
+                Box::new(CostPerturbationResultSelector::new(probability, min, max)),
+            )),
         }
     }
 }
@@ -35,7 +32,6 @@ impl RecreateWithPerturbation {
 impl Recreate for RecreateWithPerturbation {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::default().process(
-            self.route_selector.as_ref(),
             self.job_selector.as_ref(),
             self.job_reducer.as_ref(),
             insertion_ctx,

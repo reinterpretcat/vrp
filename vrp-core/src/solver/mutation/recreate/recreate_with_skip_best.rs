@@ -5,11 +5,9 @@ use crate::solver::mutation::Recreate;
 use crate::solver::RefinementContext;
 use crate::utils::parallel_collect;
 use std::cmp::Ordering::*;
-use std::ops::Deref;
 
 /// A recreate strategy which skips best job insertion for insertion.
 pub struct RecreateWithSkipBest {
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
     job_selector: Box<dyn JobSelector + Send + Sync>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
@@ -23,7 +21,6 @@ impl Default for RecreateWithSkipBest {
 impl Recreate for RecreateWithSkipBest {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         InsertionHeuristic::default().process(
-            self.route_selector.as_ref(),
             self.job_selector.as_ref(),
             self.job_reducer.as_ref(),
             insertion_ctx,
@@ -36,7 +33,6 @@ impl RecreateWithSkipBest {
     /// Creates a new instance of `RecreateWithSkipBest`.
     pub fn new(min: usize, max: usize) -> Self {
         Self {
-            route_selector: Box::new(AllRouteSelector::default()),
             job_selector: Box::new(AllJobSelector::default()),
             job_reducer: Box::new(SkipBestJobMapReducer::new(min, max)),
         }
@@ -47,6 +43,7 @@ struct SkipBestJobMapReducer {
     min: usize,
     max: usize,
 
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
     inner_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
 
@@ -56,7 +53,15 @@ impl SkipBestJobMapReducer {
         assert!(min > 0);
         assert!(min <= max);
 
-        Self { min, max, inner_reducer: Box::new(PairJobMapReducer::new(Box::new(BestResultSelector::default()))) }
+        Self {
+            min,
+            max,
+            route_selector: Box::new(AllRouteSelector::default()),
+            inner_reducer: Box::new(PairJobMapReducer::new(
+                Box::new(AllRouteSelector::default()),
+                Box::new(BestResultSelector::default()),
+            )),
+        }
     }
 }
 
@@ -66,16 +71,18 @@ impl JobMapReducer for SkipBestJobMapReducer {
         &'a self,
         ctx: &'a InsertionContext,
         jobs: Vec<Job>,
-        map: Box<dyn Fn(&Job) -> InsertionResult + Send + Sync + 'a>,
+        insertion_position: InsertionPosition,
     ) -> InsertionResult {
         let skip_index = ctx.random.uniform_int(self.min as i32, self.max as i32);
 
         // NOTE no need to proceed with skip, fallback to more performant reducer
         if skip_index == 1 || jobs.len() == 1 {
-            return self.inner_reducer.reduce(ctx, jobs, map);
+            return self.inner_reducer.reduce(ctx, jobs, insertion_position);
         }
 
-        let mut results = parallel_collect(&jobs, |job| map.deref()(&job));
+        let mut results = parallel_collect(&jobs, |job| {
+            evaluate_job_insertion(&job, &ctx, self.route_selector.as_ref(), insertion_position)
+        });
 
         results.sort_by(|a, b| match (a, b) {
             (InsertionResult::Success(a), InsertionResult::Success(b)) => a.cost.partial_cmp(&b.cost).unwrap_or(Less),
