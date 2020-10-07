@@ -4,10 +4,11 @@ mod adjusted_string_removal_test;
 
 use std::sync::{Arc, RwLock};
 
-use super::{select_seed_jobs, Ruin};
+use super::Ruin;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::problem::{Actor, Job};
 use crate::models::solution::Tour;
+use crate::solver::mutation::select_seed_jobs;
 use crate::solver::RefinementContext;
 use crate::utils::Random;
 use hashbrown::HashSet;

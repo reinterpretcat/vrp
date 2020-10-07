@@ -1,5 +1,6 @@
 use super::*;
 use crate::construction::heuristics::InsertionContext;
+use crate::solver::mutation::{get_selection_chunk_size, select_seed_jobs};
 use crate::solver::RefinementContext;
 
 /// A ruin strategy which removes jobs in neighbourhood of randomly selected job (inclusive).
@@ -23,7 +24,7 @@ impl Default for NeighbourRemoval {
 
 impl Ruin for NeighbourRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
-        let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
+        let affected = get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
 
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.random.clone();

@@ -9,6 +9,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::common::Timestamp;
 use crate::models::problem::Job;
 use crate::models::Problem;
+use crate::solver::mutation::{get_route_jobs, get_selection_chunk_size};
 use crate::solver::RefinementContext;
 use crate::utils::{compare_floats, Random};
 use hashbrown::HashSet;
@@ -55,7 +56,7 @@ impl Ruin for ClusterRemoval {
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
         let locked = insertion_ctx.solution.locked.clone();
-        let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
+        let affected = get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
 
         clusters.iter_mut().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|cluster| {
             let left = affected - removed_jobs.read().unwrap().len();

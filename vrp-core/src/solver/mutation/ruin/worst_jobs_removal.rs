@@ -7,6 +7,7 @@ use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::{Cost, Timestamp};
 use crate::models::problem::{Actor, Job, TransportCost};
 use crate::models::solution::Activity;
+use crate::solver::mutation::{get_route_jobs, get_selection_chunk_size};
 use crate::solver::RefinementContext;
 use crate::utils::parallel_collect;
 use hashbrown::{HashMap, HashSet};
@@ -53,7 +54,7 @@ impl Ruin for WorstJobRemoval {
 
         routes_savings.shuffle(&mut insertion_ctx.random.get_rng());
 
-        let affected = get_removal_chunk_size(&insertion_ctx, &self.limit);
+        let affected = get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
 
         routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(
             |(rc, savings)| {
