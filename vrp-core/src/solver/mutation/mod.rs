@@ -9,6 +9,9 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
 
+mod local;
+pub use self::local::*;
+
 mod recreate;
 pub use self::recreate::*;
 
