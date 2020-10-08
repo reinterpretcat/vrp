@@ -1,61 +1,56 @@
+use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::solver::mutation::LocalSearch;
+use crate::solver::mutation::{select_seed_job, LocalSearch};
 use crate::solver::RefinementContext;
-use crate::utils::{map_reduce, Random};
-use std::ops::Range;
-use std::sync::Arc;
+use crate::utils::{map_reduce, Noise};
+use std::cmp::Ordering;
 
 /// A local search operator which tries to exchange jobs in best way between different routes.
 pub struct ExchangeInterRouteBest {
-    _exchange_job_range: Range<usize>,
+    noise_probability: f64,
+    noise_range: (f64, f64),
 }
 
 /// A local search operator which tries to exchange random jobs between different routes.
-pub struct ExchangeInterRouteRandom {
-    _exchange_job_range: Range<usize>,
-}
+pub struct ExchangeInterRouteRandom {}
 
 impl ExchangeInterRouteBest {
     /// Creates a new instance of `ExchangeInterRouteBest`.
-    pub fn new(exchange_range: Range<usize>) -> Self {
-        Self { _exchange_job_range: exchange_range }
+    pub fn new(noise_probability: f64, noise_range: (f64, f64)) -> Self {
+        Self { noise_probability, noise_range }
     }
 }
 
 impl Default for ExchangeInterRouteBest {
     fn default() -> Self {
-        Self { _exchange_job_range: 1..2 }
+        Self::new(0.1, (0.9, 1.1))
     }
 }
 
 impl LocalSearch for ExchangeInterRouteBest {
     fn try_improve(
         &self,
-        _refinement_ctx: &RefinementContext,
-        _insertion_ctx: &InsertionContext,
+        refinement_ctx: &RefinementContext,
+        insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
-        unimplemented!()
+        if let Some(new_insertion_ctx) = self.try_diversify(refinement_ctx, insertion_ctx) {
+            match refinement_ctx.problem.objective.total_order(&new_insertion_ctx, insertion_ctx) {
+                Ordering::Less | Ordering::Equal => Some(new_insertion_ctx),
+                Ordering::Greater => None,
+            }
+        } else {
+            None
+        }
     }
 
-    fn try_diversify(
-        &self,
-        _refinement_ctx: &RefinementContext,
-        _insertion_ctx: &InsertionContext,
-    ) -> Option<InsertionContext> {
-        unimplemented!()
-    }
-}
-
-struct Noise {
-    noise_probability: f64,
-    noise_range: (f64, f64),
-    random: Arc<dyn Random + Send + Sync>,
-}
-
-impl Noise {
-    pub fn get_with_noise(&self, _value: f64) -> f64 {
-        unimplemented!()
+    fn try_diversify(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
+        if let Some(seed_job) = select_seed_job(insertion_ctx.solution.routes.as_slice(), &insertion_ctx.random) {
+            let noise = Noise::new(self.noise_probability, self.noise_range, insertion_ctx.random.clone());
+            find_insertion_pair(insertion_ctx, seed_job, &noise)
+        } else {
+            None
+        }
     }
 }
 
@@ -159,8 +154,8 @@ fn compare_insertion_result_with_noise(
 ) -> InsertionResult {
     match (&left_result, &right_result) {
         (InsertionResult::Success(left), InsertionResult::Success(right)) => {
-            let left_cost = noise.get_with_noise(left.cost);
-            let right_cost = noise.get_with_noise(right.cost);
+            let left_cost = noise.add(left.cost);
+            let right_cost = noise.add(right.cost);
 
             if left_cost < right_cost {
                 left_result
@@ -180,8 +175,8 @@ fn reduce_pair_with_noise(
 ) -> Option<InsertionSuccessPair> {
     match (&left_result, &right_result) {
         (Some(left), Some(right)) => {
-            let left_cost = noise.get_with_noise(left.0.cost + left.1.cost);
-            let right_cost = noise.get_with_noise(right.0.cost + right.1.cost);
+            let left_cost = noise.add(left.0.cost + left.1.cost);
+            let right_cost = noise.add(right.0.cost + right.1.cost);
 
             if left_cost < right_cost {
                 left_result

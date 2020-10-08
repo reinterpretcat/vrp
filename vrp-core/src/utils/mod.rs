@@ -17,8 +17,7 @@ mod parallel;
 pub use self::parallel::*;
 
 mod random;
-pub use self::random::DefaultRandom;
-pub use self::random::Random;
+pub use self::random::*;
 
 mod time_quota;
 pub use self::time_quota::TimeQuota;
