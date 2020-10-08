@@ -15,6 +15,8 @@ use crate::models::solution::{Activity, Place};
 pub enum InsertionPosition {
     /// Job can be inserted anywhere in the route.
     Any,
+    /// Job can be inserted only at the leg with the concrete index.
+    Concrete(usize),
     /// Job can be inserted only to the end of the route.
     Last,
 }
@@ -28,7 +30,7 @@ pub fn evaluate_job_insertion(
     position: InsertionPosition,
 ) -> InsertionResult {
     route_selector.select(ctx, job).fold(InsertionResult::make_failure(), |acc, route_ctx| {
-        evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, Some(acc))
+        evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, acc)
     })
 }
 
@@ -39,9 +41,8 @@ pub fn evaluate_job_insertion_in_route(
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
     position: InsertionPosition,
-    alternative: Option<InsertionResult>,
+    alternative: InsertionResult,
 ) -> InsertionResult {
-    let alternative = alternative.map_or_else(InsertionResult::make_failure, |r| r);
     let constraint = &ctx.problem.constraint;
 
     if let Some(violation) = constraint.evaluate_hard_route(&ctx.solution, &route_ctx, job) {
@@ -192,6 +193,13 @@ fn analyze_insertion_in_route(
             route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
                 analyze_insertion_in_route_leg(constraint, route_ctx, leg, single, target, out)
             })
+        }
+        InsertionPosition::Concrete(idx) => {
+            if let Some(concrete_leg) = route_ctx.route.tour.legs().nth(idx) {
+                analyze_insertion_in_route_leg(constraint, route_ctx, concrete_leg, single, target, init)
+            } else {
+                Ok(init)
+            }
         }
         InsertionPosition::Last => {
             if let Some(last_leg) = route_ctx.route.tour.legs().last() {

@@ -85,7 +85,15 @@ impl JobMapReducer for RegretJobMapReducer {
         let mut results = parallel_collect(&jobs, |job| {
             self.route_selector
                 .select(ctx, job)
-                .map(|route_ctx| evaluate_job_insertion_in_route(job, ctx, &route_ctx, insertion_position, None))
+                .map(|route_ctx| {
+                    evaluate_job_insertion_in_route(
+                        job,
+                        ctx,
+                        &route_ctx,
+                        insertion_position,
+                        InsertionResult::make_failure(),
+                    )
+                })
                 .collect::<Vec<_>>()
         })
         .into_iter()
