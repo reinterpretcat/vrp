@@ -1,6 +1,6 @@
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::solver::mutation::{select_seed_job, LocalSearch};
+use crate::solver::mutation::LocalSearch;
 use crate::solver::RefinementContext;
 use crate::utils::{map_reduce, Random};
 use std::ops::Range;
@@ -32,16 +32,16 @@ impl Default for ExchangeInterRouteBest {
 impl LocalSearch for ExchangeInterRouteBest {
     fn try_improve(
         &self,
-        refinement_ctx: &RefinementContext,
-        insertion_ctx: &InsertionContext,
+        _refinement_ctx: &RefinementContext,
+        _insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
         unimplemented!()
     }
 
     fn try_diversify(
         &self,
-        refinement_ctx: &RefinementContext,
-        insertion_ctx: &InsertionContext,
+        _refinement_ctx: &RefinementContext,
+        _insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
         unimplemented!()
     }
@@ -54,10 +54,12 @@ struct Noise {
 }
 
 impl Noise {
-    pub fn get_with_noise(&self, value: f64) -> f64 {
+    pub fn get_with_noise(&self, _value: f64) -> f64 {
         unimplemented!()
     }
 }
+
+type InsertionSuccessPair = (InsertionSuccess, InsertionSuccess);
 
 fn find_insertion_pair(
     insertion_ctx: &InsertionContext,
@@ -83,7 +85,7 @@ fn find_insertion_pair(
         .iter()
         .enumerate()
         .filter(|(idx, _)| *idx != seed_route_idx)
-        .fold(Option::<(InsertionSuccess, InsertionSuccess)>::None, |acc, (test_route_idx, test_route_ctx)| {
+        .fold(Option::<InsertionSuccessPair>::None, |acc, (_, test_route_ctx)| {
             map_reduce(
                 test_route_ctx.route.tour.jobs().filter(|job| !locked.contains(&job)).collect::<Vec<_>>().as_slice(),
                 |test_job| {
@@ -110,20 +112,22 @@ fn find_insertion_pair(
                     Some((seed_success, test_success))
                 },
                 || None,
-                |left, right| match (&left, &right) {
-                    (Some(left), Some(right)) => {
-                        // TODO
-                        unimplemented!()
-                    }
-                    (Some(_), _) => left,
-                    (None, Some(_)) => right,
-                    _ => None,
-                },
+                |left, right| reduce_pair_with_noise(left, right, noise),
             );
 
             acc
         });
 
+    if let Some(insertion_pair) = insertion_pair {
+        Some(apply_insertion_pair(new_insertion_ctx, insertion_pair))
+    } else {
+        None
+    }
+}
+
+fn apply_insertion_pair(_insertion_ctx: InsertionContext, _insertion_pair: InsertionSuccessPair) -> InsertionContext {
+    // TODO replace route contexts from insertion_pair in insertion_ctx and
+    //      call insertions.rs::insert() method
     unimplemented!()
 }
 
@@ -144,11 +148,15 @@ fn analyze_job_insertion_in_route(
             InsertionResult::make_failure(),
         );
 
-        compare_with_noise(alternative_insertion, new_insertion, noise)
+        compare_insertion_result_with_noise(alternative_insertion, new_insertion, noise)
     })
 }
 
-fn compare_with_noise(left_result: InsertionResult, right_result: InsertionResult, noise: &Noise) -> InsertionResult {
+fn compare_insertion_result_with_noise(
+    left_result: InsertionResult,
+    right_result: InsertionResult,
+    noise: &Noise,
+) -> InsertionResult {
     match (&left_result, &right_result) {
         (InsertionResult::Success(left), InsertionResult::Success(right)) => {
             let left_cost = noise.get_with_noise(left.cost);
@@ -162,6 +170,28 @@ fn compare_with_noise(left_result: InsertionResult, right_result: InsertionResul
         }
         (_, InsertionResult::Success(_)) => right_result,
         (_, InsertionResult::Failure(_)) => left_result,
+    }
+}
+
+fn reduce_pair_with_noise(
+    left_result: Option<InsertionSuccessPair>,
+    right_result: Option<InsertionSuccessPair>,
+    noise: &Noise,
+) -> Option<InsertionSuccessPair> {
+    match (&left_result, &right_result) {
+        (Some(left), Some(right)) => {
+            let left_cost = noise.get_with_noise(left.0.cost + left.1.cost);
+            let right_cost = noise.get_with_noise(right.0.cost + right.1.cost);
+
+            if left_cost < right_cost {
+                left_result
+            } else {
+                right_result
+            }
+        }
+        (Some(_), _) => left_result,
+        (None, Some(_)) => right_result,
+        _ => None,
     }
 }
 
