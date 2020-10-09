@@ -1,5 +1,6 @@
 use crate::construction::heuristics::{RouteContext, RouteState};
 use crate::helpers::models::problem::*;
+use crate::helpers::models::solution::test_actor;
 use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Fleet, Single};
 use crate::models::solution::{Activity, Place, Route, Tour};
@@ -83,6 +84,13 @@ pub fn create_route_with_start_end_activities(
     tour.set_end(end);
 
     create_route(get_test_actor_from_fleet(fleet, vehicle), tour, activities)
+}
+
+pub fn create_empty_route_ctx() -> RouteContext {
+    RouteContext {
+        route: Arc::new(create_route(test_actor(), Tour::default(), vec![])),
+        state: Arc::new(RouteState::default()),
+    }
 }
 
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
