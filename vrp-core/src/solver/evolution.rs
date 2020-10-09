@@ -58,7 +58,11 @@ impl EvolutionConfig {
             problem: problem.clone(),
             selection: Arc::new(NaiveSelection::new(get_cpus())),
             mutation: Arc::new(CompositeMutation::new(vec![(
-                Arc::new(RuinAndRecreate::new_from_problem(problem)),
+                Arc::new(RuinAndRecreate::new_from_problem(
+                    problem,
+                    (Box::new(CompositeLocalSearch::default()), 0.1),
+                    (Box::new(CompositeLocalSearch::default()), 0.1),
+                )),
                 100,
             )])),
             termination: Arc::new(CompositeTermination::new(vec![

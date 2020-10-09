@@ -105,6 +105,10 @@ pub enum MutationType {
         ruins: Vec<ConfigRuinGroup>,
         /// Recreate methods.
         recreates: Vec<RecreateMethod>,
+        /// Probability of pre ruin local search.
+        pre_local_search: f64,
+        /// Probability of post recreate local search.
+        post_local_search: f64,
     },
 }
 
@@ -298,14 +302,22 @@ fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<Mutati
             NamedMutations::default(),
             |mut mutations, type_cfg| {
                 let (name, mutation): (_, Arc<dyn Mutation + Send + Sync>) = match type_cfg {
-                    MutationType::RuinRecreate { name, ruins, recreates } => {
+                    MutationType::RuinRecreate { name, ruins, recreates, pre_local_search, post_local_search } => {
                         let ruin = Box::new(CompositeRuin::new(
                             ruins.iter().map(|g| create_ruin_group(&builder.config.problem, g)).collect(),
                         ));
                         let recreate = Box::new(CompositeRecreate::new(
                             recreates.iter().map(|r| create_recreate_method(r)).collect(),
                         ));
-                        (name.clone(), Arc::new(RuinAndRecreate::new(recreate, ruin)))
+                        (
+                            name.clone(),
+                            Arc::new(RuinAndRecreate::new(
+                                recreate,
+                                ruin,
+                                (Box::new(CompositeLocalSearch::default()), *pre_local_search),
+                                (Box::new(CompositeLocalSearch::default()), *post_local_search),
+                            )),
+                        )
                     }
                     MutationType::Composite { name, inners } => {
                         let inners = inners
