@@ -45,7 +45,7 @@ impl LocalSearch for ExchangeInterRouteBest {
 }
 
 impl ExchangeInterRouteRandom {
-    /// Creates a new instance of `ExchangeInterRouteBest`.
+    /// Creates a new instance of `ExchangeInterRouteRandom`.
     pub fn new(noise_probability: f64, noise_range: (f64, f64)) -> Self {
         Self { noise_probability, noise_range }
     }
