@@ -228,7 +228,7 @@
         ]
       },
       {
-        "type": "weighted-composite",
+        "type": "composite",
         "name": "default-composite",
         "inners": [
           {

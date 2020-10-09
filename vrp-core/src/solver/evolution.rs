@@ -57,7 +57,7 @@ impl EvolutionConfig {
         Self {
             problem: problem.clone(),
             selection: Arc::new(NaiveSelection::new(get_cpus())),
-            mutation: Arc::new(WeightedComposite::new(vec![(
+            mutation: Arc::new(CompositeMutation::new(vec![(
                 Arc::new(RuinAndRecreate::new_from_problem(problem)),
                 100,
             )])),

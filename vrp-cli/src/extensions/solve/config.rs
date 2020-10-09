@@ -88,8 +88,8 @@ pub struct MutationConfig {
 pub enum MutationType {
     /// A metaheuristic which is composition of other metaheuristics with their
     /// probability weights.
-    #[serde(rename(deserialize = "weighted-composite"))]
-    WeightedComposite {
+    #[serde(rename(deserialize = "composite"))]
+    Composite {
         /// A name of metaheurisic instance.
         name: String,
         /// A collection of inner metaheuristics.
@@ -307,12 +307,12 @@ fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<Mutati
                         ));
                         (name.clone(), Arc::new(RuinAndRecreate::new(recreate, ruin)))
                     }
-                    MutationType::WeightedComposite { name, inners } => {
+                    MutationType::Composite { name, inners } => {
                         let inners = inners
                             .iter()
                             .map(|nw| get_mutation_by_name(&mutations, &nw.name).map(|mutation| (mutation, nw.weight)))
                             .collect::<Result<Vec<_>, _>>()?;
-                        (name.clone(), Arc::new(WeightedComposite::new(inners)))
+                        (name.clone(), Arc::new(CompositeMutation::new(inners)))
                     }
                 };
 
