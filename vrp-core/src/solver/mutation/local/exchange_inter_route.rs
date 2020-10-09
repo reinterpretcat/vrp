@@ -1,10 +1,12 @@
-use crate::algorithms::nsga2::Objective;
+#[cfg(test)]
+#[path = "../../../../tests/unit/solver/mutation/local/exchange_inter_route_test.rs"]
+mod exchange_inter_route_test;
+
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::{select_seed_job, LocalSearch};
 use crate::solver::RefinementContext;
 use crate::utils::{map_reduce, Noise};
-use std::cmp::Ordering;
 
 /// A local search operator which tries to exchange jobs in best way between different routes.
 pub struct ExchangeInterRouteBest {
@@ -29,25 +31,35 @@ impl Default for ExchangeInterRouteBest {
 }
 
 impl LocalSearch for ExchangeInterRouteBest {
-    fn try_improve(
-        &self,
-        refinement_ctx: &RefinementContext,
-        insertion_ctx: &InsertionContext,
-    ) -> Option<InsertionContext> {
-        if let Some(new_insertion_ctx) = self.try_diversify(refinement_ctx, insertion_ctx) {
-            match refinement_ctx.problem.objective.total_order(&new_insertion_ctx, insertion_ctx) {
-                Ordering::Less | Ordering::Equal => Some(new_insertion_ctx),
-                Ordering::Greater => None,
-            }
-        } else {
-            None
-        }
-    }
-
-    fn try_diversify(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
+    fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         if let Some(seed_job) = select_seed_job(insertion_ctx.solution.routes.as_slice(), &insertion_ctx.random) {
             let noise = Noise::new(self.noise_probability, self.noise_range, insertion_ctx.random.clone());
-            find_insertion_pair(insertion_ctx, seed_job, &noise)
+            find_best_insertion_pair(insertion_ctx, seed_job, &noise, {
+                let noise = noise.clone();
+                Box::new(move |new_insertion_ctx, (seed_route, seed_job), (test_route, test_job)| {
+                    // try to insert test job into seed tour
+                    let seed_insertion =
+                        analyze_job_insertion_in_route(&new_insertion_ctx, seed_route, test_job, &noise);
+                    let seed_success = match seed_insertion {
+                        InsertionResult::Failure(_) => return None,
+                        InsertionResult::Success(success) => success,
+                    };
+
+                    // try to insert seed job into test route
+                    let mut test_route = test_route.deep_copy();
+                    test_route.route_mut().tour.remove(test_job);
+                    new_insertion_ctx.problem.constraint.accept_route_state(&mut test_route);
+
+                    let test_insertion =
+                        analyze_job_insertion_in_route(&new_insertion_ctx, &test_route, &seed_job, &noise);
+                    let test_success = match test_insertion {
+                        InsertionResult::Failure(_) => return None,
+                        InsertionResult::Success(success) => success,
+                    };
+
+                    Some((seed_success, test_success))
+                })
+            })
         } else {
             None
         }
@@ -55,11 +67,17 @@ impl LocalSearch for ExchangeInterRouteBest {
 }
 
 type InsertionSuccessPair = (InsertionSuccess, InsertionSuccess);
+type InsertionTargetPair<'a> = (&'a RouteContext, &'a Job);
 
-fn find_insertion_pair(
+fn find_best_insertion_pair(
     insertion_ctx: &InsertionContext,
     seed_job: (usize, Job),
     noise: &Noise,
+    get_insertion_pair: Box<
+        dyn Fn(&InsertionContext, InsertionTargetPair, InsertionTargetPair) -> Option<InsertionSuccessPair>
+            + Send
+            + Sync,
+    >,
 ) -> Option<InsertionContext> {
     let (seed_route_idx, seed_job) = seed_job;
     let locked = &insertion_ctx.solution.locked;
@@ -69,9 +87,7 @@ fn find_insertion_pair(
         return None;
     }
 
-    let new_insertion_ctx =
-        fork_insertion_ctx_without_job(insertion_ctx, &seed_job, seed_route_idx).expect("cannot fork insertion ctx");
-
+    let new_insertion_ctx = get_new_insertion_ctx(insertion_ctx, &seed_job, seed_route_idx).unwrap();
     let seed_route = new_insertion_ctx.solution.routes.get(seed_route_idx).unwrap();
 
     let insertion_pair = new_insertion_ctx
@@ -81,49 +97,41 @@ fn find_insertion_pair(
         .enumerate()
         .filter(|(idx, _)| *idx != seed_route_idx)
         .fold(Option::<InsertionSuccessPair>::None, |acc, (_, test_route_ctx)| {
-            map_reduce(
+            let new_result = map_reduce(
                 test_route_ctx.route.tour.jobs().filter(|job| !locked.contains(&job)).collect::<Vec<_>>().as_slice(),
-                |test_job| {
-                    // try to insert test job into seed tour
-                    let seed_insertion =
-                        analyze_job_insertion_in_route(&new_insertion_ctx, seed_route, test_job, noise);
-                    let seed_success = match seed_insertion {
-                        InsertionResult::Failure(_) => return None,
-                        InsertionResult::Success(success) => success,
-                    };
-
-                    // try to insert seed job into test route
-                    let mut test_route_ctx = test_route_ctx.deep_copy();
-                    test_route_ctx.route_mut().tour.remove(test_job);
-                    new_insertion_ctx.problem.constraint.accept_route_state(&mut test_route_ctx);
-
-                    let test_insertion =
-                        analyze_job_insertion_in_route(&new_insertion_ctx, &test_route_ctx, &seed_job, noise);
-                    let test_success = match test_insertion {
-                        InsertionResult::Failure(_) => return None,
-                        InsertionResult::Success(success) => success,
-                    };
-
-                    Some((seed_success, test_success))
-                },
+                |test_job| get_insertion_pair(&new_insertion_ctx, (seed_route, &seed_job), (&test_route_ctx, test_job)),
                 || None,
                 |left, right| reduce_pair_with_noise(left, right, noise),
             );
 
-            acc
+            reduce_pair_with_noise(acc, new_result, noise)
         });
 
     if let Some(insertion_pair) = insertion_pair {
-        Some(apply_insertion_pair(new_insertion_ctx, insertion_pair))
+        let mut new_insertion_ctx = new_insertion_ctx;
+        apply_insertion_success(&mut new_insertion_ctx, insertion_pair.0);
+        apply_insertion_success(&mut new_insertion_ctx, insertion_pair.1);
+        finalize_insertion_ctx(&mut new_insertion_ctx);
+
+        Some(new_insertion_ctx)
     } else {
         None
     }
 }
 
-fn apply_insertion_pair(_insertion_ctx: InsertionContext, _insertion_pair: InsertionSuccessPair) -> InsertionContext {
-    // TODO replace route contexts from insertion_pair in insertion_ctx and
-    //      call insertions.rs::insert() method
-    unimplemented!()
+fn apply_insertion_success(insertion_ctx: &mut InsertionContext, insertion_success: InsertionSuccess) {
+    let route_index = insertion_ctx
+        .solution
+        .routes
+        .iter()
+        .position(|ctx| ctx.route.actor == insertion_success.context.route.actor)
+        .unwrap();
+
+    // NOTE replace existing route context with the different
+    insertion_ctx.solution.routes[route_index] =
+        RouteContext { route: insertion_success.context.route.clone(), state: insertion_success.context.state.clone() };
+
+    apply_insertion_result(insertion_ctx, InsertionResult::Success(insertion_success))
 }
 
 fn analyze_job_insertion_in_route(
@@ -190,20 +198,23 @@ fn reduce_pair_with_noise(
     }
 }
 
-fn fork_insertion_ctx_without_job(
+fn get_new_insertion_ctx(
     insertion_ctx: &InsertionContext,
     seed_job: &Job,
     seed_route_idx: usize,
 ) -> Result<InsertionContext, String> {
     let mut new_insertion_ctx = insertion_ctx.deep_copy();
 
-    let removal_result = new_insertion_ctx.solution.routes[seed_route_idx].route_mut().tour.remove(&seed_job);
-    if removal_result {
+    let mut route_ctx = &mut new_insertion_ctx.solution.routes[seed_route_idx];
+    let removal_result = route_ctx.route_mut().tour.remove(&seed_job);
+    if !removal_result {
         return Err("cannot find job in insertion ctx".to_string());
     }
 
-    new_insertion_ctx.solution.required.push(seed_job.clone());
-    new_insertion_ctx.problem.constraint.accept_solution_state(&mut new_insertion_ctx.solution);
+    // NOTE removed job is not added to the required list as it will be tried
+    // to be reinserted later. If insertion fails, the context is discarded
+
+    new_insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
 
     Ok(new_insertion_ctx)
 }

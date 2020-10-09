@@ -3,7 +3,9 @@ use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
-use crate::models::problem::{create_matrix_transport_cost, Job, Jobs, MatrixData, ObjectiveCost};
+use crate::models::problem::{
+    create_matrix_transport_cost, Job, Jobs, MatrixData, ObjectiveCost, Vehicle, VehicleDetail,
+};
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::solver::mutation::{Recreate, RecreateWithCheapest};
@@ -36,12 +38,23 @@ pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send
 pub fn generate_matrix_routes(
     rows: usize,
     cols: usize,
+    is_open_vrp: bool,
     matrix_modify: fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
 ) -> (Problem, Solution) {
     let fleet = Arc::new(
         FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
-            .add_vehicles((0..cols).map(|i| test_vehicle_with_id(i.to_string().as_str())).collect())
+            .add_vehicles(
+                (0..cols)
+                    .map(|i| Vehicle {
+                        details: vec![VehicleDetail {
+                            end: if is_open_vrp { None } else { test_vehicle_detail().end },
+                            ..test_vehicle_detail()
+                        }],
+                        ..test_vehicle_with_id(i.to_string().as_str())
+                    })
+                    .collect(),
+            )
             .build(),
     );
     let registry = Registry::new(&fleet);

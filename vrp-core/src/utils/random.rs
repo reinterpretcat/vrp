@@ -78,6 +78,7 @@ impl Default for DefaultRandom {
 }
 
 /// Provides way to generate some noise to floating point value.
+#[derive(Clone)]
 pub struct Noise {
     probability: f64,
     range: (f64, f64),

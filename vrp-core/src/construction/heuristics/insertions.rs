@@ -178,15 +178,15 @@ impl InsertionHeuristic {
     ) -> InsertionContext {
         let mut ctx = ctx;
 
-        prepare_ctx(&mut ctx);
+        prepare_insertion_ctx(&mut ctx);
 
         while !ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Job>>();
             let result = job_reducer.reduce(&ctx, jobs, self.insertion_position);
-            insert(result, &mut ctx);
+            apply_insertion_result(&mut ctx, result);
         }
 
-        finalize_ctx(&mut ctx);
+        finalize_insertion_ctx(&mut ctx);
 
         ctx
     }
@@ -225,17 +225,17 @@ impl InsertionResult {
     }
 }
 
-fn prepare_ctx(ctx: &mut InsertionContext) {
+pub(crate) fn prepare_insertion_ctx(ctx: &mut InsertionContext) {
     ctx.solution.required.extend(ctx.solution.unassigned.drain().map(|(job, _)| job));
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
 
-fn finalize_ctx(ctx: &mut InsertionContext) {
+pub(crate) fn finalize_insertion_ctx(ctx: &mut InsertionContext) {
     ctx.solution.unassigned.extend(ctx.solution.required.drain(0..).map(|job| (job, 0)));
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
 
-fn insert(result: InsertionResult, ctx: &mut InsertionContext) {
+pub(crate) fn apply_insertion_result(ctx: &mut InsertionContext, result: InsertionResult) {
     match result {
         InsertionResult::Success(success) => {
             let is_new_route = ctx.solution.registry.use_route(&success.context);

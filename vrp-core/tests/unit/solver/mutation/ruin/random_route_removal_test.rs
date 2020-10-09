@@ -12,7 +12,7 @@ fn can_remove_whole_routes_from_context() {
     let matrix = (4, 4);
     let ints = vec![2, 0, 2];
 
-    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, |data| (data.clone(), data));
+    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, false, |data| (data.clone(), data));
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
@@ -31,7 +31,7 @@ fn can_remove_parts_routes_from_context() {
     let matrix = (8, 1);
     let ints = vec![2, 0, 2];
 
-    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, |data| (data.clone(), data));
+    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, false, |data| (data.clone(), data));
     let problem = Problem {
         jobs: problem.jobs.clone(),
         locks: vec![Arc::new(Lock {
