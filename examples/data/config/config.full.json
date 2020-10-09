@@ -26,8 +26,8 @@
       {
         "type": "ruin-recreate",
         "name": "default-ruin-recreate",
-        "pre_local_search": 0.1,
-        "post_local_search": 0.1,
+        "pre_local_search": 0.01,
+        "post_local_search": 0.05,
         "ruins": [
           {
             "weight": 100,

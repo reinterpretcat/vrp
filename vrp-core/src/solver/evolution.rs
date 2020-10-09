@@ -60,8 +60,8 @@ impl EvolutionConfig {
             mutation: Arc::new(CompositeMutation::new(vec![(
                 Arc::new(RuinAndRecreate::new_from_problem(
                     problem,
-                    (Box::new(CompositeLocalSearch::default()), 0.1),
-                    (Box::new(CompositeLocalSearch::default()), 0.1),
+                    (Box::new(CompositeLocalSearch::default()), 0.01),
+                    (Box::new(CompositeLocalSearch::default()), 0.05),
                 )),
                 100,
             )])),
