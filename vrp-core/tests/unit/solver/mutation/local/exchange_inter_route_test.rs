@@ -78,7 +78,6 @@ fn make_success(cost: Cost) -> InsertionResult {
     InsertionResult::make_success(cost, Job::Single(test_single_with_id("job1")), vec![], create_empty_route_ctx())
 }
 
-
 parameterized_test! {can_compare_insertion_result_with_noise, (left, right, reals, expected_result), {
     can_compare_insertion_result_with_noise_impl(left, right, reals, expected_result);
 }}
@@ -93,7 +92,12 @@ can_compare_insertion_result_with_noise! {
     case06: (InsertionResult::make_failure(), InsertionResult::make_failure(), vec![],  None),
 }
 
-fn can_compare_insertion_result_with_noise_impl(left: InsertionResult, right: InsertionResult, reals: Vec<f64>, expected_result: Option<f64>) {
+fn can_compare_insertion_result_with_noise_impl(
+    left: InsertionResult,
+    right: InsertionResult,
+    reals: Vec<f64>,
+    expected_result: Option<f64>,
+) {
     let noise_probability = 0.1;
     let noise_range = (0.9, 1.2);
     let random = Arc::new(FakeRandom::new(vec![], reals));
@@ -104,6 +108,6 @@ fn can_compare_insertion_result_with_noise_impl(left: InsertionResult, right: In
     match (actual_result, expected_result) {
         (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, cost),
         (InsertionResult::Failure(_), None) => {}
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }
