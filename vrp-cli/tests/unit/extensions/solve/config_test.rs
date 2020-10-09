@@ -33,8 +33,8 @@ fn can_read_config() {
     assert_eq!(termination.max_generations, Some(3000));
 
     let mutation_config = config.mutation.expect("cannot get mutation");
-    assert_eq!(mutation_config.name, "default-branching");
-    assert_eq!(mutation_config.collection.len(), 3);
+    assert_eq!(mutation_config.name, "default-composite");
+    assert_eq!(mutation_config.collection.len(), 2);
 }
 
 #[test]

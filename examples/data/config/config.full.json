@@ -21,7 +21,7 @@
     ]
   },
   "mutation": {
-    "name": "default-branching",
+    "name": "default-composite",
     "collection": [
       {
         "type": "ruin-recreate",
@@ -236,21 +236,6 @@
             "weight": 1
           }
         ]
-      },
-      {
-        "type": "naive-branching",
-        "name": "default-branching",
-        "inner": "default-composite",
-        "chance": {
-          "normal": 0.0001,
-          "intensive": 0.1,
-          "threshold": 0.001
-        },
-        "steepness": 1.5,
-        "generations": {
-          "min": 2,
-          "max": 4
-        }
       }
     ]
   },

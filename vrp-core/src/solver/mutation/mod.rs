@@ -21,9 +21,6 @@ pub use self::ruin::*;
 mod utils;
 pub(crate) use self::utils::*;
 
-mod naive_branching;
-pub use self::naive_branching::NaiveBranching;
-
 mod ruin_recreate;
 pub use self::ruin_recreate::RuinAndRecreate;
 

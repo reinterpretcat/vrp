@@ -86,21 +86,6 @@ pub struct MutationConfig {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum MutationType {
-    /// A naive branching metaheurstic settings.
-    #[serde(rename(deserialize = "naive-branching"))]
-    NaiveBranching {
-        /// A name of metaheurisic instance.
-        name: String,
-        /// A name of inner metaheurisic instance.
-        inner: String,
-        /// Specifies branching chance settings.
-        chance: BranchingChance,
-        /// Specifies steepness parameter for acceptance probability.
-        steepness: f64,
-        /// Specifies generations range inside a branch.
-        generations: MinMaxConfig,
-    },
-
     /// A metaheuristic which is composition of other metaheuristics with their
     /// probability weights.
     #[serde(rename(deserialize = "weighted-composite"))]
@@ -329,15 +314,6 @@ fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<Mutati
                             .collect::<Result<Vec<_>, _>>()?;
                         (name.clone(), Arc::new(WeightedComposite::new(inners)))
                     }
-                    MutationType::NaiveBranching { name, inner, chance, steepness, generations } => (
-                        name.clone(),
-                        Arc::new(NaiveBranching::new(
-                            get_mutation_by_name(&mutations, inner)?,
-                            (chance.normal, chance.intensive, chance.threshold),
-                            *steepness,
-                            generations.min..generations.max,
-                        )),
-                    ),
                 };
 
                 mutations.insert(name, mutation);
