@@ -51,6 +51,7 @@ pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Proble
                     });
                 });
 
+                solution.registry.use_actor(&actor);
                 solution.routes.push(Route { actor, tour });
             }
             Ok(_) => break,
