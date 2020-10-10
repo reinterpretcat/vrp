@@ -9,6 +9,7 @@ use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place};
+use std::iter::repeat;
 
 /// Specifies allowed insertion position in route for the job.
 #[derive(Copy, Clone)]
@@ -99,11 +100,13 @@ fn evaluate_single(
     route_costs: Cost,
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
+    let insertion_idx = get_insertion_index(route_ctx, position);
     let mut activity = Activity::new_with_job(single.clone());
+
     let result = analyze_insertion_in_route(
         constraint,
         route_ctx,
-        position,
+        insertion_idx,
         single,
         &mut activity,
         SingleContext::new(best_known_cost, 0),
@@ -127,12 +130,13 @@ fn evaluate_multi(
     route_costs: Cost,
     best_known_cost: Option<Cost>,
 ) -> InsertionResult {
+    let insertion_idx = get_insertion_index(route_ctx, position).unwrap_or(0);
     // 1. analyze permutations
     let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
-        MultiContext::new(best_known_cost),
+        MultiContext::new(best_known_cost, insertion_idx),
         |acc_res, services| {
             let mut shadow = ShadowContext::new(constraint, &route_ctx);
-            let perm_res = unwrap_from_result(std::iter::repeat(0).try_fold(MultiContext::new(None), |out, _| {
+            let perm_res = unwrap_from_result(repeat(0).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
                 if out.is_failure(route_ctx.route.tour.activity_count()) {
                     return Result::Err(out);
                 }
@@ -148,7 +152,7 @@ fn evaluate_multi(
                     let srv_res = analyze_insertion_in_route(
                         &constraint,
                         &shadow.ctx,
-                        position,
+                        None,
                         service,
                         &mut activity,
                         SingleContext::new(None, in1.next_index),
@@ -183,30 +187,23 @@ fn evaluate_multi(
 fn analyze_insertion_in_route(
     constraint: &ConstraintPipeline,
     route_ctx: &RouteContext,
-    position: InsertionPosition,
+    insertion_idx: Option<usize>,
     single: &Single,
     target: &mut Activity,
     init: SingleContext,
 ) -> SingleContext {
-    unwrap_from_result(match position {
-        InsertionPosition::Any => {
-            route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
-                analyze_insertion_in_route_leg(constraint, route_ctx, leg, single, target, out)
-            })
-        }
-        InsertionPosition::Concrete(idx) => {
+    unwrap_from_result(match insertion_idx {
+        Some(idx) => {
             if let Some(concrete_leg) = route_ctx.route.tour.legs().nth(idx) {
                 analyze_insertion_in_route_leg(constraint, route_ctx, concrete_leg, single, target, init)
             } else {
                 Ok(init)
             }
         }
-        InsertionPosition::Last => {
-            if let Some(last_leg) = route_ctx.route.tour.legs().last() {
-                analyze_insertion_in_route_leg(constraint, route_ctx, last_leg, single, target, init)
-            } else {
-                Ok(init)
-            }
+        None => {
+            route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
+                analyze_insertion_in_route_leg(constraint, route_ctx, leg, single, target, out)
+            })
         }
     })
 }
@@ -252,6 +249,14 @@ fn analyze_insertion_in_route_leg<'a>(
             }
         })
     })
+}
+
+fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) -> Option<usize> {
+    match position {
+        InsertionPosition::Any => None,
+        InsertionPosition::Concrete(idx) => Some(idx),
+        InsertionPosition::Last => Some(route_ctx.route.tour.legs().count().max(1) - 1),
+    }
 }
 
 /// Stores information needed for single insertion.
@@ -312,8 +317,8 @@ struct MultiContext {
 
 impl MultiContext {
     /// Creates new empty insertion context.
-    fn new(cost: Option<Cost>) -> Self {
-        Self { violation: None, start_index: 0, next_index: 0, cost, activities: None }
+    fn new(cost: Option<Cost>, index: usize) -> Self {
+        Self { violation: None, start_index: index, next_index: index, cost, activities: None }
     }
 
     /// Promotes insertion context by best price.

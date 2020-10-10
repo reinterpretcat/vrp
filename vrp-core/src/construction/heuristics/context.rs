@@ -125,7 +125,9 @@ impl SolutionContext {
         Solution {
             registry: self.registry.resources().deep_copy(),
             routes: self.routes.iter().map(|rc| rc.route.deep_copy()).collect(),
-            unassigned: self.unassigned.iter()
+            unassigned: self
+                .unassigned
+                .iter()
                 .map(|(job, code)| (job.clone(), *code))
                 .chain(self.required.iter().map(|job| (job.clone(), 0)))
                 .collect(),
