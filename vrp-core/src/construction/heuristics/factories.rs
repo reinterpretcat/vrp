@@ -119,7 +119,7 @@ pub fn create_insertion_context_from_solution(
     solution: (Solution, Option<Cost>),
     random: Arc<dyn Random + Send + Sync>,
 ) -> InsertionContext {
-    let unassigned = solution.0.unassigned.iter().cloned().collect();
+    let required = solution.0.unassigned.iter().map(|(job, _)| job).cloned().collect();
     let locked = problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
         acc.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
         acc
@@ -140,7 +140,7 @@ pub fn create_insertion_context_from_solution(
     let registry = create_registry_context(&problem, registry);
 
     let mut solution =
-        SolutionContext { required: vec![], ignored: vec![], unassigned, locked, routes, registry, state };
+        SolutionContext { required, ignored: vec![], unassigned: Default::default(), locked, routes, registry, state };
     problem.constraint.accept_solution_state(&mut solution);
 
     InsertionContext { problem, solution, random }
