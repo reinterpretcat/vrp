@@ -28,56 +28,68 @@ mod single {
     use crate::models::common::TimeInterval;
     use crate::models::problem::VehiclePlace;
 
-    parameterized_test! {can_insert_job_with_location_into_empty_tour, job, {
-        can_insert_job_with_location_into_empty_tour_impl(job);
+    parameterized_test! {can_insert_job_with_location_into_empty_tour, (job, position, has_result), {
+        can_insert_job_with_location_into_empty_tour_impl(job, position, has_result);
     }}
 
     can_insert_job_with_location_into_empty_tour! {
-        case1: Job::Single(Arc::new(test_single())),
-        case2: Job::Single(test_single_with_location(None)),
+        case01: (Job::Single(Arc::new(test_single())), InsertionPosition::Any, true),
+        case02: (Job::Single(test_single_with_location(None)), InsertionPosition::Any, true),
+
+        case03: (Job::Single(Arc::new(test_single())), InsertionPosition::Concrete(0), true),
+        case04: (Job::Single(test_single_with_location(None)), InsertionPosition::Concrete(0), true),
+        case05: (Job::Single(Arc::new(test_single())), InsertionPosition::Concrete(1), false),
+
+        case06: (Job::Single(Arc::new(test_single())), InsertionPosition::Last, true),
+        case07: (Job::Single(test_single_with_location(None)), InsertionPosition::Last, true),
     }
 
-    fn can_insert_job_with_location_into_empty_tour_impl(job: Job) {
+    fn can_insert_job_with_location_into_empty_tour_impl(job: Job, position: InsertionPosition, has_result: bool) {
         let ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), position);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
             assert_eq!(success.activities.first().unwrap().1, 0);
             assert_eq!(success.activities.first().unwrap().0.place.location, DEFAULT_JOB_LOCATION);
         } else {
-            unreachable!()
+            assert!(!has_result)
         }
     }
 
-    parameterized_test! {can_insert_job_with_location_into_tour_with_two_activities_and_variations, (places, location, index), {
+    parameterized_test! {can_insert_job_with_location_into_tour_with_two_activities_and_variations, (places, location, position, index), {
         let job = Job::Single(Arc::new(Single { places, dimens: Default::default() }));
-        can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(job, location, index);
+        can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(job, location, position, index);
     }}
 
     can_insert_job_with_location_into_tour_with_two_activities_and_variations! {
         // vary times
-        case01: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 3, 0),
-        case02: (vec![JobPlace { location: Some(8), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 8, 1),
-        case03: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(15.0, 20.0))] }], 7, 2),
+        case01: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
+        case02: (vec![JobPlace { location: Some(8), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 8, 1),
+        case03: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(15.0, 20.0))] }], InsertionPosition::Any, 7, 2),
         case04: (vec![JobPlace { location: Some(7), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(15.0, 20.0)),
-                                                                               TimeSpan::Window(TimeWindow::new(7.0, 8.0))] }], 7, 1),
+                                                                               TimeSpan::Window(TimeWindow::new(7.0, 8.0))] }], InsertionPosition::Any, 7, 1),
 
         // vary locations
-        case05: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 3, 0),
+        case05: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
         case06: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
-                     JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 3, 0),
+                      JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 3, 0),
 
         // vary locations and times
         case07: (vec![JobPlace { location: Some(20), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
-                      JobPlace { location: Some(3), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(0.0, 2.0))] }], 20, 1),
+                      JobPlace { location: Some(3), duration: 0.0, times: vec![TimeSpan::Window(TimeWindow::new(0.0, 2.0))] }], InsertionPosition::Any, 20, 1),
         case08: (vec![JobPlace { location: Some(12), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] },
-                      JobPlace { location: Some(11), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], 11, 1),
+                      JobPlace { location: Some(11), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Any, 11, 1),
+
+        // vary insertion position
+        case09: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Last, 3, 2),
+        case10: (vec![JobPlace { location: Some(3), duration: 0.0, times: vec![DEFAULT_JOB_TIME_SPAN] }], InsertionPosition::Concrete(1), 3, 1),
     }
 
     fn can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(
         job: Job,
+        position: InsertionPosition,
         location: Location,
         index: usize,
     ) {
@@ -88,7 +100,7 @@ mod single {
         let constraint = create_constraint_pipeline_with_transport();
         let ctx = create_insertion_context(registry, constraint, routes);
 
-        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), position);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -235,21 +247,31 @@ mod multi {
         }
     }
 
-    parameterized_test! {can_insert_job_with_singles_into_tour_with_activities, (existing, expected, cost), {
-        can_insert_job_with_singles_into_tour_with_activities_impl(existing, expected, cost);
+    parameterized_test! {can_insert_job_with_singles_into_tour_with_activities, (existing, position, expected, cost), {
+        can_insert_job_with_singles_into_tour_with_activities_impl(existing, position, expected, cost);
     }}
 
     can_insert_job_with_singles_into_tour_with_activities! {
-        case01: (vec![(1, 5)], vec![(0, 3), (1, 7)], 8.0),                   // s 3  7 [5] e
-        case02: (vec![(1, 5)], vec![(0, 7), (2, 3)], 8.0),                   // s 7 [5] 3  e
-        case03: (vec![(1, 5), (2, 9)], vec![(0, 3), (2, 7), (3, 11)], 8.0),  // s 3 [5] 7 11 [9] e
-        case04: (vec![(1, 3), (2, 7)], vec![(0, 1), (2, 9)], 8.0),           // s 1 [3] 9 [7] e,
-        case05: (vec![(1, 7), (2, 3)], vec![(0, 9), (3, 1)], 8.0),           // s 9 [7] [3] 1  e
-        case06: (vec![(1, 7), (2, 3)], vec![(0, 9), (2, 5)], 8.0),           // s 9 [7]  5 [3] e
+        // any position
+        case01: (vec![(1, 5)], InsertionPosition::Any, vec![(0, 3), (1, 7)], 8.),                   // s 3  7 [5] e
+        case02: (vec![(1, 5)], InsertionPosition::Any, vec![(0, 7), (2, 3)], 8.),                   // s 7 [5] 3  e
+        case03: (vec![(1, 5), (2, 9)], InsertionPosition::Any, vec![(0, 3), (2, 7), (3, 11)], 8.),  // s 3 [5] 7 11 [9] e
+        case04: (vec![(1, 3), (2, 7)], InsertionPosition::Any, vec![(0, 1), (2, 9)], 8.),           // s 1 [3] 9 [7] e,
+        case05: (vec![(1, 7), (2, 3)], InsertionPosition::Any, vec![(0, 9), (3, 1)], 8.),           // s 9 [7] [3] 1  e
+        case06: (vec![(1, 7), (2, 3)], InsertionPosition::Any, vec![(0, 9), (2, 5)], 8.),           // s 9 [7]  5 [3] e
+
+        // last position
+        case07: (vec![(1, 5)], InsertionPosition::Last, vec![(1, 3), (2, 7)], 16.),                 // s [5] 3 7 e
+        case08: (vec![(1, 7), (2, 3)], InsertionPosition::Last, vec![(2, 9), (3, 5)], 24.),         // s [7] [3] 9 5 e
+
+        // concrete position
+        case09: (vec![(1, 5)], InsertionPosition::Concrete(1), vec![(1, 3), (2, 7)], 16.),          // s [5] 3 7 e
+        case10: (vec![(1, 7), (2, 3)], InsertionPosition::Concrete(1), vec![(1, 9), (2, 5)], 8.),   // s [7] 9 5 [3] e
     }
 
     fn can_insert_job_with_singles_into_tour_with_activities_impl(
         existing: Vec<InsertionData>,
+        position: InsertionPosition,
         expected: Vec<InsertionData>,
         cost: Cost,
     ) {
@@ -267,7 +289,7 @@ mod multi {
         });
         let job = job.build();
 
-        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), InsertionPosition::Any);
+        let result = evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), position);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, cost);
