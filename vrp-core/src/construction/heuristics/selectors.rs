@@ -137,6 +137,8 @@ impl NoiseResultSelector {
 impl ResultSelector for NoiseResultSelector {
     fn select(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
         match (&left, &right) {
+            (InsertionResult::Success(_), InsertionResult::Failure(_)) => left,
+            (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,
             (InsertionResult::Success(left_success), InsertionResult::Success(right_success)) => {
                 let left_cost = self.noise.add(left_success.cost);
                 let right_cost = self.noise.add(right_success.cost);
@@ -147,8 +149,7 @@ impl ResultSelector for NoiseResultSelector {
                     right
                 }
             }
-            (_, InsertionResult::Success(_)) => right,
-            (_, InsertionResult::Failure(_)) => left,
+            _ => right,
         }
     }
 }

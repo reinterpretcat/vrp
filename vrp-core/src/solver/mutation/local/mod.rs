@@ -1,13 +1,16 @@
 //! This module contains various Local Search operators.
 
+use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
+use std::cmp::Ordering;
 
 mod exchange_inter_route;
 pub use self::exchange_inter_route::ExchangeInterRouteBest;
 pub use self::exchange_inter_route::ExchangeInterRouteRandom;
-use crate::algorithms::nsga2::Objective;
-use std::cmp::Ordering;
+
+mod exchange_intra_route;
+pub use self::exchange_intra_route::ExchangeIntraRouteRandom;
 
 /// Specifies behavior of a local search operator.
 pub trait LocalSearch {
@@ -39,7 +42,8 @@ impl Default for CompositeLocalSearch {
         Self::new(
             vec![
                 (Box::new(ExchangeInterRouteBest::default()), 100),
-                (Box::new(ExchangeInterRouteRandom::default()), 10),
+                (Box::new(ExchangeInterRouteRandom::default()), 30),
+                (Box::new(ExchangeIntraRouteRandom::default()), 30),
             ],
             1,
             4,
