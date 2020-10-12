@@ -44,8 +44,8 @@ impl RecreateWithRegret {
 struct RegretJobMapReducer {
     min: usize,
     max: usize,
-
     route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
     inner_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
 
@@ -59,6 +59,7 @@ impl RegretJobMapReducer {
             min,
             max,
             route_selector: Box::new(AllRouteSelector::default()),
+            result_selector: Box::new(BestResultSelector::default()),
             inner_reducer: Box::new(PairJobMapReducer::new(
                 Box::new(AllRouteSelector::default()),
                 Box::new(BestResultSelector::default()),
@@ -92,6 +93,7 @@ impl JobMapReducer for RegretJobMapReducer {
                         &route_ctx,
                         insertion_position,
                         InsertionResult::make_failure(),
+                        self.result_selector.as_ref(),
                     )
                 })
                 .collect::<Vec<_>>()

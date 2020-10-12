@@ -17,3 +17,11 @@ pub fn compare_shared<T: ?Sized>(left: &Arc<T>, right: &Arc<T>) -> bool {
     let right: *const T = right.as_ref();
     left == right
 }
+
+/// Unwraps result type.
+pub fn unwrap_from_result<T>(result: Result<T, T>) -> T {
+    match result {
+        Ok(result) => result,
+        Err(result) => result,
+    }
+}

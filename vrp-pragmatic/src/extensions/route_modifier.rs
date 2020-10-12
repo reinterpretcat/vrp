@@ -19,11 +19,13 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
             .map(|job_id| job_index.get(&job_id))
             .take_while(|job| job.is_some())
             .filter_map(|job| {
-                job.map(|job| evaluate_job_constraint_in_route(job, &constraint, &route_ctx, InsertionPosition::Last))
-                    .and_then(|result| match result {
-                        InsertionResult::Success(success) => Some(success),
-                        _ => None,
-                    })
+                job.map(|job| {
+                    evaluate_job_constraint_in_route(job, &constraint, &route_ctx, InsertionPosition::Last, 0., None)
+                })
+                .and_then(|result| match result {
+                    InsertionResult::Success(success) => Some(success),
+                    _ => None,
+                })
             })
             .min_by(|a, b| compare_floats(a.cost, b.cost));
 

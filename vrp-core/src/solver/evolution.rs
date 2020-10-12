@@ -60,7 +60,7 @@ impl EvolutionConfig {
             mutation: Arc::new(CompositeMutation::new(vec![(
                 Arc::new(RuinAndRecreate::new_from_problem(
                     problem,
-                    (Box::new(CompositeLocalSearch::default()), 0.01),
+                    (Box::new(CompositeLocalSearch::default()), 0.05),
                     (Box::new(CompositeLocalSearch::default()), 0.05),
                 )),
                 100,
@@ -73,7 +73,7 @@ impl EvolutionConfig {
             random: Arc::new(DefaultRandom::default()),
             telemetry: Telemetry::new(TelemetryMode::None),
             population: PopulationConfig {
-                max_size: 4,
+                max_size: 2,
                 initial: InitialConfig {
                     size: 1,
                     methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],

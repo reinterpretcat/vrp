@@ -94,6 +94,7 @@ fn find_best_insertion_pair(
 
         let new_insertion_ctx = get_new_insertion_ctx(insertion_ctx, &seed_job, seed_route_idx).unwrap();
         let seed_route = new_insertion_ctx.solution.routes.get(seed_route_idx).unwrap();
+        let result_selector = NoiseResultSelector::new(noise.clone());
 
         let insertion_pair = new_insertion_ctx
             .solution
@@ -113,26 +114,26 @@ fn find_best_insertion_pair(
                         .as_slice(),
                     |(_, test_job)| {
                         // try to insert test job into seed tour
-                        let seed_insertion =
-                            analyze_job_insertion_in_route(&new_insertion_ctx, seed_route, test_job, &noise);
-                        let seed_success = match seed_insertion {
-                            InsertionResult::Failure(_) => return None,
-                            InsertionResult::Success(success) => success,
+                        let seed_success = if let Some(seed_success) =
+                            test_job_insertion(&new_insertion_ctx, &seed_route, &test_job, &result_selector)
+                        {
+                            seed_success
+                        } else {
+                            return None;
                         };
 
                         // try to insert seed job into test route
                         let mut test_route = test_route.deep_copy();
                         test_route.route_mut().tour.remove(test_job);
                         new_insertion_ctx.problem.constraint.accept_route_state(&mut test_route);
-
-                        let test_insertion =
-                            analyze_job_insertion_in_route(&new_insertion_ctx, &test_route, &seed_job, &noise);
-                        let test_success = match test_insertion {
-                            InsertionResult::Failure(_) => return None,
-                            InsertionResult::Success(success) => success,
-                        };
-
-                        Some((seed_success, test_success))
+                        if let Some(test_success) =
+                            test_job_insertion(&new_insertion_ctx, &test_route, &seed_job, &result_selector)
+                        {
+                            // return success only if both insertions are successful
+                            Some((seed_success, test_success))
+                        } else {
+                            None
+                        }
                     },
                     || None,
                     |left, right| reduce_pair_with_noise(left, right, &noise),
@@ -154,6 +155,27 @@ fn find_best_insertion_pair(
     None
 }
 
+fn test_job_insertion(
+    insertion_ctx: &InsertionContext,
+    route: &RouteContext,
+    job: &Job,
+    result_selector: &(dyn ResultSelector + Send + Sync),
+) -> Option<InsertionSuccess> {
+    let insertion = evaluate_job_insertion_in_route(
+        job,
+        &insertion_ctx,
+        &route,
+        InsertionPosition::Any,
+        InsertionResult::make_failure(),
+        result_selector,
+    );
+
+    match insertion {
+        InsertionResult::Failure(_) => return None,
+        InsertionResult::Success(success) => Some(success),
+    }
+}
+
 fn apply_insertion_success(insertion_ctx: &mut InsertionContext, insertion_success: InsertionSuccess) {
     let route_index = insertion_ctx
         .solution
@@ -167,48 +189,6 @@ fn apply_insertion_success(insertion_ctx: &mut InsertionContext, insertion_succe
         RouteContext { route: insertion_success.context.route.clone(), state: insertion_success.context.state.clone() };
 
     apply_insertion_result(insertion_ctx, InsertionResult::Success(insertion_success))
-}
-
-fn analyze_job_insertion_in_route(
-    new_insertion_ctx: &InsertionContext,
-    route_ctx: &RouteContext,
-    job: &Job,
-    noise: &Noise,
-) -> InsertionResult {
-    let route_leg_count = route_ctx.route.tour.legs().count();
-
-    (0..route_leg_count).fold(InsertionResult::make_failure(), |alternative_insertion, idx| {
-        let new_insertion = evaluate_job_insertion_in_route(
-            job,
-            &new_insertion_ctx,
-            &route_ctx,
-            InsertionPosition::Concrete(idx),
-            InsertionResult::make_failure(),
-        );
-
-        compare_insertion_result_with_noise(alternative_insertion, new_insertion, noise)
-    })
-}
-
-fn compare_insertion_result_with_noise(
-    left_result: InsertionResult,
-    right_result: InsertionResult,
-    noise: &Noise,
-) -> InsertionResult {
-    match (&left_result, &right_result) {
-        (InsertionResult::Success(left), InsertionResult::Success(right)) => {
-            let left_cost = noise.add(left.cost);
-            let right_cost = noise.add(right.cost);
-
-            if left_cost < right_cost {
-                left_result
-            } else {
-                right_result
-            }
-        }
-        (_, InsertionResult::Success(_)) => right_result,
-        (_, InsertionResult::Failure(_)) => left_result,
-    }
 }
 
 fn reduce_pair_with_noise(

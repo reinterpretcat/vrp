@@ -1,8 +1,7 @@
 //! A collection of various utility helpers.
 
 mod comparison;
-pub use self::comparison::compare_floats;
-pub use self::comparison::compare_shared;
+pub use self::comparison::*;
 
 mod environment;
 pub use self::environment::get_cpus;

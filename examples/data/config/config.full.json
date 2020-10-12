@@ -9,7 +9,7 @@
         }
       ]
     },
-    "maxSize": 4
+    "maxSize": 2
   },
   "selection": {
     "name": "default-naive",
@@ -26,7 +26,7 @@
       {
         "type": "ruin-recreate",
         "name": "default-ruin-recreate",
-        "pre_local_search": 0.01,
+        "pre_local_search": 0.05,
         "post_local_search": 0.05,
         "ruins": [
           {

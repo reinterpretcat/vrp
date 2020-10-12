@@ -18,7 +18,7 @@ fn can_read_config() {
     assert_eq!(metrics.track_population, Some(1000));
 
     let population = config.population.expect("no population config");
-    assert_eq!(population.max_size, Some(4));
+    assert_eq!(population.max_size, Some(2));
 
     let initial = population.initial.expect("no initial population config");
     assert_eq!(initial.methods.unwrap().len(), 1);
@@ -47,7 +47,7 @@ fn can_create_builder_from_config() {
 
     assert!(builder.seed.is_none());
     assert_eq!(builder.config.problem.as_ref() as *const Problem, problem.as_ref() as *const Problem);
-    assert_eq!(builder.config.population.max_size, 4);
+    assert_eq!(builder.config.population.max_size, 2);
     assert_eq!(builder.config.population.initial.size, 1);
     assert_eq!(builder.config.population.initial.individuals.len(), 0);
     assert_eq!(builder.config.population.initial.methods.len(), 1);

@@ -42,8 +42,8 @@ impl RecreateWithSkipBest {
 struct SkipBestJobMapReducer {
     min: usize,
     max: usize,
-
     route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
     inner_reducer: Box<dyn JobMapReducer + Send + Sync>,
 }
 
@@ -57,6 +57,7 @@ impl SkipBestJobMapReducer {
             min,
             max,
             route_selector: Box::new(AllRouteSelector::default()),
+            result_selector: Box::new(BestResultSelector::default()),
             inner_reducer: Box::new(PairJobMapReducer::new(
                 Box::new(AllRouteSelector::default()),
                 Box::new(BestResultSelector::default()),
@@ -81,7 +82,13 @@ impl JobMapReducer for SkipBestJobMapReducer {
         }
 
         let mut results = parallel_collect(&jobs, |job| {
-            evaluate_job_insertion(&job, &ctx, self.route_selector.as_ref(), insertion_position)
+            evaluate_job_insertion(
+                &job,
+                &ctx,
+                self.route_selector.as_ref(),
+                self.result_selector.as_ref(),
+                insertion_position,
+            )
         });
 
         results.sort_by(|a, b| match (a, b) {

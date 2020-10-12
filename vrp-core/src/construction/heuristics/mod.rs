@@ -13,3 +13,6 @@ mod factories;
 
 mod insertions;
 pub use self::insertions::*;
+
+mod selectors;
+pub use self::selectors::*;

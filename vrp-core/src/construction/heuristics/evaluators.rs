@@ -9,6 +9,7 @@ use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place};
+use crate::utils::unwrap_from_result;
 use std::iter::repeat;
 
 /// Specifies allowed insertion position in route for the job.
@@ -28,10 +29,11 @@ pub fn evaluate_job_insertion(
     job: &Job,
     ctx: &InsertionContext,
     route_selector: &(dyn RouteSelector + Send + Sync),
+    result_selector: &(dyn ResultSelector + Send + Sync),
     position: InsertionPosition,
 ) -> InsertionResult {
     route_selector.select(ctx, job).fold(InsertionResult::make_failure(), |acc, route_ctx| {
-        evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, acc)
+        evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, acc, result_selector)
     })
 }
 
@@ -43,13 +45,15 @@ pub fn evaluate_job_insertion_in_route(
     route_ctx: &RouteContext,
     position: InsertionPosition,
     alternative: InsertionResult,
+    result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> InsertionResult {
     let constraint = &ctx.problem.constraint;
 
     if let Some(violation) = constraint.evaluate_hard_route(&ctx.solution, &route_ctx, job) {
-        return InsertionResult::choose_best_result(
+        return result_selector.select(
+            ctx,
             alternative,
-            InsertionResult::make_failure_with_code(violation.code, Some(job.clone())),
+            InsertionResult::make_failure_with_code(violation.code, true, Some(job.clone())),
         );
     }
 
@@ -65,16 +69,10 @@ pub fn evaluate_job_insertion_in_route(
         }
     }
 
-    InsertionResult::choose_best_result(
+    result_selector.select(
+        ctx,
         alternative,
-        match job {
-            Job::Single(single) => {
-                evaluate_single(job, single, constraint, &route_ctx, position, route_costs, best_known_cost)
-            }
-            Job::Multi(multi) => {
-                evaluate_multi(job, multi, constraint, &route_ctx, position, route_costs, best_known_cost)
-            }
-        },
+        evaluate_job_constraint_in_route(job, constraint, &route_ctx, position, route_costs, best_known_cost),
     )
 }
 
@@ -84,10 +82,14 @@ pub fn evaluate_job_constraint_in_route(
     constraint: &ConstraintPipeline,
     route_ctx: &RouteContext,
     position: InsertionPosition,
+    route_costs: Cost,
+    best_known_cost: Option<Cost>,
 ) -> InsertionResult {
     match job {
-        Job::Single(single) => evaluate_single(job, single, constraint, &route_ctx, position, 0., None),
-        Job::Multi(multi) => evaluate_multi(job, multi, constraint, &route_ctx, position, 0., None),
+        Job::Single(single) => {
+            evaluate_single(job, single, constraint, &route_ctx, position, route_costs, best_known_cost)
+        }
+        Job::Multi(multi) => evaluate_multi(job, multi, constraint, &route_ctx, position, route_costs, best_known_cost),
     }
 }
 
@@ -117,7 +119,8 @@ fn evaluate_single(
         let activities = vec![(activity, result.index)];
         InsertionResult::make_success(result.cost.unwrap() + route_costs, job.clone(), activities, route_ctx.clone())
     } else {
-        InsertionResult::make_failure_with_code(result.violation.map_or(0, |v| v.code), Some(job.clone()))
+        let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
+        InsertionResult::make_failure_with_code(code, stopped, Some(job.clone()))
     }
 }
 
@@ -179,7 +182,8 @@ fn evaluate_multi(
         let activities = result.activities.unwrap();
         InsertionResult::make_success(result.cost.unwrap() + route_costs, job.clone(), activities, route_ctx.clone())
     } else {
-        InsertionResult::make_failure_with_code(result.violation.map_or(0, |v| v.code), Some(job.clone()))
+        let (code, stopped) = result.violation.map_or((0, false), |v| (v.code, v.stopped));
+        InsertionResult::make_failure_with_code(code, stopped, Some(job.clone()))
     }
 }
 
@@ -445,13 +449,6 @@ impl<'a> ShadowContext<'a> {
 
             self.constraint.accept_route_state(&mut self.ctx);
         }
-    }
-}
-
-fn unwrap_from_result<T>(result: Result<T, T>) -> T {
-    match result {
-        Ok(result) => result,
-        Err(result) => result,
     }
 }
 
