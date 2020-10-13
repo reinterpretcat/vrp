@@ -3,7 +3,7 @@ use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::LocalSearch;
 use crate::solver::RefinementContext;
-use crate::utils::{Noise, Random};
+use crate::utils::Noise;
 
 /// A local search operator which tries to exchange jobs in random way inside one route.
 pub struct ExchangeIntraRouteRandom {
@@ -37,8 +37,11 @@ impl LocalSearch for ExchangeIntraRouteRandom {
             let mut new_insertion_ctx = insertion_ctx.deep_copy();
             let route_ctx = new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
 
-            let jobs =
-                get_shuffled_jobs(route_ctx, insertion_ctx.random.as_ref()).into_iter().take(2).collect::<Vec<_>>();
+            let jobs = get_shuffled_jobs(insertion_ctx, route_ctx).into_iter().take(2).collect::<Vec<_>>();
+            if jobs.len() < 2 {
+                return None;
+            }
+
             jobs.iter().for_each(|job| {
                 assert!(route_ctx.route_mut().tour.remove(&job));
             });
@@ -77,9 +80,10 @@ impl RouteSelector for SpecificRouteSelector {
     }
 }
 
-fn get_shuffled_jobs(route_ctx: &RouteContext, random: &(dyn Random + Sync + Send)) -> Vec<Job> {
-    let mut jobs = route_ctx.route.tour.jobs().collect::<Vec<_>>();
-    jobs.shuffle(&mut random.get_rng());
+fn get_shuffled_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
+    let mut jobs =
+        route_ctx.route.tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect::<Vec<_>>();
+    jobs.shuffle(&mut insertion_ctx.random.get_rng());
 
     jobs
 }
