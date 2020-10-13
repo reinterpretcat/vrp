@@ -103,7 +103,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
     let registry = create_registry_context(&problem, registry);
 
     let mut insertion_ctx = InsertionContext {
-        problem: problem.clone(),
+        problem,
         solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry, state },
         random,
     };

@@ -114,26 +114,18 @@ fn find_best_insertion_pair(
                         .as_slice(),
                     |(_, test_job)| {
                         // try to insert test job into seed tour
-                        let seed_success = if let Some(seed_success) =
-                            test_job_insertion(&new_insertion_ctx, &seed_route, &test_job, &result_selector)
-                        {
-                            seed_success
-                        } else {
-                            return None;
-                        };
+                        let seed_success =
+                            test_job_insertion(&new_insertion_ctx, &seed_route, &test_job, &result_selector)?;
 
                         // try to insert seed job into test route
                         let mut test_route = test_route.deep_copy();
                         test_route.route_mut().tour.remove(test_job);
                         new_insertion_ctx.problem.constraint.accept_route_state(&mut test_route);
-                        if let Some(test_success) =
-                            test_job_insertion(&new_insertion_ctx, &test_route, &seed_job, &result_selector)
-                        {
-                            // return success only if both insertions are successful
-                            Some((seed_success, test_success))
-                        } else {
-                            None
-                        }
+
+                        let test_success =
+                            test_job_insertion(&new_insertion_ctx, &test_route, &seed_job, &result_selector)?;
+
+                        Some((seed_success, test_success))
                     },
                     || None,
                     |left, right| reduce_pair_with_noise(left, right, &noise),
@@ -171,7 +163,7 @@ fn test_job_insertion(
     );
 
     match insertion {
-        InsertionResult::Failure(_) => return None,
+        InsertionResult::Failure(_) => None,
         InsertionResult::Success(success) => Some(success),
     }
 }
