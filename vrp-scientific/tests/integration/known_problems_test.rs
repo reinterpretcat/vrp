@@ -1,3 +1,6 @@
+use crate::core::construction::heuristics::*;
+use crate::core::models::common::IdDimension;
+use crate::core::models::problem::Job;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::algorithms::nsga2::Objective;
@@ -7,6 +10,21 @@ use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::DominancePopulation;
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::DefaultRandom;
+
+struct StableJobSelector {}
+
+impl Default for StableJobSelector {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+impl JobSelector for StableJobSelector {
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
+        ctx.solution.required.sort_by(|a, b| a.dimens().get_id().unwrap().cmp(b.dimens().get_id().unwrap()));
+        Box::new(ctx.solution.required.iter().cloned())
+    }
+}
 
 parameterized_test! {can_solve_problem_with_cheapest_insertion_heuristic, (problem, expected, cost), {
     can_solve_problem_with_cheapest_insertion_heuristic_impl(Arc::new(problem), expected, cost);
@@ -60,11 +78,16 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
 ) {
     let mut refinement_ctx =
         RefinementContext::new(problem.clone(), Box::new(DominancePopulation::new(problem.clone(), 4)), None);
-
-    let insertion_ctx = RecreateWithCheapest::default()
-        .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())));
+    let insertion_ctx = RecreateWithCheapest::new(
+        Box::new(StableJobSelector::default()),
+        Box::new(PairJobMapReducer::new(
+            Box::new(AllRouteSelector::default()),
+            Box::new(BestResultSelector::default()),
+        )),
+    )
+    .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())));
 
     let result_cost = problem.objective.fitness(&insertion_ctx);
-    assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
     assert_eq!(result_cost.round(), cost.round());
+    assert_eq!(get_customer_ids_from_routes_sorted(&insertion_ctx), expected);
 }

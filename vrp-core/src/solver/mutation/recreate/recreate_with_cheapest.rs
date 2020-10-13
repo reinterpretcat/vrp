@@ -11,13 +11,23 @@ pub struct RecreateWithCheapest {
 
 impl Default for RecreateWithCheapest {
     fn default() -> Self {
-        Self {
-            job_selector: Box::new(AllJobSelector::default()),
-            job_reducer: Box::new(PairJobMapReducer::new(
+        Self::new(
+            Box::new(AllJobSelector::default()),
+            Box::new(PairJobMapReducer::new(
                 Box::new(AllRouteSelector::default()),
                 Box::new(BestResultSelector::default()),
             )),
-        }
+        )
+    }
+}
+
+impl RecreateWithCheapest {
+    /// Creates a new instance of `RecreateWithCheapest`.
+    pub fn new(
+        job_selector: Box<dyn JobSelector + Send + Sync>,
+        job_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    ) -> Self {
+        Self { job_selector, job_reducer }
     }
 }
 

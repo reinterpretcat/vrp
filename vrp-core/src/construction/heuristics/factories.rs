@@ -102,15 +102,15 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
 
     let registry = create_registry_context(&problem, registry);
 
-    let mut ctx = InsertionContext {
+    let mut insertion_ctx = InsertionContext {
         problem: problem.clone(),
         solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry, state },
         random,
     };
 
-    problem.constraint.accept_solution_state(&mut ctx.solution);
+    update_insertion_context(&mut insertion_ctx);
 
-    ctx
+    insertion_ctx
 }
 
 /// Creates insertion context from existing solution.
@@ -139,11 +139,23 @@ pub fn create_insertion_context_from_solution(
 
     let registry = create_registry_context(&problem, registry);
 
-    let mut solution =
-        SolutionContext { required, ignored: vec![], unassigned: Default::default(), locked, routes, registry, state };
-    problem.constraint.accept_solution_state(&mut solution);
+    let mut insertion_ctx = InsertionContext {
+        problem,
+        solution: SolutionContext {
+            required,
+            ignored: vec![],
+            unassigned: Default::default(),
+            locked,
+            routes,
+            registry,
+            state,
+        },
+        random,
+    };
 
-    InsertionContext { problem, solution, random }
+    update_insertion_context(&mut insertion_ctx);
+
+    insertion_ctx
 }
 
 fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryContext {
@@ -154,4 +166,11 @@ fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryCon
     } else {
         RegistryContext::new(registry)
     }
+}
+
+fn update_insertion_context(insertion_ctx: &mut InsertionContext) {
+    // promote required to ignored when necessary
+    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    // promote all required to unassigned to have a valid statistics
+    insertion_ctx.solution.unassigned.extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, 0)));
 }

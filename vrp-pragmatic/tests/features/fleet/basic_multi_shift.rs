@@ -50,7 +50,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(
+    assert_vehicle_agnostic(
         solution,
         Solution {
             statistic: Statistic {
@@ -71,7 +71,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             (0., 0.),
                             1,
                             ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                            0
+                            0,
                         ),
                         create_stop_with_activity(
                             "job1",
@@ -79,7 +79,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             (10., 0.),
                             0,
                             ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                            10
+                            10,
                         ),
                         create_stop_with_activity(
                             "arrival",
@@ -87,8 +87,8 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             (0., 0.),
                             0,
                             ("1970-01-01T00:00:21Z", "1970-01-01T00:00:21Z"),
-                            20
-                        )
+                            20,
+                        ),
                     ],
                     statistic: Statistic {
                         cost: 51.,
@@ -108,7 +108,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             (0., 0.),
                             1,
                             ("1970-01-01T00:01:40Z", "1970-01-01T00:01:40Z"),
-                            0
+                            0,
                         ),
                         create_stop_with_activity(
                             "job2",
@@ -116,7 +116,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             (10., 0.),
                             0,
                             ("1970-01-01T00:01:50Z", "1970-01-01T00:01:51Z"),
-                            10
+                            10,
                         ),
                         create_stop_with_activity(
                             "arrival",
@@ -124,8 +124,8 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                             (0., 0.),
                             0,
                             ("1970-01-01T00:02:01Z", "1970-01-01T00:02:01Z"),
-                            20
-                        )
+                            20,
+                        ),
                     ],
                     statistic: Statistic {
                         cost: 51.,
@@ -133,9 +133,9 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                         duration: 21,
                         times: Timing { driving: 20, serving: 1, waiting: 0, break_time: 0 },
                     },
-                }
+                },
             ],
             ..create_empty_solution()
-        }
+        },
     );
 }

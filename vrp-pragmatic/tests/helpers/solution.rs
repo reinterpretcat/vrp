@@ -1,6 +1,6 @@
 use crate::format::solution::{Activity, Schedule, Solution, Stop, Tour};
 use crate::helpers::ToLocation;
-use std::cmp::Ordering::Less;
+use std::cmp::Ordering::{Equal, Less};
 use std::collections::HashMap;
 
 pub fn create_stop_with_activity(
@@ -77,7 +77,15 @@ pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
         }
     });
 
-    result.tours.sort_by(|a, b| a.vehicle_id.partial_cmp(&b.vehicle_id).unwrap_or(Less));
+    result.tours.sort_by(|a, b| {
+        let ordering = a.vehicle_id.partial_cmp(&b.vehicle_id).unwrap_or(Less);
+
+        if ordering == Equal {
+            a.shift_index.cmp(&b.shift_index)
+        } else {
+            ordering
+        }
+    });
 
     assert_eq!(result, expected);
 }
