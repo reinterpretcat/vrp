@@ -1,4 +1,5 @@
 name: Publish packages
+
 on:
   workflow_dispatch:
     inputs:
@@ -6,6 +7,7 @@ on:
         description: 'Release tag'
       docker_tag:
         description: 'Docker image tag'
+
 jobs:
   push-to-registry:
     name: Push docker image to GCR
