@@ -35,6 +35,24 @@ fn can_read_config() {
     let mutation_config = config.mutation.expect("cannot get mutation");
     assert_eq!(mutation_config.name, "default-composite");
     assert_eq!(mutation_config.collection.len(), 2);
+
+    match mutation_config.collection.first().unwrap() {
+        MutationType::RuinRecreate { name, ruins, recreates, locals } => {
+            assert_eq!(name, "default-ruin-recreate");
+
+            assert_eq!(ruins.len(), 6);
+            assert_eq!(recreates.len(), 8);
+
+            assert_eq!(locals.pre_ruin.probability, 0.05);
+            assert_eq!(locals.pre_ruin.times, MinMaxConfig { min: 1, max: 4 });
+            assert_eq!(locals.pre_ruin.operators.len(), 3);
+
+            assert_eq!(locals.post_recreate.probability, 0.05);
+            assert_eq!(locals.post_recreate.times, MinMaxConfig { min: 1, max: 4 });
+            assert_eq!(locals.post_recreate.operators.len(), 3);
+        }
+        _ => unreachable!(),
+    }
 }
 
 #[test]

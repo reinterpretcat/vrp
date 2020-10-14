@@ -1,1 +1,2 @@
 mod generate;
+mod solve;

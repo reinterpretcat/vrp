@@ -7,19 +7,20 @@ use crate::utils::Noise;
 
 /// A local search operator which tries to exchange jobs in random way inside one route.
 pub struct ExchangeIntraRouteRandom {
+    probability: f64,
     noise_range: (f64, f64),
 }
 
 impl ExchangeIntraRouteRandom {
     /// Creates a new instance of `ExchangeIntraRouteRandom`.
-    pub fn new(noise_range: (f64, f64)) -> Self {
-        Self { noise_range }
+    pub fn new(probability: f64, min: f64, max: f64) -> Self {
+        Self { probability, noise_range: (min, max) }
     }
 }
 
 impl Default for ExchangeIntraRouteRandom {
     fn default() -> Self {
-        Self::new((0.5, 2.))
+        Self::new(1., 0.5, 2.)
     }
 }
 
@@ -47,8 +48,7 @@ impl LocalSearch for ExchangeIntraRouteRandom {
             });
             new_insertion_ctx.solution.required.extend(jobs.into_iter());
 
-            // NOTE set probability to 1 to improve chances for different route configuration
-            let noise = Noise::new(1., self.noise_range, insertion_ctx.random.clone());
+            let noise = Noise::new(self.probability, self.noise_range, insertion_ctx.random.clone());
             new_insertion_ctx = InsertionHeuristic::default().process(
                 &AllJobSelector::default(),
                 &PairJobMapReducer::new(

@@ -102,20 +102,20 @@ pub enum MutationType {
         /// A name of metaheurisic instance.
         name: String,
         /// Ruin methods.
-        ruins: Vec<ConfigRuinGroup>,
+        ruins: Vec<RuinGroupConfig>,
         /// Recreate methods.
         recreates: Vec<RecreateMethod>,
-        /// Probability of pre ruin local search.
-        pre_local_search: f64,
-        /// Probability of post recreate local search.
-        post_local_search: f64,
+        /// Local search config.
+        locals: LocalSearchConfig,
     },
 }
 
 /// A ruin method configuration
 #[derive(Clone, Deserialize, Debug)]
-pub struct ConfigRuinGroup {
+pub struct RuinGroupConfig {
+    /// Ruin methods.
     methods: Vec<RuinMethod>,
+    /// Weight of the group.
     weight: usize,
 }
 
@@ -168,6 +168,47 @@ pub enum RecreateMethod {
     Regret { weight: usize, start: usize, end: usize },
 }
 
+/// A local search configuration
+#[derive(Clone, Deserialize, Debug)]
+pub struct LocalSearchConfig {
+    /// Pre ruin local search.
+    pre_ruin: LocalSearchGroupConfig,
+    /// Post recreate local search.
+    post_recreate: LocalSearchGroupConfig,
+}
+
+/// A local search group configuration
+#[derive(Clone, Deserialize, Debug)]
+pub struct LocalSearchGroupConfig {
+    /// Probability of the group.
+    probability: f64,
+    /// Amount of times one of operators is applied.
+    times: MinMaxConfig,
+    /// List of operators.
+    operators: Vec<LocalSearchOperator>,
+}
+
+/// A local search configuration.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum LocalSearchOperator {
+    #[serde(rename(deserialize = "inter-route-best"))]
+    InterRouteBest { weight: usize, noise: NoiseConfig },
+
+    #[serde(rename(deserialize = "inter-route-random"))]
+    InterRouteRandom { weight: usize, noise: NoiseConfig },
+
+    #[serde(rename(deserialize = "intra-route-random"))]
+    IntraRouteRandom { weight: usize, noise: NoiseConfig },
+}
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct NoiseConfig {
+    probability: f64,
+    min: f64,
+    max: f64,
+}
+
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminationConfig {
@@ -206,21 +247,6 @@ pub struct MetricsConfig {
     enabled: bool,
     /// Specifies how often population is tracked. Default is 1000 (generations).
     track_population: Option<usize>,
-}
-
-#[derive(Clone, Deserialize, Debug)]
-
-pub struct BranchingConfig {
-    pub chance: BranchingChance,
-    pub steepness: f64,
-    pub generations: MinMaxConfig,
-}
-
-#[derive(Clone, Deserialize, Debug)]
-pub struct BranchingChance {
-    pub normal: f64,
-    pub intensive: f64,
-    pub threshold: f64,
 }
 
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
@@ -302,7 +328,7 @@ fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<Mutati
             NamedMutations::default(),
             |mut mutations, type_cfg| {
                 let (name, mutation): (_, Arc<dyn Mutation + Send + Sync>) = match type_cfg {
-                    MutationType::RuinRecreate { name, ruins, recreates, pre_local_search, post_local_search } => {
+                    MutationType::RuinRecreate { name, ruins, recreates, locals } => {
                         let ruin = Box::new(CompositeRuin::new(
                             ruins.iter().map(|g| create_ruin_group(&builder.config.problem, g)).collect(),
                         ));
@@ -314,8 +340,8 @@ fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<Mutati
                             Arc::new(RuinAndRecreate::new(
                                 recreate,
                                 ruin,
-                                (Box::new(CompositeLocalSearch::default()), *pre_local_search),
-                                (Box::new(CompositeLocalSearch::default()), *post_local_search),
+                                create_local_search(&locals.pre_ruin),
+                                create_local_search(&locals.post_recreate),
                             )),
                         )
                     }
@@ -369,7 +395,7 @@ fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send +
     }
 }
 
-fn create_ruin_group(problem: &Arc<Problem>, group: &ConfigRuinGroup) -> RuinGroup {
+fn create_ruin_group(problem: &Arc<Problem>, group: &RuinGroupConfig) -> RuinGroup {
     (group.methods.iter().map(|r| create_ruin_method(problem, r)).collect(), group.weight)
 }
 
@@ -395,6 +421,26 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
             *probability,
         ),
     }
+}
+
+fn create_local_search(group: &LocalSearchGroupConfig) -> (Box<dyn LocalSearch + Send + Sync>, f64) {
+    let operators = group
+        .operators
+        .iter()
+        .map::<(Box<dyn LocalSearch + Send + Sync>, usize), _>(|op| match op {
+            LocalSearchOperator::InterRouteBest { weight, noise } => {
+                (Box::new(ExchangeInterRouteBest::new(noise.probability, noise.min, noise.max)), *weight)
+            }
+            LocalSearchOperator::InterRouteRandom { weight, noise } => {
+                (Box::new(ExchangeInterRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
+            }
+            LocalSearchOperator::IntraRouteRandom { weight, noise } => {
+                (Box::new(ExchangeIntraRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
+            }
+        })
+        .collect::<Vec<_>>();
+
+    (Box::new(CompositeLocalSearch::new(operators, group.times.min, group.times.max)), group.probability)
 }
 
 fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Result<Builder, String> {

@@ -22,14 +22,14 @@ pub struct ExchangeInterRouteRandom {
 
 impl ExchangeInterRouteBest {
     /// Creates a new instance of `ExchangeInterRouteBest`.
-    pub fn new(noise_probability: f64, noise_range: (f64, f64)) -> Self {
-        Self { noise_probability, noise_range }
+    pub fn new(noise_probability: f64, min: f64, max: f64) -> Self {
+        Self { noise_probability, noise_range: (min, max) }
     }
 }
 
 impl Default for ExchangeInterRouteBest {
     fn default() -> Self {
-        Self::new(0.1, (0.9, 1.1))
+        Self::new(0.1, 0.9, 1.1)
     }
 }
 
@@ -46,14 +46,14 @@ impl LocalSearch for ExchangeInterRouteBest {
 
 impl ExchangeInterRouteRandom {
     /// Creates a new instance of `ExchangeInterRouteRandom`.
-    pub fn new(noise_probability: f64, noise_range: (f64, f64)) -> Self {
-        Self { noise_probability, noise_range }
+    pub fn new(noise_probability: f64, min: f64, max: f64) -> Self {
+        Self { noise_probability, noise_range: (min, max) }
     }
 }
 
 impl Default for ExchangeInterRouteRandom {
     fn default() -> Self {
-        Self::new(0.1, (0.9, 1.1))
+        Self::new(0.1, 0.9, 1.1)
     }
 }
 
