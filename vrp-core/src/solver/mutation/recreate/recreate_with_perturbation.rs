@@ -64,7 +64,7 @@ impl ResultSelector for CostPerturbationResultSelector {
 
 impl CostPerturbationResultSelector {
     fn try_perturbation(&self, result: InsertionResult, random: &dyn Random) -> InsertionResult {
-        if random.uniform_real(0., 1.) < self.probability {
+        if random.is_hit(self.probability) {
             match result {
                 InsertionResult::Success(success) => InsertionResult::Success(InsertionSuccess {
                     cost: success.cost * random.uniform_real(self.min, self.max),

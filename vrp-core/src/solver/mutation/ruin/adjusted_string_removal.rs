@@ -190,7 +190,7 @@ fn preserved_cardinality(
 
     let mut preserved_crd = 1_usize;
     while string_crd + preserved_crd < tour_crd {
-        if random.uniform_real(0.0, 1.0) < alpha {
+        if random.is_hit(alpha) {
             break;
         } else {
             preserved_crd += 1

@@ -65,7 +65,7 @@ fn maybe_apply_local_search(
     insertion_ctx: InsertionContext,
     local_search: &(Box<dyn LocalSearch + Send + Sync>, f64),
 ) -> InsertionContext {
-    if local_search.1 > insertion_ctx.random.uniform_real(0., 1.) {
+    if insertion_ctx.random.is_hit(local_search.1) {
         if let Some(new_insertion_ctx) = local_search.0.explore(refinement_ctx, &insertion_ctx) {
             return new_insertion_ctx;
         }

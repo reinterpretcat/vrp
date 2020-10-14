@@ -132,7 +132,7 @@ impl Ruin for CompositeRuin {
             .get(index)
             .unwrap()
             .iter()
-            .filter(|(_, probability)| *probability > random.uniform_real(0., 1.))
+            .filter(|(_, probability)| random.is_hit(*probability))
             .fold(insertion_ctx, |ctx, (ruin, _)| ruin.run(refinement_ctx, ctx));
 
         insertion_ctx.restore();

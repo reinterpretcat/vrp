@@ -32,6 +32,11 @@ pub trait Random {
         self.uniform_int(1, 2) == 1
     }
 
+    /// Tests probability value in (0., 1.) range.
+    fn is_hit(&self, probability: f64) -> bool {
+        self.uniform_real(0., 1.) < probability
+    }
+
     /// Returns an index from collected with probability weight.
     /// Uses exponential distribution where the weights are the rate of the distribution (lambda)
     /// and selects the smallest sampled value.
@@ -93,7 +98,7 @@ impl Noise {
 
     /// Adds some noise to given value.
     pub fn add(&self, value: f64) -> f64 {
-        if self.probability > self.random.uniform_real(0., 1.) {
+        if self.random.is_hit(self.probability) {
             value * self.random.uniform_real(self.range.0, self.range.1)
         } else {
             value

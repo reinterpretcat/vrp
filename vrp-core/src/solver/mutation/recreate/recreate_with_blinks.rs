@@ -122,7 +122,7 @@ impl Default for BlinkResultSelector {
 
 impl ResultSelector for BlinkResultSelector {
     fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
-        let is_blink = ctx.random.uniform_real(0., 1.) < self.ratio;
+        let is_blink = ctx.random.is_hit(self.ratio);
         let is_locked = match &right {
             InsertionResult::Success(success) => ctx.solution.locked.contains(&success.job),
             _ => false,
