@@ -72,7 +72,7 @@ struct BreakHardRouteConstraint {
 impl HardRouteConstraint for BreakHardRouteConstraint {
     fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if let Some(single) = job.as_single() {
-            if is_break_job(single) {
+            if is_break_single(single) {
                 let job = job.to_single();
                 let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
                 let shift_index = get_shift_index(&job.dimens);
@@ -114,8 +114,8 @@ struct BreakSoftRouteConstraint {}
 impl SoftRouteConstraint for BreakSoftRouteConstraint {
     fn estimate_job(&self, solution_ctx: &SolutionContext, _: &RouteContext, job: &Job) -> f64 {
         if let Some(single) = job.as_single() {
-            if is_break_job(single) {
-                -solution_ctx.get_max_cost()
+            if is_break_single(single) {
+                -solution_ctx.get_max_cost() * 1E9
             } else {
                 0.
             }
@@ -131,7 +131,7 @@ fn create_job_transition() -> Box<dyn JobContextTransition + Send + Sync> {
         remove_required: |ctx, job| !is_required_job(ctx, job, true),
         promote_required: |ctx, job| is_required_job(ctx, job, false),
         remove_locked: |_, _| false,
-        promote_locked: |_, _| false,
+        promote_locked: |_, job| is_break_job(job),
     })
 }
 
@@ -139,7 +139,7 @@ fn create_job_transition() -> Box<dyn JobContextTransition + Send + Sync> {
 fn is_required_job(ctx: &SolutionContext, job: &Job, default: bool) -> bool {
     match job {
         Job::Single(job) => {
-            if is_break_job(job) {
+            if is_break_single(job) {
                 let vehicle_id = get_vehicle_id_from_job(job).unwrap();
                 let shift_index = get_shift_index(&job.dimens);
                 ctx.routes
@@ -168,22 +168,17 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
                     let current = activity.place.location;
 
                     if let Some(break_single) = as_break_job(activity) {
-                        let break_job = Job::Single(break_single.clone());
-                        let is_locked = ctx.locked.contains(&break_job);
+                        // NOTE break should have location defined for all places or for none of them
+                        let location_count = break_single.places.iter().filter(|p| p.location.is_some()).count();
+                        assert!(location_count == 0 || location_count == break_single.places.len());
 
-                        if !is_locked {
-                            // NOTE break should have location defined for all places or for none of them
-                            let location_count = break_single.places.iter().filter(|p| p.location.is_some()).count();
-                            assert!(location_count == 0 || location_count == break_single.places.len());
+                        let is_orphan =
+                            prev != current && break_single.places.first().and_then(|p| p.location).is_none();
+                        let is_not_on_time = !is_on_proper_time(rc, break_single, &activity.schedule);
 
-                            let is_orphan =
-                                prev != current && break_single.places.first().and_then(|p| p.location).is_none();
-                            let is_not_on_time = !is_on_proper_time(rc, break_single, &activity.schedule);
-
-                            if is_orphan || is_not_on_time {
-                                // NOTE remove break with removed job location
-                                breaks.insert(Job::Single(activity.job.as_ref().unwrap().clone()));
-                            }
+                        if is_orphan || is_not_on_time {
+                            // NOTE remove break with removed job location
+                            breaks.insert(Job::Single(activity.job.as_ref().unwrap().clone()));
                         }
                     }
 
@@ -212,12 +207,16 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
 
 //region Helpers
 
-fn is_break_job(job: &Arc<Single>) -> bool {
-    job.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
+fn is_break_job(job: &Job) -> bool {
+    job.as_single().map_or(false, is_break_single)
+}
+
+fn is_break_single(single: &Arc<Single>) -> bool {
+    single.dimens.get_value::<String>("type").map_or(false, |t| t == "break")
 }
 
 fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
-    as_single_job(activity, |job| is_break_job(job))
+    as_single_job(activity, |job| is_break_single(job))
 }
 
 fn get_break_time_windows<'a>(break_job: &'a Arc<Single>, departure: f64) -> impl Iterator<Item = TimeWindow> + 'a {

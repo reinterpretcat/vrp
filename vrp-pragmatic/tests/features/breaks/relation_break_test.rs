@@ -215,13 +215,13 @@ fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<St
 }
 
 #[test]
-fn can_stick_to_relation_ignoring_constraint() {
+fn can_prefer_constraint_over_relation() {
     let relation_type = RelationType::Strict;
     let jobs = to_strings(vec!["departure", "job1", "job2", "break"]);
     let expected = vec![
         to_strings(vec!["departure"]),
-        to_strings(vec!["job1"]),
-        to_strings(vec!["job2", "break"]),
+        to_strings(vec!["job1", "break"]),
+        to_strings(vec!["job2"]),
         to_strings(vec!["arrival"]),
     ];
 
