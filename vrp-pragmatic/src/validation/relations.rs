@@ -72,10 +72,7 @@ fn check_e1202_empty_job_list(relations: &[Relation]) -> Result<(), FormatError>
 fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &[Relation]) -> Result<(), FormatError> {
     let mut job_ids = relations
         .iter()
-        .filter(|relation| match relation.type_field {
-            RelationType::Any => false,
-            _ => true,
-        })
+        .filter(|relation| !matches!(relation.type_field, RelationType::Any))
         .flat_map(|relation| {
             relation
                 .jobs
@@ -210,7 +207,6 @@ fn check_e1206_relation_has_no_missing_shift_properties(
 pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     let vehicle_map = ctx
         .vehicles()
-        .map(|v_type| v_type)
         .flat_map(|v_type| v_type.vehicle_ids.iter().map(move |id| (id.clone(), v_type)))
         .collect::<HashMap<_, _>>();
 

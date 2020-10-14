@@ -58,13 +58,7 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
 
 /// Checks that cost objective is specified.
 fn check_e1602_no_cost_value_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
-    let min_costs = objectives
-        .iter()
-        .filter(|objective| match objective {
-            MinimizeCost => true,
-            _ => false,
-        })
-        .count();
+    let min_costs = objectives.iter().filter(|objective| matches!(objective, MinimizeCost)).count();
 
     if min_costs == 0 {
         Err(FormatError::new(

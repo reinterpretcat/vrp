@@ -132,7 +132,7 @@ impl Fleet {
         assert!(!vehicles.is_empty());
 
         let profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile).collect();
-        let mut profiles: Vec<Profile> = profiles.into_iter().map(|p| p).collect();
+        let mut profiles = profiles.into_iter().collect::<Vec<_>>();
         profiles.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Less));
 
         let mut actors: Vec<Arc<Actor>> = Default::default();
