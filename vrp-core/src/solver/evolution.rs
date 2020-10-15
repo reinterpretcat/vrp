@@ -61,7 +61,7 @@ impl EvolutionConfig {
                 Arc::new(RuinAndRecreate::new_from_problem(
                     problem,
                     (Box::new(CompositeLocalSearch::default()), 0.05),
-                    (Box::new(CompositeLocalSearch::default()), 0.05),
+                    (Box::new(CompositeLocalSearch::default()), 0.01),
                 )),
                 100,
             )])),

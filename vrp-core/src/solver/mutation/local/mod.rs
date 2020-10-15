@@ -46,7 +46,7 @@ impl Default for CompositeLocalSearch {
                 (Box::new(ExchangeIntraRouteRandom::default()), 30),
             ],
             1,
-            4,
+            2,
         )
     }
 }

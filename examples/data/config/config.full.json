@@ -31,7 +31,7 @@
             "probability": 0.05,
             "times": {
               "min": 1,
-              "max": 4
+              "max": 2
             },
             "operators": [
               {
@@ -64,10 +64,10 @@
             ]
           },
           "post_recreate": {
-            "probability": 0.05,
+            "probability": 0.01,
             "times": {
               "min": 1,
-              "max": 4
+              "max": 2
             },
             "operators": [
               {
