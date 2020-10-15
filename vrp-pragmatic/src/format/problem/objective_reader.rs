@@ -27,7 +27,7 @@ pub fn create_objective(
                     core_objectives.push(Box::new(TotalRoutes::new_maximized()))
                 }
                 MinimizeUnassignedJobs { breaks } => {
-                    if let Some(breaks) = breaks.clone() {
+                    if let Some(breaks) = *breaks {
                         core_objectives.push(Box::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
                             job.dimens().get_value::<String>("type").map_or(1., |job_type| {
                                 if job_type == "break" {
