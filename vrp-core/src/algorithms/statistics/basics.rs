@@ -1,6 +1,12 @@
+use crate::utils::compare_floats;
+use std::cmp::Ordering::Equal;
+
 /// Returns coefficient variation.
 pub fn get_cv(values: &[f64]) -> f64 {
     let (variance, mean) = get_variance_mean(values);
+    if compare_floats(mean, 0.) == Equal {
+        return 0.;
+    }
     let sdev = variance.sqrt();
 
     sdev / mean
@@ -21,5 +27,6 @@ fn get_variance_mean(values: &[f64]) -> (f64, f64) {
         (acc.0 + dev * dev, acc.1 + dev)
     });
 
-    ((first - (second * second / values.len() as f64)) / (values.len() as f64 - 1.), mean)
+    // NOTE Bessel's correction is not used here
+    ((first - (second * second / values.len() as f64)) / (values.len() as f64), mean)
 }

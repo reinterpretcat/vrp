@@ -127,7 +127,11 @@ fn can_assign_interval_break_with_reload() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: vec![0., 0.].to_loc(),
+                    },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: format_time(1000.).to_string(),
