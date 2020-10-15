@@ -35,7 +35,7 @@ The fastest way to get vrp solver on your environment is to use `docker` image:
 * **run public image** from `Github Container Registry`:
 
 ```bash
-    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.6.0
+    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.6.1
 ```
 
 * **build image locally** using `Dockerfile` provided:
