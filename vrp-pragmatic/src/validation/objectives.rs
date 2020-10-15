@@ -28,7 +28,7 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
                 MinimizeCost => acc.entry("minimize-cost"),
                 MinimizeTours => acc.entry("minimize-tours"),
                 MaximizeTours => acc.entry("maximize-tours"),
-                MinimizeUnassignedJobs => acc.entry("minimize-unassigned"),
+                MinimizeUnassignedJobs { .. } => acc.entry("minimize-unassigned"),
                 BalanceMaxLoad { .. } => acc.entry("balance-max-load"),
                 BalanceActivities { .. } => acc.entry("balance-activities"),
                 BalanceDistance { .. } => acc.entry("balance-distance"),

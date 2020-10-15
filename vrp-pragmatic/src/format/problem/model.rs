@@ -351,7 +351,12 @@ pub enum Objective {
 
     /// An objective to minimize amount of unassigned jobs.
     #[serde(rename(deserialize = "minimize-unassigned", serialize = "minimize-unassigned"))]
-    MinimizeUnassignedJobs,
+    MinimizeUnassignedJobs {
+        /// A break multiplier to increase/decrease it is importance.
+        /// Default is 1.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        breaks: Option<f64>,
+    },
 
     /// An objective to balance max load across all tours.
     #[serde(rename(deserialize = "balance-max-load", serialize = "balance-max-load"))]

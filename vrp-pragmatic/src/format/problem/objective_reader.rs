@@ -1,3 +1,4 @@
+use crate::core::models::common::ValueDimension;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::*;
@@ -25,7 +26,21 @@ pub fn create_objective(
                     constraint.add_module(Box::new(FleetUsageConstraintModule::new_maximized()));
                     core_objectives.push(Box::new(TotalRoutes::new_maximized()))
                 }
-                MinimizeUnassignedJobs => core_objectives.push(Box::new(TotalUnassignedJobs::default())),
+                MinimizeUnassignedJobs { breaks } => {
+                    if let Some(breaks) = breaks.clone() {
+                        core_objectives.push(Box::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
+                            job.dimens().get_value::<String>("type").map_or(1., |job_type| {
+                                if job_type == "break" {
+                                    breaks
+                                } else {
+                                    1.
+                                }
+                            })
+                        }))))
+                    } else {
+                        core_objectives.push(Box::new(TotalUnassignedJobs::default()))
+                    }
+                }
                 BalanceMaxLoad { options } => {
                     let (module, objective) = get_load_balance(props, options);
                     constraint.add_module(module);

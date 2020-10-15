@@ -27,10 +27,13 @@ split into two groups.
 This objectives targeting for some scalar characteristic of solution:
 
 * `minimize-cost`: minimizes total transport cost calculated for all routes
-* `minimize-unassigned` objective minimizes amount of unassigned jobs. Although, solver tries to minimize amount of
+* `minimize-unassigned`: minimizes amount of unassigned jobs. Although, solver tries to minimize amount of
 unassigned jobs all the time, it is possible that solution, discovered during refinement, has more unassigned jobs than
 previously accepted. The reason of that can be conflicting objective (e.g. minimize tours) and restrictive
-constraints such as time windows
+constraints such as time windows. The objective has the following optional parameter:
+    * `breaks`: a multiplicative coefficient to make breaks more preferable for assignment. Default value is 1. Setting
+     this parameter to a value bigger than 1 is useful when it is highly desirable to have break assigned but its
+     assignment leads to more jobs unassigned.
 * `minimize-tours`: minimizes total amount of tours present in solution
 * `maximize-tours`: maximizes total amount of tours present in solution
 
