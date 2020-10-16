@@ -25,7 +25,7 @@ pub struct CheckerContext {
 /// Represents all possible activity types.
 enum ActivityType {
     Terminal,
-    Job(Job),
+    Job(Box<Job>),
     Depot(VehicleCargoPlace),
     Break(VehicleBreak),
     Reload(VehicleCargoPlace),
@@ -120,7 +120,7 @@ impl CheckerContext {
             "pickup" | "delivery" | "service" | "replacement" => {
                 self.job_map.get(activity.job_id.as_str()).map_or_else(
                     || Err(format!("Cannot find job with id '{}'", activity.job_id)),
-                    |job| Ok(ActivityType::Job(job.clone())),
+                    |job| Ok(ActivityType::Job(Box::new(job.clone()))),
                 )
             }
             "break" => shift
