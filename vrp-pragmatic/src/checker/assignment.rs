@@ -5,7 +5,7 @@ mod assignment_test;
 use super::*;
 use crate::format::solution::activity_matcher::try_match_job;
 use crate::format::{get_coord_index, get_job_index};
-use std::collections::HashSet;
+use hashbrown::HashSet;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), String> {

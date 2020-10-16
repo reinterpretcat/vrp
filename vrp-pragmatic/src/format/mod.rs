@@ -4,13 +4,13 @@
 
 extern crate serde_json;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::io::BufWriter;
 use vrp_core::models::problem::Job as CoreJob;
 use vrp_core::models::Problem as CoreProblem;
 
 mod coord_index;
 pub(crate) use self::coord_index::CoordIndex;
+use hashbrown::HashMap;
 
 pub mod problem;
 pub mod solution;

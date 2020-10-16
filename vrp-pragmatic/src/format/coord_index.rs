@@ -2,8 +2,8 @@
 
 use crate::format::problem::Problem;
 use crate::format::Location;
+use hashbrown::HashMap;
 use std::cmp::Ordering::Less;
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 /// A helper struct which keeps track of coordinate mapping.

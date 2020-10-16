@@ -1,7 +1,7 @@
 use crate::format::solution::{Activity, Schedule, Solution, Stop, Tour};
 use crate::helpers::ToLocation;
+use hashbrown::HashMap;
 use std::cmp::Ordering::{Equal, Less};
-use std::collections::HashMap;
 
 pub fn create_stop_with_activity(
     id: &str,

@@ -4,7 +4,7 @@ mod vehicles_test;
 
 use super::*;
 use crate::validation::common::get_time_windows;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::ops::Deref;
 use vrp_core::models::common::TimeWindow;
 

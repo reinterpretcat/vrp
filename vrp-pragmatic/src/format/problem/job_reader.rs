@@ -3,7 +3,6 @@ use crate::format::problem::reader::{parse_time_window, ApiProblem, ProblemPrope
 use crate::format::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleCargoPlace, VehicleType};
 use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
-use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::models::common::*;
@@ -13,6 +12,7 @@ use vrp_core::utils::{CollectGroupBy, Random};
 
 use crate::constraints::JobSkills as ConstraintJobSkills;
 use crate::format::problem::JobSkills as FormatJobSkills;
+use hashbrown::{HashMap, HashSet};
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;

@@ -7,7 +7,7 @@ use crate::format::coord_index::CoordIndex;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Matrix;
 use crate::parse_time;
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Area, TravelLimitFunc};

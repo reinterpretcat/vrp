@@ -3,7 +3,7 @@
 mod relations_test;
 
 use super::*;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 
 /// Checks relation rules.
 pub fn check_relations(context: &CheckerContext) -> Result<(), String> {

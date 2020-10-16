@@ -6,7 +6,6 @@ use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
 use crate::format::solution::deserialize_solution;
 use crate::format::{get_coord_index, get_job_index, CoordIndex, JobIndex};
 use crate::parse_time;
-use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::*;
@@ -17,6 +16,7 @@ use vrp_core::models::{Problem, Solution};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
+use hashbrown::{HashMap, HashSet};
 use vrp_core::models::solution::Tour as CoreTour;
 
 type ActorKey = (String, String, usize);

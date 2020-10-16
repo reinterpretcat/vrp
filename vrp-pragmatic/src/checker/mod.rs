@@ -5,7 +5,6 @@ use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format::Location;
 use crate::parse_time;
-use std::collections::HashMap;
 use vrp_core::models::common::TimeWindow;
 use vrp_core::models::Problem as CoreProblem;
 
@@ -253,4 +252,5 @@ use crate::checker::relations::check_relations;
 
 mod routing;
 use crate::checker::routing::check_routing;
+use hashbrown::HashMap;
 use std::sync::Arc;

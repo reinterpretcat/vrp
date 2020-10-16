@@ -1,6 +1,5 @@
 use crate::format::{CoordIndex, JobIndex};
 use crate::parse_time;
-use std::collections::HashSet;
 use std::iter::once;
 use std::sync::Arc;
 use vrp_core::models::common::*;
@@ -10,6 +9,7 @@ use vrp_core::models::solution::{Activity, Place};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
+use hashbrown::HashSet;
 
 /// Aggregates job specific information for a job activity.
 pub(crate) struct JobInfo(pub Job, pub Arc<Single>, pub Place, pub TimeWindow);

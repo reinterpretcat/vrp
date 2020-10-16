@@ -2,7 +2,6 @@
 
 use crate::format::problem::*;
 use crate::format::{CoordIndex, FormatError};
-use std::collections::HashMap;
 
 /// A validation context which keeps essential information.
 pub struct ValidationContext<'a> {
@@ -32,6 +31,7 @@ use self::relations::validate_relations;
 
 mod routing;
 use self::routing::validate_routing;
+use hashbrown::HashMap;
 
 impl<'a> ValidationContext<'a> {
     /// Creates an instance of `ValidationContext`.

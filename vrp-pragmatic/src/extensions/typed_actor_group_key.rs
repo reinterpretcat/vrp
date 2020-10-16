@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::models::common::ValueDimension;
 use vrp_core::models::problem::Actor;

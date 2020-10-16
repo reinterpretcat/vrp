@@ -1,6 +1,6 @@
 use crate::parse_time_safe;
+use hashbrown::HashSet;
 use std::cmp::Ordering::Less;
-use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
 
 /// Checks time window rules.

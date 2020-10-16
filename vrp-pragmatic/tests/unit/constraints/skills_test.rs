@@ -1,7 +1,7 @@
 use crate::constraints::{JobSkills, SkillsModule};
 use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintPipeline, RouteConstraintViolation};

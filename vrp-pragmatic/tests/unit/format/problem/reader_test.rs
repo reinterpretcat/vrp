@@ -3,7 +3,7 @@ use crate::constraints::JobSkills as ConstraintJobSkills;
 use crate::format::problem::Profile as FormatProfile;
 use crate::format::problem::*;
 use crate::helpers::*;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::models::common::*;

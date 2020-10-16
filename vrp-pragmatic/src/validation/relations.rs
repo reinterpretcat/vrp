@@ -3,7 +3,7 @@
 mod relations_test;
 
 use super::*;
-use std::collections::{HashMap, HashSet};
+use hashbrown::HashSet;
 
 /// Checks that relation job ids are defined in plan.
 fn check_e1200_job_existence(ctx: &ValidationContext, relations: &[Relation]) -> Result<(), FormatError> {

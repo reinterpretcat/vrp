@@ -2,7 +2,7 @@
 #[path = "../../tests/unit/constraints/skills_test.rs"]
 mod skills_test;
 
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
