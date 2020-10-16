@@ -326,14 +326,6 @@ pub struct Fleet {
 
 // endregion
 
-// region Configuration
-
-/// Specifies extra configuration (reserved for future).
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct Config {}
-
-// endregion
-
 // region Objective
 
 /// Specifies a group of objective functions.
@@ -440,10 +432,6 @@ pub struct Problem {
     /// Specifies objective functions.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub objectives: Option<Objectives>,
-
-    /// Extra configuration.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub config: Option<Config>,
 }
 
 /// A routing matrix.

@@ -214,7 +214,6 @@ pub fn create_empty_problem() -> Problem {
         plan: Plan { jobs: vec![], relations: None },
         fleet: Fleet { vehicles: vec![], profiles: vec![] },
         objectives: None,
-        config: None,
     }
 }
 

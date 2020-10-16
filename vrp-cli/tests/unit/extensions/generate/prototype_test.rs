@@ -16,7 +16,6 @@ fn can_generate_jobs_with_time_windows() {
         },
         fleet: Fleet { vehicles: vec![create_test_vehicle_type()], profiles: vec![create_test_vehicle_profile()] },
         objectives: None,
-        config: None,
     };
 
     let result = generate_from_prototype(&problem, None, 10, 2, None)

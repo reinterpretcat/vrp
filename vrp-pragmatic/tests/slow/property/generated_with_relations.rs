@@ -54,7 +54,6 @@ prop_compose! {
             },
             fleet,
             objectives: None,
-            config: None
         }
     }
 }

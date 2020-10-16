@@ -358,7 +358,6 @@ fn can_write_hre_problem() {
             profiles: vec![Profile { name: "normal_car".to_string(), profile_type: "car".to_string(), speed: None }],
         },
         objectives: None,
-        config: None,
     };
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };

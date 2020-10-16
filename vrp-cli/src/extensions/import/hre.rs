@@ -489,7 +489,7 @@ mod deserialize {
         let fleet =
             create_pragmatic_fleet(&hre_problem.fleet).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
 
-        Ok(Problem { plan, fleet, objectives: None, config: None })
+        Ok(Problem { plan, fleet, objectives: None })
     }
 }
 

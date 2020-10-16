@@ -6,8 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- `breaking`: job skills are now defined by `allOf`, `oneOf` and `noneOf` conditions.
+- `breaking`: job skills are now defined by `allOf`, `oneOf` and `noneOf` conditions
 - use `hashbrown` library in `pragmatic` crate
+
+### Removed
+
+- `config` property from `pragmatic` format
 
 ## [v1.6.1] - 2020-10-15
 
@@ -18,7 +22,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- break assignment is made less strict by default. User has certain control on its assignment by the objective.
+- break assignment is made less strict by default. User has certain control on its assignment by the objective
 - replaced `uniform_real(0., 1.)` usage with `is_hit` method in `Random` trait
 - default parameters of local search operators
 

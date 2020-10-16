@@ -165,7 +165,6 @@ mod actual {
                     .collect(),
             },
             objectives: None,
-            config: None,
         })
     }
 }
