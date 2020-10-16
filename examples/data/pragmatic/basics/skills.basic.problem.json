@@ -19,9 +19,11 @@
             ]
           }
         ],
-        "skills": [
-          "fridge"
-        ]
+        "skills": {
+          "allOf": [
+            "fridge"
+            ]
+        }
       },
       {
         "id": "job2",
@@ -41,9 +43,11 @@
             ]
           }
         ],
-        "skills": [
-          "handyman"
-        ]
+        "skills": {
+          "allOf": [
+            "handyman"
+          ]
+        }
       }
     ]
   },

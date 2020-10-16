@@ -32,7 +32,7 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 
 - **skills** (optional): vehicle skills needed by some jobs
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:120:122}}
+{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:124:126}}
 ```
 
 - **limits** (optional): vehicle limits. There are two:

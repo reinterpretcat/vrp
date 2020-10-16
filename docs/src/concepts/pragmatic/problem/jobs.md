@@ -8,9 +8,15 @@ consists of the following properties:
 - **deliveries** (optional): a list of delivery tasks
 - **replacements** (optional): a list of replacement tasks
 - **services** (optional): a list of service tasks
-- **priority** (optional): a job priority. Minimum is 1, higher number means less important job
-- **skills** (optional): a list of unique skills
+- **priority** (optional): a job priority which makes preferable to serve some jobs before others. Priority is
+represented as integer in range `[1, MAX_INT]` where the lower value means higher priority. By default value is set to 1.
+- **skills** (optional): job skills defined by `allOf`, `oneOf` or `noneOf` conditions:
+    ```json
+    {{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:22:26}}
+    ```
+    These conditions are tested against vehicle's skills.
 
+## Tasks
 
 A delivery, pickup, replacement and service lists specify multiple job `tasks` and at least one of such tasks has to be
 defined. Each task has the following properties:
@@ -19,6 +25,7 @@ defined. Each task has the following properties:
 - **demand** (optional/required): a task demand. It is required for all job types, except service
 - **tag** (optional): a job tag which will be returned within job's activity in result solution
 
+## Places
 
 Each `place` consists of the following properties:
 

@@ -1,4 +1,5 @@
 use super::create_approx_matrices;
+use crate::constraints::JobSkills as ConstraintJobSkills;
 use crate::format::problem::Profile as FormatProfile;
 use crate::format::problem::*;
 use crate::helpers::*;
@@ -43,7 +44,17 @@ fn assert_demand(demand: &Demand<MultiDimLoad>, expected: &Demand<MultiDimLoad>)
     assert_eq!(demand.delivery.1.as_vec(), expected.delivery.1.as_vec());
 }
 
-fn assert_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
+fn assert_job_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
+    let skills = dimens.get("skills").and_then(|any| any.downcast_ref::<ConstraintJobSkills>());
+    if let Some(expected) = expected {
+        let expected = HashSet::from_iter(expected.iter().cloned());
+        assert_eq!(skills.unwrap().all_of, Some(expected));
+    } else {
+        assert!(skills.is_none());
+    }
+}
+
+fn assert_vehicle_skills(dimens: &Dimensions, expected: Option<Vec<String>>) {
     let skills = dimens.get("skills").and_then(|any| any.downcast_ref::<HashSet<String>>());
     if let Some(expected) = expected {
         let expected = HashSet::from_iter(expected.iter().cloned());
@@ -76,7 +87,7 @@ fn can_read_complex_problem() {
                     replacements: None,
                     services: None,
                     priority: None,
-                    skills: Some(vec!["unique".to_string()]),
+                    skills: Some(all_of_skills(vec!["unique".to_string()])),
                 },
                 Job {
                     id: "pickup_delivery_job".to_string(),
@@ -128,7 +139,7 @@ fn can_read_complex_problem() {
                     replacements: None,
                     services: None,
                     priority: None,
-                    skills: Some(vec!["unique2".to_string()]),
+                    skills: Some(all_of_skills(vec!["unique2".to_string()])),
                 },
             ],
             relations: Option::None,
@@ -196,12 +207,12 @@ fn can_read_complex_problem() {
         },
     );
     assert_time_spans(&place.times, vec![(0., 100.), (110., 120.)]);
-    assert_skills(&job.dimens, Some(vec!["unique".to_string()]));
+    assert_job_skills(&job.dimens, Some(vec!["unique".to_string()]));
 
     // shipment
     let job = get_multi_job(1, problem.jobs.as_ref());
     assert_eq!(job.dimens.get_id().unwrap(), "pickup_delivery_job");
-    assert_skills(&job.dimens, None);
+    assert_job_skills(&job.dimens, None);
 
     let pickup = job.jobs.first().unwrap().clone();
     let place = get_single_place(pickup.as_ref());
@@ -225,7 +236,7 @@ fn can_read_complex_problem() {
     assert_eq!(place.location.unwrap(), 2);
     assert_demand(job.dimens.get_demand().unwrap(), &single_demand_as_multi((3, 0), (0, 0)));
     assert_time_spans(&place.times, vec![(10., 70.)]);
-    assert_skills(&job.dimens, Some(vec!["unique2".to_string()]));
+    assert_job_skills(&job.dimens, Some(vec!["unique2".to_string()]));
 
     // fleet
     assert_eq!(problem.fleet.profiles.len(), 1);
@@ -253,7 +264,7 @@ fn can_read_complex_problem() {
             ),
             &(0., 100.),
         );
-        assert_skills(&vehicle.dimens, Some(vec!["unique1".to_string(), "unique2".to_string()]));
+        assert_vehicle_skills(&vehicle.dimens, Some(vec!["unique1".to_string(), "unique2".to_string()]));
     });
 }
 

@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub fn delivery_job_prototype(
     task_proto: impl Strategy<Value = JobTask>,
     priority_proto: impl Strategy<Value = Option<i32>>,
-    skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+    skills_proto: impl Strategy<Value = Option<JobSkills>>,
 ) -> impl Strategy<Value = Job> {
     job_prototype(
         generate_no_job_tasks(),
@@ -24,7 +24,7 @@ pub fn delivery_job_prototype(
 pub fn pickup_job_prototype(
     task_proto: impl Strategy<Value = JobTask>,
     priority_proto: impl Strategy<Value = Option<i32>>,
-    skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+    skills_proto: impl Strategy<Value = Option<JobSkills>>,
 ) -> impl Strategy<Value = Job> {
     job_prototype(
         task_proto.prop_map(|p| Some(vec![p])),
@@ -42,7 +42,7 @@ prop_compose! {
         delivery_place: impl Strategy<Value = JobPlace>,
         demand_proto: impl Strategy<Value = Option<Vec<i32>>>,
         priority_proto: impl Strategy<Value = Option<i32>>,
-        skills_proto: impl Strategy<Value = Option<Vec<String>>>
+        skills_proto: impl Strategy<Value = Option<JobSkills>>
     )
     (
      pickup in pickup_place,
@@ -84,7 +84,7 @@ prop_compose! {
         replacements_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         services_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         priority_proto: impl Strategy<Value = Option<i32>>,
-        skills_proto: impl Strategy<Value = Option<Vec<String>>>,
+        skills_proto: impl Strategy<Value = Option<JobSkills>>,
     )
     (
      pickups in pickups_proto,
@@ -160,6 +160,13 @@ prop_compose! {
 prop_compose! {
     /// Generates no priority.
     pub fn generate_no_priority()(_ in ".*") -> Option<i32> {
+        None
+    }
+}
+
+prop_compose! {
+    /// Generates no jobs skills.
+    pub fn generate_no_jobs_skills()(_ in ".*") -> Option<JobSkills> {
         None
     }
 }

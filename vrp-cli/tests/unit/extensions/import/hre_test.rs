@@ -221,7 +221,7 @@ fn can_write_hre_problem() {
                         demand: Some(vec![1]),
                         ..create_empty_job_task()
                     }]),
-                    skills: Some(vec!["skill1".to_string()]),
+                    skills: Some(JobSkills { all_of: Some(vec!["skill1".to_string()]), one_of: None, none_of: None }),
                     ..create_empty_job()
                 },
                 Job {

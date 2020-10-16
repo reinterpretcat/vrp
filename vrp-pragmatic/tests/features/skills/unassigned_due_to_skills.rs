@@ -6,7 +6,11 @@ use crate::helpers::*;
 fn can_have_unassigned_due_to_missing_vehicle_skill() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_skills("job1", vec![1., 0.], vec!["unique_skill".to_string()])],
+            jobs: vec![create_delivery_job_with_skills(
+                "job1",
+                vec![1., 0.],
+                all_of_skills(vec!["unique_skill".to_string()]),
+            )],
             relations: Option::None,
         },
         fleet: Fleet {

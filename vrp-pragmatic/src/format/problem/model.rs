@@ -38,6 +38,21 @@ pub struct Relation {
     pub shift_index: Option<usize>,
 }
 
+/// A job skills limitation for a vehicle.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JobSkills {
+    /// Vehicle should have all of these skills defined.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub all_of: Option<Vec<String>>,
+    /// Vehicle should have at least one of these skills defined.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub one_of: Option<Vec<String>>,
+    /// Vehicle should have none of these skills defined.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub none_of: Option<Vec<String>>,
+}
+
 /// Specifies a place for sub job.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct JobPlace {
@@ -92,9 +107,9 @@ pub struct Job {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub priority: Option<i32>,
 
-    /// A set of skills required to serve a job.
+    /// A job skills limitations for serving a job.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub skills: Option<Vec<String>>,
+    pub skills: Option<JobSkills>,
 }
 
 /// A plan specifies work which has to be done.

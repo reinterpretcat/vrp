@@ -1,14 +1,18 @@
 use crate::format::coord_index::CoordIndex;
-use crate::format::problem::reader::{add_skills, parse_time_window, ApiProblem, ProblemProperties};
+use crate::format::problem::reader::{parse_time_window, ApiProblem, ProblemProperties};
 use crate::format::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleCargoPlace, VehicleType};
 use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
 use vrp_core::utils::{CollectGroupBy, Random};
+
+use crate::constraints::JobSkills as ConstraintJobSkills;
+use crate::format::problem::JobSkills as FormatJobSkills;
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
@@ -409,12 +413,12 @@ fn get_single_with_extras(
     single
 }
 
-fn get_single_job(id: &str, single: Single, priority: Option<i32>, skills: &Option<Vec<String>>) -> Job {
+fn get_single_job(id: &str, single: Single, priority: Option<i32>, skills: &Option<FormatJobSkills>) -> Job {
     let mut single = single;
     single.dimens.set_id(id);
 
     add_priority(&mut single.dimens, priority);
-    add_skills(&mut single.dimens, skills);
+    add_job_skills(&mut single.dimens, skills);
 
     Job::Single(Arc::new(single))
 }
@@ -422,7 +426,7 @@ fn get_single_job(id: &str, single: Single, priority: Option<i32>, skills: &Opti
 fn get_multi_job(
     id: &str,
     priority: Option<i32>,
-    skills: &Option<Vec<String>>,
+    skills: &Option<FormatJobSkills>,
     singles: Vec<Single>,
     deliveries_start_index: usize,
     random: &Arc<dyn Random + Send + Sync>,
@@ -430,7 +434,7 @@ fn get_multi_job(
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id);
     add_priority(&mut dimens, priority);
-    add_skills(&mut dimens, skills);
+    add_job_skills(&mut dimens, skills);
 
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
 
@@ -469,6 +473,19 @@ fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
 fn add_priority(dimens: &mut Dimensions, priority: Option<i32>) {
     if let Some(priority) = priority {
         dimens.set_value("priority", priority);
+    }
+}
+
+fn add_job_skills(dimens: &mut Dimensions, skills: &Option<FormatJobSkills>) {
+    if let Some(skills) = skills {
+        dimens.set_value(
+            "skills",
+            ConstraintJobSkills {
+                all_of: skills.all_of.as_ref().map(|all_of| HashSet::<String>::from_iter(all_of.iter().cloned())),
+                one_of: skills.one_of.as_ref().map(|any_of| HashSet::<String>::from_iter(any_of.iter().cloned())),
+                none_of: skills.none_of.as_ref().map(|none_of| HashSet::<String>::from_iter(none_of.iter().cloned())),
+            },
+        );
     }
 }
 

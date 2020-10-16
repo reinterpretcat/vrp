@@ -38,4 +38,5 @@ mod reachable;
 pub use self::reachable::ReachableModule;
 
 mod skills;
+pub use self::skills::JobSkills;
 pub use self::skills::SkillsModule;

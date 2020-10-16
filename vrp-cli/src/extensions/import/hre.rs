@@ -323,6 +323,10 @@ mod deserialize {
     use vrp_pragmatic::format::problem::*;
     use vrp_pragmatic::format::Location;
 
+    fn all_of_skills(skills: Option<Vec<String>>) -> Option<JobSkills> {
+        skills.as_ref().map(|skills| JobSkills { all_of: Some(skills.clone()), one_of: None, none_of: None })
+    }
+
     fn to_pragmatic_loc(loc: &models::Location) -> Location {
         Location::Coordinate { lat: loc.lat, lng: loc.lng }
     }
@@ -371,7 +375,7 @@ mod deserialize {
                         replacements: None,
                         services: None,
                         priority: job.priority.as_ref().copied(),
-                        skills: job.skills.clone(),
+                        skills: all_of_skills(job.skills.clone()),
                     },
                     models::JobVariant::Multi(job) => Job {
                         id: job.id.clone(),
@@ -380,7 +384,7 @@ mod deserialize {
                         replacements: None,
                         services: None,
                         priority: job.priority.as_ref().copied(),
-                        skills: job.skills.clone(),
+                        skills: all_of_skills(job.skills.clone()),
                     },
                 })
                 .collect(),
@@ -575,7 +579,7 @@ mod serialize {
                                 deliveries: job_tasks_to_multi_job_place(&job.deliveries)?,
                             },
                             priority: job.priority,
-                            skills: job.skills.clone(),
+                            skills: job.skills.as_ref().and_then(|skills| skills.all_of.as_ref()).cloned(),
                         })
                     } else {
                         JobVariant::Single(Job {
@@ -595,7 +599,7 @@ mod serialize {
                                 .clone()
                                 .ok_or("no demand")?,
                             priority: job.priority,
-                            skills: job.skills.clone(),
+                            skills: job.skills.as_ref().and_then(|skills| skills.all_of.as_ref()).cloned(),
                         })
                     })
                 })

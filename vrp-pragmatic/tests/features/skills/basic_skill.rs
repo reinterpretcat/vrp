@@ -6,7 +6,11 @@ use crate::helpers::*;
 fn can_wait_for_job_start() {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![create_delivery_job_with_skills("job1", vec![1., 0.], vec!["unique_skill".to_string()])],
+            jobs: vec![create_delivery_job_with_skills(
+                "job1",
+                vec![1., 0.],
+                all_of_skills(vec!["unique_skill".to_string()]),
+            )],
             relations: Option::None,
         },
         fleet: Fleet {

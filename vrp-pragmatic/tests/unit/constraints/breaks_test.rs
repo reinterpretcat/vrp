@@ -3,10 +3,9 @@ use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
-use vrp_core::construction::heuristics::{RegistryContext, RouteContext, RouteState, SolutionContext};
+use vrp_core::construction::heuristics::{RouteContext, RouteState, SolutionContext};
 use vrp_core::models::common::{IdDimension, Location, ValueDimension};
 use vrp_core::models::problem::{Fleet, Single};
-use vrp_core::models::solution::Registry;
 
 fn create_single(id: &str) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
@@ -41,11 +40,6 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
         Box::new(|actors| create_typed_actor_groups(actors)),
     );
     let mut solution_ctx = SolutionContext {
-        required: vec![],
-        ignored: vec![],
-        unassigned: Default::default(),
-        locked: Default::default(),
-        state: Default::default(),
         routes: vec![RouteContext {
             route: Arc::new(create_route_with_activities(
                 &fleet,
@@ -58,7 +52,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
             )),
             state: Arc::new(RouteState::default()),
         }],
-        registry: RegistryContext::new(Registry::new(&fleet)),
+        ..create_solution_context_for_fleet(&fleet)
     };
 
     ConstraintPipeline::default().add_module(Box::new(BreakModule::new(0))).accept_solution_state(&mut solution_ctx);

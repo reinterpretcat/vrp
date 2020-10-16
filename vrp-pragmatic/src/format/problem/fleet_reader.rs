@@ -4,10 +4,11 @@ mod fleet_reader_test;
 
 use crate::extensions::create_typed_actor_groups;
 use crate::format::coord_index::CoordIndex;
-use crate::format::problem::reader::{add_skills, ApiProblem, ProblemProperties};
+use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Matrix;
 use crate::parse_time;
 use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Area, TravelLimitFunc};
 use vrp_core::models::common::*;
@@ -139,7 +140,7 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 } else {
                     dimens.set_capacity(SingleDimLoad::new(*vehicle.capacity.first().unwrap()));
                 }
-                add_skills(&mut dimens, &vehicle.skills);
+                add_vehicle_skills(&mut dimens, &vehicle.skills);
 
                 vehicles.push(Arc::new(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() }));
             });
@@ -191,4 +192,10 @@ fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, i32> {
         }
         acc
     })
+}
+
+fn add_vehicle_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
+    if let Some(skills) = skills {
+        dimens.set_value("skills", HashSet::<String>::from_iter(skills.iter().cloned()));
+    }
 }

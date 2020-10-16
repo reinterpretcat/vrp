@@ -11,7 +11,7 @@ fn vehicle_type_prototype() -> impl Strategy<Value = VehicleType> {
         // NOTE must be equal or bigger than total amount jobs in relations
         generate_simple_capacity(150..200),
         default_costs_prototype(),
-        generate_no_skills(),
+        generate_no_vehicle_skills(),
         generate_no_limits(),
         default_vehicle_shifts(),
     )
@@ -29,7 +29,7 @@ fn relation_job_prototype() -> impl Strategy<Value = Job> {
             generate_no_tags(),
         ),
         generate_no_priority(),
-        generate_no_skills(),
+        generate_no_jobs_skills(),
     )
 }
 

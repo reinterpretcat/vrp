@@ -80,13 +80,6 @@ prop_compose! {
 }
 
 prop_compose! {
-    /// Generates no skills.
-    pub fn generate_no_skills()(_ in ".*") -> Option<Vec<String>> {
-        None
-    }
-}
-
-prop_compose! {
     /// Generates no time windows.
     pub fn generate_no_time_windows()(_ in ".*") -> Option<Vec<Vec<String>>> {
         None

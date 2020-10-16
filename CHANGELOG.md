@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `breaking`: job skills are now defined by `allOf`, `oneOf` and `noneOf` conditions.
+
 ## [v1.6.1] - 2020-10-15
 
 ### Added

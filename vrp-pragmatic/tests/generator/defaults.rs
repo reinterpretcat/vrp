@@ -35,7 +35,7 @@ pub fn default_delivery_prototype() -> impl Strategy<Value = Job> {
     delivery_job_prototype(
         job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_tags()),
         generate_no_priority(),
-        generate_no_skills(),
+        generate_no_jobs_skills(),
     )
 }
 
@@ -43,7 +43,7 @@ pub fn default_pickup_prototype() -> impl Strategy<Value = Job> {
     pickup_job_prototype(
         job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_tags()),
         generate_no_priority(),
-        generate_no_skills(),
+        generate_no_jobs_skills(),
     )
 }
 
@@ -53,7 +53,7 @@ pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = Job> {
         default_job_place_prototype(),
         generate_simple_demand(1..4),
         generate_no_priority(),
-        generate_no_skills(),
+        generate_no_jobs_skills(),
     )
 }
 
@@ -107,7 +107,7 @@ pub fn default_vehicle_type_prototype() -> impl Strategy<Value = VehicleType> {
         Just("car".to_string()),
         generate_simple_capacity(30..50),
         default_costs_prototype(),
-        generate_no_skills(),
+        generate_no_vehicle_skills(),
         generate_no_limits(),
         default_vehicle_shifts(),
     )

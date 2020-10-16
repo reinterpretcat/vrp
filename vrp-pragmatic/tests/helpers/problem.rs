@@ -31,7 +31,7 @@ pub fn create_delivery_job_with_priority(id: &str, location: Vec<f64>, priority:
     Job { priority: Some(priority), ..create_delivery_job(id, location) }
 }
 
-pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: Vec<String>) -> Job {
+pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: JobSkills) -> Job {
     Job { skills: Some(skills), ..create_delivery_job(id, location) }
 }
 
@@ -252,6 +252,10 @@ pub fn create_matrix_from_problem(problem: &Problem) -> Matrix {
 
 pub fn to_strings(data: Vec<&str>) -> Vec<String> {
     data.iter().map(|item| item.to_string()).collect()
+}
+
+pub fn all_of_skills(skills: Vec<String>) -> JobSkills {
+    JobSkills { all_of: Some(skills), one_of: None, none_of: None }
 }
 
 fn convert_times(times: &Vec<(i32, i32)>) -> Option<Vec<Vec<String>>> {

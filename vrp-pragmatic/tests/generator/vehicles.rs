@@ -151,6 +151,13 @@ prop_compose! {
 }
 
 prop_compose! {
+    /// Generates no vehicle skills.
+    pub fn generate_no_vehicle_skills()(_ in ".*") -> Option<Vec<String>> {
+        None
+    }
+}
+
+prop_compose! {
     pub fn from_costs(vec: Vec<VehicleCosts>)(index in 0..vec.len()) -> VehicleCosts {
         vec[index].clone()
     }

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;
@@ -75,4 +76,16 @@ pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Deman
     };
 
     Demand { pickup: (make(pickup.0), make(pickup.1)), delivery: (make(delivery.0), make(delivery.1)) }
+}
+
+pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
+    SolutionContext {
+        required: vec![],
+        ignored: vec![],
+        unassigned: Default::default(),
+        locked: Default::default(),
+        state: Default::default(),
+        routes: Default::default(),
+        registry: RegistryContext::new(Registry::new(&fleet)),
+    }
 }

@@ -25,10 +25,9 @@ use crate::{get_unique_locations, parse_time};
 use std::cmp::Ordering::Equal;
 use std::collections::HashSet;
 use std::io::{BufReader, Read};
-use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::models::common::{Dimensions, MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
+use vrp_core::models::common::{MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::utils::{compare_floats, DefaultRandom, Random};
@@ -375,11 +374,5 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_reloads,
         has_priorities,
         has_area_limits,
-    }
-}
-
-fn add_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
-    if let Some(skills) = skills {
-        dimens.set_value("skills", HashSet::<String>::from_iter(skills.iter().cloned()));
     }
 }

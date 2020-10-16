@@ -29,7 +29,7 @@ fn job_prototype() -> impl Strategy<Value = Job> {
             generate_no_tags(),
         ),
         generate_no_priority(),
-        generate_no_skills(),
+        generate_no_jobs_skills(),
     )
 }
 
