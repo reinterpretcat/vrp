@@ -56,22 +56,28 @@ impl Ruin for ClusterRemoval {
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
         let locked = insertion_ctx.solution.locked.clone();
-        let affected = get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
+        let max_affected =
+            get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
 
-        clusters.iter_mut().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(|cluster| {
-            let left = affected - removed_jobs.read().unwrap().len();
+        clusters.iter_mut().take_while(|_| removed_jobs.read().unwrap().len() < max_affected).for_each(|cluster| {
+            let left = max_affected - removed_jobs.read().unwrap().len();
             if cluster.len() > left {
                 cluster.shuffle(&mut insertion_ctx.random.get_rng());
             }
 
-            cluster.iter().filter(|job| !locked.contains(job)).take(left).for_each(|job| {
-                if let Some(rc) = route_jobs.get_mut(job) {
-                    // NOTE actual insertion context modification via route mut
-                    if rc.route_mut().tour.remove(&job) {
-                        removed_jobs.write().unwrap().insert((*job).clone());
+            cluster
+                .iter()
+                .filter(|job| !locked.contains(job))
+                .filter(|_| removed_jobs.read().unwrap().len() < max_affected)
+                .take(left)
+                .for_each(|job| {
+                    if let Some(rc) = route_jobs.get_mut(job) {
+                        // NOTE actual insertion context modification via route mut
+                        if rc.route_mut().tour.remove(&job) {
+                            removed_jobs.write().unwrap().insert((*job).clone());
+                        }
                     }
-                }
-            });
+                });
         });
 
         removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
