@@ -14,9 +14,9 @@ use std::io::{BufReader, BufWriter, Error, Read, Write};
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RelationType {
-    /// Relation type which  locks jobs to specific vehicle in any order.
+    /// Relation type which locks jobs to specific vehicle in any order.
     Any,
-    /// Relation type which  locks jobs in specific order allowing insertion of other jobs in between.
+    /// Relation type which locks jobs in specific order allowing insertion of other jobs in between.
     Sequence,
     /// Relation type which locks jobs in strict order, no insertions in between are allowed.
     Strict,
@@ -359,7 +359,7 @@ pub enum Objective {
     /// An objective to minimize amount of unassigned jobs.
     #[serde(rename(deserialize = "minimize-unassigned", serialize = "minimize-unassigned"))]
     MinimizeUnassignedJobs {
-        /// A break multiplier to increase/decrease it is importance.
+        /// A multiplier to increase/decrease break is importance.
         /// Default is 1.
         #[serde(skip_serializing_if = "Option::is_none")]
         breaks: Option<f64>,
@@ -411,7 +411,7 @@ pub struct BalanceOptions {
     pub threshold: Option<f64>,
 
     /// A balancing tolerance specifies how much balance values should differ in order
-    /// to be considered not-equal.
+    /// to be considered as not-equal.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tolerance: Option<f64>,
 }
