@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `breaking`(WIP): reworked depot feature to support dispatching functionality
+
 
 ## [v1.6.2] - 2020-10-18
 
