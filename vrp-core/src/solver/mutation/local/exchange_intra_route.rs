@@ -3,18 +3,17 @@ use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::LocalSearch;
 use crate::solver::RefinementContext;
-use crate::utils::Noise;
 
 /// A local search operator which tries to exchange jobs in random way inside one route.
 pub struct ExchangeIntraRouteRandom {
-    probability: f64,
-    noise_range: (f64, f64),
+    _probability: f64,
+    _noise_range: (f64, f64),
 }
 
 impl ExchangeIntraRouteRandom {
     /// Creates a new instance of `ExchangeIntraRouteRandom`.
     pub fn new(probability: f64, min: f64, max: f64) -> Self {
-        Self { probability, noise_range: (min, max) }
+        Self { _probability: probability, _noise_range: (min, max) }
     }
 }
 
@@ -25,11 +24,7 @@ impl Default for ExchangeIntraRouteRandom {
 }
 
 impl LocalSearch for ExchangeIntraRouteRandom {
-    fn explore(
-        &self,
-        refinement_ctx: &RefinementContext,
-        insertion_ctx: &InsertionContext,
-    ) -> Option<InsertionContext> {
+    fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         if !insertion_ctx.solution.required.is_empty() {
             return None;
         }
@@ -48,35 +43,11 @@ impl LocalSearch for ExchangeIntraRouteRandom {
             });
             new_insertion_ctx.solution.required.extend(jobs.into_iter());
 
-            let noise = Noise::new(self.probability, self.noise_range, insertion_ctx.random.clone());
-            new_insertion_ctx = InsertionHeuristic::default().process(
-                &AllJobSelector::default(),
-                &PairJobMapReducer::new(
-                    Box::new(SpecificRouteSelector { route_idx }),
-                    Box::new(NoiseResultSelector::new(noise)),
-                ),
-                new_insertion_ctx,
-                &refinement_ctx.quota,
-            );
-
-            Some(new_insertion_ctx)
+            // TODO cannot use old approach due to changing route count dynamically
+            None
         } else {
             None
         }
-    }
-}
-
-struct SpecificRouteSelector {
-    route_idx: usize,
-}
-
-impl RouteSelector for SpecificRouteSelector {
-    fn select<'a>(
-        &'a self,
-        insertion_ctx: &'a InsertionContext,
-        _: &'a Job,
-    ) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
-        Box::new(insertion_ctx.solution.routes.iter().skip(self.route_idx).take(1).cloned())
     }
 }
 

@@ -251,6 +251,10 @@ fn create_constraint_pipeline(
         constraint.add_module(Box::new(SkillsModule::new(SKILLS_CONSTRAINT_CODE)));
     }
 
+    if props.has_depots {
+        constraint.add_module(Box::new(DepotModule::new(DEPOT_CONSTRAINT_CODE)));
+    }
+
     if props.has_priorities {
         constraint.add_module(Box::new(PriorityModule::new(PRIORITY_CONSTRAINT_CODE)));
     }

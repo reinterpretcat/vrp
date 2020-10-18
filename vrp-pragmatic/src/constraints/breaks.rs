@@ -73,11 +73,7 @@ impl HardRouteConstraint for BreakHardRouteConstraint {
     fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if let Some(single) = job.as_single() {
             if is_break_single(single) {
-                let job = job.to_single();
-                let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
-                let shift_index = get_shift_index(&job.dimens);
-
-                return if !is_correct_vehicle(&ctx.route, vehicle_id, shift_index) {
+                return if !is_single_belongs_to_route(ctx, single) {
                     Some(RouteConstraintViolation { code: self.code })
                 } else {
                     None

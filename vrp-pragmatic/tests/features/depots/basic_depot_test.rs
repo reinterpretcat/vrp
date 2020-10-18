@@ -118,26 +118,34 @@ parameterized_test! {can_handle_two_depots, (first_depot, second_depot, expected
 }}
 
 can_handle_two_depots! {
-    case01: ((&[7., 0.], 6.), (&[8., 0.], 1.), &[8., 0.], 45.),
-    case02: ((&[1001., 0.], 1.), (&[8., 0.], 6.), &[8., 0.], 50.),
-    case03: ((&[7., 0.], 1.), (&[8., 0.], 1.), &[7., 0.], 41.),
+    case01: ((&[7., 0.], (7., 8.)), (&[8., 0.], (8., 9.)), &[7., 0.], 40.),
+    case02: ((&[8., 0.], (8., 9.)), (&[7., 0.], (7., 8.)), &[7., 0.], 40.),
+    case03: ((&[1001., 0.], (10., 11.)), (&[8., 0.], (8., 9.)), &[8., 0.], 44.),
 }
 
 fn can_handle_two_depots_impl(
-    first_depot: (&[f64; 2], f64),
-    second_depot: (&[f64; 2], f64),
+    first_depot: (&[f64; 2], (f64, f64)),
+    second_depot: (&[f64; 2], (f64, f64)),
     expected_location: &[f64; 2],
     expected_cost: f64,
 ) {
     let problem = create_problem_with_depots(Some(vec![
         VehicleDepot {
             location: first_depot.0.to_vec().to_loc(),
-            dispatch: vec![VehicleDispatch { max: 1, start: format_time(0.), end: format_time(first_depot.1) }],
+            dispatch: vec![VehicleDispatch {
+                max: 1,
+                start: format_time((first_depot.1).0),
+                end: format_time((first_depot.1).0),
+            }],
             tag: None,
         },
         VehicleDepot {
             location: second_depot.0.to_vec().to_loc(),
-            dispatch: vec![VehicleDispatch { max: 1, start: format_time(0.), end: format_time(second_depot.1) }],
+            dispatch: vec![VehicleDispatch {
+                max: 1,
+                start: format_time((second_depot.1).0),
+                end: format_time((second_depot.1).0),
+            }],
             tag: None,
         },
     ]));

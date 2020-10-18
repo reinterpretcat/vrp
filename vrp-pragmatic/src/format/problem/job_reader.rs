@@ -183,11 +183,11 @@ fn read_conditional_jobs(
     job_index: &mut JobIndex,
 ) -> (Vec<Job>, Vec<Arc<Lock>>) {
     let mut jobs = vec![];
-    let mut locks = vec![];
+
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             if let Some(depots) = &shift.depots {
-                locks.extend(read_depots(coord_index, job_index, &mut jobs, vehicle, shift_index, depots).into_iter())
+                read_depots(coord_index, job_index, &mut jobs, vehicle, shift_index, depots);
             }
 
             if let Some(breaks) = &shift.breaks {
@@ -200,7 +200,7 @@ fn read_conditional_jobs(
         }
     });
 
-    (jobs, locks)
+    (jobs, vec![])
 }
 
 fn read_breaks(
@@ -266,25 +266,28 @@ fn read_depots(
     vehicle: &VehicleType,
     shift_index: usize,
     depots: &[VehicleDepot],
-) -> Vec<Arc<Lock>> {
-    let mut locks = vec![];
-
+) {
     depots.iter().enumerate().for_each(|(depot_idx, depot)| {
-        let total_dispatch_capacity = depot.dispatch.iter().map(|d| d.max).sum::<usize>();
-        assert_eq!(vehicle.vehicle_ids.len(), total_dispatch_capacity);
+        let total_max = depot.dispatch.iter().map(|d| d.max).sum::<usize>();
+        assert_eq!(total_max, vehicle.vehicle_ids.len());
 
-        (vehicle.vehicle_ids.iter())
-            .zip(depot.dispatch.iter().map(|dispatch| (&dispatch.start, &dispatch.end)))
-            .for_each(|(vehicle_id, (start_time, end_time))| {
-                let job_id = format!("{}_depot_{}_{}", vehicle_id, shift_index, depot_idx);
-
-                let start = parse_time(start_time);
-                let end = parse_time(end_time);
+        depot
+            .dispatch
+            .iter()
+            .flat_map(|dispatch| {
+                let location = Some(depot.location.clone());
+                let start = parse_time(&dispatch.start);
+                let end = parse_time(&dispatch.end);
 
                 assert_ne!(compare_floats(start, end), Ordering::Greater);
 
-                let duration = end - start;
-                let times = vec![TimeSpan::Window(TimeWindow::new(start, start))];
+                (0..dispatch.max).map(move |_| {
+                    (location.clone(), end - start, vec![TimeSpan::Window(TimeWindow::new(start, start))])
+                })
+            })
+            .zip(vehicle.vehicle_ids.iter())
+            .for_each(|(place, vehicle_id)| {
+                let job_id = format!("{}_depot_{}_{}", vehicle_id, shift_index, depot_idx + 1);
 
                 let job = get_conditional_job(
                     coord_index,
@@ -292,34 +295,13 @@ fn read_depots(
                     &job_id,
                     "depot",
                     shift_index,
-                    vec![(Some(depot.location.clone()), duration, times)],
+                    vec![place],
                     &depot.tag,
                 );
 
                 add_conditional_job(job_index, jobs, job_id.clone(), job);
-
-                let vehicle_id = vehicle_id.clone();
-                let lock = Arc::new(Lock::new(
-                    Arc::new(move |actor| {
-                        let dimens = &actor.vehicle.dimens;
-                        let other_id = dimens.get_id().unwrap();
-                        let other_index = *dimens.get_value::<usize>("shift_index").unwrap();
-
-                        other_id == vehicle_id.as_str() && other_index == shift_index
-                    }),
-                    vec![LockDetail {
-                        order: LockOrder::Strict,
-                        position: LockPosition::Departure,
-                        jobs: vec![job_index.get(&job_id).unwrap().clone()],
-                    }],
-                    true,
-                ));
-
-                locks.push(lock);
             });
     });
-
-    locks
 }
 
 fn read_reloads(

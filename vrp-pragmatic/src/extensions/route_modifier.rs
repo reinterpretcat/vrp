@@ -1,4 +1,4 @@
-use crate::format::JobIndex;
+use crate::format::{JobIndex, UNASSIGNABLE_ROUTE_KEY};
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::*;
@@ -14,10 +14,14 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
         let shift_index = vehicle.dimens.get_value::<usize>("shift_index").expect("cannot find shift index");
         let vehicle_id = vehicle.dimens.get_id().expect("cannot get vehicle id");
 
-        let result = (1..)
+        let candidates = (1..)
             .map(|idx| format!("{}_depot_{}_{}", vehicle_id, shift_index, idx))
             .map(|job_id| job_index.get(&job_id))
             .take_while(|job| job.is_some())
+            .collect::<Vec<_>>();
+
+        let result = candidates
+            .iter()
             .filter_map(|job| {
                 job.map(|job| {
                     evaluate_job_constraint_in_route(job, &constraint, &route_ctx, InsertionPosition::Last, 0., None)
@@ -39,6 +43,12 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
 
             route_ctx
         } else {
+            let mut route_ctx = route_ctx;
+
+            if !candidates.is_empty() {
+                route_ctx.state_mut().put_route_state(UNASSIGNABLE_ROUTE_KEY, true);
+            }
+
             route_ctx
         }
     })

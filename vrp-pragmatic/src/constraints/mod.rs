@@ -25,6 +25,13 @@ fn is_correct_vehicle(route: &Route, target_id: &str, target_shift: usize) -> bo
         && get_shift_index(&route.actor.vehicle.dimens) == target_shift
 }
 
+fn is_single_belongs_to_route(ctx: &RouteContext, single: &Arc<Single>) -> bool {
+    let vehicle_id = get_vehicle_id_from_job(&single).unwrap();
+    let shift_index = get_shift_index(&single.dimens);
+
+    is_correct_vehicle(&ctx.route, vehicle_id, shift_index)
+}
+
 mod breaks;
 pub use self::breaks::BreakModule;
 
@@ -43,3 +50,4 @@ pub use self::reachable::ReachableModule;
 mod skills;
 pub use self::skills::JobSkills;
 pub use self::skills::SkillsModule;
+use vrp_core::construction::heuristics::RouteContext;

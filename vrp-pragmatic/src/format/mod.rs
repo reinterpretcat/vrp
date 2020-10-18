@@ -108,6 +108,9 @@ const LOCKING_CONSTRAINT_CODE: i32 = 7;
 const REACHABLE_CONSTRAINT_CODE: i32 = 8;
 const PRIORITY_CONSTRAINT_CODE: i32 = 9;
 const AREA_CONSTRAINT_CODE: i32 = 10;
+const DEPOT_CONSTRAINT_CODE: i32 = 11;
+
+pub(crate) const UNASSIGNABLE_ROUTE_KEY: i32 = 100;
 
 /// An job id to job index.
 pub type JobIndex = HashMap<String, CoreJob>;

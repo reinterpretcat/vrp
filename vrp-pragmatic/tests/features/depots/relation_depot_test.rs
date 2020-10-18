@@ -23,7 +23,7 @@ fn can_use_depot_in_relation() {
                 shifts: vec![VehicleShift {
                     depots: Some(vec![VehicleDepot {
                         location: vec![7., 0.].to_loc(),
-                        dispatch: vec![VehicleDispatch { max: 1, start: format_time(0.), end: format_time(2.) }],
+                        dispatch: vec![VehicleDispatch { max: 1, start: format_time(7.), end: format_time(9.) }],
                         tag: None,
                     }]),
                     ..create_default_vehicle_shift()
