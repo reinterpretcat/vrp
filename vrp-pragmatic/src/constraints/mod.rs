@@ -28,6 +28,9 @@ fn is_correct_vehicle(route: &Route, target_id: &str, target_shift: usize) -> bo
 mod breaks;
 pub use self::breaks::BreakModule;
 
+mod depots;
+pub use self::depots::DepotModule;
+
 mod priorities;
 pub use self::priorities::PriorityModule;
 

@@ -73,7 +73,7 @@ pub struct JobTask {
     /// Job place demand.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub demand: Option<Vec<i32>>,
-    /// An tag which will be propagated back within corresponding activity in solution.
+    /// A tag which will be propagated back within corresponding activity in solution.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
 }
@@ -143,12 +143,12 @@ pub struct VehicleCosts {
 /// Specifies vehicle shift start.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ShiftStart {
-    /// Earliest possible departure date time.
+    /// Earliest possible departure date time in RFC3339 format.
     pub earliest: String,
 
-    /// Latest possible departure date time. If omitted, departure time
-    /// theoretically can be shifted till arrival. Set this value, if
-    /// you want to limit departure time optimization.
+    /// Latest possible departure date time in RFC3339 format. If omitted, departure time
+    /// theoretically can be shifted till arrival. Set this value, if you want to limit
+    /// departure time optimization.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub latest: Option<String>,
 
@@ -159,11 +159,12 @@ pub struct ShiftStart {
 /// Specifies vehicle shift end.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ShiftEnd {
-    /// Earliest possible arrival date time. At the moment, not supported, reserved for future.
+    /// Earliest possible arrival date time in RFC3339 format.
+    /// At the moment, not supported, reserved for future.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub earliest: Option<String>,
 
-    /// Latest possible arrival date time.
+    /// Latest possible arrival date time in RFC3339 format.
     pub latest: String,
 
     /// Shift end location.
@@ -183,7 +184,7 @@ pub struct VehicleShift {
     /// Vehicle depots. If defined, vehicle starts empty at location, defined in ShiftStart, and
     /// navigates first to the one of specified depots, e.g. to pickup the goods.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub depots: Option<Vec<VehicleCargoPlace>>,
+    pub depots: Option<Vec<VehicleDepot>>,
 
     /// Vehicle breaks.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -192,12 +193,37 @@ pub struct VehicleShift {
     /// Vehicle reloads which allows vehicle to visit place where goods can be loaded or
     /// unloaded during single tour.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reloads: Option<Vec<VehicleCargoPlace>>,
+    pub reloads: Option<Vec<VehicleReload>>,
+}
+
+/// Specifies a depot place where vehicle can load cargo and start the tour.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VehicleDepot {
+    /// A depot location.
+    pub location: Location,
+    /// Specifies vehicle dispatch parameters.
+    pub dispatch: Vec<VehicleDispatch>,
+    /// A tag which will be propagated back within corresponding activity in solution.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
+}
+
+/// Specifies depot capabilities to dispatch vehicles.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VehicleDispatch {
+    /// Max amount of vehicles which can be dispatched during given period.
+    pub max: usize,
+    /// A dispatch start time in RFC3339 time format.
+    pub start: String,
+    /// A dispatch end time in RFC3339 time format.
+    pub end: String,
 }
 
 /// Specifies a place where vehicle can load or unload cargo.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct VehicleCargoPlace {
+pub struct VehicleReload {
     /// A place location.
     pub location: Location,
 
@@ -208,7 +234,7 @@ pub struct VehicleCargoPlace {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub times: Option<Vec<Vec<String>>>,
 
-    /// An tag which will be propagated back within corresponding activity in solution.
+    /// A tag which will be propagated back within corresponding activity in solution.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
 }

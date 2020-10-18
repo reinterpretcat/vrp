@@ -3,7 +3,7 @@ use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
-fn create_problem_with_depots(depots: Option<Vec<VehicleCargoPlace>>) -> Problem {
+fn create_problem_with_depots(depots: Option<Vec<VehicleDepot>>) -> Problem {
     Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![3., 0.]), create_delivery_job("job2", vec![5., 0.])],
@@ -22,10 +22,9 @@ fn create_problem_with_depots(depots: Option<Vec<VehicleCargoPlace>>) -> Problem
 
 #[test]
 fn can_assign_single_depot() {
-    let problem = create_problem_with_depots(Some(vec![VehicleCargoPlace {
+    let problem = create_problem_with_depots(Some(vec![VehicleDepot {
         location: vec![7., 0.].to_loc(),
-        duration: 2.0,
-        times: Some(vec![vec![format_time(10.), format_time(15.)]]),
+        dispatch: vec![VehicleDispatch { max: 1, start: format_time(10.), end: format_time(12.) }],
         tag: None,
     }]));
     let matrix = create_matrix_from_problem(&problem);
@@ -101,10 +100,9 @@ fn can_assign_single_depot() {
 
 #[test]
 fn can_handle_unassignable_depot() {
-    let problem = create_problem_with_depots(Some(vec![VehicleCargoPlace {
+    let problem = create_problem_with_depots(Some(vec![VehicleDepot {
         location: vec![1001., 0.].to_loc(),
-        duration: 2.0,
-        times: Some(vec![vec![format_time(10.), format_time(15.)]]),
+        dispatch: vec![VehicleDispatch { max: 1, start: format_time(10.), end: format_time(12.) }],
         tag: None,
     }]));
     let matrix = create_matrix_from_problem(&problem);
@@ -132,16 +130,14 @@ fn can_handle_two_depots_impl(
     expected_cost: f64,
 ) {
     let problem = create_problem_with_depots(Some(vec![
-        VehicleCargoPlace {
+        VehicleDepot {
             location: first_depot.0.to_vec().to_loc(),
-            duration: first_depot.1,
-            times: Some(vec![vec![format_time(0.), format_time(1000.)]]),
+            dispatch: vec![VehicleDispatch { max: 1, start: format_time(0.), end: format_time(first_depot.1) }],
             tag: None,
         },
-        VehicleCargoPlace {
+        VehicleDepot {
             location: second_depot.0.to_vec().to_loc(),
-            duration: second_depot.1,
-            times: None,
+            dispatch: vec![VehicleDispatch { max: 1, start: format_time(0.), end: format_time(second_depot.1) }],
             tag: None,
         },
     ]));

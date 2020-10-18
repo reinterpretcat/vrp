@@ -64,7 +64,8 @@ impl TimeWindow {
 
     /// Checks whether time window has intersection with another one.
     pub fn intersects(&self, other: &Self) -> bool {
-        self.start <= other.end && other.start <= self.end
+        compare_floats(self.start, other.end) != Ordering::Greater
+            && compare_floats(other.start, self.end) != Ordering::Greater
     }
 
     /// Checks whether time window has intersection with all others.

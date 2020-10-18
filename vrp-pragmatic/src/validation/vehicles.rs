@@ -3,10 +3,13 @@
 mod vehicles_test;
 
 use super::*;
+use crate::parse_time;
 use crate::validation::common::get_time_windows;
 use hashbrown::HashSet;
+use std::cmp::Ordering;
 use std::ops::Deref;
 use vrp_core::models::common::TimeWindow;
+use vrp_core::utils::compare_floats;
 
 /// Checks that fleet has no vehicle with duplicate type ids.
 fn check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx: &ValidationContext) -> Result<(), FormatError> {
@@ -106,7 +109,20 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|shift, shift_time| {
-            shift.reloads.as_ref().map(|reloads| check_cargo_place_time_windows(reloads, shift_time)).unwrap_or(true)
+            shift
+                .reloads
+                .as_ref()
+                .map(|reloads| {
+                    let tws = reloads
+                        .iter()
+                        .filter_map(|reload| reload.times.as_ref())
+                        .map(|tws| get_time_windows(tws))
+                        .flatten()
+                        .collect::<Vec<_>>();
+
+                    check_shift_time_windows(shift_time, tws, true)
+                })
+                .unwrap_or(true)
         }),
     );
 
@@ -151,19 +167,23 @@ fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<
 }
 
 fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let check_depots = |shift: &VehicleShift, depots: &[VehicleCargoPlace]| {
-        depots.iter().all(|depot| depot.location != shift.start.location)
-            && depots.iter().map(|depot| depot.location.clone()).collect::<HashSet<_>>().len() == depots.len()
-    };
-
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(move |shift, shift_time| {
-            shift
-                .depots
-                .as_ref()
-                .map(|depots| check_cargo_place_time_windows(depots, shift_time) && check_depots(shift, depots))
-                .unwrap_or(true)
+            shift.depots.as_ref().map_or(true, |depots| {
+                let has_valid_tw = depots.iter().flat_map(|depot| depot.dispatch.iter()).all(|dispatch| {
+                    let start = parse_time(&dispatch.start);
+                    let end = parse_time(&dispatch.end);
+
+                    compare_floats(start, end) != Ordering::Greater
+                        && shift_time.as_ref().map_or(true, |tw| {
+                            TimeWindow::new(start, start).intersects(tw) && TimeWindow::new(end, end).intersects(tw)
+                        })
+                });
+
+                has_valid_tw
+                    && depots.iter().map(|depot| depot.location.clone()).collect::<HashSet<_>>().len() == depots.len()
+            })
         }),
     );
 
@@ -174,8 +194,7 @@ fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), F
             "E1306".to_string(),
             "invalid depots in vehicle shift".to_string(),
             format!(
-                "ensure that all depots have proper time windows and unique locations different \
-                 from start location. Vehicle type ids: '{}'",
+                "ensure that all depots have proper dispatch parameters and unique locations. Vehicle type ids: '{}'",
                 type_ids.join(", ")
             ),
         ))
@@ -198,17 +217,6 @@ fn get_invalid_type_ids(
             }
         })
         .collect::<Vec<_>>()
-}
-
-fn check_cargo_place_time_windows(cargo_places: &[VehicleCargoPlace], shift_time: Option<TimeWindow>) -> bool {
-    let tws = cargo_places
-        .iter()
-        .filter_map(|reload| reload.times.as_ref())
-        .map(|tws| get_time_windows(tws))
-        .flatten()
-        .collect::<Vec<_>>();
-
-    check_shift_time_windows(shift_time, tws, true)
 }
 
 fn check_shift_time_windows(

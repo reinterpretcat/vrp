@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 - `breaking`: job skills are now defined by `allOf`, `oneOf` and `noneOf` conditions
 - use `hashbrown` library in `pragmatic` crate
+- fixed minor bugs
 
 ### Removed
 

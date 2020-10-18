@@ -42,7 +42,7 @@ fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: 
                     }),
                     depots: None,
                     breaks: None,
-                    reloads: Some(vec![VehicleCargoPlace {
+                    reloads: Some(vec![VehicleReload {
                         times: None,
                         location: vec![0., 0.].to_loc(),
                         duration: 2.0,

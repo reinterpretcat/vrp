@@ -197,10 +197,6 @@ mod models {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub end: Option<VehiclePlace>,
 
-        /// Vehicle depots.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub depots: Option<Vec<VehicleDepot>>,
-
         /// Vehicle breaks.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub breaks: Option<Vec<VehicleBreak>>,
@@ -210,9 +206,6 @@ mod models {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub reloads: Option<Vec<VehicleReload>>,
     }
-
-    /// Vehicle depot.
-    pub type VehicleDepot = JobPlace;
 
     /// Vehicle reload.
     pub type VehicleReload = JobPlace;
@@ -430,17 +423,7 @@ mod deserialize {
                                 latest: end.time.clone(),
                                 location: to_pragmatic_loc(&end.location),
                             }),
-                            depots: shift.depots.as_ref().map(|depots| {
-                                depots
-                                    .iter()
-                                    .map(|d| VehicleCargoPlace {
-                                        location: to_pragmatic_loc(&d.location),
-                                        duration: d.duration,
-                                        times: d.times.clone(),
-                                        tag: d.tag.clone(),
-                                    })
-                                    .collect()
-                            }),
+                            depots: None,
                             breaks: shift.breaks.as_ref().map(|breaks| {
                                 breaks
                                     .iter()
@@ -454,7 +437,7 @@ mod deserialize {
                             reloads: shift.reloads.as_ref().map(|reloads| {
                                 reloads
                                     .iter()
-                                    .map(|r| VehicleCargoPlace {
+                                    .map(|r| VehicleReload {
                                         location: to_pragmatic_loc(&r.location),
                                         duration: r.duration,
                                         times: r.times.clone(),
@@ -650,23 +633,6 @@ mod serialize {
                                             time: end.latest.clone(),
                                             location: to_hre_loc(&shift.start.location)?,
                                         })
-                                    } else {
-                                        None
-                                    },
-                                    depots: if let Some(depots) = &shift.depots {
-                                        Some(
-                                            depots
-                                                .iter()
-                                                .map(|depot| {
-                                                    Ok(VehicleDepot {
-                                                        times: depot.times.clone(),
-                                                        location: to_hre_loc(&depot.location)?,
-                                                        duration: depot.duration,
-                                                        tag: depot.tag.clone(),
-                                                    })
-                                                })
-                                                .collect::<Result<Vec<_>, String>>()?,
-                                        )
                                     } else {
                                         None
                                     },

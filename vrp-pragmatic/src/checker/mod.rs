@@ -25,9 +25,9 @@ pub struct CheckerContext {
 enum ActivityType {
     Terminal,
     Job(Box<Job>),
-    Depot(VehicleCargoPlace),
+    Depot(VehicleDepot),
     Break(VehicleBreak),
-    Reload(VehicleCargoPlace),
+    Reload(VehicleReload),
 }
 
 impl CheckerContext {

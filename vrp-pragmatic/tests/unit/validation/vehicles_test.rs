@@ -51,26 +51,24 @@ parameterized_test! {can_detect_invalid_depots, (allowed_areas, expected), {
 }}
 
 can_detect_invalid_depots! {
-    case01: (&[(0., None)], Some("E1306".to_string())),
-    case02: (&[(1., None)], None),
-    case03: (&[(1., None), (1., None)], Some("E1306".to_string())),
-    case04: (&[(1., None), (2., None)], None),
-    case05: (&[(0., None), (1., None)], Some("E1306".to_string())),
+    case01: (&[(0., (0., 10.))], None),
+    case02: (&[(1., (0., 10.))], None),
+    case03: (&[(1., (0., 10.)), (1., (0., 10.))], Some("E1306".to_string())),
+    case04: (&[(1., (0., 10.)), (2., (0., 10.))], None),
 
-    case06: (&[(1., Some(vec![vec![format_time(0.), format_time(100.)]]))], None),
-    case07: (&[(1., Some(vec![vec![format_time(1001.), format_time(1010.)]]))], Some("E1306".to_string())),
-    case08: (&[(1., Some(vec![vec![format_time(100.), format_time(10.)]]))], Some("E1306".to_string())),
+    case05: (&[(1., (0., 10.))], None),
+    case06: (&[(1., (1001., 1010.))], Some("E1306".to_string())),
+    case07: (&[(1., (10., 1.))], Some("E1306".to_string())),
 }
 
-fn can_detect_invalid_depots_impl(depots: &[(f64, Option<Vec<Vec<String>>>)], expected: Option<String>) {
+fn can_detect_invalid_depots_impl(depots: &[(f64, (f64, f64))], expected: Option<String>) {
     let depots = Some(
         depots
             .into_iter()
             .cloned()
-            .map(|(lat, times)| VehicleCargoPlace {
+            .map(|(lat, times)| VehicleDepot {
                 location: Location::Coordinate { lat, lng: 0. },
-                duration: 1.,
-                times,
+                dispatch: vec![VehicleDispatch { max: 1, start: format_time(times.0), end: format_time(times.1) }],
                 tag: None,
             })
             .collect(),

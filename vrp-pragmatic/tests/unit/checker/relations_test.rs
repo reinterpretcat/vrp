@@ -98,7 +98,7 @@ mod single {
                             duration: 2.0,
                             locations: None,
                         }]),
-                        reloads: Some(vec![VehicleCargoPlace {
+                        reloads: Some(vec![VehicleReload {
                             times: None,
                             location: vec![0., 0.].to_loc(),
                             duration: 2.0,

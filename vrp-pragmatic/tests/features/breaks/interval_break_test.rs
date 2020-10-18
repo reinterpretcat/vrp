@@ -143,7 +143,7 @@ fn can_assign_interval_break_with_reload() {
                         duration: 2.0,
                         locations: None,
                     }]),
-                    reloads: Some(vec![VehicleCargoPlace {
+                    reloads: Some(vec![VehicleReload {
                         times: Some(vec![vec![format_time(0.), format_time(1000.)]]),
                         location: vec![0., 0.].to_loc(),
                         duration: 3.0,

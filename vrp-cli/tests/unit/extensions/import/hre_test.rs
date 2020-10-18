@@ -128,21 +128,6 @@ fn can_import_hre_problem() {
                   "lng": 13.281
                 }
               }
-            ],
-            "depots": [
-              {
-                "times": [
-                  [
-                    "2020-01-01T01:00:00Z",
-                    "2020-01-01T02:00:00Z"
-                  ]
-                ],
-                "duration": 1800,
-                "location": {
-                  "lat": 52.466,
-                  "lng": 13.281
-                }
-              }
             ]
           }
         ],
@@ -201,7 +186,7 @@ fn can_import_hre_problem() {
     let shift = vehicle.shifts.first().unwrap();
     assert!(shift.end.is_some());
     assert_eq!(shift.breaks.as_ref().unwrap().len(), 1);
-    assert_eq!(shift.depots.as_ref().unwrap().len(), 1);
+    assert!(shift.depots.is_none());
     assert_eq!(shift.reloads.as_ref().unwrap().len(), 1);
 }
 
@@ -331,12 +316,7 @@ fn can_write_hre_problem() {
                         latest: "2020-05-01T18:00:00.00Z".to_string(),
                         location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                     }),
-                    depots: Some(vec![VehicleCargoPlace {
-                        location: Location::Coordinate { lat: 0.0, lng: 0.0 },
-                        duration: 1800.,
-                        times: Some(vec![create_test_time_window()]),
-                        tag: Some("depot".to_string()),
-                    }]),
+                    depots: None,
                     breaks: Some(vec![VehicleBreak {
                         time: VehicleBreakTime::TimeWindow(vec![
                             "2020-05-01T12:00:00.00Z".to_string(),

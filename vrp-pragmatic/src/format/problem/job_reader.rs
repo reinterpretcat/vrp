@@ -1,6 +1,8 @@
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::reader::{parse_time_window, ApiProblem, ProblemProperties};
-use crate::format::problem::{JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleCargoPlace, VehicleType};
+use crate::format::problem::{
+    JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleDepot, VehicleReload, VehicleType,
+};
 use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
 use std::iter::FromIterator;
@@ -8,11 +10,13 @@ use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
-use vrp_core::utils::{CollectGroupBy, Random};
+use vrp_core::utils::{compare_floats, Random};
 
 use crate::constraints::JobSkills as ConstraintJobSkills;
 use crate::format::problem::JobSkills as FormatJobSkills;
+use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
+use std::cmp::Ordering;
 
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
@@ -261,45 +265,61 @@ fn read_depots(
     jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
-    depots: &[VehicleCargoPlace],
+    depots: &[VehicleDepot],
 ) -> Vec<Arc<Lock>> {
-    get_cargo_jobs("depot", coord_index, vehicle, shift_index, depots)
-        .into_iter()
-        .map(|(vehicle_id, _, single)| (vehicle_id, single))
-        .collect_group_by_key(|(vehicle_id, _)| vehicle_id.clone())
-        .into_iter()
-        .map(|(vehicle_id, singles)| {
-            let (places, dimens): (_, Vec<Dimensions>) = singles
-                .into_iter()
-                .map(|(_, single)| {
-                    assert_eq!(single.places.len(), 1);
-                    (single.places.first().cloned().unwrap(), single.dimens)
-                })
-                .unzip();
+    let mut locks = vec![];
 
-            let job_id = format!("{}_depot_{}_1", vehicle_id, shift_index);
-            let mut dimens = dimens.first().cloned().unwrap();
-            dimens.set_id(&job_id);
+    depots.iter().enumerate().for_each(|(depot_idx, depot)| {
+        let total_dispatch_capacity = depot.dispatch.iter().map(|d| d.max).sum::<usize>();
+        assert_eq!(vehicle.vehicle_ids.len(), total_dispatch_capacity);
 
-            add_conditional_job(job_index, jobs, job_id.clone(), Single { places, dimens });
+        (vehicle.vehicle_ids.iter())
+            .zip(depot.dispatch.iter().map(|dispatch| (&dispatch.start, &dispatch.end)))
+            .for_each(|(vehicle_id, (start_time, end_time))| {
+                let job_id = format!("{}_depot_{}_{}", vehicle_id, shift_index, depot_idx);
 
-            Arc::new(Lock::new(
-                Arc::new(move |actor| {
-                    let dimens = &actor.vehicle.dimens;
-                    let other_id = dimens.get_id().unwrap();
-                    let other_index = *dimens.get_value::<usize>("shift_index").unwrap();
+                let start = parse_time(start_time);
+                let end = parse_time(end_time);
 
-                    other_id == vehicle_id.as_str() && other_index == shift_index
-                }),
-                vec![LockDetail {
-                    order: LockOrder::Strict,
-                    position: LockPosition::Departure,
-                    jobs: vec![job_index.get(&job_id).unwrap().clone()],
-                }],
-                true,
-            ))
-        })
-        .collect()
+                assert_ne!(compare_floats(start, end), Ordering::Greater);
+
+                let duration = end - start;
+                let times = vec![TimeSpan::Window(TimeWindow::new(start, start))];
+
+                let job = get_conditional_job(
+                    coord_index,
+                    vehicle_id.clone(),
+                    &job_id,
+                    "depot",
+                    shift_index,
+                    vec![(Some(depot.location.clone()), duration, times)],
+                    &depot.tag,
+                );
+
+                add_conditional_job(job_index, jobs, job_id.clone(), job);
+
+                let vehicle_id = vehicle_id.clone();
+                let lock = Arc::new(Lock::new(
+                    Arc::new(move |actor| {
+                        let dimens = &actor.vehicle.dimens;
+                        let other_id = dimens.get_id().unwrap();
+                        let other_index = *dimens.get_value::<usize>("shift_index").unwrap();
+
+                        other_id == vehicle_id.as_str() && other_index == shift_index
+                    }),
+                    vec![LockDetail {
+                        order: LockOrder::Strict,
+                        position: LockPosition::Departure,
+                        jobs: vec![job_index.get(&job_id).unwrap().clone()],
+                    }],
+                    true,
+                ));
+
+                locks.push(lock);
+            });
+    });
+
+    locks
 }
 
 fn read_reloads(
@@ -308,45 +328,33 @@ fn read_reloads(
     jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
-    reloads: &[VehicleCargoPlace],
+    reloads: &[VehicleReload],
 ) {
-    get_cargo_jobs("reload", coord_index, vehicle, shift_index, reloads).into_iter().for_each(|(_, job_id, single)| {
-        add_conditional_job(job_index, jobs, job_id, single);
-    });
-}
-
-fn get_cargo_jobs(
-    job_type: &str,
-    coord_index: &CoordIndex,
-    vehicle: &VehicleType,
-    shift_index: usize,
-    cargo_places: &[VehicleCargoPlace],
-) -> Vec<(String, String, Single)> {
     (1..)
-        .zip(cargo_places.iter())
+        .zip(reloads.iter())
         .flat_map(|(place_idx, place)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let job_id = format!("{}_{}_{}_{}", vehicle_id, job_type, shift_index, place_idx);
+                    let job_id = format!("{}_reload_{}_{}", vehicle_id, shift_index, place_idx);
                     let times = parse_times(&place.times);
 
                     let job = get_conditional_job(
                         coord_index,
                         vehicle_id.clone(),
                         &job_id,
-                        job_type,
+                        "reload",
                         shift_index,
                         vec![(Some(place.location.clone()), place.duration, times)],
                         &place.tag,
                     );
 
-                    (vehicle_id.clone(), job_id, job)
+                    (job_id, job)
                 })
                 .collect::<Vec<_>>()
         })
-        .collect()
+        .for_each(|(job_id, single)| add_conditional_job(job_index, jobs, job_id, single));
 }
 
 fn get_conditional_job(
