@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.6.2] - 2020-10-18
+
 ### Changed
 
 - `breaking`: job skills are now defined by `allOf`, `oneOf` and `noneOf` conditions
@@ -12,6 +15,7 @@ All notable changes to this project will be documented in this file.
 ### Removed
 
 - `config` property from `pragmatic` format
+
 
 ## [v1.6.1] - 2020-10-15
 
@@ -73,7 +77,8 @@ All notable changes to this project will be documented in this file.
 
 - Initial public release
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.6.2...HEAD
+[v1.6.2]: https://github.com/reinterpretcat/vrp/compare/v1.6.1...v1.6.2
 [v1.6.1]: https://github.com/reinterpretcat/vrp/compare/v1.6.0...v1.6.1
 [v1.6.0]: https://github.com/reinterpretcat/vrp/compare/v1.5.0...v1.6.0
 [v1.5.0]: https://github.com/reinterpretcat/vrp/compare/v1.0.0...v1.5.0
