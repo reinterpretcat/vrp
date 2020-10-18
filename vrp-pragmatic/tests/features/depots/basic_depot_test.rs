@@ -99,6 +99,28 @@ fn can_assign_single_depot() {
 }
 
 #[test]
+fn can_assign_depot_at_start() {
+    let problem = create_problem_with_depots(Some(vec![VehicleDepot {
+        location: vec![0., 0.].to_loc(),
+        dispatch: vec![VehicleDispatch { max: 1, start: format_time(0.), end: format_time(2.) }],
+        tag: None,
+    }]));
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(solution.unassigned.is_none());
+    assert_eq!(solution.tours.len(), 1);
+
+    let first_stop = &solution.tours[0].stops[0];
+    assert_eq!(first_stop.time.arrival, format_time(0.));
+    assert_eq!(first_stop.time.departure, format_time(2.));
+    assert_eq!(first_stop.activities.len(), 2);
+    assert_eq!(first_stop.activities[0].activity_type, "departure");
+    assert_eq!(first_stop.activities[1].activity_type, "depot");
+}
+
+#[test]
 fn can_handle_unassignable_depot() {
     let problem = create_problem_with_depots(Some(vec![VehicleDepot {
         location: vec![1001., 0.].to_loc(),
