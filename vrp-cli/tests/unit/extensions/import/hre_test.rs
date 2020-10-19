@@ -186,7 +186,7 @@ fn can_import_hre_problem() {
     let shift = vehicle.shifts.first().unwrap();
     assert!(shift.end.is_some());
     assert_eq!(shift.breaks.as_ref().unwrap().len(), 1);
-    assert!(shift.depots.is_none());
+    assert!(shift.dispatch.is_none());
     assert_eq!(shift.reloads.as_ref().unwrap().len(), 1);
 }
 
@@ -316,7 +316,7 @@ fn can_write_hre_problem() {
                         latest: "2020-05-01T18:00:00.00Z".to_string(),
                         location: Location::Coordinate { lat: 0.0, lng: 0.0 },
                     }),
-                    depots: None,
+                    dispatch: None,
                     breaks: Some(vec![VehicleBreak {
                         time: VehicleBreakTime::TimeWindow(vec![
                             "2020-05-01T12:00:00.00Z".to_string(),

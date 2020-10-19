@@ -1,7 +1,7 @@
 //! This module contains feature tests: minimalistic tests which check features in isolation and combination.
 
 mod breaks;
-mod depots;
+mod dispatch;
 mod fleet;
 mod format;
 mod limits;

@@ -101,7 +101,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                     let is_from_valid = from_load == acc;
                     let is_to_valid = to_load == from_load + change;
 
-                    if (is_from_valid && is_to_valid) || (*idx == 0 && has_depot(tour)) {
+                    if (is_from_valid && is_to_valid) || (*idx == 0 && has_dispatch(tour)) {
                         Ok(to_load)
                     } else {
                         let message = match (is_from_valid, is_to_valid) {
@@ -163,10 +163,10 @@ fn is_reload_stop(context: &CheckerContext, stop: &Stop) -> bool {
     context.get_stop_activity_types(stop).first().map_or(false, |a| a == "reload")
 }
 
-fn has_depot(tour: &Tour) -> bool {
+fn has_dispatch(tour: &Tour) -> bool {
     tour.stops
         .iter()
         .flat_map(|stop| stop.activities.iter())
         .nth(1)
-        .map_or(false, |activity| activity.activity_type == "depot")
+        .map_or(false, |activity| activity.activity_type == "dispatch")
 }

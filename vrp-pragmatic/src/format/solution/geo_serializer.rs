@@ -33,7 +33,7 @@ fn get_marker_symbol(stop: &Stop) -> String {
     let contains_activity_type =
         |activity_type: &&str| stop.activities.iter().any(|activity| activity.activity_type == *activity_type);
     match (
-        ["departure", "depot", "reload", "arrival"].iter().any(contains_activity_type),
+        ["departure", "dispatch", "reload", "arrival"].iter().any(contains_activity_type),
         contains_activity_type(&"break"),
     ) {
         (true, _) => "warehouse",

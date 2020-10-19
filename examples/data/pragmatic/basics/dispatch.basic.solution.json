@@ -51,8 +51,8 @@
           ],
           "activities": [
             {
-              "jobId": "depot",
-              "type": "depot"
+              "jobId": "dispatch",
+              "type": "dispatch"
             }
           ]
         },

@@ -31,7 +31,7 @@
         "arrival": "2019-07-04T09:02:32Z",
         "departure": "2019-07-04T09:32:32Z",
         "marker-color": "#e6194b",
-        "jobs_ids": "depot"
+        "jobs_ids": "dispatch"
       },
       "geometry": {
         "type": "Point",

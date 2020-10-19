@@ -46,11 +46,11 @@ fn can_detect_invalid_area_impl(allowed_shapes: Option<Vec<Vec<Location>>>, expe
     assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1305".to_string()));
 }
 
-parameterized_test! {can_detect_invalid_depots, (allowed_areas, expected), {
-    can_detect_invalid_depots_impl(allowed_areas, expected);
+parameterized_test! {can_detect_invalid_dispatch, (allowed_areas, expected), {
+    can_detect_invalid_dispatch_impl(allowed_areas, expected);
 }}
 
-can_detect_invalid_depots! {
+can_detect_invalid_dispatch! {
     case01: (&[(0., (0., 10.))], None),
     case02: (&[(1., (0., 10.))], None),
     case03: (&[(1., (0., 10.)), (1., (0., 10.))], Some("E1306".to_string())),
@@ -61,14 +61,14 @@ can_detect_invalid_depots! {
     case07: (&[(1., (10., 1.))], Some("E1306".to_string())),
 }
 
-fn can_detect_invalid_depots_impl(depots: &[(f64, (f64, f64))], expected: Option<String>) {
-    let depots = Some(
-        depots
+fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Option<String>) {
+    let dispatch = Some(
+        dispatch
             .into_iter()
             .cloned()
-            .map(|(lat, times)| VehicleDepot {
+            .map(|(lat, times)| VehicleDispatch {
                 location: Location::Coordinate { lat, lng: 0. },
-                dispatch: vec![VehicleDispatch { max: 1, start: format_time(times.0), end: format_time(times.1) }],
+                limits: vec![VehicleDispatchLimit { max: 1, start: format_time(times.0), end: format_time(times.1) }],
                 tag: None,
             })
             .collect(),
@@ -76,7 +76,7 @@ fn can_detect_invalid_depots_impl(depots: &[(f64, (f64, f64))], expected: Option
     let problem = Problem {
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                shifts: vec![VehicleShift { depots, ..create_default_vehicle_shift() }],
+                shifts: vec![VehicleShift { dispatch: dispatch, ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
             profiles: vec![],
@@ -84,7 +84,7 @@ fn can_detect_invalid_depots_impl(depots: &[(f64, (f64, f64))], expected: Option
         ..create_empty_problem()
     };
 
-    let result = check_e1306_vehicle_depot_is_correct(&ValidationContext::new(&problem, None));
+    let result = check_e1306_vehicle_dispatch_is_correct(&ValidationContext::new(&problem, None));
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }

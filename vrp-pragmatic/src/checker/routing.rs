@@ -84,12 +84,12 @@ fn check_tour_statistic(departure_time: i64, total_distance: i64, time_offset: i
         ));
     }
 
-    let depot_at_start_correction =
+    let dispatch_at_start_correction =
         tour.stops
             .first()
             .and_then(|stop| stop.activities.get(1))
             .and_then(|activity| {
-                if activity.activity_type == "depot" {
+                if activity.activity_type == "dispatch" {
                     Some(
                         activity.time.as_ref().map_or(0, |interval| {
                             parse_time(&interval.end) as i64 - parse_time(&interval.start) as i64
@@ -101,7 +101,7 @@ fn check_tour_statistic(departure_time: i64, total_distance: i64, time_offset: i
             })
             .unwrap_or(0);
 
-    let total_duration = departure_time - time_offset + depot_at_start_correction;
+    let total_duration = departure_time - time_offset + dispatch_at_start_correction;
     if (total_duration - tour.statistic.duration).abs() > 1 {
         return Err(format!(
             "duration mismatch for tour statistic: {}, expected: '{}', got: '{}'",

@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Changed
+### Added
 
-- `breaking`(WIP): reworked depot feature to support dispatching functionality
+- introduce dispatch feature to support vehicle dispatching functionality (depot replacement)
+
+## Removed
+
+- `breaking`: removed depot feature
 
 
 ## [v1.6.2] - 2020-10-18

@@ -161,7 +161,7 @@ fn can_read_complex_problem() {
                         latest: "1970-01-01T00:01:40Z".to_string(),
                         location: vec![52.4862, 13.45148].to_loc(),
                     }),
-                    depots: None,
+                    dispatch: None,
                     breaks: Some(vec![VehicleBreak {
                         time: VehicleBreakTime::TimeWindow(vec![
                             "1970-01-01T00:00:10Z".to_string(),

@@ -31,7 +31,7 @@ can_detect_relation_errors! {
     case07: (vec!["job2"], "vehicle_1", Some(1), Some(("E1205", "vehicle_1"))),
 
     case08: (vec!["departure", "job2", "break"], "vehicle_1", None, Some(("E1206", "break"))),
-    case09: (vec!["departure", "job2", "depot"], "vehicle_1", None, Some(("E1206", "depot"))),
+    case09: (vec!["departure", "job2", "dispatch"], "vehicle_1", None, Some(("E1206", "dispatch"))),
     case10: (vec!["departure", "job2", "reload"], "vehicle_1", None, Some(("E1206", "reload"))),
 }
 

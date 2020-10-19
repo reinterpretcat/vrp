@@ -92,7 +92,7 @@ mod single {
                             latest: format_time(1000.).to_string(),
                             location: vec![0., 0.].to_loc(),
                         }),
-                        depots: None,
+                        dispatch: None,
                         breaks: Some(vec![VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)]),
                             duration: 2.0,

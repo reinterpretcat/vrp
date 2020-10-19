@@ -12,7 +12,7 @@ pub fn check_assignment(ctx: &CheckerContext) -> Result<(), String> {
     check_vehicles(ctx)?;
     check_jobs_presence(ctx)?;
     check_jobs_match(ctx)?;
-    check_depots(ctx)?;
+    check_dispatch(ctx)?;
 
     Ok(())
 }
@@ -186,20 +186,20 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
     Ok(())
 }
 
-/// Checks whether depot is properly assigned.
-fn check_depots(ctx: &CheckerContext) -> Result<(), String> {
-    let vehicles_with_depots = ctx
+/// Checks whether dispatch is properly assigned.
+fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
+    let vehicles_with_dispatch = ctx
         .problem
         .fleet
         .vehicles
         .iter()
         .flat_map(|v| v.shifts.iter().map(move |shift| (v.type_id.clone(), shift)))
-        .filter_map(|(v, shift)| shift.depots.as_ref().map(|ds| (v, ds)))
+        .filter_map(|(v, shift)| shift.dispatch.as_ref().map(|ds| (v, ds)))
         .collect::<HashMap<_, _>>();
 
     ctx.solution.tours.iter().try_fold((), |_, tour| {
-        let should_have_depot = vehicles_with_depots.contains_key(&tour.type_id);
-        let depots_in_tour = tour
+        let should_have_dispatch = vehicles_with_dispatch.contains_key(&tour.type_id);
+        let dispatch_in_tour = tour
             .stops
             .iter()
             .enumerate()
@@ -209,47 +209,47 @@ fn check_depots(ctx: &CheckerContext) -> Result<(), String> {
                     .enumerate()
                     .map(move |(activity_index, activity)| (stop_idx, activity_index, activity))
             })
-            .filter(|(_, _, activity)| activity.activity_type == "depot")
+            .filter(|(_, _, activity)| activity.activity_type == "dispatch")
             .collect::<Vec<_>>();
 
-        if depots_in_tour.len() > 1 {
-            return Err(format!("more than one depot in the tour: '{}'", tour.vehicle_id));
+        if dispatch_in_tour.len() > 1 {
+            return Err(format!("more than one dispatch in the tour: '{}'", tour.vehicle_id));
         }
 
-        if should_have_depot && depots_in_tour.is_empty() {
-            return Err(format!("tour should have depot, but none is found: '{}'", tour.vehicle_id));
+        if should_have_dispatch && dispatch_in_tour.is_empty() {
+            return Err(format!("tour should have dispatch, but none is found: '{}'", tour.vehicle_id));
         }
 
-        if !should_have_depot && !depots_in_tour.is_empty() {
-            return Err(format!("tour should not have depot, but it is present: '{}'", tour.vehicle_id));
+        if !should_have_dispatch && !dispatch_in_tour.is_empty() {
+            return Err(format!("tour should not have dispatch, but it is present: '{}'", tour.vehicle_id));
         }
 
-        if should_have_depot {
-            let (stop_idx, activity_idx, depot_activity) = depots_in_tour.first().unwrap();
+        if should_have_dispatch {
+            let (stop_idx, activity_idx, dispatch_activity) = dispatch_in_tour.first().unwrap();
             let first_stop = tour.stops.first().unwrap();
 
             match (stop_idx, activity_idx) {
                 (0, 1) => {
-                    if let Some(location) = &depot_activity.location {
+                    if let Some(location) = &dispatch_activity.location {
                         if *location != first_stop.location {
                             return Err(format!(
-                                "invalid depot location: {}, expected to match the first stop",
+                                "invalid dispatch location: {}, expected to match the first stop",
                                 location
                             ));
                         }
                     }
                 }
                 (1, 0) => {
-                    if let Some(location) = &depot_activity.location {
+                    if let Some(location) = &dispatch_activity.location {
                         if *location == first_stop.location {
                             return Err(format!(
-                                "invalid depot location: {}, expected not to match the first stop",
+                                "invalid dispatch location: {}, expected not to match the first stop",
                                 location
                             ));
                         }
                     }
                 }
-                _ => return Err(format!("invalid depot activity index, expected: 1, got: '{}'", activity_idx)),
+                _ => return Err(format!("invalid dispatch activity index, expected: 1, got: '{}'", activity_idx)),
             }
         }
 

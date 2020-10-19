@@ -241,15 +241,15 @@ fn can_detect_time_window_violation() {
 }
 
 #[test]
-fn can_detect_depot_violations() {
+fn can_detect_dispatch_violations() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![2., 0.])], relations: None },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    depots: Some(vec![VehicleDepot {
+                    dispatch: Some(vec![VehicleDispatch {
                         location: vec![1., 0.].to_loc(),
-                        dispatch: vec![VehicleDispatch { max: 1, start: format_time(1.), end: format_time(2.) }],
+                        limits: vec![VehicleDispatchLimit { max: 1, start: format_time(1.), end: format_time(2.) }],
                         tag: None,
                     }]),
                     ..create_default_vehicle_shift()
@@ -296,7 +296,7 @@ fn can_detect_depot_violations() {
     };
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
 
-    let result = check_depots(&CheckerContext::new(core_problem, problem, None, solution));
+    let result = check_dispatch(&CheckerContext::new(core_problem, problem, None, solution));
 
-    assert_eq!(result, Err("tour should have depot, but none is found: 'my_vehicle_1'".to_owned()));
+    assert_eq!(result, Err("tour should have dispatch, but none is found: 'my_vehicle_1'".to_owned()));
 }

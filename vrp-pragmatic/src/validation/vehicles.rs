@@ -166,14 +166,14 @@ fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<
     }
 }
 
-fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1306_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(move |vehicle, shift, shift_time| {
-            shift.depots.as_ref().map_or(true, |depots| {
-                let has_valid_tw = depots.iter().flat_map(|depot| depot.dispatch.iter()).all(|dispatch| {
-                    let start = parse_time(&dispatch.start);
-                    let end = parse_time(&dispatch.end);
+            shift.dispatch.as_ref().map_or(true, |dispatch| {
+                let has_valid_tw = dispatch.iter().flat_map(|dispatch| dispatch.limits.iter()).all(|limit| {
+                    let start = parse_time(&limit.start);
+                    let end = parse_time(&limit.end);
 
                     compare_floats(start, end) != Ordering::Greater
                         && shift_time.as_ref().map_or(true, |tw| {
@@ -181,13 +181,14 @@ fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), F
                         })
                 });
 
-                let has_valid_max = depots.iter().all(|depot| {
-                    depot.dispatch.iter().map(|dispatch| dispatch.max).sum::<usize>() == vehicle.vehicle_ids.len()
+                let has_valid_max = dispatch.iter().all(|dispatch| {
+                    dispatch.limits.iter().map(|limit| limit.max).sum::<usize>() == vehicle.vehicle_ids.len()
                 });
 
                 has_valid_tw
                     && has_valid_max
-                    && depots.iter().map(|depot| depot.location.clone()).collect::<HashSet<_>>().len() == depots.len()
+                    && dispatch.iter().map(|dispatch| dispatch.location.clone()).collect::<HashSet<_>>().len()
+                        == dispatch.len()
             })
         }),
     );
@@ -197,9 +198,9 @@ fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), F
     } else {
         Err(FormatError::new(
             "E1306".to_string(),
-            "invalid depots in vehicle shift".to_string(),
+            "invalid dispatch in vehicle shift".to_string(),
             format!(
-                "ensure that all depots have proper dispatch parameters and unique locations. Vehicle type ids: '{}'",
+                "ensure that all dispatch have proper dispatch parameters and unique locations. Vehicle type ids: '{}'",
                 type_ids.join(", ")
             ),
         ))
@@ -252,6 +253,6 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>
         check_e1303_vehicle_breaks_time_is_correct(ctx),
         check_e1304_vehicle_reload_time_is_correct(ctx),
         check_e1305_vehicle_limit_area_is_correct(ctx),
-        check_e1306_vehicle_depot_is_correct(ctx),
+        check_e1306_vehicle_dispatch_is_correct(ctx),
     ])
 }

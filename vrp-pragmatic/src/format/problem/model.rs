@@ -181,10 +181,11 @@ pub struct VehicleShift {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<ShiftEnd>,
 
-    /// Vehicle depots. If defined, vehicle starts empty at location, defined in ShiftStart, and
-    /// navigates first to the one of specified depots, e.g. to pickup the goods.
+    /// Vehicle cargo dispatch parameters. If defined, vehicle starts empty at location,
+    /// defined in ShiftStart, and navigates first to the one of specified places, e.g. to pickup
+    /// the goods.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub depots: Option<Vec<VehicleDepot>>,
+    pub dispatch: Option<Vec<VehicleDispatch>>,
 
     /// Vehicle breaks.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -196,23 +197,23 @@ pub struct VehicleShift {
     pub reloads: Option<Vec<VehicleReload>>,
 }
 
-/// Specifies a depot place where vehicle can load cargo and start the tour.
+/// Specifies a dispatch place where vehicle can load cargo and start the tour.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct VehicleDepot {
-    /// A depot location.
+pub struct VehicleDispatch {
+    /// A dispatch place location.
     pub location: Location,
     /// Specifies vehicle dispatch parameters.
-    pub dispatch: Vec<VehicleDispatch>,
+    pub limits: Vec<VehicleDispatchLimit>,
     /// A tag which will be propagated back within corresponding activity in solution.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
 }
 
-/// Specifies depot capabilities to dispatch vehicles.
+/// Specifies dispatch place limits to handle vehicles.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct VehicleDispatch {
+pub struct VehicleDispatchLimit {
     /// Max amount of vehicles which can be dispatched during given period.
     pub max: usize,
     /// A dispatch start time in RFC3339 time format.

@@ -160,7 +160,7 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
     VehicleShift {
         start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
         end: None,
-        depots: None,
+        dispatch: None,
         breaks: None,
         reloads: None,
     }
@@ -174,7 +174,7 @@ pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64,
             latest: format_time(1000.).to_string(),
             location: vec![end.0, end.1].to_loc(),
         }),
-        depots: None,
+        dispatch: None,
         breaks: None,
         reloads: None,
     }

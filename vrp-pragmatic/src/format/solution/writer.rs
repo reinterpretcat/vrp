@@ -123,21 +123,21 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
         let (start_idx, start) = if start_idx == 0 {
             let start = route.tour.start().unwrap();
-            let (has_depot, is_same_location) = route.tour.get(1).map_or((false, false), |activity| {
-                let has_depot = activity
+            let (has_dispatch, is_same_location) = route.tour.get(1).map_or((false, false), |activity| {
+                let has_dispatch = activity
                     .retrieve_job()
                     .and_then(|job| job.dimens().get_value::<String>("type").cloned())
-                    .map_or(false, |job_type| job_type == "depot");
+                    .map_or(false, |job_type| job_type == "dispatch");
 
                 let is_same_location = start.place.location == activity.place.location;
 
-                (has_depot, is_same_location)
+                (has_dispatch, is_same_location)
             });
 
             tour.stops.push(Stop {
                 location: coord_index.get_by_idx(start.place.location).unwrap(),
                 time: format_schedule(&start.schedule),
-                load: if has_depot { vec![0] } else { start_delivery.as_vec() },
+                load: if has_dispatch { vec![0] } else { start_delivery.as_vec() },
                 distance: 0,
                 activities: vec![ApiActivity {
                     job_id: "departure".to_string(),
@@ -223,7 +223,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 last.activities.push(ApiActivity {
                     job_id,
                     activity_type: activity_type.clone(),
-                    location: if !is_new_location && activity_type == "depot" {
+                    location: if !is_new_location && activity_type == "dispatch" {
                         None
                     } else {
                         Some(coord_index.get_by_idx(act.place.location).unwrap())
@@ -300,7 +300,7 @@ fn map_code_reason(code: i32) -> (i32, &'static str) {
         LOCKING_CONSTRAINT_CODE => (104, "cannot be served due to relation lock"),
         PRIORITY_CONSTRAINT_CODE => (105, "cannot be served due to priority"),
         AREA_CONSTRAINT_CODE => (106, "cannot be assigned due to area constraint"),
-        DEPOT_CONSTRAINT_CODE => (106, "cannot be assigned due to vehicle depot"),
+        DEPOT_CONSTRAINT_CODE => (106, "cannot be assigned due to vehicle dispatch"),
         _ => (0, "unknown"),
     }
 }

@@ -35,8 +35,8 @@ fn is_single_belongs_to_route(ctx: &RouteContext, single: &Arc<Single>) -> bool 
 mod breaks;
 pub use self::breaks::BreakModule;
 
-mod depots;
-pub use self::depots::DepotModule;
+mod dispatch;
+pub use self::dispatch::DispatchModule;
 
 mod priorities;
 pub use self::priorities::PriorityModule;

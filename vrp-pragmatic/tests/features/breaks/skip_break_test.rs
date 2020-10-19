@@ -24,7 +24,7 @@ fn can_skip_break_when_vehicle_not_used() {
                             latest: format_time(1000.).to_string(),
                             location: vec![100., 0.].to_loc(),
                         }),
-                        depots: None,
+                        dispatch: None,
                         breaks: Some(vec![VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
                             duration: 2.0,

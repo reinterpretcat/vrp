@@ -42,7 +42,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), String>
                         latest: format_time(1000.).to_string(),
                         location: vec![0., 0.].to_loc(),
                     }),
-                    depots: None,
+                    dispatch: None,
                     breaks: None,
                     reloads: Some(vec![VehicleReload {
                         times: None,

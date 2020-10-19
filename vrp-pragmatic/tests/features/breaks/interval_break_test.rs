@@ -137,7 +137,7 @@ fn can_assign_interval_break_with_reload() {
                         latest: format_time(1000.).to_string(),
                         location: vec![30., 0.].to_loc(),
                     }),
-                    depots: None,
+                    dispatch: None,
                     breaks: Some(vec![VehicleBreak {
                         time: VehicleBreakTime::TimeOffset(vec![8., 12.]),
                         duration: 2.0,

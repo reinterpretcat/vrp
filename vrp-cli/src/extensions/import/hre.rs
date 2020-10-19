@@ -423,7 +423,7 @@ mod deserialize {
                                 latest: end.time.clone(),
                                 location: to_pragmatic_loc(&end.location),
                             }),
-                            depots: None,
+                            dispatch: None,
                             breaks: shift.breaks.as_ref().map(|breaks| {
                                 breaks
                                     .iter()

@@ -184,7 +184,7 @@ the second - as end
 }
 ```
 
-To avoid confusion, the following ids are reserved: `departure`, `arrival`, `depot`, `break`, and `reload`. These
+To avoid confusion, the following ids are reserved: `departure`, `arrival`, `dispatch`, `break`, and `reload`. These
 ids are not allowed to be used within `job.id` property.
 
 
@@ -315,7 +315,7 @@ To fix this, remove job id from one of relations.
 #### E1206
 
 `relation has special job id which is not defined on vehicle shift` error is returned when `plan.relations` has reserved
-job id and corresponding property on `fleet.vehicles.shifts` is not defined. Reserved ids are `break`, `depot`, `reload`
+job id and corresponding property on `fleet.vehicles.shifts` is not defined. Reserved ids are `break`, `dispatch`, `reload`
 and `arrival`.
 
 
@@ -478,29 +478,13 @@ violates one of the following rules:
 
 #### E1306
 
-`invalid depots in vehicle shift` error is returned when `depots` property in `fleet.vehicles` violates one of the
+`invalid dispatch in vehicle shift` error is returned when `dispatch` property in `fleet.vehicles` violates one of the
 following rules:
 
-* has the same location as shift start
-* has depots with the same location
-* has invalid time window
-* has time window outside of  vehicle shift time
-
-```json
-{
-  "depots": [
-    {
-      "location": { "lat": 52.12, "lng":  13.14 },
-      "duration": 900
-    },
-    {
-      /** Error: the same location **/
-      "location": { "lat": 52.12, "lng":  13.14 },
-      "duration": 600
-    }
-  ]
-}
-```
+* has dispatch with the same location
+* has invalid time
+* has time window outside of vehicle shift time
+* has total sum of max not equal to amount of vehicle ids
 
 
 ### E15xx: Routing profiles

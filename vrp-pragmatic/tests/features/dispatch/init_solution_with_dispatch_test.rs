@@ -8,7 +8,7 @@ use vrp_core::solver::selection::NaiveSelection;
 use vrp_core::solver::Builder;
 
 #[test]
-fn can_use_init_solution_with_depots() {
+fn can_use_init_solution_with_dispatch() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -21,11 +21,11 @@ fn can_use_init_solution_with_depots() {
             vehicles: vec![VehicleType {
                 vehicle_ids: vec!["v1".to_string(), "v2".to_string()],
                 shifts: vec![VehicleShift {
-                    depots: Some(vec![VehicleDepot {
+                    dispatch: Some(vec![VehicleDispatch {
                         location: vec![0., 0.].to_loc(),
-                        dispatch: vec![
-                            VehicleDispatch { max: 1, start: format_time(2.), end: format_time(4.) },
-                            VehicleDispatch { max: 1, start: format_time(4.), end: format_time(6.) },
+                        limits: vec![
+                            VehicleDispatchLimit { max: 1, start: format_time(2.), end: format_time(4.) },
+                            VehicleDispatchLimit { max: 1, start: format_time(4.), end: format_time(6.) },
                         ],
                         tag: None,
                     }]),
@@ -71,8 +71,8 @@ fn can_use_init_solution_with_depots() {
                                 job_tag: None,
                             },
                             Activity {
-                                job_id: "depot".to_string(),
-                                activity_type: "depot".to_string(),
+                                job_id: "dispatch".to_string(),
+                                activity_type: "dispatch".to_string(),
                                 location: None,
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:02Z".to_string(),
@@ -131,8 +131,8 @@ fn can_use_init_solution_with_depots() {
                                 job_tag: None,
                             },
                             Activity {
-                                job_id: "depot".to_string(),
-                                activity_type: "depot".to_string(),
+                                job_id: "dispatch".to_string(),
+                                activity_type: "dispatch".to_string(),
                                 location: None,
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:04Z".to_string(),

@@ -1,7 +1,7 @@
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::reader::{parse_time_window, ApiProblem, ProblemProperties};
 use crate::format::problem::{
-    JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleDepot, VehicleReload, VehicleType,
+    JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleDispatch, VehicleReload, VehicleType,
 };
 use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
@@ -73,7 +73,7 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
                 .filter(|job| job.as_str() != "departure" && job.as_str() != "arrival")
                 .fold((HashMap::<String, _>::default(), vec![]), |(mut indexer, mut jobs), job| {
                     let job_id = match job.as_str() {
-                        "break" | "depot" | "reload" => {
+                        "break" | "dispatch" | "reload" => {
                             let entry = indexer.entry(job.clone()).or_insert(1_usize);
                             let job_index = *entry;
                             *entry += 1;
@@ -186,8 +186,8 @@ fn read_conditional_jobs(
 
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
-            if let Some(depots) = &shift.depots {
-                read_depots(coord_index, job_index, &mut jobs, vehicle, shift_index, depots);
+            if let Some(dispatch) = &shift.dispatch {
+                read_dispatch(coord_index, job_index, &mut jobs, vehicle, shift_index, dispatch);
             }
 
             if let Some(breaks) = &shift.breaks {
@@ -259,44 +259,44 @@ fn read_breaks(
         .for_each(|(job_id, single)| add_conditional_job(job_index, jobs, job_id, single));
 }
 
-fn read_depots(
+fn read_dispatch(
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
     jobs: &mut Vec<Job>,
     vehicle: &VehicleType,
     shift_index: usize,
-    depots: &[VehicleDepot],
+    dispatch: &[VehicleDispatch],
 ) {
-    depots.iter().enumerate().for_each(|(depot_idx, depot)| {
-        let total_max = depot.dispatch.iter().map(|d| d.max).sum::<usize>();
+    dispatch.iter().enumerate().for_each(|(dispatch_idx, dispatch)| {
+        let total_max = dispatch.limits.iter().map(|l| l.max).sum::<usize>();
         assert_eq!(total_max, vehicle.vehicle_ids.len());
 
-        depot
-            .dispatch
+        dispatch
+            .limits
             .iter()
-            .flat_map(|dispatch| {
-                let location = Some(depot.location.clone());
-                let start = parse_time(&dispatch.start);
-                let end = parse_time(&dispatch.end);
+            .flat_map(|limit| {
+                let location = Some(dispatch.location.clone());
+                let start = parse_time(&limit.start);
+                let end = parse_time(&limit.end);
 
                 assert_ne!(compare_floats(start, end), Ordering::Greater);
 
-                (0..dispatch.max).map(move |_| {
+                (0..limit.max).map(move |_| {
                     (location.clone(), end - start, vec![TimeSpan::Window(TimeWindow::new(start, start))])
                 })
             })
             .zip(vehicle.vehicle_ids.iter())
             .for_each(|(place, vehicle_id)| {
-                let job_id = format!("{}_depot_{}_{}", vehicle_id, shift_index, depot_idx + 1);
+                let job_id = format!("{}_dispatch_{}_{}", vehicle_id, shift_index, dispatch_idx + 1);
 
                 let job = get_conditional_job(
                     coord_index,
                     vehicle_id.clone(),
                     &job_id,
-                    "depot",
+                    "dispatch",
                     shift_index,
                     vec![place],
-                    &depot.tag,
+                    &dispatch.tag,
                 );
 
                 add_conditional_job(job_index, jobs, job_id.clone(), job);

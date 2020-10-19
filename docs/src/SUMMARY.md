@@ -36,7 +36,7 @@
     * [Basic feature usage](examples/pragmatic/basics/index.md)
         * [Basic job usage](examples/pragmatic/basics/job-types.md)
         * [Multi day plan](examples/pragmatic/basics/multi-day.md)
-        * [Variable depot](examples/pragmatic/basics/depot.md)
+        * [Vehicle dispatch](examples/pragmatic/basics/dispatch.md)
         * [Vehicle break](examples/pragmatic/basics/break.md)
         * [Multiple trips](examples/pragmatic/basics/reload.md)
         * [Relations](examples/pragmatic/basics/relations.md)

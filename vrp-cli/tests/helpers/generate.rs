@@ -34,7 +34,7 @@ pub fn create_test_vehicle_type() -> VehicleType {
                 location: Location::Coordinate { lat: 0.0, lng: 0.0 },
             },
             end: None,
-            depots: None,
+            dispatch: None,
             breaks: None,
             reloads: None,
         }],

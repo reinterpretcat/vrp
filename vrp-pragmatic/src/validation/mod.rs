@@ -97,5 +97,5 @@ fn combine_error_results(results: &[Result<(), FormatError>]) -> Result<(), Vec<
 }
 
 fn is_reserved_job_id(job_id: &str) -> bool {
-    job_id == "departure" || job_id == "arrival" || job_id == "break" || job_id == "reload" || job_id == "depot"
+    job_id == "departure" || job_id == "arrival" || job_id == "break" || job_id == "reload" || job_id == "dispatch"
 }

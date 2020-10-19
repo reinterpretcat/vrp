@@ -109,7 +109,7 @@ pub struct ProblemProperties {
     has_breaks: bool,
     has_skills: bool,
     has_unreachable_locations: bool,
-    has_depots: bool,
+    has_dispatch: bool,
     has_reloads: bool,
     has_priorities: bool,
     has_area_limits: bool,
@@ -251,8 +251,8 @@ fn create_constraint_pipeline(
         constraint.add_module(Box::new(SkillsModule::new(SKILLS_CONSTRAINT_CODE)));
     }
 
-    if props.has_depots {
-        constraint.add_module(Box::new(DepotModule::new(DEPOT_CONSTRAINT_CODE)));
+    if props.has_dispatch {
+        constraint.add_module(Box::new(DispatchModule::new(DEPOT_CONSTRAINT_CODE)));
     }
 
     if props.has_priorities {
@@ -321,7 +321,7 @@ fn create_extras(
     extras.insert("coord_index".to_owned(), coord_index);
     extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
 
-    if props.has_depots {
+    if props.has_dispatch {
         extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(constraint, job_index)));
     }
 
@@ -351,11 +351,11 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .any(|shift| shift.breaks.as_ref().map_or(false, |b| !b.is_empty()));
 
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
-    let has_depots = api_problem
+    let has_dispatch = api_problem
         .fleet
         .vehicles
         .iter()
-        .any(|t| t.shifts.iter().any(|s| s.depots.as_ref().map_or(false, |depots| !depots.is_empty())));
+        .any(|t| t.shifts.iter().any(|s| s.dispatch.as_ref().map_or(false, |dispatch| !dispatch.is_empty())));
     let has_reloads = api_problem
         .fleet
         .vehicles
@@ -374,7 +374,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_breaks,
         has_skills,
         has_unreachable_locations,
-        has_depots,
+        has_dispatch,
         has_reloads,
         has_priorities,
         has_area_limits,

@@ -15,7 +15,7 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
         let vehicle_id = vehicle.dimens.get_id().expect("cannot get vehicle id");
 
         let candidates = (1..)
-            .map(|idx| format!("{}_depot_{}_{}", vehicle_id, shift_index, idx))
+            .map(|idx| format!("{}_dispatch_{}_{}", vehicle_id, shift_index, idx))
             .map(|job_id| job_index.get(&job_id))
             .take_while(|job| job.is_some())
             .collect::<Vec<_>>();

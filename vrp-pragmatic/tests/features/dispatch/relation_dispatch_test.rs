@@ -3,7 +3,7 @@ use crate::format_time;
 use crate::helpers::*;
 
 #[test]
-fn can_use_depot_in_relation() {
+fn can_use_dispatch_in_relation() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -13,7 +13,7 @@ fn can_use_depot_in_relation() {
             ],
             relations: Some(vec![Relation {
                 type_field: RelationType::Strict,
-                jobs: to_strings(vec!["departure", "depot", "job1", "job2", "job3"]),
+                jobs: to_strings(vec!["departure", "dispatch", "job1", "job2", "job3"]),
                 vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: None,
             }]),
@@ -21,9 +21,9 @@ fn can_use_depot_in_relation() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    depots: Some(vec![VehicleDepot {
+                    dispatch: Some(vec![VehicleDispatch {
                         location: vec![7., 0.].to_loc(),
-                        dispatch: vec![VehicleDispatch { max: 1, start: format_time(7.), end: format_time(9.) }],
+                        limits: vec![VehicleDispatchLimit { max: 1, start: format_time(7.), end: format_time(9.) }],
                         tag: None,
                     }]),
                     ..create_default_vehicle_shift()
@@ -41,6 +41,6 @@ fn can_use_depot_in_relation() {
     assert_eq!(solution.tours.len(), 1);
     assert_eq!(
         get_ids_from_tour(solution.tours.first().unwrap()),
-        vec![vec!["departure"], vec!["depot"], vec!["job1"], vec!["job2"], vec!["job3"], vec!["arrival"]]
+        vec![vec!["departure"], vec!["dispatch"], vec!["job1"], vec!["job2"], vec!["job3"], vec!["arrival"]]
     );
 }

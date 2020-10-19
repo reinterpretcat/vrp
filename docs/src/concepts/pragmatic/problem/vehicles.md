@@ -68,9 +68,9 @@ Each shift can have the following properties:
 - **start** (required) specifies vehicle start place defined via location, earliest (required) and latest (optional) departure time
 - **end** (optional) specifies vehicle end place defined via location, earliest (reserved) and latest (required) arrival time.
     When omitted, then vehicle ends on last job location
-- **depots** (optional) a list of depot places. When specified, shift start location is not considered as depot and
-    vehicle has to navigate first to one of these places.
-    Check example [here](../../../examples/pragmatic/basics/depot.md)
+- **dispatch** (optional) a list of dispatch places. When specified, shift start location is not considered as depot and
+    vehicle has to navigate first to one of these places to load goods.
+    Check example [here](../../../examples/pragmatic/basics/dispatch.md)
 - **breaks** (optional) a list of vehicle breaks. A break is specified by:
      - time window or interval after which a break should happen (e.g. between 3 or 4 hours after start)
      - duration of the break
@@ -92,4 +92,4 @@ Each shift can have the following properties:
 * [E1303 invalid break time windows in vehicle shift](../errors/index.md#e1303)
 * [E1304 invalid reload time windows in vehicle shift](../errors/index.md#e1304)
 * [E1305 invalid allowed area definition in vehicle limits](../errors/index.md#e1305)
-* [E1306 invalid depots in vehicle shift](../errors/index.md#e1306)
+* [E1306 invalid dispatch in vehicle shift](../errors/index.md#e1306)
