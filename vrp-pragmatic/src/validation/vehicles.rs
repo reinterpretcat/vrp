@@ -74,7 +74,7 @@ fn check_e1302_vehicle_shift_time(ctx: &ValidationContext) -> Result<(), FormatE
 fn check_e1303_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
-        Box::new(|shift, shift_time| {
+        Box::new(|_, shift, shift_time| {
             shift
                 .breaks
                 .as_ref()
@@ -108,7 +108,7 @@ fn check_e1303_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
 fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
-        Box::new(|shift, shift_time| {
+        Box::new(|_, shift, shift_time| {
             shift
                 .reloads
                 .as_ref()
@@ -169,7 +169,7 @@ fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<
 fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
-        Box::new(move |shift, shift_time| {
+        Box::new(move |vehicle, shift, shift_time| {
             shift.depots.as_ref().map_or(true, |depots| {
                 let has_valid_tw = depots.iter().flat_map(|depot| depot.dispatch.iter()).all(|dispatch| {
                     let start = parse_time(&dispatch.start);
@@ -181,7 +181,12 @@ fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), F
                         })
                 });
 
+                let has_valid_max = depots.iter().all(|depot| {
+                    depot.dispatch.iter().map(|dispatch| dispatch.max).sum::<usize>() == vehicle.vehicle_ids.len()
+                });
+
                 has_valid_tw
+                    && has_valid_max
                     && depots.iter().map(|depot| depot.location.clone()).collect::<HashSet<_>>().len() == depots.len()
             })
         }),
@@ -203,12 +208,12 @@ fn check_e1306_vehicle_depot_is_correct(ctx: &ValidationContext) -> Result<(), F
 
 fn get_invalid_type_ids(
     ctx: &ValidationContext,
-    check_shift: Box<dyn Fn(&VehicleShift, Option<TimeWindow>) -> bool>,
+    check_shift: Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>,
 ) -> Vec<String> {
     ctx.vehicles()
         .filter_map(|vehicle| {
             let all_correct =
-                vehicle.shifts.iter().all(|shift| check_shift.deref()(shift, get_shift_time_window(shift)));
+                vehicle.shifts.iter().all(|shift| check_shift.deref()(vehicle, shift, get_shift_time_window(shift)));
 
             if all_correct {
                 None

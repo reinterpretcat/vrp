@@ -174,7 +174,7 @@ fn can_use_init_solution_with_depots() {
     let core_solution = to_core_solution(&init_solution, core_problem.clone()).unwrap();
 
     let (core_solution, _, metrics) = Builder::new(core_problem.clone())
-        .with_max_generations(Some(0))
+        .with_max_generations(Some(100))
         .with_selection(Arc::new(NaiveSelection::new(2)))
         .with_init_solutions(vec![core_solution])
         .build()
