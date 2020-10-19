@@ -20,4 +20,5 @@ cargo run -p vrp-cli --release -- solve pragmatic "${PROBLEM_FILE_PATH}" \
             --out-result "${PROBLEM_FILE_BASE}_solution.json"            \
             --geo-json   "${PROBLEM_FILE_BASE}_solution.geojson"         \
             --log                                                        \
+            --check                                                      \
             "${REST_ARGS[@]}"
