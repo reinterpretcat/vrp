@@ -123,22 +123,34 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
         let (start_idx, start) = if start_idx == 0 {
             let start = route.tour.start().unwrap();
-            let has_depot = route
-                .tour
-                .get(1)
-                .and_then(|activity| activity.retrieve_job())
-                .and_then(|job| job.dimens().get_value::<String>("type").cloned())
-                .map_or(false, |job_type| job_type == "depot");
+            let (has_depot, is_same_location) = route.tour.get(1).map_or((false, false), |activity| {
+                let has_depot = activity
+                    .retrieve_job()
+                    .and_then(|job| job.dimens().get_value::<String>("type").cloned())
+                    .map_or(false, |job_type| job_type == "depot");
+
+                let is_same_location = start.place.location == activity.place.location;
+
+                (has_depot, is_same_location)
+            });
+
             tour.stops.push(Stop {
                 location: coord_index.get_by_idx(start.place.location).unwrap(),
                 time: format_schedule(&start.schedule),
-                load: if has_depot { MultiDimLoad::default().as_vec() } else { start_delivery.as_vec() },
+                load: if has_depot { vec![0] } else { start_delivery.as_vec() },
                 distance: 0,
                 activities: vec![ApiActivity {
                     job_id: "departure".to_string(),
                     activity_type: "departure".to_string(),
                     location: None,
-                    time: None,
+                    time: if is_same_location {
+                        Some(Interval {
+                            start: format_time(start.schedule.arrival),
+                            end: format_time(start.schedule.departure),
+                        })
+                    } else {
+                        None
+                    },
                     job_tag: None,
                 }],
             });
@@ -189,7 +201,9 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     + problem.transport.distance(vehicle.profile, prev_location, act.place.location, prev_departure)
                         as i64;
 
-                if prev_location != act.place.location {
+                let is_new_location = prev_location != act.place.location;
+
+                if is_new_location {
                     tour.stops.push(Stop {
                         location: coord_index.get_by_idx(act.place.location).unwrap(),
                         time: format_as_schedule(&(arrival, departure)),
@@ -208,8 +222,12 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 last.load = load.as_vec();
                 last.activities.push(ApiActivity {
                     job_id,
-                    activity_type,
-                    location: Some(coord_index.get_by_idx(act.place.location).unwrap()),
+                    activity_type: activity_type.clone(),
+                    location: if !is_new_location && activity_type == "depot" {
+                        None
+                    } else {
+                        Some(coord_index.get_by_idx(act.place.location).unwrap())
+                    },
                     time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
                     job_tag,
                 });

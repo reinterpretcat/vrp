@@ -32,6 +32,9 @@ impl ConstraintModule for DepotModule {
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
+        // NOTE enforce propagation to locked
+        ctx.locked.extend(ctx.routes.iter().flat_map(|route| route.route.tour.jobs().filter(|job| is_depot_job(job))));
+
         self.conditional.accept_solution_state(ctx);
 
         // NOTE remove tour with depot only

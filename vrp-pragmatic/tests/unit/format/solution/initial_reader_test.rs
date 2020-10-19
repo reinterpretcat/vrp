@@ -59,11 +59,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
         (problem, vec![matrix]).read_pragmatic().unwrap_or_else(|err| panic!("cannot read core problem: {:?}", err)),
     );
 
-    let mut buffer = String::new();
-    let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    serialize_solution(writer, solution).expect("cannot serialize test solution");
-
-    let core_solution = read_init_solution(BufReader::new(buffer.as_bytes()), core_problem.clone())?;
+    let core_solution = to_core_solution(solution, core_problem.clone())?;
 
     // NOTE: get statistic/tours updated
     let insertion_ctx = InsertionContext::new_from_solution(

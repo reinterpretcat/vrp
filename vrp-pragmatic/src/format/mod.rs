@@ -11,6 +11,7 @@ use vrp_core::models::Problem as CoreProblem;
 mod coord_index;
 pub(crate) use self::coord_index::CoordIndex;
 use hashbrown::HashMap;
+use std::fmt;
 
 pub mod problem;
 pub mod solution;
@@ -49,6 +50,15 @@ impl Location {
         match self {
             Self::Coordinate { lat, lng } => (*lat, *lng),
             _ => unreachable!("expect coordinate"),
+        }
+    }
+}
+
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Location::Coordinate { lat, lng } => write!(f, "lat={}, lng={}", lat, lng),
+            Location::Reference { index } => write!(f, "index={}", index),
         }
     }
 }

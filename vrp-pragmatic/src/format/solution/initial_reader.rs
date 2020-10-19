@@ -90,6 +90,8 @@ fn try_insert_activity(
     if let Some(JobInfo(job, single, place, time)) = try_match_job(tour, stop, activity, job_index, coord_index)? {
         added_jobs.insert(job);
         try_insert_new_activity(route, single, place, time)?;
+    } else if activity.activity_type != "departure" && activity.activity_type != "arrival" {
+        return Err(format!("cannot match activity with job id '{}' in tour: '{}'", activity.job_id, tour.vehicle_id));
     }
 
     Ok(())
@@ -109,31 +111,34 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
     let mut core_tour = CoreTour::new(&actor);
 
     // NOTE this is necessary to keep departure time optimization
-    let set_activity_time = |format_stop: &FormatStop, core_activity: &mut Activity| -> Result<(), String> {
-        if format_stop.activities.len() > 1 {
-            // TODO need to adapt try_match_job
-            return Err(format!(
-                "vehicle '{}' has served jobs at depot location which is not supported in initial solution",
-                format_tour.vehicle_id
-            ));
-        }
+    let set_activity_time = |format_stop: &FormatStop,
+                             format_activity: &FormatActivity,
+                             core_activity: &mut Activity|
+     -> Result<(), String> {
+        let time = &format_stop.time;
+        let (arrival, departure) = format_activity
+            .time
+            .as_ref()
+            .map_or((&time.arrival, &time.departure), |interval| (&interval.start, &interval.end));
 
-        core_activity.schedule.arrival = parse_time(&format_stop.time.arrival);
-        core_activity.schedule.departure = parse_time(&format_stop.time.departure);
+        core_activity.schedule.arrival = parse_time(arrival);
+        core_activity.schedule.departure = parse_time(departure);
 
         Ok(())
     };
 
     let start_stop = format_tour.stops.first().ok_or_else(|| "empty tour in init solution".to_string())?;
+    let start_activity = start_stop.activities.first().ok_or_else(|| "start stop has no activities".to_string())?;
     let core_start = core_tour.all_activities_mut().next().expect("cannot get start activity from core tour");
 
-    set_activity_time(start_stop, core_start)?;
+    set_activity_time(start_stop, start_activity, core_start)?;
 
     if core_tour.end().is_some() {
         let end_stop = format_tour.stops.last().unwrap();
+        let end_activity = end_stop.activities.first().ok_or_else(|| "end stop has no activities".to_string())?;
         let core_end = core_tour.all_activities_mut().last().unwrap();
 
-        set_activity_time(end_stop, core_end)?;
+        set_activity_time(end_stop, end_activity, core_end)?;
     }
 
     Ok(Route { actor, tour: core_tour })
