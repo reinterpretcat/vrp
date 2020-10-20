@@ -12,9 +12,11 @@ consists of the following properties:
 represented as integer in range `[1, MAX_INT]` where the lower value means higher priority. By default value is set to 1.
 - **skills** (optional): job skills defined by `allOf`, `oneOf` or `noneOf` conditions:
     ```json
-    {{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:22:26}}
+    {{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:22:29}}
     ```
     These conditions are tested against vehicle's skills.
+
+A job should have at least one task property specified.
 
 ## Tasks
 

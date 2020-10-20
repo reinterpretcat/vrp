@@ -22,7 +22,10 @@
         "skills": {
           "allOf": [
             "fridge"
-            ]
+          ],
+          "noneOf": [
+            "washing_machine"
+          ]
         }
       },
       {

@@ -23,7 +23,8 @@ Each item in this list has job id, reason code and description.
 | 103 | `break is not assignable` | correct break location or/and time window?  |
 | 104 | `cannot be served due to relation lock` | review relations?  |
 | 105 | `cannot be served due to priority` | allocate more vehicles, relax priorities? |
-| 106 | `cannot be assigned due to area constraint` | make sure that jobs inside allowed areas?  |
+| 106 | `cannot be assigned due to area constraint` | make sure that jobs inside allowed areas  |
+| 107 | `cannot be assigned due to vehicle dispatch` | make sure that vehicle dispatch definition is correct  |
 
 
 ## Example

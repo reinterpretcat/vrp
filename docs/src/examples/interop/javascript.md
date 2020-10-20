@@ -6,7 +6,10 @@ This is example how to call solver methods from **javascript** in browser. You n
     cd vrp-cli
     wasm-pack build --target web
 
-It should generate `wasm` build + some javascript files for you. To test it, use the following index.html file:
+It should generate `wasm` build + some javascript files for you. If you want to have a smaller binary, you can try
+to build without default features: `csv-format`, `hre-format`, `scientific-format`.
+
+To test it, use the following index.html file:
 
 ```html
 <html>

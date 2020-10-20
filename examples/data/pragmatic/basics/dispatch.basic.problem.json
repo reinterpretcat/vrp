@@ -65,7 +65,9 @@
       {
         "typeId": "vehicle",
         "vehicleIds": [
-          "vehicle_1"
+          "vehicle_1",
+          "vehicle_2",
+          "vehicle_3"
         ],
         "profile": "normal_car",
         "costs": {
@@ -78,40 +80,39 @@
             "start": {
               "earliest": "2019-07-04T09:00:00Z",
               "location": {
-                "lat": 52.5316,
-                "lng": 13.3884
+                "lat": 52.5352,
+                "lng": 13.3909
               }
             },
             "dispatch": [
               {
                 "location": {
-                  "lat": 52.5424,
-                  "lng": 13.4022
+                  "lat": 52.5316,
+                  "lng": 13.3884
                 },
                 "limits": [
                   {
                     "max": 1,
-                    "start": "2019-07-04T09:00:00Z",
+                    "start": "2019-07-04T09:20:00Z",
                     "end": "2019-07-04T09:30:00Z"
-                  }]
-              },
-              {
-                "location": {
-                  "lat": 52.53079,
-                  "lng": 13.34709
-                },
-                "limits": [
+                  },
                   {
                     "max": 1,
-                    "start": "2019-07-04T09:00:00Z",
-                    "end": "2019-07-04T09:30:00Z"
-                  }]
+                    "start": "2019-07-04T09:30:00Z",
+                    "end": "2019-07-04T09:40:00Z"
+                  },
+                  {
+                    "max": 1,
+                    "start": "2019-07-04T09:40:00Z",
+                    "end": "2019-07-04T09:50:00Z"
+                  }
+                ]
               }
             ]
           }
         ],
         "capacity": [
-          10
+          1
         ]
       }
     ],

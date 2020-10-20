@@ -1,10 +1,10 @@
 {
   "statistic": {
-    "cost": 41.397356,
-    "distance": 9854,
-    "duration": 3626,
+    "cost": 85.033838,
+    "distance": 9310,
+    "duration": 3573,
     "times": {
-      "driving": 986,
+      "driving": 933,
       "serving": 2640,
       "waiting": 0,
       "break": 0
@@ -12,18 +12,18 @@
   },
   "tours": [
     {
-      "vehicleId": "vehicle_1",
+      "vehicleId": "vehicle_2",
       "typeId": "vehicle",
       "shiftIndex": 0,
       "stops": [
         {
           "location": {
-            "lat": 52.5316,
-            "lng": 13.3884
+            "lat": 52.5352,
+            "lng": 13.3909
           },
           "time": {
             "arrival": "2019-07-04T09:00:00Z",
-            "departure": "2019-07-04T09:00:00Z"
+            "departure": "2019-07-04T09:29:16Z"
           },
           "distance": 0,
           "load": [
@@ -38,16 +38,94 @@
         },
         {
           "location": {
-            "lat": 52.5424,
-            "lng": 13.4022
+            "lat": 52.5316,
+            "lng": 13.3884
           },
           "time": {
-            "arrival": "2019-07-04T09:02:32Z",
-            "departure": "2019-07-04T09:32:32Z"
+            "arrival": "2019-07-04T09:30:00Z",
+            "departure": "2019-07-04T09:40:00Z"
           },
-          "distance": 1523,
+          "distance": 435,
           "load": [
-            3
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "dispatch",
+              "type": "dispatch"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5225,
+            "lng": 13.4095
+          },
+          "time": {
+            "arrival": "2019-07-04T09:42:55Z",
+            "departure": "2019-07-04T09:46:55Z"
+          },
+          "distance": 2187,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job2",
+              "type": "delivery"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 27.526954,
+        "distance": 2187,
+        "duration": 1059,
+        "times": {
+          "driving": 219,
+          "serving": 840,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5352,
+            "lng": 13.3909
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:19:16Z"
+          },
+          "distance": 0,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:20:00Z",
+            "departure": "2019-07-04T09:30:00Z"
+          },
+          "distance": 435,
+          "load": [
+            1
           ],
           "activities": [
             {
@@ -62,12 +140,12 @@
             "lng": 13.3808
           },
           "time": {
-            "arrival": "2019-07-04T09:37:55Z",
-            "departure": "2019-07-04T09:42:55Z"
+            "arrival": "2019-07-04T09:32:56Z",
+            "departure": "2019-07-04T09:37:56Z"
           },
-          "distance": 4750,
+          "distance": 2193,
           "load": [
-            2
+            0
           ],
           "activities": [
             {
@@ -75,24 +153,62 @@
               "type": "delivery"
             }
           ]
+        }
+      ],
+      "statistic": {
+        "cost": 27.82132,
+        "distance": 2193,
+        "duration": 1120,
+        "times": {
+          "driving": 220,
+          "serving": 900,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    },
+    {
+      "vehicleId": "vehicle_3",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5352,
+            "lng": 13.3909
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:39:16Z"
+          },
+          "distance": 0,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
         },
         {
           "location": {
-            "lat": 52.5225,
-            "lng": 13.4095
+            "lat": 52.5316,
+            "lng": 13.3884
           },
           "time": {
-            "arrival": "2019-07-04T09:46:21Z",
-            "departure": "2019-07-04T09:50:21Z"
+            "arrival": "2019-07-04T09:40:00Z",
+            "departure": "2019-07-04T09:50:00Z"
           },
-          "distance": 6806,
+          "distance": 435,
           "load": [
             1
           ],
           "activities": [
             {
-              "jobId": "job2",
-              "type": "delivery"
+              "jobId": "dispatch",
+              "type": "dispatch"
             }
           ]
         },
@@ -102,10 +218,10 @@
             "lng": 13.45413
           },
           "time": {
-            "arrival": "2019-07-04T09:55:26Z",
-            "departure": "2019-07-04T10:00:26Z"
+            "arrival": "2019-07-04T09:57:30Z",
+            "departure": "2019-07-04T10:02:30Z"
           },
-          "distance": 9854,
+          "distance": 4930,
           "load": [
             0
           ],
@@ -118,12 +234,12 @@
         }
       ],
       "statistic": {
-        "cost": 41.397356,
-        "distance": 9854,
-        "duration": 3626,
+        "cost": 29.685564,
+        "distance": 4930,
+        "duration": 1394,
         "times": {
-          "driving": 986,
-          "serving": 2640,
+          "driving": 494,
+          "serving": 900,
           "waiting": 0,
           "break": 0
         }

@@ -300,7 +300,7 @@ fn map_code_reason(code: i32) -> (i32, &'static str) {
         LOCKING_CONSTRAINT_CODE => (104, "cannot be served due to relation lock"),
         PRIORITY_CONSTRAINT_CODE => (105, "cannot be served due to priority"),
         AREA_CONSTRAINT_CODE => (106, "cannot be assigned due to area constraint"),
-        DEPOT_CONSTRAINT_CODE => (106, "cannot be assigned due to vehicle dispatch"),
+        DEPOT_CONSTRAINT_CODE => (107, "cannot be assigned due to vehicle dispatch"),
         _ => (0, "unknown"),
     }
 }

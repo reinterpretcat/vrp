@@ -1,6 +1,7 @@
 # Skills
 
-This example demonstrates how to use skills feature with jobs and vehicles.
+This example demonstrates how to use the skills feature with jobs and vehicles. In general, the skills feature is useful
+for locking specific jobs to specific vehicles.
 
 
 <details>

@@ -32,7 +32,7 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 
 - **skills** (optional): vehicle skills needed by some jobs
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:124:126}}
+{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:127:129}}
 ```
 
 - **limits** (optional): vehicle limits. There are two:
@@ -69,7 +69,7 @@ Each shift can have the following properties:
 - **end** (optional) specifies vehicle end place defined via location, earliest (reserved) and latest (required) arrival time.
     When omitted, then vehicle ends on last job location
 - **dispatch** (optional) a list of dispatch places. When specified, shift start location is not considered as depot and
-    vehicle has to navigate first to one of these places to load goods.
+    vehicle has to navigate first to one of these places to load goods with dispatching constraints.
     Check example [here](../../../examples/pragmatic/basics/dispatch.md)
 - **breaks** (optional) a list of vehicle breaks. A break is specified by:
      - time window or interval after which a break should happen (e.g. between 3 or 4 hours after start)
