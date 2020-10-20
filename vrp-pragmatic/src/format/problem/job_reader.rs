@@ -299,7 +299,7 @@ fn read_dispatch(
                     &dispatch.tag,
                 );
 
-                add_conditional_job(job_index, jobs, job_id.clone(), job);
+                add_conditional_job(job_index, jobs, job_id, job);
             });
     });
 }
