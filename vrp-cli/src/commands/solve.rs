@@ -10,6 +10,7 @@ use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
+use vrp_core::utils::{DefaultRandom, Random};
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -51,7 +52,7 @@ struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<
 #[allow(clippy::type_complexity)]
 type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)>;
 
-fn add_scientific(formats: &mut FormatMap) {
+fn add_scientific(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>) {
     if cfg!(feature = "scientific-format") {
         use vrp_scientific::lilim::{LilimProblem, LilimSolution};
         use vrp_scientific::solomon::read_init_solution as read_init_solomon;
@@ -64,7 +65,9 @@ fn add_scientific(formats: &mut FormatMap) {
                     assert!(matrices.is_none());
                     BufReader::new(problem).read_solomon()
                 })),
-                InitSolutionReader(Box::new(|file, problem| read_init_solomon(BufReader::new(file), problem))),
+                InitSolutionReader(Box::new(move |file, problem| {
+                    read_init_solomon(BufReader::new(file), problem, random.clone())
+                })),
                 SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_solomon(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
@@ -84,7 +87,7 @@ fn add_scientific(formats: &mut FormatMap) {
     }
 }
 
-fn add_pragmatic(formats: &mut FormatMap) {
+fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>) {
     use vrp_pragmatic::format::problem::{deserialize_problem, PragmaticProblem};
     use vrp_pragmatic::format::solution::read_init_solution as read_init_pragmatic;
     use vrp_pragmatic::format::solution::PragmaticSolution;
@@ -101,7 +104,9 @@ fn add_pragmatic(formats: &mut FormatMap) {
                 }
                 .map_err(|errors| errors.iter().map(|err| err.to_string()).collect::<Vec<_>>().join("\t\n"))
             })),
-            InitSolutionReader(Box::new(|file, problem| read_init_pragmatic(BufReader::new(file), problem))),
+            InitSolutionReader(Box::new(move |file, problem| {
+                read_init_pragmatic(BufReader::new(file), problem, random.clone())
+            })),
             SolutionWriter(Box::new(|problem, solution, metrics, default_writer, geojson_writer| {
                 geojson_writer
                     .map_or(Ok(()), |geojson_writer| solution.write_geo_json(problem, geojson_writer))
@@ -126,9 +131,11 @@ fn add_pragmatic(formats: &mut FormatMap) {
 
 fn get_formats<'a>() -> FormatMap<'a> {
     let mut formats = FormatMap::default();
+    // TODO pass random from outside
+    let random = Arc::new(DefaultRandom::default());
 
-    add_scientific(&mut formats);
-    add_pragmatic(&mut formats);
+    add_scientific(&mut formats, random.clone());
+    add_pragmatic(&mut formats, random);
 
     formats
 }

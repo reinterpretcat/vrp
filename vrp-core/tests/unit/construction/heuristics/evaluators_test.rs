@@ -25,6 +25,7 @@ fn create_activity_at(loc_and_time: usize) -> Activity {
 mod single {
     use super::*;
     use crate::construction::heuristics::evaluators::InsertionPosition;
+    use crate::helpers::models::domain::test_random;
     use crate::models::common::TimeInterval;
     use crate::models::problem::VehiclePlace;
 
@@ -162,6 +163,7 @@ mod single {
                         .build(),
                 ])
                 .build(),
+            test_random(),
         );
         let job = Job::Single(test_single_with_location(Some(job_location)));
         let ctx = create_test_insertion_context(registry);

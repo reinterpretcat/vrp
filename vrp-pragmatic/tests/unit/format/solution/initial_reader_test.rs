@@ -59,7 +59,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
         (problem, vec![matrix]).read_pragmatic().unwrap_or_else(|err| panic!("cannot read core problem: {:?}", err)),
     );
 
-    let core_solution = to_core_solution(solution, core_problem.clone())?;
+    let core_solution = to_core_solution(solution, core_problem.clone(), create_random())?;
 
     // NOTE: get statistic/tours updated
     let insertion_ctx = InsertionContext::new_from_solution(

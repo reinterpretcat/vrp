@@ -3,6 +3,7 @@
 mod actor_test;
 
 use crate::models::problem::{Actor, Fleet};
+use crate::utils::Random;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -11,18 +12,19 @@ pub struct Registry {
     available: HashMap<usize, HashSet<Arc<Actor>>>,
     index: HashMap<Arc<Actor>, usize>,
     all: Vec<Arc<Actor>>,
+    random: Arc<dyn Random + Send + Sync>,
 }
 
 impl Registry {
     /// Creates a new instance of `Registry`;
-    pub fn new(fleet: &Fleet) -> Self {
+    pub fn new(fleet: &Fleet, random: Arc<dyn Random + Send + Sync>) -> Self {
         let index = fleet
             .groups
             .iter()
             .flat_map(|(group_id, actors)| actors.iter().map(|a| (a.clone(), *group_id)).collect::<Vec<_>>())
             .collect();
 
-        Self { available: fleet.groups.clone(), index, all: fleet.actors.to_vec() }
+        Self { available: fleet.groups.clone(), index, all: fleet.actors.to_vec(), random }
     }
 
     /// Removes an actor from the list of available actors.
@@ -49,11 +51,21 @@ impl Registry {
 
     /// Returns next available actors from each different type.
     pub fn next<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
-        self.available.iter().flat_map(|(_, set)| set.iter().take(1).cloned())
+        let random = self.random.clone();
+        self.available.iter().flat_map(move |(_, set)| {
+            // NOTE pick a random actor from set of available actors.
+            let skip_amount = if set.len() < 2 { 0 } else { random.uniform_int(0, set.len() as i32 - 1) as usize };
+            set.iter().skip(skip_amount).take(1).cloned()
+        })
     }
 
     /// Creates a deep copy of registry.
     pub fn deep_copy(&self) -> Self {
-        Self { available: self.available.clone(), index: self.index.clone(), all: self.all.clone() }
+        Self {
+            available: self.available.clone(),
+            index: self.index.clone(),
+            all: self.all.clone(),
+            random: self.random.clone(),
+        }
     }
 }

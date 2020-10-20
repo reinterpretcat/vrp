@@ -1,7 +1,7 @@
 use crate::construction::constraints::conditional::ConditionalJobModule;
 use crate::construction::constraints::{ConcreteJobContextTransition, ConstraintModule};
 use crate::construction::heuristics::{RegistryContext, SolutionContext};
-use crate::helpers::models::domain::create_empty_solution_context;
+use crate::helpers::models::domain::{create_empty_solution_context, test_random};
 use crate::helpers::models::problem::{get_job_id, test_fleet, test_single_with_id};
 use crate::models::problem::Job;
 use crate::models::solution::Registry;
@@ -63,7 +63,7 @@ fn can_promote_locked_jobs() {
     let mut ctx = SolutionContext {
         required: jobs.clone(),
         locked: jobs.iter().filter(move |job| already_locked_jobs.contains(get_job_id(&job))).cloned().collect(),
-        registry: RegistryContext::new(Registry::new(&test_fleet())),
+        registry: RegistryContext::new(Registry::new(&test_fleet(), test_random())),
         ..create_empty_solution_context()
     };
     let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {

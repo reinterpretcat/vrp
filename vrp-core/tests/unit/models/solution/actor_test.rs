@@ -1,3 +1,4 @@
+use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::{test_driver, test_vehicle_detail, FleetBuilder, VehicleBuilder};
 use crate::models::common::TimeInterval;
 use crate::models::problem::{Actor, VehicleDetail, VehiclePlace};
@@ -24,7 +25,7 @@ fn can_provide_available_actors_from_registry_impl(count: usize, expected: usize
             VehicleBuilder::default().id("v2").details(create_two_test_vehicle_details()).build(),
         ])
         .build();
-    let mut registry = Registry::new(&fleet);
+    let mut registry = Registry::new(&fleet, test_random());
 
     let actors: Vec<Arc<Actor>> = registry.available().take(count).collect();
     actors.iter().for_each(|a| {
@@ -43,7 +44,7 @@ fn can_provide_next_actors_from_registry() {
             VehicleBuilder::default().id("v3").details(vec![test_vehicle_detail()]).build(),
         ])
         .build();
-    let registry = Registry::new(&fleet);
+    let registry = Registry::new(&fleet, test_random());
 
     let mut actors: Vec<Arc<Actor>> = registry.next().collect();
     actors.sort_by(|a, b| {

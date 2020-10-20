@@ -18,15 +18,20 @@ use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
 use hashbrown::{HashMap, HashSet};
 use vrp_core::models::solution::Tour as CoreTour;
+use vrp_core::utils::Random;
 
 type ActorKey = (String, String, usize);
 
 /// Reads initial solution from buffer.
 /// NOTE: Solution feasibility is not checked.
-pub fn read_init_solution<R: Read>(solution: BufReader<R>, problem: Arc<Problem>) -> Result<Solution, String> {
+pub fn read_init_solution<R: Read>(
+    solution: BufReader<R>,
+    problem: Arc<Problem>,
+    random: Arc<dyn Random + Send + Sync>,
+) -> Result<Solution, String> {
     let solution = deserialize_solution(solution).map_err(|err| format!("cannot deserialize solution: {}", err))?;
 
-    let mut registry = Registry::new(&problem.fleet);
+    let mut registry = Registry::new(&problem.fleet, random);
     let mut added_jobs = HashSet::default();
 
     let actor_index = registry.all().map(|actor| (get_actor_key(actor.as_ref()), actor)).collect::<HashMap<_, _>>();

@@ -5,8 +5,12 @@ use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs, ObjectiveCost};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
-use crate::utils::DefaultRandom;
+use crate::utils::{DefaultRandom, Random};
 use std::sync::Arc;
+
+pub fn test_random() -> Arc<dyn Random + Send + Sync> {
+    Arc::new(DefaultRandom::default())
+}
 
 pub fn create_empty_problem_with_constraint(constraint: ConstraintPipeline) -> Arc<Problem> {
     create_problem_with_constraint_jobs_and_fleet(constraint, vec![], test_fleet())
@@ -38,7 +42,7 @@ pub fn create_problem_with_constraint_jobs_and_fleet(
 
 pub fn create_empty_solution() -> Solution {
     Solution {
-        registry: Registry::new(&test_fleet()),
+        registry: Registry::new(&test_fleet(), test_random()),
         routes: vec![],
         unassigned: Default::default(),
         extras: Arc::new(Default::default()),
@@ -52,7 +56,7 @@ pub fn create_empty_solution_context() -> SolutionContext {
         unassigned: Default::default(),
         locked: Default::default(),
         routes: vec![],
-        registry: RegistryContext::new(Registry::new(&test_fleet())),
+        registry: RegistryContext::new(Registry::new(&test_fleet(), test_random())),
         state: Default::default(),
     }
 }

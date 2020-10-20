@@ -6,6 +6,7 @@ use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
+use vrp_core::utils::{DefaultRandom, Random};
 
 pub fn create_stop_with_activity(
     id: &str,
@@ -112,10 +113,18 @@ pub fn get_ids_from_tour(tour: &Tour) -> Vec<Vec<String>> {
     tour.stops.iter().map(|stop| stop.activities.iter().map(|a| a.job_id.clone()).collect()).collect()
 }
 
-pub fn to_core_solution(solution: &Solution, core_problem: Arc<CoreProblem>) -> Result<CoreSolution, String> {
+pub fn create_random() -> Arc<dyn Random + Send + Sync> {
+    Arc::new(DefaultRandom::default())
+}
+
+pub fn to_core_solution(
+    solution: &Solution,
+    core_problem: Arc<CoreProblem>,
+    random: Arc<dyn Random + Send + Sync>,
+) -> Result<CoreSolution, String> {
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
     serialize_solution(writer, solution).expect("cannot serialize test solution");
 
-    read_init_solution(BufReader::new(buffer.as_bytes()), core_problem)
+    read_init_solution(BufReader::new(buffer.as_bytes()), core_problem, random)
 }

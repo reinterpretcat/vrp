@@ -1,4 +1,5 @@
 use crate::helpers::models::common::DEFAULT_PROFILE;
+use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::models::common::TimeInterval;
 use crate::models::problem::{Actor, ActorDetail, VehiclePlace};
@@ -28,5 +29,5 @@ pub fn create_test_registry() -> Registry {
         .add_driver(test_driver_with_costs(empty_costs()))
         .add_vehicle(VehicleBuilder::default().id("v1").build())
         .build();
-    Registry::new(&fleet)
+    Registry::new(&fleet, test_random())
 }

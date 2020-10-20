@@ -18,7 +18,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
     let mut ignored: HashSet<Job> = Default::default();
     let mut unassigned: HashMap<Job, i32> = Default::default();
     let mut routes: Vec<RouteContext> = Default::default();
-    let mut registry = Registry::new(&problem.fleet);
+    let mut registry = Registry::new(&problem.fleet, random.clone());
     let state = Default::default();
 
     let mut sequence_job_usage: HashMap<Job, usize> = Default::default();

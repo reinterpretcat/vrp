@@ -1,6 +1,7 @@
 use crate::algorithms::geometry::Point;
 use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
+use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
 use crate::models::problem::{
@@ -57,7 +58,7 @@ pub fn generate_matrix_routes(
             )
             .build(),
     );
-    let registry = Registry::new(&fleet);
+    let registry = Registry::new(&fleet, test_random());
 
     let mut routes: Vec<Route> = Default::default();
     let mut jobs: Vec<Job> = Default::default();

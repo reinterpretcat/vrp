@@ -10,14 +10,19 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::{Activity, Registry, Route, Tour};
 use vrp_core::models::{Problem, Solution};
+use vrp_core::utils::Random;
 
 /// Reads initial solution from a buffer.
 /// NOTE: Solution feasibility is not checked.
-pub fn read_init_solution<R: Read>(mut reader: BufReader<R>, problem: Arc<Problem>) -> Result<Solution, String> {
+pub fn read_init_solution<R: Read>(
+    mut reader: BufReader<R>,
+    problem: Arc<Problem>,
+    random: Arc<dyn Random + Send + Sync>,
+) -> Result<Solution, String> {
     let mut buffer = String::new();
 
     let mut solution = Solution {
-        registry: Registry::new(&problem.fleet),
+        registry: Registry::new(&problem.fleet, random),
         routes: vec![],
         unassigned: Default::default(),
         extras: problem.extras.clone(),

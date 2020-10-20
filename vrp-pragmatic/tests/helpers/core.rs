@@ -3,6 +3,7 @@ use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;
+use vrp_core::utils::DefaultRandom;
 
 const DEFAULT_VEHICLE_COSTS: Costs =
     Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
@@ -86,6 +87,6 @@ pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
         locked: Default::default(),
         state: Default::default(),
         routes: Default::default(),
-        registry: RegistryContext::new(Registry::new(&fleet)),
+        registry: RegistryContext::new(Registry::new(&fleet, Arc::new(DefaultRandom::default()))),
     }
 }

@@ -1,7 +1,7 @@
 use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::{InsertionContext, RegistryContext, RouteContext, RouteState, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
-use crate::helpers::models::domain::create_empty_solution_context;
+use crate::helpers::models::domain::{create_empty_solution_context, test_random};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::Schedule;
@@ -62,7 +62,7 @@ fn can_calculate_transport_cost() {
         solution: SolutionContext {
             unassigned,
             routes: vec![route1, route2],
-            registry: RegistryContext::new(Registry::new(&fleet)),
+            registry: RegistryContext::new(Registry::new(&fleet, test_random())),
             ..create_empty_solution_context()
         },
         random: Arc::new(DefaultRandom::default()),

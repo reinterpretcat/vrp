@@ -171,7 +171,7 @@ fn can_use_init_solution_with_dispatch() {
     };
     let matrix = create_matrix_from_problem(&problem);
     let core_problem = Arc::new((problem.clone(), vec![matrix]).read_pragmatic().unwrap());
-    let core_solution = to_core_solution(&init_solution, core_problem.clone()).unwrap();
+    let core_solution = to_core_solution(&init_solution, core_problem.clone(), create_random()).unwrap();
 
     let (core_solution, _, metrics) = Builder::new(core_problem.clone())
         .with_max_generations(Some(100))
