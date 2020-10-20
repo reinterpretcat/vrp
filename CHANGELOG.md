@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file.
 
 - `breaking`: removed depot feature
 
+## Changed
+
+- `ExchangeIntraRouteRandom` now removes and reinserts with noise a single random job
+
 
 ## [v1.6.2] - 2020-10-18
 

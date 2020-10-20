@@ -3,17 +3,18 @@ use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::LocalSearch;
 use crate::solver::RefinementContext;
+use crate::utils::Noise;
 
 /// A local search operator which tries to exchange jobs in random way inside one route.
 pub struct ExchangeIntraRouteRandom {
-    _probability: f64,
-    _noise_range: (f64, f64),
+    probability: f64,
+    noise_range: (f64, f64),
 }
 
 impl ExchangeIntraRouteRandom {
     /// Creates a new instance of `ExchangeIntraRouteRandom`.
     pub fn new(probability: f64, min: f64, max: f64) -> Self {
-        Self { _probability: probability, _noise_range: (min, max) }
+        Self { probability, noise_range: (min, max) }
     }
 }
 
@@ -31,23 +32,37 @@ impl LocalSearch for ExchangeIntraRouteRandom {
 
         if let Some(route_idx) = get_random_route_idx(insertion_ctx) {
             let mut new_insertion_ctx = insertion_ctx.deep_copy();
-            let route_ctx = new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
+            let mut route_ctx = new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
 
-            let jobs = get_shuffled_jobs(insertion_ctx, route_ctx).into_iter().take(2).collect::<Vec<_>>();
-            if jobs.len() < 2 {
-                return None;
-            }
-
-            jobs.iter().for_each(|job| {
+            if let Some(job) = get_shuffled_jobs(insertion_ctx, route_ctx).into_iter().next() {
                 assert!(route_ctx.route_mut().tour.remove(&job));
-            });
-            new_insertion_ctx.solution.required.extend(jobs.into_iter());
+                new_insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
 
-            // TODO cannot use old approach due to changing route count dynamically
-            None
-        } else {
-            None
+                let insertion = evaluate_job_insertion_in_route(
+                    &job,
+                    &insertion_ctx,
+                    &route_ctx,
+                    InsertionPosition::Any,
+                    InsertionResult::make_failure(),
+                    &NoiseResultSelector::new(Noise::new(
+                        self.probability,
+                        self.noise_range,
+                        insertion_ctx.random.clone(),
+                    )),
+                );
+
+                return match &insertion {
+                    InsertionResult::Success(_) => {
+                        apply_insertion_result(&mut new_insertion_ctx, insertion);
+                        finalize_insertion_ctx(&mut new_insertion_ctx);
+                        Some(new_insertion_ctx)
+                    }
+                    _ => None,
+                };
+            }
         }
+
+        None
     }
 }
 
