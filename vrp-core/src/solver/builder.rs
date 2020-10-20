@@ -53,9 +53,6 @@ pub struct Builder {
     /// A cost variation parameters for termination criteria.
     pub cost_variation: Option<(usize, f64)>,
 
-    /// A randomization seed
-    pub seed: Option<u64>,
-
     /// An evolution configuration..
     pub config: EvolutionConfig,
 }
@@ -63,13 +60,7 @@ pub struct Builder {
 impl Builder {
     /// Creates a new instance of `Builder`.
     pub fn new(problem: Arc<Problem>) -> Self {
-        Self {
-            max_generations: None,
-            max_time: None,
-            cost_variation: None,
-            seed: None,
-            config: EvolutionConfig::new(problem),
-        }
+        Self { max_generations: None, max_time: None, cost_variation: None, config: EvolutionConfig::new(problem) }
     }
 }
 
@@ -161,15 +152,6 @@ impl Builder {
         self
     }
 
-    /// Sets randomization seed.
-    pub fn with_seed(mut self, seed: Option<u64>) -> Self {
-        if seed.is_some() {
-            self.config.telemetry.log("configured to use custom seed parameters");
-        }
-        self.seed = seed;
-        self
-    }
-
     /// Builds [`Solver`](./struct.Solver.html) instance.
     pub fn build(self) -> Result<Solver, String> {
         let problem = self.config.problem.clone();
@@ -217,12 +199,7 @@ impl Builder {
         config.termination = Arc::new(CompositeTermination::new(criterias));
         config.quota = quota;
 
-        config.random = Arc::new(if let Some(seed) = self.seed {
-            config.telemetry.log(format!("configured to use seed: {}", seed).as_str());
-            DefaultRandom::new_with_seed(seed)
-        } else {
-            DefaultRandom::default()
-        });
+        config.random = Arc::new(DefaultRandom::default());
 
         Ok(Solver { problem, config })
     }
