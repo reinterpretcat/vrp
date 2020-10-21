@@ -11,7 +11,7 @@ pub struct RuinAndRecreate {
 }
 
 impl RuinAndRecreate {
-    /// Creates a new instance of `RuinAndRecreateMutation` using given ruin and recreate methods.
+    /// Creates a new instance of `RuinAndRecreate` using given ruin and recreate methods.
     pub fn new(
         recreate: Box<dyn Recreate + Send + Sync>,
         ruin: Box<dyn Ruin + Send + Sync>,
@@ -21,7 +21,7 @@ impl RuinAndRecreate {
         Self { recreate, pre_local_search, ruin, post_local_search }
     }
 
-    /// Creates a new instance of `RuinAndRecreateMutation` using default ruin and recreate methods.
+    /// Creates a new instance of `RuinAndRecreate` using default ruin and recreate methods.
     pub fn new_from_problem(
         problem: Arc<Problem>,
         pre_local_search: (Box<dyn LocalSearch + Send + Sync>, f64),

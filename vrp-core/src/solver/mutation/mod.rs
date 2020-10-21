@@ -48,7 +48,7 @@ pub struct CompositeMutation {
 }
 
 impl CompositeMutation {
-    /// Creates a new instance of `WeightedComposite`.
+    /// Creates a new instance of `CompositeMutation`.
     pub fn new(inners: Vec<(Arc<dyn Mutation + Send + Sync>, usize)>) -> Self {
         let weights = inners.iter().map(|(_, weight)| *weight).collect();
         let inners = inners.into_iter().map(|(inners, _)| inners).collect();
