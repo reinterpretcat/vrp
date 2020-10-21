@@ -8,24 +8,25 @@ If you specify `--log` option, it will produce some log output which contains va
 process such as costs, amount of routes, time, etc.:
 
 ```
-configured to use single approximated routing matrix
-provided 0 initial solutions to start with
-configured to use max-time: 5s
-[0s] created 1 of 1 initial solutions in 5ms
-[0s] population state (speed: 123.55 gen/sec, improvement ratio: 1.000:1.000):
-         rank: 0, cost: 518.91(0.000%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 518.913)
-         rank: 1, cost: 520.10(0.229%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 520.103)
-         rank: 2, cost: 522.22(0.637%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 522.221)
-         rank: 3, cost: 522.54(0.699%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 522.541)
-[0s] generation 100 took 2ms,  rank: 0, cost: 512.84(0.000%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 512.836)
-..
-[4s] generation 1900 took 2ms,  rank: 0, cost: 506.64(0.000%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.644)
-[5s] population state (speed: 393.37 gen/sec, improvement ratio: 0.032:0.005):
-         rank: 0, cost: 506.46(0.000%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.458)
-         rank: 1, cost: 506.48(0.005%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.484)
-         rank: 2, cost: 506.49(0.007%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.494)
-         rank: 3, cost: 506.51(0.010%), tours: 10, unassigned: 0, fitness: (0.000, 10.000, 506.509)
-[5s] total generations: 1967, speed: 393.37 gen/sec
+configured to use max-time: 30s
+problem has total jobs: 1000, actors: 250
+[0s] created 1 of 1 initial solutions in 487ms
+[0s] generation 0 took 487ms, rank: 0, cost: 70928.74(0.000%), tours: 104, unassigned: 0, fitness: (0.000, 104.000, 70928.735)
+[0s] population state (speed: 0.00 gen/sec, improvement ratio: 1.000:1.000):
+         rank: 0, cost: 70928.74(0.000%), tours: 104, unassigned: 0, fitness: (0.000, 104.000, 70928.735)
+[2s] generation 100 took 17ms, rank: 0, cost: 61115.24(0.000%), tours: 99, unassigned: 0, fitness: (0.000, 99.000, 61115.241)
+[5s] generation 200 took 35ms, rank: 0, cost: 57736.43(0.000%), tours: 98, unassigned: 0, fitness: (0.000, 98.000, 57736.427)
+[7s] generation 300 took 20ms, rank: 0, cost: 56682.93(0.000%), tours: 97, unassigned: 0, fitness: (0.000, 97.000, 56682.934)
+
+[24s] population state (speed: 41.18 gen/sec, improvement ratio: 0.362:0.361):                                                                                                                                            
+         rank: 0, cost: 54495.90(0.000%), tours: 96, unassigned: 0, fitness: (0.000, 96.000, 54495.896)                                                                                                                   
+         rank: 1, cost: 54501.45(0.010%), tours: 96, unassigned: 0, fitness: (0.000, 96.000, 54501.454)                                                                                                                   
+[26s] generation 1100 took 22ms, rank: 0, cost: 54364.42(0.000%), tours: 96, unassigned: 0, fitness: (0.000, 96.000, 54364.415)                                                                                           
+[28s] generation 1200 took 24ms, rank: 0, cost: 54204.55(0.000%), tours: 96, unassigned: 0, fitness: (0.000, 96.000, 54204.548)                                                                                           
+[30s] population state (speed: 41.29 gen/sec, improvement ratio: 0.319:0.231):                                                                                                                                            
+         rank: 0, cost: 54204.55(0.000%), tours: 96, unassigned: 0, fitness: (0.000, 96.000, 54204.548)                                                                                                                   
+         rank: 1, cost: 54204.97(0.001%), tours: 96, unassigned: 0, fitness: (0.000, 96.000, 54204.965)                                                                                                                   
+[30s] total generations: 1239, speed: 41.29 gen/sec         
 ```
 Once the problem is solved, it will save solution in `pragmatic` and `geojson` (optional) format.
 
