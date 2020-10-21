@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.6.3] - 2020-10-21
+
 ### Added
 
 - introduce dispatch feature to support vehicle dispatching functionality (depot replacement)
@@ -90,7 +93,13 @@ All notable changes to this project will be documented in this file.
 
 - Initial public release
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.6.2...HEAD
+
+## v0.0.1 - 2019-08-26
+
+- Initial commit
+
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.6.3...HEAD
+[v1.6.3]: https://github.com/reinterpretcat/vrp/compare/v1.6.2...v1.6.3
 [v1.6.2]: https://github.com/reinterpretcat/vrp/compare/v1.6.1...v1.6.2
 [v1.6.1]: https://github.com/reinterpretcat/vrp/compare/v1.6.0...v1.6.1
 [v1.6.0]: https://github.com/reinterpretcat/vrp/compare/v1.5.0...v1.6.0
