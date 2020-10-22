@@ -1,0 +1,18 @@
+# For more configuration details:
+# https://docs.codecov.io/docs/codecov-yaml
+# Validation check:
+# curl -X POST --data-binary @.codecov.yml https://codecov.io/validate
+
+coverage:
+  status:
+    patch: false
+
+  range: 70..90
+  round: down
+  precision: 2
+
+ignore:
+  - docs/.*
+
+comment:
+  layout: diff, files
