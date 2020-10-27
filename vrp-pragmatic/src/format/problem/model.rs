@@ -254,6 +254,11 @@ pub struct VehicleLimits {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shift_time: Option<f64>,
 
+    /// Max amount job activities.
+    /// No job activities restrictions when omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tour_size: Option<usize>,
+
     /// Specifies a list of areas where vehicle can serve jobs.
     /// No area restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]

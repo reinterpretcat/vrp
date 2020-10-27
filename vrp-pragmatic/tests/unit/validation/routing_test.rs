@@ -69,6 +69,7 @@ fn can_detect_limit_areas_with_indices() {
                 limits: Some(VehicleLimits {
                     max_distance: None,
                     shift_time: None,
+                    tour_size: None,
                     allowed_areas: Some(vec![AreaLimit {
                         priority: None,
                         outer_shape: vec![

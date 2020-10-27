@@ -88,6 +88,9 @@ pub use self::capacity::*;
 mod locking;
 pub use self::locking::*;
 
+mod tour_size;
+pub use self::tour_size::*;
+
 mod conditional;
 pub use self::conditional::*;
 

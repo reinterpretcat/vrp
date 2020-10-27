@@ -39,6 +39,7 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
     
     - **shiftTime** (optional): max shift time
     - **maxDistance** (optional): max distance
+    - **tourSize** (optional): max amount of activities in the tour (without departure/arrival)
     - **allowedAreas** (optional): a list of areas where vehicle is allowed to serve jobs. Each area is defined by:
         * _priority_ (optional): an area priority, bigger value - less important. You can use this property to prioritize
         jobs in one area over another.

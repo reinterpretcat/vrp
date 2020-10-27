@@ -31,6 +31,21 @@ pub fn check_limits(context: &CheckerContext) -> Result<(), String> {
                     ));
                 }
             }
+
+            if let Some(tour_size_limit) = limits.tour_size {
+                let shift = context.get_vehicle_shift(tour)?;
+
+                let extra_activities = if shift.end.is_some() { 2 } else { 1 };
+                let tour_activities = tour.stops.iter().flat_map(|stop| stop.activities.iter()).count();
+                let tour_activities = if tour_activities > extra_activities { tour_activities - extra_activities } else { 0 };
+
+                if tour_activities > tour_size_limit {
+                    return Err(format!(
+                        "tour size limit violation, expected: not more than {}, got: {}, vehicle id '{}', shift index: {}",
+                        tour_size_limit, tour_activities, tour.vehicle_id, tour.shift_index
+                    ))
+                }
+            }
         }
 
         Ok(())

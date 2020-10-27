@@ -90,6 +90,8 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         };
 
         let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
+
+        let tour_size = vehicle.limits.as_ref().and_then(|l| l.tour_size);
         let mut areas = vehicle.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map(|areas| {
             areas
                 .iter()
@@ -135,6 +137,10 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                     dimens.set_value("areas", areas);
                 }
 
+                if let Some(tour_size) = tour_size {
+                    dimens.set_value("tour_size", tour_size);
+                }
+
                 if props.has_multi_dimen_capacity {
                     dimens.set_capacity(MultiDimLoad::new(vehicle.capacity.clone()));
                 } else {
@@ -162,7 +168,7 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
     Fleet::new(drivers, vehicles, Box::new(|actors| create_typed_actor_groups(actors)))
 }
 
-pub fn read_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
+pub fn read_travel_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
     let limits = api_problem.fleet.vehicles.iter().filter(|vehicle| vehicle.limits.is_some()).fold(
         HashMap::new(),
         |mut acc, vehicle| {

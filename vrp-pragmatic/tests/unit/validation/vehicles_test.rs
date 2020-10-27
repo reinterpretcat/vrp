@@ -30,6 +30,7 @@ fn can_detect_invalid_area_impl(allowed_shapes: Option<Vec<Vec<Location>>>, expe
                 limits: Some(VehicleLimits {
                     max_distance: None,
                     shift_time: None,
+                    tour_size: None,
                     allowed_areas: allowed_shapes.map(|shapes| {
                         shapes.into_iter().map(|shape| AreaLimit { priority: None, outer_shape: shape }).collect()
                     }),

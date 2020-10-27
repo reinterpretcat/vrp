@@ -332,6 +332,7 @@ fn can_write_hre_problem() {
                 limits: Some(VehicleLimits {
                     max_distance: Some(10000.),
                     shift_time: Some(14400.),
+                    tour_size: None,
                     allowed_areas: None,
                 }),
             }],

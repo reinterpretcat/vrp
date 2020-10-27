@@ -452,6 +452,7 @@ mod deserialize {
                     limits: v.limits.as_ref().map(|l| VehicleLimits {
                         max_distance: l.max_distance,
                         shift_time: l.shift_time,
+                        tour_size: None,
                         allowed_areas: None,
                     }),
                 })

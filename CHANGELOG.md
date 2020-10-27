@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- tour size constraint which limits amount of job activities per tour
+
 
 ## [v1.6.3] - 2020-10-21
 

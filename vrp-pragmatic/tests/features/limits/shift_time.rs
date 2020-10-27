@@ -4,7 +4,12 @@ use crate::helpers::*;
 
 fn create_vehicle_type_with_shift_time_limit(shift_time: f64) -> VehicleType {
     VehicleType {
-        limits: Some(VehicleLimits { max_distance: None, shift_time: Some(shift_time), allowed_areas: None }),
+        limits: Some(VehicleLimits {
+            max_distance: None,
+            shift_time: Some(shift_time),
+            tour_size: None,
+            allowed_areas: None,
+        }),
         ..create_default_vehicle_type()
     }
 }

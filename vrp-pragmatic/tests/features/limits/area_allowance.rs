@@ -12,6 +12,7 @@ fn can_limit_by_area() {
                 limits: Some(VehicleLimits {
                     max_distance: None,
                     shift_time: None,
+                    tour_size: None,
                     allowed_areas: Some(vec![AreaLimit {
                         priority: None,
                         outer_shape: vec![

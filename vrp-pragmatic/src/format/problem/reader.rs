@@ -11,7 +11,7 @@ mod fleet_reader;
 #[path = "./objective_reader.rs"]
 mod objective_reader;
 
-use self::fleet_reader::{create_transport_costs, read_fleet, read_limits};
+use self::fleet_reader::{create_transport_costs, read_fleet, read_travel_limits};
 use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;
 use crate::constraints::*;
@@ -113,6 +113,7 @@ pub struct ProblemProperties {
     has_reloads: bool,
     has_priorities: bool,
     has_area_limits: bool,
+    has_tour_size_limits: bool,
 }
 
 fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
@@ -195,7 +196,7 @@ fn map_to_problem(
         &random,
     );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
-    let limits = read_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
+    let limits = read_travel_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
     let mut constraint = create_constraint_pipeline(
         coord_index.clone(),
         &fleet,
@@ -267,6 +268,10 @@ fn create_constraint_pipeline(
         constraint.add_module(Box::new(ReachableModule::new(transport.clone(), REACHABLE_CONSTRAINT_CODE)));
     }
 
+    if props.has_tour_size_limits {
+        add_tour_size_module(&mut constraint)
+    }
+
     if props.has_area_limits {
         add_area_module(&mut constraint, coord_index);
     }
@@ -304,6 +309,13 @@ fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIn
                 .map_or_else(|| panic!("cannot find location!"), |location| location.to_lat_lng())
         }),
         AREA_CONSTRAINT_CODE,
+    )));
+}
+
+fn add_tour_size_module(constraint: &mut ConstraintPipeline) {
+    constraint.add_module(Box::new(TourSizeModule::new(
+        Arc::new(|actor| actor.vehicle.dimens.get_value::<usize>("tour_size").cloned()),
+        TOUR_SIZE_CONSTRAINT_CODE,
     )));
 }
 
@@ -368,6 +380,8 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .vehicles
         .iter()
         .any(|v| v.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map_or(false, |a| !a.is_empty()));
+    let has_tour_size_limits =
+        api_problem.fleet.vehicles.iter().any(|v| v.limits.as_ref().map_or(false, |l| l.tour_size.is_some()));
 
     ProblemProperties {
         has_multi_dimen_capacity,
@@ -378,5 +392,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_reloads,
         has_priorities,
         has_area_limits,
+        has_tour_size_limits,
     }
 }

@@ -47,7 +47,7 @@ pub fn test_vehicle(profile: i32) -> Vehicle {
 }
 
 pub fn test_fleet() -> Fleet {
-    FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle(0)).build()
+    FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build()
 }
 
 pub fn test_vehicle_with_id(id: &str) -> Vehicle {
