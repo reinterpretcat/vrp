@@ -6,11 +6,13 @@ use crate::solver::RefinementContext;
 use std::cmp::Ordering;
 
 mod exchange_inter_route;
-pub use self::exchange_inter_route::ExchangeInterRouteBest;
-pub use self::exchange_inter_route::ExchangeInterRouteRandom;
+pub use self::exchange_inter_route::*;
 
 mod exchange_intra_route;
-pub use self::exchange_intra_route::ExchangeIntraRouteRandom;
+pub use self::exchange_intra_route::*;
+
+mod push_route_departure;
+pub use self::push_route_departure::*;
 
 /// Specifies behavior of a local search operator.
 pub trait LocalSearch {

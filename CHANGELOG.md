@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- add a new LS method to push tour departure in the future
+
 
 ## [v1.6.4] - 2020-10-27
 

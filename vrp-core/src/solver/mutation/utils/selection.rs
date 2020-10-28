@@ -45,6 +45,35 @@ pub(crate) fn select_seed_jobs<'a>(
     Box::new(empty())
 }
 
+/// Selects a random route which satisfies given filter.
+pub(crate) fn select_random_route<'a>(
+    routes: &'a [RouteContext],
+    random: &(dyn Random + Send + Sync),
+    filter_fn: impl Fn(&RouteContext) -> bool,
+) -> Option<usize> {
+    if routes.is_empty() {
+        return None;
+    }
+
+    let initial_route_idx = random.uniform_int(0, (routes.len() - 1) as i32) as usize;
+    let mut route_idx = initial_route_idx;
+
+    loop {
+        let route_ctx = routes.get(route_idx).unwrap();
+
+        if filter_fn(route_ctx) {
+            return Some(route_idx);
+        }
+
+        route_idx = (route_idx + 1) % routes.len();
+        if route_idx == initial_route_idx {
+            break;
+        }
+    }
+
+    None
+}
+
 /// Selects seed job from existing solution
 pub(crate) fn select_seed_job<'a>(
     routes: &'a [RouteContext],
@@ -54,21 +83,21 @@ pub(crate) fn select_seed_job<'a>(
         return None;
     }
 
-    let route_index = random.uniform_int(0, (routes.len() - 1) as i32) as usize;
-    let mut ri = route_index;
+    let initial_route_index = random.uniform_int(0, (routes.len() - 1) as i32) as usize;
+    let mut route_index = initial_route_index;
 
     loop {
-        let rc = routes.get(ri).unwrap();
+        let rc = routes.get(route_index).unwrap();
 
         if rc.route.tour.has_jobs() {
             let job = select_random_job(rc, random);
             if let Some(job) = job {
-                return Some((ri, job));
+                return Some((route_index, job));
             }
         }
 
-        ri = (ri + 1) % routes.len();
-        if ri == route_index {
+        route_index = (route_index + 1) % routes.len();
+        if route_index == initial_route_index {
             break;
         }
     }
