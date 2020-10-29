@@ -45,11 +45,11 @@ fn can_read_config() {
 
             assert_eq!(locals.pre_ruin.probability, 0.05);
             assert_eq!(locals.pre_ruin.times, MinMaxConfig { min: 1, max: 2 });
-            assert_eq!(locals.pre_ruin.operators.len(), 3);
+            assert_eq!(locals.pre_ruin.operators.len(), 4);
 
             assert_eq!(locals.post_recreate.probability, 0.01);
             assert_eq!(locals.post_recreate.times, MinMaxConfig { min: 1, max: 2 });
-            assert_eq!(locals.post_recreate.operators.len(), 3);
+            assert_eq!(locals.post_recreate.operators.len(), 4);
         }
         _ => unreachable!(),
     }

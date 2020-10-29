@@ -179,7 +179,7 @@ fn can_serve_job_when_it_starts_late() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(solution.unassigned, vec![]);
+    assert!(solution.unassigned.is_none());
     assert!(!solution.tours.is_empty());
 }
 */

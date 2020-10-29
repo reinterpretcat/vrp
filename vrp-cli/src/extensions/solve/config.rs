@@ -200,6 +200,9 @@ pub enum LocalSearchOperator {
 
     #[serde(rename(deserialize = "intra-route-random"))]
     IntraRouteRandom { weight: usize, noise: NoiseConfig },
+
+    #[serde(rename(deserialize = "push-route-departure"))]
+    PushRouteDeparture { weight: usize, offset: f64 },
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -436,6 +439,9 @@ fn create_local_search(group: &LocalSearchGroupConfig) -> (Box<dyn LocalSearch +
             }
             LocalSearchOperator::IntraRouteRandom { weight, noise } => {
                 (Box::new(ExchangeIntraRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
+            }
+            LocalSearchOperator::PushRouteDeparture { weight, offset } => {
+                (Box::new(PushRouteDeparture::new(*offset)), *weight)
             }
         })
         .collect::<Vec<_>>();

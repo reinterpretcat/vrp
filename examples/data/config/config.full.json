@@ -60,6 +60,11 @@
                   "min": 0.9,
                   "max": 1.1
                 }
+              },
+              {
+                "weight": 20,
+                "type": "push-route-departure",
+                "offset": 0.1
               }
             ]
           },
@@ -96,6 +101,11 @@
                   "min": 0.9,
                   "max": 1.1
                 }
+              },
+              {
+                "weight": 20,
+                "type": "push-route-departure",
+                "offset": 0.1
               }
             ]
           }
