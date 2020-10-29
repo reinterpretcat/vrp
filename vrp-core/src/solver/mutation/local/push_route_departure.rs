@@ -6,7 +6,7 @@ use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::{Duration, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::Job;
 use crate::models::OP_START_MSG;
-use crate::solver::mutation::{select_random_route, LocalSearch, Recreate, RecreateWithSkipBest};
+use crate::solver::mutation::{select_random_route, LocalSearch, Recreate, RecreateWithCheapest};
 use crate::solver::RefinementContext;
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
@@ -141,7 +141,7 @@ fn apply_offset_and_repair(
 
     // NOTE repair solution
     // TODO we can try different recreate methods here
-    RecreateWithSkipBest::default().run(refinement_ctx, new_insertion_ctx)
+    RecreateWithCheapest::default().run(refinement_ctx, new_insertion_ctx)
 }
 
 fn get_latest_departure(route_ctx: &RouteContext) -> f64 {
