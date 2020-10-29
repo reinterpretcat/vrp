@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::models::domain::get_customer_ids_from_routes;
-use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes};
+use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes_with_defaults};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::IdDimension;
 use std::sync::Arc;
@@ -55,7 +55,7 @@ fn can_use_exchange_inter_route_best_operator_impl(
     let ints = vec![seed_route, seed_job];
     let reals = vec![1.; 128];
 
-    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, true, |data| (data.clone(), data));
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
     let insertion_ctx = extend_with_locked(
         InsertionContext::new_from_solution(
             Arc::new(problem),

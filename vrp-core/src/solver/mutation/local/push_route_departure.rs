@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/solver/mutation/local/push_route_departure_test.rs"]
+mod push_route_departure_test;
+
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::{Duration, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::Job;
@@ -42,7 +46,7 @@ impl LocalSearch for PushRouteDeparture {
         .and_then(|(route_ctx, route_idx)| {
             get_departure_offset(insertion_ctx, route_ctx, self.offset_ratio).map(|offset| (route_idx, offset))
         })
-        .map(|(route_idx, offset)| apply_shift_and_repair(refinement_ctx, insertion_ctx, route_idx, offset))
+        .map(|(route_idx, offset)| apply_offset_and_repair(refinement_ctx, insertion_ctx, route_idx, offset))
     }
 }
 
@@ -68,10 +72,10 @@ fn get_departure_offset(insertion_ctx: &InsertionContext, route_ctx: &RouteConte
 }
 
 fn get_time_duration(start: Timestamp, end: Timestamp) -> Option<Duration> {
-    if compare_floats(end, std::f64::MAX) == Ordering::Equal {
-        None
-    } else {
+    if compare_floats(end, std::f64::MAX) == Ordering::Less && end > start {
         Some(end - start)
+    } else {
+        None
     }
 }
 
@@ -108,7 +112,7 @@ fn select_time_window(insertion_ctx: &InsertionContext) -> Option<TimeWindow> {
         .next()
 }
 
-fn apply_shift_and_repair(
+fn apply_offset_and_repair(
     refinement_ctx: &RefinementContext,
     insertion_ctx: &InsertionContext,
     route_idx: usize,
@@ -128,6 +132,8 @@ fn apply_shift_and_repair(
 
     let latest_departure = get_latest_departure(route_ctx);
     let start = route_ctx.route_mut().tour.get_mut(0).expect(OP_START_MSG);
+    // NOTE round to avoid floating point
+    let departure_offset = insertion_ctx.random.uniform_real(0., departure_offset).round();
     let new_departure = (start.schedule.arrival + departure_offset).min(latest_departure);
 
     start.schedule.departure = new_departure;

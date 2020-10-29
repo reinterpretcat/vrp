@@ -1,7 +1,7 @@
 use super::{RandomRouteRemoval, Ruin};
 use crate::construction::heuristics::InsertionContext;
 use crate::helpers::models::domain::*;
-use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes};
+use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes_with_defaults};
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
 use std::sync::Arc;
@@ -12,7 +12,7 @@ fn can_remove_whole_routes_from_context() {
     let matrix = (4, 4);
     let ints = vec![2, 0, 2];
 
-    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, false, |data| (data.clone(), data));
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
@@ -31,7 +31,7 @@ fn can_remove_parts_routes_from_context() {
     let matrix = (8, 1);
     let ints = vec![2, 0, 2];
 
-    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, false, |data| (data.clone(), data));
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
     let problem = Problem {
         jobs: problem.jobs.clone(),
         locks: vec![Arc::new(Lock {

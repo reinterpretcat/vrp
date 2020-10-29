@@ -4,8 +4,9 @@ use crate::helpers::construction::constraints::create_constraint_pipeline_with_t
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
+use crate::models::common::Location;
 use crate::models::problem::{
-    create_matrix_transport_cost, Job, Jobs, MatrixData, ObjectiveCost, Vehicle, VehicleDetail,
+    create_matrix_transport_cost, Job, Jobs, MatrixData, ObjectiveCost, Single, Vehicle, VehicleDetail,
 };
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
@@ -29,6 +30,18 @@ pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send
         .run(&mut create_default_refinement_ctx(problem.clone()), InsertionContext::new(problem, random))
 }
 
+/// Generates matrix routes. See `generate_matrix_routes`.
+pub fn generate_matrix_routes_with_defaults(rows: usize, cols: usize, is_open_vrp: bool) -> (Problem, Solution) {
+    generate_matrix_routes(
+        rows,
+        cols,
+        is_open_vrp,
+        |id, location| test_single_with_id_and_location(id, location),
+        |v| v,
+        |data| (data.clone(), data),
+    )
+}
+
 /// Generates problem and solution which has routes distributed uniformly, e.g.:
 /// r0 r1 r2 r3
 /// -----------
@@ -40,19 +53,23 @@ pub fn generate_matrix_routes(
     rows: usize,
     cols: usize,
     is_open_vrp: bool,
-    matrix_modify: fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
+    job_factory: impl Fn(&str, Option<Location>) -> Arc<Single>,
+    vehicle_modify: impl Fn(Vehicle) -> Vehicle,
+    matrix_modify: impl Fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
 ) -> (Problem, Solution) {
     let fleet = Arc::new(
         FleetBuilder::default()
             .add_driver(test_driver_with_costs(empty_costs()))
             .add_vehicles(
                 (0..cols)
-                    .map(|i| Vehicle {
-                        details: vec![VehicleDetail {
-                            end: if is_open_vrp { None } else { test_vehicle_detail().end },
-                            ..test_vehicle_detail()
-                        }],
-                        ..test_vehicle_with_id(i.to_string().as_str())
+                    .map(|i| {
+                        vehicle_modify(Vehicle {
+                            details: vec![VehicleDetail {
+                                end: if is_open_vrp { None } else { test_vehicle_detail().end },
+                                ..test_vehicle_detail()
+                            }],
+                            ..test_vehicle_with_id(i.to_string().as_str())
+                        })
                     })
                     .collect(),
             )
@@ -68,8 +85,7 @@ pub fn generate_matrix_routes(
         (0..rows).for_each(|j| {
             let index = i * rows + j;
 
-            let single =
-                test_single_with_id_and_location(["c".to_string(), index.to_string()].concat().as_str(), Some(index));
+            let single = job_factory(["c".to_string(), index.to_string()].concat().as_str(), Some(index));
             let route = routes.get_mut(i).unwrap();
             jobs.push(Job::Single(single.clone()));
 
@@ -90,6 +106,7 @@ pub fn generate_matrix_routes(
         fleet,
         jobs: Arc::new(jobs),
         locks: vec![],
+        // TODO pass transport costs with constraint
         constraint: Arc::new(create_constraint_pipeline_with_transport()),
         activity: Arc::new(TestActivityCost::default()),
         transport,

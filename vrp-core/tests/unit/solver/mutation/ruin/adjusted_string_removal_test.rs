@@ -16,7 +16,7 @@ double distribution values:
 use super::{AdjustedStringRemoval, Ruin};
 use crate::construction::heuristics::InsertionContext;
 use crate::helpers::models::domain::get_sorted_customer_ids_from_jobs;
-use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes};
+use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes_with_defaults};
 use crate::helpers::utils::random::FakeRandom;
 use std::sync::Arc;
 
@@ -42,7 +42,7 @@ fn can_ruin_solution_with_matrix_routes_impl(
     reals: Vec<f64>,
     expected_ids: Vec<&str>,
 ) {
-    let (problem, solution) = generate_matrix_routes(matrix.0, matrix.1, false, |data| (data.clone(), data));
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),

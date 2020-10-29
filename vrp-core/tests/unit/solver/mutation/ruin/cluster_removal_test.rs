@@ -1,6 +1,7 @@
 use super::*;
 use crate::helpers::algorithms::p;
 use crate::helpers::models::domain::create_empty_problem;
+use crate::helpers::models::problem::test_single_with_id_and_location;
 use crate::helpers::solver::*;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Location;
@@ -53,7 +54,14 @@ fn can_estimate_epsilon_impl(
     matrix_modify: fn(Vec<f64>) -> (Vec<f64>, Vec<f64>),
     expected: f64,
 ) {
-    let (problem, _) = generate_matrix_routes(matrix.0, matrix.1, false, matrix_modify);
+    let (problem, _) = generate_matrix_routes(
+        matrix.0,
+        matrix.1,
+        false,
+        |id, location| test_single_with_id_and_location(id, location),
+        |v| v,
+        matrix_modify,
+    );
 
     assert_eq!((estimate_epsilon(&problem, nth_neighbor) * 1000.).round() / 1000., expected);
 }
@@ -70,19 +78,26 @@ can_estimate_epsilon_having_zero_costs! {
 }
 
 fn can_estimate_epsilon_having_zero_costs_impl(min_points: usize) {
-    let (problem, _) = generate_matrix_routes(8, 1, false, |_| {
-        let distances = generate_matrix_distances_from_points(&[
-            p(0., 0.),
-            p(0., 0.),
-            p(0., 0.),
-            p(0., 0.),
-            p(5., 0.),
-            p(10., 0.),
-            p(20., 0.),
-            p(30., 0.),
-        ]);
-        (vec![0.; 64], distances)
-    });
+    let (problem, _) = generate_matrix_routes(
+        8,
+        1,
+        false,
+        |id, location| test_single_with_id_and_location(id, location),
+        |v| v,
+        |_| {
+            let distances = generate_matrix_distances_from_points(&[
+                p(0., 0.),
+                p(0., 0.),
+                p(0., 0.),
+                p(0., 0.),
+                p(5., 0.),
+                p(10., 0.),
+                p(20., 0.),
+                p(30., 0.),
+            ]);
+            (vec![0.; 64], distances)
+        },
+    );
 
     let costs = get_average_costs(&problem, min_points);
 
@@ -106,7 +121,14 @@ can_create_job_clusters! {
 }
 
 fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>]) {
-    let (problem, _) = generate_matrix_routes(8, 1, false, |_| (vec![0.; 64], create_test_distances()));
+    let (problem, _) = generate_matrix_routes(
+        8,
+        1,
+        false,
+        |id, location| test_single_with_id_and_location(id, location),
+        |v| v,
+        |_| (vec![0.; 64], create_test_distances()),
+    );
     let random: Arc<dyn Random + Send + Sync> = Arc::new(FakeRandom::new(vec![0, 0], vec![param.1]));
 
     let clusters = create_job_clusters(&problem, &random, &[param])
@@ -124,7 +146,14 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
 
 #[test]
 fn can_create_ruin_cluster_with_proper_params() {
-    let (problem, _) = generate_matrix_routes(8, 1, false, |_| (vec![0.; 64], create_test_distances()));
+    let (problem, _) = generate_matrix_routes(
+        8,
+        1,
+        false,
+        |id, location| test_single_with_id_and_location(id, location),
+        |v| v,
+        |_| (vec![0.; 64], create_test_distances()),
+    );
     let removal = ClusterRemoval::new(Arc::new(problem), 3..4, JobRemovalLimit::default());
 
     assert_eq!(removal.params.len(), 1);
@@ -153,7 +182,14 @@ can_ruin_jobs! {
 
 fn can_ruin_jobs_impl(limit: usize, cluster_size: Range<usize>, expected: usize) {
     let limit = JobRemovalLimit::new(limit, limit, 1.);
-    let (problem, solution) = generate_matrix_routes(8, 1, false, |_| (vec![0.; 64], create_test_distances()));
+    let (problem, solution) = generate_matrix_routes(
+        8,
+        1,
+        false,
+        |id, location| test_single_with_id_and_location(id, location),
+        |v| v,
+        |_| (vec![0.; 64], create_test_distances()),
+    );
     let problem = Arc::new(problem);
     let insertion_ctx =
         InsertionContext::new_from_solution(problem.clone(), (solution, None), Arc::new(DefaultRandom::default()));

@@ -49,3 +49,35 @@ impl Random for FakeRandom {
         StdRng::seed_from_u64(0)
     }
 }
+
+pub struct EchoRandom {
+    use_min: bool,
+}
+
+impl EchoRandom {
+    pub fn new(use_min: bool) -> Self {
+        Self { use_min }
+    }
+}
+
+impl Random for EchoRandom {
+    fn uniform_int(&self, min: i32, max: i32) -> i32 {
+        if self.use_min {
+            min
+        } else {
+            max
+        }
+    }
+
+    fn uniform_real(&self, min: f64, max: f64) -> f64 {
+        if self.use_min {
+            min
+        } else {
+            max
+        }
+    }
+
+    fn get_rng(&self) -> StdRng {
+        StdRng::seed_from_u64(0)
+    }
+}
