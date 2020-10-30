@@ -4,7 +4,7 @@ mod exchange_inter_route_test;
 
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::solver::mutation::{select_seed_job, LocalSearch};
+use crate::solver::mutation::{select_seed_job, LocalOperator};
 use crate::solver::RefinementContext;
 use crate::utils::{map_reduce, Noise};
 
@@ -33,7 +33,7 @@ impl Default for ExchangeInterRouteBest {
     }
 }
 
-impl LocalSearch for ExchangeInterRouteBest {
+impl LocalOperator for ExchangeInterRouteBest {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         find_best_insertion_pair(
             insertion_ctx,
@@ -57,7 +57,7 @@ impl Default for ExchangeInterRouteRandom {
     }
 }
 
-impl LocalSearch for ExchangeInterRouteRandom {
+impl LocalOperator for ExchangeInterRouteRandom {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         find_best_insertion_pair(
             insertion_ctx,

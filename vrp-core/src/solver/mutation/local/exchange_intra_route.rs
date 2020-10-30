@@ -1,7 +1,7 @@
 use super::super::super::rand::prelude::SliceRandom;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::solver::mutation::LocalSearch;
+use crate::solver::mutation::LocalOperator;
 use crate::solver::RefinementContext;
 use crate::utils::Noise;
 
@@ -24,7 +24,7 @@ impl Default for ExchangeIntraRouteRandom {
     }
 }
 
-impl LocalSearch for ExchangeIntraRouteRandom {
+impl LocalOperator for ExchangeIntraRouteRandom {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         if !insertion_ctx.solution.required.is_empty() {
             return None;

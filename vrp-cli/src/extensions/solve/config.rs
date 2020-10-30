@@ -9,7 +9,6 @@ mod config_test;
 extern crate serde_json;
 
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
@@ -24,10 +23,10 @@ use vrp_core::utils::get_cpus;
 pub struct Config {
     /// Specifies population configuration.
     pub population: Option<PopulationConfig>,
-    /// Specifies mutation operator configuration.
-    pub selection: Option<SelectionConfig>,
-    /// Specifies mutation operator configuration.
-    pub mutation: Option<MutationConfig>,
+    /// Specifies mutation operator type.
+    pub selection: Option<SelectionType>,
+    /// Specifies mutation operator type.
+    pub mutation: Option<MutationType>,
     /// Specifies algorithm termination configuration.
     pub termination: Option<TerminationConfig>,
     /// Specifies telemetry configuration.
@@ -50,15 +49,6 @@ pub struct InitialConfig {
     pub methods: Option<Vec<RecreateMethod>>,
 }
 
-/// A selection configuration.
-#[derive(Clone, Deserialize, Debug)]
-pub struct SelectionConfig {
-    /// A name of used selection from the collection.
-    name: String,
-    /// Collection of available selection algorithms.
-    collection: Vec<SelectionType>,
-}
-
 /// A selection operator configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
@@ -66,20 +56,9 @@ pub struct SelectionConfig {
 pub enum SelectionType {
     #[serde(rename(deserialize = "naive"))]
     Naive {
-        /// A name of selection operator.
-        name: String,
         /// A size of offspring.
         offspring_size: Option<usize>,
     },
-}
-
-/// A mutation configuration.
-#[derive(Clone, Deserialize, Debug)]
-pub struct MutationConfig {
-    /// A name of used mutation from the collection.
-    name: String,
-    /// Collection of available mutation metaheuristics.
-    collection: Vec<MutationType>,
 }
 
 /// A mutation operator configuration.
@@ -90,23 +69,31 @@ pub enum MutationType {
     /// probability weights.
     #[serde(rename(deserialize = "composite"))]
     Composite {
-        /// A name of metaheurisic instance.
-        name: String,
+        /// Probability.
+        probability: f64,
         /// A collection of inner metaheuristics.
-        inners: Vec<NameWeight>,
+        inners: Vec<MutationType>,
+    },
+
+    #[serde(rename(deserialize = "local-search"))]
+    LocalSearch {
+        /// Probability of the group.
+        probability: f64,
+        /// Amount of times one of operators is applied.
+        times: MinMaxConfig,
+        /// Local search operator.
+        operators: Vec<LocalOperatorType>,
     },
 
     /// A ruin and recreate metaheuristic settings.
     #[serde(rename(deserialize = "ruin-recreate"))]
     RuinRecreate {
-        /// A name of metaheurisic instance.
-        name: String,
+        /// Probability.
+        probability: f64,
         /// Ruin methods.
         ruins: Vec<RuinGroupConfig>,
         /// Recreate methods.
         recreates: Vec<RecreateMethod>,
-        /// Local search config.
-        locals: LocalSearchConfig,
     },
 }
 
@@ -168,30 +155,10 @@ pub enum RecreateMethod {
     Regret { weight: usize, start: usize, end: usize },
 }
 
-/// A local search configuration
-#[derive(Clone, Deserialize, Debug)]
-pub struct LocalSearchConfig {
-    /// Pre ruin local search.
-    pre_ruin: LocalSearchGroupConfig,
-    /// Post recreate local search.
-    post_recreate: LocalSearchGroupConfig,
-}
-
-/// A local search group configuration
-#[derive(Clone, Deserialize, Debug)]
-pub struct LocalSearchGroupConfig {
-    /// Probability of the group.
-    probability: f64,
-    /// Amount of times one of operators is applied.
-    times: MinMaxConfig,
-    /// List of operators.
-    operators: Vec<LocalSearchOperator>,
-}
-
 /// A local search configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
-pub enum LocalSearchOperator {
+pub enum LocalOperatorType {
     #[serde(rename(deserialize = "inter-route-best"))]
     InterRouteBest { weight: usize, noise: NoiseConfig },
 
@@ -293,23 +260,13 @@ fn configure_from_population(
     Ok(builder)
 }
 
-fn configure_from_selection(
-    mut builder: Builder,
-    selection_config: &Option<SelectionConfig>,
-) -> Result<Builder, String> {
-    if let Some(config) = selection_config {
-        let selections = config
-            .collection
-            .iter()
-            .map(|item| match item {
-                SelectionType::Naive { name, offspring_size } => {
-                    (name, Arc::new(NaiveSelection::new(offspring_size.unwrap_or_else(get_cpus))))
-                }
-            })
-            .collect::<HashMap<_, _>>();
-
-        let selection =
-            selections.get(&config.name).cloned().ok_or_else(|| format!("cannot find {} selection", config.name))?;
+fn configure_from_selection(mut builder: Builder, selection_config: &Option<SelectionType>) -> Result<Builder, String> {
+    if let Some(selection_type) = selection_config {
+        let selection = match selection_type {
+            SelectionType::Naive { offspring_size } => {
+                Arc::new(NaiveSelection::new(offspring_size.unwrap_or_else(get_cpus)))
+            }
+        };
 
         builder = builder.with_selection(selection);
     }
@@ -317,55 +274,10 @@ fn configure_from_selection(
     Ok(builder)
 }
 
-type NamedMutations = HashMap<String, Arc<dyn Mutation + Send + Sync>>;
-
-fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<MutationConfig>) -> Result<Builder, String> {
+fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<MutationType>) -> Result<Builder, String> {
     if let Some(config) = mutation_config {
-        let get_mutation_by_name = |mutations: &NamedMutations, name: &String| {
-            mutations
-                .get(name)
-                .cloned()
-                .ok_or_else(|| format!("cannot find {} mutation, make sure that it is defined before used", name))
-        };
-        let mutations = config.collection.iter().try_fold::<_, _, Result<_, String>>(
-            NamedMutations::default(),
-            |mut mutations, type_cfg| {
-                let (name, mutation): (_, Arc<dyn Mutation + Send + Sync>) = match type_cfg {
-                    MutationType::RuinRecreate { name, ruins, recreates, locals } => {
-                        let ruin = Box::new(CompositeRuin::new(
-                            ruins.iter().map(|g| create_ruin_group(&builder.config.problem, g)).collect(),
-                        ));
-                        let recreate = Box::new(CompositeRecreate::new(
-                            recreates.iter().map(|r| create_recreate_method(r)).collect(),
-                        ));
-                        (
-                            name.clone(),
-                            Arc::new(RuinAndRecreate::new(
-                                recreate,
-                                ruin,
-                                create_local_search(&locals.pre_ruin),
-                                create_local_search(&locals.post_recreate),
-                            )),
-                        )
-                    }
-                    MutationType::Composite { name, inners } => {
-                        let inners = inners
-                            .iter()
-                            .map(|nw| get_mutation_by_name(&mutations, &nw.name).map(|mutation| (mutation, nw.weight)))
-                            .collect::<Result<Vec<_>, _>>()?;
-                        (name.clone(), Arc::new(CompositeMutation::new(inners)))
-                    }
-                };
-
-                mutations.insert(name, mutation);
-
-                Ok(mutations)
-            },
-        )?;
-
-        let mutation = get_mutation_by_name(&mutations, &config.name)?.clone();
-
-        builder = builder.with_mutation(mutation);
+        let mutation = create_mutation(&builder.config.problem, config)?.0;
+        builder = builder.with_mutation(mutation)
     }
 
     Ok(builder)
@@ -398,6 +310,30 @@ fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send +
     }
 }
 
+fn create_mutation(
+    problem: &Arc<Problem>,
+    mutation: &MutationType,
+) -> Result<(Arc<dyn Mutation + Send + Sync>, f64), String> {
+    Ok(match mutation {
+        MutationType::RuinRecreate { probability, ruins, recreates } => {
+            let ruin = Box::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(problem, g)).collect()));
+            let recreate =
+                Box::new(CompositeRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect()));
+            (Arc::new(RuinAndRecreate::new(recreate, ruin)), *probability)
+        }
+        MutationType::LocalSearch { probability, times, operators: inners } => {
+            let operator = create_local_search(times, inners);
+            (Arc::new(LocalSearch::new(operator)), *probability)
+        }
+        MutationType::Composite { probability, inners } => {
+            let inners =
+                inners.iter().map(|mutation| create_mutation(problem, mutation)).collect::<Result<Vec<_>, _>>()?;
+
+            (Arc::new(CompositeMutation::new(vec![(inners, 1)])), *probability)
+        }
+    })
+}
+
 fn create_ruin_group(problem: &Arc<Problem>, group: &RuinGroupConfig) -> RuinGroup {
     (group.methods.iter().map(|r| create_ruin_method(problem, r)).collect(), group.weight)
 }
@@ -426,27 +362,26 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
     }
 }
 
-fn create_local_search(group: &LocalSearchGroupConfig) -> (Box<dyn LocalSearch + Send + Sync>, f64) {
-    let operators = group
-        .operators
+fn create_local_search(times: &MinMaxConfig, inners: &Vec<LocalOperatorType>) -> Box<dyn LocalOperator + Send + Sync> {
+    let operators = inners
         .iter()
-        .map::<(Box<dyn LocalSearch + Send + Sync>, usize), _>(|op| match op {
-            LocalSearchOperator::InterRouteBest { weight, noise } => {
+        .map::<(Box<dyn LocalOperator + Send + Sync>, usize), _>(|op| match op {
+            LocalOperatorType::InterRouteBest { weight, noise } => {
                 (Box::new(ExchangeInterRouteBest::new(noise.probability, noise.min, noise.max)), *weight)
             }
-            LocalSearchOperator::InterRouteRandom { weight, noise } => {
+            LocalOperatorType::InterRouteRandom { weight, noise } => {
                 (Box::new(ExchangeInterRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
             }
-            LocalSearchOperator::IntraRouteRandom { weight, noise } => {
+            LocalOperatorType::IntraRouteRandom { weight, noise } => {
                 (Box::new(ExchangeIntraRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
             }
-            LocalSearchOperator::PushRouteDeparture { weight, offset } => {
+            LocalOperatorType::PushRouteDeparture { weight, offset } => {
                 (Box::new(PushRouteDeparture::new(*offset)), *weight)
             }
         })
         .collect::<Vec<_>>();
 
-    (Box::new(CompositeLocalSearch::new(operators, group.times.min, group.times.max)), group.probability)
+    Box::new(CompositeLocalOperator::new(operators, times.min, times.max))
 }
 
 fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Result<Builder, String> {

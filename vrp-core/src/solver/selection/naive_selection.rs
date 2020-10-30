@@ -20,7 +20,7 @@ impl NaiveSelection {
 }
 
 impl Selection for NaiveSelection {
-    fn select_parents(&self, refinement_ctx: &RefinementContext) -> Vec<InsertionContext> {
+    fn select_parents<'a>(&self, refinement_ctx: &'a RefinementContext) -> Vec<&'a InsertionContext> {
         assert!(refinement_ctx.population.size() > 0);
         let random = refinement_ctx.population.nth(0).unwrap().random.clone();
 
@@ -31,7 +31,7 @@ impl Selection for NaiveSelection {
             )
             .take(self.offspring_size)
             .filter_map(|idx| refinement_ctx.population.nth(idx))
-            .map(|individual| individual.deep_copy())
+            .map(|individual| individual)
             .collect()
     }
 }

@@ -6,7 +6,7 @@ use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::{Duration, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::Job;
 use crate::models::OP_START_MSG;
-use crate::solver::mutation::{select_random_route, LocalSearch, Recreate, RecreateWithCheapest};
+use crate::solver::mutation::{select_random_route, LocalOperator, Recreate, RecreateWithCheapest};
 use crate::solver::RefinementContext;
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
@@ -31,7 +31,7 @@ impl PushRouteDeparture {
     }
 }
 
-impl LocalSearch for PushRouteDeparture {
+impl LocalOperator for PushRouteDeparture {
     fn explore(
         &self,
         refinement_ctx: &RefinementContext,

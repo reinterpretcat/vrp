@@ -15,7 +15,7 @@ mod push_route_departure;
 pub use self::push_route_departure::*;
 
 /// Specifies behavior of a local search operator.
-pub trait LocalSearch {
+pub trait LocalOperator {
     /// Applies local search operator to passed solution in order to explore possible
     /// small move in solution space which leads to a different solution.
     fn explore(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext)
@@ -23,15 +23,15 @@ pub trait LocalSearch {
 }
 
 /// Provides the way to run multiple local search operators with different probability.
-pub struct CompositeLocalSearch {
-    operators: Vec<Box<dyn LocalSearch + Send + Sync>>,
+pub struct CompositeLocalOperator {
+    operators: Vec<Box<dyn LocalOperator + Send + Sync>>,
     weights: Vec<usize>,
     times: (i32, i32),
 }
 
-impl CompositeLocalSearch {
-    /// Creates a new instance of `CompositeLocalSearch`.
-    pub fn new(operators: Vec<(Box<dyn LocalSearch + Send + Sync>, usize)>, min: usize, max: usize) -> Self {
+impl CompositeLocalOperator {
+    /// Creates a new instance of `CompositeLocalOperator`.
+    pub fn new(operators: Vec<(Box<dyn LocalOperator + Send + Sync>, usize)>, min: usize, max: usize) -> Self {
         let weights = operators.iter().map(|(_, weight)| *weight).collect();
         let operators = operators.into_iter().map(|(operator, _)| operator).collect();
 
@@ -39,7 +39,7 @@ impl CompositeLocalSearch {
     }
 }
 
-impl Default for CompositeLocalSearch {
+impl Default for CompositeLocalOperator {
     fn default() -> Self {
         Self::new(
             vec![
@@ -54,7 +54,7 @@ impl Default for CompositeLocalSearch {
     }
 }
 
-impl LocalSearch for CompositeLocalSearch {
+impl LocalOperator for CompositeLocalOperator {
     fn explore(
         &self,
         refinement_ctx: &RefinementContext,

@@ -31,7 +31,7 @@ pub use self::random_job_removal::RandomJobRemoval;
 mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
 
-/// A type which specifies a group of multiple ruin strategies with its probability.
+/// A type which specifies a group of multiple ruin strategies with their probability.
 pub type RuinGroup = (Vec<(Arc<dyn Ruin + Send + Sync>, f64)>, usize);
 
 /// Provides the way to run multiple ruin methods one by one on the same solution.
@@ -127,10 +127,7 @@ impl Ruin for CompositeRuin {
 
         let index = insertion_ctx.random.weighted(self.weights.as_slice());
 
-        let mut insertion_ctx = self
-            .ruins
-            .get(index)
-            .unwrap()
+        let mut insertion_ctx = self.ruins[index]
             .iter()
             .filter(|(_, probability)| random.is_hit(*probability))
             .fold(insertion_ctx, |ctx, (ruin, _)| ruin.run(refinement_ctx, ctx));
