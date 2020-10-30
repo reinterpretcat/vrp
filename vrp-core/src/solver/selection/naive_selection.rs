@@ -31,7 +31,6 @@ impl Selection for NaiveSelection {
             )
             .take(self.offspring_size)
             .filter_map(|idx| refinement_ctx.population.nth(idx))
-            .map(|individual| individual)
             .collect()
     }
 }

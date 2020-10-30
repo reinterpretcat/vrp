@@ -362,7 +362,7 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
     }
 }
 
-fn create_local_search(times: &MinMaxConfig, inners: &Vec<LocalOperatorType>) -> Box<dyn LocalOperator + Send + Sync> {
+fn create_local_search(times: &MinMaxConfig, inners: &[LocalOperatorType]) -> Box<dyn LocalOperator + Send + Sync> {
     let operators = inners
         .iter()
         .map::<(Box<dyn LocalOperator + Send + Sync>, usize), _>(|op| match op {
