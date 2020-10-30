@@ -46,7 +46,7 @@ impl Default for CompositeLocalSearch {
                 (Box::new(ExchangeInterRouteBest::default()), 100),
                 (Box::new(ExchangeInterRouteRandom::default()), 30),
                 (Box::new(ExchangeIntraRouteRandom::default()), 30),
-                (Box::new(PushRouteDeparture::default()), 20),
+                (Box::new(PushRouteDeparture::default()), 5),
             ],
             1,
             2,
