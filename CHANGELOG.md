@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - move Local Search out of Ruin Recreate mutation
+- `breaking`: use string as unassigned job reason code
 
 
 ## [v1.6.4] - 2020-10-27

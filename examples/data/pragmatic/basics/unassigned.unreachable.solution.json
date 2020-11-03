@@ -115,7 +115,7 @@
       "jobId": "job2",
       "reasons": [
         {
-          "code": 100,
+          "code": "REACHABLE_CONSTRAINT",
           "description": "location unreachable"
         }
       ]

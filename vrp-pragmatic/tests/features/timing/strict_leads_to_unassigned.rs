@@ -95,7 +95,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job5".to_string(),
                 reasons: vec![UnassignedJobReason {
-                    code: 2,
+                    code: "TIME_WINDOW_CONSTRAINT".to_string(),
                     description: "cannot be visited within time window".to_string()
                 }]
             }]),

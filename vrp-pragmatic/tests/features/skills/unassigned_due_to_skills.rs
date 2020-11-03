@@ -35,7 +35,10 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
             tours: vec![],
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
-                reasons: vec![UnassignedJobReason { code: 1, description: "cannot serve required skill".to_string() }]
+                reasons: vec![UnassignedJobReason {
+                    code: "SKILL_CONSTRAINT".to_string(),
+                    description: "cannot serve required skill".to_string()
+                }]
             }]),
             ..create_empty_solution()
         }

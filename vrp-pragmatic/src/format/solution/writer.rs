@@ -288,24 +288,6 @@ fn calculate_load(current: MultiDimLoad, act: &Activity, is_multi_dimen: bool) -
     current - demand.delivery.0 - demand.delivery.1 + demand.pickup.0 + demand.pickup.1
 }
 
-fn map_code_reason(code: i32) -> (i32, &'static str) {
-    match code {
-        SKILLS_CONSTRAINT_CODE => (1, "cannot serve required skill"),
-        TIME_CONSTRAINT_CODE => (2, "cannot be visited within time window"),
-        CAPACITY_CONSTRAINT_CODE => (3, "does not fit into any vehicle due to capacity"),
-        REACHABLE_CONSTRAINT_CODE => (100, "location unreachable"),
-        DISTANCE_LIMIT_CONSTRAINT_CODE => (101, "cannot be assigned due to max distance constraint of vehicle"),
-        DURATION_LIMIT_CONSTRAINT_CODE => (102, "cannot be assigned due to shift time constraint of vehicle"),
-        BREAK_CONSTRAINT_CODE => (103, "break is not assignable"),
-        LOCKING_CONSTRAINT_CODE => (104, "cannot be served due to relation lock"),
-        PRIORITY_CONSTRAINT_CODE => (105, "cannot be served due to priority"),
-        AREA_CONSTRAINT_CODE => (106, "cannot be assigned due to area constraint"),
-        DEPOT_CONSTRAINT_CODE => (107, "cannot be assigned due to vehicle dispatch"),
-        TOUR_SIZE_CONSTRAINT_CODE => (108, "cannot be assigned due to tour size constraint of vehicle"),
-        _ => (0, "unknown"),
-    }
-}
-
 fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
     let unassigned = solution
         .unassigned
@@ -315,7 +297,7 @@ fn create_unassigned(solution: &Solution) -> Option<Vec<UnassignedJob>> {
             let (code, reason) = map_code_reason(*code);
             UnassignedJob {
                 job_id: job.dimens().get_id().expect("job id expected").clone(),
-                reasons: vec![UnassignedJobReason { code, description: reason.to_string() }],
+                reasons: vec![UnassignedJobReason { code: code.to_string(), description: reason.to_string() }],
             }
         })
         .collect::<Vec<_>>();

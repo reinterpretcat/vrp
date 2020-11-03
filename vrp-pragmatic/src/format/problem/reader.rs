@@ -249,11 +249,11 @@ fn create_constraint_pipeline(
     }
 
     if props.has_skills {
-        constraint.add_module(Box::new(SkillsModule::new(SKILLS_CONSTRAINT_CODE)));
+        constraint.add_module(Box::new(SkillsModule::new(SKILL_CONSTRAINT_CODE)));
     }
 
     if props.has_dispatch {
-        constraint.add_module(Box::new(DispatchModule::new(DEPOT_CONSTRAINT_CODE)));
+        constraint.add_module(Box::new(DispatchModule::new(DISPATCH_CONSTRAINT_CODE)));
     }
 
     if props.has_priorities {

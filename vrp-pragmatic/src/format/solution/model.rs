@@ -102,7 +102,7 @@ pub struct Tour {
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct UnassignedJobReason {
     /// A reason code.
-    pub code: i32,
+    pub code: String,
     /// Description.
     pub description: String,
 }

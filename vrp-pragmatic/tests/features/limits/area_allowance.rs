@@ -46,7 +46,7 @@ fn can_limit_by_area() {
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
-                    code: 106,
+                    code: "AREA_CONSTRAINT".to_string(),
                     description: "cannot be assigned due to area constraint".to_string()
                 }]
             }]),

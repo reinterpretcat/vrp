@@ -126,7 +126,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
             unassigned: Some(vec![UnassignedJob {
                 job_id: "d3".to_string(),
                 reasons: vec![UnassignedJobReason {
-                    code: 3,
+                    code: "CAPACITY_CONSTRAINT".to_string(),
                     description: "does not fit into any vehicle due to capacity".to_string()
                 }],
             }]),

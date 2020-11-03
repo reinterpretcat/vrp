@@ -43,7 +43,7 @@ fn can_limit_by_max_distance() {
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
                 reasons: vec![UnassignedJobReason {
-                    code: 101,
+                    code: "MAX_DISTANCE_CONSTRAINT".to_string(),
                     description: "cannot be assigned due to max distance constraint of vehicle".to_string()
                 }]
             }]),

@@ -47,7 +47,10 @@ fn create_unassigned_jobs(job_ids: &[&str]) -> Option<Vec<UnassignedJob>> {
             .iter()
             .map(|job_id| UnassignedJob {
                 job_id: job_id.to_string(),
-                reasons: vec![UnassignedJobReason { code: 0, description: "unknown".to_string() }],
+                reasons: vec![UnassignedJobReason {
+                    code: "NO_REASON_FOUND".to_string(),
+                    description: "unknown".to_string(),
+                }],
             })
             .collect(),
     )

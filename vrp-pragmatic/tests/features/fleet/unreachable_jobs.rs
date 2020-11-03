@@ -31,7 +31,10 @@ fn can_use_vehicle_with_open_end() {
             tours: vec![],
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),
-                reasons: vec![UnassignedJobReason { code: 100, description: "location unreachable".to_string() }]
+                reasons: vec![UnassignedJobReason {
+                    code: "REACHABLE_CONSTRAINT".to_string(),
+                    description: "location unreachable".to_string()
+                }]
             }]),
             ..create_empty_solution()
         }

@@ -3,7 +3,7 @@
 mod initial_reader_test;
 
 use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
-use crate::format::solution::deserialize_solution;
+use crate::format::solution::{deserialize_solution, map_reason_code};
 use crate::format::{get_coord_index, get_job_index, CoordIndex, JobIndex};
 use crate::parse_time;
 use std::io::{BufReader, Read};
@@ -68,7 +68,7 @@ pub fn read_init_solution<R: Read>(
             let code = unassigned_job
                 .reasons
                 .first()
-                .map(|reason| reason.code)
+                .map(|reason| map_reason_code(&reason.code))
                 .ok_or_else(|| format!("cannot get reason for: {:?}", unassigned_job))?;
 
             added_jobs.insert(job.clone());

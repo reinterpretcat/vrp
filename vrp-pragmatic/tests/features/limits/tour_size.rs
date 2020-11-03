@@ -81,7 +81,7 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job3".to_string(),
                 reasons: vec![UnassignedJobReason {
-                    code: 108,
+                    code: "TOUR_SIZE_CONSTRAINT".to_string(),
                     description: "cannot be assigned due to tour size constraint of vehicle".to_string()
                 }]
             }]),
