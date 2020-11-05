@@ -61,6 +61,21 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         bmu.borrow_mut().storage.add(input);
     }
 
+    /// Rebalances network.
+    pub fn rebalance(&mut self) {
+        let mut data =
+            self.nodes.iter_mut().flat_map(|(_, node)| node.borrow_mut().storage.drain()).collect::<Vec<_>>();
+
+        data.drain(0..).for_each(|input| {
+            self.train(input);
+        });
+    }
+
+    /// Compacts network.
+    pub fn compact(&mut self) {
+        // TODO
+    }
+
     /// Finds the best matching unit within the map for the given input.
     fn find_bmu(&self, input: &I) -> NodeLink<I, S> {
         // TODO avoid double distance calculation
@@ -81,16 +96,22 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
     /// Updates network according to the error.
     fn update(&mut self, node: &NodeLink<I, S>, input: &I, error: f64) {
-        let mut node = node.borrow_mut();
-        node.error += error;
+        let (exceeds_ae, is_boundary) = {
+            let mut node = node.borrow_mut();
+            node.error += error;
 
-        match (node.error > self.growing_threshold, node.topology.is_boundary()) {
+            (node.error > self.growing_threshold, node.topology.is_boundary())
+        };
+
+        match (exceeds_ae, is_boundary) {
+            // error distribution
             (true, false) => {
-                // error distribution
                 let distribute_error = |node: Option<&NodeLink<I, S>>| {
                     let mut node = node.unwrap().borrow_mut();
                     node.error += self.distribution_factor * node.error;
                 };
+
+                let mut node = node.borrow_mut();
 
                 node.error = 0.5 * self.growing_threshold;
 
@@ -99,24 +120,30 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
                 distribute_error(node.topology.up.as_ref());
                 distribute_error(node.topology.down.as_ref());
             }
+            // weight distribution
             (true, true) => {
-                // weight distribution
+                // NOTE clone to fight with borrow checker
+                let coordinate = node.borrow().coordinate.clone();
+                let weights = node.borrow().weights.clone();
+                let topology = node.borrow().topology.clone();
+
                 let mut distribute_weight = |offset: (i32, i32), link: Option<&NodeLink<I, S>>| {
                     if link.is_none() {
-                        let coordinate = Coordinate(node.coordinate.0 + offset.0, node.coordinate.1 + offset.1);
-                        self.insert(coordinate, node.weights.as_slice());
+                        let coordinate = Coordinate(coordinate.0 + offset.0, coordinate.1 + offset.1);
+                        self.insert(coordinate, weights.as_slice());
                     }
                 };
 
-                distribute_weight((-1, 0), node.topology.left.as_ref());
-                distribute_weight((1, 0), node.topology.right.as_ref());
-                distribute_weight((0, 1), node.topology.up.as_ref());
-                distribute_weight((0, -1), node.topology.down.as_ref());
+                distribute_weight((-1, 0), topology.left.as_ref());
+                distribute_weight((1, 0), topology.right.as_ref());
+                distribute_weight((0, 1), topology.up.as_ref());
+                distribute_weight((0, -1), topology.down.as_ref());
             }
             _ => {}
         }
 
         // weight adjustments
+        let mut node = node.borrow_mut();
         let learning_rate = self.learning_rate * self.reduction_factor * (1. - 1.5 / (self.nodes.len() as f64));
 
         node.adjust(input.weights(), learning_rate);
@@ -132,22 +159,22 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             let mut new_node_mut = new_node.borrow_mut();
             let (new_x, new_y) = (coordinate.0, coordinate.1);
 
-            if let Some(node) = self.nodes.get_mut(&Coordinate(new_x - 1, new_y)) {
+            if let Some(node) = self.nodes.get(&Coordinate(new_x - 1, new_y)) {
                 new_node_mut.topology.left = Some(node.clone());
                 node.borrow_mut().topology.right = Some(new_node.clone());
             }
 
-            if let Some(node) = self.nodes.get_mut(&Coordinate(new_x + 1, new_y)) {
+            if let Some(node) = self.nodes.get(&Coordinate(new_x + 1, new_y)) {
                 new_node_mut.topology.right = Some(node.clone());
                 node.borrow_mut().topology.left = Some(new_node.clone());
             }
 
-            if let Some(node) = self.nodes.get_mut(&Coordinate(new_x, new_y - 1)) {
+            if let Some(node) = self.nodes.get(&Coordinate(new_x, new_y - 1)) {
                 new_node_mut.topology.down = Some(node.clone());
                 node.borrow_mut().topology.up = Some(new_node.clone());
             }
 
-            if let Some(node) = self.nodes.get_mut(&Coordinate(new_x, new_y + 1)) {
+            if let Some(node) = self.nodes.get(&Coordinate(new_x, new_y + 1)) {
                 new_node_mut.topology.up = Some(node.clone());
                 node.borrow_mut().topology.down = Some(new_node.clone());
             }

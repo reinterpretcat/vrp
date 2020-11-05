@@ -62,6 +62,18 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     }
 }
 
+impl<I: Input, S: Storage<Item = I>> Clone for Topology<I, S> {
+    fn clone(&self) -> Self {
+        Self {
+            dimension: self.dimension,
+            right: self.right.clone(),
+            left: self.left.clone(),
+            up: self.up.clone(),
+            down: self.down.clone(),
+        }
+    }
+}
+
 impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
     /// Creates an empty cell at given coordinate.
     pub fn empty(dimension: usize) -> Self {
