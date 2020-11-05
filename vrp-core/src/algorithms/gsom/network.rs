@@ -153,7 +153,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     /// Inserts new neighbors if necessary.
-    fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) -> NodeLink<I, S> {
+    fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
         let new_node = Rc::new(RefCell::new(Node::new(coordinate.clone(), weights)));
         {
             let mut new_node_mut = new_node.borrow_mut();
@@ -180,7 +180,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             }
         }
 
-        new_node
+        self.nodes.insert(coordinate, new_node);
     }
 
     /// Creates nodes for initial topology.
