@@ -8,6 +8,8 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
     pub weights: Vec<f64>,
     /// An error of the neuron.
     pub error: f64,
+    /// Tracks amount of times node is selected as BU.
+    pub hits: usize,
     /// A coordinate in network.
     pub coordinate: Coordinate,
     /// A reference to topology.
@@ -41,6 +43,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         Self {
             weights: weights.to_vec(),
             error: 0.0,
+            hits: 0,
             coordinate,
             topology: Topology::empty(weights.len()),
             storage: S::default(),

@@ -72,8 +72,8 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     /// Compacts network.
-    pub fn compact(&mut self) {
-        // TODO
+    pub fn compact(&mut self, hit_threshold: usize) {
+        self.nodes.retain(|_, node| node.borrow().hits > hit_threshold);
     }
 
     /// Finds the best matching unit within the map for the given input.
@@ -99,6 +99,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         let (exceeds_ae, is_boundary) = {
             let mut node = node.borrow_mut();
             node.error += error;
+            node.hits += 1;
 
             (node.error > self.growing_threshold, node.topology.is_boundary())
         };
@@ -144,7 +145,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
         // weight adjustments
         let mut node = node.borrow_mut();
-        let learning_rate = self.learning_rate * self.reduction_factor * (1. - 1.5 / (self.nodes.len() as f64));
+        let learning_rate = self.learning_rate * self.reduction_factor * (1. - 3.8 / (self.nodes.len() as f64));
 
         node.adjust(input.weights(), learning_rate);
         (node.topology.neighbours().map(|n| n.borrow_mut())).for_each(|mut neighbor| {
