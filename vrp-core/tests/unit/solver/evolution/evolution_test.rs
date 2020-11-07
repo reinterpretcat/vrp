@@ -1,5 +1,8 @@
 use super::*;
+use crate::construction::Quota;
 use crate::models::examples::create_example_problem;
+use crate::solver::TelemetryMode;
+use std::sync::Arc;
 
 parameterized_test! {can_enable_telemetry_metrics, mode, {
         can_enable_telemetry_metrics_impl(mode);

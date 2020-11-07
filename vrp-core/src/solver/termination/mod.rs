@@ -20,12 +20,12 @@ pub use self::max_time::MaxTime;
 
 /// A trait which encapsulates multiple termination criteria.
 pub struct CompositeTermination {
-    terminations: Vec<Box<dyn Termination>>,
+    terminations: Vec<Box<dyn Termination + Send + Sync>>,
 }
 
 impl CompositeTermination {
     /// Creates a new instance of `CompositeTermination`.
-    pub fn new(terminations: Vec<Box<dyn Termination>>) -> Self {
+    pub fn new(terminations: Vec<Box<dyn Termination + Send + Sync>>) -> Self {
         Self { terminations }
     }
 }

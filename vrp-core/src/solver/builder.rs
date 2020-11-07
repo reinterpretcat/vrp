@@ -134,21 +134,21 @@ impl Builder {
     /// Sets selection algorithm. Default is naive selection.
     pub fn with_selection(mut self, selection: Arc<dyn Selection + Send + Sync>) -> Self {
         self.config.telemetry.log("configured to use custom selection");
-        self.config.selection = selection;
+        self.config.operators.selection = selection;
         self
     }
 
     /// Sets mutation algorithm. Default is ruin and recreate.
     pub fn with_mutation(mut self, mutation: Arc<dyn Mutation + Send + Sync>) -> Self {
         self.config.telemetry.log("configured to use custom mutation");
-        self.config.mutation = mutation;
+        self.config.operators.mutation = mutation;
         self
     }
 
     /// Sets termination algorithm. Default is max time and max generations.
-    pub fn with_termination(mut self, termination: Arc<dyn Termination>) -> Self {
+    pub fn with_termination(mut self, termination: Arc<dyn Termination + Send + Sync>) -> Self {
         self.config.telemetry.log("configured to use custom termination parameters");
-        self.config.termination = termination;
+        self.config.operators.termination = termination;
         self
     }
 
@@ -156,7 +156,7 @@ impl Builder {
     pub fn build(self) -> Result<Solver, String> {
         let problem = self.config.problem.clone();
 
-        let (criterias, quota): (Vec<Box<dyn Termination>>, _) =
+        let (criterias, quota): (Vec<Box<dyn Termination + Send + Sync>>, _) =
             match (self.max_generations, self.max_time, self.cost_variation) {
                 (None, None, None) => {
                     self.config
@@ -165,7 +165,7 @@ impl Builder {
                     (vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))], None)
                 }
                 _ => {
-                    let mut criterias: Vec<Box<dyn Termination>> = vec![];
+                    let mut criterias: Vec<Box<dyn Termination + Send + Sync>> = vec![];
 
                     if let Some(limit) = self.max_generations {
                         self.config.telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
@@ -196,7 +196,7 @@ impl Builder {
             };
 
         let mut config = self.config;
-        config.termination = Arc::new(CompositeTermination::new(criterias));
+        config.operators.termination = Arc::new(CompositeTermination::new(criterias));
         config.quota = quota;
 
         config.random = Arc::new(DefaultRandom::default());
