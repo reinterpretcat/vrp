@@ -73,7 +73,22 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
     /// Compacts network.
     pub fn compact(&mut self, hit_threshold: usize) {
-        self.nodes.retain(|_, node| node.borrow().hits > hit_threshold);
+        let mut remove = vec![];
+        self.nodes.iter_mut().filter(|(_, node)| node.borrow().hit_counter < hit_threshold).for_each(
+            |(coordinate, node)| {
+                let mut topology = &mut node.borrow_mut().topology;
+                topology.left.iter_mut().for_each(|link| link.borrow_mut().topology.right = None);
+                topology.right.iter_mut().for_each(|link| link.borrow_mut().topology.left = None);
+                topology.up.iter_mut().for_each(|link| link.borrow_mut().topology.down = None);
+                topology.down.iter_mut().for_each(|link| link.borrow_mut().topology.up = None);
+
+                remove.push(coordinate.clone());
+            },
+        );
+
+        remove.iter().for_each(|coordinate| {
+            self.nodes.remove(coordinate);
+        })
     }
 
     /// Finds the best matching unit within the map for the given input.
