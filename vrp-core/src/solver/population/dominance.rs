@@ -1,6 +1,6 @@
 #[cfg(test)]
-#[path = "../../tests/unit/solver/population_test.rs"]
-mod population_test;
+#[path = "../../../tests/unit/solver/population/dominance_test.rs"]
+mod dominance_test;
 
 use crate::algorithms::nsga2::{select_and_rank, MultiObjective, Objective};
 use crate::models::Problem;
