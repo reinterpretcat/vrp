@@ -20,17 +20,17 @@ pub type Individual = InsertionContext;
 pub trait Population {
     /// Adds all individuals into the population, then sorts and shrinks population if necessary.
     /// Returns true if any of newly added individuals is considered as best known.
-    fn add_all(&mut self, individuals: Vec<Individual>) -> bool;
+    fn add_all(&mut self, individuals: Vec<Individual>, statistics: &Statistics) -> bool;
 
     /// Adds an individual into the population.
     /// Returns true if newly added individual is considered as best known.
-    fn add(&mut self, individual: Individual) -> bool;
+    fn add(&mut self, individual: Individual, statistics: &Statistics) -> bool;
 
     /// Compares two solutions the same way as population does.
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering;
 
     /// Selects parent from population based on refinement statistics.
-    fn select<'a>(&'a self, statistics: &Statistics) -> Box<dyn Iterator<Item = &Individual> + 'a>;
+    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a>;
 
     /// Returns subset of individuals within their rank sorted according their quality.
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a>;

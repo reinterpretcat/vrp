@@ -25,12 +25,15 @@ impl EvolutionStrategy for RunSimple {
         while !should_stop(&mut refinement_ctx, termination) {
             let generation_time = Timer::start();
 
-            let parents = refinement_ctx.population.select(&refinement_ctx.statistics).collect();
+            let parents = refinement_ctx.population.select().collect();
 
             let offspring = mutation.mutate_all(&refinement_ctx, parents);
 
-            let is_improved =
-                if should_add_solution(&refinement_ctx) { refinement_ctx.population.add_all(offspring) } else { false };
+            let is_improved = if should_add_solution(&refinement_ctx) {
+                refinement_ctx.population.add_all(offspring, &refinement_ctx.statistics)
+            } else {
+                false
+            };
 
             telemetry.on_generation(&mut refinement_ctx, generation_time, is_improved);
         }

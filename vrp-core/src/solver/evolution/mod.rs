@@ -7,7 +7,7 @@ use crate::solver::mutation::*;
 use crate::solver::population::DominancePopulation;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
-use crate::solver::{Metrics, Population, RefinementContext};
+use crate::solver::{Metrics, Population, RefinementContext, Statistics};
 use crate::utils::Timer;
 
 mod config;
@@ -96,7 +96,7 @@ impl EvolutionSimulator {
             .for_each(|(ctx, idx)| {
                 if should_add_solution(&refinement_ctx) {
                     self.config.telemetry.on_initial(idx, self.config.population.initial.size, Timer::start());
-                    refinement_ctx.population.add(ctx);
+                    refinement_ctx.population.add(ctx, &Statistics::default());
                 } else {
                     self.config.telemetry.log(format!("skipping provided initial solution {}", idx).as_str())
                 }
@@ -119,7 +119,7 @@ impl EvolutionSimulator {
                 self.config.population.initial.methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
 
             if should_add_solution(&refinement_ctx) {
-                refinement_ctx.population.add(insertion_ctx);
+                refinement_ctx.population.add(insertion_ctx, &Statistics::default());
                 self.config.telemetry.on_initial(idx, self.config.population.initial.size, item_time);
             } else {
                 self.config.telemetry.log(format!("skipping built initial solution {}", idx).as_str())

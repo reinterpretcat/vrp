@@ -60,7 +60,7 @@ impl DominancePopulation {
 }
 
 impl Population for DominancePopulation {
-    fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
+    fn add_all(&mut self, individuals: Vec<Individual>, _: &Statistics) -> bool {
         let was_empty = self.size() == 0;
 
         individuals.into_iter().for_each(|individual| {
@@ -72,7 +72,7 @@ impl Population for DominancePopulation {
         self.is_improved(was_empty)
     }
 
-    fn add(&mut self, individual: Individual) -> bool {
+    fn add(&mut self, individual: Individual, _: &Statistics) -> bool {
         let was_empty = self.size() == 0;
 
         self.individuals.push(individual);
@@ -86,7 +86,7 @@ impl Population for DominancePopulation {
         self.problem.objective.total_order(a, b)
     }
 
-    fn select<'a>(&'a self, _: &Statistics) -> Box<dyn Iterator<Item = &Individual> + 'a> {
+    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
         Box::new(
             once(0_usize)
                 .chain(

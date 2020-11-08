@@ -12,14 +12,15 @@ pub struct RosomaxaPopulation {
 }
 
 impl Population for RosomaxaPopulation {
-    fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
-        individuals.into_iter().fold(false, |acc, individual| acc || self.add(individual))
+    fn add_all(&mut self, individuals: Vec<Individual>, statistics: &Statistics) -> bool {
+        individuals.into_iter().fold(false, |acc, individual| acc || self.add(individual, statistics))
     }
 
-    fn add(&mut self, individual: Individual) -> bool {
+    fn add(&mut self, individual: Individual, statistics: &Statistics) -> bool {
         let is_improvement =
-            if self.is_improvement(&individual) { self.elite.add(individual.deep_copy()) } else { false };
+            if self.is_improvement(&individual) { self.elite.add(individual.deep_copy(), statistics) } else { false };
 
+        // TODO use statistics to control network parameters
         self.network.train(IndividualInput { individual });
 
         is_improvement
@@ -29,8 +30,8 @@ impl Population for RosomaxaPopulation {
         self.elite.cmp(a, b)
     }
 
-    fn select<'a>(&'a self, statistics: &Statistics) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        self.elite.select(statistics)
+    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
+        self.elite.select()
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
@@ -79,7 +80,7 @@ impl Storage for IndividualStorage {
     type Item = IndividualInput;
 
     fn add(&mut self, input: Self::Item) {
-        self.population.add(input.individual);
+        self.population.add(input.individual, &Statistics::default());
     }
 
     fn drain(&mut self) -> Vec<Self::Item> {
