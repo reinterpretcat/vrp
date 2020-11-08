@@ -3,10 +3,10 @@
 mod dominance_test;
 
 use super::*;
-use crate::algorithms::nsga2::{select_and_rank, MultiObjective, Objective};
+use crate::algorithms::nsga2::{select_and_rank, Objective};
 use crate::models::Problem;
 use crate::solver::{Population, Statistics, SOLUTION_ORDER_KEY};
-use crate::utils::{compare_floats, Random};
+use crate::utils::Random;
 use std::cmp::Ordering;
 use std::iter::once;
 use std::sync::Arc;
@@ -143,11 +143,8 @@ impl DominancePopulation {
             let order_b = Self::gen_dominance_order(b);
 
             if order_a.rank == order_b.rank {
-                // TODO investigate why just using crowding distance here does not work
-                let fitness_a = objective.objectives().map(|o| o.fitness(a));
-                let fitness_b = objective.objectives().map(|o| o.fitness(b));
-
-                fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
+                // NOTE just using crowding distance here does not work
+                is_same_fitness(a, b, objective.as_ref())
             } else {
                 false
             }

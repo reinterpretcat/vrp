@@ -1,9 +1,13 @@
 use super::*;
 use crate::algorithms::gsom::{Input, Network, Storage};
+use crate::models::Problem;
+use std::sync::Arc;
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
 /// Maps And eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
 pub struct RosomaxaPopulation {
+    problem: Arc<Problem>,
+    elite: DominancePopulation,
     network: Network<IndividualInput, IndividualStorage>,
 }
 
@@ -13,7 +17,12 @@ impl Population for RosomaxaPopulation {
     }
 
     fn add(&mut self, individual: Individual) -> bool {
-        unimplemented!()
+        let is_improvement =
+            if self.is_improvement(&individual) { self.elite.add(individual.deep_copy()) } else { false };
+
+        self.network.train(IndividualInput { individual });
+
+        is_improvement
     }
 
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
@@ -37,6 +46,16 @@ impl RosomaxaPopulation {
     /// Creates a new instance of `RosomaxaPopulation`.
     pub fn new() -> Self {
         unimplemented!()
+    }
+
+    fn is_improvement(&self, individual: &Individual) -> bool {
+        if let Some((best, _)) = self.elite.ranked().next() {
+            if self.elite.cmp(individual, best) != Ordering::Greater {
+                return !is_same_fitness(individual, best, self.problem.objective.as_ref());
+            }
+        }
+
+        false
     }
 }
 
