@@ -82,20 +82,23 @@ impl Population for DominancePopulation {
         self.problem.objective.total_order(a, b)
     }
 
+    fn select<'a>(&'a self, _: &Statistics) -> Box<dyn Iterator<Item = &Individual> + 'a> {
+        Box::new(
+            once(0_usize)
+                .chain(
+                    (1..self.selection_size).map(move |_| self.random.uniform_int(0, self.size() as i32 - 1) as usize),
+                )
+                .take(self.selection_size)
+                .filter_map(move |idx| self.individuals.get(idx)),
+        )
+    }
+
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
         Box::new(self.individuals.iter().map(|individual| (individual, Self::gen_dominance_order(individual).rank)))
     }
 
     fn size(&self) -> usize {
         self.individuals.len()
-    }
-
-    fn select(&self, _: &Statistics) -> Vec<&InsertionContext> {
-        once(0_usize)
-            .chain((1..self.selection_size).map(|_| self.random.uniform_int(0, self.size() as i32 - 1) as usize))
-            .take(self.selection_size)
-            .filter_map(|idx| self.individuals.get(idx))
-            .collect()
     }
 }
 

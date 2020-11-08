@@ -17,9 +17,6 @@ pub trait Storage: Default {
     /// Adds an input to the storage.
     fn add(&mut self, input: Self::Item);
 
-    /// Returns stored input.
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Item> + 'a>;
-
     /// Removes and returns all data from the storage.
     fn drain(&mut self) -> Vec<Self::Item>;
 

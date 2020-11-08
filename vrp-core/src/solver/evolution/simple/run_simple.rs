@@ -25,7 +25,7 @@ impl EvolutionStrategy for RunSimple {
         while !should_stop(&mut refinement_ctx, termination) {
             let generation_time = Timer::start();
 
-            let parents = refinement_ctx.population.select(&refinement_ctx.statistics);
+            let parents = refinement_ctx.population.select(&refinement_ctx.statistics).collect();
 
             let offspring = mutation.mutate_all(&refinement_ctx, parents);
 

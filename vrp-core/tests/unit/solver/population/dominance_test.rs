@@ -160,7 +160,7 @@ fn can_select_individuals() {
         create_empty_insertion_context(),
     ]);
 
-    let parents = population.select(&Statistics::default());
+    let parents = population.select(&Statistics::default()).collect::<Vec<_>>();
 
     assert_eq!(parents.len(), 3);
 }

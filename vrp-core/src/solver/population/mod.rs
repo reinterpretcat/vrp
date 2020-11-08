@@ -3,6 +3,9 @@
 mod dominance;
 pub use self::dominance::DominancePopulation;
 
+mod rosomaxa;
+pub use self::rosomaxa::RosomaxaPopulation;
+
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::Statistics;
 use std::cmp::Ordering;
@@ -24,7 +27,7 @@ pub trait Population {
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering;
 
     /// Selects parent from population based on refinement statistics.
-    fn select(&self, statistics: &Statistics) -> Vec<&InsertionContext>;
+    fn select<'a>(&'a self, statistics: &Statistics) -> Box<dyn Iterator<Item = &Individual> + 'a>;
 
     /// Returns subset of individuals within their rank sorted according their quality.
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a>;
