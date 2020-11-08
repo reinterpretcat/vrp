@@ -1,6 +1,7 @@
 use super::*;
 use crate::algorithms::gsom::{Input, Network, Storage};
 use crate::models::Problem;
+use crate::solver::SOLUTION_WEIGHTS_KEY;
 use std::sync::Arc;
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
@@ -21,7 +22,9 @@ impl Population for RosomaxaPopulation {
             if self.is_improvement(&individual) { self.elite.add(individual.deep_copy(), statistics) } else { false };
 
         // TODO use statistics to control network parameters
-        self.network.train(IndividualInput { individual });
+
+        let weights = self.get_weights(&individual);
+        self.network.train(IndividualInput::new_with_weights(individual, weights));
 
         is_improvement
     }
@@ -31,7 +34,9 @@ impl Population for RosomaxaPopulation {
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        self.elite.select()
+        // TODO return individuals from elite (exploitation) and network (exploration)
+        //      use statistics from add to control exploitation vs exploration balance
+        unimplemented!()
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
@@ -60,15 +65,35 @@ impl RosomaxaPopulation {
 
         false
     }
+
+    fn get_weights(&self, _individual: &InsertionContext) -> Vec<f64> {
+        // TODO Calculate individual weights
+        unimplemented!()
+    }
 }
 
 struct IndividualInput {
     individual: InsertionContext,
 }
 
+impl IndividualInput {
+    pub fn new_with_weights(individual: InsertionContext, weights: Vec<f64>) -> Self {
+        let mut individual = individual;
+        individual.solution.state.insert(SOLUTION_WEIGHTS_KEY, Arc::new(weights));
+
+        Self { individual }
+    }
+}
+
 impl Input for IndividualInput {
     fn weights(&self) -> &[f64] {
-        unimplemented!()
+        self.individual
+            .solution
+            .state
+            .get(&SOLUTION_WEIGHTS_KEY)
+            .and_then(|s| s.downcast_ref::<Vec<f64>>())
+            .unwrap()
+            .as_slice()
     }
 }
 
@@ -87,7 +112,8 @@ impl Storage for IndividualStorage {
         self.population.drain().into_iter().map(|individual| IndividualInput { individual }).collect()
     }
 
-    fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
+    fn distance(&self, _a: &[f64], _b: &[f64]) -> f64 {
+        // TODO as weights are not normalized, use euclidean distance built from variation
         unimplemented!()
     }
 }
