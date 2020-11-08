@@ -3,7 +3,6 @@ use crate::construction::Quota;
 use crate::models::{Problem, Solution};
 use crate::solver::evolution::EvolutionConfig;
 use crate::solver::mutation::*;
-use crate::solver::selection::Selection;
 use crate::solver::termination::*;
 use crate::solver::{Solver, Telemetry};
 use crate::utils::{DefaultRandom, TimeQuota};
@@ -124,31 +123,28 @@ impl Builder {
         self
     }
 
-    /// Sets max population size. Default is 4.
-    pub fn with_population_size(mut self, size: usize) -> Self {
-        self.config.telemetry.log(&format!("configured to use max population size: {}", size));
-        self.config.population.max_size = size;
-        self
-    }
-
-    /// Sets selection algorithm. Default is naive selection.
-    pub fn with_selection(mut self, selection: Arc<dyn Selection + Send + Sync>) -> Self {
-        self.config.telemetry.log("configured to use custom selection");
-        self.config.operators.selection = selection;
+    /// Sets population settings. Defaults: max_size is 4, selection_size: cpu num.
+    pub fn with_population(mut self, max_size: usize, selection_size: usize) -> Self {
+        self.config.telemetry.log(&format!(
+            "configured to use max population: max_size={}, selection_size={}",
+            max_size, selection_size
+        ));
+        self.config.population.max_size = max_size;
+        self.config.population.selection_size = selection_size;
         self
     }
 
     /// Sets mutation algorithm. Default is ruin and recreate.
     pub fn with_mutation(mut self, mutation: Arc<dyn Mutation + Send + Sync>) -> Self {
         self.config.telemetry.log("configured to use custom mutation");
-        self.config.operators.mutation = mutation;
+        self.config.mutation = mutation;
         self
     }
 
     /// Sets termination algorithm. Default is max time and max generations.
     pub fn with_termination(mut self, termination: Arc<dyn Termination + Send + Sync>) -> Self {
         self.config.telemetry.log("configured to use custom termination parameters");
-        self.config.operators.termination = termination;
+        self.config.termination = termination;
         self
     }
 
@@ -196,7 +192,7 @@ impl Builder {
             };
 
         let mut config = self.config;
-        config.operators.termination = Arc::new(CompositeTermination::new(criterias));
+        config.termination = Arc::new(CompositeTermination::new(criterias));
         config.quota = quota;
 
         config.random = Arc::new(DefaultRandom::default());

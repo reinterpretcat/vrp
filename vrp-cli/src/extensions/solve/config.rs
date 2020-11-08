@@ -14,7 +14,6 @@ use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
-use vrp_core::solver::selection::NaiveSelection;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
 use vrp_core::utils::get_cpus;
 
@@ -23,8 +22,6 @@ use vrp_core::utils::get_cpus;
 pub struct Config {
     /// Specifies population configuration.
     pub population: Option<PopulationConfig>,
-    /// Specifies mutation operator type.
-    pub selection: Option<SelectionType>,
     /// Specifies mutation operator type.
     pub mutation: Option<MutationType>,
     /// Specifies algorithm termination configuration.
@@ -39,6 +36,7 @@ pub struct Config {
 pub struct PopulationConfig {
     initial: Option<InitialConfig>,
     max_size: Option<usize>,
+    selection_size: Option<usize>,
 }
 
 /// An initial solution configuration.
@@ -233,7 +231,7 @@ pub struct NameWeight {
 
 impl Default for Config {
     fn default() -> Self {
-        Self { population: None, selection: None, mutation: None, termination: None, telemetry: None }
+        Self { population: None, mutation: None, termination: None, telemetry: None }
     }
 }
 
@@ -252,23 +250,8 @@ fn configure_from_population(
             );
         }
 
-        if let Some(population_size) = &config.max_size {
-            builder = builder.with_population_size(*population_size);
-        }
-    }
-
-    Ok(builder)
-}
-
-fn configure_from_selection(mut builder: Builder, selection_config: &Option<SelectionType>) -> Result<Builder, String> {
-    if let Some(selection_type) = selection_config {
-        let selection = match selection_type {
-            SelectionType::Naive { offspring_size } => {
-                Arc::new(NaiveSelection::new(offspring_size.unwrap_or_else(get_cpus)))
-            }
-        };
-
-        builder = builder.with_selection(selection);
+        builder =
+            builder.with_population(config.max_size.unwrap_or(4), config.selection_size.unwrap_or_else(|| get_cpus()));
     }
 
     Ok(builder)
@@ -445,7 +428,6 @@ pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Res
 
     builder = configure_from_telemetry(builder, &config.telemetry)?;
     builder = configure_from_population(builder, &config.population)?;
-    builder = configure_from_selection(builder, &config.selection)?;
     builder = configure_from_mutation(builder, &config.mutation)?;
     builder = configure_from_termination(builder, &config.termination)?;
 

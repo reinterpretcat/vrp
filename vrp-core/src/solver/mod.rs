@@ -92,17 +92,17 @@
 
 extern crate rand;
 use crate::algorithms::nsga2::Objective;
-use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::{Problem, Solution};
+use crate::solver::population::Population;
 use hashbrown::HashMap;
 use std::any::Any;
 use std::sync::Arc;
 
 pub mod mutation;
 pub mod objectives;
-pub mod selection;
+pub mod population;
 pub mod termination;
 
 mod builder;
@@ -111,13 +111,8 @@ pub use self::builder::Builder;
 mod evolution;
 use self::evolution::{EvolutionConfig, EvolutionSimulator};
 
-mod population;
-pub use self::population::DominancePopulation;
-
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
-
-use std::cmp::Ordering;
 
 /// A key to store solution order information.
 pub const SOLUTION_ORDER_KEY: i32 = 100;
@@ -150,32 +145,6 @@ pub struct Statistics {
 
     /// An improvement ratio for last 1000 iterations.
     pub improvement_1000_ratio: f64,
-}
-
-/// Represents solution in population defined as actual solution.
-pub type Individual = InsertionContext;
-
-/// A trait which models a population with individuals (solutions).
-pub trait Population {
-    /// Adds all individuals into the population, then sorts and shrinks population if necessary.
-    /// Returns true if any of newly added individuals is considered as best known.
-    fn add_all(&mut self, individuals: Vec<Individual>) -> bool;
-
-    /// Adds an individual into the population.
-    /// Returns true if newly added individual is considered as best known.
-    fn add(&mut self, individual: Individual) -> bool;
-
-    /// Gets nth individual from population.
-    fn nth(&self, idx: usize) -> Option<&Individual>;
-
-    /// Compares two solutions the same way as population does.
-    fn cmp(&self, a: &Individual, b: &Individual) -> Ordering;
-
-    /// Returns individuals within their rank sorted according their quality.
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a>;
-
-    /// Returns population size.
-    fn size(&self) -> usize;
 }
 
 impl RefinementContext {

@@ -15,7 +15,6 @@ impl EvolutionStrategy for RunSimple {
     fn run(
         &self,
         refinement_ctx: RefinementContext,
-        selection: &(dyn Selection + Send + Sync),
         mutation: &(dyn Mutation + Send + Sync),
         termination: &(dyn Termination + Send + Sync),
         telemetry: Telemetry,
@@ -26,7 +25,7 @@ impl EvolutionStrategy for RunSimple {
         while !should_stop(&mut refinement_ctx, termination) {
             let generation_time = Timer::start();
 
-            let parents = selection.select_parents(&refinement_ctx);
+            let parents = refinement_ctx.population.select(&refinement_ctx.statistics);
 
             let offspring = mutation.mutate_all(&refinement_ctx, parents);
 

@@ -1,33 +1,24 @@
 use crate::algorithms::geometry::Point;
-use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
 use crate::models::common::Location;
-use crate::models::problem::{
-    create_matrix_transport_cost, Job, Jobs, MatrixData, ObjectiveCost, Single, Vehicle, VehicleDetail,
-};
+use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
-use crate::solver::mutation::{Recreate, RecreateWithCheapest};
-use crate::solver::{DominancePopulation, Population, RefinementContext};
-use crate::utils::Random;
+use crate::solver::population::{DominancePopulation, Population};
+use crate::solver::RefinementContext;
+use crate::utils::{get_cpus, DefaultRandom};
 use std::sync::Arc;
 
 /// Creates default population.
 pub fn create_default_population(problem: Arc<Problem>) -> Box<dyn Population + Sync + Send> {
-    Box::new(DominancePopulation::new(problem, 4))
+    Box::new(DominancePopulation::new(problem, Arc::new(DefaultRandom::default()), 4, get_cpus()))
 }
 
 pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext {
     RefinementContext::new(problem.clone(), create_default_population(problem.clone()), None)
-}
-
-/// Creates initial solution using cheapest insertion
-pub fn create_with_cheapest(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> InsertionContext {
-    RecreateWithCheapest::default()
-        .run(&mut create_default_refinement_ctx(problem.clone()), InsertionContext::new(problem, random))
 }
 
 /// Generates matrix routes. See `generate_matrix_routes`.

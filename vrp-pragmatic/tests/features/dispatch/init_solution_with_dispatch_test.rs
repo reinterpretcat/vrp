@@ -4,7 +4,6 @@ use crate::format_time;
 use crate::helpers::assert_vehicle_agnostic;
 use crate::helpers::*;
 use std::sync::Arc;
-use vrp_core::solver::selection::NaiveSelection;
 use vrp_core::solver::Builder;
 
 #[test]
@@ -175,8 +174,8 @@ fn can_use_init_solution_with_dispatch() {
 
     let (core_solution, _, metrics) = Builder::new(core_problem.clone())
         .with_max_generations(Some(100))
-        .with_selection(Arc::new(NaiveSelection::new(2)))
         .with_init_solutions(vec![core_solution])
+        .with_population(4, 2)
         .build()
         .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
         .solve()

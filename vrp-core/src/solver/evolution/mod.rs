@@ -5,7 +5,6 @@ mod evolution_test;
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::mutation::*;
 use crate::solver::population::DominancePopulation;
-use crate::solver::selection::Selection;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::{Metrics, Population, RefinementContext};
@@ -26,7 +25,6 @@ pub trait EvolutionStrategy {
     fn run(
         &self,
         refinement_ctx: RefinementContext,
-        selection: &(dyn Selection + Send + Sync),
         mutation: &(dyn Mutation + Send + Sync),
         termination: &(dyn Termination + Send + Sync),
         telemetry: Telemetry,
@@ -63,9 +61,8 @@ impl EvolutionSimulator {
 
         strategy.run(
             refinement_ctx,
-            self.config.operators.selection.as_ref(),
-            self.config.operators.mutation.as_ref(),
-            self.config.operators.termination.as_ref(),
+            self.config.mutation.as_ref(),
+            self.config.termination.as_ref(),
             self.config.telemetry,
         )
     }
@@ -74,7 +71,12 @@ impl EvolutionSimulator {
     fn create_refinement_ctx(&mut self) -> Result<RefinementContext, String> {
         let mut refinement_ctx = RefinementContext::new(
             self.config.problem.clone(),
-            Box::new(DominancePopulation::new(self.config.problem.clone(), self.config.population.max_size)),
+            Box::new(DominancePopulation::new(
+                self.config.problem.clone(),
+                self.config.random.clone(),
+                self.config.population.max_size,
+                self.config.population.selection_size,
+            )),
             std::mem::replace(&mut self.config.quota, None),
         );
 
@@ -107,7 +109,7 @@ impl EvolutionSimulator {
         let _ = (refinement_ctx.population.size()..self.config.population.initial.size).try_for_each(|idx| {
             let item_time = Timer::start();
 
-            if self.config.operators.termination.is_termination(&mut refinement_ctx) {
+            if self.config.termination.is_termination(&mut refinement_ctx) {
                 return Err(());
             }
 

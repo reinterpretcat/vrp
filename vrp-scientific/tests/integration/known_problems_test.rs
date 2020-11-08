@@ -7,9 +7,9 @@ use vrp_core::algorithms::nsga2::Objective;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::solver::DominancePopulation;
+use vrp_core::solver::population::DominancePopulation;
 use vrp_core::solver::RefinementContext;
-use vrp_core::utils::DefaultRandom;
+use vrp_core::utils::{get_cpus, DefaultRandom};
 
 struct StableJobSelector {}
 
@@ -76,8 +76,12 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     expected: Vec<Vec<&str>>,
     cost: f64,
 ) {
-    let mut refinement_ctx =
-        RefinementContext::new(problem.clone(), Box::new(DominancePopulation::new(problem.clone(), 4)), None);
+    let random = Arc::new(DefaultRandom::default());
+    let mut refinement_ctx = RefinementContext::new(
+        problem.clone(),
+        Box::new(DominancePopulation::new(problem.clone(), random.clone(), 4, get_cpus())),
+        None,
+    );
     let insertion_ctx = RecreateWithCheapest::new(
         Box::new(StableJobSelector::default()),
         Box::new(PairJobMapReducer::new(
@@ -85,7 +89,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
             Box::new(BestResultSelector::default()),
         )),
     )
-    .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), Arc::new(DefaultRandom::default())));
+    .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), random));
 
     let result_cost = problem.objective.fitness(&insertion_ctx);
     assert_eq!(result_cost.round(), cost.round());

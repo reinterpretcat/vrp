@@ -9,10 +9,8 @@
         }
       ]
     },
-    "maxSize": 2
-  },
-  "selection": {
-    "type": "naive"
+    "maxSize": 2,
+    "selectionSize": 12
   },
   "mutation": {
     "type": "composite",

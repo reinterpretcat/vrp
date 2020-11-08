@@ -2,11 +2,14 @@
 #[path = "../../../tests/unit/solver/population/dominance_test.rs"]
 mod dominance_test;
 
+use super::*;
 use crate::algorithms::nsga2::{select_and_rank, MultiObjective, Objective};
+use crate::construction::heuristics::InsertionContext;
 use crate::models::Problem;
-use crate::solver::{Individual, Population, SOLUTION_ORDER_KEY};
-use crate::utils::compare_floats;
+use crate::solver::{Population, Statistics, SOLUTION_ORDER_KEY};
+use crate::utils::{compare_floats, Random};
 use std::cmp::Ordering;
+use std::iter::once;
 use std::sync::Arc;
 
 /// A simple evolution aware implementation of [`Population`] trait with the the following
@@ -20,6 +23,8 @@ use std::sync::Arc;
 ///
 pub struct DominancePopulation {
     problem: Arc<Problem>,
+    random: Arc<dyn Random + Send + Sync>,
+    selection_size: usize,
     max_population_size: usize,
     individuals: Vec<Individual>,
 }
@@ -38,10 +43,15 @@ impl DominancePopulation {
     ///
     /// * `problem` - a Vehicle Routing Problem definition.
     /// * `max_population_size` - a max size of population size.
-    pub fn new(problem: Arc<Problem>, max_population_size: usize) -> Self {
+    pub fn new(
+        problem: Arc<Problem>,
+        random: Arc<dyn Random + Send + Sync>,
+        max_population_size: usize,
+        selection_size: usize,
+    ) -> Self {
         assert!(max_population_size > 0);
 
-        Self { problem, max_population_size, individuals: vec![] }
+        Self { problem, random, selection_size, max_population_size, individuals: vec![] }
     }
 }
 
@@ -68,10 +78,6 @@ impl Population for DominancePopulation {
         self.is_improved(was_empty)
     }
 
-    fn nth(&self, idx: usize) -> Option<&Individual> {
-        self.individuals.get(idx)
-    }
-
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
         self.problem.objective.total_order(a, b)
     }
@@ -82,6 +88,14 @@ impl Population for DominancePopulation {
 
     fn size(&self) -> usize {
         self.individuals.len()
+    }
+
+    fn select(&self, _: &Statistics) -> Vec<&InsertionContext> {
+        once(0_usize)
+            .chain((1..self.selection_size).map(|_| self.random.uniform_int(0, self.size() as i32 - 1) as usize))
+            .take(self.selection_size)
+            .filter_map(|idx| self.individuals.get(idx))
+            .collect()
     }
 }
 

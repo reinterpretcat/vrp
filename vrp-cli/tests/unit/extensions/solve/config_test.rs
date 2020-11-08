@@ -19,12 +19,11 @@ fn can_read_config() {
 
     let population = config.population.expect("no population config");
     assert_eq!(population.max_size, Some(2));
+    assert_eq!(population.selection_size, Some(12));
 
     let initial = population.initial.expect("no initial population config");
     assert_eq!(initial.methods.unwrap().len(), 1);
     assert_eq!(initial.size, Some(1));
-
-    config.selection.expect("no selection config");
 
     let mutation_config = config.mutation.expect("cannot get mutation");
     match mutation_config {
@@ -87,7 +86,6 @@ fn can_create_default_config() {
     let config = Config::default();
 
     assert!(config.population.is_none());
-    assert!(config.selection.is_none());
     assert!(config.mutation.is_none());
     assert!(config.termination.is_none());
     assert!(config.telemetry.is_none());
