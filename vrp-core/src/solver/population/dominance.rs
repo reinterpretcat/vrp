@@ -52,6 +52,11 @@ impl DominancePopulation {
 
         Self { problem, random, selection_size, max_population_size, individuals: vec![] }
     }
+
+    /// Extracts all individuals out from population.
+    pub fn drain(&mut self) -> Vec<Individual> {
+        std::mem::replace(&mut self.individuals, vec![])
+    }
 }
 
 impl Population for DominancePopulation {

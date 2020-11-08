@@ -62,7 +62,7 @@ impl Storage for IndividualStorage {
     }
 
     fn drain(&mut self) -> Vec<Self::Item> {
-        unimplemented!()
+        self.population.drain().into_iter().map(|individual| IndividualInput { individual }).collect()
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
