@@ -112,8 +112,16 @@ impl Storage for IndividualStorage {
         self.population.drain().into_iter().map(|individual| IndividualInput { individual }).collect()
     }
 
-    fn distance(&self, _a: &[f64], _b: &[f64]) -> f64 {
-        // TODO as weights are not normalized, use euclidean distance built from variation
-        unimplemented!()
+    fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
+        // NOTE as weights are not normalized, apply standardization using relative change: D = |x - y| / max(|x|, |y|)
+        a.iter()
+            .zip(b.iter())
+            .fold(0., |acc, (a, b)| {
+                let divider = a.abs().max(b.abs());
+                let change = if compare_floats(divider, 0.) == Ordering::Equal { 0. } else { (a - b) / divider };
+
+                acc + change * change
+            })
+            .sqrt()
     }
 }
