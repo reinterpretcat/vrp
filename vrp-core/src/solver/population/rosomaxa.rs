@@ -33,6 +33,13 @@ impl Population for RosomaxaPopulation {
     }
 }
 
+impl RosomaxaPopulation {
+    /// Creates a new instance of `RosomaxaPopulation`.
+    pub fn new() -> Self {
+        unimplemented!()
+    }
+}
+
 struct IndividualInput {
     individual: InsertionContext,
 }
@@ -59,12 +66,6 @@ impl Storage for IndividualStorage {
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
-        unimplemented!()
-    }
-}
-
-impl Default for IndividualStorage {
-    fn default() -> Self {
         unimplemented!()
     }
 }

@@ -10,7 +10,7 @@ pub trait Input {
 }
 
 /// Represents input data storage.
-pub trait Storage: Default {
+pub trait Storage {
     /// An input type.
     type Item: Input;
 

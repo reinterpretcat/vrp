@@ -4,7 +4,6 @@ mod dominance_test;
 
 use super::*;
 use crate::algorithms::nsga2::{select_and_rank, MultiObjective, Objective};
-use crate::construction::heuristics::InsertionContext;
 use crate::models::Problem;
 use crate::solver::{Population, Statistics, SOLUTION_ORDER_KEY};
 use crate::utils::{compare_floats, Random};

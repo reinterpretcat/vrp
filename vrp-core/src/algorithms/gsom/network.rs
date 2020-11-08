@@ -6,6 +6,7 @@ use super::*;
 use hashbrown::HashMap;
 use std::cell::RefCell;
 use std::cmp::Ordering;
+use std::ops::Deref;
 use std::rc::Rc;
 
 /// A customized Growing Self Organizing Map.
@@ -22,6 +23,8 @@ pub struct Network<I: Input, S: Storage<Item = I>> {
     learning_rate: f64,
     /// All nodes in the network.
     nodes: HashMap<Coordinate, NodeLink<I, S>>,
+    /// Creates input storage for new nodes.
+    storage_factory: Box<dyn Fn() -> S>,
 }
 
 impl<I: Input, S: Storage<Item = I>> Network<I, S> {
@@ -32,6 +35,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         reduction_factor: f64,
         distribution_factor: f64,
         learning_rate: f64,
+        storage_factory: Box<dyn Fn() -> S>,
     ) -> Self {
         let dimension = roots[0].weights().len();
 
@@ -45,7 +49,8 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             reduction_factor,
             distribution_factor,
             learning_rate,
-            nodes: Self::create_initial_nodes(roots),
+            nodes: Self::create_initial_nodes(roots, &storage_factory),
+            storage_factory,
         }
     }
 
@@ -168,7 +173,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
     /// Inserts new neighbors if necessary.
     fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
-        let new_node = Rc::new(RefCell::new(Node::new(coordinate.clone(), weights)));
+        let new_node = Rc::new(RefCell::new(Node::new(coordinate.clone(), weights, self.storage_factory.deref()())));
         {
             let mut new_node_mut = new_node.borrow_mut();
             let (new_x, new_y) = (coordinate.0, coordinate.1);
@@ -198,9 +203,12 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     /// Creates nodes for initial topology.
-    fn create_initial_nodes(roots: [I; 4]) -> HashMap<Coordinate, NodeLink<I, S>> {
+    fn create_initial_nodes(
+        roots: [I; 4],
+        storage_factory: &Box<dyn Fn() -> S>,
+    ) -> HashMap<Coordinate, NodeLink<I, S>> {
         let create_node_link = |coordinate: Coordinate, input: I| {
-            let mut node = Node::<I, S>::new(coordinate, input.weights());
+            let mut node = Node::<I, S>::new(coordinate, input.weights(), storage_factory.deref()());
             node.storage.add(input);
             Rc::new(RefCell::new(node))
         };

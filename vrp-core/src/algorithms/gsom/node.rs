@@ -39,14 +39,14 @@ pub struct Coordinate(pub i32, pub i32);
 
 impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Creates a new instance of `Node`.
-    pub fn new(coordinate: Coordinate, weights: &[f64]) -> Self {
+    pub fn new(coordinate: Coordinate, weights: &[f64], storage: S) -> Self {
         Self {
             weights: weights.to_vec(),
             error: 0.0,
             hits: 0,
             coordinate,
             topology: Topology::empty(weights.len()),
-            storage: S::default(),
+            storage,
         }
     }
 
