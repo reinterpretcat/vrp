@@ -13,7 +13,7 @@ pub struct RosomaxaPopulation {
 
 impl Population for RosomaxaPopulation {
     fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
-        unimplemented!()
+        individuals.into_iter().fold(false, |acc, individual| acc || self.add(individual))
     }
 
     fn add(&mut self, individual: Individual) -> bool {
@@ -26,19 +26,19 @@ impl Population for RosomaxaPopulation {
     }
 
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
-        unimplemented!()
+        self.elite.cmp(a, b)
     }
 
-    fn select(&self, statistics: &Statistics) -> Box<dyn Iterator<Item = &Individual>> {
-        unimplemented!()
+    fn select<'a>(&'a self, statistics: &Statistics) -> Box<dyn Iterator<Item = &Individual> + 'a> {
+        self.elite.select(statistics)
     }
 
-    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)>> {
-        unimplemented!()
+    fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
+        self.elite.ranked()
     }
 
     fn size(&self) -> usize {
-        unimplemented!()
+        self.elite.size()
     }
 }
 
@@ -53,6 +53,8 @@ impl RosomaxaPopulation {
             if self.elite.cmp(individual, best) != Ordering::Greater {
                 return !is_same_fitness(individual, best, self.problem.objective.as_ref());
             }
+        } else {
+            return true;
         }
 
         false
