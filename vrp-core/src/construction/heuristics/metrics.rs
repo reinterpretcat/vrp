@@ -5,9 +5,10 @@ use crate::models::common::Location;
 use std::ops::Deref;
 use std::sync::Arc;
 
-/// Specifies a gravity center calculator.
-pub struct GravityCalculator {
-    func: Arc<dyn Fn(Vec<Vec<Location>>) -> f64>,
+/// Resolvers location to two dimensional coordinate, potentially using
+/// multidimensional scaling algorithm.
+pub struct LocationResolver {
+    func: Arc<dyn Fn(Location) -> (f64, f64) + Sync + Send>,
 }
 
 /// Gets max load variance in tours.
@@ -34,11 +35,11 @@ pub fn get_distance_mean(insertion_ctx: &InsertionContext) -> f64 {
 }
 
 /// Gets average distance between routes (their centers of gravity).
-pub fn get_distance_gravity(insertion_ctx: &InsertionContext) -> f64 {
-    let gravity_calculator =
-        insertion_ctx.problem.extras.get("gravity_calculator").and_then(|s| s.downcast_ref::<GravityCalculator>());
+pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
+    let location_resolver =
+        insertion_ctx.problem.extras.get("location_resolver").and_then(|s| s.downcast_ref::<LocationResolver>());
 
-    if let Some(gravity_calculator) = gravity_calculator {
+    if let Some(location_resolver) = location_resolver {
         let solution_shape = insertion_ctx
             .solution
             .routes
@@ -48,7 +49,7 @@ pub fn get_distance_gravity(insertion_ctx: &InsertionContext) -> f64 {
             })
             .collect::<Vec<_>>();
 
-        gravity_calculator.func.deref()(solution_shape)
+        calculate_gravity_distance_mean(solution_shape.as_slice(), location_resolver)
     } else {
         0.
     }
@@ -61,4 +62,32 @@ fn get_values_from_state(insertion_ctx: &InsertionContext, state_key: i32) -> Ve
         .iter()
         .map(|route| route.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.))
         .collect()
+}
+
+fn calculate_gravity_distance_mean(shape: &[Vec<Location>], location_resolver: &LocationResolver) -> f64 {
+    assert!(!shape.is_empty());
+
+    let centroids = shape
+        .iter()
+        .map(|polygon| {
+            let (sum_x, sum_y) = polygon
+                .iter()
+                .map(|location| location_resolver.func.deref()(*location))
+                .fold((0., 0.), |(sum_x, sum_y), (x, y)| (sum_x + x, sum_y + y));
+
+            (sum_x / polygon.len() as f64, sum_y / polygon.len() as f64)
+        })
+        .collect::<Vec<_>>();
+
+    let mut distances = Vec::with_capacity(centroids.len() * 2);
+
+    for i in 0..centroids.len() {
+        for j in (i + 1)..centroids.len() {
+            let (x1, y1) = centroids[i];
+            let (x2, y2) = centroids[j];
+            distances.push(((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)).sqrt());
+        }
+    }
+
+    get_mean(distances.as_slice())
 }

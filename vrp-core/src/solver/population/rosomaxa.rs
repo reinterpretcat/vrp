@@ -1,5 +1,6 @@
 use super::*;
 use crate::algorithms::gsom::{Input, Network, Storage};
+use crate::construction::heuristics::*;
 use crate::models::Problem;
 use crate::solver::SOLUTION_WEIGHTS_KEY;
 use std::sync::Arc;
@@ -66,9 +67,14 @@ impl RosomaxaPopulation {
         false
     }
 
-    fn get_weights(&self, _individual: &InsertionContext) -> Vec<f64> {
-        // TODO Calculate individual weights
-        unimplemented!()
+    fn get_weights(&self, individual: &InsertionContext) -> Vec<f64> {
+        vec![
+            get_max_load_variance(individual),
+            get_customers_deviation(individual),
+            get_duration_mean(individual),
+            get_distance_mean(individual),
+            get_distance_gravity_mean(individual),
+        ]
     }
 }
 
