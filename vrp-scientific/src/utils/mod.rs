@@ -1,2 +1,2 @@
 mod routing;
-pub use self::routing::MatrixFactory;
+pub(crate) use self::routing::CoordIndex;

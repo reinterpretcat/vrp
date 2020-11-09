@@ -2,17 +2,22 @@ use std::sync::Arc;
 use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 
-pub struct MatrixFactory {
+#[derive(Clone)]
+pub(crate) struct CoordIndex {
     locations: Vec<(i32, i32)>,
 }
 
-impl Default for MatrixFactory {
+impl Default for CoordIndex {
     fn default() -> Self {
         Self { locations: vec![] }
     }
 }
 
-impl MatrixFactory {
+impl CoordIndex {
+    pub fn get(&self, index: Location) -> (i32, i32) {
+        self.locations[index]
+    }
+
     pub fn collect(&mut self, location: (i32, i32)) -> Location {
         match self.locations.iter().position(|l| l.0 == location.0 && l.1 == location.1) {
             Some(position) => position,

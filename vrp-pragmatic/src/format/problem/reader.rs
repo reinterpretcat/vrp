@@ -15,7 +15,7 @@ use self::fleet_reader::{create_transport_costs, read_fleet, read_travel_limits}
 use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;
 use crate::constraints::*;
-use crate::extensions::{get_route_modifier, OnlyVehicleActivityCost};
+use crate::extensions::{get_location_resolver, get_route_modifier, OnlyVehicleActivityCost};
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::format::*;
@@ -330,6 +330,7 @@ fn create_extras(
         "capacity_type".to_string(),
         Arc::new((if props.has_multi_dimen_capacity { "multi" } else { "single" }).to_string()),
     );
+    extras.insert("location_resolver".to_owned(), Arc::new(get_location_resolver(coord_index.clone())));
     extras.insert("coord_index".to_owned(), coord_index);
     extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
 

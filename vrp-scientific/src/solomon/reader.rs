@@ -3,15 +3,15 @@
 mod reader_test;
 
 use crate::common::*;
-use crate::utils::MatrixFactory;
+use crate::utils::CoordIndex;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
-use vrp_core::models::Problem;
+use vrp_core::models::{Extras, Problem};
 
 pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
-    SolomonReader { buffer: String::new(), reader, matrix: MatrixFactory::default() }.read_problem()
+    SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem()
 }
 
 /// A trait read write solomon problem.
@@ -48,7 +48,7 @@ struct JobLine {
 struct SolomonReader<R: Read> {
     buffer: String,
     reader: BufReader<R>,
-    matrix: MatrixFactory,
+    coord_index: CoordIndex,
 }
 
 impl<R: Read> TextReader for SolomonReader<R> {
@@ -60,7 +60,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
         Ok(create_fleet_with_distance_costs(
             vehicle.number,
             vehicle.capacity,
-            self.matrix.collect(depot.location),
+            self.coord_index.collect(depot.location),
             depot.tw,
         ))
     }
@@ -77,7 +77,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
                     });
                     jobs.push(Job::Single(Arc::new(Single {
                         places: vec![Place {
-                            location: Some(self.matrix.collect(customer.location)),
+                            location: Some(self.coord_index.collect(customer.location)),
                             duration: customer.service as f64,
                             times: vec![TimeSpan::Window(customer.tw.clone())],
                         }],
@@ -98,7 +98,13 @@ impl<R: Read> TextReader for SolomonReader<R> {
     }
 
     fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
-        self.matrix.create_transport()
+        self.coord_index.create_transport()
+    }
+
+    fn create_extras(&self) -> Extras {
+        let mut extras = Extras::default();
+        extras.insert("location_resolver".to_owned(), Arc::new(create_location_resolver(self.coord_index.clone())));
+        extras
     }
 }
 

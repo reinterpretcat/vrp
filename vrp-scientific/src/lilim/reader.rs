@@ -3,13 +3,13 @@
 mod reader_test;
 
 use crate::common::*;
-use crate::utils::MatrixFactory;
+use crate::utils::CoordIndex;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
-use vrp_core::models::Problem;
+use vrp_core::models::{Extras, Problem};
 
 /// A trait to read lilim problem.
 pub trait LilimProblem {
@@ -19,7 +19,7 @@ pub trait LilimProblem {
 
 impl<R: Read> LilimProblem for BufReader<R> {
     fn read_lilim(self) -> Result<Problem, String> {
-        LilimReader { buffer: String::new(), reader: self, matrix: MatrixFactory::default() }.read_problem()
+        LilimReader { buffer: String::new(), reader: self, matrix: CoordIndex::default() }.read_problem()
     }
 }
 
@@ -52,7 +52,7 @@ struct Relation {
 struct LilimReader<R: Read> {
     buffer: String,
     reader: BufReader<R>,
-    matrix: MatrixFactory,
+    matrix: CoordIndex,
 }
 
 impl<R: Read> TextReader for LilimReader<R> {
@@ -105,6 +105,12 @@ impl<R: Read> TextReader for LilimReader<R> {
 
     fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
         self.matrix.create_transport()
+    }
+
+    fn create_extras(&self) -> Extras {
+        let mut extras = Extras::default();
+        extras.insert("location_resolver".to_owned(), Arc::new(create_location_resolver(self.matrix.clone())));
+        extras
     }
 }
 

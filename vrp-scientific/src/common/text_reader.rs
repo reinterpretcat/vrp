@@ -1,10 +1,12 @@
+use crate::utils::CoordIndex;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
+use vrp_core::construction::heuristics::LocationResolver;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
-use vrp_core::models::Problem;
+use vrp_core::models::{Extras, Problem};
 
 pub(crate) trait TextReader {
     fn read_problem(&mut self) -> Result<Problem, String> {
@@ -22,7 +24,7 @@ pub(crate) trait TextReader {
             activity,
             transport,
             objective: Arc::new(ObjectiveCost::default()),
-            extras: Arc::new(Default::default()),
+            extras: Arc::new(self.create_extras()),
         })
     }
 
@@ -31,6 +33,8 @@ pub(crate) trait TextReader {
     fn read_jobs(&mut self) -> Result<Vec<Job>, String>;
 
     fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String>;
+
+    fn create_extras(&self) -> Extras;
 }
 
 pub(crate) fn create_fleet_with_distance_costs(
@@ -110,4 +114,13 @@ pub(crate) fn create_constraint(
 pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, mut buffer: &mut String) -> Result<usize, String> {
     buffer.clear();
     reader.read_line(&mut buffer).map_err(|err| err.to_string())
+}
+
+pub(crate) fn create_location_resolver(index: CoordIndex) -> LocationResolver {
+    LocationResolver {
+        func: Arc::new(move |location| {
+            let (x, y) = index.get(location);
+            (x as f64, y as f64)
+        }),
+    }
 }

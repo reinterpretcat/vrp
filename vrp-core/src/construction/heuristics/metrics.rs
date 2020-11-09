@@ -8,7 +8,8 @@ use std::sync::Arc;
 /// Resolvers location to two dimensional coordinate, potentially using
 /// multidimensional scaling algorithm.
 pub struct LocationResolver {
-    func: Arc<dyn Fn(Location) -> (f64, f64) + Sync + Send>,
+    /// A function which does mapping from location to 2D coordinate.
+    pub func: Arc<dyn Fn(Location) -> (f64, f64) + Sync + Send>,
 }
 
 /// Gets max load variance in tours.
