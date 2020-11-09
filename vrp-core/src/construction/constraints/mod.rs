@@ -61,7 +61,7 @@ pub const LATEST_ARRIVAL_KEY: i32 = 1;
 pub const WAITING_KEY: i32 = 2;
 /// A key which tracks total distance.
 pub const TOTAL_DISTANCE_KEY: i32 = 3;
-/// A key which track stotal duration.
+/// A key which track total duration.
 pub const TOTAL_DURATION_KEY: i32 = 4;
 
 /// A key which tracks current vehicle capacity.
@@ -72,6 +72,8 @@ pub const MAX_FUTURE_CAPACITY_KEY: i32 = 12;
 pub const MAX_PAST_CAPACITY_KEY: i32 = 13;
 /// A key which tracks reload intervals.
 pub const RELOAD_INTERVALS_KEY: i32 = 14;
+/// A key which tracks max load in tour.
+pub const MAX_LOAD_KEY: i32 = 15;
 
 mod pipeline;
 pub use self::pipeline::*;

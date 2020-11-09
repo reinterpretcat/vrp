@@ -102,41 +102,52 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
     }
 
     fn recalculate_states(&self, ctx: &mut RouteContext) {
-        self.actualize_intervals(ctx).into_iter().fold(T::default(), |acc, (start_idx, end_idx)| {
-            let (route, state) = ctx.as_mut();
+        let (_, max_load) = self.actualize_intervals(ctx).into_iter().fold(
+            (T::default(), T::default()),
+            |(acc, max), (start_idx, end_idx)| {
+                let (route, state) = ctx.as_mut();
 
-            // determine static deliveries loaded at the begin and static pickups brought to the end
-            let (start_delivery, end_pickup) =
-                route.tour.activities_slice(start_idx, end_idx).iter().fold((acc, T::default()), |acc, activity| {
-                    Self::get_demand(activity)
-                        .map(|demand| (acc.0 + demand.delivery.0, acc.1 + demand.pickup.0))
-                        .unwrap_or_else(|| acc)
-                });
+                // determine static deliveries loaded at the begin and static pickups brought to the end
+                let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                    (acc, T::default()),
+                    |acc, activity| {
+                        Self::get_demand(activity)
+                            .map(|demand| (acc.0 + demand.delivery.0, acc.1 + demand.pickup.0))
+                            .unwrap_or_else(|| acc)
+                    },
+                );
 
-            // determine actual load at each activity and max discovered in the past
-            let (current, _) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-                (start_delivery, T::default()),
-                |(current, max), activity| {
-                    let change = Self::get_demand(activity).map(|demand| demand.change()).unwrap_or_else(T::default);
+                // determine actual load at each activity and max discovered in the past
+                let (current, _) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
+                    (start_delivery, T::default()),
+                    |(current, max), activity| {
+                        let change =
+                            Self::get_demand(activity).map(|demand| demand.change()).unwrap_or_else(T::default);
 
-                    let current = current + change;
-                    let max = max.max_load(current);
+                        let current = current + change;
+                        let max = max.max_load(current);
 
-                    state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
-                    state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity, max);
+                        state.put_activity_state(CURRENT_CAPACITY_KEY, activity, current);
+                        state.put_activity_state(MAX_PAST_CAPACITY_KEY, activity, max);
 
-                    (current, max)
-                },
-            );
+                        (current, max)
+                    },
+                );
 
-            route.tour.activities_slice(start_idx, end_idx).iter().rev().fold(current, |max, activity| {
-                let max = max.max_load(*state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
-                state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
-                max
-            });
+                let current_max =
+                    route.tour.activities_slice(start_idx, end_idx).iter().rev().fold(current, |max, activity| {
+                        let max = max.max_load(*state.get_activity_state(CURRENT_CAPACITY_KEY, activity).unwrap());
+                        state.put_activity_state(MAX_FUTURE_CAPACITY_KEY, activity, max);
+                        max
+                    });
 
-            current - end_pickup
-        });
+                (current - end_pickup, current_max.max_load(max))
+            },
+        );
+
+        if let Some(capacity) = ctx.route.actor.clone().vehicle.dimens.get_capacity() {
+            ctx.state_mut().put_route_state(MAX_LOAD_KEY, max_load.ratio(capacity));
+        }
     }
 
     fn actualize_intervals(&self, route_ctx: &mut RouteContext) -> Vec<(usize, usize)> {

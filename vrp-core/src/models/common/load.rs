@@ -21,6 +21,9 @@ pub trait Load: Add + Sub + Ord + Copy + Default + Send + Sync {
 
     /// Returns true if `other` can be loaded into existing capacity.
     fn can_fit(&self, other: &Self) -> bool;
+
+    /// Returns ratio.
+    fn ratio(&self, other: &Self) -> f64;
 }
 
 /// Represents job demand, both static and dynamic.
@@ -121,6 +124,10 @@ impl Load for SingleDimLoad {
     fn can_fit(&self, other: &Self) -> bool {
         self.value >= other.value
     }
+
+    fn ratio(&self, other: &Self) -> f64 {
+        self.value as f64 / other.value as f64
+    }
 }
 
 impl Add for SingleDimLoad {
@@ -219,6 +226,10 @@ impl Load for MultiDimLoad {
 
     fn can_fit(&self, other: &Self) -> bool {
         self.load.iter().zip(other.load.iter()).all(|(a, b)| a >= b)
+    }
+
+    fn ratio(&self, other: &Self) -> f64 {
+        self.load.iter().zip(other.load.iter()).fold(0., |acc, (a, b)| (*a as f64 / *b as f64).max(acc))
     }
 }
 

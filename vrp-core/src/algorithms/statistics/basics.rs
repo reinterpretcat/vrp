@@ -18,6 +18,16 @@ pub fn get_mean(values: &[f64]) -> f64 {
     sum / values.len() as f64
 }
 
+/// Returns variance.
+pub fn get_variance(values: &[f64]) -> f64 {
+    get_variance_mean(values).0
+}
+
+/// Returns standard deviation.
+pub fn get_stdev(values: &[f64]) -> f64 {
+    get_variance_mean(values).0.sqrt()
+}
+
 /// Returns variance and mean.
 fn get_variance_mean(values: &[f64]) -> (f64, f64) {
     let mean = get_mean(values);
