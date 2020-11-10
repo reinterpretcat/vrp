@@ -4,6 +4,7 @@ use self::node::*;
 
 use super::*;
 use hashbrown::HashMap;
+use std::cell::Ref;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::ops::Deref;
@@ -92,6 +93,19 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         remove.iter().for_each(|coordinate| {
             self.nodes.remove(coordinate);
         })
+    }
+
+    /// Return storages from nodes in arbitrary order filtering them by hit count.
+    pub fn get_storages(&self, filter: fn(usize) -> bool) -> impl Iterator<Item = Ref<S>> {
+        self.nodes
+            .values()
+            .filter(move |node| filter(node.borrow().hits))
+            .map(|node| Ref::map(node.borrow(), |node| &node.storage))
+    }
+
+    /// Returns a total amount of nodes.
+    pub fn size(&self) -> usize {
+        self.nodes.len()
     }
 
     /// Finds the best matching unit within the map for the given input.

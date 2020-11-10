@@ -3,12 +3,14 @@ use crate::algorithms::gsom::{Input, Network, Storage};
 use crate::construction::heuristics::*;
 use crate::models::Problem;
 use crate::solver::SOLUTION_WEIGHTS_KEY;
+use crate::utils::Random;
 use std::sync::Arc;
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
 /// Maps And eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
 pub struct RosomaxaPopulation {
     problem: Arc<Problem>,
+    random: Arc<dyn Random + Send + Sync>,
     elite: DominancePopulation,
     network: Network<IndividualInput, IndividualStorage>,
 }
@@ -24,8 +26,7 @@ impl Population for RosomaxaPopulation {
 
         // TODO use statistics to control network parameters
 
-        let weights = self.get_weights(&individual);
-        self.network.train(IndividualInput::new_with_weights(individual, weights));
+        self.network.train(IndividualInput::new(individual));
 
         is_improvement
     }
@@ -37,10 +38,15 @@ impl Population for RosomaxaPopulation {
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
         // TODO return individuals from elite (exploitation) and network (exploration)
         //      use statistics from add to control exploitation vs exploration balance
+        //      use hits to select candidates for mating depending on evolution progress (statistics)
+
+        //self.network.nodes().
+
         unimplemented!()
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
+        // NOTE return only elite
         self.elite.ranked()
     }
 
@@ -51,8 +57,34 @@ impl Population for RosomaxaPopulation {
 
 impl RosomaxaPopulation {
     /// Creates a new instance of `RosomaxaPopulation`.
-    pub fn new() -> Self {
-        unimplemented!()
+    pub fn new(
+        problem: Arc<Problem>,
+        random: Arc<dyn Random + Send + Sync>,
+        initials: [InsertionContext; 4],
+        max_elite_size: usize,
+        max_node_size: usize,
+        spread_factor: f64,
+        reduction_factor: f64,
+        distribution_factor: f64,
+        learning_rate: f64,
+    ) -> Self {
+        let [a, b, c, d] = initials;
+
+        Self {
+            problem: problem.clone(),
+            random: random.clone(),
+            elite: DominancePopulation::new(problem.clone(), random.clone(), max_elite_size, max_elite_size),
+            network: Network::new(
+                [IndividualInput::new(a), IndividualInput::new(b), IndividualInput::new(c), IndividualInput::new(d)],
+                spread_factor,
+                reduction_factor,
+                distribution_factor,
+                learning_rate,
+                Box::new(move || IndividualStorage {
+                    population: DominancePopulation::new(problem.clone(), random.clone(), max_node_size, max_node_size),
+                }),
+            ),
+        }
     }
 
     fn is_improvement(&self, individual: &Individual) -> bool {
@@ -66,16 +98,6 @@ impl RosomaxaPopulation {
 
         false
     }
-
-    fn get_weights(&self, individual: &InsertionContext) -> Vec<f64> {
-        vec![
-            get_max_load_variance(individual),
-            get_customers_deviation(individual),
-            get_duration_mean(individual),
-            get_distance_mean(individual),
-            get_distance_gravity_mean(individual),
-        ]
-    }
 }
 
 struct IndividualInput {
@@ -83,7 +105,9 @@ struct IndividualInput {
 }
 
 impl IndividualInput {
-    pub fn new_with_weights(individual: InsertionContext, weights: Vec<f64>) -> Self {
+    pub fn new(individual: InsertionContext) -> Self {
+        let weights = get_weights(&individual);
+
         let mut individual = individual;
         individual.solution.state.insert(SOLUTION_WEIGHTS_KEY, Arc::new(weights));
 
@@ -105,6 +129,12 @@ impl Input for IndividualInput {
 
 struct IndividualStorage {
     population: DominancePopulation,
+}
+
+impl IndividualStorage {
+    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
+        self.population.select()
+    }
 }
 
 impl Storage for IndividualStorage {
@@ -130,4 +160,14 @@ impl Storage for IndividualStorage {
             })
             .sqrt()
     }
+}
+
+fn get_weights(individual: &InsertionContext) -> Vec<f64> {
+    vec![
+        get_max_load_variance(individual),
+        get_customers_deviation(individual),
+        get_duration_mean(individual),
+        get_distance_mean(individual),
+        get_distance_gravity_mean(individual),
+    ]
 }

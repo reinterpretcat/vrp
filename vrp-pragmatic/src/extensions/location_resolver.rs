@@ -8,7 +8,13 @@ pub(crate) fn get_location_resolver(coord_index: Arc<CoordIndex>) -> LocationRes
     //      * to support location indices
     //      * to have more accurate distance approximation
 
-    LocationResolver {
-        func: Arc::new(move |location| coord_index.get_by_idx(location).expect("not implemented").to_lat_lng()),
+    let (_, has_indices) = coord_index.get_used_types();
+
+    if has_indices {
+        LocationResolver { func: Arc::new(|_| (0., 0.)) }
+    } else {
+        LocationResolver {
+            func: Arc::new(move |location| coord_index.get_by_idx(location).expect("not implemented").to_lat_lng()),
+        }
     }
 }
