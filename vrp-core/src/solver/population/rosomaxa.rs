@@ -147,12 +147,22 @@ struct IndividualInput {
 
 impl IndividualInput {
     pub fn new(individual: InsertionContext) -> Self {
-        let weights = get_weights(&individual);
+        let weights = IndividualInput::get_weights(&individual);
 
         let mut individual = individual;
         individual.solution.state.insert(SOLUTION_WEIGHTS_KEY, Arc::new(weights));
 
         Self { individual }
+    }
+
+    fn get_weights(individual: &InsertionContext) -> Vec<f64> {
+        vec![
+            get_max_load_variance(individual),
+            get_customers_deviation(individual),
+            get_duration_mean(individual),
+            get_distance_mean(individual),
+            get_distance_gravity_mean(individual),
+        ]
     }
 }
 
@@ -202,14 +212,4 @@ impl Storage for IndividualStorage {
             })
             .sqrt()
     }
-}
-
-fn get_weights(individual: &InsertionContext) -> Vec<f64> {
-    vec![
-        get_max_load_variance(individual),
-        get_customers_deviation(individual),
-        get_duration_mean(individual),
-        get_distance_mean(individual),
-        get_distance_gravity_mean(individual),
-    ]
 }
