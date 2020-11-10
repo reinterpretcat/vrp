@@ -18,6 +18,7 @@ pub struct RosomaxaPopulation {
     elite: DominancePopulation,
     network: Network<IndividualInput, IndividualStorage>,
     populations: Vec<Rc<DominancePopulation>>,
+    selection_size: usize,
 }
 
 impl Population for RosomaxaPopulation {
@@ -56,7 +57,8 @@ impl Population for RosomaxaPopulation {
             self.elite
                 .select()
                 .take(2)
-                .chain(self.populations.iter().flat_map(|population| population.select().take(2))),
+                .chain(self.populations.iter().flat_map(|population| population.select().take(2)))
+                .take(self.selection_size),
         )
     }
 
@@ -76,16 +78,22 @@ impl RosomaxaPopulation {
         problem: Arc<Problem>,
         random: Arc<dyn Random + Send + Sync>,
         initials: [InsertionContext; 4],
+        selection_size: usize,
         max_elite_size: usize,
         max_node_size: usize,
         spread_factor: f64,
         reduction_factor: f64,
         distribution_factor: f64,
         learning_rate: f64,
-    ) -> Self {
+    ) -> Result<Self, ()> {
+        // NOTE see note at selection method implementation
+        if max_elite_size < 2 || max_node_size < 2 || selection_size < 4 {
+            return Err(());
+        }
+
         let [a, b, c, d] = initials;
 
-        Self {
+        Ok(Self {
             problem: problem.clone(),
             random: random.clone(),
             elite: DominancePopulation::new(problem.clone(), random.clone(), max_elite_size, max_elite_size),
@@ -105,7 +113,8 @@ impl RosomaxaPopulation {
                 }),
             ),
             populations: vec![],
-        }
+            selection_size,
+        })
     }
 
     fn is_improvement(&self, individual: &Individual) -> bool {
