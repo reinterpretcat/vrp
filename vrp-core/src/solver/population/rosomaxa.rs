@@ -1,9 +1,13 @@
+use super::super::rand::prelude::SliceRandom;
 use super::*;
 use crate::algorithms::gsom::{Input, Network, Storage};
 use crate::construction::heuristics::*;
 use crate::models::Problem;
 use crate::solver::SOLUTION_WEIGHTS_KEY;
-use crate::utils::Random;
+use crate::utils::{as_mut, Random};
+use std::cell::Ref;
+use std::ops::Deref;
+use std::rc::Rc;
 use std::sync::Arc;
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
@@ -13,6 +17,7 @@ pub struct RosomaxaPopulation {
     random: Arc<dyn Random + Send + Sync>,
     elite: DominancePopulation,
     network: Network<IndividualInput, IndividualStorage>,
+    populations: Vec<Rc<DominancePopulation>>,
 }
 
 impl Population for RosomaxaPopulation {
@@ -28,6 +33,8 @@ impl Population for RosomaxaPopulation {
 
         self.network.train(IndividualInput::new(individual));
 
+        self.update();
+
         is_improvement
     }
 
@@ -40,9 +47,17 @@ impl Population for RosomaxaPopulation {
         //      use statistics from add to control exploitation vs exploration balance
         //      use hits to select candidates for mating depending on evolution progress (statistics)
 
-        //self.network.nodes().
+        // NOTE we always promote 2 elements from elite and 2 from each population in the network.
+        //      2 is not a magic number: dominance population always promotes the best individual
+        //      as first, all others are selected with equal probability then.
+        //      If calling site selects always less than 3 elements, then the algorithm should not be used.
 
-        unimplemented!()
+        Box::new(
+            self.elite
+                .select()
+                .take(2)
+                .chain(self.populations.iter().flat_map(|population| population.select().take(2))),
+        )
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
@@ -81,9 +96,15 @@ impl RosomaxaPopulation {
                 distribution_factor,
                 learning_rate,
                 Box::new(move || IndividualStorage {
-                    population: DominancePopulation::new(problem.clone(), random.clone(), max_node_size, max_node_size),
+                    population: Rc::new(DominancePopulation::new(
+                        problem.clone(),
+                        random.clone(),
+                        max_node_size,
+                        max_node_size,
+                    )),
                 }),
             ),
+            populations: vec![],
         }
     }
 
@@ -97,6 +118,17 @@ impl RosomaxaPopulation {
         }
 
         false
+    }
+
+    fn update(&mut self) {
+        // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
+        self.populations = self
+            .network
+            .get_storages(|_| true)
+            .map(|storage| Ref::map(storage, |storage| &storage.population).clone())
+            .collect();
+
+        self.populations.shuffle(&mut self.random.get_rng());
     }
 }
 
@@ -128,12 +160,13 @@ impl Input for IndividualInput {
 }
 
 struct IndividualStorage {
-    population: DominancePopulation,
+    population: Rc<DominancePopulation>,
 }
 
 impl IndividualStorage {
-    fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        self.population.select()
+    fn get_population_mut(&mut self) -> &mut DominancePopulation {
+        // NOTE use black magic here to avoid RefCell, should not break memory safety guarantee
+        unsafe { as_mut(self.population.deref()) }
     }
 }
 
@@ -141,11 +174,11 @@ impl Storage for IndividualStorage {
     type Item = IndividualInput;
 
     fn add(&mut self, input: Self::Item) {
-        self.population.add(input.individual, &Statistics::default());
+        self.get_population_mut().add(input.individual, &Statistics::default());
     }
 
     fn drain(&mut self) -> Vec<Self::Item> {
-        self.population.drain().into_iter().map(|individual| IndividualInput { individual }).collect()
+        self.get_population_mut().drain().into_iter().map(|individual| IndividualInput { individual }).collect()
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
