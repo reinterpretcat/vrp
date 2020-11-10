@@ -23,16 +23,16 @@ pub struct RosomaxaPopulation {
 
 impl Population for RosomaxaPopulation {
     fn add_all(&mut self, individuals: Vec<Individual>, statistics: &Statistics) -> bool {
-        individuals.into_iter().fold(false, |acc, individual| acc || self.add(individual, statistics))
+        let is_improvement =
+            individuals.into_iter().fold(false, |acc, individual| acc || self.add_individual(individual, statistics));
+
+        self.update();
+
+        is_improvement
     }
 
     fn add(&mut self, individual: Individual, statistics: &Statistics) -> bool {
-        let is_improvement =
-            if self.is_improvement(&individual) { self.elite.add(individual.deep_copy(), statistics) } else { false };
-
-        // TODO use statistics to control network parameters
-
-        self.network.train(IndividualInput::new(individual));
+        let is_improvement = self.add_individual(individual, statistics);
 
         self.update();
 
@@ -115,6 +115,17 @@ impl RosomaxaPopulation {
             populations: vec![],
             selection_size,
         })
+    }
+
+    fn add_individual(&mut self, individual: Individual, statistics: &Statistics) -> bool {
+        let is_improvement =
+            if self.is_improvement(&individual) { self.elite.add(individual.deep_copy(), statistics) } else { false };
+
+        // TODO use statistics to control network parameters
+
+        self.network.train(IndividualInput::new(individual));
+
+        is_improvement
     }
 
     fn is_improvement(&self, individual: &Individual) -> bool {
