@@ -3,6 +3,7 @@ use crate::construction::Quota;
 use crate::models::{Problem, Solution};
 use crate::solver::evolution::EvolutionConfig;
 use crate::solver::mutation::*;
+use crate::solver::population::Population;
 use crate::solver::termination::*;
 use crate::solver::{Solver, Telemetry};
 use crate::utils::{DefaultRandom, TimeQuota};
@@ -124,13 +125,9 @@ impl Builder {
     }
 
     /// Sets population settings. Defaults: max_size is 4, selection_size: cpu num.
-    pub fn with_population(mut self, max_size: usize, selection_size: usize) -> Self {
-        self.config.telemetry.log(&format!(
-            "configured to use max population: max_size={}, selection_size={}",
-            max_size, selection_size
-        ));
-        self.config.population.max_size = max_size;
-        self.config.population.selection_size = selection_size;
+    pub fn with_population(mut self, population: Box<dyn Population + Send + Sync>) -> Self {
+        self.config.telemetry.log(&format!("configured to use custom population"));
+        self.config.population.variation = Some(population);
         self
     }
 

@@ -37,28 +37,6 @@ struct DominanceOrder {
     crowding_distance: f64,
 }
 
-impl DominancePopulation {
-    /// Creates a new instance of `DominancePopulation`.
-    ///
-    /// * `problem` - a Vehicle Routing Problem definition.
-    /// * `max_population_size` - a max size of population size.
-    pub fn new(
-        problem: Arc<Problem>,
-        random: Arc<dyn Random + Send + Sync>,
-        max_population_size: usize,
-        selection_size: usize,
-    ) -> Self {
-        assert!(max_population_size > 0);
-
-        Self { problem, random, selection_size, max_population_size, individuals: vec![] }
-    }
-
-    /// Extracts all individuals out from population.
-    pub fn drain(&mut self) -> Vec<Individual> {
-        std::mem::replace(&mut self.individuals, vec![])
-    }
-}
-
 impl Population for DominancePopulation {
     fn add_all(&mut self, individuals: Vec<Individual>, _: &Statistics) -> bool {
         let was_empty = self.size() == 0;
@@ -107,6 +85,26 @@ impl Population for DominancePopulation {
 }
 
 impl DominancePopulation {
+    /// Creates a new instance of `DominancePopulation`.
+    ///
+    /// * `problem` - a Vehicle Routing Problem definition.
+    /// * `max_population_size` - a max size of population size.
+    pub fn new(
+        problem: Arc<Problem>,
+        random: Arc<dyn Random + Send + Sync>,
+        max_population_size: usize,
+        selection_size: usize,
+    ) -> Self {
+        assert!(max_population_size > 0);
+
+        Self { problem, random, selection_size, max_population_size, individuals: vec![] }
+    }
+
+    /// Extracts all individuals out from population.
+    pub fn drain(&mut self) -> Vec<Individual> {
+        std::mem::replace(&mut self.individuals, vec![])
+    }
+
     fn sort(&mut self) {
         let objective = self.problem.objective.clone();
 

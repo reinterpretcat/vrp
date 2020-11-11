@@ -4,7 +4,6 @@ mod evolution_test;
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::mutation::*;
-use crate::solver::population::DominancePopulation;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::{Metrics, Population, RefinementContext, Statistics};
@@ -38,14 +37,6 @@ pub struct EvolutionSimulator {
 
 impl EvolutionSimulator {
     pub fn new(config: EvolutionConfig) -> Result<Self, String> {
-        if config.population.initial.size < 1 {
-            return Err("initial size should be greater than 0".to_string());
-        }
-
-        if config.population.initial.size > config.population.max_size {
-            return Err("initial size should be less or equal population size".to_string());
-        }
-
         if config.population.initial.methods.is_empty() {
             return Err("at least one initial method has to be specified".to_string());
         }
@@ -71,12 +62,7 @@ impl EvolutionSimulator {
     fn create_refinement_ctx(&mut self) -> Result<RefinementContext, String> {
         let mut refinement_ctx = RefinementContext::new(
             self.config.problem.clone(),
-            Box::new(DominancePopulation::new(
-                self.config.problem.clone(),
-                self.config.random.clone(),
-                self.config.population.max_size,
-                self.config.population.selection_size,
-            )),
+            std::mem::replace(&mut self.config.population.variation, None).unwrap(),
             std::mem::replace(&mut self.config.quota, None),
         );
 

@@ -3,6 +3,7 @@ use crate::construction::Quota;
 use crate::models::Problem;
 use crate::solver::evolution::{EvolutionStrategy, RunSimple};
 use crate::solver::mutation::*;
+use crate::solver::population::{DominancePopulation, Population, RosomaxaConfig, RosomaxaPopulation};
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::TelemetryMode;
@@ -41,11 +42,8 @@ pub struct PopulationConfig {
     /// An initial solution config.
     pub initial: InitialConfig,
 
-    /// Max population size.
-    pub max_size: usize,
-
-    /// Max selection size.
-    pub selection_size: usize,
+    /// Population algorithm variation.
+    pub variation: Option<Box<dyn Population + Send + Sync>>,
 }
 
 /// An initial solutions configuration.
@@ -63,16 +61,22 @@ pub struct InitialConfig {
 impl EvolutionConfig {
     /// Creates a new instance of `EvolutionConfig` using default settings.
     pub fn new(problem: Arc<Problem>) -> Self {
+        let random = Arc::new(DefaultRandom::default());
         Self {
             problem: problem.clone(),
             population: PopulationConfig {
-                max_size: 2,
                 initial: InitialConfig {
                     size: 1,
                     methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                     individuals: vec![],
                 },
-                selection_size: get_cpus(),
+                variation: Some(
+                    RosomaxaPopulation::new(problem.clone(), random.clone(), RosomaxaConfig::default())
+                        .map::<Box<dyn Population + Send + Sync>, _>(|population| Box::new(population))
+                        .unwrap_or_else(|_| {
+                            Box::new(DominancePopulation::new(problem.clone(), random.clone(), 2, get_cpus()))
+                        }),
+                ),
             },
             mutation: Arc::new(CompositeMutation::new(vec![(
                 vec![
@@ -88,7 +92,7 @@ impl EvolutionConfig {
             ])),
             strategy: Arc::new(RunSimple::default()),
             quota: None,
-            random: Arc::new(DefaultRandom::default()),
+            random,
             telemetry: Telemetry::new(TelemetryMode::None),
         }
     }

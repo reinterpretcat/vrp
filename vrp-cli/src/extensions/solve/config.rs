@@ -14,8 +14,9 @@ use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
+use vrp_core::solver::population::{DominancePopulation, RosomaxaConfig, RosomaxaPopulation};
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
-use vrp_core::utils::get_cpus;
+use vrp_core::utils::{get_cpus, DefaultRandom};
 
 /// An algorithm configuration.
 #[derive(Clone, Deserialize, Debug)]
@@ -35,8 +36,41 @@ pub struct Config {
 #[serde(rename_all = "camelCase")]
 pub struct PopulationConfig {
     initial: Option<InitialConfig>,
-    max_size: Option<usize>,
-    selection_size: Option<usize>,
+    variation: Option<PopulationType>,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+#[serde(tag = "type")]
+#[serde(rename_all = "camelCase")]
+pub enum PopulationType {
+    /// A basic population which sorts individuals based on their
+    /// dominance order.
+    #[serde(rename(deserialize = "dominance"))]
+    Dominance {
+        /// Max population size. Default is 2.
+        max_size: Option<usize>,
+        /// Selection size. Default is number of cpus.
+        selection_size: Option<usize>,
+    },
+
+    /// A population algorithm based on SOM.
+    #[serde(rename(deserialize = "rosomaxa"))]
+    Rosomaxa {
+        /// Elite population size. Default is 2.
+        max_elite_size: Option<usize>,
+        /// Node population size. Default is 2.
+        max_node_size: Option<usize>,
+        /// Spread factor. Default is 0.5.
+        spread_factor: Option<f64>,
+        /// The reduction factor. Default is 0.1.
+        reduction_factor: Option<f64>,
+        /// Distribution factor. Default is 0.25.
+        distribution_factor: Option<f64>,
+        /// Learning rate. Default is 0.1.
+        learning_rate: Option<f64>,
+        /// Selection size. Default is number of cpus.
+        selection_size: Option<usize>,
+    },
 }
 
 /// An initial solution configuration.
@@ -73,6 +107,7 @@ pub enum MutationType {
         inners: Vec<MutationType>,
     },
 
+    /// A local search heuristic.
     #[serde(rename(deserialize = "local-search"))]
     LocalSearch {
         /// Probability of the group.
@@ -238,6 +273,7 @@ impl Default for Config {
 fn configure_from_population(
     mut builder: Builder,
     population_config: &Option<PopulationConfig>,
+    problem: Arc<Problem>,
 ) -> Result<Builder, String> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
@@ -250,8 +286,55 @@ fn configure_from_population(
             );
         }
 
-        builder =
-            builder.with_population(config.max_size.unwrap_or(4), config.selection_size.unwrap_or_else(|| get_cpus()));
+        if let Some(variation) = &config.variation {
+            // TODO pass random from outside
+            let random = Arc::new(DefaultRandom::default());
+
+            let population = match &variation {
+                PopulationType::Dominance { max_size, selection_size } => Box::new(DominancePopulation::new(
+                    problem,
+                    random,
+                    max_size.unwrap_or(4),
+                    selection_size.unwrap_or_else(|| get_cpus()),
+                )),
+                PopulationType::Rosomaxa {
+                    max_elite_size,
+                    max_node_size,
+                    spread_factor,
+                    reduction_factor,
+                    distribution_factor,
+                    learning_rate,
+                    selection_size,
+                } => {
+                    let mut config = RosomaxaConfig::default();
+                    if let Some(max_elite_size) = max_elite_size {
+                        config.elite_size = *max_elite_size;
+                    }
+                    if let Some(max_node_size) = max_node_size {
+                        config.node_size = *max_node_size;
+                    }
+                    if let Some(spread_factor) = spread_factor {
+                        config.spread_factor = *spread_factor;
+                    }
+                    if let Some(reduction_factor) = reduction_factor {
+                        config.reduction_factor = *reduction_factor;
+                    }
+                    if let Some(distribution_factor) = distribution_factor {
+                        config.distribution_factor = *distribution_factor;
+                    }
+                    if let Some(learning_rate) = learning_rate {
+                        config.learning_rate = *learning_rate;
+                    }
+                    if let Some(selection_size) = selection_size {
+                        config.selection_size = *selection_size;
+                    }
+
+                    Box::new(RosomaxaPopulation::new(problem, random, config))
+                }
+            };
+
+            builder = builder.with_population(population);
+        }
     }
 
     Ok(builder)
@@ -427,7 +510,7 @@ pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Res
     let mut builder = Builder::new(problem);
 
     builder = configure_from_telemetry(builder, &config.telemetry)?;
-    builder = configure_from_population(builder, &config.population)?;
+    builder = configure_from_population(builder, &config.population, problem.clone())?;
     builder = configure_from_mutation(builder, &config.mutation)?;
     builder = configure_from_termination(builder, &config.termination)?;
 

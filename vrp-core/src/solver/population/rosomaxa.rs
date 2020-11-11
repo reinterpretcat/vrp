@@ -4,21 +4,52 @@ use crate::algorithms::gsom::{Input, Network, Storage};
 use crate::construction::heuristics::*;
 use crate::models::Problem;
 use crate::solver::SOLUTION_WEIGHTS_KEY;
-use crate::utils::{as_mut, Random};
+use crate::utils::{as_mut, get_cpus, Random};
 use std::cell::Ref;
+use std::convert::TryInto;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Arc;
+
+/// Specifies rosomaxa configuration settings.
+pub struct RosomaxaConfig {
+    pub selection_size: usize,
+    /// Elite population size.
+    pub elite_size: usize,
+    /// Node population size.
+    pub node_size: usize,
+    /// Spread factor of GSOM.
+    pub spread_factor: f64,
+    /// The reduction factor of GSOM.
+    pub reduction_factor: f64,
+    /// Distribution factor of GSOM.
+    pub distribution_factor: f64,
+    /// Learning rate of GSOM.
+    pub learning_rate: f64,
+}
+
+impl Default for RosomaxaConfig {
+    fn default() -> Self {
+        Self {
+            selection_size: get_cpus(),
+            elite_size: 2,
+            node_size: 2,
+            spread_factor: 0.5,
+            reduction_factor: 0.1,
+            distribution_factor: 0.25,
+            learning_rate: 0.1,
+        }
+    }
+}
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
 /// Maps And eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
 pub struct RosomaxaPopulation {
     problem: Arc<Problem>,
     random: Arc<dyn Random + Send + Sync>,
+    config: RosomaxaConfig,
     elite: DominancePopulation,
-    network: Network<IndividualInput, IndividualStorage>,
-    populations: Vec<Rc<DominancePopulation>>,
-    selection_size: usize,
+    phase: RosomaxaPhases,
 }
 
 impl Population for RosomaxaPopulation {
@@ -26,7 +57,7 @@ impl Population for RosomaxaPopulation {
         let is_improvement =
             individuals.into_iter().fold(false, |acc, individual| acc || self.add_individual(individual, statistics));
 
-        self.update();
+        self.update_phase();
 
         is_improvement
     }
@@ -34,7 +65,7 @@ impl Population for RosomaxaPopulation {
     fn add(&mut self, individual: Individual, statistics: &Statistics) -> bool {
         let is_improvement = self.add_individual(individual, statistics);
 
-        self.update();
+        self.update_phase();
 
         is_improvement
     }
@@ -48,18 +79,23 @@ impl Population for RosomaxaPopulation {
         //      use statistics from add to control exploitation vs exploration balance
         //      use hits to select candidates for mating depending on evolution progress (statistics)
 
-        // NOTE we always promote 2 elements from elite and 2 from each population in the network.
-        //      2 is not a magic number: dominance population always promotes the best individual
-        //      as first, all others are selected with equal probability then.
-        //      If calling site selects always less than 3 elements, then the algorithm should not be used.
+        // NOTE we always promote 2 elements from elite and 2 from each population in the network
+        //      in exploring phase. 2 is not a magic number: dominance population always promotes
+        //      the best individual as first, all others are selected with equal probability.
 
-        Box::new(
-            self.elite
-                .select()
-                .take(2)
-                .chain(self.populations.iter().flat_map(|population| population.select().take(2)))
-                .take(self.selection_size),
-        )
+        // TODO If calling site selects always less than 3 elements, then the algorithm should be
+        //      adjusted to handle that. At the moment, idea is always promote elite in some degree.
+
+        match &self.phase {
+            RosomaxaPhases::Exploring { populations, .. } => Box::new(
+                self.elite
+                    .select()
+                    .take(2)
+                    .chain(populations.iter().flat_map(|population| population.select().take(2)))
+                    .take(self.config.selection_size),
+            ),
+            _ => Box::new(self.elite.select()),
+        }
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
@@ -77,55 +113,68 @@ impl RosomaxaPopulation {
     pub fn new(
         problem: Arc<Problem>,
         random: Arc<dyn Random + Send + Sync>,
-        initials: [InsertionContext; 4],
-        selection_size: usize,
-        max_elite_size: usize,
-        max_node_size: usize,
-        spread_factor: f64,
-        reduction_factor: f64,
-        distribution_factor: f64,
-        learning_rate: f64,
+        config: RosomaxaConfig,
     ) -> Result<Self, ()> {
         // NOTE see note at selection method implementation
-        if max_elite_size < 2 || max_node_size < 2 || selection_size < 4 {
+        if config.elite_size < 2 || config.node_size < 2 || config.selection_size < 4 {
             return Err(());
         }
-
-        let [a, b, c, d] = initials;
 
         Ok(Self {
             problem: problem.clone(),
             random: random.clone(),
-            elite: DominancePopulation::new(problem.clone(), random.clone(), max_elite_size, max_elite_size),
-            network: Network::new(
-                [IndividualInput::new(a), IndividualInput::new(b), IndividualInput::new(c), IndividualInput::new(d)],
-                spread_factor,
-                reduction_factor,
-                distribution_factor,
-                learning_rate,
-                Box::new(move || IndividualStorage {
-                    population: Rc::new(DominancePopulation::new(
-                        problem.clone(),
-                        random.clone(),
-                        max_node_size,
-                        max_node_size,
-                    )),
-                }),
-            ),
-            populations: vec![],
-            selection_size,
+            elite: DominancePopulation::new(problem.clone(), random.clone(), config.elite_size, config.selection_size),
+            phase: RosomaxaPhases::Initial { individuals: vec![] },
+            config,
         })
     }
 
     fn add_individual(&mut self, individual: Individual, statistics: &Statistics) -> bool {
-        let is_improvement =
-            if self.is_improvement(&individual) { self.elite.add(individual.deep_copy(), statistics) } else { false };
+        match &mut self.phase {
+            RosomaxaPhases::Initial { individuals } => {
+                if individuals.len() < 4 {
+                    individuals.push(individual.deep_copy());
+                }
+            }
+            RosomaxaPhases::Exploring { network, .. } => {
+                network.train(IndividualInput::new(individual.deep_copy()));
+            }
+        };
 
-        // TODO use statistics to control network parameters
+        if self.is_improvement(&individual) {
+            self.elite.add(individual.deep_copy(), statistics)
+        } else {
+            false
+        }
+    }
 
-        self.network.train(IndividualInput::new(individual));
+    fn update_phase(&mut self) {
+        match &mut self.phase {
+            RosomaxaPhases::Initial { individuals, .. } => {
+                if individuals.len() >= 4 {
+                    self.phase = RosomaxaPhases::Exploring {
+                        network: Self::create_network(
+                            self.problem.clone(),
+                            self.random.clone(),
+                            &self.config,
+                            individuals.drain(0..).collect(),
+                        ),
+                        populations: vec![],
+                    };
+                }
+            }
+            RosomaxaPhases::Exploring { network, populations, .. } => {
+                populations.clear();
+                populations.extend(
+                    network
+                        .get_storages(|_| true)
+                        .map(|storage| Ref::map(storage, |storage| &storage.population).clone()),
+                );
 
-        is_improvement
+                // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
+                populations.shuffle(&mut self.random.get_rng());
+            }
+        }
     }
 
     fn is_improvement(&self, individual: &Individual) -> bool {
@@ -140,16 +189,50 @@ impl RosomaxaPopulation {
         false
     }
 
-    fn update(&mut self) {
-        // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
-        self.populations = self
-            .network
-            .get_storages(|_| true)
-            .map(|storage| Ref::map(storage, |storage| &storage.population).clone())
-            .collect();
+    fn create_network(
+        problem: Arc<Problem>,
+        random: Arc<dyn Random + Send + Sync>,
+        config: &RosomaxaConfig,
+        individuals: Vec<Individual>,
+    ) -> Network<IndividualInput, IndividualStorage> {
+        let inputs_vec = individuals.into_iter().map(IndividualInput::new).collect::<Vec<_>>();
 
-        self.populations.shuffle(&mut self.random.get_rng());
+        let inputs_slice = inputs_vec.into_boxed_slice();
+        let inputs_array: Box<[IndividualInput; 4]> = match inputs_slice.try_into() {
+            Ok(ba) => ba,
+            Err(o) => panic!("expected individuals of length {} but it was {}", 4, o.len()),
+        };
+
+        Network::new(
+            *inputs_array,
+            config.spread_factor,
+            config.reduction_factor,
+            config.distribution_factor,
+            config.learning_rate,
+            Box::new({
+                let problem = problem.clone();
+                let random = random.clone();
+                let node_size = config.node_size;
+                move || IndividualStorage {
+                    population: Rc::new(DominancePopulation::new(
+                        problem.clone(),
+                        random.clone(),
+                        node_size,
+                        node_size,
+                    )),
+                }
+            }),
+        )
     }
+}
+
+enum RosomaxaPhases {
+    /// Collecting initial solutions phase.
+    Initial { individuals: Vec<InsertionContext> },
+
+    /// Exploring solution space phase.
+    Exploring { network: Network<IndividualInput, IndividualStorage>, populations: Vec<Rc<DominancePopulation>> },
+    // TODO add a phase for exploiting region with most promising optimum
 }
 
 struct IndividualInput {

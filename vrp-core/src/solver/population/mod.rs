@@ -4,6 +4,7 @@ mod dominance;
 pub use self::dominance::DominancePopulation;
 
 mod rosomaxa;
+pub use self::rosomaxa::RosomaxaConfig;
 pub use self::rosomaxa::RosomaxaPopulation;
 
 use crate::algorithms::nsga2::MultiObjective;
