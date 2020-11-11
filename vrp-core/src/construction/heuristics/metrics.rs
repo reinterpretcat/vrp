@@ -66,7 +66,9 @@ fn get_values_from_state(insertion_ctx: &InsertionContext, state_key: i32) -> Ve
 }
 
 fn calculate_gravity_distance_mean(shape: &[Vec<Location>], location_resolver: &LocationResolver) -> f64 {
-    assert!(!shape.is_empty());
+    if shape.is_empty() {
+        return 0.;
+    }
 
     let centroids = shape
         .iter()
