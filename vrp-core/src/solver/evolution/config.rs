@@ -3,11 +3,11 @@ use crate::construction::Quota;
 use crate::models::Problem;
 use crate::solver::evolution::{EvolutionStrategy, RunSimple};
 use crate::solver::mutation::*;
-use crate::solver::population::{DominancePopulation, Population, RosomaxaConfig, RosomaxaPopulation};
+use crate::solver::population::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::TelemetryMode;
-use crate::utils::{get_cpus, DefaultRandom, Random};
+use crate::utils::{DefaultRandom, Random};
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -70,13 +70,11 @@ impl EvolutionConfig {
                     methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                     individuals: vec![],
                 },
-                variation: Some(
-                    RosomaxaPopulation::new(problem.clone(), random.clone(), RosomaxaConfig::default())
-                        .map::<Box<dyn Population + Send + Sync>, _>(|population| Box::new(population))
-                        .unwrap_or_else(|_| {
-                            Box::new(DominancePopulation::new(problem.clone(), random.clone(), 2, get_cpus()))
-                        }),
-                ),
+                variation: Some(RosomaxaPopulation::new_with_fallback(
+                    problem.clone(),
+                    random.clone(),
+                    RosomaxaConfig::default(),
+                )),
             },
             mutation: Arc::new(CompositeMutation::new(vec![(
                 vec![

@@ -17,13 +17,32 @@ fn can_read_config() {
     assert!(!metrics.enabled);
     assert_eq!(metrics.track_population, Some(1000));
 
-    let population = config.population.expect("no population config");
-    assert_eq!(population.max_size, Some(2));
-    assert_eq!(population.selection_size, Some(12));
+    let evolution_config = config.evolution.expect("no evolution config");
 
-    let initial = population.initial.expect("no initial population config");
+    let initial = evolution_config.initial.expect("no initial population config");
     assert_eq!(initial.methods.unwrap().len(), 1);
     assert_eq!(initial.size, Some(1));
+
+    match evolution_config.population.expect("no population config") {
+        PopulationType::Rosomaxa {
+            selection_size,
+            max_elite_size,
+            max_node_size,
+            spread_factor,
+            reduction_factor,
+            distribution_factor,
+            learning_rate,
+        } => {
+            assert_eq!(selection_size, Some(12));
+            assert_eq!(max_elite_size, Some(2));
+            assert_eq!(max_node_size, Some(2));
+            assert_eq!(spread_factor, Some(0.5));
+            assert_eq!(reduction_factor, Some(0.1));
+            assert_eq!(distribution_factor, Some(0.25));
+            assert_eq!(learning_rate, Some(0.1));
+        }
+        PopulationType::Dominance { .. } => unreachable!(),
+    }
 
     let mutation_config = config.mutation.expect("cannot get mutation");
     match mutation_config {
@@ -72,8 +91,8 @@ fn can_create_builder_from_config() {
 
     let builder = create_builder_from_config(problem.clone(), &config).unwrap();
 
+    assert!(builder.config.population.variation.is_some());
     assert_eq!(builder.config.problem.as_ref() as *const Problem, problem.as_ref() as *const Problem);
-    assert_eq!(builder.config.population.max_size, 2);
     assert_eq!(builder.config.population.initial.size, 1);
     assert_eq!(builder.config.population.initial.individuals.len(), 0);
     assert_eq!(builder.config.population.initial.methods.len(), 1);
@@ -85,7 +104,7 @@ fn can_create_builder_from_config() {
 fn can_create_default_config() {
     let config = Config::default();
 
-    assert!(config.population.is_none());
+    assert!(config.evolution.is_none());
     assert!(config.mutation.is_none());
     assert!(config.termination.is_none());
     assert!(config.telemetry.is_none());

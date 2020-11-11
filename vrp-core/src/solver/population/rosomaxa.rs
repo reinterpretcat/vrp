@@ -5,14 +5,13 @@ use crate::construction::heuristics::*;
 use crate::models::Problem;
 use crate::solver::SOLUTION_WEIGHTS_KEY;
 use crate::utils::{as_mut, get_cpus, Random};
-use std::cell::Ref;
 use std::convert::TryInto;
 use std::ops::Deref;
-use std::rc::Rc;
 use std::sync::Arc;
 
 /// Specifies rosomaxa configuration settings.
 pub struct RosomaxaConfig {
+    /// Selection size.
     pub selection_size: usize,
     /// Elite population size.
     pub elite_size: usize,
@@ -129,6 +128,23 @@ impl RosomaxaPopulation {
         })
     }
 
+    /// Creates a new instance of `RosomaxaPopulation` or `DominancePopulation` if
+    /// settings does not allow.
+    pub fn new_with_fallback(
+        problem: Arc<Problem>,
+        random: Arc<dyn Random + Send + Sync>,
+        config: RosomaxaConfig,
+    ) -> Box<dyn Population + Send + Sync> {
+        let selection_size = config.selection_size;
+        let max_population_size = config.elite_size;
+
+        RosomaxaPopulation::new(problem.clone(), random.clone(), config)
+            .map::<Box<dyn Population + Send + Sync>, _>(|population| Box::new(population))
+            .unwrap_or_else(|()| {
+                Box::new(DominancePopulation::new(problem, random, max_population_size, selection_size))
+            })
+    }
+
     fn add_individual(&mut self, individual: Individual, statistics: &Statistics) -> bool {
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals } => {
@@ -165,11 +181,7 @@ impl RosomaxaPopulation {
             }
             RosomaxaPhases::Exploring { network, populations, .. } => {
                 populations.clear();
-                populations.extend(
-                    network
-                        .get_storages(|_| true)
-                        .map(|storage| Ref::map(storage, |storage| &storage.population).clone()),
-                );
+                populations.extend(network.get_nodes().map(|node| node.read().unwrap().storage.population.clone()));
 
                 // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
                 populations.shuffle(&mut self.random.get_rng());
@@ -214,7 +226,7 @@ impl RosomaxaPopulation {
                 let random = random.clone();
                 let node_size = config.node_size;
                 move || IndividualStorage {
-                    population: Rc::new(DominancePopulation::new(
+                    population: Arc::new(DominancePopulation::new(
                         problem.clone(),
                         random.clone(),
                         node_size,
@@ -231,7 +243,7 @@ enum RosomaxaPhases {
     Initial { individuals: Vec<InsertionContext> },
 
     /// Exploring solution space phase.
-    Exploring { network: Network<IndividualInput, IndividualStorage>, populations: Vec<Rc<DominancePopulation>> },
+    Exploring { network: Network<IndividualInput, IndividualStorage>, populations: Vec<Arc<DominancePopulation>> },
     // TODO add a phase for exploiting region with most promising optimum
 }
 
@@ -273,7 +285,7 @@ impl Input for IndividualInput {
 }
 
 struct IndividualStorage {
-    population: Rc<DominancePopulation>,
+    population: Arc<DominancePopulation>,
 }
 
 impl IndividualStorage {

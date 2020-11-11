@@ -14,15 +14,15 @@ use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
-use vrp_core::solver::population::{DominancePopulation, RosomaxaConfig, RosomaxaPopulation};
+use vrp_core::solver::population::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
 use vrp_core::utils::{get_cpus, DefaultRandom};
 
 /// An algorithm configuration.
 #[derive(Clone, Deserialize, Debug)]
 pub struct Config {
-    /// Specifies population configuration.
-    pub population: Option<PopulationConfig>,
+    /// Specifies evolution configuration.
+    pub evolution: Option<EvolutionConfig>,
     /// Specifies mutation operator type.
     pub mutation: Option<MutationType>,
     /// Specifies algorithm termination configuration.
@@ -31,12 +31,12 @@ pub struct Config {
     pub telemetry: Option<TelemetryConfig>,
 }
 
-/// A population configuration.
+/// An evolution configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct PopulationConfig {
+pub struct EvolutionConfig {
     initial: Option<InitialConfig>,
-    variation: Option<PopulationType>,
+    population: Option<PopulationType>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -56,6 +56,8 @@ pub enum PopulationType {
     /// A population algorithm based on SOM.
     #[serde(rename(deserialize = "rosomaxa"))]
     Rosomaxa {
+        /// Selection size. Default is number of cpus.
+        selection_size: Option<usize>,
         /// Elite population size. Default is 2.
         max_elite_size: Option<usize>,
         /// Node population size. Default is 2.
@@ -68,8 +70,6 @@ pub enum PopulationType {
         distribution_factor: Option<f64>,
         /// Learning rate. Default is 0.1.
         learning_rate: Option<f64>,
-        /// Selection size. Default is number of cpus.
-        selection_size: Option<usize>,
     },
 }
 
@@ -266,13 +266,13 @@ pub struct NameWeight {
 
 impl Default for Config {
     fn default() -> Self {
-        Self { population: None, mutation: None, termination: None, telemetry: None }
+        Self { evolution: None, mutation: None, termination: None, telemetry: None }
     }
 }
 
-fn configure_from_population(
+fn configure_from_evolution(
     mut builder: Builder,
-    population_config: &Option<PopulationConfig>,
+    population_config: &Option<EvolutionConfig>,
     problem: Arc<Problem>,
 ) -> Result<Builder, String> {
     if let Some(config) = population_config {
@@ -286,7 +286,7 @@ fn configure_from_population(
             );
         }
 
-        if let Some(variation) = &config.variation {
+        if let Some(variation) = &config.population {
             // TODO pass random from outside
             let random = Arc::new(DefaultRandom::default());
 
@@ -329,7 +329,7 @@ fn configure_from_population(
                         config.selection_size = *selection_size;
                     }
 
-                    Box::new(RosomaxaPopulation::new(problem, random, config))
+                    RosomaxaPopulation::new_with_fallback(problem.clone(), random.clone(), config)
                 }
             };
 
@@ -507,10 +507,10 @@ pub fn create_builder_from_config_file<R: Read>(
 
 /// Creates a solver `Builder` from config.
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
-    let mut builder = Builder::new(problem);
+    let mut builder = Builder::new(problem.clone());
 
     builder = configure_from_telemetry(builder, &config.telemetry)?;
-    builder = configure_from_population(builder, &config.population, problem.clone())?;
+    builder = configure_from_evolution(builder, &config.evolution, problem)?;
     builder = configure_from_mutation(builder, &config.mutation)?;
     builder = configure_from_termination(builder, &config.termination)?;
 

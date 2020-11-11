@@ -1,6 +1,5 @@
 use super::*;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
 /// Represents a node in network.
 pub struct Node<I: Input, S: Storage<Item = I>> {
@@ -32,8 +31,10 @@ pub struct Topology<I: Input, S: Storage<Item = I>> {
     pub down: Option<NodeLink<I, S>>,
 }
 
-pub type NodeLink<I, S> = Rc<RefCell<Node<I, S>>>;
+/// A reference to the node.
+pub type NodeLink<I, S> = Arc<RwLock<Node<I, S>>>;
 
+/// Coordinate of the node.
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Coordinate(pub i32, pub i32);
 

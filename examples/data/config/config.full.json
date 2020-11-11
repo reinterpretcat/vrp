@@ -1,5 +1,5 @@
 {
-  "population": {
+  "evolution": {
     "initial": {
       "size": 1,
       "methods": [
@@ -9,8 +9,16 @@
         }
       ]
     },
-    "maxSize": 2,
-    "selectionSize": 12
+    "population": {
+      "type": "rosomaxa",
+      "selection_size": 12,
+      "max_elite_size": 2,
+      "max_node_size": 2,
+      "spread_factor": 0.5,
+      "reduction_factor": 0.1,
+      "distribution_factor": 0.25,
+      "learning_rate": 0.1
+    }
   },
   "mutation": {
     "type": "composite",
