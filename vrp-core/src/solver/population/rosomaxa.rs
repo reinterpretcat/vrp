@@ -3,7 +3,6 @@ use super::*;
 use crate::algorithms::gsom::{Input, Network, Storage};
 use crate::construction::heuristics::*;
 use crate::models::Problem;
-use crate::solver::SOLUTION_WEIGHTS_KEY;
 use crate::utils::{as_mut, get_cpus, Random};
 use std::convert::TryInto;
 use std::ops::Deref;
@@ -181,7 +180,12 @@ impl RosomaxaPopulation {
             }
             RosomaxaPhases::Exploring { network, populations, .. } => {
                 populations.clear();
-                populations.extend(network.get_nodes().map(|node| node.read().unwrap().storage.population.clone()));
+                populations.extend(
+                    network
+                        .get_nodes()
+                        .map(|node| node.read().unwrap().storage.population.clone())
+                        .filter(|population| population.size() > 0),
+                );
 
                 // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
                 populations.shuffle(&mut self.random.get_rng());
@@ -248,17 +252,14 @@ enum RosomaxaPhases {
 }
 
 struct IndividualInput {
+    weights: Vec<f64>,
     individual: InsertionContext,
 }
 
 impl IndividualInput {
     pub fn new(individual: InsertionContext) -> Self {
         let weights = IndividualInput::get_weights(&individual);
-
-        let mut individual = individual;
-        individual.solution.state.insert(SOLUTION_WEIGHTS_KEY, Arc::new(weights));
-
-        Self { individual }
+        Self { individual, weights }
     }
 
     fn get_weights(individual: &InsertionContext) -> Vec<f64> {
@@ -274,13 +275,7 @@ impl IndividualInput {
 
 impl Input for IndividualInput {
     fn weights(&self) -> &[f64] {
-        self.individual
-            .solution
-            .state
-            .get(&SOLUTION_WEIGHTS_KEY)
-            .and_then(|s| s.downcast_ref::<Vec<f64>>())
-            .unwrap()
-            .as_slice()
+        self.weights.as_slice()
     }
 }
 
@@ -303,7 +298,7 @@ impl Storage for IndividualStorage {
     }
 
     fn drain(&mut self) -> Vec<Self::Item> {
-        self.get_population_mut().drain().into_iter().map(|individual| IndividualInput { individual }).collect()
+        self.get_population_mut().drain().into_iter().map(IndividualInput::new).collect()
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {

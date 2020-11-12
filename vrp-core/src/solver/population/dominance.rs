@@ -8,7 +8,7 @@ use crate::models::Problem;
 use crate::solver::{Population, Statistics, SOLUTION_ORDER_KEY};
 use crate::utils::Random;
 use std::cmp::Ordering;
-use std::iter::once;
+use std::iter::{empty, once};
 use std::sync::Arc;
 
 /// A simple evolution aware implementation of [`Population`] trait with the the following
@@ -65,14 +65,19 @@ impl Population for DominancePopulation {
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        Box::new(
-            once(0_usize)
-                .chain(
-                    (1..self.selection_size).map(move |_| self.random.uniform_int(0, self.size() as i32 - 1) as usize),
-                )
-                .take(self.selection_size)
-                .filter_map(move |idx| self.individuals.get(idx)),
-        )
+        if self.individuals.is_empty() {
+            Box::new(empty())
+        } else {
+            Box::new(
+                once(0_usize)
+                    .chain(
+                        (1..self.selection_size)
+                            .map(move |_| self.random.uniform_int(0, self.size() as i32 - 1) as usize),
+                    )
+                    .take(self.selection_size)
+                    .filter_map(move |idx| self.individuals.get(idx)),
+            )
+        }
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
