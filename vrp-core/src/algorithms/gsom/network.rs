@@ -91,9 +91,14 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         })
     }
 
+    /// Returns node coordinates in arbitrary order.
+    pub fn get_coordinates<'a>(&'a self) -> impl Iterator<Item = Coordinate> + 'a {
+        self.nodes.keys().cloned()
+    }
+
     /// Return nodes in arbitrary order.
-    pub fn get_nodes<'a>(&'a self) -> impl Iterator<Item = NodeLink<I, S>> + 'a {
-        self.nodes.values().cloned()
+    pub fn get_nodes<'a>(&'a self) -> impl Iterator<Item = &NodeLink<I, S>> + 'a {
+        self.nodes.values()
     }
 
     /// Returns a total amount of nodes.

@@ -6,6 +6,9 @@ pub use self::network::Network;
 mod node;
 pub use self::node::*;
 
+mod state;
+pub use self::state::*;
+
 /// Represents an input for network.
 pub trait Input {
     /// Returns weights.
