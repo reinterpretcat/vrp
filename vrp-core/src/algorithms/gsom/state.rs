@@ -1,5 +1,6 @@
 use super::{Input, Network, Storage};
 use crate::algorithms::gsom::Coordinate;
+use std::fmt::{Display, Formatter, Result, Write};
 use std::i32::{MAX, MIN};
 use std::ops::Range;
 
@@ -51,4 +52,22 @@ pub fn get_network_state<I: Input, S: Storage<Item = I>>(network: &Network<I, S>
     let dim = nodes.first().map_or(0, |node| node.weights.len());
 
     NetworkState { shape: (x_min..x_max, y_min..y_max, dim), nodes }
+}
+
+impl Display for NetworkState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        // NOTE serialize state in simple representation which can be embedded
+        // to json as string and then easily parsed.
+        let nodes = self.nodes.iter().fold(String::new(), |mut res, n| {
+            let weights = n.weights.iter().map(ToString::to_string).collect::<Vec<_>>().join(",");
+            write!(&mut res, "[({},{}),{},[{}]]", n.coordinate.0, n.coordinate.1, n.unified_distance, weights).unwrap();
+            res
+        });
+
+        write!(
+            f,
+            "({}..{},{}..{},{})[{}]",
+            self.shape.0.start, self.shape.0.end, self.shape.1.start, self.shape.1.end, self.shape.2, nodes
+        )
+    }
 }
