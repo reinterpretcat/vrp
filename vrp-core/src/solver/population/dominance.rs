@@ -8,6 +8,7 @@ use crate::models::Problem;
 use crate::solver::{Population, Statistics, SOLUTION_ORDER_KEY};
 use crate::utils::Random;
 use std::cmp::Ordering;
+use std::fmt::{Formatter, Write};
 use std::iter::{empty, once};
 use std::sync::Arc;
 
@@ -171,5 +172,24 @@ impl DominancePopulation {
 
     fn gen_dominance_order(individual: &Individual) -> &DominanceOrder {
         individual.solution.state.get(&SOLUTION_ORDER_KEY).and_then(|s| s.downcast_ref::<DominanceOrder>()).unwrap()
+    }
+}
+
+impl Display for DominancePopulation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let fitness = self.individuals.iter().fold(String::new(), |mut res, individual| {
+            let values = individual
+                .problem
+                .objective
+                .objectives()
+                .map(|o| format!("{:.7}", o.fitness(individual)))
+                .collect::<Vec<_>>()
+                .join(",");
+            write!(&mut res, "[{}],", values).unwrap();
+
+            res
+        });
+
+        write!(f, "[{}]", fitness)
     }
 }

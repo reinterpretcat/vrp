@@ -1,5 +1,7 @@
 //! Provides customized implementation of Growing Self Organizing Map.
 
+use std::fmt::Display;
+
 mod network;
 pub use self::network::Network;
 
@@ -16,7 +18,7 @@ pub trait Input {
 }
 
 /// Represents input data storage.
-pub trait Storage {
+pub trait Storage: Display {
     /// An input type.
     type Item: Input;
 

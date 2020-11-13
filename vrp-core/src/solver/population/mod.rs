@@ -13,12 +13,13 @@ use crate::models::problem::ObjectiveCost;
 use crate::solver::Statistics;
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
+use std::fmt::Display;
 
 /// Represents solution in population defined as actual solution.
 pub type Individual = InsertionContext;
 
 /// A trait which models a population with individuals (solutions).
-pub trait Population {
+pub trait Population: Display {
     /// Adds all individuals into the population, then sorts and shrinks population if necessary.
     /// Returns true if any of newly added individuals is considered as best known.
     fn add_all(&mut self, individuals: Vec<Individual>, statistics: &Statistics) -> bool;

@@ -20,6 +20,10 @@ pub struct NodeState {
     pub unified_distance: f64,
     /// Node weights.
     pub weights: Vec<f64>,
+    /// Hits
+    pub hits: usize,
+    /// A dump of underlying node's storage.
+    pub dump: String,
 }
 
 /// Gets network state.
@@ -41,10 +45,15 @@ pub fn get_network_state<I: Input, S: Storage<Item = I>>(network: &Network<I, S>
                 (sum + distance, count + 1)
             });
 
+            let mut dump = String::new();
+            write!(dump, "{}", node.storage).unwrap();
+
             NodeState {
                 coordinate: (node.coordinate.0, node.coordinate.1),
                 unified_distance: if count > 0 { sum / count as f64 } else { 0. },
                 weights: node.weights.clone(),
+                hits: node.hits,
+                dump,
             }
         })
         .collect::<Vec<_>>();
@@ -59,14 +68,17 @@ impl Display for NetworkState {
         // NOTE serialize state in simple representation which can be embedded
         // to json as string and then easily parsed.
         let nodes = self.nodes.iter().fold(String::new(), |mut res, n| {
-            let weights = n.weights.iter().map(ToString::to_string).collect::<Vec<_>>().join(",");
-            write!(&mut res, "[({},{}),{},[{}]]", n.coordinate.0, n.coordinate.1, n.unified_distance, weights).unwrap();
+            let (x, y) = n.coordinate;
+            let weights = n.weights.iter().map(|w| format!("{:.7}", w)).collect::<Vec<_>>().join(",");
+
+            write!(&mut res, "({},{},{:.7},{},[{}],{}),", x, y, n.unified_distance, n.hits, weights, n.dump).unwrap();
+
             res
         });
 
         write!(
             f,
-            "({}..{},{}..{},{})[{}]",
+            "({},{},{},{},{},[{}])",
             self.shape.0.start, self.shape.0.end, self.shape.1.start, self.shape.1.end, self.shape.2, nodes
         )
     }

@@ -8,6 +8,7 @@ use crate::algorithms::nsga2::{MultiObjective, Objective};
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::{RefinementContext, Statistics};
 use crate::utils::Timer;
+use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -39,7 +40,7 @@ pub struct Generation {
     /// True if this generation considered as improvement.
     pub is_improvement: bool,
     /// Population state.
-    pub population: Vec<Individual>,
+    pub population: Population,
 }
 
 /// Keeps essential information about particular individual in population.
@@ -56,6 +57,14 @@ pub struct Individual {
     pub improvement: f64,
     /// Objectives fitness values.
     pub fitness: Vec<f64>,
+}
+
+/// Holds population state.
+pub struct Population {
+    /// Population individuals.
+    pub individuals: Vec<Individual>,
+    /// Population state dump.
+    pub state: String,
 }
 
 /// Specifies a telemetry mode.
@@ -198,25 +207,27 @@ impl Telemetry {
             );
         }
 
-        let population_metrics = refinement_ctx
+        let individuals = refinement_ctx
             .population
             .ranked()
             .map(|(insertion_ctx, rank)| self.get_individual_metrics(refinement_ctx, &insertion_ctx, rank))
             .collect::<Vec<_>>();
 
         if should_log_population {
-            population_metrics.iter().for_each(|metrics| self.log_individual(&metrics, None))
+            individuals.iter().for_each(|metrics| self.log_individual(&metrics, None));
+            self.log(&format!("\t{}", Self::get_population_state(refinement_ctx)));
         }
 
         if should_track_population {
+            let state = Self::get_population_state(refinement_ctx);
             self.metrics.evolution.push(Generation {
                 number: refinement_ctx.statistics.generation,
                 timestamp: self.time.elapsed_secs_as_f64(),
                 i_all_ratio: self.improvement_tracker.i_all_ratio,
                 i_1000_ratio: self.improvement_tracker.i_1000_ratio,
                 is_improvement: self.improvement_tracker.is_last_improved,
-                population: population_metrics,
-            })
+                population: Population { individuals, state },
+            });
         }
     }
 
@@ -321,6 +332,13 @@ impl Telemetry {
             .unwrap_or(0.);
 
         (fitness_value, fitness_change)
+    }
+
+    fn get_population_state(refinement_ctx: &RefinementContext) -> String {
+        let mut state = String::new();
+        write!(state, "{}", refinement_ctx.population).unwrap();
+
+        state
     }
 }
 

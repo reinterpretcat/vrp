@@ -1,10 +1,11 @@
 use super::super::rand::prelude::SliceRandom;
 use super::*;
-use crate::algorithms::gsom::{Input, Network, Storage};
+use crate::algorithms::gsom::{get_network_state, Input, Network, Storage};
 use crate::construction::heuristics::*;
 use crate::models::Problem;
 use crate::utils::{as_mut, get_cpus, Random};
 use std::convert::TryInto;
+use std::fmt::Formatter;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -242,6 +243,18 @@ impl RosomaxaPopulation {
     }
 }
 
+impl Display for RosomaxaPopulation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self.phase {
+            RosomaxaPhases::Exploring { network, .. } => {
+                let state = get_network_state(network);
+                write!(f, "{}", state)
+            }
+            _ => write!(f, "{}", self.elite),
+        }
+    }
+}
+
 enum RosomaxaPhases {
     /// Collecting initial solutions phase.
     Initial { individuals: Vec<InsertionContext> },
@@ -312,5 +325,11 @@ impl Storage for IndividualStorage {
                 acc + change * change
             })
             .sqrt()
+    }
+}
+
+impl Display for IndividualStorage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.population.as_ref())
     }
 }

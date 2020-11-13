@@ -162,7 +162,7 @@ pub struct Generation {
     /// True if this generation considered as improvement.
     pub is_improvement: bool,
     /// Population state.
-    pub population: Vec<Individual>,
+    pub population: Population,
 }
 
 /// Keeps essential information about particular individual in population.
@@ -179,6 +179,16 @@ pub struct Individual {
     pub improvement: f64,
     /// Objectives fitness values.
     pub fitness: Vec<f64>,
+}
+
+/// Holds population state.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Population {
+    /// Population individuals.
+    pub individuals: Vec<Individual>,
+    /// Population state dump.
+    pub state: String,
 }
 
 /// Contains extra information.
