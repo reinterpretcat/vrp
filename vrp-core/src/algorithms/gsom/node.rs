@@ -75,8 +75,10 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Updates hit statistics.
     pub fn new_hit(&mut self, time: usize) {
         self.total_hits += 1;
-        self.last_hits.push_front(time);
-        self.last_hits.truncate(self.hit_memory_size);
+        if self.last_hits.get(0).map_or(true, |last_time| *last_time != time) {
+            self.last_hits.push_front(time);
+            self.last_hits.truncate(self.hit_memory_size);
+        }
     }
 }
 
