@@ -11,13 +11,14 @@
     },
     "population": {
       "type": "rosomaxa",
-      "selection_size": 12,
-      "max_elite_size": 2,
-      "max_node_size": 2,
-      "spread_factor": 0.5,
-      "reduction_factor": 0.1,
-      "distribution_factor": 0.25,
-      "learning_rate": 0.1
+      "selectionSize": 12,
+      "maxEliteSize": 2,
+      "maxNodeSize": 2,
+      "spreadFactor": 0.5,
+      "reductionFactor": 0.1,
+      "distributionFactor": 0.25,
+      "learningRate": 0.1,
+      "hitMemory": 1000
     }
   },
   "mutation": {

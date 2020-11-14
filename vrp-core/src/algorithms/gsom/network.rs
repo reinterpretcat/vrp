@@ -20,6 +20,10 @@ pub struct Network<I: Input, S: Storage<Item = I>> {
     nodes: HashMap<Coordinate, NodeLink<I, S>>,
     /// Creates input storage for new nodes.
     storage_factory: Box<dyn Fn() -> S + Send + Sync>,
+    /// A current time which is used to track node update statistics.
+    time: usize,
+    /// A hit memory of the node.
+    hit_memory: usize,
 }
 
 impl<I: Input, S: Storage<Item = I>> Network<I, S> {
@@ -30,6 +34,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         reduction_factor: f64,
         distribution_factor: f64,
         learning_rate: f64,
+        hit_memory: usize,
         storage_factory: Box<dyn Fn() -> S + Send + Sync>,
     ) -> Self {
         let dimension = roots[0].weights().len();
@@ -44,21 +49,20 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             reduction_factor,
             distribution_factor,
             learning_rate,
-            nodes: Self::create_initial_nodes(roots, &storage_factory),
+            nodes: Self::create_initial_nodes(roots, hit_memory, &storage_factory),
             storage_factory,
+            time: 0,
+            hit_memory,
         }
     }
 
-    /// Trains network on a new input.
-    pub fn train(&mut self, input: I) {
+    /// Adds to the network a new input.
+    pub fn store(&mut self, input: I, time: usize) {
         debug_assert!(input.weights().len() == self.dimension);
 
-        let bmu = self.find_bmu(&input);
-        let error = bmu.read().unwrap().distance(input.weights());
+        self.time = time;
 
-        self.update(&bmu, &input, error);
-
-        bmu.write().unwrap().storage.add(input);
+        self.train(input, true)
     }
 
     /// Rebalances network.
@@ -67,14 +71,14 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()).collect::<Vec<_>>();
 
         data.drain(0..).for_each(|input| {
-            self.train(input);
+            self.train(input, false);
         });
     }
 
     /// Compacts network.
     pub fn compact(&mut self, hit_threshold: usize) {
         let mut remove = vec![];
-        self.nodes.iter_mut().filter(|(_, node)| node.read().unwrap().hits < hit_threshold).for_each(
+        self.nodes.iter_mut().filter(|(_, node)| node.read().unwrap().total_hits < hit_threshold).for_each(
             |(coordinate, node)| {
                 let topology = &mut node.write().unwrap().topology;
                 topology.left.iter_mut().for_each(|link| link.write().unwrap().topology.right = None);
@@ -106,6 +110,23 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         self.nodes.len()
     }
 
+    /// Returns network's time.
+    pub fn time(&self) -> usize {
+        self.time
+    }
+
+    /// Trains network on an input.
+    fn train(&mut self, input: I, is_new_input: bool) {
+        debug_assert!(input.weights().len() == self.dimension);
+
+        let bmu = self.find_bmu(&input);
+        let error = bmu.read().unwrap().distance(input.weights());
+
+        self.update(&bmu, &input, error, is_new_input);
+
+        bmu.write().unwrap().storage.add(input);
+    }
+
     /// Finds the best matching unit within the map for the given input.
     fn find_bmu(&self, input: &I) -> NodeLink<I, S> {
         // TODO avoid double distance calculation
@@ -125,11 +146,15 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     /// Updates network according to the error.
-    fn update(&mut self, node: &NodeLink<I, S>, input: &I, error: f64) {
+    fn update(&mut self, node: &NodeLink<I, S>, input: &I, error: f64, is_new_input: bool) {
         let (exceeds_ae, is_boundary) = {
             let mut node = node.write().unwrap();
             node.error += error;
-            node.hits += 1;
+
+            // NOTE update usage statistics only for a new input
+            if is_new_input {
+                node.new_hit(self.time);
+            }
 
             (node.error > self.growing_threshold, node.topology.is_boundary())
         };
@@ -185,7 +210,12 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
     /// Inserts new neighbors if necessary.
     fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
-        let new_node = Arc::new(RwLock::new(Node::new(coordinate.clone(), weights, self.storage_factory.deref()())));
+        let new_node = Arc::new(RwLock::new(Node::new(
+            coordinate.clone(),
+            weights,
+            self.hit_memory,
+            self.storage_factory.deref()(),
+        )));
         {
             let mut new_node_mut = new_node.write().unwrap();
             let (new_x, new_y) = (coordinate.0, coordinate.1);
@@ -217,10 +247,11 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     /// Creates nodes for initial topology.
     fn create_initial_nodes(
         roots: [I; 4],
+        hit_memory: usize,
         storage_factory: &Box<dyn Fn() -> S + Send + Sync>,
     ) -> HashMap<Coordinate, NodeLink<I, S>> {
         let create_node_link = |coordinate: Coordinate, input: I| {
-            let mut node = Node::<I, S>::new(coordinate, input.weights(), storage_factory.deref()());
+            let mut node = Node::<I, S>::new(coordinate, input.weights(), hit_memory, storage_factory.deref()());
             node.storage.add(input);
             Arc::new(RwLock::new(node))
         };

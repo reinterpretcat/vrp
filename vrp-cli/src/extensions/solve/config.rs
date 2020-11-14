@@ -46,6 +46,7 @@ pub enum PopulationType {
     /// A basic population which sorts individuals based on their
     /// dominance order.
     #[serde(rename(deserialize = "dominance"))]
+    #[serde(rename_all = "camelCase")]
     Dominance {
         /// Max population size. Default is 2.
         max_size: Option<usize>,
@@ -55,6 +56,7 @@ pub enum PopulationType {
 
     /// A population algorithm based on SOM.
     #[serde(rename(deserialize = "rosomaxa"))]
+    #[serde(rename_all = "camelCase")]
     Rosomaxa {
         /// Selection size. Default is number of cpus.
         selection_size: Option<usize>,
@@ -70,6 +72,8 @@ pub enum PopulationType {
         distribution_factor: Option<f64>,
         /// Learning rate. Default is 0.1.
         learning_rate: Option<f64>,
+        /// A node hit memory. Default is 1000.
+        hit_memory: Option<usize>,
     },
 }
 
@@ -305,6 +309,7 @@ fn configure_from_evolution(
                     distribution_factor,
                     learning_rate,
                     selection_size,
+                    hit_memory,
                 } => {
                     let mut config = RosomaxaConfig::default();
                     if let Some(max_elite_size) = max_elite_size {
@@ -327,6 +332,9 @@ fn configure_from_evolution(
                     }
                     if let Some(selection_size) = selection_size {
                         config.selection_size = *selection_size;
+                    }
+                    if let Some(hit_memory) = hit_memory {
+                        config.hit_memory = *hit_memory;
                     }
 
                     RosomaxaPopulation::new_with_fallback(problem.clone(), random.clone(), config)

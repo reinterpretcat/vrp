@@ -32,6 +32,7 @@ fn can_read_config() {
             reduction_factor,
             distribution_factor,
             learning_rate,
+            hit_memory,
         } => {
             assert_eq!(selection_size, Some(12));
             assert_eq!(max_elite_size, Some(2));
@@ -40,6 +41,7 @@ fn can_read_config() {
             assert_eq!(reduction_factor, Some(0.1));
             assert_eq!(distribution_factor, Some(0.25));
             assert_eq!(learning_rate, Some(0.1));
+            assert_eq!(hit_memory, Some(1000));
         }
         PopulationType::Dominance { .. } => unreachable!(),
     }

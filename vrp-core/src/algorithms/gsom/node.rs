@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::VecDeque;
 use std::sync::{Arc, RwLock};
 
 /// Represents a node in network.
@@ -8,13 +9,17 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
     /// An error of the neuron.
     pub error: f64,
     /// Tracks amount of times node is selected as BU.
-    pub hits: usize,
+    pub total_hits: usize,
+    /// Tracks last hits,
+    pub last_hits: VecDeque<usize>,
     /// A coordinate in network.
     pub coordinate: Coordinate,
     /// A reference to topology.
     pub topology: Topology<I, S>,
     /// Remembers passed data.
     pub storage: S,
+    /// How many last hits should be remembered.
+    hit_memory_size: usize,
 }
 
 /// Represents a node neighbourhood.
@@ -40,14 +45,16 @@ pub struct Coordinate(pub i32, pub i32);
 
 impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Creates a new instance of `Node`.
-    pub fn new(coordinate: Coordinate, weights: &[f64], storage: S) -> Self {
+    pub fn new(coordinate: Coordinate, weights: &[f64], hit_memory_size: usize, storage: S) -> Self {
         Self {
             weights: weights.to_vec(),
             error: 0.0,
-            hits: 0,
+            total_hits: 0,
+            last_hits: VecDeque::with_capacity(hit_memory_size + 1),
             coordinate,
             topology: Topology::empty(weights.len()),
             storage,
+            hit_memory_size,
         }
     }
 
@@ -63,6 +70,13 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Returns distance to the given weights.
     pub fn distance(&self, weights: &[f64]) -> f64 {
         self.storage.distance(self.weights.as_slice(), weights)
+    }
+
+    /// Updates hit statistics.
+    pub fn new_hit(&mut self, time: usize) {
+        self.total_hits += 1;
+        self.last_hits.push_front(time);
+        self.last_hits.truncate(self.hit_memory_size);
     }
 }
 

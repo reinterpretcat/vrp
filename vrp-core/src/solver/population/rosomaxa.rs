@@ -25,6 +25,8 @@ pub struct RosomaxaConfig {
     pub distribution_factor: f64,
     /// Learning rate of GSOM.
     pub learning_rate: f64,
+    /// A node hit memory of GSOM.
+    pub hit_memory: usize,
 }
 
 impl Default for RosomaxaConfig {
@@ -37,6 +39,7 @@ impl Default for RosomaxaConfig {
             reduction_factor: 0.1,
             distribution_factor: 0.25,
             learning_rate: 0.1,
+            hit_memory: 1000,
         }
     }
 }
@@ -153,7 +156,7 @@ impl RosomaxaPopulation {
                 }
             }
             RosomaxaPhases::Exploring { network, .. } => {
-                network.train(IndividualInput::new(individual.deep_copy()));
+                network.store(IndividualInput::new(individual.deep_copy()), statistics.generation);
             }
         };
 
@@ -226,6 +229,7 @@ impl RosomaxaPopulation {
             config.reduction_factor,
             config.distribution_factor,
             config.learning_rate,
+            config.hit_memory,
             Box::new({
                 let problem = problem.clone();
                 let random = random.clone();

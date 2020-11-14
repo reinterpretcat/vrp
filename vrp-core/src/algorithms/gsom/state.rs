@@ -20,8 +20,10 @@ pub struct NodeState {
     pub unified_distance: f64,
     /// Node weights.
     pub weights: Vec<f64>,
-    /// Hits
-    pub hits: usize,
+    /// Total hits.
+    pub total_hits: usize,
+    /// Last hits.
+    pub last_hits: usize,
     /// A dump of underlying node's storage.
     pub dump: String,
 }
@@ -52,7 +54,8 @@ pub fn get_network_state<I: Input, S: Storage<Item = I>>(network: &Network<I, S>
                 coordinate: (node.coordinate.0, node.coordinate.1),
                 unified_distance: if count > 0 { sum / count as f64 } else { 0. },
                 weights: node.weights.clone(),
-                hits: node.hits,
+                total_hits: node.total_hits,
+                last_hits: node.last_hits.iter().filter(|hit| **hit > network.time()).count(),
                 dump,
             }
         })
@@ -71,7 +74,12 @@ impl Display for NetworkState {
             let (x, y) = n.coordinate;
             let weights = n.weights.iter().map(|w| format!("{:.7}", w)).collect::<Vec<_>>().join(",");
 
-            write!(&mut res, "({},{},{:.7},{},[{}],{}),", x, y, n.unified_distance, n.hits, weights, n.dump).unwrap();
+            write!(
+                &mut res,
+                "({},{},{:.7},{},{},[{}],{}),",
+                x, y, n.unified_distance, n.total_hits, n.last_hits, weights, n.dump
+            )
+            .unwrap();
 
             res
         });
