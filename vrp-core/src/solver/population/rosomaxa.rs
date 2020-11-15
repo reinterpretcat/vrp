@@ -210,7 +210,7 @@ impl RosomaxaPopulation {
 
                         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
                             network.optimize(&|node| {
-                                get_distance(node).map_or(true, |threshold| threshold > distance_threshold)
+                                get_distance(node).map_or(true, |distance| distance > distance_threshold)
                             });
                         }
                     }
