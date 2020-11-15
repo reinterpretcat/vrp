@@ -148,7 +148,7 @@ impl DominancePopulation {
 
             if order_a.rank == order_b.rank {
                 // NOTE just using crowding distance here does not work
-                is_same_fitness(a, b, objective.as_ref())
+                is_same_fitness(a, b)
             } else {
                 false
             }
@@ -178,13 +178,7 @@ impl DominancePopulation {
 impl Display for DominancePopulation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let fitness = self.individuals.iter().fold(String::new(), |mut res, individual| {
-            let values = individual
-                .problem
-                .objective
-                .objectives()
-                .map(|o| format!("{:.7}", o.fitness(individual)))
-                .collect::<Vec<_>>()
-                .join(",");
+            let values = individual.get_fitness_values().map(|v| format!("{:.7}", v)).collect::<Vec<_>>().join(",");
             write!(&mut res, "[{}],", values).unwrap();
 
             res

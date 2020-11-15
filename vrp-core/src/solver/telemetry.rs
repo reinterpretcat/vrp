@@ -4,7 +4,7 @@
 #[path = "../../tests/unit/solver/telemetry_test.rs"]
 mod telemetry_test;
 
-use crate::algorithms::nsga2::{MultiObjective, Objective};
+use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::{RefinementContext, Statistics};
 use crate::utils::Timer;
@@ -280,12 +280,7 @@ impl Telemetry {
         insertion_ctx: &InsertionContext,
         rank: usize,
     ) -> Individual {
-        let fitness_values = insertion_ctx
-            .problem
-            .objective
-            .objectives()
-            .map(|objective| objective.fitness(insertion_ctx))
-            .collect::<Vec<_>>();
+        let fitness_values = insertion_ctx.get_fitness_values().collect::<Vec<_>>();
 
         let (cost, cost_difference) = Self::get_fitness(refinement_ctx, insertion_ctx);
 

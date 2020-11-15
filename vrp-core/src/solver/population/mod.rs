@@ -7,9 +7,7 @@ mod rosomaxa;
 pub use self::rosomaxa::RosomaxaConfig;
 pub use self::rosomaxa::RosomaxaPopulation;
 
-use crate::algorithms::nsga2::MultiObjective;
 use crate::construction::heuristics::InsertionContext;
-use crate::models::problem::ObjectiveCost;
 use crate::solver::Statistics;
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
@@ -42,9 +40,9 @@ pub trait Population: Display {
 }
 
 /// Checks whether two individuals have the same fitness values.
-fn is_same_fitness(a: &Individual, b: &Individual, objective: &ObjectiveCost) -> bool {
-    let fitness_a = objective.objectives().map(|o| o.fitness(a));
-    let fitness_b = objective.objectives().map(|o| o.fitness(b));
+fn is_same_fitness(a: &Individual, b: &Individual) -> bool {
+    let fitness_a = a.get_fitness_values();
+    let fitness_b = b.get_fitness_values();
 
     fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
 }

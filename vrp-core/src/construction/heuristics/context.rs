@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/construction/heuristics/context_test.rs"]
 mod context_test;
 
+use crate::algorithms::nsga2::MultiObjective;
 use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
@@ -79,6 +80,11 @@ impl InsertionContext {
                 false
             }
         });
+    }
+
+    /// Returns fitness values.
+    pub fn get_fitness_values<'a>(&'a self) -> impl Iterator<Item = f64> + 'a {
+        self.problem.objective.objectives().map(move |objective| objective.fitness(self))
     }
 }
 

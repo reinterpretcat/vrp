@@ -65,34 +65,10 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         self.train(input, true)
     }
 
-    /// Rebalances network.
-    pub fn rebalance(&mut self) {
-        let mut data =
-            self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()).collect::<Vec<_>>();
-
-        data.drain(0..).for_each(|input| {
-            self.train(input, false);
-        });
-    }
-
-    /// Compacts network.
-    pub fn compact(&mut self, hit_threshold: usize) {
-        let mut remove = vec![];
-        self.nodes.iter_mut().filter(|(_, node)| node.read().unwrap().total_hits < hit_threshold).for_each(
-            |(coordinate, node)| {
-                let topology = &mut node.write().unwrap().topology;
-                topology.left.iter_mut().for_each(|link| link.write().unwrap().topology.right = None);
-                topology.right.iter_mut().for_each(|link| link.write().unwrap().topology.left = None);
-                topology.up.iter_mut().for_each(|link| link.write().unwrap().topology.down = None);
-                topology.down.iter_mut().for_each(|link| link.write().unwrap().topology.up = None);
-
-                remove.push(coordinate.clone());
-            },
-        );
-
-        remove.iter().for_each(|coordinate| {
-            self.nodes.remove(coordinate);
-        })
+    /// Optimizes network by rebalancing and compaction of the nodes.
+    pub fn optimize(&mut self, compact_rule: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
+        self.rebalance();
+        self.compact(compact_rule);
     }
 
     /// Returns node coordinates in arbitrary order.
@@ -242,6 +218,34 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         }
 
         self.nodes.insert(coordinate, new_node);
+    }
+
+    /// Rebalances network.
+    fn rebalance(&mut self) {
+        let mut data =
+            self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()).collect::<Vec<_>>();
+
+        data.drain(0..).for_each(|input| {
+            self.train(input, false);
+        });
+    }
+
+    /// Compacts network.
+    fn compact(&mut self, rule: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
+        let mut remove = vec![];
+        self.nodes.iter_mut().filter(|(_, node)| rule.deref()(node)).for_each(|(coordinate, node)| {
+            let topology = &mut node.write().unwrap().topology;
+            topology.left.iter_mut().for_each(|link| link.write().unwrap().topology.right = None);
+            topology.right.iter_mut().for_each(|link| link.write().unwrap().topology.left = None);
+            topology.up.iter_mut().for_each(|link| link.write().unwrap().topology.down = None);
+            topology.down.iter_mut().for_each(|link| link.write().unwrap().topology.up = None);
+
+            remove.push(coordinate.clone());
+        });
+
+        remove.iter().for_each(|coordinate| {
+            self.nodes.remove(coordinate);
+        })
     }
 
     /// Creates nodes for initial topology.

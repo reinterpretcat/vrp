@@ -1,6 +1,7 @@
 use super::super::rand::prelude::SliceRandom;
 use super::*;
-use crate::algorithms::gsom::{get_network_state, Input, Network, Storage};
+use crate::algorithms::gsom::{get_network_state, Input, Network, NodeLink, Storage};
+use crate::algorithms::statistics::relative_distance;
 use crate::construction::heuristics::*;
 use crate::models::Problem;
 use crate::utils::{as_mut, get_cpus, Random};
@@ -59,7 +60,7 @@ impl Population for RosomaxaPopulation {
         let is_improvement =
             individuals.into_iter().fold(false, |acc, individual| acc || self.add_individual(individual, statistics));
 
-        self.update_phase();
+        self.update_phase(statistics);
 
         is_improvement
     }
@@ -67,7 +68,7 @@ impl Population for RosomaxaPopulation {
     fn add(&mut self, individual: Individual, statistics: &Statistics) -> bool {
         let is_improvement = self.add_individual(individual, statistics);
 
-        self.update_phase();
+        self.update_phase(statistics);
 
         is_improvement
     }
@@ -167,7 +168,7 @@ impl RosomaxaPopulation {
         }
     }
 
-    fn update_phase(&mut self) {
+    fn update_phase(&mut self, statistics: &Statistics) {
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals, .. } => {
                 if individuals.len() >= 4 {
@@ -183,6 +184,39 @@ impl RosomaxaPopulation {
                 }
             }
             RosomaxaPhases::Exploring { network, populations, .. } => {
+                let best_individual = self.elite.select().next();
+                let is_optimization_time = statistics.generation % self.config.hit_memory == 0;
+
+                match (best_individual, is_optimization_time) {
+                    (Some(best_individual), true) => {
+                        // TODO determine it based on generation and configuration
+                        const PERCENTILE_THRESHOLD: f64 = 0.25;
+
+                        let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
+                        let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
+                            let node = node.read().unwrap();
+                            let individual = node.storage.population.select().next();
+                            if let Some(individual) = individual {
+                                Some(relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
+                            } else {
+                                None
+                            }
+                        };
+
+                        // determine percentile value
+                        let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
+                        distances.sort_by(|a, b| compare_floats(*b, *a));
+                        let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
+
+                        if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
+                            network.optimize(&|node| {
+                                get_distance(node).map_or(true, |threshold| threshold > distance_threshold)
+                            });
+                        }
+                    }
+                    _ => {}
+                }
+
                 populations.clear();
                 populations.extend(
                     network
@@ -200,7 +234,7 @@ impl RosomaxaPopulation {
     fn is_improvement(&self, individual: &Individual) -> bool {
         if let Some((best, _)) = self.elite.ranked().next() {
             if self.elite.cmp(individual, best) != Ordering::Greater {
-                return !is_same_fitness(individual, best, self.problem.objective.as_ref());
+                return !is_same_fitness(individual, best);
             }
         } else {
             return true;
@@ -319,16 +353,7 @@ impl Storage for IndividualStorage {
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
-        // NOTE as weights are not normalized, apply standardization using relative change: D = |x - y| / max(|x|, |y|)
-        a.iter()
-            .zip(b.iter())
-            .fold(0., |acc, (a, b)| {
-                let divider = a.abs().max(b.abs());
-                let change = if compare_floats(divider, 0.) == Ordering::Equal { 0. } else { (a - b) / divider };
-
-                acc + change * change
-            })
-            .sqrt()
+        relative_distance(a.iter().cloned(), b.iter().cloned())
     }
 }
 
