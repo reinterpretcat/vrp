@@ -105,14 +105,14 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         self.nodes.values()
     }
 
+    /// Checks whether hit time is considered as last.
+    pub fn is_last_hit(&self, hit_time: usize) -> bool {
+        hit_time as i32 >= self.time as i32 - self.hit_memory as i32
+    }
+
     /// Returns a total amount of nodes.
     pub fn size(&self) -> usize {
         self.nodes.len()
-    }
-
-    /// Returns network's time.
-    pub fn time(&self) -> usize {
-        self.time
     }
 
     /// Trains network on an input.
