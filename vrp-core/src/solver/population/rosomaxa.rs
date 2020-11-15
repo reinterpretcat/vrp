@@ -189,8 +189,9 @@ impl RosomaxaPopulation {
 
                 match (best_individual, is_optimization_time) {
                     (Some(best_individual), true) => {
-                        // TODO determine it based on generation and configuration
+                        // TODO determine parameters based on generation and configuration
                         const PERCENTILE_THRESHOLD: f64 = 0.25;
+                        const REBALANCE_COUNT: usize = 10;
 
                         let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
                         let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
@@ -209,8 +210,9 @@ impl RosomaxaPopulation {
                         let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
 
                         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-                            network.optimize(&|node| {
-                                get_distance(node).map_or(true, |distance| distance > distance_threshold)
+                            network.optimize(REBALANCE_COUNT, &|node| {
+                                let is_empty = node.read().unwrap().storage.population.size() == 0;
+                                is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
                             });
                         }
                     }

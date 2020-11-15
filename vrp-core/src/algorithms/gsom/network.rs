@@ -66,8 +66,8 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     /// Optimizes network by rebalancing and compaction of the nodes.
-    pub fn optimize(&mut self, compact_rule: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
-        self.rebalance();
+    pub fn optimize(&mut self, rebalance_count: usize, compact_rule: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
+        self.rebalance(rebalance_count);
         self.compact(compact_rule);
     }
 
@@ -221,12 +221,14 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     /// Rebalances network.
-    fn rebalance(&mut self) {
-        let mut data =
-            self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()).collect::<Vec<_>>();
+    fn rebalance(&mut self, rebalance_count: usize) {
+        (0..rebalance_count).for_each(|_| {
+            let mut data =
+                self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()).collect::<Vec<_>>();
 
-        data.drain(0..).for_each(|input| {
-            self.train(input, false);
+            data.drain(0..).for_each(|input| {
+                self.train(input, false);
+            });
         });
     }
 
