@@ -1,5 +1,6 @@
 use super::*;
 use hashbrown::HashMap;
+use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::{Arc, RwLock};
@@ -225,6 +226,8 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         (0..rebalance_count).for_each(|_| {
             let mut data =
                 self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()).collect::<Vec<_>>();
+
+            data.shuffle(&mut rand::thread_rng());
 
             data.drain(0..).for_each(|input| {
                 self.train(input, false);
