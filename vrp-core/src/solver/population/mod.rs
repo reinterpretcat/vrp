@@ -1,11 +1,11 @@
 //! Specifies population types.
 
-mod dominance;
-pub use self::dominance::DominancePopulation;
+mod elitism;
+pub use self::elitism::Elitism;
 
 mod rosomaxa;
 pub use self::rosomaxa::RosomaxaConfig;
-pub use self::rosomaxa::RosomaxaPopulation;
+pub use self::rosomaxa::Rosomaxa;
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::Statistics;

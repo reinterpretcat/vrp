@@ -7,7 +7,7 @@ use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
 use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::solver::population::DominancePopulation;
+use vrp_core::solver::population::Elitism;
 use vrp_core::solver::Builder;
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::{get_cpus, DefaultRandom};
@@ -16,7 +16,7 @@ use vrp_core::utils::{get_cpus, DefaultRandom};
 pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
     get_core_solution(problem, matrices, true, |problem: Arc<CoreProblem>| {
         let random = Arc::new(DefaultRandom::default());
-        let population = Box::new(DominancePopulation::new(problem.clone(), random.clone(), 4, get_cpus()));
+        let population = Box::new(Elitism::new(problem.clone(), random.clone(), 4, get_cpus()));
         let mut refinement_ctx = RefinementContext::new(problem.clone(), population, None);
 
         RecreateWithCheapest::default()

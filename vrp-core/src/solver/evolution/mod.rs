@@ -12,8 +12,8 @@ use crate::utils::Timer;
 mod config;
 pub use self::config::*;
 
-mod simple;
-pub use self::simple::RunSimple;
+mod run_simple;
+pub use self::run_simple::RunSimple;
 
 /// Defines evolution result type.
 pub type EvolutionResult = Result<(Box<dyn Population + Send + Sync>, Option<Metrics>), String>;

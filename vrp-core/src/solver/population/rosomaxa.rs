@@ -50,15 +50,15 @@ impl Default for RosomaxaConfig {
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
 /// Maps And eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
-pub struct RosomaxaPopulation {
+pub struct Rosomaxa {
     problem: Arc<Problem>,
     random: Arc<dyn Random + Send + Sync>,
     config: RosomaxaConfig,
-    elite: DominancePopulation,
+    elite: Elitism,
     phase: RosomaxaPhases,
 }
 
-impl Population for RosomaxaPopulation {
+impl Population for Rosomaxa {
     fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
         individuals.into_iter().fold(false, |acc, individual| acc || self.add_individual(individual))
     }
@@ -113,8 +113,8 @@ impl Population for RosomaxaPopulation {
     }
 }
 
-impl RosomaxaPopulation {
-    /// Creates a new instance of `RosomaxaPopulation`.
+impl Rosomaxa {
+    /// Creates a new instance of `Rosomaxa`.
     pub fn new(
         problem: Arc<Problem>,
         random: Arc<dyn Random + Send + Sync>,
@@ -128,13 +128,13 @@ impl RosomaxaPopulation {
         Ok(Self {
             problem: problem.clone(),
             random: random.clone(),
-            elite: DominancePopulation::new(problem.clone(), random.clone(), config.elite_size, config.selection_size),
+            elite: Elitism::new(problem.clone(), random.clone(), config.elite_size, config.selection_size),
             phase: RosomaxaPhases::Initial { individuals: vec![] },
             config,
         })
     }
 
-    /// Creates a new instance of `RosomaxaPopulation` or `DominancePopulation` if
+    /// Creates a new instance of `Rosomaxa` or `Elitism` if
     /// settings does not allow.
     pub fn new_with_fallback(
         problem: Arc<Problem>,
@@ -144,10 +144,10 @@ impl RosomaxaPopulation {
         let selection_size = config.selection_size;
         let max_population_size = config.elite_size;
 
-        RosomaxaPopulation::new(problem.clone(), random.clone(), config)
+        Rosomaxa::new(problem.clone(), random.clone(), config)
             .map::<Box<dyn Population + Send + Sync>, _>(|population| Box::new(population))
             .unwrap_or_else(|()| {
-                Box::new(DominancePopulation::new(problem, random, max_population_size, selection_size))
+                Box::new(Elitism::new(problem, random, max_population_size, selection_size))
             })
     }
 
@@ -220,7 +220,7 @@ impl RosomaxaPopulation {
 
     fn fill_populations(
         network: &Network<IndividualInput, IndividualStorage>,
-        populations: &mut Vec<Arc<DominancePopulation>>,
+        populations: &mut Vec<Arc<Elitism>>,
         random: &(dyn Random + Send + Sync),
     ) {
         populations.clear();
@@ -294,7 +294,7 @@ impl RosomaxaPopulation {
                 let random = random.clone();
                 let node_size = config.node_size;
                 move || IndividualStorage {
-                    population: Arc::new(DominancePopulation::new(
+                    population: Arc::new(Elitism::new(
                         problem.clone(),
                         random.clone(),
                         node_size,
@@ -306,7 +306,7 @@ impl RosomaxaPopulation {
     }
 }
 
-impl Display for RosomaxaPopulation {
+impl Display for Rosomaxa {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.phase {
             RosomaxaPhases::Exploration { network, .. } => {
@@ -325,7 +325,7 @@ enum RosomaxaPhases {
     Exploration {
         time: usize,
         network: Network<IndividualInput, IndividualStorage>,
-        populations: Vec<Arc<DominancePopulation>>,
+        populations: Vec<Arc<Elitism>>,
     },
     Exploitation,
 }
@@ -359,11 +359,11 @@ impl Input for IndividualInput {
 }
 
 struct IndividualStorage {
-    population: Arc<DominancePopulation>,
+    population: Arc<Elitism>,
 }
 
 impl IndividualStorage {
-    fn get_population_mut(&mut self) -> &mut DominancePopulation {
+    fn get_population_mut(&mut self) -> &mut Elitism {
         // NOTE use black magic here to avoid RefCell, should not break memory safety guarantee
         unsafe { as_mut(self.population.deref()) }
     }

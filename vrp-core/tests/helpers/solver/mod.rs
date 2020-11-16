@@ -7,14 +7,14 @@ use crate::models::common::Location;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
-use crate::solver::population::{DominancePopulation, Population};
+use crate::solver::population::{Elitism, Population};
 use crate::solver::RefinementContext;
 use crate::utils::{get_cpus, DefaultRandom};
 use std::sync::Arc;
 
 /// Creates default population.
 pub fn create_default_population(problem: Arc<Problem>) -> Box<dyn Population + Sync + Send> {
-    Box::new(DominancePopulation::new(problem, Arc::new(DefaultRandom::default()), 4, get_cpus()))
+    Box::new(Elitism::new(problem, Arc::new(DefaultRandom::default()), 4, get_cpus()))
 }
 
 pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext {

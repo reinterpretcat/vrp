@@ -1,6 +1,6 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/solver/population/dominance_test.rs"]
-mod dominance_test;
+#[path = "../../../tests/unit/solver/population/elitism_test.rs"]
+mod elitism_test;
 
 use super::*;
 use crate::algorithms::nsga2::{select_and_rank, Objective};
@@ -21,7 +21,7 @@ use std::sync::Arc;
 /// [`Population`]: ./trait.Population.html
 /// [`NSGA-II`]: ../algorithms/nsga2/index.html
 ///
-pub struct DominancePopulation {
+pub struct Elitism {
     problem: Arc<Problem>,
     random: Arc<dyn Random + Send + Sync>,
     selection_size: usize,
@@ -38,7 +38,7 @@ struct DominanceOrder {
     crowding_distance: f64,
 }
 
-impl Population for DominancePopulation {
+impl Population for Elitism {
     fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
         let was_empty = self.size() == 0;
 
@@ -96,8 +96,8 @@ impl Population for DominancePopulation {
     }
 }
 
-impl DominancePopulation {
-    /// Creates a new instance of `DominancePopulation`.
+impl Elitism {
+    /// Creates a new instance of `Elitism`.
     ///
     /// * `problem` - a Vehicle Routing Problem definition.
     /// * `max_population_size` - a max size of population size.
@@ -181,7 +181,7 @@ impl DominancePopulation {
     }
 }
 
-impl Display for DominancePopulation {
+impl Display for Elitism {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let fitness = self.individuals.iter().fold(String::new(), |mut res, individual| {
             let values = individual.get_fitness_values().map(|v| format!("{:.7}", v)).collect::<Vec<_>>().join(",");

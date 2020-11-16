@@ -297,7 +297,7 @@ fn configure_from_evolution(
             let random = Arc::new(DefaultRandom::default());
 
             let population = match &variation {
-                PopulationType::Dominance { max_size, selection_size } => Box::new(DominancePopulation::new(
+                PopulationType::Dominance { max_size, selection_size } => Box::new(Elitism::new(
                     problem,
                     random,
                     max_size.unwrap_or(4),
@@ -343,7 +343,7 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    RosomaxaPopulation::new_with_fallback(problem.clone(), random.clone(), config)
+                    Rosomaxa::new_with_fallback(problem.clone(), random.clone(), config)
                 }
             };
 

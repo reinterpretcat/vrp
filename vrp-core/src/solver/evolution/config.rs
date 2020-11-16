@@ -70,7 +70,7 @@ impl EvolutionConfig {
                     methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                     individuals: vec![],
                 },
-                variation: Some(RosomaxaPopulation::new_with_fallback(
+                variation: Some(Rosomaxa::new_with_fallback(
                     problem.clone(),
                     random.clone(),
                     RosomaxaConfig::default(),
