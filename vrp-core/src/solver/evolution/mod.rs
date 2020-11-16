@@ -6,7 +6,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::solver::mutation::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
-use crate::solver::{Metrics, Population, RefinementContext, Statistics};
+use crate::solver::{Metrics, Population, RefinementContext};
 use crate::utils::Timer;
 
 mod config;
@@ -82,7 +82,7 @@ impl EvolutionSimulator {
             .for_each(|(ctx, idx)| {
                 if should_add_solution(&refinement_ctx) {
                     self.config.telemetry.on_initial(idx, self.config.population.initial.size, Timer::start());
-                    refinement_ctx.population.add(ctx, &Statistics::default());
+                    refinement_ctx.population.add(ctx);
                 } else {
                     self.config.telemetry.log(format!("skipping provided initial solution {}", idx).as_str())
                 }
@@ -105,7 +105,7 @@ impl EvolutionSimulator {
                 self.config.population.initial.methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
 
             if should_add_solution(&refinement_ctx) {
-                refinement_ctx.population.add(insertion_ctx, &Statistics::default());
+                refinement_ctx.population.add(insertion_ctx);
                 self.config.telemetry.on_initial(idx, self.config.population.initial.size, item_time);
             } else {
                 self.config.telemetry.log(format!("skipping built initial solution {}", idx).as_str())
@@ -115,7 +115,13 @@ impl EvolutionSimulator {
         });
 
         if refinement_ctx.population.size() > 0 {
-            self.config.telemetry.on_generation(&mut refinement_ctx, initial_time, true);
+            on_generation(
+                &mut refinement_ctx,
+                &mut self.config.telemetry,
+                self.config.termination.as_ref(),
+                initial_time,
+                true,
+            );
         } else {
             self.config.telemetry.log("created an empty population")
         }
@@ -137,4 +143,17 @@ fn should_stop(refinement_ctx: &mut RefinementContext, termination: &dyn Termina
     let is_quota_reached = refinement_ctx.quota.as_ref().map_or(false, |q| q.is_reached());
 
     is_terminated || is_quota_reached
+}
+
+fn on_generation(
+    refinement_ctx: &mut RefinementContext,
+    telemetry: &mut Telemetry,
+    termination: &dyn Termination,
+    generation_time: Timer,
+    is_improved: bool,
+) {
+    let termination_estimate = termination.estimate(refinement_ctx);
+
+    telemetry.on_generation(refinement_ctx, termination_estimate, generation_time, is_improved);
+    refinement_ctx.population.on_generation(&refinement_ctx.statistics);
 }

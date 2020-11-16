@@ -145,6 +145,9 @@ pub struct Statistics {
 
     /// An improvement ratio for last 1000 iterations.
     pub improvement_1000_ratio: f64,
+
+    /// A progress till algorithm's termination.
+    pub termination_estimate: f64,
 }
 
 impl RefinementContext {
@@ -160,7 +163,7 @@ impl RefinementContext {
 
 impl Default for Statistics {
     fn default() -> Self {
-        Self { generation: 0, improvement_all_ratio: 0., improvement_1000_ratio: 0. }
+        Self { generation: 0, improvement_all_ratio: 0., improvement_1000_ratio: 0., termination_estimate: 0. }
     }
 }
 

@@ -7,6 +7,9 @@ use crate::solver::RefinementContext;
 pub trait Termination {
     /// Returns true if termination condition is met.
     fn is_termination(&self, refinement_ctx: &mut RefinementContext) -> bool;
+
+    /// Returns a relative estimation till termination. Value is in the `[0, 1]` range.
+    fn estimate(&self, refinement_ctx: &RefinementContext) -> f64;
 }
 
 mod cost_variation;
@@ -17,6 +20,7 @@ pub use self::max_generation::MaxGeneration;
 
 mod max_time;
 pub use self::max_time::MaxTime;
+use crate::utils::compare_floats;
 
 /// A trait which encapsulates multiple termination criteria.
 pub struct CompositeTermination {
@@ -33,5 +37,9 @@ impl CompositeTermination {
 impl Termination for CompositeTermination {
     fn is_termination(&self, refinement_ctx: &mut RefinementContext) -> bool {
         self.terminations.iter().any(|t| t.is_termination(refinement_ctx))
+    }
+
+    fn estimate(&self, refinement_ctx: &RefinementContext) -> f64 {
+        self.terminations.iter().map(|t| t.estimate(refinement_ctx)).max_by(|a, b| compare_floats(*a, *b)).unwrap_or(0.)
     }
 }

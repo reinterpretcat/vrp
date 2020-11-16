@@ -17,21 +17,21 @@ fn can_update_statistic() {
     telemetry.start();
     telemetry.on_initial(0, 1, Timer::start());
 
-    telemetry.on_generation(&mut refinement_ctx, Timer::start(), true);
+    telemetry.on_generation(&mut refinement_ctx, 0., Timer::start(), true);
     compare_statistic(&refinement_ctx, (0, 1., 1.));
 
-    telemetry.on_generation(&mut refinement_ctx, Timer::start(), false);
+    telemetry.on_generation(&mut refinement_ctx, 0., Timer::start(), false);
     compare_statistic(&refinement_ctx, (1, 0.5, 0.5));
 
-    telemetry.on_generation(&mut refinement_ctx, Timer::start(), false);
-    telemetry.on_generation(&mut refinement_ctx, Timer::start(), false);
+    telemetry.on_generation(&mut refinement_ctx, 0., Timer::start(), false);
+    telemetry.on_generation(&mut refinement_ctx, 0., Timer::start(), false);
     compare_statistic(&refinement_ctx, (3, 0.25, 0.25));
 
     (0..996).for_each(|_| {
-        telemetry.on_generation(&mut refinement_ctx, Timer::start(), false);
+        telemetry.on_generation(&mut refinement_ctx, 0., Timer::start(), false);
     });
     compare_statistic(&refinement_ctx, (999, 0.001, 0.001));
 
-    telemetry.on_generation(&mut refinement_ctx, Timer::start(), true);
+    telemetry.on_generation(&mut refinement_ctx, 0., Timer::start(), true);
     compare_statistic(&refinement_ctx, (1000, 2. / 1001., 0.001));
 }

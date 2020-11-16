@@ -21,4 +21,8 @@ impl Termination for MaxGeneration {
     fn is_termination(&self, refinement_ctx: &mut RefinementContext) -> bool {
         refinement_ctx.statistics.generation >= self.limit
     }
+
+    fn estimate(&self, refinement_ctx: &RefinementContext) -> f64 {
+        (refinement_ctx.statistics.generation as f64 / self.limit as f64).min(1.)
+    }
 }

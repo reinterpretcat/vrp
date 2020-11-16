@@ -74,6 +74,8 @@ pub enum PopulationType {
         learning_rate: Option<f64>,
         /// A node hit memory. Default is 1000.
         hit_memory: Option<usize>,
+        /// An exploration phase ratio. Default is 0.9.
+        exploration_ratio: Option<f64>,
     },
 }
 
@@ -310,6 +312,7 @@ fn configure_from_evolution(
                     learning_rate,
                     selection_size,
                     hit_memory,
+                    exploration_ratio,
                 } => {
                     let mut config = RosomaxaConfig::default();
                     if let Some(max_elite_size) = max_elite_size {
@@ -335,6 +338,9 @@ fn configure_from_evolution(
                     }
                     if let Some(hit_memory) = hit_memory {
                         config.hit_memory = *hit_memory;
+                    }
+                    if let Some(exploration_ratio) = exploration_ratio {
+                        config.exploration_ratio = *exploration_ratio;
                     }
 
                     RosomaxaPopulation::new_with_fallback(problem.clone(), random.clone(), config)

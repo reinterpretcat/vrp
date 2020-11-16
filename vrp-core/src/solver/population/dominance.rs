@@ -39,7 +39,7 @@ struct DominanceOrder {
 }
 
 impl Population for DominancePopulation {
-    fn add_all(&mut self, individuals: Vec<Individual>, _: &Statistics) -> bool {
+    fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
         let was_empty = self.size() == 0;
 
         individuals.into_iter().for_each(|individual| {
@@ -51,7 +51,7 @@ impl Population for DominancePopulation {
         self.is_improved(was_empty)
     }
 
-    fn add(&mut self, individual: Individual, _: &Statistics) -> bool {
+    fn add(&mut self, individual: Individual) -> bool {
         let was_empty = self.size() == 0;
 
         self.individuals.push(individual);
@@ -60,6 +60,8 @@ impl Population for DominancePopulation {
         self.ensure_max_population_size();
         self.is_improved(was_empty)
     }
+
+    fn on_generation(&mut self, _: &Statistics) {}
 
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
         self.problem.objective.total_order(a, b)
@@ -87,6 +89,10 @@ impl Population for DominancePopulation {
 
     fn size(&self) -> usize {
         self.individuals.len()
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        SelectionPhase::Exploitation
     }
 }
 

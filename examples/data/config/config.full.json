@@ -18,7 +18,8 @@
       "reductionFactor": 0.1,
       "distributionFactor": 0.25,
       "learningRate": 0.1,
-      "hitMemory": 1000
+      "hitMemory": 1000,
+      "explorationRatio": 0.9
     }
   },
   "mutation": {

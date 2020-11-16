@@ -28,6 +28,8 @@ pub struct RosomaxaConfig {
     pub learning_rate: f64,
     /// A node hit memory of GSOM.
     pub hit_memory: usize,
+    /// A ratio of exploration phase.
+    pub exploration_ratio: f64,
 }
 
 impl Default for RosomaxaConfig {
@@ -41,6 +43,7 @@ impl Default for RosomaxaConfig {
             distribution_factor: 0.25,
             learning_rate: 0.1,
             hit_memory: 1000,
+            exploration_ratio: 0.9,
         }
     }
 }
@@ -56,21 +59,16 @@ pub struct RosomaxaPopulation {
 }
 
 impl Population for RosomaxaPopulation {
-    fn add_all(&mut self, individuals: Vec<Individual>, statistics: &Statistics) -> bool {
-        let is_improvement =
-            individuals.into_iter().fold(false, |acc, individual| acc || self.add_individual(individual, statistics));
-
-        self.update_phase(statistics);
-
-        is_improvement
+    fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
+        individuals.into_iter().fold(false, |acc, individual| acc || self.add_individual(individual))
     }
 
-    fn add(&mut self, individual: Individual, statistics: &Statistics) -> bool {
-        let is_improvement = self.add_individual(individual, statistics);
+    fn add(&mut self, individual: Individual) -> bool {
+        self.add_individual(individual)
+    }
 
-        self.update_phase(statistics);
-
-        is_improvement
+    fn on_generation(&mut self, statistics: &Statistics) {
+        self.update_phase(statistics)
     }
 
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
@@ -78,10 +76,6 @@ impl Population for RosomaxaPopulation {
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        // TODO return individuals from elite (exploitation) and network (exploration)
-        //      use statistics from add to control exploitation vs exploration balance
-        //      use hits to select candidates for mating depending on evolution progress (statistics)
-
         // NOTE we always promote 2 elements from elite and 2 from each population in the network
         //      in exploring phase. 2 is not a magic number: dominance population always promotes
         //      the best individual as first, all others are selected with equal probability.
@@ -90,7 +84,7 @@ impl Population for RosomaxaPopulation {
         //      adjusted to handle that. At the moment, idea is always promote elite in some degree.
 
         match &self.phase {
-            RosomaxaPhases::Exploring { populations, .. } => Box::new(
+            RosomaxaPhases::Exploration { populations, .. } => Box::new(
                 self.elite
                     .select()
                     .take(2)
@@ -108,6 +102,14 @@ impl Population for RosomaxaPopulation {
 
     fn size(&self) -> usize {
         self.elite.size()
+    }
+
+    fn selection_phase(&self) -> SelectionPhase {
+        match &self.phase {
+            RosomaxaPhases::Initial { .. } => SelectionPhase::Initial,
+            RosomaxaPhases::Exploration { .. } => SelectionPhase::Exploration,
+            RosomaxaPhases::Exploitation => SelectionPhase::Exploitation,
+        }
     }
 }
 
@@ -149,20 +151,21 @@ impl RosomaxaPopulation {
             })
     }
 
-    fn add_individual(&mut self, individual: Individual, statistics: &Statistics) -> bool {
+    fn add_individual(&mut self, individual: Individual) -> bool {
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals } => {
                 if individuals.len() < 4 {
                     individuals.push(individual.deep_copy());
                 }
             }
-            RosomaxaPhases::Exploring { network, .. } => {
-                network.store(IndividualInput::new(individual.deep_copy()), statistics.generation);
+            RosomaxaPhases::Exploration { time, network, .. } => {
+                network.store(IndividualInput::new(individual.deep_copy()), *time);
             }
+            RosomaxaPhases::Exploitation => {}
         };
 
         if self.is_improvement(&individual) {
-            self.elite.add(individual.deep_copy(), statistics)
+            self.elite.add(individual.deep_copy())
         } else {
             false
         }
@@ -172,7 +175,8 @@ impl RosomaxaPopulation {
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals, .. } => {
                 if individuals.len() >= 4 {
-                    self.phase = RosomaxaPhases::Exploring {
+                    self.phase = RosomaxaPhases::Exploration {
+                        time: 0,
                         network: Self::create_network(
                             self.problem.clone(),
                             self.random.clone(),
@@ -183,53 +187,22 @@ impl RosomaxaPopulation {
                     };
                 }
             }
-            RosomaxaPhases::Exploring { network, populations, .. } => {
-                let best_individual = self.elite.select().next();
-                let is_optimization_time = statistics.generation % self.config.hit_memory == 0;
+            RosomaxaPhases::Exploration { time, network, populations, .. } => {
+                if statistics.termination_estimate < self.config.exploration_ratio {
+                    *time = statistics.generation;
+                    let best_individual = self.elite.select().next();
+                    let is_optimization_time = *time % self.config.hit_memory == 0;
 
-                match (best_individual, is_optimization_time) {
-                    (Some(best_individual), true) => {
-                        // TODO determine parameters based on generation and configuration
-                        const PERCENTILE_THRESHOLD: f64 = 0.25;
-                        const REBALANCE_COUNT: usize = 10;
-
-                        let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
-                        let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
-                            let node = node.read().unwrap();
-                            let individual = node.storage.population.select().next();
-                            if let Some(individual) = individual {
-                                Some(relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
-                            } else {
-                                None
-                            }
-                        };
-
-                        // determine percentile value
-                        let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
-                        distances.sort_by(|a, b| compare_floats(*b, *a));
-                        let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
-
-                        if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-                            network.optimize(REBALANCE_COUNT, &|node| {
-                                let is_empty = node.read().unwrap().storage.population.size() == 0;
-                                is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
-                            });
-                        }
+                    match (best_individual, is_optimization_time) {
+                        (Some(best_individual), true) => Self::optimize_network(network, best_individual, statistics),
+                        _ => {}
                     }
-                    _ => {}
+                    Self::fill_populations(network, populations, self.random.as_ref());
+                } else {
+                    self.phase = RosomaxaPhases::Exploitation
                 }
-
-                populations.clear();
-                populations.extend(
-                    network
-                        .get_nodes()
-                        .map(|node| node.read().unwrap().storage.population.clone())
-                        .filter(|population| population.size() > 0),
-                );
-
-                // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
-                populations.shuffle(&mut self.random.get_rng());
             }
+            RosomaxaPhases::Exploitation => {}
         }
     }
 
@@ -243,6 +216,56 @@ impl RosomaxaPopulation {
         }
 
         false
+    }
+
+    fn fill_populations(
+        network: &Network<IndividualInput, IndividualStorage>,
+        populations: &mut Vec<Arc<DominancePopulation>>,
+        random: &(dyn Random + Send + Sync),
+    ) {
+        populations.clear();
+        populations.extend(
+            network
+                .get_nodes()
+                .map(|node| node.read().unwrap().storage.population.clone())
+                .filter(|population| population.size() > 0),
+        );
+
+        // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
+        populations.shuffle(&mut random.get_rng());
+    }
+
+    fn optimize_network(
+        network: &mut Network<IndividualInput, IndividualStorage>,
+        best_individual: &Individual,
+        _statistics: &Statistics,
+    ) {
+        // TODO determine parameters based on statistics
+        const PERCENTILE_THRESHOLD: f64 = 0.25;
+        const REBALANCE_COUNT: usize = 10;
+
+        let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
+        let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
+            let node = node.read().unwrap();
+            let individual = node.storage.population.select().next();
+            if let Some(individual) = individual {
+                Some(relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
+            } else {
+                None
+            }
+        };
+
+        // determine percentile value
+        let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
+        distances.sort_by(|a, b| compare_floats(*b, *a));
+        let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
+
+        if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
+            network.optimize(REBALANCE_COUNT, &|node| {
+                let is_empty = node.read().unwrap().storage.population.size() == 0;
+                is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
+            });
+        }
     }
 
     fn create_network(
@@ -286,7 +309,7 @@ impl RosomaxaPopulation {
 impl Display for RosomaxaPopulation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.phase {
-            RosomaxaPhases::Exploring { network, .. } => {
+            RosomaxaPhases::Exploration { network, .. } => {
                 let state = get_network_state(network);
                 write!(f, "{}", state)
             }
@@ -296,12 +319,15 @@ impl Display for RosomaxaPopulation {
 }
 
 enum RosomaxaPhases {
-    /// Collecting initial solutions phase.
-    Initial { individuals: Vec<InsertionContext> },
-
-    /// Exploring solution space phase.
-    Exploring { network: Network<IndividualInput, IndividualStorage>, populations: Vec<Arc<DominancePopulation>> },
-    // TODO add a phase for exploiting region with most promising optimum
+    Initial {
+        individuals: Vec<InsertionContext>,
+    },
+    Exploration {
+        time: usize,
+        network: Network<IndividualInput, IndividualStorage>,
+        populations: Vec<Arc<DominancePopulation>>,
+    },
+    Exploitation,
 }
 
 struct IndividualInput {
@@ -347,7 +373,7 @@ impl Storage for IndividualStorage {
     type Item = IndividualInput;
 
     fn add(&mut self, input: Self::Item) {
-        self.get_population_mut().add(input.individual, &Statistics::default());
+        self.get_population_mut().add(input.individual);
     }
 
     fn drain(&mut self) -> Vec<Self::Item> {

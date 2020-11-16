@@ -29,13 +29,10 @@ impl EvolutionStrategy for RunSimple {
 
             let offspring = mutation.mutate_all(&refinement_ctx, parents);
 
-            let is_improved = if should_add_solution(&refinement_ctx) {
-                refinement_ctx.population.add_all(offspring, &refinement_ctx.statistics)
-            } else {
-                false
-            };
+            let is_improved =
+                if should_add_solution(&refinement_ctx) { refinement_ctx.population.add_all(offspring) } else { false };
 
-            telemetry.on_generation(&mut refinement_ctx, generation_time, is_improved);
+            on_generation(&mut refinement_ctx, &mut telemetry, termination, generation_time, is_improved);
         }
 
         telemetry.on_result(&refinement_ctx);

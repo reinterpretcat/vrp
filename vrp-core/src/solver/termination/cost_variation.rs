@@ -5,6 +5,7 @@ mod cost_variation_test;
 use crate::algorithms::nsga2::Objective;
 use crate::algorithms::statistics::get_cv;
 use crate::models::common::Cost;
+use crate::solver::population::SelectionPhase;
 use crate::solver::termination::Termination;
 use crate::solver::RefinementContext;
 
@@ -45,9 +46,18 @@ impl Termination for CostVariation {
         let first_individual = refinement_ctx.population.ranked().next();
         if let Some((first, _)) = first_individual {
             let cost = refinement_ctx.problem.objective.fitness(first);
-            self.update_and_check(refinement_ctx, cost)
+            let result = self.update_and_check(refinement_ctx, cost);
+
+            match refinement_ctx.population.selection_phase() {
+                SelectionPhase::Exploitation => result,
+                _ => false,
+            }
         } else {
             false
         }
+    }
+
+    fn estimate(&self, _: &RefinementContext) -> f64 {
+        0.
     }
 }

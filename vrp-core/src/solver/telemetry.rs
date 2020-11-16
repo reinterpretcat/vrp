@@ -142,7 +142,13 @@ impl Telemetry {
     }
 
     /// Reports generation statistics.
-    pub fn on_generation(&mut self, refinement_ctx: &mut RefinementContext, generation_time: Timer, is_improved: bool) {
+    pub fn on_generation(
+        &mut self,
+        refinement_ctx: &mut RefinementContext,
+        termination_estimate: f64,
+        generation_time: Timer,
+        is_improved: bool,
+    ) {
         let generation = self.next_generation.unwrap_or(0);
 
         self.metrics.generations = generation;
@@ -152,6 +158,7 @@ impl Telemetry {
             generation,
             improvement_all_ratio: self.improvement_tracker.i_all_ratio,
             improvement_1000_ratio: self.improvement_tracker.i_1000_ratio,
+            termination_estimate,
         };
 
         self.next_generation = Some(generation + 1);
