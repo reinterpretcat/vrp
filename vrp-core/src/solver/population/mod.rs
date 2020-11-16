@@ -4,8 +4,8 @@ mod elitism;
 pub use self::elitism::Elitism;
 
 mod rosomaxa;
-pub use self::rosomaxa::RosomaxaConfig;
 pub use self::rosomaxa::Rosomaxa;
+pub use self::rosomaxa::RosomaxaConfig;
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::Statistics;

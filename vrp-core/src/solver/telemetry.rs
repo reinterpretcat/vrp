@@ -79,6 +79,8 @@ pub enum TelemetryMode {
         log_best: usize,
         /// Specifies how often population is logged.
         log_population: usize,
+        /// Specifies whether population should be dumped.
+        dump_population: bool,
     },
     /// Only metrics collection.
     OnlyMetrics {
@@ -95,6 +97,8 @@ pub enum TelemetryMode {
         log_population: usize,
         /// Specifies how often population is tracked.
         track_population: usize,
+        /// Specifies whether population should be dumped.
+        dump_population: bool,
     },
 }
 
@@ -163,12 +167,14 @@ impl Telemetry {
 
         self.next_generation = Some(generation + 1);
 
-        let (log_best, log_population, track_population) = match &self.mode {
+        let (log_best, log_population, track_population, should_dump_population) = match &self.mode {
             TelemetryMode::None => return,
-            TelemetryMode::OnlyLogging { log_best, log_population, .. } => (Some(log_best), Some(log_population), None),
-            TelemetryMode::OnlyMetrics { track_population, .. } => (None, None, Some(track_population)),
-            TelemetryMode::All { log_best, log_population, track_population, .. } => {
-                (Some(log_best), Some(log_population), Some(track_population))
+            TelemetryMode::OnlyLogging { log_best, log_population, dump_population, .. } => {
+                (Some(log_best), Some(log_population), None, *dump_population)
+            }
+            TelemetryMode::OnlyMetrics { track_population, .. } => (None, None, Some(track_population), false),
+            TelemetryMode::All { log_best, log_population, track_population, dump_population, .. } => {
+                (Some(log_best), Some(log_population), Some(track_population), *dump_population)
             }
         };
 
@@ -184,7 +190,7 @@ impl Telemetry {
                 )
             }
 
-            self.on_population(&refinement_ctx, should_log_population, should_track_population);
+            self.on_population(&refinement_ctx, should_log_population, should_track_population, should_dump_population);
         } else {
             self.log("no progress yet");
         }
@@ -196,6 +202,7 @@ impl Telemetry {
         refinement_ctx: &RefinementContext,
         should_log_population: bool,
         should_track_population: bool,
+        should_dump_population: bool,
     ) {
         if !should_log_population && !should_track_population {
             return;
@@ -222,7 +229,9 @@ impl Telemetry {
 
         if should_log_population {
             individuals.iter().for_each(|metrics| self.log_individual(&metrics, None));
-            self.log(&format!("\t{}", Self::get_population_state(refinement_ctx)));
+            if should_dump_population {
+                self.log(&format!("\t{}", Self::get_population_state(refinement_ctx)));
+            }
         }
 
         if should_track_population {
@@ -247,7 +256,7 @@ impl Telemetry {
             _ => return,
         };
 
-        self.on_population(refinement_ctx, should_log_population, false);
+        self.on_population(refinement_ctx, should_log_population, false, false);
 
         let elapsed = self.time.elapsed_secs() as usize;
         let speed = refinement_ctx.statistics.generation as f64 / self.time.elapsed_secs_as_f64();

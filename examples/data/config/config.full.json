@@ -328,7 +328,8 @@
     "logging": {
       "enabled": true,
       "logBest": 100,
-      "logPopulation": 1000
+      "logPopulation": 1000,
+      "dumpPopulation": false
     },
     "metrics": {
       "enabled": false,

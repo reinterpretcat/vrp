@@ -251,7 +251,12 @@ pub fn run_solve(matches: &ArgMatches) {
     let max_generations = parse_int_value::<usize>(matches, GENERATIONS_ARG_NAME, "max generations");
     let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time");
     let telemetry = Telemetry::new(if matches.is_present(LOG_ARG_NAME) {
-        TelemetryMode::OnlyLogging { logger: Arc::new(|msg| println!("{}", msg)), log_best: 100, log_population: 1000 }
+        TelemetryMode::OnlyLogging {
+            logger: Arc::new(|msg| println!("{}", msg)),
+            log_best: 100,
+            log_population: 1000,
+            dump_population: false,
+        }
     } else {
         TelemetryMode::None
     });

@@ -247,6 +247,8 @@ pub struct LoggingConfig {
     log_best: Option<usize>,
     /// Specifies how often population is logged. Default is 1000 (generations).
     log_population: Option<usize>,
+    /// Specifies whether population should be dumped.
+    dump_population: Option<bool>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -475,19 +477,22 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
         track_population: track_population.unwrap_or(TRACK_POPULATION),
     };
 
-    let create_logging = |log_best: &Option<usize>, log_population: &Option<usize>| TelemetryMode::OnlyLogging {
-        logger: create_logger(),
-        log_best: log_best.unwrap_or(LOG_BEST),
-        log_population: log_population.unwrap_or(LOG_POPULATION),
+    let create_logging = |log_best: &Option<usize>, log_population: &Option<usize>, dump_population: &Option<bool>| {
+        TelemetryMode::OnlyLogging {
+            logger: create_logger(),
+            log_best: log_best.unwrap_or(LOG_BEST),
+            log_population: log_population.unwrap_or(LOG_POPULATION),
+            dump_population: dump_population.unwrap_or(false),
+        }
     };
 
     let telemetry_mode = match telemetry_config.as_ref().map(|t| (&t.logging, &t.metrics)) {
         Some((None, Some(MetricsConfig { enabled, track_population }))) if *enabled => create_metrics(track_population),
-        Some((Some(LoggingConfig { enabled, log_best, log_population }), None)) if *enabled => {
-            create_logging(log_best, log_population)
+        Some((Some(LoggingConfig { enabled, log_best, log_population, dump_population }), None)) if *enabled => {
+            create_logging(log_best, log_population, dump_population)
         }
         Some((
-            Some(LoggingConfig { enabled: logging_enabled, log_best, log_population }),
+            Some(LoggingConfig { enabled: logging_enabled, log_best, log_population, dump_population }),
             Some(MetricsConfig { enabled: metrics_enabled, track_population }),
         )) => match (logging_enabled, metrics_enabled) {
             (true, true) => TelemetryMode::All {
@@ -495,8 +500,9 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
                 log_best: log_best.unwrap_or(LOG_BEST),
                 log_population: log_population.unwrap_or(LOG_POPULATION),
                 track_population: track_population.unwrap_or(TRACK_POPULATION),
+                dump_population: dump_population.unwrap_or(false),
             },
-            (true, false) => create_logging(log_best, log_population),
+            (true, false) => create_logging(log_best, log_population, dump_population),
             (false, true) => create_metrics(track_population),
             _ => TelemetryMode::None,
         },

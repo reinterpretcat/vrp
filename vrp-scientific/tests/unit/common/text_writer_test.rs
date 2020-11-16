@@ -22,11 +22,8 @@ fn can_write_solomon_solution() {
             .unwrap(),
     );
 
-    let mut refinement_ctx = RefinementContext::new(
-        problem.clone(),
-        Box::new(Elitism::new(problem.clone(), random.clone(), 1, 1)),
-        None,
-    );
+    let mut refinement_ctx =
+        RefinementContext::new(problem.clone(), Box::new(Elitism::new(problem.clone(), random.clone(), 1, 1)), None);
 
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };

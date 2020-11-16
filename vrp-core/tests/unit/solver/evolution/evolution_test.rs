@@ -10,7 +10,10 @@ parameterized_test! {can_enable_telemetry_metrics, mode, {
 
 can_enable_telemetry_metrics! {
         case01: TelemetryMode::OnlyMetrics { track_population: 100 },
-        case02: TelemetryMode::All { logger: Arc::new(|_| {}), log_best: 100, log_population: 1000,  track_population: 100},
+        case02: TelemetryMode::All {
+            logger: Arc::new(|_| {}), log_best: 100, log_population: 1000,
+            track_population: 100, dump_population: false,
+        },
 }
 
 fn can_enable_telemetry_metrics_impl(mode: TelemetryMode) {
@@ -32,7 +35,9 @@ parameterized_test! {can_disable_telemetry_metrics, mode, {
 
 can_disable_telemetry_metrics! {
         case01: TelemetryMode::None,
-        case02: TelemetryMode::OnlyLogging { logger: Arc::new(|_| {}), log_best: 100, log_population: 1000},
+        case02: TelemetryMode::OnlyLogging {
+            logger: Arc::new(|_| {}), log_best: 100, log_population: 1000, dump_population: false
+        },
 }
 
 fn can_disable_telemetry_metrics_impl(mode: TelemetryMode) {

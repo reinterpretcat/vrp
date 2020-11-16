@@ -146,9 +146,7 @@ impl Rosomaxa {
 
         Rosomaxa::new(problem.clone(), random.clone(), config)
             .map::<Box<dyn Population + Send + Sync>, _>(|population| Box::new(population))
-            .unwrap_or_else(|()| {
-                Box::new(Elitism::new(problem, random, max_population_size, selection_size))
-            })
+            .unwrap_or_else(|()| Box::new(Elitism::new(problem, random, max_population_size, selection_size)))
     }
 
     fn add_individual(&mut self, individual: Individual) -> bool {
@@ -294,12 +292,7 @@ impl Rosomaxa {
                 let random = random.clone();
                 let node_size = config.node_size;
                 move || IndividualStorage {
-                    population: Arc::new(Elitism::new(
-                        problem.clone(),
-                        random.clone(),
-                        node_size,
-                        node_size,
-                    )),
+                    population: Arc::new(Elitism::new(problem.clone(), random.clone(), node_size, node_size)),
                 }
             }),
         )
@@ -319,14 +312,8 @@ impl Display for Rosomaxa {
 }
 
 enum RosomaxaPhases {
-    Initial {
-        individuals: Vec<InsertionContext>,
-    },
-    Exploration {
-        time: usize,
-        network: Network<IndividualInput, IndividualStorage>,
-        populations: Vec<Arc<Elitism>>,
-    },
+    Initial { individuals: Vec<InsertionContext> },
+    Exploration { time: usize, network: Network<IndividualInput, IndividualStorage>, populations: Vec<Arc<Elitism>> },
     Exploitation,
 }
 
