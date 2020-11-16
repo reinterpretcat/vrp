@@ -6,12 +6,12 @@ mod telemetry_test;
 
 use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::InsertionContext;
+use crate::solver::population::SelectionPhase;
 use crate::solver::{RefinementContext, Statistics};
 use crate::utils::Timer;
 use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::Arc;
-use crate::solver::population::SelectionPhase;
 
 /// A logger type which is called with various information regarding the work done by the VRP solver.
 pub type InfoLogger = Arc<dyn Fn(&str)>;

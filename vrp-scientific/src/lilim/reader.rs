@@ -108,9 +108,7 @@ impl<R: Read> TextReader for LilimReader<R> {
     }
 
     fn create_extras(&self) -> Extras {
-        let mut extras = Extras::default();
-        extras.insert("location_resolver".to_owned(), Arc::new(create_location_resolver(self.matrix.clone())));
-        extras
+        Extras::default()
     }
 }
 

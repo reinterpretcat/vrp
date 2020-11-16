@@ -14,10 +14,6 @@ impl Default for CoordIndex {
 }
 
 impl CoordIndex {
-    pub fn get(&self, index: Location) -> (i32, i32) {
-        self.locations[index]
-    }
-
     pub fn collect(&mut self, location: (i32, i32)) -> Location {
         match self.locations.iter().position(|l| l.0 == location.0 && l.1 == location.1) {
             Some(position) => position,

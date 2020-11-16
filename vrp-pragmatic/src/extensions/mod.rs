@@ -1,8 +1,5 @@
 //! Contains some algorithm extensions.
 
-mod location_resolver;
-pub(crate) use self::location_resolver::*;
-
 mod only_vehicle_activity_cost;
 pub use self::only_vehicle_activity_cost::OnlyVehicleActivityCost;
 

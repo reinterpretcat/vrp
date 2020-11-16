@@ -1,9 +1,7 @@
-use crate::utils::CoordIndex;
 use std::io::prelude::*;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::construction::heuristics::LocationResolver;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, Problem};
@@ -114,13 +112,4 @@ pub(crate) fn create_constraint(
 pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, mut buffer: &mut String) -> Result<usize, String> {
     buffer.clear();
     reader.read_line(&mut buffer).map_err(|err| err.to_string())
-}
-
-pub(crate) fn create_location_resolver(index: CoordIndex) -> LocationResolver {
-    LocationResolver {
-        func: Arc::new(move |location| {
-            let (x, y) = index.get(location);
-            (x as f64, y as f64)
-        }),
-    }
 }
