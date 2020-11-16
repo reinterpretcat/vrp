@@ -11,6 +11,7 @@ use crate::utils::Timer;
 use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::Arc;
+use crate::solver::population::SelectionPhase;
 
 /// A logger type which is called with various information regarding the work done by the VRP solver.
 pub type InfoLogger = Arc<dyn Fn(&str)>;
@@ -211,8 +212,9 @@ impl Telemetry {
         if should_log_population {
             self.log(
                 format!(
-                    "[{}s] population state (speed: {:.2} gen/sec, improvement ratio: {:.3}:{:.3}):",
+                    "[{}s] population state (phase: {}, speed: {:.2} gen/sec, improvement ratio: {:.3}:{:.3}):",
                     self.time.elapsed_secs(),
+                    Self::get_selection_phase(refinement_ctx),
                     refinement_ctx.statistics.generation as f64 / self.time.elapsed_secs_as_f64(),
                     self.improvement_tracker.i_all_ratio,
                     self.improvement_tracker.i_1000_ratio,
@@ -350,6 +352,14 @@ impl Telemetry {
         write!(state, "{}", refinement_ctx.population).unwrap();
 
         state
+    }
+
+    fn get_selection_phase(refinement_ctx: &RefinementContext) -> &str {
+        match refinement_ctx.population.selection_phase() {
+            SelectionPhase::Initial => "initial",
+            SelectionPhase::Exploration => "exploration",
+            SelectionPhase::Exploitation => "exploitation",
+        }
     }
 }
 
