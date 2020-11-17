@@ -161,7 +161,7 @@ impl Rosomaxa {
         };
 
         if self.is_improvement(&individual) {
-            self.elite.add(individual.deep_copy())
+            self.elite.add(individual)
         } else {
             false
         }
