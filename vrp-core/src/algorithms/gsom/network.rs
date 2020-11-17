@@ -106,19 +106,11 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
     /// Finds the best matching unit within the map for the given input.
     fn find_bmu(&self, input: &I) -> NodeLink<I, S> {
-        // TODO avoid double distance calculation
         self.nodes
             .iter()
-            .min_by(|(_, x), (_, y)| {
-                let x = x.read().unwrap();
-                let x = x.distance(input.weights());
-
-                let y = y.read().unwrap();
-                let y = y.distance(input.weights());
-
-                x.partial_cmp(&y).unwrap_or(Ordering::Less)
-            })
-            .map(|(_, link)| link.clone())
+            .map(|(_, node)| (node.clone(), node.read().unwrap().distance(input.weights())))
+            .min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap_or(Ordering::Less))
+            .map(|(node, _)| node)
             .expect("no nodes")
     }
 
