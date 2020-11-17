@@ -34,6 +34,7 @@ fn can_read_config() {
             distribution_factor,
             learning_rate,
             hit_memory,
+            rebalance_count,
             exploration_ratio,
         } => {
             assert_eq!(selection_size, Some(12));
@@ -44,9 +45,10 @@ fn can_read_config() {
             assert_eq!(distribution_factor, Some(0.25));
             assert_eq!(learning_rate, Some(0.1));
             assert_eq!(hit_memory, Some(1000));
+            assert_eq!(rebalance_count, Some(10));
             assert_eq!(exploration_ratio, Some(0.9));
         }
-        PopulationType::Dominance { .. } => unreachable!(),
+        PopulationType::Elitism { .. } => unreachable!(),
     }
 
     let mutation_config = config.mutation.expect("cannot get mutation");

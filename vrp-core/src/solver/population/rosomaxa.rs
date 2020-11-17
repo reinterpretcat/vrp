@@ -28,6 +28,8 @@ pub struct RosomaxaConfig {
     pub learning_rate: f64,
     /// A node hit memory of GSOM.
     pub hit_memory: usize,
+    /// A rebalance count.
+    pub rebalance_count: usize,
     /// A ratio of exploration phase.
     pub exploration_ratio: f64,
 }
@@ -43,13 +45,14 @@ impl Default for RosomaxaConfig {
             distribution_factor: 0.25,
             learning_rate: 0.1,
             hit_memory: 1000,
+            rebalance_count: 10,
             exploration_ratio: 0.9,
         }
     }
 }
 
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
-/// Maps And eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
+/// MAps and eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
 pub struct Rosomaxa {
     problem: Arc<Problem>,
     random: Arc<dyn Random + Send + Sync>,
@@ -79,10 +82,6 @@ impl Population for Rosomaxa {
         // NOTE we always promote 2 elements from elite and 2 from each population in the network
         //      in exploring phase. 2 is not a magic number: dominance population always promotes
         //      the best individual as first, all others are selected with equal probability.
-
-        // TODO If calling site selects always less than 3 elements, then the algorithm should be
-        //      adjusted to handle that. At the moment, idea is always promote elite in some degree.
-
         match &self.phase {
             RosomaxaPhases::Exploration { populations, .. } => Box::new(
                 self.elite
@@ -96,7 +95,6 @@ impl Population for Rosomaxa {
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
-        // NOTE return only elite
         self.elite.ranked()
     }
 
@@ -122,7 +120,6 @@ impl Rosomaxa {
         random: Arc<dyn Random + Send + Sync>,
         config: RosomaxaConfig,
     ) -> Result<Self, ()> {
-        // NOTE see note at selection method implementation
         if config.elite_size < 2 || config.node_size < 2 || config.selection_size < 4 {
             return Err(());
         }
@@ -136,8 +133,7 @@ impl Rosomaxa {
         })
     }
 
-    /// Creates a new instance of `Rosomaxa` or `Elitism` if
-    /// settings does not allow.
+    /// Creates a new instance of `Rosomaxa` or `Elitism` if config is too restrictive.
     pub fn new_with_fallback(
         problem: Arc<Problem>,
         random: Arc<dyn Random + Send + Sync>,
@@ -195,7 +191,12 @@ impl Rosomaxa {
                     let is_optimization_time = *time % self.config.hit_memory == 0;
 
                     if is_optimization_time {
-                        Self::optimize_network(network, best_fitness.as_slice(), statistics)
+                        Self::optimize_network(
+                            network,
+                            best_fitness.as_slice(),
+                            statistics,
+                            self.config.rebalance_count,
+                        )
                     }
 
                     Self::fill_populations(
@@ -247,15 +248,18 @@ impl Rosomaxa {
         populations.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
 
         // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
-        let shuffle_ratio = (1. - statistics.termination_estimate).min(0.25).max(1.).round();
+        let shuffle_ratio = (1. - statistics.termination_estimate).min(0.5).max(1.).round();
         let shuffle_amount = (populations.len() as f64 * shuffle_ratio) as usize;
         populations.partial_shuffle(&mut random.get_rng(), shuffle_amount);
     }
 
-    fn optimize_network(network: &mut IndividualNetwork, best_fitness: &[f64], _statistics: &Statistics) {
-        // TODO determine parameters based on statistics
-        const PERCENTILE_THRESHOLD: f64 = 0.25;
-        const REBALANCE_COUNT: usize = 10;
+    fn optimize_network(
+        network: &mut IndividualNetwork,
+        best_fitness: &[f64],
+        statistics: &Statistics,
+        rebalance_count: usize,
+    ) {
+        let percentile_threshold = 0.5 * statistics.termination_estimate.min(0.25).max(1.0);
 
         let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
             let node = node.read().unwrap();
@@ -270,10 +274,10 @@ impl Rosomaxa {
         // determine percentile value
         let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
         distances.sort_by(|a, b| compare_floats(*b, *a));
-        let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
+        let percentile_idx = (distances.len() as f64 * percentile_threshold) as usize;
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-            network.optimize(REBALANCE_COUNT, &|node| {
+            network.optimize(rebalance_count, &|node| {
                 let is_empty = node.read().unwrap().storage.population.size() == 0;
                 is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
             });

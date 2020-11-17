@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+This release features a new solution space exploration algorithm called ROSOMAXA: Routing Optimizations
+with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
+
 ### Added
 
+- add and use by default rosomaxa algorithm
 - add a new LS method to push tour departure in the future
 - add a Local Search mutation
 

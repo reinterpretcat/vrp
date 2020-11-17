@@ -45,9 +45,9 @@ pub struct EvolutionConfig {
 pub enum PopulationType {
     /// A basic population which sorts individuals based on their
     /// dominance order.
-    #[serde(rename(deserialize = "dominance"))]
+    #[serde(rename(deserialize = "elitism"))]
     #[serde(rename_all = "camelCase")]
-    Dominance {
+    Elitism {
         /// Max population size. Default is 2.
         max_size: Option<usize>,
         /// Selection size. Default is number of cpus.
@@ -74,6 +74,8 @@ pub enum PopulationType {
         learning_rate: Option<f64>,
         /// A node hit memory. Default is 1000.
         hit_memory: Option<usize>,
+        /// A rebalance count. Default is 10.
+        rebalance_count: Option<usize>,
         /// An exploration phase ratio. Default is 0.9.
         exploration_ratio: Option<f64>,
     },
@@ -299,7 +301,7 @@ fn configure_from_evolution(
             let random = Arc::new(DefaultRandom::default());
 
             let population = match &variation {
-                PopulationType::Dominance { max_size, selection_size } => Box::new(Elitism::new(
+                PopulationType::Elitism { max_size, selection_size } => Box::new(Elitism::new(
                     problem,
                     random,
                     max_size.unwrap_or(4),
@@ -314,6 +316,7 @@ fn configure_from_evolution(
                     learning_rate,
                     selection_size,
                     hit_memory,
+                    rebalance_count,
                     exploration_ratio,
                 } => {
                     let mut config = RosomaxaConfig::default();
@@ -340,6 +343,9 @@ fn configure_from_evolution(
                     }
                     if let Some(hit_memory) = hit_memory {
                         config.hit_memory = *hit_memory;
+                    }
+                    if let Some(rebalance_count) = rebalance_count {
+                        config.rebalance_count = *rebalance_count;
                     }
                     if let Some(exploration_ratio) = exploration_ratio {
                         config.exploration_ratio = *exploration_ratio;
