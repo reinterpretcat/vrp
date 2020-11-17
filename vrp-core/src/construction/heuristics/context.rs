@@ -263,7 +263,7 @@ impl RouteState {
         RouteState {
             route_states: HashMap::with_capacity(sizes.0),
             activity_states: HashMap::with_capacity(sizes.1),
-            keys: Default::default(),
+            keys: HashSet::with_capacity(sizes.0 + sizes.1),
         }
     }
 
