@@ -72,8 +72,8 @@ pub enum PopulationType {
         distribution_factor: Option<f64>,
         /// Learning rate. Default is 0.1.
         learning_rate: Option<f64>,
-        /// A node hit memory. Default is 1000.
-        hit_memory: Option<usize>,
+        /// A node hit memory. Default is 2000.
+        rebalance_memory: Option<usize>,
         /// A rebalance count. Default is 10.
         rebalance_count: Option<usize>,
         /// An exploration phase ratio. Default is 0.9.
@@ -315,7 +315,7 @@ fn configure_from_evolution(
                     distribution_factor,
                     learning_rate,
                     selection_size,
-                    hit_memory,
+                    rebalance_memory,
                     rebalance_count,
                     exploration_ratio,
                 } => {
@@ -341,8 +341,8 @@ fn configure_from_evolution(
                     if let Some(selection_size) = selection_size {
                         config.selection_size = *selection_size;
                     }
-                    if let Some(hit_memory) = hit_memory {
-                        config.hit_memory = *hit_memory;
+                    if let Some(rebalance_memory) = rebalance_memory {
+                        config.rebalance_memory = *rebalance_memory;
                     }
                     if let Some(rebalance_count) = rebalance_count {
                         config.rebalance_count = *rebalance_count;

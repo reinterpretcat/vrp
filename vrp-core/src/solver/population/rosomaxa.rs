@@ -26,8 +26,8 @@ pub struct RosomaxaConfig {
     pub distribution_factor: f64,
     /// Learning rate of GSOM.
     pub learning_rate: f64,
-    /// A node hit memory of GSOM.
-    pub hit_memory: usize,
+    /// A node rebalance memory of GSOM.
+    pub rebalance_memory: usize,
     /// A rebalance count.
     pub rebalance_count: usize,
     /// A ratio of exploration phase.
@@ -44,7 +44,7 @@ impl Default for RosomaxaConfig {
             reduction_factor: 0.1,
             distribution_factor: 0.25,
             learning_rate: 0.1,
-            hit_memory: 1000,
+            rebalance_memory: 1000,
             rebalance_count: 10,
             exploration_ratio: 0.9,
         }
@@ -187,7 +187,7 @@ impl Rosomaxa {
                     *time = statistics.generation;
                     let best_individual = self.elite.select().next().expect("expected individuals in elite");
                     let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
-                    let is_optimization_time = *time % self.config.hit_memory == 0;
+                    let is_optimization_time = *time % self.config.rebalance_memory == 0;
 
                     if is_optimization_time {
                         Self::optimize_network(
@@ -303,7 +303,7 @@ impl Rosomaxa {
             config.reduction_factor,
             config.distribution_factor,
             config.learning_rate,
-            config.hit_memory,
+            config.rebalance_memory,
             Box::new({
                 let problem = problem.clone();
                 let random = random.clone();

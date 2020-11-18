@@ -33,7 +33,7 @@ fn can_read_config() {
             reduction_factor,
             distribution_factor,
             learning_rate,
-            hit_memory,
+            rebalance_memory,
             rebalance_count,
             exploration_ratio,
         } => {
@@ -44,7 +44,7 @@ fn can_read_config() {
             assert_eq!(reduction_factor, Some(0.1));
             assert_eq!(distribution_factor, Some(0.25));
             assert_eq!(learning_rate, Some(0.1));
-            assert_eq!(hit_memory, Some(1000));
+            assert_eq!(rebalance_memory, Some(2000));
             assert_eq!(rebalance_count, Some(10));
             assert_eq!(exploration_ratio, Some(0.9));
         }
