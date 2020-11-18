@@ -215,9 +215,10 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
     /// Rebalances network.
     fn rebalance(&mut self, rebalance_count: usize) {
+        let mut data = Vec::with_capacity(self.nodes.len());
         (0..rebalance_count).for_each(|_| {
-            let mut data =
-                self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()).collect::<Vec<_>>();
+            data.clear();
+            data.extend(self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()));
 
             data.shuffle(&mut rand::thread_rng());
 

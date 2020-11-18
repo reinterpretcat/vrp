@@ -64,7 +64,7 @@ pub enum PopulationType {
         max_elite_size: Option<usize>,
         /// Node population size. Default is 2.
         max_node_size: Option<usize>,
-        /// Spread factor. Default is 0.5.
+        /// Spread factor. Default is 0.25.
         spread_factor: Option<f64>,
         /// The reduction factor. Default is 0.1.
         reduction_factor: Option<f64>,

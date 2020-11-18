@@ -40,7 +40,7 @@ fn can_read_config() {
             assert_eq!(selection_size, Some(12));
             assert_eq!(max_elite_size, Some(2));
             assert_eq!(max_node_size, Some(2));
-            assert_eq!(spread_factor, Some(0.5));
+            assert_eq!(spread_factor, Some(0.25));
             assert_eq!(reduction_factor, Some(0.1));
             assert_eq!(distribution_factor, Some(0.25));
             assert_eq!(learning_rate, Some(0.1));

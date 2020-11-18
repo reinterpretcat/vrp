@@ -1,11 +1,11 @@
 use super::InsertionContext;
 use crate::algorithms::statistics::{get_mean, get_stdev, get_variance};
-use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
+use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY, WAITING_KEY};
 use crate::utils::compare_floats;
 
 /// Gets max load variance in tours.
 pub fn get_max_load_variance(insertion_ctx: &InsertionContext) -> f64 {
-    get_variance(get_values_from_state(insertion_ctx, MAX_LOAD_KEY).as_slice())
+    get_variance(get_values_from_route_state(insertion_ctx, MAX_LOAD_KEY).as_slice())
 }
 
 /// Gets standard deviation of the number of customer per tour.
@@ -18,12 +18,28 @@ pub fn get_customers_deviation(insertion_ctx: &InsertionContext) -> f64 {
 
 /// Gets mean of route durations.
 pub fn get_duration_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean(get_values_from_state(insertion_ctx, TOTAL_DURATION_KEY).as_slice())
+    get_mean(get_values_from_route_state(insertion_ctx, TOTAL_DURATION_KEY).as_slice())
 }
 
 /// Gets mean of route distances.
 pub fn get_distance_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean(get_values_from_state(insertion_ctx, TOTAL_DISTANCE_KEY).as_slice())
+    get_mean(get_values_from_route_state(insertion_ctx, TOTAL_DISTANCE_KEY).as_slice())
+}
+
+/// Gets mean of future waiting time.
+pub fn get_waiting_mean(insertion_ctx: &InsertionContext) -> f64 {
+    get_mean(
+        insertion_ctx
+            .solution
+            .routes
+            .iter()
+            .filter_map(|route_ctx| route_ctx.route.tour.get(1).map(|a| (route_ctx, a)))
+            .map(|(route_ctx, activity)| {
+                route_ctx.state.get_activity_state::<f64>(WAITING_KEY, activity).cloned().unwrap_or(0.)
+            })
+            .collect::<Vec<_>>()
+            .as_slice(),
+    )
 }
 
 /// Gets average distance between routes using medioids.
@@ -76,7 +92,7 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
     }
 }
 
-fn get_values_from_state(insertion_ctx: &InsertionContext, state_key: i32) -> Vec<f64> {
+fn get_values_from_route_state(insertion_ctx: &InsertionContext, state_key: i32) -> Vec<f64> {
     insertion_ctx
         .solution
         .routes

@@ -40,7 +40,7 @@ impl Default for RosomaxaConfig {
             selection_size: get_cpus(),
             elite_size: 2,
             node_size: 2,
-            spread_factor: 0.5,
+            spread_factor: 0.25,
             reduction_factor: 0.1,
             distribution_factor: 0.25,
             learning_rate: 0.1,
@@ -171,16 +171,15 @@ impl Rosomaxa {
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals, .. } => {
                 if individuals.len() >= 4 {
-                    self.phase = RosomaxaPhases::Exploration {
-                        time: 0,
-                        network: Self::create_network(
-                            self.problem.clone(),
-                            self.random.clone(),
-                            &self.config,
-                            individuals.drain(0..).collect(),
-                        ),
-                        populations: vec![],
-                    };
+                    let mut network = Self::create_network(
+                        self.problem.clone(),
+                        self.random.clone(),
+                        &self.config,
+                        individuals.drain(0..4).collect(),
+                    );
+                    individuals.drain(0..).for_each(|individual| network.store(IndividualInput::new(individual), 0));
+
+                    self.phase = RosomaxaPhases::Exploration { time: 0, network, populations: vec![] };
                 }
             }
             RosomaxaPhases::Exploration { time, network, populations, .. } => {
@@ -259,7 +258,7 @@ impl Rosomaxa {
         statistics: &Statistics,
         rebalance_count: usize,
     ) {
-        let percentile_threshold = 0.5 * statistics.termination_estimate.min(0.25).max(1.0);
+        let percentile_threshold = 0.25 * statistics.termination_estimate.min(0.25).max(1.0);
 
         let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
             let node = node.read().unwrap();
@@ -352,6 +351,7 @@ impl IndividualInput {
             get_customers_deviation(individual),
             get_duration_mean(individual),
             get_distance_mean(individual),
+            get_waiting_mean(individual),
             get_distance_gravity_mean(individual),
         ]
     }
