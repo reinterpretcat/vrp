@@ -126,7 +126,7 @@ impl Builder {
 
     /// Sets population settings. Defaults: max_size is 4, selection_size: cpu num.
     pub fn with_population(mut self, population: Box<dyn Population + Send + Sync>) -> Self {
-        self.config.telemetry.log(&format!("configured to use custom population"));
+        self.config.telemetry.log("configured to use custom population");
         self.config.population.variation = Some(population);
         self
     }

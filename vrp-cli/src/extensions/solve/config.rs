@@ -305,7 +305,7 @@ fn configure_from_evolution(
                     problem,
                     random,
                     max_size.unwrap_or(4),
-                    selection_size.unwrap_or_else(|| get_cpus()),
+                    selection_size.unwrap_or_else(get_cpus),
                 )),
                 PopulationType::Rosomaxa {
                     max_elite_size,
@@ -351,7 +351,7 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    Rosomaxa::new_with_fallback(problem.clone(), random.clone(), config)
+                    Rosomaxa::new_with_fallback(problem, random, config)
                 }
             };
 

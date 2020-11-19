@@ -63,7 +63,7 @@ pub struct Rosomaxa {
 
 impl Population for Rosomaxa {
     fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
-        individuals.into_iter().fold(false, |acc, individual| acc || self.add_individual(individual))
+        individuals.into_iter().map(|individual| self.add_individual(individual)).any(|is_improved| is_improved)
     }
 
     fn add(&mut self, individual: Individual) -> bool {
@@ -127,7 +127,7 @@ impl Rosomaxa {
         Ok(Self {
             problem: problem.clone(),
             random: random.clone(),
-            elite: Elitism::new(problem.clone(), random.clone(), config.elite_size, config.selection_size),
+            elite: Elitism::new(problem, random, config.elite_size, config.selection_size),
             phase: RosomaxaPhases::Initial { individuals: vec![] },
             config,
         })
@@ -189,22 +189,13 @@ impl Rosomaxa {
                     let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
                     let is_optimization_time = *time % self.config.rebalance_memory == 0;
 
+                    // NOTE statistics can be used to determine some optimization parameters dynamically
+                    // based on termination estimation and/or improvement ratio.
                     if is_optimization_time {
-                        Self::optimize_network(
-                            network,
-                            best_fitness.as_slice(),
-                            statistics,
-                            self.config.rebalance_count,
-                        )
+                        Self::optimize_network(network, best_fitness.as_slice(), self.config.rebalance_count)
                     }
 
-                    Self::fill_populations(
-                        network,
-                        populations,
-                        best_fitness.as_slice(),
-                        self.random.as_ref(),
-                        statistics,
-                    );
+                    Self::fill_populations(network, populations, best_fitness.as_slice(), self.random.as_ref());
                 } else {
                     self.phase = RosomaxaPhases::Exploitation
                 }
@@ -230,7 +221,6 @@ impl Rosomaxa {
         populations: &mut Vec<(Arc<Elitism>, f64)>,
         best_fitness: &[f64],
         random: &(dyn Random + Send + Sync),
-        statistics: &Statistics,
     ) {
         populations.clear();
         populations.extend(network.get_nodes().map(|node| node.read().unwrap().storage.population.clone()).filter_map(
@@ -247,18 +237,11 @@ impl Rosomaxa {
         populations.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
 
         // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
-        let shuffle_ratio = (1. - statistics.termination_estimate).min(0.5).max(1.).round();
-        let shuffle_amount = (populations.len() as f64 * shuffle_ratio) as usize;
-        populations.partial_shuffle(&mut random.get_rng(), shuffle_amount);
+        populations.shuffle(&mut random.get_rng());
     }
 
-    fn optimize_network(
-        network: &mut IndividualNetwork,
-        best_fitness: &[f64],
-        statistics: &Statistics,
-        rebalance_count: usize,
-    ) {
-        let percentile_threshold = 0.25 * statistics.termination_estimate.min(0.25).max(1.0);
+    fn optimize_network(network: &mut IndividualNetwork, best_fitness: &[f64], rebalance_count: usize) {
+        const PERCENTILE_THRESHOLD: f64 = 0.25;
 
         let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
             let node = node.read().unwrap();
@@ -273,7 +256,7 @@ impl Rosomaxa {
         // determine percentile value
         let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
         distances.sort_by(|a, b| compare_floats(*b, *a));
-        let percentile_idx = (distances.len() as f64 * percentile_threshold) as usize;
+        let percentile_idx = (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize;
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
             network.optimize(rebalance_count, &|node| {
@@ -306,8 +289,6 @@ impl Rosomaxa {
             config.learning_rate,
             config.rebalance_memory,
             Box::new({
-                let problem = problem.clone();
-                let random = random.clone();
                 let node_size = config.node_size;
                 move || IndividualStorage {
                     population: Arc::new(Elitism::new(problem.clone(), random.clone(), node_size, node_size)),

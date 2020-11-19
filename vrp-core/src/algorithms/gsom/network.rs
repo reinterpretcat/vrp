@@ -259,7 +259,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         roots: [I; 4],
         time: usize,
         rebalance_memory: usize,
-        storage_factory: &Box<dyn Fn() -> S + Send + Sync>,
+        storage_factory: &(dyn Fn() -> S + Send + Sync),
     ) -> HashMap<Coordinate, NodeLink<I, S>> {
         let create_node_link = |coordinate: Coordinate, input: I| {
             let mut node =
