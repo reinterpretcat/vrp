@@ -44,7 +44,7 @@ impl Default for RosomaxaConfig {
             reduction_factor: 0.1,
             distribution_factor: 0.25,
             learning_rate: 0.1,
-            rebalance_memory: 1000,
+            rebalance_memory: 500,
             rebalance_count: 10,
             exploration_ratio: 0.9,
         }
@@ -278,6 +278,7 @@ impl Rosomaxa {
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
             network.optimize(rebalance_count, &|node| {
                 let is_empty = node.read().unwrap().storage.population.size() == 0;
+
                 is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
             });
         }

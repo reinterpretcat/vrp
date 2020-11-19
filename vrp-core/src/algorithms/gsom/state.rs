@@ -55,7 +55,7 @@ pub fn get_network_state<I: Input, S: Storage<Item = I>>(network: &Network<I, S>
                 unified_distance: if count > 0 { sum / count as f64 } else { 0. },
                 weights: node.weights.clone(),
                 total_hits: node.total_hits,
-                last_hits: node.last_hits.iter().filter(|hit| network.is_last_hit(**hit)).count(),
+                last_hits: node.last_hits.iter().filter(|hit| !node.is_old(**hit)).count(),
                 dump,
             }
         })

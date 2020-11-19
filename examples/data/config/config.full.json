@@ -18,7 +18,7 @@
       "reductionFactor": 0.1,
       "distributionFactor": 0.25,
       "learningRate": 0.1,
-      "rebalanceMemory": 2000,
+      "rebalanceMemory": 500,
       "rebalanceCount": 10,
       "explorationRatio": 0.9
     }

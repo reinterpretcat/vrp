@@ -72,7 +72,7 @@ pub enum PopulationType {
         distribution_factor: Option<f64>,
         /// Learning rate. Default is 0.1.
         learning_rate: Option<f64>,
-        /// A node hit memory. Default is 2000.
+        /// A rebalance memory. Default is 500.
         rebalance_memory: Option<usize>,
         /// A rebalance count. Default is 10.
         rebalance_count: Option<usize>,

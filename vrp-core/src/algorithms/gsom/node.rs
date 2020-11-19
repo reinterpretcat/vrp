@@ -18,6 +18,8 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
     pub topology: Topology<I, S>,
     /// Remembers passed data.
     pub storage: S,
+    /// A node creating time.
+    pub creation_time: usize,
     /// How many last hits should be remembered.
     hit_memory_size: usize,
 }
@@ -45,7 +47,7 @@ pub struct Coordinate(pub i32, pub i32);
 
 impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Creates a new instance of `Node`.
-    pub fn new(coordinate: Coordinate, weights: &[f64], hit_memory_size: usize, storage: S) -> Self {
+    pub fn new(coordinate: Coordinate, weights: &[f64], time: usize, hit_memory_size: usize, storage: S) -> Self {
         Self {
             weights: weights.to_vec(),
             error: 0.0,
@@ -54,6 +56,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             coordinate,
             topology: Topology::empty(weights.len()),
             storage,
+            creation_time: time,
             hit_memory_size,
         }
     }
@@ -79,6 +82,11 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             self.last_hits.push_front(time);
             self.last_hits.truncate(self.hit_memory_size);
         }
+    }
+
+    /// Checks whether time is considered old.
+    pub fn is_old(&self, time: usize) -> bool {
+        (time as i32 - self.hit_memory_size as i32) > self.creation_time as i32
     }
 }
 

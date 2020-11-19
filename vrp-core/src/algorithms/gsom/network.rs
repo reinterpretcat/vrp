@@ -23,8 +23,8 @@ pub struct Network<I: Input, S: Storage<Item = I>> {
     storage_factory: Box<dyn Fn() -> S + Send + Sync>,
     /// A current time which is used to track node update statistics.
     time: usize,
-    /// A hit memory of the node.
-    hit_memory: usize,
+    /// A rebalance memory.
+    rebalance_memory: usize,
 }
 
 impl<I: Input, S: Storage<Item = I>> Network<I, S> {
@@ -35,7 +35,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         reduction_factor: f64,
         distribution_factor: f64,
         learning_rate: f64,
-        hit_memory: usize,
+        rebalance_memory: usize,
         storage_factory: Box<dyn Fn() -> S + Send + Sync>,
     ) -> Self {
         let dimension = roots[0].weights().len();
@@ -50,10 +50,10 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             reduction_factor,
             distribution_factor,
             learning_rate,
-            nodes: Self::create_initial_nodes(roots, hit_memory, &storage_factory),
+            nodes: Self::create_initial_nodes(roots, 0, rebalance_memory, &storage_factory),
             storage_factory,
             time: 0,
-            hit_memory,
+            rebalance_memory,
         }
     }
 
@@ -80,11 +80,6 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     /// Return nodes in arbitrary order.
     pub fn get_nodes<'a>(&'a self) -> impl Iterator<Item = &NodeLink<I, S>> + 'a {
         self.nodes.values()
-    }
-
-    /// Checks whether hit time is considered as last.
-    pub fn is_last_hit(&self, hit_time: usize) -> bool {
-        hit_time as i32 >= self.time as i32 - self.hit_memory as i32
     }
 
     /// Returns a total amount of nodes.
@@ -182,7 +177,8 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         let new_node = Arc::new(RwLock::new(Node::new(
             coordinate.clone(),
             weights,
-            self.hit_memory,
+            self.time,
+            self.rebalance_memory,
             self.storage_factory.deref()(),
         )));
         {
@@ -217,6 +213,8 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     fn rebalance(&mut self, rebalance_count: usize) {
         let mut data = Vec::with_capacity(self.nodes.len());
         (0..rebalance_count).for_each(|_| {
+            self.reset_error();
+
             data.clear();
             data.extend(self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()));
 
@@ -226,6 +224,8 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
                 self.train(input, false);
             });
         });
+
+        self.reset_error();
     }
 
     /// Compacts network.
@@ -246,14 +246,24 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         })
     }
 
+    /// Resets accumulated error in all nodes.
+    fn reset_error(&mut self) {
+        self.nodes.iter_mut().for_each(|(_, node)| {
+            let mut node = node.write().unwrap();
+            node.error = 0.;
+        })
+    }
+
     /// Creates nodes for initial topology.
     fn create_initial_nodes(
         roots: [I; 4],
-        hit_memory: usize,
+        time: usize,
+        rebalance_memory: usize,
         storage_factory: &Box<dyn Fn() -> S + Send + Sync>,
     ) -> HashMap<Coordinate, NodeLink<I, S>> {
         let create_node_link = |coordinate: Coordinate, input: I| {
-            let mut node = Node::<I, S>::new(coordinate, input.weights(), hit_memory, storage_factory.deref()());
+            let mut node =
+                Node::<I, S>::new(coordinate, input.weights(), time, rebalance_memory, storage_factory.deref()());
             node.storage.add(input);
             Arc::new(RwLock::new(node))
         };
