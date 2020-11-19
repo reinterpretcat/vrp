@@ -241,7 +241,7 @@ impl Rosomaxa {
     }
 
     fn optimize_network(network: &mut IndividualNetwork, best_fitness: &[f64], rebalance_count: usize) {
-        const PERCENTILE_THRESHOLD: f64 = 0.25;
+        const PERCENTILE_THRESHOLD: f64 = 0.1;
 
         let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
             let node = node.read().unwrap();
