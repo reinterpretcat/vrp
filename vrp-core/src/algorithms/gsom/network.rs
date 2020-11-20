@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/algorithms/gsom/network_test.rs"]
+mod network_test;
+
 use super::*;
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
@@ -5,7 +9,7 @@ use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
-/// A customized Growing Self Organizing Map.
+/// A customized Growing Self Organizing Map designed to store and retrieve trained input.
 pub struct Network<I: Input, S: Storage<Item = I>> {
     /// Data dimension.
     dimension: usize,
