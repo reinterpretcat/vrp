@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/construction/heuristics/metrics_test.rs"]
+mod metrics_test;
+
 use super::InsertionContext;
 use crate::algorithms::statistics::{get_mean, get_stdev, get_variance};
 use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY, WAITING_KEY};
