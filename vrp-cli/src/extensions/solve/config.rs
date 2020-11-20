@@ -223,9 +223,9 @@ pub struct NoiseConfig {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminationConfig {
-    max_time: Option<usize>,
-    max_generations: Option<usize>,
-    variation: Option<VariationConfig>,
+    pub max_time: Option<usize>,
+    pub max_generations: Option<usize>,
+    pub variation: Option<VariationConfig>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
