@@ -187,11 +187,8 @@ impl Rosomaxa {
                     *time = statistics.generation;
                     let best_individual = self.elite.select().next().expect("expected individuals in elite");
                     let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
-                    let is_optimization_time = *time % self.config.rebalance_memory == 0;
 
-                    // NOTE statistics can be used to determine some optimization parameters dynamically
-                    // based on termination estimation and/or improvement ratio.
-                    if is_optimization_time {
+                    if Self::is_optimization_time(*time, self.config.rebalance_memory, statistics) {
                         Self::optimize_network(network, best_fitness.as_slice(), self.config.rebalance_count)
                     }
 
@@ -214,6 +211,16 @@ impl Rosomaxa {
         }
 
         false
+    }
+
+    fn is_optimization_time(time: usize, rebalance_memory: usize, statistics: &Statistics) -> bool {
+        let rebalance_factor = match statistics.improvement_1000_ratio {
+            v if v > 0.1 => 1,
+            v if v > 0.02 => 2,
+            v if v > 0.01 => 3,
+            _ => 4,
+        };
+        time % (rebalance_memory * rebalance_factor) == 0
     }
 
     fn fill_populations(
