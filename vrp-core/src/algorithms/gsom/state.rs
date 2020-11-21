@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/algorithms/gsom/state_test.rs"]
+mod state_test;
+
 use super::{Input, Network, Storage};
 use crate::algorithms::gsom::Coordinate;
 use std::fmt::{Display, Formatter, Result, Write};
