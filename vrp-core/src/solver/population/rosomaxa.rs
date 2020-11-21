@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/population/rosomaxa_test.rs"]
+mod rosomaxa_test;
+
 use super::super::rand::prelude::SliceRandom;
 use super::*;
 use crate::algorithms::gsom::{get_network_state, Input, Network, NodeLink, Storage};
@@ -220,7 +224,7 @@ impl Rosomaxa {
             v if v > 0.01 => 3,
             _ => 4,
         };
-        time % (rebalance_memory * rebalance_factor) == 0
+        time > 0 && time % (rebalance_memory * rebalance_factor) == 0
     }
 
     fn fill_populations(

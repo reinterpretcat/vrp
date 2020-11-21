@@ -15,7 +15,7 @@ fn can_solve_problem_using_full_config() {
     // TODO override termination to avoid test timeout on CI
     let mut config = read_config(reader).unwrap();
     if let Some(termination) = config.termination.as_mut() {
-        termination.max_time = Some(5);
+        termination.max_time = Some(10);
     }
 
     let (solution, _, _) = create_builder_from_config(problem, &config).unwrap().build().unwrap().solve().unwrap();
