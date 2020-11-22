@@ -51,10 +51,9 @@ impl Registry {
 
     /// Returns next available actors from each different type.
     pub fn next<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
-        let random = self.random.clone();
         self.available.iter().flat_map(move |(_, set)| {
             // NOTE pick a random actor from set of available actors.
-            let skip_amount = if set.len() < 2 { 0 } else { random.uniform_int(0, set.len() as i32 - 1) as usize };
+            let skip_amount = if set.len() < 2 { 0 } else { self.random.uniform_int(0, set.len() as i32 - 1) as usize };
             set.iter().skip(skip_amount).take(1).cloned()
         })
     }
