@@ -84,7 +84,7 @@ fn all_returns_all_jobs() {
 parameterized_test! {calculates_proper_cost_between_single_jobs, (left, right, expected), {
     assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE,
                                     &create_costs(),
-                                    &create_only_distance_transport_cost(),
+                                    create_only_distance_transport_cost().as_ref(),
                                     &Job::Single(left),
                                     &Job::Single(right)),
               expected);
@@ -101,7 +101,7 @@ calculates_proper_cost_between_single_jobs! {
 parameterized_test! {calculates_proper_cost_between_multi_jobs, (left, right, expected), {
     assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE,
                                      &create_costs(),
-                                     &create_only_distance_transport_cost(),
+                                     create_only_distance_transport_cost().as_ref(),
                                      &Job::Multi(left),
                                      &Job::Multi(right)),
                expected);

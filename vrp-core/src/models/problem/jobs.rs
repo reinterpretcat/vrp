@@ -281,14 +281,14 @@ fn create_index(
             let mut sorted_job_costs: Vec<(Job, Cost)> = jobs
                 .iter()
                 .filter(|j| **j != job)
-                .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, &job, j)))
+                .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport.as_ref(), &job, j)))
                 .collect();
             sorted_job_costs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Less));
 
             let fleet_costs = starts
                 .iter()
                 .cloned()
-                .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport, &job, s))
+                .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport.as_ref(), &job, s))
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                 .unwrap_or(DEFAULT_COST);
 
@@ -303,11 +303,10 @@ fn create_index(
     })
 }
 
-#[inline(always)]
 fn get_cost_between_locations(
     profile: Profile,
     costs: &Costs,
-    transport: &Arc<dyn TransportCost + Send + Sync>,
+    transport: &(dyn TransportCost + Send + Sync),
     from: Location,
     to: Location,
 ) -> f64 {
@@ -326,11 +325,11 @@ fn get_cost_between_locations(
 fn get_cost_between_job_and_location(
     profile: Profile,
     costs: &Costs,
-    transport: &Arc<dyn TransportCost + Send + Sync>,
-    lhs: &Job,
+    transport: &(dyn TransportCost + Send + Sync),
+    job: &Job,
     to: Location,
 ) -> Cost {
-    get_job_locations(lhs)
+    get_job_locations(job)
         .map(|from| match from {
             Some(from) => get_cost_between_locations(profile, costs, transport, from, to),
             _ => DEFAULT_COST,
@@ -343,7 +342,7 @@ fn get_cost_between_job_and_location(
 fn get_cost_between_jobs(
     profile: Profile,
     costs: &Costs,
-    transport: &Arc<dyn TransportCost + Send + Sync>,
+    transport: &(dyn TransportCost + Send + Sync),
     lhs: &Job,
     rhs: &Job,
 ) -> f64 {
