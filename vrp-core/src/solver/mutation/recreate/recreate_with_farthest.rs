@@ -3,7 +3,8 @@ use crate::construction::heuristics::*;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::RefinementContext;
 
-/// A recreate method which always insert fist the farthest job in empty route.
+/// A recreate method which always insert first the farthest job in empty route and prefers
+/// filling non-empty routes first.
 pub struct RecreateWithFarthest {
     job_selector: Box<dyn JobSelector + Send + Sync>,
     job_reducer: Box<dyn JobMapReducer + Send + Sync>,

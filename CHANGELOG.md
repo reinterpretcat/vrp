@@ -12,6 +12,7 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 - add and use by default rosomaxa algorithm
 - add a new LS method to push tour departure in the future
 - add a Local Search mutation
+- add farthest insertion heuristic
 
 ### Changed
 
