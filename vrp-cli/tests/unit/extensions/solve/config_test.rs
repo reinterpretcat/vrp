@@ -68,7 +68,7 @@ fn can_read_config() {
                 MutationType::RuinRecreate { probability, ruins, recreates } => {
                     assert_eq!(*probability, 1.);
                     assert_eq!(ruins.len(), 6);
-                    assert_eq!(recreates.len(), 8);
+                    assert_eq!(recreates.len(), 9);
                 }
                 _ => unreachable!(),
             }
