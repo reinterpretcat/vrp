@@ -57,6 +57,7 @@ impl CompositeRecreate {
         Self::new(vec![
             (Box::new(RecreateWithSkipBest::new(1, 2)), 50),
             (Box::new(RecreateWithRegret::new(2, 3)), 20),
+            (Box::new(RecreateWithCheapest::default()), 20),
             (Box::new(RecreateWithPerturbation::default()), 10),
             (Box::new(RecreateWithSkipBest::new(3, 4)), 5),
             (Box::new(RecreateWithGaps::default()), 5),

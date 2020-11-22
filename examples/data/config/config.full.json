@@ -240,6 +240,10 @@
             "end": 3
           },
           {
+            "weight": 20,
+            "type": "cheapest"
+          },
+          {
             "weight": 10,
             "type": "perturbation",
             "probability": 0.33,
