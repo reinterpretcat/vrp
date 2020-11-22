@@ -15,6 +15,9 @@ pub use self::recreate_with_blinks::RecreateWithBlinks;
 mod recreate_with_cheapest;
 pub use self::recreate_with_cheapest::RecreateWithCheapest;
 
+mod recreate_with_farthest;
+pub use self::recreate_with_farthest::RecreateWithFarthest;
+
 mod recreate_with_gaps;
 pub use self::recreate_with_gaps::RecreateWithGaps;
 
@@ -59,6 +62,7 @@ impl CompositeRecreate {
             (Box::new(RecreateWithGaps::default()), 5),
             // TODO use dimension size from problem
             (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), 5),
+            (Box::new(RecreateWithFarthest::default()), 2),
             (Box::new(RecreateWithSkipBest::new(4, 8)), 2),
             (Box::new(RecreateWithNearestNeighbor::default()), 1),
         ])

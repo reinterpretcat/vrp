@@ -4,7 +4,6 @@ use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::solution::Activity;
-use std::borrow::Borrow;
 use std::sync::Arc;
 
 /// Specifies insertion result variant.
@@ -103,7 +102,7 @@ impl InsertionResult {
 
     /// Compares two insertion results and returns the cheapest by cost.
     pub fn choose_best_result(left: Self, right: Self) -> Self {
-        match (left.borrow(), right.borrow()) {
+        match (&left, &right) {
             (Self::Success(_), Self::Failure(_)) => left,
             (Self::Failure(_), Self::Success(_)) => right,
             (Self::Success(lhs), Self::Success(rhs)) => {

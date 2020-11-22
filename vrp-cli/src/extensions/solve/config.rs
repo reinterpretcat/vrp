@@ -190,6 +190,9 @@ pub enum RecreateMethod {
     /// Nearest neighbour method.
     #[serde(rename(deserialize = "nearest"))]
     Nearest { weight: usize },
+    /// Farthest insertion method.
+    #[serde(rename(deserialize = "farthest"))]
+    Farthest { weight: usize },
     #[serde(rename(deserialize = "perturbation"))]
     Perturbation { weight: usize, probability: f64, min: f64, max: f64 },
     #[serde(rename(deserialize = "regret"))]
@@ -387,6 +390,7 @@ fn configure_from_termination(
 fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send + Sync>, usize) {
     match method {
         RecreateMethod::Cheapest { weight } => (Box::new(RecreateWithCheapest::default()), *weight),
+        RecreateMethod::Farthest { weight } => (Box::new(RecreateWithFarthest::default()), *weight),
         RecreateMethod::SkipBest { weight, start, end } => (Box::new(RecreateWithSkipBest::new(*start, *end)), *weight),
         RecreateMethod::Blinks { weight } => (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), *weight),
         RecreateMethod::Gaps { weight, min } => (Box::new(RecreateWithGaps::new(*min)), *weight),
