@@ -8,7 +8,6 @@ use crate::models::solution::{Activity, Place};
 use crate::models::OP_START_MSG;
 use hashbrown::HashSet;
 use std::iter::once;
-use std::ops::RangeBounds;
 use std::slice::{Iter, IterMut};
 
 /// Represents a tour, a smart container for jobs with their associated activities.
@@ -91,24 +90,6 @@ impl Tour {
         self.remove(&job);
 
         job
-    }
-
-    /// Removes activities from the tour.
-    pub fn remove_activities_at<R>(&mut self, range: R) -> Vec<Job>
-    where
-        R: RangeBounds<usize>,
-    {
-        let jobs: Vec<_> = self
-            .activities
-            .drain(range)
-            .map(|a| a.retrieve_job().expect("Attempt to remove activity without job from the tour!"))
-            .collect();
-
-        jobs.iter().for_each(|job| {
-            self.remove(job);
-        });
-
-        jobs
     }
 
     /// Returns all activities in tour.

@@ -163,34 +163,6 @@ impl Fleet {
     }
 }
 
-impl Hash for Costs {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let fixed = self.fixed.to_bits() as i64;
-        let per_distance = self.per_distance.to_bits() as i64;
-        let per_driving_time = self.per_driving_time.to_bits() as i64;
-        let per_service_time = self.per_service_time.to_bits() as i64;
-        let per_waiting_time = self.per_waiting_time.to_bits() as i64;
-
-        fixed.hash(state);
-        per_distance.hash(state);
-        per_driving_time.hash(state);
-        per_service_time.hash(state);
-        per_waiting_time.hash(state);
-    }
-}
-
-impl Eq for Costs {}
-
-impl PartialEq for Costs {
-    fn eq(&self, other: &Self) -> bool {
-        self.fixed == other.fixed
-            && self.per_distance == other.per_distance
-            && self.per_driving_time == other.per_driving_time
-            && self.per_service_time == other.per_service_time
-            && self.per_waiting_time == other.per_waiting_time
-    }
-}
-
 impl PartialEq<Actor> for Actor {
     fn eq(&self, other: &Actor) -> bool {
         &*self as *const Actor == &*other as *const Actor

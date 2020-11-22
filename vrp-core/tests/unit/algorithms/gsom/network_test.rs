@@ -18,6 +18,7 @@ fn can_train_network() {
     }
 
     assert!(!network.nodes.len() >= 3);
+    assert_eq!(network.nodes.len(), network.size());
     samples.iter().for_each(|sample| {
         let node = network.find_bmu(sample);
         let node = node.read().unwrap();

@@ -2,7 +2,6 @@ use crate::models::common::{Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
 use crate::utils::compare_shared;
-use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 /// Specifies activity place.
@@ -44,21 +43,6 @@ impl Route {
     /// Returns a deep copy of `Route`.
     pub fn deep_copy(&self) -> Self {
         Self { actor: self.actor.clone(), tour: self.tour.deep_copy() }
-    }
-}
-
-impl PartialEq<Route> for Route {
-    fn eq(&self, other: &Route) -> bool {
-        &*self as *const Route == &*other as *const Route
-    }
-}
-
-impl Eq for Route {}
-
-impl Hash for Route {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let address = &*self as *const Route;
-        address.hash(state);
     }
 }
 

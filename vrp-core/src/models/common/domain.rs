@@ -67,16 +67,6 @@ impl TimeWindow {
         compare_floats(self.start, other.end) != Ordering::Greater
             && compare_floats(other.start, self.end) != Ordering::Greater
     }
-
-    /// Checks whether time window has intersection with all others.
-    pub fn intersects_all(&self, others: &[Self]) -> bool {
-        others.iter().all(|other| other.intersects(self))
-    }
-
-    /// Checks whether time window has intersection with any of others.
-    pub fn intersects_any(&self, others: &[Self]) -> bool {
-        others.iter().any(|other| other.intersects(self))
-    }
 }
 
 impl PartialEq<TimeWindow> for TimeWindow {
