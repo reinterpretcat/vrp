@@ -32,11 +32,11 @@ fn can_switch_phases() {
 
     (0..4).for_each(|_| {
         assert_eq!(rosomaxa.selection_phase(), Initial);
-        rosomaxa.add_individual(create_empty_insertion_context());
+        rosomaxa.add_all(vec![create_empty_insertion_context()]);
         rosomaxa.update_phase(&create_statistics(0., 0))
     });
 
-    rosomaxa.add_individual(create_empty_insertion_context());
+    rosomaxa.add(create_empty_insertion_context());
     assert_eq!(rosomaxa.selection_phase(), Exploration);
 
     for (idx, (termination_estimate, phase)) in (&[(0.7, Exploration), (0.9, Exploitation)]).iter().enumerate() {
@@ -49,12 +49,12 @@ fn can_switch_phases() {
 fn can_optimize_network() {
     let mut rosomaxa = create_rosomaxa();
     (0..10).for_each(|idx| {
-        rosomaxa.add_individual(create_empty_insertion_context());
+        rosomaxa.add_all(vec![create_empty_insertion_context()]);
         rosomaxa.update_phase(&create_statistics(0., idx))
     });
     assert_eq!(get_network(&rosomaxa).get_nodes().count(), 4);
 
-    rosomaxa.add_individual(create_empty_insertion_context());
+    rosomaxa.add(create_empty_insertion_context());
     rosomaxa.update_phase(&create_statistics(0., 10));
 
     assert_eq!(get_network(&rosomaxa).get_nodes().count(), 1);

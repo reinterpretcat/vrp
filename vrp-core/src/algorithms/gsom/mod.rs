@@ -12,13 +12,13 @@ mod state;
 pub use self::state::*;
 
 /// Represents an input for network.
-pub trait Input {
+pub trait Input: Send + Sync {
     /// Returns weights.
     fn weights(&self) -> &[f64];
 }
 
 /// Represents input data storage.
-pub trait Storage: Display {
+pub trait Storage: Display + Send + Sync {
     /// An input type.
     type Item: Input;
 

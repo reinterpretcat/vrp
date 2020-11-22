@@ -3,6 +3,7 @@
 mod network_test;
 
 use super::*;
+use crate::utils::parallel_collect;
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
@@ -61,13 +62,17 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         }
     }
 
-    /// Adds to the network a new input.
+    /// Stores input into the network.
     pub fn store(&mut self, input: I, time: usize) {
         debug_assert!(input.weights().len() == self.dimension);
-
         self.time = time;
-
         self.train(input, true)
+    }
+
+    /// Stores multiple inputs into the network.
+    pub fn store_batch<T: Send + Sync>(&mut self, item_data: &[T], time: usize, map_func: fn(&T) -> I) {
+        self.time = time;
+        self.train_batch(item_data, true, map_func);
     }
 
     /// Optimizes network by rebalancing and compaction of the nodes.
@@ -101,6 +106,21 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         self.update(&bmu, &input, error, is_new_input);
 
         bmu.write().unwrap().storage.add(input);
+    }
+
+    /// Trains network on inputs.
+    fn train_batch<T: Send + Sync>(&mut self, item_data: &[T], is_new_input: bool, map_func: fn(&T) -> I) {
+        let nodes_data = parallel_collect(item_data, |item| {
+            let input = map_func(item);
+            let bmu = self.find_bmu(&input);
+            let error = bmu.read().unwrap().distance(input.weights());
+            (bmu, error, input)
+        });
+
+        nodes_data.into_iter().for_each(|(bmu, error, input)| {
+            self.update(&bmu, &input, error, is_new_input);
+            bmu.write().unwrap().storage.add(input);
+        });
     }
 
     /// Finds the best matching unit within the map for the given input.

@@ -67,11 +67,31 @@ pub struct Rosomaxa {
 
 impl Population for Rosomaxa {
     fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
-        individuals.into_iter().map(|individual| self.add_individual(individual)).any(|is_improved| is_improved)
+        match &mut self.phase {
+            RosomaxaPhases::Initial { individuals: known_individuals } => {
+                known_individuals.extend(individuals.iter().map(|individual| individual.deep_copy()))
+            }
+            RosomaxaPhases::Exploration { time, network, .. } => {
+                network.store_batch(individuals.as_slice(), *time, |individual| {
+                    IndividualInput::new(individual.deep_copy())
+                });
+            }
+            RosomaxaPhases::Exploitation => {}
+        };
+
+        self.elite.add_all(individuals)
     }
 
     fn add(&mut self, individual: Individual) -> bool {
-        self.add_individual(individual)
+        match &mut self.phase {
+            RosomaxaPhases::Initial { individuals } => individuals.push(individual.deep_copy()),
+            RosomaxaPhases::Exploration { time, network, .. } => {
+                network.store(IndividualInput::new(individual.deep_copy()), *time)
+            }
+            RosomaxaPhases::Exploitation => {}
+        };
+
+        self.elite.add(individual)
     }
 
     fn on_generation(&mut self, statistics: &Statistics) {
@@ -151,26 +171,6 @@ impl Rosomaxa {
             .unwrap_or_else(|()| Box::new(Elitism::new(problem, random, max_population_size, selection_size)))
     }
 
-    fn add_individual(&mut self, individual: Individual) -> bool {
-        match &mut self.phase {
-            RosomaxaPhases::Initial { individuals } => {
-                if individuals.len() < 4 {
-                    individuals.push(individual.deep_copy());
-                }
-            }
-            RosomaxaPhases::Exploration { time, network, .. } => {
-                network.store(IndividualInput::new(individual.deep_copy()), *time);
-            }
-            RosomaxaPhases::Exploitation => {}
-        };
-
-        if self.is_improvement(&individual) {
-            self.elite.add(individual)
-        } else {
-            false
-        }
-    }
-
     fn update_phase(&mut self, statistics: &Statistics) {
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals, .. } => {
@@ -203,18 +203,6 @@ impl Rosomaxa {
             }
             RosomaxaPhases::Exploitation => {}
         }
-    }
-
-    fn is_improvement(&self, individual: &Individual) -> bool {
-        if let Some((best, _)) = self.elite.ranked().next() {
-            if self.elite.cmp(individual, best) != Ordering::Greater {
-                return !is_same_fitness(individual, best);
-            }
-        } else {
-            return true;
-        }
-
-        false
     }
 
     fn is_optimization_time(time: usize, rebalance_memory: usize, statistics: &Statistics) -> bool {
