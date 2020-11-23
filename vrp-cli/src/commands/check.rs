@@ -1,10 +1,14 @@
+#[cfg(test)]
+#[path = "../../tests/unit/commands/check_test.rs"]
+mod check_test;
+
 use super::*;
 use std::io::BufReader;
 use std::process;
 use vrp_cli::extensions::check::check_pragmatic_solution;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
-const PROBLEM_ARG_NAME: &str = "problem-files";
+const PROBLEM_ARG_NAME: &str = "problem-file";
 const SOLUTION_ARG_NAME: &str = "solution-file";
 const MATRIX_ARG_NAME: &str = "matrix";
 
