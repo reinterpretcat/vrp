@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v1.7.0] - 2020-11-23
 
 This release features a new solution space exploration algorithm called ROSOMAXA: Routing Optimizations
 with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
@@ -120,7 +120,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.6.4...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.7.0...HEAD
+[v1.7.0]: https://github.com/reinterpretcat/vrp/compare/v1.6.4...v1.7.0
 [v1.6.4]: https://github.com/reinterpretcat/vrp/compare/v1.6.3...v1.6.4
 [v1.6.3]: https://github.com/reinterpretcat/vrp/compare/v1.6.2...v1.6.3
 [v1.6.2]: https://github.com/reinterpretcat/vrp/compare/v1.6.1...v1.6.2
