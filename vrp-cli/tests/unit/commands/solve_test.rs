@@ -3,7 +3,6 @@ use super::*;
 const PRAGMATIC_PROBLEM_PATH: &str = "../examples/data/pragmatic/simple.basic.problem.json";
 const SOLOMON_PROBLEM_PATH: &str = "../examples/data/scientific/solomon/C101.25.txt";
 const LILIM_PROBLEM_PATH: &str = "../examples/data/scientific/lilim/LC101.txt";
-const CONFIG_PATH: &str = "../examples/data/config/config.full.json";
 
 struct DummyWrite {}
 
@@ -22,16 +21,8 @@ fn run_solve_with_out_writer(matches: &ArgMatches) {
 }
 
 #[test]
-fn can_run_problem_with_defaults() {
-    let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH];
-    let matches = get_solve_app().get_matches_from_safe(args).unwrap();
-
-    run_solve_with_out_writer(&matches);
-}
-
-#[test]
-fn can_run_problem_with_config() {
-    let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--config", CONFIG_PATH];
+fn can_solve_pragmatic_problem_with_generation_limit() {
+    let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--max-generations", "10"];
     let matches = get_solve_app().get_matches_from_safe(args).unwrap();
 
     run_solve_with_out_writer(&matches);
