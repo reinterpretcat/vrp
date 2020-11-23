@@ -5,10 +5,12 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::process;
 use std::sync::Arc;
+use vrp_cli::core::solver::population::Population;
 use vrp_cli::extensions::check::check_pragmatic_solution;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
+use vrp_core::solver::population::{Elitism, Rosomaxa, RosomaxaConfig};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
 use vrp_core::utils::{DefaultRandom, Random};
 
@@ -26,6 +28,7 @@ const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
 const CONFIG_ARG_NAME: &str = "config";
 const LOG_ARG_NAME: &str = "log";
 const CHECK_ARG_NAME: &str = "check";
+const SEARCH_MODE_ARG_NAME: &str = "search-mode";
 
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
@@ -131,12 +134,16 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
 fn get_formats<'a>() -> FormatMap<'a> {
     let mut formats = FormatMap::default();
     // TODO pass random from outside
-    let random = Arc::new(DefaultRandom::default());
+    let random = get_random();
 
     add_scientific(&mut formats, random.clone());
     add_pragmatic(&mut formats, random);
 
     formats
+}
+
+fn get_random() -> Arc<dyn Random + Send + Sync> {
+    Arc::new(DefaultRandom::default())
 }
 
 pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
@@ -236,6 +243,15 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .required(false)
                 .takes_value(false),
         )
+        .arg(
+            Arg::with_name(SEARCH_MODE_ARG_NAME)
+                .help("Specifies solution space search mode")
+                .long(SEARCH_MODE_ARG_NAME)
+                .short("s")
+                .required(false)
+                .possible_values(&["broad", "deep"])
+                .default_value("broad"),
+        )
 }
 
 /// Runs solver commands.
@@ -278,6 +294,7 @@ pub fn run_solve(matches: &ArgMatches) {
     let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
     let out_geojson = matches.value_of(GEO_JSON_ARG_NAME).map(|path| create_file(path, "out geojson"));
     let is_get_locations_set = matches.is_present(GET_LOCATIONS_ARG_NAME);
+    let mode = matches.value_of(SEARCH_MODE_ARG_NAME);
 
     match formats.get(problem_format) {
         Some((problem_reader, init_reader, solution_writer, locations_writer)) => {
@@ -315,6 +332,7 @@ pub fn run_solve(matches: &ArgMatches) {
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
                                 .with_cost_variation(cost_variation)
+                                .with_population(get_population(mode, problem.clone(), get_random()))
                                 .with_telemetry(telemetry)
                         };
 
@@ -351,6 +369,17 @@ fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
     matches
         .values_of(MATRIX_ARG_NAME)
         .map(|paths: Values| paths.map(|path| open_file(path, "routing matrix")).collect())
+}
+
+fn get_population(
+    mode: Option<&str>,
+    problem: Arc<Problem>,
+    random: Arc<dyn Random + Send + Sync>,
+) -> Box<dyn Population + Send + Sync> {
+    match mode {
+        Some("deep") => Box::new(Elitism::new_with_defaults(problem, random)),
+        _ => Rosomaxa::new_with_fallback(problem, random, RosomaxaConfig::default()),
+    }
 }
 
 fn check_solution(matches: &ArgMatches) {

@@ -48,7 +48,7 @@ pub enum PopulationType {
     #[serde(rename(deserialize = "elitism"))]
     #[serde(rename_all = "camelCase")]
     Elitism {
-        /// Max population size. Default is 2.
+        /// Max population size. Default is 4.
         max_size: Option<usize>,
         /// Selection size. Default is number of cpus.
         selection_size: Option<usize>,

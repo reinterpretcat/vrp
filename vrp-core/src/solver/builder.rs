@@ -124,7 +124,7 @@ impl Builder {
         self
     }
 
-    /// Sets population settings. Defaults: max_size is 4, selection_size: cpu num.
+    /// Sets population algorithm. Default is rosomaxa.
     pub fn with_population(mut self, population: Box<dyn Population + Send + Sync>) -> Self {
         self.config.telemetry.log("configured to use custom population");
         self.config.population.variation = Some(population);

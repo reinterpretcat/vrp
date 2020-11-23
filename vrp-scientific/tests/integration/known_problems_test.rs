@@ -9,7 +9,7 @@ use vrp_core::models::Problem;
 use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::population::Elitism;
 use vrp_core::solver::RefinementContext;
-use vrp_core::utils::{get_cpus, DefaultRandom};
+use vrp_core::utils::DefaultRandom;
 
 struct StableJobSelector {}
 
@@ -79,7 +79,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     let random = Arc::new(DefaultRandom::default());
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
-        Box::new(Elitism::new(problem.clone(), random.clone(), 4, get_cpus())),
+        Box::new(Elitism::new_with_defaults(problem.clone(), random.clone())),
         None,
     );
     let insertion_ctx = RecreateWithCheapest::new(
