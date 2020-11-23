@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/commands/solve_test.rs"]
+mod solve_test;
+
 use super::*;
 
 use std::collections::HashMap;
@@ -255,7 +259,7 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
 }
 
 /// Runs solver commands.
-pub fn run_solve(matches: &ArgMatches) {
+pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufWriter<Box<dyn Write>>) {
     let formats = get_formats();
 
     // required
@@ -298,7 +302,7 @@ pub fn run_solve(matches: &ArgMatches) {
 
     match formats.get(problem_format) {
         Some((problem_reader, init_reader, solution_writer, locations_writer)) => {
-            let out_buffer = create_write_buffer(out_result);
+            let out_buffer = out_writer_func(out_result);
             let geo_buffer = out_geojson.map(|geojson| create_write_buffer(Some(geojson)));
 
             if is_get_locations_set {

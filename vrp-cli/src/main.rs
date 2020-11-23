@@ -13,6 +13,7 @@ mod cli {
     use super::commands::import::{get_import_app, run_import};
     use super::commands::solve::{get_solve_app, run_solve};
     use crate::commands::check::{get_check_app, run_check};
+    use crate::commands::create_write_buffer;
     use crate::commands::generate::{get_generate_app, run_generate};
     use clap::{crate_version, App};
     use std::process;
@@ -29,7 +30,7 @@ mod cli {
             .get_matches();
 
         match matches.subcommand() {
-            ("solve", Some(solve_matches)) => run_solve(solve_matches),
+            ("solve", Some(solve_matches)) => run_solve(solve_matches, create_write_buffer),
             ("import", Some(import_matches)) => run_import(import_matches),
             ("check", Some(check_matches)) => run_check(check_matches),
             ("generate", Some(generate_matches)) => run_generate(generate_matches),
