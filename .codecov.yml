@@ -6,6 +6,9 @@
 coverage:
   status:
     patch: false
+    project:
+      default:
+        threshold: 0.1%
 
   range: 70..90
   round: down

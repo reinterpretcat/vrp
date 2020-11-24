@@ -34,6 +34,23 @@ Once the problem is solved, it will save solution in `pragmatic` and `geojson` (
 
 ## Extra options
 
+The `vrp-cli` supports extra command line arguments which affects behavior of the algorithm.
+
+
+### Search mode
+
+By default, search is mostly performed in exploration mode (`broad`) which allows the algorithm to perform better
+exploration of a solution space. However, it has slower overall convergence in better local optimum.
+You can switch to exploitation mode with `deep` setting:
+
+    vrp-cli solve pragmatic problem.json --search-mode=deep
+
+In this mode, the algorithm memorizes only the last discovered best known solutions, so it can jump quicker to relatively
+good local optimum, but suffers more from premature convergence.
+
+A general recommendation is to use `deep` on relatively simple dataset and/or when strict time limits should be applied.
+
+
 ### Termination criteria
 
 Termination criteria defines when refinement algorithm should stop and return best known solution. At the moment, there
@@ -65,23 +82,10 @@ specific amount of generations specified by `sample` and stops algorithm when it
 Default termination criteria is max 3000 generations and 300 seconds at max.
 
 
-#### Search mode
-
-By default, search is mostly performed in exploration mode (`broad`) which allows the algorithm to perform better
-exploration of a solution space. However, it has slower overall convergence in better local optimum. 
-You can switch to exploitation mode with `deep` setting:
-
-    vrp-cli solve pragmatic problem.json --search-mode=deep
-
-In this mode, the algorithm memorizes only the last discovered best known solutions, so it can jump quicker to relatively
-good local optimum, but suffers more from premature convergence.
-
-A general recommendation is to use `deep` on simple dataset or when strict time limits should be applied.
-
-
 ### Initial solution
 
 You can supply initial solution to start with using `-i` option.
+
 
 ### Writing solution to file
 
