@@ -11,9 +11,6 @@ pub use self::exchange_inter_route::*;
 mod exchange_intra_route;
 pub use self::exchange_intra_route::*;
 
-mod push_route_departure;
-pub use self::push_route_departure::*;
-
 /// Specifies behavior of a local search operator.
 pub trait LocalOperator {
     /// Applies local search operator to passed solution in order to explore possible
@@ -46,7 +43,6 @@ impl Default for CompositeLocalOperator {
                 (Box::new(ExchangeInterRouteBest::default()), 100),
                 (Box::new(ExchangeInterRouteRandom::default()), 30),
                 (Box::new(ExchangeIntraRouteRandom::default()), 30),
-                (Box::new(PushRouteDeparture::default()), 5),
             ],
             1,
             2,

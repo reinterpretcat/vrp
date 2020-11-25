@@ -211,9 +211,6 @@ pub enum LocalOperatorType {
 
     #[serde(rename(deserialize = "intra-route-random"))]
     IntraRouteRandom { weight: usize, noise: NoiseConfig },
-
-    #[serde(rename(deserialize = "push-route-departure"))]
-    PushRouteDeparture { weight: usize, offset: f64 },
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -466,9 +463,6 @@ fn create_local_search(times: &MinMaxConfig, inners: &[LocalOperatorType]) -> Bo
             }
             LocalOperatorType::IntraRouteRandom { weight, noise } => {
                 (Box::new(ExchangeIntraRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
-            }
-            LocalOperatorType::PushRouteDeparture { weight, offset } => {
-                (Box::new(PushRouteDeparture::new(*offset)), *weight)
             }
         })
         .collect::<Vec<_>>();

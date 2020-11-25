@@ -45,35 +45,6 @@ pub(crate) fn select_seed_jobs<'a>(
     Box::new(empty())
 }
 
-/// Selects a random route which satisfies given filter.
-pub(crate) fn select_random_route<'a>(
-    routes: &'a [RouteContext],
-    random: &(dyn Random + Send + Sync),
-    filter_fn: impl Fn(&RouteContext) -> bool,
-) -> Option<usize> {
-    if routes.is_empty() {
-        return None;
-    }
-
-    let initial_route_idx = random.uniform_int(0, (routes.len() - 1) as i32) as usize;
-    let mut route_idx = initial_route_idx;
-
-    loop {
-        let route_ctx = routes.get(route_idx).unwrap();
-
-        if filter_fn(route_ctx) {
-            return Some(route_idx);
-        }
-
-        route_idx = (route_idx + 1) % routes.len();
-        if route_idx == initial_route_idx {
-            break;
-        }
-    }
-
-    None
-}
-
 /// Selects seed job from existing solution
 pub(crate) fn select_seed_job<'a>(
     routes: &'a [RouteContext],
