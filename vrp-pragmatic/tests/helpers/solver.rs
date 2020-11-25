@@ -85,10 +85,13 @@ fn get_core_solution<F: Fn(Arc<CoreProblem>) -> CoreSolution>(
     let format_solution = sort_all_data(create_solution(&core_problem, &core_solution, None));
 
     if perform_check {
-        assert_eq!(
-            CheckerContext::new(core_problem, format_problem, format_matrices, format_solution.clone()).check().err(),
-            None
-        );
+        if let Some(err) =
+            CheckerContext::new(core_problem, format_problem.clone(), format_matrices, format_solution.clone())
+                .check()
+                .err()
+        {
+            panic!("check failed: '{}', problem: {:?}, solution: {:?}", err, format_problem, format_solution);
+        }
     }
 
     sort_all_data(format_solution)
