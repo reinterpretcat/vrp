@@ -163,6 +163,9 @@ pub struct RouteContext {
 
     /// Insertion state.
     pub state: Arc<RouteState>,
+
+    /// A flag which is used to signalize that context was touched as mutable.
+    stale: Arc<StaleState>,
 }
 
 /// Provides the way to associate arbitrary data within route and activity.
@@ -176,7 +179,16 @@ impl RouteContext {
     /// Creates a new instance of `RouteContext`.
     pub fn new(actor: Arc<Actor>) -> Self {
         let tour = Tour::new(&actor);
-        RouteContext { route: Arc::new(Route { actor, tour }), state: Arc::new(RouteState::default()) }
+        RouteContext {
+            route: Arc::new(Route { actor, tour }),
+            state: Arc::new(RouteState::default()),
+            stale: Arc::new(StaleState { is_stale: true }),
+        }
+    }
+
+    /// Creates a new instance of `RouteContext` with arguments provided.
+    pub fn new_with_state(route: Arc<Route>, state: Arc<RouteState>) -> Self {
+        RouteContext { route, state, stale: Arc::new(StaleState { is_stale: true }) }
     }
 
     /// Creates a deep copy of `RouteContext`.
@@ -201,7 +213,11 @@ impl RouteContext {
             }
         });
 
-        RouteContext { route: Arc::new(new_route), state: Arc::new(new_state) }
+        RouteContext {
+            route: Arc::new(new_route),
+            state: Arc::new(new_state),
+            stale: Arc::new(StaleState { is_stale: self.stale.is_stale }),
+        }
     }
 
     /// Gets route cost.
@@ -225,7 +241,10 @@ impl RouteContext {
     }
 
     /// Unwraps given `RouteContext` as pair of mutable references.
+    /// Marks context as stale.
     pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
+        self.mark_stale(true);
+
         let route: &mut Route = unsafe { as_mut(&self.route) };
         let state: &mut RouteState = unsafe { as_mut(&self.state) };
 
@@ -233,13 +252,29 @@ impl RouteContext {
     }
 
     /// Returns mutable reference to used `Route`.
+    /// Marks context as stale.
     pub fn route_mut(&mut self) -> &mut Route {
+        self.mark_stale(true);
         unsafe { as_mut(&self.route) }
     }
 
     /// Returns mutable reference to used `RouteState`.
+    /// Marks context as stale.
     pub fn state_mut(&mut self) -> &mut RouteState {
+        self.mark_stale(true);
         unsafe { as_mut(&self.state) }
+    }
+
+    /// Returns true if context is stale. Context is marked stale when it is accessed by `mut`
+    /// methods. A general motivation of the flag is to avoid recalculating non-changed states.
+    pub fn is_stale(&self) -> bool {
+        self.stale.is_stale
+    }
+
+    /// Marks context stale or resets the flag.
+    pub(crate) fn mark_stale(&mut self, is_stale: bool) {
+        let stale: &mut StaleState = unsafe { as_mut(&self.stale) };
+        stale.is_stale = is_stale;
     }
 }
 
@@ -327,6 +362,10 @@ impl RouteState {
     pub fn sizes(&self) -> (usize, usize) {
         (self.route_states.capacity(), self.activity_states.capacity())
     }
+}
+
+struct StaleState {
+    pub is_stale: bool,
 }
 
 /// A wrapper around route context modifier function.

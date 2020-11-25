@@ -90,6 +90,8 @@ pub trait ConstraintModule {
 
     /// Accepts insertion solution context allowing to update job insertion data.
     /// This method called twice: before insertion of all jobs starts and when it ends.
+    /// Please note, that it is important to update only stale routes as this allows to avoid
+    /// updating non changed route states.
     fn accept_solution_state(&self, ctx: &mut SolutionContext);
 
     /// Returns unique constraint state keys.
@@ -126,17 +128,24 @@ impl Default for ConstraintPipeline {
 impl ConstraintPipeline {
     /// Accepts job insertion.
     pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
-        self.modules.iter().for_each(|c| c.accept_insertion(solution_ctx, route_index, job))
+        self.modules.iter().for_each(|c| c.accept_insertion(solution_ctx, route_index, job));
+        solution_ctx.routes.get_mut(route_index).unwrap().mark_stale(false)
     }
 
     /// Accepts route state.
     pub fn accept_route_state(&self, ctx: &mut RouteContext) {
-        self.modules.iter().for_each(|c| c.accept_route_state(ctx))
+        if ctx.is_stale() {
+            self.modules.iter().for_each(|c| c.accept_route_state(ctx));
+            ctx.mark_stale(false);
+        }
     }
 
     /// Accepts solution state.
     pub fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        self.modules.iter().for_each(|c| c.accept_solution_state(ctx))
+        self.modules.iter().for_each(|c| c.accept_solution_state(ctx));
+        ctx.routes.iter_mut().for_each(|route_ctx| {
+            route_ctx.mark_stale(false);
+        })
     }
 
     /// Adds constraint module.

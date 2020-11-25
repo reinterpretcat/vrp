@@ -202,7 +202,9 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
                         rc.route_mut().tour.remove_activity_at(idx);
                     });
 
-                self.actualize_intervals(rc);
+                if rc.is_stale() {
+                    self.actualize_intervals(rc);
+                }
             });
             ctx.ignored.extend(extra_ignored.into_iter());
         }
@@ -327,7 +329,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
         self.conditional.accept_solution_state(ctx);
         self.remove_trivial_reloads(ctx);
 
-        ctx.routes.iter_mut().for_each(|route_ctx| {
+        ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
             self.recalculate_states(route_ctx);
         })
     }

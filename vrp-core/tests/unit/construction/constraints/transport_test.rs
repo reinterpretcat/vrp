@@ -246,10 +246,10 @@ mod traveling {
         state.put_route_state(TOTAL_DISTANCE_KEY, 50.);
         state.put_route_state(TOTAL_DURATION_KEY, 50.);
         let target = target.to_owned();
-        let route_ctx = RouteContext {
-            route: Arc::new(create_route_with_activities(&fleet, vehicle, vec![])),
-            state: Arc::new(state),
-        };
+        let route_ctx = RouteContext::new_with_state(
+            Arc::new(create_route_with_activities(&fleet, vehicle, vec![])),
+            Arc::new(state),
+        );
         let pipeline = create_constraint_pipeline_with_module(Box::new(TransportConstraintModule::new(
             Arc::new(TestActivityCost::default()),
             TestTransportCost::new_shared(),

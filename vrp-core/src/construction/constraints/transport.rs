@@ -46,10 +46,16 @@ impl ConstraintModule for TransportConstraintModule {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         ctx.routes.iter_mut().for_each(|route_ctx| {
-            self.update_route_schedules(route_ctx);
-            self.update_route_states(route_ctx);
+            if route_ctx.is_stale() {
+                self.update_route_schedules(route_ctx);
+                self.update_route_states(route_ctx);
+            }
+
             self.reschedule_departure(route_ctx);
-            self.update_statistics(route_ctx);
+
+            if route_ctx.is_stale() {
+                self.update_statistics(route_ctx);
+            }
         })
     }
 

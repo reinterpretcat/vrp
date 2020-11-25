@@ -178,7 +178,7 @@ fn apply_insertion_success(insertion_ctx: &mut InsertionContext, insertion_succe
 
     // NOTE replace existing route context with the different
     insertion_ctx.solution.routes[route_index] =
-        RouteContext { route: insertion_success.context.route.clone(), state: insertion_success.context.state.clone() };
+        RouteContext::new_with_state(insertion_success.context.route.clone(), insertion_success.context.state.clone());
 
     apply_insertion_result(insertion_ctx, InsertionResult::Success(insertion_success))
 }

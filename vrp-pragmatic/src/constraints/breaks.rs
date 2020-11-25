@@ -191,16 +191,9 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
         .collect::<Vec<_>>();
 
     breaks_to_remove.iter().for_each(|break_job| {
-        let _ =
-            ctx.routes.iter_mut().try_for_each(
-                |rc| {
-                    if rc.route_mut().tour.remove(break_job) {
-                        Err(())
-                    } else {
-                        Ok(())
-                    }
-                },
-            );
+        ctx.routes.iter_mut().filter(|route_ctx| route_ctx.route.tour.contains(break_job)).for_each(|route_ctx| {
+            route_ctx.route_mut().tour.remove(break_job);
+        })
     });
 
     ctx.unassigned.extend(breaks_to_remove.into_iter().map(|b| (b, 1)));

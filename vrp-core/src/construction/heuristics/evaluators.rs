@@ -423,7 +423,7 @@ impl<'a> ShadowContext<'a> {
             is_mutated: false,
             is_dirty: false,
             constraint,
-            ctx: RouteContext { route: ctx.route.clone(), state: ctx.state.clone() },
+            ctx: RouteContext::new_with_state(ctx.route.clone(), ctx.state.clone()),
         }
     }
 

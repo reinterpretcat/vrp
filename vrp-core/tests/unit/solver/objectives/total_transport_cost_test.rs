@@ -22,26 +22,26 @@ fn can_calculate_transport_cost() {
             .add_vehicle(VehicleBuilder::default().id("v2").costs(fixed_costs()).build())
             .build(),
     );
-    let route1 = RouteContext {
-        route: Arc::new(create_route_with_start_end_activities(
+    let route1 = RouteContext::new_with_state(
+        Arc::new(create_route_with_start_end_activities(
             &fleet,
             "v1",
             test_activity_with_schedule(Schedule::new(0., 0.)),
             test_activity_with_schedule(Schedule::new(40., 40.)),
             vec![test_activity_with_location_and_duration(10, 5.), test_activity_with_location_and_duration(15, 5.)],
         )),
-        state: Arc::new(RouteState::default()),
-    };
-    let route2 = RouteContext {
-        route: Arc::new(create_route_with_start_end_activities(
+        Arc::new(RouteState::default()),
+    );
+    let route2 = RouteContext::new_with_state(
+        Arc::new(create_route_with_start_end_activities(
             &fleet,
             "v2",
             test_activity_with_schedule(Schedule::new(0., 0.)),
             test_activity_with_schedule(Schedule::new(11., 11.)),
             vec![test_activity_with_location_and_duration(5, 1.)],
         )),
-        state: Arc::new(RouteState::default()),
-    };
+        Arc::new(RouteState::default()),
+    );
     let activity = Arc::new(SimpleActivityCost::default());
     let transport = TestTransportCost::new_shared();
     let constraint = Arc::new(create_constraint_pipeline_with_transport());

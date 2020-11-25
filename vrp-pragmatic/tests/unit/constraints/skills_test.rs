@@ -86,10 +86,10 @@ fn can_check_skills_impl(
         vec![Arc::new(create_vehicle_with_skills(vehicle_skills))],
         Box::new(|actors| create_typed_actor_groups(actors)),
     );
-    let route_ctx = RouteContext {
-        route: Arc::new(create_route_with_activities(&fleet, "v1", vec![])),
-        state: Arc::new(RouteState::default()),
-    };
+    let route_ctx = RouteContext::new_with_state(
+        Arc::new(create_route_with_activities(&fleet, "v1", vec![])),
+        Arc::new(RouteState::default()),
+    );
 
     let actual = ConstraintPipeline::default().add_module(Box::new(SkillsModule::new(0))).evaluate_hard_route(
         &create_solution_context_for_fleet(&fleet),
