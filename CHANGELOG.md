@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+This release focuses on improving performance and bug fixing.
+
+### Changed
+
+- use `stale` flag internally to avoid route state updates on non-changed routes
+
+### Removed
+
+- remove unstable push tour departure LS method
+
+
 ## [v1.7.0] - 2020-11-23
 
 This release features a new solution space exploration algorithm called ROSOMAXA: Routing Optimizations

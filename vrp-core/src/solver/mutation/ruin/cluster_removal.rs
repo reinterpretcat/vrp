@@ -73,7 +73,8 @@ impl Ruin for ClusterRemoval {
                 .for_each(|job| {
                     if let Some(rc) = route_jobs.get_mut(job) {
                         // NOTE actual insertion context modification via route mut
-                        if rc.route_mut().tour.remove(&job) {
+                        if rc.route.tour.contains(job) {
+                            rc.route_mut().tour.remove(job);
                             removed_jobs.write().unwrap().insert((*job).clone());
                         }
                     }

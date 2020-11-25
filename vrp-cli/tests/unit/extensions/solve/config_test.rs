@@ -59,7 +59,7 @@ fn can_read_config() {
                 MutationType::LocalSearch { probability, times, operators: inners } => {
                     assert_eq!(*probability, 0.05);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
-                    assert_eq!(inners.len(), 4);
+                    assert_eq!(inners.len(), 3);
                 }
                 _ => unreachable!(),
             }
@@ -77,7 +77,7 @@ fn can_read_config() {
                 MutationType::LocalSearch { probability, times, operators: inners } => {
                     assert_eq!(*probability, 0.01);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
-                    assert_eq!(inners.len(), 4);
+                    assert_eq!(inners.len(), 3);
                 }
                 _ => unreachable!(),
             }
