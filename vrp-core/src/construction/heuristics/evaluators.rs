@@ -444,10 +444,11 @@ impl<'a> ShadowContext<'a> {
         if self.is_dirty {
             let (route, state) = self.ctx.as_mut();
 
-            route.tour.all_activities().for_each(|a| state.remove_activity_states(a));
+            state.clear();
             route.tour.remove(job);
 
             self.constraint.accept_route_state(&mut self.ctx);
+            self.is_dirty = false;
         }
     }
 }
