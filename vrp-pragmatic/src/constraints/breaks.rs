@@ -33,22 +33,15 @@ impl BreakModule {
 }
 
 impl ConstraintModule for BreakModule {
-    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _job: &Job) {
-        let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
-        self.accept_route_state(route_ctx);
-        self.accept_solution_state(solution_ctx);
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
+        self.conditional.accept_insertion(solution_ctx, route_index, job);
     }
 
-    fn accept_route_state(&self, ctx: &mut RouteContext) {
-        self.conditional.accept_route_state(ctx);
-    }
+    fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
-
-        if ctx.required.is_empty() {
-            remove_invalid_breaks(ctx);
-        }
+        remove_invalid_breaks(ctx);
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -124,23 +117,27 @@ impl SoftRouteConstraint for BreakSoftRouteConstraint {
 /// Promotes break jobs from required and ignored.
 fn create_job_transition() -> Box<dyn JobContextTransition + Send + Sync> {
     Box::new(ConcreteJobContextTransition {
-        remove_required: |ctx, job| !is_required_job(ctx, job, true),
-        promote_required: |ctx, job| is_required_job(ctx, job, false),
-        remove_locked: |_, _| false,
-        promote_locked: |_, _| false,
+        remove_required: |ctx, route_index, job| !is_required_job(ctx.routes.as_slice(), route_index, job, true),
+        promote_required: |ctx, route_index, job| is_required_job(ctx.routes.as_slice(), route_index, job, false),
+        remove_locked: |_, _, _| false,
+        promote_locked: |_, _, _| false,
     })
 }
 
 /// Mark job as ignored only if it has break type and vehicle id is not present in routes
-fn is_required_job(ctx: &SolutionContext, job: &Job, default: bool) -> bool {
+fn is_required_job(routes: &[RouteContext], route_index: Option<usize>, job: &Job, default: bool) -> bool {
     match job {
         Job::Single(job) => {
             if is_break_single(job) {
-                let vehicle_id = get_vehicle_id_from_job(job).unwrap();
-                let shift_index = get_shift_index(&job.dimens);
-                ctx.routes
-                    .iter()
-                    .any(move |rc| is_correct_vehicle(&rc.route, &vehicle_id, shift_index) && is_time(rc, job))
+                if let Some(route_index) = route_index {
+                    is_time(routes.get(route_index).unwrap(), job)
+                } else {
+                    let vehicle_id = get_vehicle_id_from_job(job).unwrap();
+                    let shift_index = get_shift_index(&job.dimens);
+                    routes
+                        .iter()
+                        .any(move |rc| is_correct_vehicle(&rc.route, &vehicle_id, shift_index) && is_time(rc, job))
+                }
             } else {
                 default
             }
@@ -197,6 +194,16 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
     });
 
     ctx.unassigned.extend(breaks_to_remove.into_iter().map(|b| (b, 1)));
+
+    // NOTE remove stale breaks from violation list
+    ctx.ignored.extend(
+        ctx.unassigned
+            .drain_filter({
+                let routes = ctx.routes.as_slice();
+                move |job, _| !is_required_job(routes, None, job, true)
+            })
+            .map(|(job, _)| job),
+    );
 }
 
 //region Helpers

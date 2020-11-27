@@ -77,13 +77,13 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
             conditional: ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
                 remove_required: {
                     let multi_trip = multi_trip.clone();
-                    move |_, job| multi_trip.is_reload_job(job)
+                    move |_, _, job| multi_trip.is_reload_job(job)
                 },
-                promote_required: |_, _| false,
-                remove_locked: |_, _| false,
+                promote_required: |_, _, _| false,
+                remove_locked: |_, _, _| false,
                 promote_locked: {
                     let multi_trip = multi_trip.clone();
-                    move |_, job| multi_trip.is_reload_job(job)
+                    move |_, _, job| multi_trip.is_reload_job(job)
                 },
             })),
             constraints: vec![
@@ -176,38 +176,34 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
 
     /// Removes reloads at the start and end of tour.
     fn remove_trivial_reloads(&self, ctx: &mut SolutionContext) {
-        if ctx.required.is_empty() {
-            let mut extra_ignored = Vec::new();
-            ctx.routes.iter_mut().filter(|ctx| self.multi_trip.has_reloads(ctx)).for_each(|rc| {
-                let demands = (0..)
-                    .zip(rc.route.tour.all_activities())
-                    .filter_map(|(idx, activity)| Self::get_demand(activity).map(|_| idx))
-                    .collect::<Vec<_>>();
+        let mut extra_ignored = Vec::new();
+        ctx.routes.iter_mut().filter(|ctx| self.multi_trip.has_reloads(ctx)).for_each(|rc| {
+            let demands = (0..)
+                .zip(rc.route.tour.all_activities())
+                .filter_map(|(idx, activity)| Self::get_demand(activity).map(|_| idx))
+                .collect::<Vec<_>>();
 
-                let (start, end) = (
-                    demands.first().cloned().unwrap_or(0),
-                    demands.last().cloned().unwrap_or(rc.route.tour.total() - 1),
-                );
+            let (start, end) =
+                (demands.first().cloned().unwrap_or(0), demands.last().cloned().unwrap_or(rc.route.tour.total() - 1));
 
-                (0..)
-                    .zip(rc.route.tour.all_activities())
-                    .filter_map(|(idx, activity)| self.multi_trip.get_reload(activity).map(|_| idx))
-                    .filter(|&idx| idx < start || idx > end)
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .rev()
-                    .for_each(|idx| {
-                        let job = self.multi_trip.get_reload(rc.route.tour.get(idx).unwrap()).unwrap();
-                        extra_ignored.push(Job::Single(job.clone()));
-                        rc.route_mut().tour.remove_activity_at(idx);
-                    });
+            (0..)
+                .zip(rc.route.tour.all_activities())
+                .filter_map(|(idx, activity)| self.multi_trip.get_reload(activity).map(|_| idx))
+                .filter(|&idx| idx < start || idx > end)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .for_each(|idx| {
+                    let job = self.multi_trip.get_reload(rc.route.tour.get(idx).unwrap()).unwrap();
+                    extra_ignored.push(Job::Single(job.clone()));
+                    rc.route_mut().tour.remove_activity_at(idx);
+                });
 
-                if rc.is_stale() {
-                    self.actualize_intervals(rc);
-                }
-            });
-            ctx.ignored.extend(extra_ignored.into_iter());
-        }
+            if rc.is_stale() {
+                self.actualize_intervals(rc);
+            }
+        });
+        ctx.ignored.extend(extra_ignored.into_iter());
     }
 
     fn has_demand_violation(
@@ -314,10 +310,6 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
                 solution_ctx.locked.extend(jobs.iter().cloned());
                 solution_ctx.required.extend(jobs.into_iter());
             }
-        }
-
-        if solution_ctx.required.is_empty() {
-            self.accept_solution_state(solution_ctx);
         }
     }
 

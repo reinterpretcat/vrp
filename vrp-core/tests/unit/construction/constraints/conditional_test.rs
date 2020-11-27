@@ -40,10 +40,10 @@ fn can_promote_jobs_between_required_and_ignored_impl(
 
     let mut ctx = SolutionContext { required, ignored, ..create_empty_solution_context() };
     let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
-        remove_required: move |_, job| !required_set1.contains(get_job_id(&job)),
-        promote_required: move |_, job| required_set2.contains(get_job_id(&job)),
-        remove_locked: |_, _| false,
-        promote_locked: |_, _| false,
+        remove_required: move |_, _, job| !required_set1.contains(get_job_id(&job)),
+        promote_required: move |_, _, job| required_set2.contains(get_job_id(&job)),
+        remove_locked: |_, _, _| false,
+        promote_locked: |_, _, _| false,
     }));
 
     conditional.accept_solution_state(&mut ctx);
@@ -67,10 +67,10 @@ fn can_promote_locked_jobs() {
         ..create_empty_solution_context()
     };
     let conditional = ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
-        remove_required: |_, _| false,
-        promote_required: |_, _| false,
-        remove_locked: move |_, job| !expected_locked_jobs1.contains(get_job_id(&job)),
-        promote_locked: move |_, job| expected_locked_jobs2.contains(get_job_id(&job)),
+        remove_required: |_, _, _| false,
+        promote_required: |_, _, _| false,
+        remove_locked: move |_, _, job| !expected_locked_jobs1.contains(get_job_id(&job)),
+        promote_locked: move |_, _, job| expected_locked_jobs2.contains(get_job_id(&job)),
     }));
 
     conditional.accept_solution_state(&mut ctx);

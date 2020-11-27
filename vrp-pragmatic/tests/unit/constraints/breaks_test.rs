@@ -19,6 +19,7 @@ fn create_break(vehicled_id: &str, location: Option<Location>) -> Arc<Single> {
     single.dimens.set_id("break");
     single.dimens.set_value("type", "break".to_string());
     single.dimens.set_value("vehicle_id", vehicled_id.to_string());
+    single.dimens.set_value("shift_index", 0_usize);
 
     Arc::new(single)
 }

@@ -113,10 +113,10 @@ impl HardActivityConstraint for DispatchHardActivityConstraint {
 
 fn create_job_transition() -> Box<dyn JobContextTransition + Send + Sync> {
     Box::new(ConcreteJobContextTransition {
-        remove_required: |_, job| is_dispatch_job(job),
-        promote_required: |_, _| false,
-        remove_locked: |_, _| false,
-        promote_locked: |_, job| is_dispatch_job(job),
+        remove_required: |_, _, job| is_dispatch_job(job),
+        promote_required: |_, _, _| false,
+        remove_locked: |_, _, _| false,
+        promote_locked: |_, _, job| is_dispatch_job(job),
     })
 }
 

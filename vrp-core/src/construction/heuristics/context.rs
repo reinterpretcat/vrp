@@ -191,13 +191,6 @@ impl RouteContext {
         RouteContext { route, state, stale: Arc::new(StaleState { is_stale: true }) }
     }
 
-    /// Removes job and its states.
-    pub fn remove(&mut self, job: &Job) -> bool {
-        let (route, state) = self.as_mut();
-        state.clear();
-        route.tour.remove(job)
-    }
-
     /// Creates a deep copy of `RouteContext`.
     pub fn deep_copy(&self) -> Self {
         let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };

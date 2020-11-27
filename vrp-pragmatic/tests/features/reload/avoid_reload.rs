@@ -3,8 +3,16 @@ use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
-#[test]
-fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
+parameterized_test! {can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload, generations, {
+    can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations);
+}}
+
+can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload! {
+    case01: 1,
+    case02: 200,
+}
+
+fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations: usize) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -44,7 +52,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), generations);
 
     assert_eq!(
         solution,
