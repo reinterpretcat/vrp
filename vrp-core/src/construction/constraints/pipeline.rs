@@ -142,20 +142,17 @@ impl ConstraintPipeline {
 
     /// Accepts solution state.
     pub fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        let mut counter = 0;
         loop {
             let required = solution_ctx.required.len();
             let ignored = solution_ctx.ignored.len();
+
             self.modules.iter().for_each(|c| c.accept_solution_state(solution_ctx));
 
-            if solution_ctx.required.len() != required || solution_ctx.ignored.len() != ignored {
-                // NOTE if any job promotion occurs, then we might need to recalculate states.
-                // As it is hard to maintain dependencies between different modules, we recalculate
-                // everything. However we do not expect recalculation to happen often, so this condition
-                // here is to prevent infinite loops and signalize about error in pipeline configuration
-                assert_ne!(counter, 100);
-                counter += 1;
-            } else {
+            // NOTE if a job promotion occurs, then we might need to recalculate states due to
+            // job removal from a tour. As modules should not know about each other and it is
+            // hard to maintain implicit dependencies between them, we recalculate everything.
+            // However we do not expect recalculation to happen often.
+            if solution_ctx.required.len() == required && solution_ctx.ignored.len() == ignored {
                 break;
             }
         }
