@@ -164,7 +164,9 @@ struct WorkBalanceModule {
 }
 
 impl ConstraintModule for WorkBalanceModule {
-    fn accept_insertion(&self, _solution_ctx: &mut SolutionContext, _route_index: usize, _job: &Job) {}
+    fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _job: &Job) {
+        self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
+    }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
         let value = self.value_func.deref()(ctx);
