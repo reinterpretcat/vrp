@@ -123,9 +123,8 @@ fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'
 
                 let time = match time {
                     TimeSpan::Window(tw) => tw.clone(),
-                    // NOTE we don't know when original start should be
-                    TimeSpan::Offset(offset) => {
-                        TimeWindow::new(activity_ctx.time.start, activity_ctx.route_start_time + offset.end)
+                    TimeSpan::Offset(_) => {
+                        TimeWindow::new(activity_ctx.time.end - place.duration, activity_ctx.time.end)
                     }
                 };
 
