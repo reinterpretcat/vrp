@@ -18,63 +18,142 @@ To test it, use the following index.html file:
 </head>
 <body>
 <script type="module">
-    import init, { get_routing_locations, convert_to_pragmatic, solve_pragmatic } from './pkg/vrp_cli.js';
+    import init, { get_routing_locations, solve_pragmatic } from './pkg/vrp_cli.js';
 
     async function run() {
         await init();
 
-        const pragmatic_problem_str = convert_to_pragmatic(
-            // another supported json format type
-            // NOTE you can use simple csv format too
-            'hre',
-            // array of strings
-            [`
+        const pragmatic_problem = JSON.parse(`
 {
   "plan": {
     "jobs": [
       {
-        "id": "job",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.52599,
-              "lng": 13.45413
-            },
-            "duration": 300
+        "id": "job1",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.52599,
+                  "lng": 13.45413
+                },
+                "duration": 300.0,
+                "times": [
+                  [
+                    "2019-07-04T09:00:00Z",
+                    "2019-07-04T18:00:00Z"
+                  ],
+                  [
+                    "2019-07-05T09:00:00Z",
+                    "2019-07-05T18:00:00Z"
+                  ]
+                ]
+              }
+            ],
+            "demand": [
+              1
+            ]
           }
-        },
-        "demand": [1]
+        ]
+      },
+      {
+        "id": "job2",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5225,
+                  "lng": 13.4095
+                },
+                "duration": 240.0,
+                "times": [
+                  [
+                    "2019-07-04T10:00:00Z",
+                    "2019-07-04T16:00:00Z"
+                  ]
+                ]
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job3",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5225,
+                  "lng": 13.4095
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ],
+            "tag": "p1"
+          }
+        ],
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5165,
+                  "lng": 13.3808
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ],
+            "tag": "d1"
+          }
+        ]
       }
     ]
   },
   "fleet": {
-    "types": [
+    "vehicles": [
       {
-        "id": "vehicle",
+        "typeId": "vehicle",
+        "vehicleIds": [
+          "vehicle_1"
+        ],
         "profile": "normal_car",
         "costs": {
+          "fixed": 22.0,
           "distance": 0.0002,
-          "time": 0.005,
-          "fixed": 30
+          "time": 0.004806
         },
-        "shifts": [{
-          "start": {
-            "time": "2020-04-07T00:00:00Z",
-            "location": {
-              "lat": 52.5225,
-              "lng": 13.4095
-            }
-          },
-          "end": {
-            "time": "2020-04-07T08:00:00Z",
-            "location": {
-              "lat": 52.5225,
-              "lng": 13.4095
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "end": {
+              "latest": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
             }
           }
-        }],
-        "capacity": [2],
-        "amount": 1
+        ],
+        "capacity": [
+          10
+        ]
       }
     ],
     "profiles": [
@@ -84,10 +163,8 @@ To test it, use the following index.html file:
       }
     ]
   }
-}`]);
-        console.log(`pragmatic problem is:\n ${pragmatic_problem_str}`);
-
-        const pragmatic_problem = JSON.parse(pragmatic_problem_str);
+}
+`);
 
         const locations = get_routing_locations(pragmatic_problem);
         console.log(`routing locations are:\n ${locations}`);
@@ -98,12 +175,16 @@ To test it, use the following index.html file:
             {
                 "profile": "normal_car",
                 "travelTimes": [
-                    0, 609,
-                    580, 0
+                   0,    609, 981, 906,
+                   813,  0,   371, 590,
+                   1055, 514, 0,   439,
+                   948,  511, 463,   0
                 ],
                 "distances": [
-                    0, 3840,
-                    3610, 0
+                   0,    3840,  5994,  5333,
+                   4696, 0,     2154,  3226,
+                   5763, 2674,  0,     2145,
+                   5112, 2470,  2152,  0
                 ]
             }
         ];
