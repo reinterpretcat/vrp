@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.7.1] - 2020-11-29
+
 This release focuses on improving performance and bug fixing.
 
 ### Changed
@@ -134,7 +137,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 - Initial commit
 
 [Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.7.0...HEAD
-[v1.7.0]: https://github.com/reinterpretcat/vrp/compare/v1.6.4...v1.7.0
+[v1.7.1]: https://github.com/reinterpretcat/vrp/compare/1.7.0...v1.7.1
+[v1.7.0]: https://github.com/reinterpretcat/vrp/compare/v1.6.4...1.7.0
 [v1.6.4]: https://github.com/reinterpretcat/vrp/compare/v1.6.3...v1.6.4
 [v1.6.3]: https://github.com/reinterpretcat/vrp/compare/v1.6.2...v1.6.3
 [v1.6.2]: https://github.com/reinterpretcat/vrp/compare/v1.6.1...v1.6.2
