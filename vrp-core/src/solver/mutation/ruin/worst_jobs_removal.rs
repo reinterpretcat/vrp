@@ -130,8 +130,13 @@ fn get_cost_savings(
     end: &Activity,
     transport: &Arc<dyn TransportCost + Send + Sync>,
 ) -> Cost {
-    get_cost(actor, start, middle, transport) + get_cost(actor, middle, end, transport)
-        - get_cost(actor, start, end, transport)
+    let waiting_costs = (middle.place.time.start - middle.schedule.arrival).max(0.)
+        * (actor.driver.costs.per_waiting_time + actor.vehicle.costs.per_waiting_time);
+
+    let transport_costs = get_cost(actor, start, middle, transport) + get_cost(actor, middle, end, transport)
+        - get_cost(actor, start, end, transport);
+
+    waiting_costs + transport_costs
 }
 
 #[inline(always)]
