@@ -5,6 +5,7 @@ mod selectors_test;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::utils::{map_reduce, Noise};
+use rand::prelude::*;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
@@ -46,6 +47,8 @@ impl Default for AllJobSelector {
 
 impl JobSelector for AllJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
+        ctx.solution.required.shuffle(&mut ctx.random.get_rng());
+
         Box::new(ctx.solution.required.iter().cloned())
     }
 }

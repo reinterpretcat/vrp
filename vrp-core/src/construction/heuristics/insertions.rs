@@ -4,6 +4,7 @@ use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::solution::Activity;
+use rand::prelude::SliceRandom;
 use std::sync::Arc;
 
 /// Specifies insertion result variant.
@@ -73,8 +74,11 @@ impl InsertionHeuristic {
         prepare_insertion_ctx(&mut ctx);
 
         while !ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
+            ctx.solution.routes.shuffle(&mut ctx.random.get_rng());
+
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Job>>();
             let result = job_reducer.reduce(&ctx, jobs, self.insertion_position);
+
             apply_insertion_result(&mut ctx, result);
         }
 

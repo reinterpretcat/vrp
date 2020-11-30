@@ -10,7 +10,6 @@ use crate::models::Problem;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::RefinementContext;
 use crate::utils::compare_floats;
-use rand::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
@@ -56,19 +55,19 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> JobSelector for Dema
     }
 }
 
-struct RandomJobSelector {}
+struct PartJobSelector {
+    size: usize,
+}
 
-impl RandomJobSelector {
-    pub fn new() -> Self {
-        Self {}
+impl PartJobSelector {
+    pub fn new(size: usize) -> Self {
+        Self { size }
     }
 }
 
-impl JobSelector for RandomJobSelector {
+impl JobSelector for PartJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut ctx.random.get_rng());
-
-        Box::new(ctx.solution.required.iter().cloned())
+        Box::new(ctx.solution.required.iter().take(self.size).cloned())
     }
 }
 
@@ -162,7 +161,8 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T
 impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Default for RecreateWithBlinks<T> {
     fn default() -> Self {
         Self::new(vec![
-            (Box::new(RandomJobSelector::new()), 10),
+            (Box::new(AllJobSelector::default()), 10),
+            (Box::new(PartJobSelector::new(8)), 10),
             (Box::new(DemandJobSelector::<T>::new(false)), 10),
             (Box::new(DemandJobSelector::<T>::new(true)), 1),
             (Box::new(RankedJobSelector::new(true)), 5),
