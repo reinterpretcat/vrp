@@ -34,9 +34,7 @@ impl WorkBalance {
                 .iter()
                 .map(|(start, _)| ctx.route.tour.get(*start).unwrap())
                 .map(|activity| {
-                    ctx.state
-                        .get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity)
-                        .unwrap_or_else(|| &default_capacity)
+                    ctx.state.get_activity_state::<T>(MAX_FUTURE_CAPACITY_KEY, activity).unwrap_or(&default_capacity)
                 })
                 .map(|max_load| load_func.deref()(max_load, capacity))
                 .max_by(|a, b| a.partial_cmp(b).unwrap_or(Less))

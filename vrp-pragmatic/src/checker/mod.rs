@@ -232,7 +232,7 @@ fn get_time_window(stop: &Stop, activity: &Activity) -> TimeWindow {
 }
 
 fn get_location(stop: &Stop, activity: &Activity) -> Location {
-    activity.location.as_ref().unwrap_or_else(|| &stop.location).clone()
+    activity.location.as_ref().unwrap_or(&stop.location).clone()
 }
 
 mod assignment;
