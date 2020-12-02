@@ -56,17 +56,17 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> JobSelector for Dema
     }
 }
 
-struct PartJobSelector {
+struct ChunkJobSelector {
     size: usize,
 }
 
-impl PartJobSelector {
+impl ChunkJobSelector {
     pub fn new(size: usize) -> Self {
         Self { size }
     }
 }
 
-impl JobSelector for PartJobSelector {
+impl JobSelector for ChunkJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         ctx.solution.required.shuffle(&mut ctx.random.get_rng());
 
@@ -165,7 +165,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Default for Recreate
     fn default() -> Self {
         Self::new(vec![
             (Box::new(AllJobSelector::default()), 10),
-            (Box::new(PartJobSelector::new(8)), 10),
+            (Box::new(ChunkJobSelector::new(8)), 10),
             (Box::new(DemandJobSelector::<T>::new(false)), 10),
             (Box::new(DemandJobSelector::<T>::new(true)), 1),
             (Box::new(RankedJobSelector::new(true)), 5),
