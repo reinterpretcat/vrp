@@ -64,8 +64,6 @@ pub struct Individual {
 pub struct Population {
     /// Population individuals.
     pub individuals: Vec<Individual>,
-    /// Population state dump.
-    pub state: String,
 }
 
 /// Specifies a telemetry mode.
@@ -237,14 +235,13 @@ impl Telemetry {
         }
 
         if should_track_population {
-            let state = Self::get_population_state(refinement_ctx);
             self.metrics.evolution.push(Generation {
                 number: refinement_ctx.statistics.generation,
                 timestamp: self.time.elapsed_secs_as_f64(),
                 i_all_ratio: self.improvement_tracker.i_all_ratio,
                 i_1000_ratio: self.improvement_tracker.i_1000_ratio,
                 is_improvement: self.improvement_tracker.is_last_improved,
-                population: Population { individuals, state },
+                population: Population { individuals },
             });
         }
     }

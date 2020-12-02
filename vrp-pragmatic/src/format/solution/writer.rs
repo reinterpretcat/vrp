@@ -393,7 +393,6 @@ fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extr
                                     fitness: i.fitness.clone(),
                                 })
                                 .collect(),
-                            state: g.population.state.clone(),
                         },
                     })
                     .collect(),

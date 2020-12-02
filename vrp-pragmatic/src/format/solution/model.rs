@@ -187,8 +187,6 @@ pub struct Individual {
 pub struct Population {
     /// Population individuals.
     pub individuals: Vec<Individual>,
-    /// Population state dump.
-    pub state: String,
 }
 
 /// Contains extra information.
