@@ -10,6 +10,7 @@ use crate::models::Problem;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::RefinementContext;
 use crate::utils::compare_floats;
+use rand::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
@@ -67,6 +68,8 @@ impl PartJobSelector {
 
 impl JobSelector for PartJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
+        ctx.solution.required.shuffle(&mut ctx.random.get_rng());
+
         Box::new(ctx.solution.required.iter().take(self.size).cloned())
     }
 }
