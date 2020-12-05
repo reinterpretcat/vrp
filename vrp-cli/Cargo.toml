@@ -28,7 +28,7 @@ vrp-scientific = { path = "../vrp-scientific", version = "1.7.1", optional = tru
 vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.7.1" }
 
 csv = { version = "1.1.5", optional = true }
-serde_json = "1.0.59"
+serde_json = "1.0.60"
 serde = { version = "1.0.117", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
