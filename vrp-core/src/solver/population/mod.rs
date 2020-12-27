@@ -3,6 +3,9 @@
 mod elitism;
 pub use self::elitism::Elitism;
 
+mod greedy;
+pub use self::greedy::Greedy;
+
 mod rosomaxa;
 pub use self::rosomaxa::Rosomaxa;
 pub use self::rosomaxa::RosomaxaConfig;
