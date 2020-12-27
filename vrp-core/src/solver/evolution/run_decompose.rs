@@ -62,23 +62,30 @@ impl RunDecompose {
         });
 
         // merge evolution results into one individual
-        evolution_results.into_iter().try_fold(Individual::new(problem, random), |mut individual, evolution_result| {
-            let (population, _) = evolution_result?;
-            let (decomposed_ctx, _) =
-                population.ranked().next().ok_or_else(|| "cannot get individual from population".to_string())?;
+        let mut individual = evolution_results.into_iter().try_fold::<_, _, Result<_, String>>(
+            Individual::new(problem.clone(), random),
+            |mut individual, evolution_result| {
+                let (population, _) = evolution_result?;
+                let (decomposed_ctx, _) =
+                    population.ranked().next().ok_or_else(|| "cannot get individual from population".to_string())?;
 
-            let acc_solution = &mut individual.solution;
-            let dec_solution = &decomposed_ctx.solution;
+                let acc_solution = &mut individual.solution;
+                let dec_solution = &decomposed_ctx.solution;
 
-            // NOTE theoretically, we can avoid deep copy here, but this would require extension in Population trait
-            acc_solution.routes.extend(dec_solution.routes.iter().map(|route_ctx| route_ctx.deep_copy()));
-            acc_solution.ignored.extend(dec_solution.ignored.iter().cloned());
-            acc_solution.required.extend(dec_solution.required.iter().cloned());
-            acc_solution.locked.extend(dec_solution.locked.iter().cloned());
-            acc_solution.unassigned.extend(dec_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
+                // NOTE theoretically, we can avoid deep copy here, but this would require extension in Population trait
+                acc_solution.routes.extend(dec_solution.routes.iter().map(|route_ctx| route_ctx.deep_copy()));
+                acc_solution.ignored.extend(dec_solution.ignored.iter().cloned());
+                acc_solution.required.extend(dec_solution.required.iter().cloned());
+                acc_solution.locked.extend(dec_solution.locked.iter().cloned());
+                acc_solution.unassigned.extend(dec_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
 
-            Ok(individual)
-        })
+                Ok(individual)
+            },
+        )?;
+
+        problem.constraint.accept_solution_state(&mut individual.solution);
+
+        Ok(individual)
     }
 }
 
