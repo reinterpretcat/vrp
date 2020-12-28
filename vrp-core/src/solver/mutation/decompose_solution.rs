@@ -1,29 +1,22 @@
-use crate::construction::heuristics::{RouteContext, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::Problem;
-use crate::solver::evolution::*;
-use crate::solver::population::{Greedy, Individual};
-use crate::solver::TelemetryMode;
+use crate::solver::mutation::Mutation;
+use crate::solver::population::{Greedy, Individual, Population};
+use crate::solver::RefinementContext;
 use crate::utils::{parallel_into_collect, Random};
-use std::cmp::Ordering::Greater;
 use std::sync::Arc;
 
-/// An evolution strategy which runs first evolution over decomposed list of routes.
-pub struct RunDecompose {
-    inner_strategy: Arc<dyn EvolutionStrategy + Send + Sync>,
-    generations: usize,
+/// A mutation which decomposes solution into multiple routes, refines them independently,
+/// and then merges them back into one solution.
+pub struct DecomposeSolution {
+    inner_mutation: Arc<dyn Mutation + Send + Sync>,
+    // TODO different repeat count depending on generation in refinement ctx
+    repeat_count: usize,
 }
 
-impl EvolutionStrategy for RunDecompose {
-    fn run(
-        &self,
-        refinement_ctx: RefinementContext,
-        mutation: &(dyn Mutation + Send + Sync),
-        termination: &(dyn Termination + Send + Sync),
-        telemetry: Telemetry,
-    ) -> EvolutionResult {
-        let mut refinement_ctx = refinement_ctx;
-
-        let refinement_result = refinement_ctx
+impl Mutation for DecomposeSolution {
+    fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
+        refinement_ctx
             .population
             .ranked()
             .next()
@@ -31,46 +24,47 @@ impl EvolutionStrategy for RunDecompose {
                 decompose_individual(&refinement_ctx, individual).map(|result| (individual.random.clone(), result))
             })
             .map(|(random, decomposed_contexts)| {
-                self.refine_decomposed(refinement_ctx.problem.clone(), random, mutation, decomposed_contexts)
-            });
+                self.refine_decomposed(refinement_ctx.problem.clone(), random, decomposed_contexts)
+            })
+            .unwrap_or_else(|| self.inner_mutation.mutate_one(refinement_ctx, insertion_ctx))
+    }
 
-        if let Some(result) = refinement_result {
-            let individual = result?;
-            refinement_ctx.population.add(individual);
-        }
-
-        self.inner_strategy.run(refinement_ctx, mutation, termination, telemetry)
+    fn mutate_all(
+        &self,
+        refinement_ctx: &RefinementContext,
+        individuals: Vec<&InsertionContext>,
+    ) -> Vec<InsertionContext> {
+        individuals.into_iter().map(|individual| self.mutate_one(refinement_ctx, individual)).collect()
     }
 }
 
-impl RunDecompose {
+const GREEDY_ERROR: &str = "greedy population has no individuals";
+
+impl DecomposeSolution {
     fn refine_decomposed(
         &self,
         problem: Arc<Problem>,
         random: Arc<dyn Random + Send + Sync>,
-        mutation: &(dyn Mutation + Send + Sync),
         decomposed_contexts: Vec<RefinementContext>,
-    ) -> Result<Individual, String> {
+    ) -> Individual {
         // do actual refinement independently for each decomposed context
-        let evolution_results = parallel_into_collect(decomposed_contexts, |decomposed_ctx| {
-            self.inner_strategy.run(
-                decomposed_ctx,
-                mutation,
-                &MaxGeneration::new(self.generations),
-                Telemetry::new(TelemetryMode::None),
-            )
+        let decomposed_populations = parallel_into_collect(decomposed_contexts, |mut decomposed_ctx| {
+            (0..self.repeat_count).for_each(|_| {
+                let insertion_ctx = decomposed_ctx.population.select().next().expect(GREEDY_ERROR);
+                let insertion_ctx = self.inner_mutation.mutate_one(&decomposed_ctx, insertion_ctx);
+                decomposed_ctx.population.add(insertion_ctx);
+            });
+            decomposed_ctx.population
         });
 
         // merge evolution results into one individual
-        let mut individual = evolution_results.into_iter().try_fold::<_, _, Result<_, String>>(
+        let mut individual = decomposed_populations.into_iter().fold(
             Individual::new(problem.clone(), random),
-            |mut individual, evolution_result| {
-                let (population, _) = evolution_result?;
-                let (decomposed_ctx, _) =
-                    population.ranked().next().ok_or_else(|| "cannot get individual from population".to_string())?;
+            |mut individual, decomposed_population| {
+                let (decomposed_individual, _) = decomposed_population.ranked().next().expect(GREEDY_ERROR);
 
                 let acc_solution = &mut individual.solution;
-                let dec_solution = &decomposed_ctx.solution;
+                let dec_solution = &decomposed_individual.solution;
 
                 // NOTE theoretically, we can avoid deep copy here, but this would require extension in Population trait
                 acc_solution.routes.extend(dec_solution.routes.iter().map(|route_ctx| route_ctx.deep_copy()));
@@ -79,13 +73,13 @@ impl RunDecompose {
                 acc_solution.locked.extend(dec_solution.locked.iter().cloned());
                 acc_solution.unassigned.extend(dec_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
 
-                Ok(individual)
+                individual
             },
-        )?;
+        );
 
         problem.constraint.accept_solution_state(&mut individual.solution);
 
-        Ok(individual)
+        individual
     }
 }
 

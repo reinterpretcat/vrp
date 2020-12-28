@@ -12,9 +12,6 @@ use crate::utils::Timer;
 mod config;
 pub use self::config::*;
 
-mod run_decompose;
-pub use self::run_decompose::RunDecompose;
-
 mod run_simple;
 pub use self::run_simple::RunSimple;
 

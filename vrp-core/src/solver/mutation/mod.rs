@@ -22,6 +22,9 @@ pub use self::ruin::*;
 mod utils;
 pub(crate) use self::utils::*;
 
+mod decompose_solution;
+pub use self::decompose_solution::DecomposeSolution;
+
 mod local_search;
 pub use self::local_search::LocalSearch;
 
