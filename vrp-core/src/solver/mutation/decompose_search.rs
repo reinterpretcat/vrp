@@ -4,8 +4,9 @@ use crate::models::Problem;
 use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
 use crate::solver::RefinementContext;
-use crate::utils::{parallel_into_collect, Random};
+use crate::utils::{compare_floats, parallel_into_collect, Random};
 use hashbrown::HashMap;
+use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// A mutation which decomposes original solution into multiple partial solutions,
@@ -102,13 +103,11 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
         .collect::<Vec<_>>();
 
     // estimate distances between all routes using their medoids
-    let route_groups = indexed_medoids
+    let mut route_groups = indexed_medoids
         .iter()
-        .map(|(outer_idx, outer_medoid)| {
-            indexed_medoids
-                .iter()
-                .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
-                .map(move |(inner_idx, inner_medoid)| {
+        .flat_map(|(outer_idx, outer_medoid)| {
+            indexed_medoids.iter().filter(move |(inner_idx, _)| *outer_idx > *inner_idx).map(
+                move |(inner_idx, inner_medoid)| {
                     let distance = match (outer_medoid, inner_medoid) {
                         (Some(outer_medoid), Some(inner_medoid)) => {
                             let distance =
@@ -122,10 +121,16 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
                         _ => None,
                     };
                     (outer_idx, inner_idx, distance)
-                })
-                .collect::<Vec<_>>()
+                },
+            )
         })
         .collect::<Vec<_>>();
+
+    route_groups.sort_by(|(_, _, a_distance), (_, _, b_distance)| match (a_distance, b_distance) {
+        (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
+        (Some(_), None) => Ordering::Less,
+        _ => Ordering::Greater,
+    });
 
     unimplemented!()
 }
