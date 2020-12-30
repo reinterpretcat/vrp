@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/mutation/decompose_search_test.rs"]
+mod decompose_search_test;
+
 use crate::construction::heuristics::{get_medoid, InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::models::Problem;
@@ -5,9 +9,10 @@ use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
 use crate::solver::RefinementContext;
 use crate::utils::{compare_floats, parallel_into_collect, Random};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
-use std::sync::Arc;
+use std::iter::once;
+use std::sync::{Arc, RwLock};
 
 /// A mutation which decomposes original solution into multiple partial solutions,
 /// preforms search independently, and then merges partial solution back into one solution.
@@ -89,7 +94,7 @@ fn create_population(individual: Individual) -> Box<dyn Population + Send + Sync
 }
 
 fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual>> {
-    // Individual { problem: individual.problem.clone(), solution, random: individual.random.clone() }
+    const MAX_ROUTES_PER_INDIVIDUAL: usize = 3;
 
     let solution = &individual.solution;
     let profile = solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile)?;
@@ -103,11 +108,13 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
         .collect::<Vec<_>>();
 
     // estimate distances between all routes using their medoids
-    let mut route_groups = indexed_medoids
+    let route_groups_distances = indexed_medoids
         .iter()
-        .flat_map(|(outer_idx, outer_medoid)| {
-            indexed_medoids.iter().filter(move |(inner_idx, _)| *outer_idx > *inner_idx).map(
-                move |(inner_idx, inner_medoid)| {
+        .map(|(outer_idx, outer_medoid)| {
+            let mut route_distances = indexed_medoids
+                .iter()
+                .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
+                .map(move |(inner_idx, inner_medoid)| {
                     let distance = match (outer_medoid, inner_medoid) {
                         (Some(outer_medoid), Some(inner_medoid)) => {
                             let distance =
@@ -121,17 +128,47 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
                         _ => None,
                     };
                     (outer_idx, inner_idx, distance)
-                },
-            )
+                })
+                .collect::<Vec<_>>();
+
+            route_distances.sort_by(|(_, _, a_distance), (_, _, b_distance)| match (a_distance, b_distance) {
+                (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
+                (Some(_), None) => Ordering::Less,
+                _ => Ordering::Greater,
+            });
+
+            route_distances
         })
         .collect::<Vec<_>>();
 
-    route_groups.sort_by(|(_, _, a_distance), (_, _, b_distance)| match (a_distance, b_distance) {
-        (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
-        (Some(_), None) => Ordering::Less,
-        _ => Ordering::Greater,
-    });
+    // identify route groups and create individuals from them
+    let mut used_indices = RwLock::new(HashSet::new());
+    let individuals = route_groups_distances
+        .iter()
+        .map(|route_group_distance| {
+            let route_group = route_group_distance
+                .iter()
+                .cloned()
+                .filter(|(a, b, _)| {
+                    !used_indices.read().unwrap().contains(*a) && !used_indices.read().unwrap().contains(*b)
+                })
+                .take(MAX_ROUTES_PER_INDIVIDUAL)
+                .flat_map(|(a, b, _)| {
+                    debug_assert!(used_indices.write().unwrap().insert(*a));
+                    debug_assert!(used_indices.write().unwrap().insert(*b));
+                    once(*a).chain(once(*b))
+                })
+                .collect::<HashSet<_>>();
 
+            create_partial_individual(individual, route_group.iter().cloned())
+        })
+        .collect();
+
+    Some(individuals)
+}
+
+fn create_partial_individual(individual: &Individual, route_indices: impl Iterator<Item = usize>) -> Individual {
+    // Individual { problem: individual.problem.clone(), solution, random: individual.random.clone() }
     unimplemented!()
 }
 
