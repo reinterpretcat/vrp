@@ -1,4 +1,4 @@
-use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{get_medoid, InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::mutation::Mutation;
@@ -87,27 +87,62 @@ fn create_population(individual: Individual) -> Box<dyn Population + Send + Sync
     Box::new(Greedy::new(individual.problem.clone(), Some(individual)))
 }
 
-fn create_multiple_individuals(individual: &Individual) -> Vec<Individual> {
+fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual>> {
     // Individual { problem: individual.problem.clone(), solution, random: individual.random.clone() }
+
+    let solution = &individual.solution;
+    let profile = solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile)?;
+    let transport = individual.problem.transport.as_ref();
+
+    let indexed_medoids = solution
+        .routes
+        .iter()
+        .enumerate()
+        .map(|(idx, route_ctx)| (idx, get_medoid(route_ctx, transport)))
+        .collect::<Vec<_>>();
+
+    // estimate distances between all routes using their medoids
+    let route_groups = indexed_medoids
+        .iter()
+        .map(|(outer_idx, outer_medoid)| {
+            indexed_medoids
+                .iter()
+                .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
+                .map(move |(inner_idx, inner_medoid)| {
+                    let distance = match (outer_medoid, inner_medoid) {
+                        (Some(outer_medoid), Some(inner_medoid)) => {
+                            let distance =
+                                transport.distance(profile, *outer_medoid, *inner_medoid, Default::default());
+                            if distance < 0. {
+                                None
+                            } else {
+                                Some(distance)
+                            }
+                        }
+                        _ => None,
+                    };
+                    (outer_idx, inner_idx, distance)
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
 
     unimplemented!()
 }
 
 fn decompose_individual(refinement_ctx: &RefinementContext, individual: &Individual) -> Option<Vec<RefinementContext>> {
-    let contexts = create_multiple_individuals(individual)
-        .into_iter()
-        .map(|individual| RefinementContext {
-            problem: refinement_ctx.problem.clone(),
-            population: create_population(individual),
-            state: Default::default(),
-            quota: refinement_ctx.quota.clone(),
-            statistics: Default::default(),
+    create_multiple_individuals(individual)
+        .map(|individuals| {
+            individuals
+                .into_iter()
+                .map(|individual| RefinementContext {
+                    problem: refinement_ctx.problem.clone(),
+                    population: create_population(individual),
+                    state: Default::default(),
+                    quota: refinement_ctx.quota.clone(),
+                    statistics: Default::default(),
+                })
+                .collect::<Vec<_>>()
         })
-        .collect::<Vec<_>>();
-
-    if contexts.len() > 1 {
-        Some(contexts)
-    } else {
-        None
-    }
+        .and_then(|contexts| if contexts.len() > 1 { Some(contexts) } else { None })
 }

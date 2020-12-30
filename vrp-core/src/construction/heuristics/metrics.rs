@@ -48,24 +48,24 @@ pub fn get_waiting_mean(insertion_ctx: &InsertionContext) -> f64 {
     )
 }
 
-/// Gets average distance between routes using medioids.
+/// Gets average distance between routes using medoids.
 pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
     let transport = insertion_ctx.problem.transport.as_ref();
     let profile = insertion_ctx.solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile);
 
     if let Some(profile) = profile {
-        let medioids = insertion_ctx
+        let medoids = insertion_ctx
             .solution
             .routes
             .iter()
             .filter_map(|route_ctx| get_medoid(route_ctx, transport))
             .collect::<Vec<_>>();
 
-        let mut distances = Vec::with_capacity(medioids.len() * 2);
+        let mut distances = Vec::with_capacity(medoids.len() * 2);
 
-        for i in 0..medioids.len() {
-            for j in (i + 1)..medioids.len() {
-                let distance = transport.distance(profile, medioids[i], medioids[j], Default::default());
+        for i in 0..medoids.len() {
+            for j in (i + 1)..medoids.len() {
+                let distance = transport.distance(profile, medoids[i], medoids[j], Default::default());
                 // NOTE assume that negative distance is used between unroutable locations
                 distances.push(distance.max(0.));
             }
