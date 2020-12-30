@@ -5,6 +5,8 @@ mod metrics_test;
 use super::InsertionContext;
 use crate::algorithms::statistics::{get_mean, get_stdev, get_variance};
 use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY, WAITING_KEY};
+use crate::construction::heuristics::RouteContext;
+use crate::models::problem::TransportCost;
 use crate::utils::compare_floats;
 
 /// Gets max load variance in tours.
@@ -56,28 +58,7 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
             .solution
             .routes
             .iter()
-            .filter_map(|route_ctx| {
-                let locations =
-                    route_ctx.route.tour.all_activities().map(|activity| activity.place.location).collect::<Vec<_>>();
-                locations
-                    .iter()
-                    .map(|outer_loc| {
-                        let sum = locations
-                            .iter()
-                            .map(|inner_loc| {
-                                transport.distance(
-                                    route_ctx.route.actor.vehicle.profile,
-                                    *outer_loc,
-                                    *inner_loc,
-                                    Default::default(),
-                                )
-                            })
-                            .sum::<f64>();
-                        (sum, *outer_loc)
-                    })
-                    .min_by(|(sum_a, _), (sum_b, _)| compare_floats(*sum_a, *sum_b))
-            })
-            .map(|(_, location)| location)
+            .filter_map(|route_ctx| get_medoid(route_ctx, transport))
             .collect::<Vec<_>>();
 
         let mut distances = Vec::with_capacity(medioids.len() * 2);
@@ -94,6 +75,29 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
     } else {
         0.
     }
+}
+
+/// Gets medoid location of given route context.
+pub fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost + Send + Sync)) -> Option<usize> {
+    let locations = route_ctx.route.tour.all_activities().map(|activity| activity.place.location).collect::<Vec<_>>();
+    locations
+        .iter()
+        .map(|outer_loc| {
+            let sum = locations
+                .iter()
+                .map(|inner_loc| {
+                    transport.distance(
+                        route_ctx.route.actor.vehicle.profile,
+                        *outer_loc,
+                        *inner_loc,
+                        Default::default(),
+                    )
+                })
+                .sum::<f64>();
+            (sum, *outer_loc)
+        })
+        .min_by(|(sum_a, _), (sum_b, _)| compare_floats(*sum_a, *sum_b))
+        .map(|(_, location)| location)
 }
 
 fn get_values_from_route_state(insertion_ctx: &InsertionContext, state_key: i32) -> Vec<f64> {
