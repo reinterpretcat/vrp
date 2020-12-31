@@ -199,7 +199,7 @@ fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = 
     // TODO split into more individuals if too many required jobs are present
     //      this might increase overall refinement speed
 
-    if individual.solution.required.is_empty() {
+    if individual.solution.required.is_empty() && individual.solution.unassigned.is_empty() {
         return Box::new(empty());
     } else {
         Box::new(once(Individual {
