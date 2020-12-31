@@ -77,6 +77,10 @@ impl DecomposeSearch {
                 acc_solution.locked.extend(dec_solution.locked.iter().cloned());
                 acc_solution.unassigned.extend(dec_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
 
+                dec_solution.routes.iter().for_each(|route_ctx| {
+                    acc_solution.registry.use_route(route_ctx);
+                });
+
                 individual
             },
         );
