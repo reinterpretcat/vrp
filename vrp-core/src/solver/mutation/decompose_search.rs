@@ -2,17 +2,14 @@
 #[path = "../../../tests/unit/solver/mutation/decompose_search_test.rs"]
 mod decompose_search_test;
 
-use crate::construction::heuristics::{get_medoid, InsertionContext, RegistryContext, RouteContext, SolutionContext};
-use crate::models::problem::Job;
-use crate::models::solution::Registry;
-use crate::models::Problem;
+use crate::construction::heuristics::{get_medoid, InsertionContext, SolutionContext};
 use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
 use crate::solver::RefinementContext;
-use crate::utils::{compare_floats, parallel_into_collect, DefaultRandom, Random};
-use hashbrown::{HashMap, HashSet};
+use crate::utils::{compare_floats, parallel_into_collect, Random};
+use hashbrown::HashSet;
 use std::cmp::Ordering;
-use std::iter::once;
+use std::iter::{empty, once};
 use std::sync::{Arc, RwLock};
 
 /// A mutation which decomposes original solution into multiple partial solutions,
@@ -95,7 +92,7 @@ fn create_population(individual: Individual) -> Box<dyn Population + Send + Sync
 }
 
 fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual>> {
-    // TODO limit by max amount of jobs
+    // TODO limit by max amount of jobs (cannot be less than 2)
     const MAX_ROUTES_PER_INDIVIDUAL: usize = 3;
 
     let solution = &individual.solution;
@@ -144,7 +141,7 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
         .collect::<Vec<_>>();
 
     // identify route groups and create individuals from them
-    let mut used_indices = RwLock::new(HashSet::new());
+    let used_indices = RwLock::new(HashSet::new());
     let individuals = route_groups_distances
         .iter()
         .map(|route_group_distance| {
@@ -154,7 +151,7 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
                 .filter(|(a, b, _)| {
                     !used_indices.read().unwrap().contains(*a) && !used_indices.read().unwrap().contains(*b)
                 })
-                .take(MAX_ROUTES_PER_INDIVIDUAL)
+                .take((MAX_ROUTES_PER_INDIVIDUAL - 1).max(1))
                 .flat_map(|(a, b, _)| {
                     debug_assert!(used_indices.write().unwrap().insert(*a));
                     debug_assert!(used_indices.write().unwrap().insert(*b));
@@ -164,9 +161,8 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
 
             create_partial_individual(individual, route_group.iter().cloned())
         })
+        .chain(create_empty_individuals(individual))
         .collect();
-
-    // TODO create individual with rest of the jobs
 
     Some(individuals)
 }
@@ -175,15 +171,15 @@ fn create_partial_individual(individual: &Individual, route_indices: impl Iterat
     let routes = route_indices.map(|idx| individual.solution.routes[idx].deep_copy()).collect::<Vec<_>>();
     let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
     let registry = individual.solution.registry.deep_slice(|actor| actors.contains(actor));
+    let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
+    let locked = individual.solution.locked.iter().filter(|job| jobs.contains(job)).cloned().collect();
 
-    // TODO initialize unassigned
-    let locked = Default::default();
-
+    // TODO it would be nice to fill ignored jobs with actor specific jobs
     Individual {
         problem: individual.problem.clone(),
         solution: SolutionContext {
-            required: vec![],
-            ignored: vec![],
+            required: Default::default(),
+            ignored: Default::default(),
             unassigned: Default::default(),
             locked,
             routes,
@@ -191,6 +187,29 @@ fn create_partial_individual(individual: &Individual, route_indices: impl Iterat
             state: Default::default(),
         },
         random: individual.random.clone(),
+    }
+}
+
+fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = Individual>> {
+    // TODO split into more individuals if too many required jobs are present
+    //      this might increase overall refinement speed
+
+    if individual.solution.required.is_empty() {
+        return Box::new(empty());
+    } else {
+        Box::new(once(Individual {
+            problem: individual.problem.clone(),
+            solution: SolutionContext {
+                required: individual.solution.required.clone(),
+                ignored: individual.solution.ignored.clone(),
+                unassigned: individual.solution.unassigned.clone(),
+                locked: individual.solution.locked.clone(),
+                routes: Default::default(),
+                registry: individual.solution.registry.deep_copy(),
+                state: Default::default(),
+            },
+            random: individual.random.clone(),
+        }))
     }
 }
 
