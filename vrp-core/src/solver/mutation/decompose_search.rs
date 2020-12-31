@@ -29,14 +29,8 @@ impl DecomposeSearch {
 
 impl Mutation for DecomposeSearch {
     fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
-        refinement_ctx
-            .population
-            .ranked()
-            .next()
-            .and_then(|(individual, _)| {
-                decompose_individual(&refinement_ctx, individual).map(|result| (individual.random.clone(), result))
-            })
-            .map(|(random, decomposed_contexts)| self.refine_decomposed(refinement_ctx, random, decomposed_contexts))
+        decompose_individual(&refinement_ctx, insertion_ctx)
+            .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx.random.clone(), contexts))
             .unwrap_or_else(|| self.inner_mutation.mutate_one(refinement_ctx, insertion_ctx))
     }
 
