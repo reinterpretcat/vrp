@@ -1,6 +1,7 @@
 use super::*;
 use crate::helpers::models::domain::test_random;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
+use crate::solver::mutation::RuinAndRecreate;
 
 #[test]
 fn can_create_multiple_individuals_without_unassigned() {
@@ -35,4 +36,22 @@ fn can_create_multiple_individuals_with_unassigned() {
 
     assert_eq!(individuals[2].solution.routes.len(), 0);
     assert_eq!(individuals[2].solution.unassigned.len(), 5);
+}
+
+#[test]
+fn can_mutate() {
+    let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
+    let problem = Arc::new(problem);
+    let population = Box::new(Greedy::new(problem.clone(), None));
+    let refinement_ctx = RefinementContext::new(problem.clone(), population, None);
+    let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), test_random());
+    let decompose_search = DecomposeSearch::new(Arc::new(RuinAndRecreate::new_from_problem(problem.clone())), 10);
+
+    let result = decompose_search.mutate_one(&refinement_ctx, &insertion_ctx);
+
+    assert!(result.solution.unassigned.is_empty());
+    assert!(result.solution.ignored.is_empty());
+    assert!(result.solution.locked.is_empty());
+    assert!(result.solution.required.is_empty());
+    assert!(!result.solution.routes.is_empty());
 }

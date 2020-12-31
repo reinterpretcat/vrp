@@ -20,6 +20,13 @@ pub struct DecomposeSearch {
     repeat_count: usize,
 }
 
+impl DecomposeSearch {
+    /// Create a new instance of `DecomposeSearch`.
+    pub fn new(inner_mutation: Arc<dyn Mutation + Send + Sync>, repeat_count: usize) -> Self {
+        Self { inner_mutation, repeat_count }
+    }
+}
+
 impl Mutation for DecomposeSearch {
     fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
         refinement_ctx
