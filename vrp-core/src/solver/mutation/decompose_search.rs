@@ -130,11 +130,11 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
                         }
                         _ => None,
                     };
-                    (outer_idx, inner_idx, distance)
+                    (inner_idx, distance)
                 })
                 .collect::<Vec<_>>();
 
-            route_distances.sort_by(|(_, _, a_distance), (_, _, b_distance)| match (a_distance, b_distance) {
+            route_distances.sort_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
                 (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
                 (Some(_), None) => Ordering::Less,
                 _ => Ordering::Greater,
@@ -148,20 +148,21 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
     let used_indices = RwLock::new(HashSet::new());
     let individuals = route_groups_distances
         .iter()
-        .map(|route_group_distance| {
+        .enumerate()
+        .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
+        .map(|(outer_idx, route_group_distance)| {
             let route_group = route_group_distance
                 .iter()
                 .cloned()
-                .filter(|(a, b, _)| {
-                    !used_indices.read().unwrap().contains(*a) && !used_indices.read().unwrap().contains(*b)
-                })
+                .filter(|(inner_idx, _)| !used_indices.read().unwrap().contains(*inner_idx))
                 .take((MAX_ROUTES_PER_INDIVIDUAL - 1).max(1))
-                .flat_map(|(a, b, _)| {
-                    debug_assert!(used_indices.write().unwrap().insert(*a));
-                    debug_assert!(used_indices.write().unwrap().insert(*b));
-                    once(*a).chain(once(*b))
-                })
+                .map(|(inner_idx, _)| *inner_idx)
+                .chain(once(outer_idx))
                 .collect::<HashSet<_>>();
+
+            route_group.iter().for_each(|idx| {
+                debug_assert!(used_indices.write().unwrap().insert(*idx));
+            });
 
             create_partial_individual(individual, route_group.iter().cloned())
         })
