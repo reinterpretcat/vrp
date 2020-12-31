@@ -437,6 +437,17 @@ impl RegistryContext {
     pub fn deep_copy(&self) -> Self {
         Self { registry: self.registry.deep_copy(), index: self.index.clone() }
     }
+
+    /// Creates a deep sliced copy of RegistryContext` keeping only specific actors data.
+    pub fn deep_slice(&self, filter: impl Fn(&Actor) -> bool) -> Self {
+        let index = self
+            .index
+            .iter()
+            .filter(|(actor, _)| filter(actor.as_ref()))
+            .map(|(actor, route_ctx)| (actor.clone(), route_ctx.clone()))
+            .collect();
+        Self { registry: self.registry.deep_slice(filter), index }
+    }
 }
 
 /// Specifies insertion context for activity.

@@ -16,7 +16,7 @@ pub struct Registry {
 }
 
 impl Registry {
-    /// Creates a new instance of `Registry`;
+    /// Creates a new instance of `Registry`
     pub fn new(fleet: &Fleet, random: Arc<dyn Random + Send + Sync>) -> Self {
         let index = fleet
             .groups
@@ -64,6 +64,32 @@ impl Registry {
             available: self.available.clone(),
             index: self.index.clone(),
             all: self.all.clone(),
+            random: self.random.clone(),
+        }
+    }
+
+    /// Creates a deep sliced copy of registry keeping only specific actors.
+    pub fn deep_slice(&self, filter: impl Fn(&Actor) -> bool) -> Self {
+        Self {
+            available: self
+                .available
+                .iter()
+                .filter_map(|(idx, actors)| {
+                    let actors = actors.iter().filter(|actor| filter(actor.as_ref())).cloned().collect::<HashSet<_>>();
+                    if actors.is_empty() {
+                        None
+                    } else {
+                        Some((*idx, actors))
+                    }
+                })
+                .collect(),
+            index: self
+                .index
+                .iter()
+                .filter(|(actor, _)| filter(actor.as_ref()))
+                .map(|(actor, idx)| (actor.clone(), *idx))
+                .collect(),
+            all: self.all.iter().filter(|actor| filter(actor.as_ref())).cloned().collect(),
             random: self.random.clone(),
         }
     }

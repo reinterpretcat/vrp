@@ -2,13 +2,14 @@
 #[path = "../../../tests/unit/solver/mutation/decompose_search_test.rs"]
 mod decompose_search_test;
 
-use crate::construction::heuristics::{get_medoid, InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{get_medoid, InsertionContext, RegistryContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
+use crate::models::solution::Registry;
 use crate::models::Problem;
 use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
 use crate::solver::RefinementContext;
-use crate::utils::{compare_floats, parallel_into_collect, Random};
+use crate::utils::{compare_floats, parallel_into_collect, DefaultRandom, Random};
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::iter::once;
@@ -94,6 +95,7 @@ fn create_population(individual: Individual) -> Box<dyn Population + Send + Sync
 }
 
 fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual>> {
+    // TODO limit by max amount of jobs
     const MAX_ROUTES_PER_INDIVIDUAL: usize = 3;
 
     let solution = &individual.solution;
@@ -164,12 +166,32 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
         })
         .collect();
 
+    // TODO create individual with rest of the jobs
+
     Some(individuals)
 }
 
 fn create_partial_individual(individual: &Individual, route_indices: impl Iterator<Item = usize>) -> Individual {
-    // Individual { problem: individual.problem.clone(), solution, random: individual.random.clone() }
-    unimplemented!()
+    let routes = route_indices.map(|idx| individual.solution.routes[idx].deep_copy()).collect::<Vec<_>>();
+    let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
+    let registry = individual.solution.registry.deep_slice(|actor| actors.contains(actor));
+
+    // TODO initialize unassigned
+    let locked = Default::default();
+
+    Individual {
+        problem: individual.problem.clone(),
+        solution: SolutionContext {
+            required: vec![],
+            ignored: vec![],
+            unassigned: Default::default(),
+            locked,
+            routes,
+            registry,
+            state: Default::default(),
+        },
+        random: individual.random.clone(),
+    }
 }
 
 fn decompose_individual(refinement_ctx: &RefinementContext, individual: &Individual) -> Option<Vec<RefinementContext>> {
