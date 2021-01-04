@@ -6,7 +6,7 @@ use crate::construction::heuristics::{get_medoid, InsertionContext, SolutionCont
 use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
 use crate::solver::RefinementContext;
-use crate::utils::{compare_floats, parallel_into_collect, Random};
+use crate::utils::{compare_floats, parallel_into_collect};
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::iter::{empty, once};
@@ -30,7 +30,7 @@ impl DecomposeSearch {
 impl Mutation for DecomposeSearch {
     fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
         decompose_individual(&refinement_ctx, insertion_ctx)
-            .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx.random.clone(), contexts))
+            .map(|contexts| self.refine_decomposed(refinement_ctx, contexts))
             .unwrap_or_else(|| self.inner_mutation.mutate_one(refinement_ctx, insertion_ctx))
     }
 
@@ -49,22 +49,25 @@ impl DecomposeSearch {
     fn refine_decomposed(
         &self,
         refinement_ctx: &RefinementContext,
-        random: Arc<dyn Random + Send + Sync>,
         decomposed_contexts: Vec<RefinementContext>,
     ) -> Individual {
         // do actual refinement independently for each decomposed context
-        let decomposed_populations = parallel_into_collect(decomposed_contexts, |mut decomposed_ctx| {
-            (0..self.repeat_count).for_each(|_| {
-                let insertion_ctx = decomposed_ctx.population.select().next().expect(GREEDY_ERROR);
-                let insertion_ctx = self.inner_mutation.mutate_one(&decomposed_ctx, insertion_ctx);
-                decomposed_ctx.population.add(insertion_ctx);
-            });
-            decomposed_ctx.population
-        });
+        let decomposed_populations = parallel_into_collect(
+            decomposed_contexts,
+            refinement_ctx.environment.parallelism.inner_degree.clone(),
+            |mut decomposed_ctx| {
+                (0..self.repeat_count).for_each(|_| {
+                    let insertion_ctx = decomposed_ctx.population.select().next().expect(GREEDY_ERROR);
+                    let insertion_ctx = self.inner_mutation.mutate_one(&decomposed_ctx, insertion_ctx);
+                    decomposed_ctx.population.add(insertion_ctx);
+                });
+                decomposed_ctx.population
+            },
+        );
 
         // merge evolution results into one individual
         let mut individual = decomposed_populations.into_iter().fold(
-            Individual::new(refinement_ctx.problem.clone(), random),
+            Individual::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
             |mut individual, decomposed_population| {
                 let (decomposed_individual, _) = decomposed_population.ranked().next().expect(GREEDY_ERROR);
 
@@ -192,7 +195,7 @@ fn create_partial_individual(individual: &Individual, route_indices: impl Iterat
             registry,
             state: Default::default(),
         },
-        random: individual.random.clone(),
+        environment: individual.environment.clone(),
     }
 }
 
@@ -214,7 +217,7 @@ fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = 
                 registry: individual.solution.registry.deep_copy(),
                 state: Default::default(),
             },
-            random: individual.random.clone(),
+            environment: individual.environment.clone(),
         }))
     }
 }
@@ -229,6 +232,7 @@ fn decompose_individual(refinement_ctx: &RefinementContext, individual: &Individ
                     population: create_population(individual),
                     state: Default::default(),
                     quota: refinement_ctx.quota.clone(),
+                    environment: refinement_ctx.environment.clone(),
                     statistics: Default::default(),
                 })
                 .collect::<Vec<_>>()

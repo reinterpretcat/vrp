@@ -49,9 +49,14 @@ fn can_mutate() {
 
     let result = decompose_search.mutate_one(&refinement_ctx, &insertion_ctx);
 
-    assert!(result.solution.unassigned.is_empty());
-    assert!(result.solution.ignored.is_empty());
-    assert!(result.solution.locked.is_empty());
-    assert!(result.solution.required.is_empty());
-    assert!(!result.solution.routes.is_empty());
+    let solution = &result.solution;
+    assert!(solution.unassigned.is_empty());
+    assert!(solution.ignored.is_empty());
+    assert!(solution.locked.is_empty());
+    assert!(solution.required.is_empty());
+    assert!(!solution.routes.is_empty());
+    assert_eq!(
+        solution.routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>().len(),
+        35
+    );
 }

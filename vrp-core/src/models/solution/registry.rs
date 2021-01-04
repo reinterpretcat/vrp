@@ -74,13 +74,9 @@ impl Registry {
             available: self
                 .available
                 .iter()
-                .filter_map(|(idx, actors)| {
+                .map(|(idx, actors)| {
                     let actors = actors.iter().filter(|actor| filter(actor.as_ref())).cloned().collect::<HashSet<_>>();
-                    if actors.is_empty() {
-                        None
-                    } else {
-                        Some((*idx, actors))
-                    }
+                    (*idx, actors)
                 })
                 .collect(),
             index: self

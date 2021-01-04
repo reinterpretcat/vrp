@@ -28,9 +28,26 @@ pub struct InsertionContext {
 }
 
 impl InsertionContext {
-    /// Creates insertion context from existing solution.
+    /// Creates insertion context for given problem with unassigned jobs.
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
         create_insertion_context(problem, environment)
+    }
+
+    /// Creates insertion context for given problem with empty solution.
+    pub fn new_empty(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+        Self {
+            problem: problem.clone(),
+            solution: SolutionContext {
+                required: vec![],
+                ignored: vec![],
+                unassigned: Default::default(),
+                locked: Default::default(),
+                routes: vec![],
+                registry: RegistryContext::new(Registry::new(problem.fleet.as_ref(), environment.random.clone())),
+                state: Default::default(),
+            },
+            environment,
+        }
     }
 
     /// Creates insertion context from existing solution.

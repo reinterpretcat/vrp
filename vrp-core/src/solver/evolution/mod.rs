@@ -124,7 +124,7 @@ impl EvolutionSimulator {
                 true,
             );
         } else {
-            self.config.telemetry.log("created an empty population")
+            self.config.telemetry.log("created an empty population");
         }
 
         Ok(refinement_ctx)

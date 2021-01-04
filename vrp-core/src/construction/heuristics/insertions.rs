@@ -155,6 +155,11 @@ pub(crate) fn apply_insertion_result(ctx: &mut InsertionContext, result: Inserti
             if let Some(job) = failure.job {
                 ctx.solution.unassigned.insert(job.clone(), failure.constraint);
                 ctx.solution.required.retain(|j| *j != job);
+            } else {
+                // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
+                ctx.solution
+                    .unassigned
+                    .extend(ctx.solution.required.drain(0..).into_iter().map(|job| (job, failure.constraint)));
             }
         }
     }
