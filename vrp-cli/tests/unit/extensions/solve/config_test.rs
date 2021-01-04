@@ -57,7 +57,7 @@ fn can_read_full_config() {
             assert_eq!(inners.len(), 3);
             match inners.first().unwrap() {
                 MutationType::LocalSearch { probability, times, operators: inners } => {
-                    assert_eq!(*probability, 0.05);
+                    assert_eq!(as_scalar_probability(probability), 0.05);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
                     assert_eq!(inners.len(), 3);
                 }
@@ -66,7 +66,7 @@ fn can_read_full_config() {
 
             match inners.get(1).unwrap() {
                 MutationType::RuinRecreate { probability, ruins, recreates } => {
-                    assert_eq!(*probability, 1.);
+                    assert_eq!(as_scalar_probability(probability), 1.);
                     assert_eq!(ruins.len(), 6);
                     assert_eq!(recreates.len(), 10);
                 }
@@ -75,7 +75,7 @@ fn can_read_full_config() {
 
             match inners.last().unwrap() {
                 MutationType::LocalSearch { probability, times, operators: inners } => {
-                    assert_eq!(*probability, 0.01);
+                    assert_eq!(as_scalar_probability(probability), 0.01);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
                     assert_eq!(inners.len(), 3);
                 }
@@ -119,4 +119,10 @@ fn can_create_default_config() {
     assert!(config.mutation.is_none());
     assert!(config.termination.is_none());
     assert!(config.telemetry.is_none());
+}
+
+fn as_scalar_probability(probability: &MutationProbabilityType) -> f64 {
+    match probability {
+        MutationProbabilityType::Scalar { scalar } => *scalar,
+    }
 }

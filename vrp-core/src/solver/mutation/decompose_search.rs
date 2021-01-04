@@ -52,18 +52,14 @@ impl DecomposeSearch {
         decomposed_contexts: Vec<RefinementContext>,
     ) -> Individual {
         // do actual refinement independently for each decomposed context
-        let decomposed_populations = parallel_into_collect(
-            decomposed_contexts,
-            refinement_ctx.environment.parallelism.inner_degree.clone(),
-            |mut decomposed_ctx| {
-                (0..self.repeat_count).for_each(|_| {
-                    let insertion_ctx = decomposed_ctx.population.select().next().expect(GREEDY_ERROR);
-                    let insertion_ctx = self.inner_mutation.mutate_one(&decomposed_ctx, insertion_ctx);
-                    decomposed_ctx.population.add(insertion_ctx);
-                });
-                decomposed_ctx.population
-            },
-        );
+        let decomposed_populations = parallel_into_collect(decomposed_contexts, |mut decomposed_ctx| {
+            (0..self.repeat_count).for_each(|_| {
+                let insertion_ctx = decomposed_ctx.population.select().next().expect(GREEDY_ERROR);
+                let insertion_ctx = self.inner_mutation.mutate_one(&decomposed_ctx, insertion_ctx);
+                decomposed_ctx.population.add(insertion_ctx);
+            });
+            decomposed_ctx.population
+        });
 
         // merge evolution results into one individual
         let mut individual = decomposed_populations.into_iter().fold(

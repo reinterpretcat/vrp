@@ -25,11 +25,15 @@
   },
   "mutation": {
     "type": "composite",
-    "probability": 1,
+    "probability": {
+      "scalar": 1
+    },
     "inners": [
       {
         "type": "local-search",
-        "probability": 0.05,
+        "probability": {
+          "scalar": 0.05
+        },
         "times": {
           "min": 1,
           "max": 2
@@ -66,7 +70,9 @@
       },
       {
         "type": "ruin-recreate",
-        "probability": 1,
+        "probability": {
+          "scalar": 1
+        },
         "ruins": [
           {
             "weight": 100,
@@ -278,7 +284,9 @@
       },
       {
         "type": "local-search",
-        "probability": 0.01,
+        "probability": {
+          "scalar": 0.01
+        },
         "times": {
           "min": 1,
           "max": 2

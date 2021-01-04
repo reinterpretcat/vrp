@@ -8,7 +8,7 @@
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
-use crate::utils::{parallel_into_collect, unwrap_from_result};
+use crate::utils::{parallel_into_collect, unwrap_from_result, Random};
 
 mod local;
 pub use self::local::*;
@@ -49,20 +49,22 @@ pub trait Mutation {
     ) -> Vec<InsertionContext>;
 }
 
+/// A type which specifies probability behavior for mutation selection.
+pub type MutationProbability = Box<dyn Fn(&RefinementContext, &InsertionContext) -> bool + Send + Sync>;
+
 /// A type which specifies a group of multiple mutation strategies with their probability.
-pub type MutationGroup = (Vec<(Arc<dyn Mutation + Send + Sync>, f64)>, usize);
+pub type MutationGroup = (Vec<(Arc<dyn Mutation + Send + Sync>, MutationProbability)>, usize);
 
 /// A mutation operator which uses others based on their weight probability.
 pub struct CompositeMutation {
-    inners: Vec<Vec<(Arc<dyn Mutation + Send + Sync>, f64)>>,
+    inners: Vec<Vec<(Arc<dyn Mutation + Send + Sync>, MutationProbability)>>,
     weights: Vec<usize>,
 }
 
 impl CompositeMutation {
     /// Creates a new instance of `CompositeMutation`.
     pub fn new(inners: Vec<MutationGroup>) -> Self {
-        let weights = inners.iter().map(|(_, weight)| *weight).collect();
-        let inners = inners.into_iter().map(|(inner, _)| inner).collect();
+        let (inners, weights) = inners.into_iter().unzip();
 
         Self { inners, weights }
     }
@@ -70,23 +72,24 @@ impl CompositeMutation {
 
 impl Mutation for CompositeMutation {
     fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
-        let random = insertion_ctx.environment.random.clone();
-        let index = random.weighted(self.weights.as_slice());
+        let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
         let objective = &refinement_ctx.problem.objective;
 
-        unwrap_from_result(self.inners[index].iter().filter(|(_, probability)| random.is_hit(*probability)).try_fold(
-            insertion_ctx.deep_copy(),
-            |ctx, (mutation, _)| {
-                let new_insertion_ctx = mutation.mutate_one(refinement_ctx, &ctx);
+        unwrap_from_result(
+            self.inners[index].iter().filter(|(_, probability)| probability(refinement_ctx, insertion_ctx)).try_fold(
+                insertion_ctx.deep_copy(),
+                |ctx, (mutation, _)| {
+                    let new_insertion_ctx = mutation.mutate_one(refinement_ctx, &ctx);
 
-                if objective.total_order(&insertion_ctx, &new_insertion_ctx) == Ordering::Greater {
-                    // NOTE exit immediately as we don't want to lose improvement from original individual
-                    Err(new_insertion_ctx)
-                } else {
-                    Ok(new_insertion_ctx)
-                }
-            },
-        ))
+                    if objective.total_order(&insertion_ctx, &new_insertion_ctx) == Ordering::Greater {
+                        // NOTE exit immediately as we don't want to lose improvement from original individual
+                        Err(new_insertion_ctx)
+                    } else {
+                        Ok(new_insertion_ctx)
+                    }
+                },
+            ),
+        )
     }
 
     fn mutate_all(
@@ -101,4 +104,12 @@ impl Mutation for CompositeMutation {
                 .thread_pool_execute(idx, || self.mutate_one(refinement_ctx, insertion_ctx))
         })
     }
+}
+
+/// Creates a mutation probability which uses `is_hit` method from passed random object.
+pub fn create_scalar_mutation_probability(
+    scalar_probability: f64,
+    random: Arc<dyn Random + Send + Sync>,
+) -> MutationProbability {
+    Box::new(move |_, _| random.is_hit(scalar_probability))
 }

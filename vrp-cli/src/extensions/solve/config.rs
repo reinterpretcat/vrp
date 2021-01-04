@@ -16,7 +16,7 @@ use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::population::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
-use vrp_core::utils::{Environment, Parallelism};
+use vrp_core::utils::{Environment, Parallelism, Random};
 
 /// An algorithm configuration.
 #[derive(Clone, Deserialize, Debug)]
@@ -112,7 +112,7 @@ pub enum MutationType {
     #[serde(rename(deserialize = "composite"))]
     Composite {
         /// Probability.
-        probability: f64,
+        probability: MutationProbabilityType,
         /// A collection of inner metaheuristics.
         inners: Vec<MutationType>,
     },
@@ -121,7 +121,7 @@ pub enum MutationType {
     #[serde(rename(deserialize = "local-search"))]
     LocalSearch {
         /// Probability of the group.
-        probability: f64,
+        probability: MutationProbabilityType,
         /// Amount of times one of operators is applied.
         times: MinMaxConfig,
         /// Local search operator.
@@ -132,7 +132,7 @@ pub enum MutationType {
     #[serde(rename(deserialize = "ruin-recreate"))]
     RuinRecreate {
         /// Probability.
-        probability: f64,
+        probability: MutationProbabilityType,
         /// Ruin methods.
         ruins: Vec<RuinGroupConfig>,
         /// Recreate methods.
@@ -140,7 +140,18 @@ pub enum MutationType {
     },
 }
 
-/// A ruin method configuration
+/// A mutation method probability type
+#[derive(Clone, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum MutationProbabilityType {
+    /// A scalar probability based type.
+    Scalar {
+        /// Probability value of the mutation.
+        scalar: f64,
+    },
+}
+
+/// A ruin method configuration.
 #[derive(Clone, Deserialize, Debug)]
 pub struct RuinGroupConfig {
     /// Ruin methods.
@@ -382,9 +393,13 @@ fn configure_from_evolution(
     Ok(builder)
 }
 
-fn configure_from_mutation(mut builder: Builder, mutation_config: &Option<MutationType>) -> Result<Builder, String> {
+fn configure_from_mutation(
+    mut builder: Builder,
+    mutation_config: &Option<MutationType>,
+    environment: Arc<Environment>,
+) -> Result<Builder, String> {
     if let Some(config) = mutation_config {
-        let mutation = create_mutation(&builder.config.problem, config)?.0;
+        let mutation = create_mutation(&builder.config.problem, environment.random.clone(), config)?.0;
         builder = builder.with_mutation(mutation)
     }
 
@@ -421,26 +436,38 @@ fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send +
 
 fn create_mutation(
     problem: &Arc<Problem>,
+    random: Arc<dyn Random + Send + Sync>,
     mutation: &MutationType,
-) -> Result<(Arc<dyn Mutation + Send + Sync>, f64), String> {
+) -> Result<(Arc<dyn Mutation + Send + Sync>, MutationProbability), String> {
     Ok(match mutation {
         MutationType::RuinRecreate { probability, ruins, recreates } => {
             let ruin = Box::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(problem, g)).collect()));
             let recreate =
                 Box::new(CompositeRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect()));
-            (Arc::new(RuinAndRecreate::new(recreate, ruin)), *probability)
+            (Arc::new(RuinAndRecreate::new(recreate, ruin)), create_mutation_probability(probability, random.clone()))
         }
         MutationType::LocalSearch { probability, times, operators: inners } => {
             let operator = create_local_search(times, inners);
-            (Arc::new(LocalSearch::new(operator)), *probability)
+            (Arc::new(LocalSearch::new(operator)), create_mutation_probability(probability, random.clone()))
         }
         MutationType::Composite { probability, inners } => {
-            let inners =
-                inners.iter().map(|mutation| create_mutation(problem, mutation)).collect::<Result<Vec<_>, _>>()?;
+            let inners = inners
+                .iter()
+                .map(|mutation| create_mutation(problem, random.clone(), mutation))
+                .collect::<Result<Vec<_>, _>>()?;
 
-            (Arc::new(CompositeMutation::new(vec![(inners, 1)])), *probability)
+            (Arc::new(CompositeMutation::new(vec![(inners, 1)])), create_mutation_probability(probability, random))
         }
     })
+}
+
+fn create_mutation_probability(
+    probability: &MutationProbabilityType,
+    random: Arc<dyn Random + Send + Sync>,
+) -> MutationProbability {
+    match probability {
+        MutationProbabilityType::Scalar { scalar } => create_scalar_mutation_probability(*scalar, random),
+    }
 }
 
 fn create_ruin_group(problem: &Arc<Problem>, group: &RuinGroupConfig) -> RuinGroup {
@@ -566,8 +593,8 @@ pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Res
     let mut builder = Builder::new(problem.clone(), environment.clone());
 
     builder = configure_from_telemetry(builder, &config.telemetry)?;
-    builder = configure_from_evolution(builder, &config.evolution, problem, environment)?;
-    builder = configure_from_mutation(builder, &config.mutation)?;
+    builder = configure_from_evolution(builder, &config.evolution, problem, environment.clone())?;
+    builder = configure_from_mutation(builder, &config.mutation, environment)?;
     builder = configure_from_termination(builder, &config.termination)?;
 
     Ok(builder)

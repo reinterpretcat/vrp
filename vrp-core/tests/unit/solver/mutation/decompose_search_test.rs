@@ -1,12 +1,13 @@
 use super::*;
-use crate::helpers::models::domain::test_random;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
 use crate::solver::mutation::RuinAndRecreate;
+use crate::utils::Environment;
 
 #[test]
 fn can_create_multiple_individuals_without_unassigned() {
+    let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
-    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), test_random());
+    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
     let individuals = create_multiple_individuals(&individual).unwrap();
 
@@ -18,11 +19,12 @@ fn can_create_multiple_individuals_without_unassigned() {
 
 #[test]
 fn can_create_multiple_individuals_with_unassigned() {
+    let environment = Arc::new(Environment::default());
     let (problem, mut solution) = generate_matrix_routes_with_defaults(5, 6, false);
     solution.registry.free_actor(&solution.routes[0].actor);
     solution.unassigned.extend(solution.routes[0].tour.jobs().map(|job| (job, 0)));
     solution.routes.remove(0);
-    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), test_random());
+    let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
     let individuals = create_multiple_individuals(&individual).unwrap();
 
@@ -40,11 +42,12 @@ fn can_create_multiple_individuals_with_unassigned() {
 
 #[test]
 fn can_mutate() {
+    let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let problem = Arc::new(problem);
     let population = Box::new(Greedy::new(problem.clone(), None));
-    let refinement_ctx = RefinementContext::new(problem.clone(), population, None);
-    let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), test_random());
+    let refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone(), None);
+    let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment);
     let decompose_search = DecomposeSearch::new(Arc::new(RuinAndRecreate::new_from_problem(problem.clone())), 10);
 
     let result = decompose_search.mutate_one(&refinement_ctx, &insertion_ctx);
