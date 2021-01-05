@@ -74,6 +74,18 @@ impl EvolutionConfig {
             mutation: Arc::new(CompositeMutation::new(vec![(
                 vec![
                     (
+                        Arc::new(DecomposeSearch::new(
+                            Arc::new(RuinAndRecreate::new_from_problem(problem.clone())),
+                            10,
+                        )),
+                        create_context_mutation_probability(
+                            800,
+                            6,
+                            vec![(SelectionPhase::Initial, 1.), (SelectionPhase::Exploration, 0.001)],
+                            random.clone(),
+                        ),
+                    ),
+                    (
                         Arc::new(LocalSearch::new(Box::new(CompositeLocalOperator::default()))),
                         create_scalar_mutation_probability(0.05, environment.random.clone()),
                     ),

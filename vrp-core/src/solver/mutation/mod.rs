@@ -33,6 +33,8 @@ pub use self::ruin_recreate::RuinAndRecreate;
 
 use crate::algorithms::nsga2::Objective;
 use crate::models::Problem;
+use crate::solver::population::SelectionPhase;
+use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
@@ -112,4 +114,26 @@ pub fn create_scalar_mutation_probability(
     random: Arc<dyn Random + Send + Sync>,
 ) -> MutationProbability {
     Box::new(move |_, _| random.is_hit(scalar_probability))
+}
+
+/// Creates a mutation probability which uses context state.
+pub fn create_context_mutation_probability(
+    jobs_threshold: usize,
+    routes_threshold: usize,
+    phases: Vec<(SelectionPhase, f64)>,
+    random: Arc<dyn Random + Send + Sync>,
+) -> MutationProbability {
+    let phases = phases.into_iter().collect::<HashMap<_, _>>();
+    Box::new(move |refinement_ctx, insertion_ctx| {
+        let below_thresholds = insertion_ctx.problem.jobs.size() < jobs_threshold
+            || insertion_ctx.solution.routes.len() < routes_threshold;
+
+        if below_thresholds {
+            return false;
+        }
+
+        let phase_probability = phases.get(&refinement_ctx.population.selection_phase()).cloned().unwrap_or(0.);
+
+        random.is_hit(phase_probability)
+    })
 }

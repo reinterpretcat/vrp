@@ -30,6 +30,26 @@
     },
     "inners": [
       {
+        "type": "decomposition",
+        "repeat": 10,
+        "probability": {
+          "threshold": {
+            "jobs": 800,
+            "routes": 6
+          },
+          "phases": [
+            {
+              "type": "initial",
+              "chance": 1
+            },
+            {
+              "type": "exploration",
+              "chance": 0.001
+            }
+          ]
+        }
+      },
+      {
         "type": "local-search",
         "probability": {
           "scalar": 0.05

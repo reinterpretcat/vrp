@@ -54,8 +54,24 @@ fn can_read_full_config() {
     let mutation_config = config.mutation.expect("cannot get mutation");
     match mutation_config {
         MutationType::Composite { inners, .. } => {
-            assert_eq!(inners.len(), 3);
+            assert_eq!(inners.len(), 4);
             match inners.first().unwrap() {
+                MutationType::Decomposition { inner, repeat, probability } => {
+                    assert!(inner.is_none());
+                    assert_eq!(*repeat, 10);
+                    match probability {
+                        MutationProbabilityType::Context { threshold, phases } => {
+                            assert_eq!(threshold.jobs, 800);
+                            assert_eq!(threshold.routes, 6);
+                            assert_eq!(phases.len(), 2);
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+
+            match inners.get(1).unwrap() {
                 MutationType::LocalSearch { probability, times, operators: inners } => {
                     assert_eq!(as_scalar_probability(probability), 0.05);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
@@ -64,7 +80,7 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
 
-            match inners.get(1).unwrap() {
+            match inners.get(2).unwrap() {
                 MutationType::RuinRecreate { probability, ruins, recreates } => {
                     assert_eq!(as_scalar_probability(probability), 1.);
                     assert_eq!(ruins.len(), 6);
@@ -124,5 +140,6 @@ fn can_create_default_config() {
 fn as_scalar_probability(probability: &MutationProbabilityType) -> f64 {
     match probability {
         MutationProbabilityType::Scalar { scalar } => *scalar,
+        _ => unreachable!(),
     }
 }

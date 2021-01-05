@@ -111,16 +111,27 @@ pub enum MutationType {
     /// probability weights.
     #[serde(rename(deserialize = "composite"))]
     Composite {
-        /// Probability.
+        /// Probability of mutation.
         probability: MutationProbabilityType,
         /// A collection of inner metaheuristics.
         inners: Vec<MutationType>,
     },
 
+    /// A metaheuristic which splits
+    #[serde(rename(deserialize = "decomposition"))]
+    Decomposition {
+        /// Actual mutation type. If omitted, default ruin and recreate is used.
+        inner: Box<Option<MutationType>>,
+        /// Amount of attempts to repeat refinement.
+        repeat: usize,
+        /// Probability of mutation.
+        probability: MutationProbabilityType,
+    },
+
     /// A local search heuristic.
     #[serde(rename(deserialize = "local-search"))]
     LocalSearch {
-        /// Probability of the group.
+        /// Probability of mutation.
         probability: MutationProbabilityType,
         /// Amount of times one of operators is applied.
         times: MinMaxConfig,
@@ -148,6 +159,49 @@ pub enum MutationProbabilityType {
     Scalar {
         /// Probability value of the mutation.
         scalar: f64,
+    },
+
+    /// A context specific probability type.
+    Context {
+        /// Threshold parameters.
+        threshold: ContextThreshold,
+        /// Selection phase specific parameters.
+        phases: Vec<ContextPhase>,
+    },
+}
+
+/// A context condition for `MutationProbabilityType`.
+#[derive(Clone, Deserialize, Debug)]
+pub struct ContextThreshold {
+    /// Min amount of jobs in individual.
+    pub jobs: usize,
+    /// Min amount of routes in individual.
+    pub routes: usize,
+}
+
+/// A selection phase filter for `MutationProbabilityType`.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum ContextPhase {
+    /// Initial selection phase.
+    #[serde(rename(deserialize = "initial"))]
+    Initial {
+        /// A chance defined by probability.
+        chance: f64,
+    },
+
+    /// Exploration search phase.
+    #[serde(rename(deserialize = "exploration"))]
+    Exploration {
+        /// A chance defined by probability.
+        chance: f64,
+    },
+
+    /// Exploitation search phase.
+    #[serde(rename(deserialize = "exploitation"))]
+    Exploitation {
+        /// A chance defined by probability.
+        chance: f64,
     },
 }
 
@@ -450,6 +504,17 @@ fn create_mutation(
             let operator = create_local_search(times, inners);
             (Arc::new(LocalSearch::new(operator)), create_mutation_probability(probability, random.clone()))
         }
+        MutationType::Decomposition { inner, repeat, probability } => {
+            let inner_mutation = inner
+                .as_ref()
+                .as_ref()
+                .map(|mutation| create_mutation(problem, random.clone(), &mutation).map(|(m, _)| m))
+                .unwrap_or_else(|| Ok(Arc::new(RuinAndRecreate::new_from_problem(problem.clone()))))?;
+            (
+                Arc::new(DecomposeSearch::new(inner_mutation, *repeat)),
+                create_mutation_probability(probability, random.clone()),
+            )
+        }
         MutationType::Composite { probability, inners } => {
             let inners = inners
                 .iter()
@@ -467,6 +532,19 @@ fn create_mutation_probability(
 ) -> MutationProbability {
     match probability {
         MutationProbabilityType::Scalar { scalar } => create_scalar_mutation_probability(*scalar, random),
+        MutationProbabilityType::Context { threshold, phases } => create_context_mutation_probability(
+            threshold.jobs,
+            threshold.routes,
+            phases
+                .iter()
+                .map(|phase| match phase {
+                    ContextPhase::Initial { chance } => (SelectionPhase::Initial, *chance),
+                    ContextPhase::Exploration { chance } => (SelectionPhase::Exploration, *chance),
+                    ContextPhase::Exploitation { chance } => (SelectionPhase::Exploitation, *chance),
+                })
+                .collect(),
+            random,
+        ),
     }
 }
 
