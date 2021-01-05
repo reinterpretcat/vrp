@@ -39,7 +39,7 @@ impl Mutation for DecomposeSearch {
         refinement_ctx: &RefinementContext,
         individuals: Vec<&InsertionContext>,
     ) -> Vec<InsertionContext> {
-        individuals.into_iter().map(|individual| self.mutate_one(refinement_ctx, individual)).collect()
+        individuals.into_iter().take(2).map(|individual| self.mutate_one(refinement_ctx, individual)).collect()
     }
 }
 
@@ -161,7 +161,7 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
                 .collect::<HashSet<_>>();
 
             route_group.iter().for_each(|idx| {
-                debug_assert!(used_indices.write().unwrap().insert(*idx));
+                used_indices.write().unwrap().insert(*idx);
             });
 
             create_partial_individual(individual, route_group.iter().cloned())
