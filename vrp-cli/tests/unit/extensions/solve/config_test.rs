@@ -58,14 +58,14 @@ fn can_read_full_config() {
             match inners.first().unwrap() {
                 MutationType::Decomposition { inner, max_selected, routes, repeat, probability } => {
                     assert!(inner.is_none());
-                    assert_eq!(*repeat, 10);
+                    assert_eq!(*repeat, 200);
                     assert_eq!(*max_selected, 2);
                     assert_eq!(routes.min, 2);
                     assert_eq!(routes.max, 4);
                     match probability {
                         MutationProbabilityType::Context { threshold, phases } => {
                             assert_eq!(threshold.jobs, 800);
-                            assert_eq!(threshold.routes, 6);
+                            assert_eq!(threshold.routes, 10);
                             assert_eq!(phases.len(), 2);
                         }
                         _ => unreachable!(),

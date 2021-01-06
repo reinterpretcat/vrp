@@ -32,7 +32,7 @@
       {
         "type": "decomposition",
         "maxSelected": 2,
-        "repeat": 10,
+        "repeat": 200,
         "routes": {
           "min": 2,
           "max": 4
@@ -40,7 +40,7 @@
         "probability": {
           "threshold": {
             "jobs": 800,
-            "routes": 6
+            "routes": 10
           },
           "phases": [
             {

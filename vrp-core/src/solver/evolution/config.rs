@@ -78,11 +78,11 @@ impl EvolutionConfig {
                             Arc::new(RuinAndRecreate::new_from_problem(problem.clone())),
                             (2, 4),
                             2,
-                            10,
+                            200,
                         )),
                         create_context_mutation_probability(
                             800,
-                            6,
+                            10,
                             vec![(SelectionPhase::Initial, 1.), (SelectionPhase::Exploration, 0.001)],
                             environment.random.clone(),
                         ),
