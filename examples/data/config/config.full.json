@@ -31,7 +31,12 @@
     "inners": [
       {
         "type": "decomposition",
+        "maxSelected": 2,
         "repeat": 10,
+        "routes": {
+          "min": 2,
+          "max": 4
+        },
         "probability": {
           "threshold": {
             "jobs": 800,

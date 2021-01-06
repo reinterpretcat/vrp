@@ -16,20 +16,28 @@ use std::sync::{Arc, RwLock};
 /// preforms search independently, and then merges partial solution back into one solution.
 pub struct DecomposeSearch {
     inner_mutation: Arc<dyn Mutation + Send + Sync>,
-    // TODO different repeat count depending on generation in refinement ctx
     repeat_count: usize,
+    max_routes_range: (i32, i32),
+    max_routes_selected: usize,
 }
 
 impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
-    pub fn new(inner_mutation: Arc<dyn Mutation + Send + Sync>, repeat_count: usize) -> Self {
-        Self { inner_mutation, repeat_count }
+    pub fn new(
+        inner_mutation: Arc<dyn Mutation + Send + Sync>,
+        max_routes_range: (usize, usize),
+        max_routes_selected: usize,
+        repeat_count: usize,
+    ) -> Self {
+        let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
+
+        Self { inner_mutation, repeat_count, max_routes_range, max_routes_selected }
     }
 }
 
 impl Mutation for DecomposeSearch {
     fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
-        decompose_individual(&refinement_ctx, insertion_ctx)
+        decompose_individual(&refinement_ctx, insertion_ctx, self.max_routes_range)
             .map(|contexts| self.refine_decomposed(refinement_ctx, contexts))
             .unwrap_or_else(|| self.inner_mutation.mutate_one(refinement_ctx, insertion_ctx))
     }
@@ -39,7 +47,11 @@ impl Mutation for DecomposeSearch {
         refinement_ctx: &RefinementContext,
         individuals: Vec<&InsertionContext>,
     ) -> Vec<InsertionContext> {
-        individuals.into_iter().take(2).map(|individual| self.mutate_one(refinement_ctx, individual)).collect()
+        individuals
+            .into_iter()
+            .take(self.max_routes_selected)
+            .map(|individual| self.mutate_one(refinement_ctx, individual))
+            .collect()
     }
 }
 
@@ -95,10 +107,7 @@ fn create_population(individual: Individual) -> Box<dyn Population + Send + Sync
     Box::new(Greedy::new(individual.problem.clone(), Some(individual)))
 }
 
-fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual>> {
-    // TODO limit by max amount of jobs (cannot be less than 2)
-    const MAX_ROUTES_PER_INDIVIDUAL: usize = 3;
-
+fn create_multiple_individuals(individual: &Individual, max_routes_range: (i32, i32)) -> Option<Vec<Individual>> {
     let solution = &individual.solution;
     let profile = solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile)?;
     let transport = individual.problem.transport.as_ref();
@@ -151,11 +160,12 @@ fn create_multiple_individuals(individual: &Individual) -> Option<Vec<Individual
         .enumerate()
         .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
         .map(|(outer_idx, route_group_distance)| {
+            let group_size = individual.environment.random.uniform_int(max_routes_range.0, max_routes_range.1) as usize;
             let route_group = route_group_distance
                 .iter()
                 .cloned()
                 .filter(|(inner_idx, _)| !used_indices.read().unwrap().contains(*inner_idx))
-                .take((MAX_ROUTES_PER_INDIVIDUAL - 1).max(1))
+                .take(group_size)
                 .map(|(inner_idx, _)| *inner_idx)
                 .chain(once(outer_idx))
                 .collect::<HashSet<_>>();
@@ -218,8 +228,12 @@ fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = 
     }
 }
 
-fn decompose_individual(refinement_ctx: &RefinementContext, individual: &Individual) -> Option<Vec<RefinementContext>> {
-    create_multiple_individuals(individual)
+fn decompose_individual(
+    refinement_ctx: &RefinementContext,
+    individual: &Individual,
+    max_routes_range: (i32, i32),
+) -> Option<Vec<RefinementContext>> {
+    create_multiple_individuals(individual, max_routes_range)
         .map(|individuals| {
             individuals
                 .into_iter()

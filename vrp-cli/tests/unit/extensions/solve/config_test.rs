@@ -56,9 +56,12 @@ fn can_read_full_config() {
         MutationType::Composite { inners, .. } => {
             assert_eq!(inners.len(), 4);
             match inners.first().unwrap() {
-                MutationType::Decomposition { inner, repeat, probability } => {
+                MutationType::Decomposition { inner, max_selected, routes, repeat, probability } => {
                     assert!(inner.is_none());
                     assert_eq!(*repeat, 10);
+                    assert_eq!(*max_selected, 2);
+                    assert_eq!(routes.min, 2);
+                    assert_eq!(routes.max, 4);
                     match probability {
                         MutationProbabilityType::Context { threshold, phases } => {
                             assert_eq!(threshold.jobs, 800);

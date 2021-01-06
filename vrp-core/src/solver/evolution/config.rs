@@ -76,13 +76,15 @@ impl EvolutionConfig {
                     (
                         Arc::new(DecomposeSearch::new(
                             Arc::new(RuinAndRecreate::new_from_problem(problem.clone())),
+                            (2, 4),
+                            2,
                             10,
                         )),
                         create_context_mutation_probability(
                             800,
                             6,
                             vec![(SelectionPhase::Initial, 1.), (SelectionPhase::Exploration, 0.001)],
-                            random.clone(),
+                            environment.random.clone(),
                         ),
                     ),
                     (

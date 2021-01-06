@@ -119,9 +119,14 @@ pub enum MutationType {
 
     /// A metaheuristic which splits
     #[serde(rename(deserialize = "decomposition"))]
+    #[serde(rename_all = "camelCase")]
     Decomposition {
         /// Actual mutation type. If omitted, default ruin and recreate is used.
         inner: Box<Option<MutationType>>,
+        /// Max amount of routes to be selected.
+        max_selected: usize,
+        /// Max routes to be selected in decomposed solution.
+        routes: MinMaxConfig,
         /// Amount of attempts to repeat refinement.
         repeat: usize,
         /// Probability of mutation.
@@ -504,14 +509,21 @@ fn create_mutation(
             let operator = create_local_search(times, inners);
             (Arc::new(LocalSearch::new(operator)), create_mutation_probability(probability, random.clone()))
         }
-        MutationType::Decomposition { inner, repeat, probability } => {
+        MutationType::Decomposition { inner, max_selected, routes, repeat, probability } => {
+            if *max_selected < 1 {
+                return Err(format!("max selected must be greater than 1. Specified: {}", max_selected));
+            }
+            if routes.min < 2 {
+                return Err(format!("min routes must be greater than 2. Specified: {}", routes.min));
+            }
+
             let inner_mutation = inner
                 .as_ref()
                 .as_ref()
                 .map(|mutation| create_mutation(problem, random.clone(), &mutation).map(|(m, _)| m))
                 .unwrap_or_else(|| Ok(Arc::new(RuinAndRecreate::new_from_problem(problem.clone()))))?;
             (
-                Arc::new(DecomposeSearch::new(inner_mutation, *repeat)),
+                Arc::new(DecomposeSearch::new(inner_mutation, (routes.min, routes.max), *max_selected, *repeat)),
                 create_mutation_probability(probability, random.clone()),
             )
         }

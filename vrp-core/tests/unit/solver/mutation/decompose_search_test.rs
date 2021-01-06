@@ -9,7 +9,7 @@ fn can_create_multiple_individuals_without_unassigned() {
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
-    let individuals = create_multiple_individuals(&individual).unwrap();
+    let individuals = create_multiple_individuals(&individual, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 3);
     assert_eq!(individuals[0].solution.routes.len(), 3);
@@ -26,7 +26,7 @@ fn can_create_multiple_individuals_with_unassigned() {
     solution.routes.remove(0);
     let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
-    let individuals = create_multiple_individuals(&individual).unwrap();
+    let individuals = create_multiple_individuals(&individual, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 3);
 
@@ -46,9 +46,11 @@ fn can_mutate() {
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let problem = Arc::new(problem);
     let population = Box::new(Greedy::new(problem.clone(), None));
+
     let refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone(), None);
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment);
-    let decompose_search = DecomposeSearch::new(Arc::new(RuinAndRecreate::new_from_problem(problem.clone())), 10);
+    let decompose_search =
+        DecomposeSearch::new(Arc::new(RuinAndRecreate::new_from_problem(problem.clone())), (2, 2), 1, 10);
 
     let result = decompose_search.mutate_one(&refinement_ctx, &insertion_ctx);
 
