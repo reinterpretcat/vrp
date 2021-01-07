@@ -1,7 +1,9 @@
-use crate::construction::constraints::ConstraintPipeline;
+use crate::construction::constraints::{ConstraintPipeline, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext};
 use crate::helpers::models::problem::*;
+use crate::helpers::models::solution::create_route_context_with_activities;
 use crate::models::common::IdDimension;
+use crate::models::examples::create_example_problem;
 use crate::models::problem::{Fleet, Job, Jobs, ObjectiveCost};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
@@ -67,6 +69,29 @@ pub fn create_empty_insertion_context() -> InsertionContext {
         solution: create_empty_solution_context(),
         environment: Arc::new(Environment::default()),
     }
+}
+
+/// Creates a simple insertion context with given fitness and unassigned.
+pub fn create_simple_insertion_ctx(fitness: f64, unassigned: usize) -> InsertionContext {
+    let problem = create_example_problem();
+
+    let mut insertion_ctx = create_empty_insertion_context();
+
+    let mut route_ctx = create_route_context_with_activities(problem.fleet.as_ref(), "v1", vec![]);
+
+    route_ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, fitness);
+    route_ctx.state_mut().put_route_state(TOTAL_DURATION_KEY, 0.);
+
+    insertion_ctx.solution.routes.push(route_ctx);
+
+    (0..unassigned).for_each(|_| {
+        insertion_ctx
+            .solution
+            .unassigned
+            .insert(problem.jobs.all().next().clone().expect("at least one job expected"), 0);
+    });
+
+    insertion_ctx
 }
 
 pub fn get_customer_ids_from_routes_sorted(insertion_ctx: &InsertionContext) -> Vec<Vec<String>> {

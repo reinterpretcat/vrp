@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
 
 - introduced parallelism control options (experimental).
 
+### Added
+
+- a new mutation operator: decompose search which is used for bigger problem instances
 
 ## [v1.7.3] - 2021-01-08
 

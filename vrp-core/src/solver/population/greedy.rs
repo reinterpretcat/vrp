@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/population/greedy_test.rs"]
+mod greedy_test;
+
 use crate::algorithms::nsga2::Objective;
 use crate::models::Problem;
 use crate::solver::population::{Individual, SelectionPhase};
@@ -15,6 +19,7 @@ pub struct Greedy {
 
 impl Population for Greedy {
     fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
+        #[allow(clippy::unnecessary_fold)]
         individuals.into_iter().fold(false, |acc, individual| acc || self.add(individual))
     }
 

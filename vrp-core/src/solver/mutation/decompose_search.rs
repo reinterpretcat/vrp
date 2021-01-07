@@ -88,7 +88,7 @@ impl DecomposeSearch {
                 acc_solution.ignored.extend(dec_solution.ignored.iter().cloned());
                 acc_solution.required.extend(dec_solution.required.iter().cloned());
                 acc_solution.locked.extend(dec_solution.locked.iter().cloned());
-                acc_solution.unassigned.extend(dec_solution.unassigned.iter().map(|(k, v)| (k.clone(), v.clone())));
+                acc_solution.unassigned.extend(dec_solution.unassigned.iter().map(|(k, v)| (k.clone(), *v)));
 
                 dec_solution.routes.iter().for_each(|route_ctx| {
                     acc_solution.registry.use_route(route_ctx);
@@ -215,7 +215,7 @@ fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = 
     //      this might increase overall refinement speed
 
     if individual.solution.required.is_empty() && individual.solution.unassigned.is_empty() {
-        return Box::new(empty());
+        Box::new(empty())
     } else {
         Box::new(once(Individual {
             problem: individual.problem.clone(),
