@@ -32,21 +32,17 @@
       {
         "type": "decomposition",
         "maxSelected": 2,
-        "repeat": 200,
+        "repeat": 100,
         "routes": {
           "min": 2,
           "max": 4
         },
         "probability": {
           "threshold": {
-            "jobs": 800,
+            "jobs": 1000,
             "routes": 10
           },
           "phases": [
-            {
-              "type": "initial",
-              "chance": 1
-            },
             {
               "type": "exploration",
               "chance": 0.001

@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/solver/mutation/decompose_search_test.rs"]
 mod decompose_search_test;
 
+use super::super::rand::prelude::SliceRandom;
 use crate::construction::heuristics::{get_medoid, InsertionContext, SolutionContext};
 use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
@@ -148,6 +149,10 @@ fn create_multiple_individuals(individual: &Individual, max_routes_range: (i32, 
                 (Some(_), None) => Ordering::Less,
                 _ => Ordering::Greater,
             });
+
+            let random = &individual.environment.random;
+            let shuffle_count = random.uniform_int(2, (route_distances.len() as i32 / 4).max(2)) as usize;
+            route_distances.partial_shuffle(&mut random.get_rng(), shuffle_count);
 
             route_distances
         })
