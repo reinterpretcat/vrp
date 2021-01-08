@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.7.3] - 2021-01-08
+
 ### Changed
 
 - update `hre` format support to v2 version
@@ -149,7 +152,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.7.2...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.7.3...HEAD
+[v1.7.3]: https://github.com/reinterpretcat/vrp/compare/v1.7.2...v1.7.3
 [v1.7.2]: https://github.com/reinterpretcat/vrp/compare/v1.7.1...v1.7.2
 [v1.7.1]: https://github.com/reinterpretcat/vrp/compare/1.7.0...v1.7.1
 [v1.7.0]: https://github.com/reinterpretcat/vrp/compare/v1.6.4...1.7.0
