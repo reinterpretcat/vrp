@@ -14,11 +14,11 @@ description = "An extension logic for solving rich VRP"
 [dependencies]
 vrp-core = { path = "../vrp-core", version = "1.7.2" }
 
-serde = { version = "1.0.117", features = ["derive"] }
-serde_json = "1.0.60"
+serde = { version = "1.0.118", features = ["derive"] }
+serde_json = "1.0.61"
 
 chrono = "0.4.19"
-rand = "0.7.3"
+rand = "0.8.1"
 hashbrown = "0.9.1"
 
 [dev-dependencies]

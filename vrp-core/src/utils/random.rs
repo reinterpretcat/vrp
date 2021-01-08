@@ -14,7 +14,7 @@ pub trait Random {
         }
 
         assert!(min < max);
-        self.get_rng().gen_range(min, max + 1)
+        self.get_rng().gen_range(min..max + 1)
     }
 
     /// Produces real random value, uniformly distributed on the closed interval [min, max)
@@ -24,7 +24,7 @@ pub trait Random {
         }
 
         assert!(min < max);
-        self.get_rng().gen_range(min, max)
+        self.get_rng().gen_range(min..max)
     }
 
     /// Flips a coin and returns true if it is "heads", false otherwise.

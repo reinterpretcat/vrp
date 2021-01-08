@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- update `hre` format support to v2 version
+- update dependencies
+
 
 ## [v1.7.2] - 2020-12-05
 
