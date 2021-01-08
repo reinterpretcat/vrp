@@ -10,22 +10,7 @@ fn can_import_hre_problem() {
   "plan": {
     "jobs": [
       {
-        "id": "simpleJob",
-        "places": {
-          "delivery": {
-            "location": {
-              "lat": 52.56,
-              "lng": 13.40
-            },
-            "duration": 180
-          }
-        },
-        "demand": [
-          1
-        ]
-      },
-      {
-        "id": "multiJob",
+        "id": "job1",
         "places": {
           "pickups": [
             {
@@ -113,21 +98,6 @@ fn can_import_hre_problem() {
                 ],
                 "duration": 1800
               }
-            ],
-            "reloads": [
-              {
-                "times": [
-                  [
-                    "2020-01-01T09:00:00Z",
-                    "2020-01-01T12:00:00Z"
-                  ]
-                ],
-                "duration": 1800,
-                "location": {
-                  "lat": 52.466,
-                  "lng": 13.281
-                }
-              }
             ]
           }
         ],
@@ -153,22 +123,15 @@ fn can_import_hre_problem() {
 
     let problem = deserialize_hre_problem(BufReader::new(hre_problem.as_bytes())).expect("Cannot read hre problem");
 
-    assert_eq!(problem.plan.jobs.len(), 2);
+    assert_eq!(problem.plan.jobs.len(), 1);
     assert_eq!(problem.plan.relations.as_ref().unwrap().len(), 1);
 
-    let simple_job = problem.plan.jobs.first().unwrap();
-    assert_eq!(simple_job.id, "simpleJob");
-    assert_eq!(simple_job.deliveries.as_ref().unwrap().len(), 1);
-    assert!(simple_job.pickups.is_none());
-    assert!(simple_job.services.is_none());
-    assert!(simple_job.replacements.is_none());
-
-    let multi_job = problem.plan.jobs.last().unwrap();
-    assert_eq!(multi_job.id, "multiJob");
-    assert_eq!(multi_job.deliveries.as_ref().unwrap().len(), 1);
-    assert_eq!(multi_job.pickups.as_ref().unwrap().len(), 2);
-    assert!(multi_job.services.is_none());
-    assert!(multi_job.replacements.is_none());
+    let job = problem.plan.jobs.last().unwrap();
+    assert_eq!(job.id, "job1");
+    assert_eq!(job.deliveries.as_ref().unwrap().len(), 1);
+    assert_eq!(job.pickups.as_ref().unwrap().len(), 2);
+    assert!(job.services.is_none());
+    assert!(job.replacements.is_none());
 
     assert_eq!(problem.fleet.vehicles.len(), 1);
     let vehicle = problem.fleet.vehicles.first().unwrap();
@@ -187,7 +150,6 @@ fn can_import_hre_problem() {
     assert!(shift.end.is_some());
     assert_eq!(shift.breaks.as_ref().unwrap().len(), 1);
     assert!(shift.dispatch.is_none());
-    assert_eq!(shift.reloads.as_ref().unwrap().len(), 1);
 }
 
 #[test]

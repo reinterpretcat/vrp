@@ -52,56 +52,9 @@ mod models {
         pub shift_index: Option<usize>,
     }
 
-    /// Defines specific job place.
-    #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct JobPlace {
-        /// A list of job time windows with time specified in RFC3339 format.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub times: Option<Vec<Vec<String>>>,
-        /// Job location.
-        pub location: Location,
-        /// Job duration (service time).
-        pub duration: f64,
-        /// An tag which will be propagated back within corresponding activity in solution.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub tag: Option<String>,
-    }
-
-    /// Specifies pickup and delivery places of the job.
-    /// At least one place should be specified. If only delivery specified, then vehicle is loaded with
-    /// job's demand at the start location. If only pickup specified, then loaded good is delivered to
-    /// the last location on the route. When both, pickup and delivery, are specified, then it is classical
-    /// pickup and delivery job.
-    #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct JobPlaces {
-        /// Pickup place.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub pickup: Option<JobPlace>,
-        /// Delivery place.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub delivery: Option<JobPlace>,
-    }
-
-    /// Specifies single job.
-    #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct Job {
-        /// Job id.
-        pub id: String,
-        /// Job places.
-        pub places: JobPlaces,
-        /// Job demand.
-        pub demand: Vec<i32>,
-        /// Job priority, bigger value - less important.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub priority: Option<i32>,
-        /// Job skills.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub skills: Option<Vec<String>>,
-    }
-
     /// Specifies a place for sub job.
     #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct MultiJobPlace {
+    pub struct JobPlace {
         /// A list of sub job time windows with time specified in RFC3339 format.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub times: Option<Vec<Vec<String>>>,
@@ -116,46 +69,36 @@ mod models {
         pub tag: Option<String>,
     }
 
-    /// Specifies pickups and deliveries places of multi job.
+    /// Specifies pickups and deliveries places of the job.
     /// All of them should be completed or none of them. All pickups must be completed before any of deliveries.
     #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct MultiJobPlaces {
+    pub struct JobPlaces {
         /// A list of pickups.
-        pub pickups: Vec<MultiJobPlace>,
+        pub pickups: Option<Vec<JobPlace>>,
         /// A list of deliveries.
-        pub deliveries: Vec<MultiJobPlace>,
+        pub deliveries: Option<Vec<JobPlace>>,
     }
 
-    /// Specifies multi job which has multiple child jobs.
+    /// Specifies a job.
     #[derive(Clone, Deserialize, Debug, Serialize)]
-    pub struct MultiJob {
-        /// Multi job id.
+    pub struct Job {
+        /// Job id.
         pub id: String,
-        /// Multi job places.
-        pub places: MultiJobPlaces,
+        /// Job places.
+        pub places: JobPlaces,
         /// Job priority, bigger value - less important.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub priority: Option<i32>,
-        /// Multi job skills.
+        /// Job skills.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub skills: Option<Vec<String>>,
-    }
-
-    /// Job variant type.
-    #[derive(Clone, Deserialize, Debug, Serialize)]
-    #[serde(untagged)]
-    pub enum JobVariant {
-        /// Single job.
-        Single(Job),
-        /// Multi job.
-        Multi(MultiJob),
     }
 
     /// A plan specifies work which has to be done.
     #[derive(Clone, Deserialize, Debug, Serialize)]
     pub struct Plan {
         /// List of jobs.
-        pub jobs: Vec<JobVariant>,
+        pub jobs: Vec<Job>,
         /// List of relations between jobs and vehicles.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub relations: Option<Vec<Relation>>,
@@ -200,15 +143,7 @@ mod models {
         /// Vehicle breaks.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub breaks: Option<Vec<VehicleBreak>>,
-
-        /// Vehicle reloads which allows vehicle to return back to the depot (or any other place) in
-        /// order to unload/load goods during single tour.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub reloads: Option<Vec<VehicleReload>>,
     }
-
-    /// Vehicle reload.
-    pub type VehicleReload = JobPlace;
 
     /// Vehicle limits.
     #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -325,60 +260,35 @@ mod deserialize {
     }
 
     fn create_pragmatic_plan(plan: &models::Plan) -> Result<Plan, String> {
-        let job_place_mapper = |job: &models::Job, place: &models::JobPlace| JobTask {
-            places: vec![JobPlace {
-                location: to_pragmatic_loc(&place.location),
-                duration: place.duration,
-                times: place.times.clone(),
-            }],
-            demand: Some(job.demand.clone()),
-            tag: place.tag.clone(),
-        };
-
-        let multi_job_place_mapper = |places: &Vec<models::MultiJobPlace>| {
-            if places.is_empty() {
-                None
-            } else {
-                Some(
-                    places
-                        .iter()
-                        .map(|place| JobTask {
-                            places: vec![JobPlace {
-                                location: to_pragmatic_loc(&place.location),
-                                duration: place.duration,
-                                times: place.times.clone(),
-                            }],
-                            demand: Some(place.demand.clone()),
-                            tag: place.tag.clone(),
-                        })
-                        .collect(),
-                )
-            }
+        let job_place_mapper = |places: &Option<Vec<models::JobPlace>>| {
+            places.as_ref().map(|places| {
+                places
+                    .iter()
+                    .map(|place| JobTask {
+                        places: vec![JobPlace {
+                            location: to_pragmatic_loc(&place.location),
+                            duration: place.duration,
+                            times: place.times.clone(),
+                        }],
+                        demand: Some(place.demand.clone()),
+                        tag: place.tag.clone(),
+                    })
+                    .collect()
+            })
         };
 
         Ok(Plan {
             jobs: plan
                 .jobs
                 .iter()
-                .map(|job| match job {
-                    models::JobVariant::Single(job) => Job {
-                        id: job.id.clone(),
-                        pickups: job.places.pickup.as_ref().map(|place| vec![job_place_mapper(job, place)]),
-                        deliveries: job.places.delivery.as_ref().map(|place| vec![job_place_mapper(job, place)]),
-                        replacements: None,
-                        services: None,
-                        priority: job.priority.as_ref().copied(),
-                        skills: all_of_skills(job.skills.clone()),
-                    },
-                    models::JobVariant::Multi(job) => Job {
-                        id: job.id.clone(),
-                        pickups: multi_job_place_mapper(&job.places.pickups),
-                        deliveries: multi_job_place_mapper(&job.places.deliveries),
-                        replacements: None,
-                        services: None,
-                        priority: job.priority.as_ref().copied(),
-                        skills: all_of_skills(job.skills.clone()),
-                    },
+                .map(|job| Job {
+                    id: job.id.clone(),
+                    pickups: job_place_mapper(&job.places.pickups),
+                    deliveries: job_place_mapper(&job.places.deliveries),
+                    replacements: None,
+                    services: None,
+                    priority: job.priority.as_ref().copied(),
+                    skills: all_of_skills(job.skills.clone()),
                 })
                 .collect(),
             relations: plan.relations.as_ref().map(|relations| {
@@ -434,17 +344,7 @@ mod deserialize {
                                     })
                                     .collect()
                             }),
-                            reloads: shift.reloads.as_ref().map(|reloads| {
-                                reloads
-                                    .iter()
-                                    .map(|r| VehicleReload {
-                                        location: to_pragmatic_loc(&r.location),
-                                        duration: r.duration,
-                                        times: r.times.clone(),
-                                        tag: r.tag.clone(),
-                                    })
-                                    .collect()
-                            }),
+                            reloads: None,
                         })
                         .collect(),
                     capacity: v.capacity.clone(),
@@ -499,31 +399,15 @@ mod serialize {
     }
 
     fn create_hre_plan(plan: &vrp_pragmatic::format::problem::Plan) -> Result<Plan, String> {
-        let job_tasks_to_job_place =
-            |job_tasks: &Option<Vec<vrp_pragmatic::format::problem::JobTask>>| -> Result<Option<JobPlace>, String> {
+        let job_tasks_to_hre_job_place =
+            |job_tasks: &Option<Vec<vrp_pragmatic::format::problem::JobTask>>| -> Result<Option<Vec<JobPlace>>, String> {
                 if let Some(job_tasks) = &job_tasks {
-                    let job_task = job_tasks.first().ok_or("empty job tasks")?;
-                    let job_place = job_task.places.first().ok_or("empty job places")?;
-                    Ok(Some(JobPlace {
-                        times: job_place.times.clone(),
-                        location: to_hre_loc(&job_place.location)?,
-                        duration: job_place.duration,
-                        tag: job_task.tag.clone(),
-                    }))
-                } else {
-                    Ok(None)
-                }
-            };
-
-        let job_tasks_to_multi_job_place =
-            |job_tasks: &Option<Vec<vrp_pragmatic::format::problem::JobTask>>| -> Result<Vec<MultiJobPlace>, String> {
-                if let Some(job_tasks) = &job_tasks {
-                    Ok(job_tasks
+                    Ok(Some(job_tasks
                         .iter()
                         .map(|job_task| {
                             let job_place = job_task.places.first().ok_or("empty job places")?;
 
-                            Ok(MultiJobPlace {
+                            Ok(JobPlace {
                                 times: job_place.times.clone(),
                                 location: to_hre_loc(&job_place.location)?,
                                 duration: job_place.duration,
@@ -531,9 +415,9 @@ mod serialize {
                                 tag: job_task.tag.clone(),
                             })
                         })
-                        .collect::<Result<Vec<_>, String>>()?)
+                        .collect::<Result<Vec<_>, String>>()?))
                 } else {
-                    Err("empty job tasks".to_string())
+                    Ok(None)
                 }
             };
 
@@ -555,36 +439,14 @@ mod serialize {
                         return Err(format!("No pickups and deliveries in the job '{}'", job.id));
                     }
 
-                    Ok(if pickups > 1 || deliveries > 1 {
-                        JobVariant::Multi(MultiJob {
-                            id: job.id.clone(),
-                            places: MultiJobPlaces {
-                                pickups: job_tasks_to_multi_job_place(&job.pickups)?,
-                                deliveries: job_tasks_to_multi_job_place(&job.deliveries)?,
-                            },
-                            priority: job.priority,
-                            skills: job.skills.as_ref().and_then(|skills| skills.all_of.as_ref()).cloned(),
-                        })
-                    } else {
-                        JobVariant::Single(Job {
-                            id: job.id.clone(),
-                            places: JobPlaces {
-                                pickup: job_tasks_to_job_place(&job.pickups)?,
-                                delivery: job_tasks_to_job_place(&job.deliveries)?,
-                            },
-                            demand: job
-                                .pickups
-                                .as_ref()
-                                .or_else(|| job.deliveries.as_ref())
-                                .ok_or("no pickups and deliveries")?
-                                .first()
-                                .ok_or("no job task")?
-                                .demand
-                                .clone()
-                                .ok_or("no demand")?,
-                            priority: job.priority,
-                            skills: job.skills.as_ref().and_then(|skills| skills.all_of.as_ref()).cloned(),
-                        })
+                    Ok(Job {
+                        id: job.id.clone(),
+                        places: JobPlaces {
+                            pickups: job_tasks_to_hre_job_place(&job.pickups)?,
+                            deliveries: job_tasks_to_hre_job_place(&job.deliveries)?,
+                        },
+                        priority: job.priority,
+                        skills: job.skills.as_ref().and_then(|skills| skills.all_of.as_ref()).cloned(),
                     })
                 })
                 .collect::<Result<Vec<_>, String>>()?,
@@ -660,23 +522,6 @@ mod serialize {
                                                         } else {
                                                             None
                                                         },
-                                                    })
-                                                })
-                                                .collect::<Result<Vec<_>, String>>()?,
-                                        )
-                                    } else {
-                                        None
-                                    },
-                                    reloads: if let Some(reloads) = &shift.reloads {
-                                        Some(
-                                            reloads
-                                                .iter()
-                                                .map(|reload| {
-                                                    Ok(VehicleReload {
-                                                        times: reload.times.clone(),
-                                                        location: to_hre_loc(&reload.location)?,
-                                                        duration: reload.duration,
-                                                        tag: reload.tag.clone(),
                                                     })
                                                 })
                                                 .collect::<Result<Vec<_>, String>>()?,
