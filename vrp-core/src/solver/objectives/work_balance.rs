@@ -4,7 +4,7 @@ use crate::construction::constraints::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::common::{CapacityDimension, Load};
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
-use crate::solver::objectives::*;
+use crate::solver::*;
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
 use std::cmp::Ordering::{Equal, Greater, Less};

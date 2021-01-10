@@ -116,7 +116,13 @@ pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
 use crate::utils::Environment;
 
 /// A key to store solution order information.
-pub const SOLUTION_ORDER_KEY: i32 = 100;
+const SOLUTION_ORDER_KEY: i32 = 1;
+
+/// Keys for balancing objectives.
+const BALANCE_MAX_LOAD_KEY: i32 = 20;
+const BALANCE_ACTIVITY_KEY: i32 = 21;
+const BALANCE_DISTANCE_KEY: i32 = 22;
+const BALANCE_DURATION_KEY: i32 = 23;
 
 /// A type which encapsulates information needed to perform solution refinement process.
 pub struct RefinementContext {

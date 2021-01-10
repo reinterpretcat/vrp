@@ -3,11 +3,6 @@
 use crate::construction::heuristics::InsertionContext;
 use std::cmp::Ordering;
 
-const BALANCE_MAX_LOAD_KEY: i32 = 20;
-const BALANCE_ACTIVITY_KEY: i32 = 21;
-const BALANCE_DISTANCE_KEY: i32 = 22;
-const BALANCE_DURATION_KEY: i32 = 23;
-
 mod total_routes;
 pub use self::total_routes::TotalRoutes;
 
