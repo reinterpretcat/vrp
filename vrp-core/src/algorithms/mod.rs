@@ -2,6 +2,7 @@
 
 pub mod dbscan;
 pub mod gsom;
+pub mod mdp;
 pub mod nsga2;
 
 pub mod geometry;
