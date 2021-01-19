@@ -9,7 +9,7 @@ use crate::utils::{parallel_into_collect, CollectGroupBy};
 pub struct Simulator<S: State> {
     q: QType<S>,
     learning: Box<dyn LearningStrategy<S> + Send + Sync>,
-    action: Box<dyn ActionStrategy<S> + Send + Sync>,
+    policy: Box<dyn PolicyStrategy<S> + Send + Sync>,
     termination: Box<dyn TerminationStrategy<S> + Send + Sync>,
 }
 
@@ -19,19 +19,19 @@ impl<S: State> Simulator<S> {
     /// Creates a new instance of MDP simulator.
     pub fn new(
         learning: Box<dyn LearningStrategy<S> + Send + Sync>,
-        action: Box<dyn ActionStrategy<S> + Send + Sync>,
+        policy: Box<dyn PolicyStrategy<S> + Send + Sync>,
         termination: Box<dyn TerminationStrategy<S> + Send + Sync>,
     ) -> Self {
-        Self { q: Default::default(), learning, action, termination }
+        Self { q: Default::default(), learning, policy, termination }
     }
 
-    /// Runs multiple episodes in parallel for given actors .
+    /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>) {
         let qs = parallel_into_collect(agents, |mut a| {
             Self::run_episode(
                 a.as_mut(),
                 self.learning.as_ref(),
-                self.action.as_ref(),
+                self.policy.as_ref(),
                 self.termination.as_ref(),
                 &self.q,
             )
@@ -50,7 +50,7 @@ impl<S: State> Simulator<S> {
     fn run_episode(
         agent: &mut dyn Agent<S>,
         learning: &(dyn LearningStrategy<S> + Send + Sync),
-        action: &(dyn ActionStrategy<S> + Send + Sync),
+        policy: &(dyn PolicyStrategy<S> + Send + Sync),
         termination: &(dyn TerminationStrategy<S> + Send + Sync),
         q: &QType<S>,
     ) -> QType<S> {
@@ -65,7 +65,7 @@ impl<S: State> Simulator<S> {
             }
 
             let estimates = estimates.unwrap();
-            let action = action.select(estimates);
+            let action = policy.select(estimates);
 
             agent.take_action(&action);
 

@@ -38,13 +38,13 @@ pub trait Agent<S: State> {
 /// A learning strategy for the MDP.
 pub trait LearningStrategy<S: State> {
     /// Estimates an action value given received reward, current value, and actions values from the new state.
-    fn value(&self, reward_value: f64, old_value: Option<f64>, estimations: Option<&ActionsEstimate<S>>) -> f64;
+    fn value(&self, reward_value: f64, old_value: Option<f64>, estimates: Option<&ActionsEstimate<S>>) -> f64;
 }
 
-/// An action selection strategy.
-pub trait ActionStrategy<S: State> {
+/// A policy strategy for MDP.
+pub trait PolicyStrategy<S: State> {
     /// Selects an action from the estimated actions.
-    fn select(&self, estimations: &ActionsEstimate<S>) -> S::Action;
+    fn select(&self, estimates: &ActionsEstimate<S>) -> S::Action;
 }
 
 /// A termination strategy.
