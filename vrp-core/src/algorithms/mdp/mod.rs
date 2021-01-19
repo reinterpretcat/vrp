@@ -10,6 +10,9 @@ pub use self::strategies::*;
 use hashbrown::HashMap;
 use std::hash::Hash;
 
+/// Keeps track of action estimation.
+pub type ActionsEstimate<S> = HashMap<<S as State>::Action, f64>;
+
 /// Represents a state in MDP.
 pub trait State: Clone + Hash + Eq + Send + Sync {
     /// Action type associated with the state.
@@ -17,7 +20,7 @@ pub trait State: Clone + Hash + Eq + Send + Sync {
 
     /// Returns actions associated with the state. If no actions are associated, then
     /// the state is considered as terminal.
-    fn actions(&self) -> Option<Vec<Self::Action>>;
+    fn actions(&self) -> Option<&ActionsEstimate<Self>>;
 
     /// Returns reward to be in this state.
     fn reward(&self) -> f64;
@@ -35,18 +38,13 @@ pub trait Agent<S: State> {
 /// A learning strategy for the MDP.
 pub trait LearningStrategy<S: State> {
     /// Estimates an action value given received reward, current value, and actions values from the new state.
-    fn value(
-        &self,
-        reward_value: f64,
-        old_value: Option<f64>,
-        next_actions_values: Option<&HashMap<S::Action, f64>>,
-    ) -> f64;
+    fn value(&self, reward_value: f64, old_value: Option<f64>, estimations: Option<&ActionsEstimate<S>>) -> f64;
 }
 
 /// An action selection strategy.
 pub trait ActionStrategy<S: State> {
-    /// Selects an action from the action-values map.
-    fn select(&self, actions_values: &HashMap<S::Action, f64>) -> S::Action;
+    /// Selects an action from the estimated actions.
+    fn select(&self, estimations: &ActionsEstimate<S>) -> S::Action;
 }
 
 /// A termination strategy.

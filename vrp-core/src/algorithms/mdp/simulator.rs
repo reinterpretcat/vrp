@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/algorithms/mdp/simulator_test.rs"]
+mod simulator_test;
+
 use super::*;
 use crate::utils::{parallel_into_collect, CollectGroupBy};
 
@@ -53,26 +57,26 @@ impl<S: State> Simulator<S> {
         let mut q_new = QType::new();
 
         loop {
-            let state_old = agent.get_state().clone();
-            let actions_values = q_new.get(&state_old).or_else(|| q.get(&state_old));
+            let old_state = agent.get_state().clone();
+            let estimates = q_new.get(&old_state).or_else(|| q.get(&old_state)).or_else(|| old_state.actions());
 
-            if actions_values.is_none() || termination.is_termination(&state_old) {
+            if estimates.is_none() || termination.is_termination(&old_state) {
                 break;
             }
 
-            let actions_values = actions_values.unwrap();
-            let action = action.select(actions_values);
+            let estimates = estimates.unwrap();
+            let action = action.select(estimates);
 
             agent.take_action(&action);
 
-            let state_next = agent.get_state();
-            let reward_value = state_next.reward();
+            let next_state = agent.get_state();
+            let reward_value = next_state.reward();
 
-            let old_value = actions_values.get(&action).cloned();
-            let new_actions_values = q_new.get(state_next).or_else(|| q.get(state_next));
-            let new_value = learning.value(reward_value, old_value, new_actions_values);
+            let old_value = estimates.get(&action).cloned();
+            let new_estimates = q_new.get(next_state).or_else(|| q.get(next_state));
+            let new_value = learning.value(reward_value, old_value, new_estimates);
 
-            q_new.entry(state_old).or_insert_with(|| HashMap::new()).insert(action, new_value);
+            q_new.entry(old_state).or_insert_with(|| HashMap::new()).insert(action, new_value);
         }
 
         q_new
