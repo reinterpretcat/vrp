@@ -58,15 +58,15 @@ impl Default for RandomRouteRemoval {
 
 impl Ruin for RandomRouteRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
+        let random = insertion_ctx.environment.random.clone();
         let max = (insertion_ctx.solution.routes.len() as f64 * self.threshold).max(self.min).round() as usize;
-        let affected = insertion_ctx
-            .random
+        let affected = random
             .uniform_int(self.min as i32, self.max as i32)
             .min(insertion_ctx.solution.routes.len().min(max) as i32) as usize;
 
         (0..affected).for_each(|_| {
             let mut solution = &mut insertion_ctx.solution;
-            let route_index = insertion_ctx.random.uniform_int(0, (solution.routes.len() - 1) as i32) as usize;
+            let route_index = random.uniform_int(0, (solution.routes.len() - 1) as i32) as usize;
             let route_ctx = &mut solution.routes.get(route_index).unwrap().clone();
 
             if solution.locked.is_empty() {

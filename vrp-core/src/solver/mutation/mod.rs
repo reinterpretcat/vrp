@@ -67,9 +67,9 @@ impl CompositeMutation {
 
 impl Mutation for CompositeMutation {
     fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
-        let index = insertion_ctx.random.weighted(self.weights.as_slice());
+        let random = insertion_ctx.environment.random.clone();
+        let index = random.weighted(self.weights.as_slice());
         let objective = &refinement_ctx.problem.objective;
-        let random = insertion_ctx.random.clone();
 
         unwrap_from_result(self.inners[index].iter().filter(|(_, probability)| random.is_hit(*probability)).try_fold(
             insertion_ctx.deep_copy(),
@@ -91,6 +91,10 @@ impl Mutation for CompositeMutation {
         refinement_ctx: &RefinementContext,
         individuals: Vec<&InsertionContext>,
     ) -> Vec<InsertionContext> {
-        parallel_into_collect(individuals, |insertion_ctx| self.mutate_one(refinement_ctx, insertion_ctx))
+        parallel_into_collect(
+            individuals,
+            refinement_ctx.environment.parallelism.outer_degree.clone(),
+            |insertion_ctx| self.mutate_one(refinement_ctx, insertion_ctx),
+        )
     }
 }

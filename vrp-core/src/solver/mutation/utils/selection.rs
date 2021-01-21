@@ -11,7 +11,7 @@ pub(crate) fn get_selection_chunk_size(ctx: &InsertionContext, min: usize, max: 
 
     let max_limit = (assigned as f64 * threshold).min(max as f64).round() as usize;
 
-    ctx.random.uniform_int(min as i32, max as i32).min(max_limit as i32) as usize
+    ctx.environment.random.uniform_int(min as i32, max as i32).min(max_limit as i32) as usize
 }
 
 pub(crate) fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, RouteContext> {

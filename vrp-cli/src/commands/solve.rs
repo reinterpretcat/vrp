@@ -12,11 +12,12 @@ use std::sync::Arc;
 use vrp_cli::core::solver::population::Population;
 use vrp_cli::extensions::check::check_pragmatic_solution;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
+use vrp_cli::extensions::solve::defaults::{get_default_environment, get_default_selection_size};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::population::{Elitism, Rosomaxa, RosomaxaConfig};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
-use vrp_core::utils::{DefaultRandom, Random};
+use vrp_core::utils::{DefaultRandom, Environment, Parallelism, ParallelismDegree, Random};
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -33,6 +34,7 @@ const CONFIG_ARG_NAME: &str = "config";
 const LOG_ARG_NAME: &str = "log";
 const CHECK_ARG_NAME: &str = "check";
 const SEARCH_MODE_ARG_NAME: &str = "search-mode";
+const PARALELLISM_ARG_NAME: &str = "parallelism";
 
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
@@ -135,19 +137,13 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
     );
 }
 
-fn get_formats<'a>() -> FormatMap<'a> {
+fn get_formats<'a>(random: Arc<dyn Random + Send + Sync>) -> FormatMap<'a> {
     let mut formats = FormatMap::default();
-    // TODO pass random from outside
-    let random = get_random();
 
     add_scientific(&mut formats, random.clone());
     add_pragmatic(&mut formats, random);
 
     formats
-}
-
-fn get_random() -> Arc<dyn Random + Send + Sync> {
-    Arc::new(DefaultRandom::default())
 }
 
 pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
@@ -256,11 +252,21 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .possible_values(&["broad", "deep"])
                 .default_value("broad"),
         )
+        .arg(
+            Arg::with_name(PARALELLISM_ARG_NAME)
+                .help("Specifies data parallelism settings in format \"max,outer,inner\"")
+                .long(PARALELLISM_ARG_NAME)
+                .short("p")
+                .required(false)
+                .takes_value(true),
+        )
 }
 
 /// Runs solver commands.
 pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufWriter<Box<dyn Write>>) {
-    let formats = get_formats();
+    let environment = get_environment(matches);
+
+    let formats = get_formats(environment.random.clone());
 
     // required
     let problem_path = matches.value_of(PROBLEM_ARG_NAME).unwrap();
@@ -282,16 +288,7 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
     });
     let is_check_requested = matches.is_present(CHECK_ARG_NAME);
 
-    let cost_variation = matches.value_of(COST_VARIATION_ARG_NAME).map(|arg| {
-        if let [sample, threshold] =
-            arg.split(',').filter_map(|line| line.parse::<f64>().ok()).collect::<Vec<_>>().as_slice()
-        {
-            (*sample as usize, *threshold)
-        } else {
-            eprintln!("cannot parse cost variation");
-            process::exit(1);
-        }
-    });
+    let cost_variation = get_cost_variation(matches);
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let config = matches.value_of(CONFIG_ARG_NAME).map(|path| open_file(path, "config"));
     let matrix_files = get_matrix_files(matches);
@@ -332,11 +329,11 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
                                 },
                             )
                         } else {
-                            Builder::new(problem.clone())
+                            Builder::new(problem.clone(), environment.clone())
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
                                 .with_cost_variation(cost_variation)
-                                .with_population(get_population(mode, problem.clone(), get_random()))
+                                .with_population(get_population(mode, problem.clone(), environment))
                                 .with_telemetry(telemetry)
                         };
 
@@ -369,6 +366,40 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
     }
 }
 
+fn get_cost_variation(matches: &ArgMatches) -> Option<(usize, f64)> {
+    matches.value_of(COST_VARIATION_ARG_NAME).map(|arg| {
+        if let [sample, threshold] =
+            arg.split(',').filter_map(|line| line.parse::<f64>().ok()).collect::<Vec<_>>().as_slice()
+        {
+            (*sample as usize, *threshold)
+        } else {
+            eprintln!("cannot parse cost variation parameter");
+            process::exit(1);
+        }
+    })
+}
+
+fn get_environment(matches: &ArgMatches) -> Arc<Environment> {
+    matches
+        .value_of(PARALELLISM_ARG_NAME)
+        .map(|arg| {
+            if let [max, outer, inner] =
+                arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
+            {
+                let parallelism = Parallelism::new(
+                    ParallelismDegree::Limited { max: *max },
+                    ParallelismDegree::Limited { max: *outer },
+                    ParallelismDegree::Limited { max: *inner },
+                );
+                Arc::new(Environment::new(Arc::new(DefaultRandom::default()), parallelism))
+            } else {
+                eprintln!("cannot parse parallelism parameter");
+                process::exit(1);
+            }
+        })
+        .unwrap_or_else(|| Arc::new(get_default_environment()))
+}
+
 fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
     matches
         .values_of(MATRIX_ARG_NAME)
@@ -378,11 +409,18 @@ fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
 fn get_population(
     mode: Option<&str>,
     problem: Arc<Problem>,
-    random: Arc<dyn Random + Send + Sync>,
+    environment: Arc<Environment>,
 ) -> Box<dyn Population + Send + Sync> {
     match mode {
-        Some("deep") => Box::new(Elitism::new_with_defaults(problem, random)),
-        _ => Rosomaxa::new_with_fallback(problem, random, RosomaxaConfig::default()),
+        Some("deep") => Box::new(Elitism::new_with_defaults(problem, environment)),
+        _ => {
+            let selection_size = get_default_selection_size(environment.as_ref());
+            let config = RosomaxaConfig::new_with_defaults(selection_size);
+            let population = Rosomaxa::new(problem, environment.clone(), config)
+                .expect("cannot create rosomaxa with default configuration");
+
+            Box::new(population)
+        }
     }
 }
 

@@ -33,7 +33,7 @@ impl Ruin for RandomJobRemoval {
         (0..affected).for_each(|_| {
             let solution = &mut insertion_ctx.solution;
 
-            if let Some((route_index, job)) = select_seed_job(&solution.routes, &insertion_ctx.random) {
+            if let Some((route_index, job)) = select_seed_job(&solution.routes, &insertion_ctx.environment.random) {
                 if !solution.locked.contains(&job) {
                     solution.routes.get_mut(route_index).unwrap().route_mut().tour.remove(&job);
                     solution.required.push(job);

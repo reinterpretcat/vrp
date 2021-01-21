@@ -68,7 +68,7 @@ impl ChunkJobSelector {
 
 impl JobSelector for ChunkJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut ctx.random.get_rng());
+        ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
 
         Box::new(ctx.solution.required.iter().take(self.size).cloned())
     }
@@ -124,7 +124,7 @@ impl Default for BlinkResultSelector {
 
 impl ResultSelector for BlinkResultSelector {
     fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
-        let is_blink = ctx.random.is_hit(self.ratio);
+        let is_blink = ctx.environment.random.is_hit(self.ratio);
         let is_locked = match &right {
             InsertionResult::Success(success) => ctx.solution.locked.contains(&success.job),
             _ => false,
@@ -176,7 +176,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Default for Recreate
 
 impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Recreate for RecreateWithBlinks<T> {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        let index = insertion_ctx.random.weighted(self.weights.as_slice());
+        let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
         let job_selector = self.job_selectors.get(index).unwrap();
         InsertionHeuristic::default().process(
             job_selector.as_ref(),

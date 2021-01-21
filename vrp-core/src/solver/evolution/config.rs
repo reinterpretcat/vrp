@@ -7,7 +7,7 @@ use crate::solver::population::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::TelemetryMode;
-use crate::utils::{DefaultRandom, Random};
+use crate::utils::{Environment, ParallelismDegree};
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -30,8 +30,8 @@ pub struct EvolutionConfig {
     /// A quota for evolution execution.
     pub quota: Option<Arc<dyn Quota + Send + Sync>>,
 
-    /// Random generator.
-    pub random: Arc<dyn Random + Send + Sync>,
+    /// An environmental context.
+    pub environment: Arc<Environment>,
 
     /// A telemetry to be used.
     pub telemetry: Telemetry,
@@ -60,8 +60,7 @@ pub struct InitialConfig {
 
 impl EvolutionConfig {
     /// Creates a new instance of `EvolutionConfig` using default settings.
-    pub fn new(problem: Arc<Problem>) -> Self {
-        let random = Arc::new(DefaultRandom::default());
+    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
         Self {
             problem: problem.clone(),
             population: PopulationConfig {
@@ -70,10 +69,16 @@ impl EvolutionConfig {
                     methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                     individuals: vec![],
                 },
-                variation: Some(Rosomaxa::new_with_fallback(
-                    problem.clone(),
-                    random.clone(),
-                    RosomaxaConfig::default(),
+                variation: Some(Box::new(
+                    Rosomaxa::new(
+                        problem.clone(),
+                        environment.clone(),
+                        RosomaxaConfig::new_with_defaults(match &environment.parallelism.outer_degree {
+                            ParallelismDegree::Full => environment.parallelism.available_cpus,
+                            ParallelismDegree::Limited { max } => *max,
+                        }),
+                    )
+                    .expect("Cannot build rosomaxa population using default settings"),
                 )),
             },
             mutation: Arc::new(CompositeMutation::new(vec![(
@@ -90,8 +95,8 @@ impl EvolutionConfig {
             ])),
             strategy: Arc::new(RunSimple::default()),
             quota: None,
-            random,
             telemetry: Telemetry::new(TelemetryMode::None),
+            environment,
         }
     }
 }

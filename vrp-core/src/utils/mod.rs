@@ -4,7 +4,7 @@ mod comparison;
 pub use self::comparison::*;
 
 mod environment;
-pub use self::environment::get_cpus;
+pub use self::environment::*;
 
 mod iterators;
 pub use self::iterators::CollectGroupBy;

@@ -8,7 +8,7 @@ use crate::algorithms::gsom::{get_network_state, Input, Network, NodeLink, Stora
 use crate::algorithms::statistics::relative_distance;
 use crate::construction::heuristics::*;
 use crate::models::Problem;
-use crate::utils::{as_mut, get_cpus, Random};
+use crate::utils::{as_mut, Environment, Random};
 use std::convert::TryInto;
 use std::fmt::Formatter;
 use std::ops::Deref;
@@ -38,10 +38,12 @@ pub struct RosomaxaConfig {
     pub exploration_ratio: f64,
 }
 
-impl Default for RosomaxaConfig {
-    fn default() -> Self {
+impl RosomaxaConfig {
+    /// Creates an instance of `RosomaxaConfig` using default parameters, but taking into
+    /// account data parallelism settings.
+    pub fn new_with_defaults(selection_size: usize) -> Self {
         Self {
-            selection_size: get_cpus(),
+            selection_size,
             elite_size: 2,
             node_size: 2,
             spread_factor: 0.25,
@@ -59,7 +61,7 @@ impl Default for RosomaxaConfig {
 /// MAps and eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
 pub struct Rosomaxa {
     problem: Arc<Problem>,
-    random: Arc<dyn Random + Send + Sync>,
+    environment: Arc<Environment>,
     config: RosomaxaConfig,
     elite: Elitism,
     phase: RosomaxaPhases,
@@ -103,15 +105,14 @@ impl Population for Rosomaxa {
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        // NOTE we always promote 2 elements from elite and 2 from each population in the network
-        //      in exploring phase. 2 is not a magic number: dominance population always promotes
-        //      the best individual as first, all others are selected with equal probability.
+        let exploration_size = if self.config.selection_size > 4 { 2 } else { 1 };
+
         match &self.phase {
             RosomaxaPhases::Exploration { populations, .. } => Box::new(
                 self.elite
                     .select()
-                    .take(2)
-                    .chain(populations.iter().flat_map(|population| population.0.select().take(2)))
+                    .take(exploration_size)
+                    .chain(populations.iter().flat_map(move |population| population.0.select().take(exploration_size)))
                     .take(self.config.selection_size),
             ),
             _ => Box::new(self.elite.select()),
@@ -139,36 +140,18 @@ type IndividualNetwork = Network<IndividualInput, IndividualStorage>;
 
 impl Rosomaxa {
     /// Creates a new instance of `Rosomaxa`.
-    pub fn new(
-        problem: Arc<Problem>,
-        random: Arc<dyn Random + Send + Sync>,
-        config: RosomaxaConfig,
-    ) -> Result<Self, ()> {
-        if config.elite_size < 2 || config.node_size < 2 || config.selection_size < 4 {
-            return Err(());
+    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, config: RosomaxaConfig) -> Result<Self, String> {
+        if config.elite_size < 2 || config.node_size < 2 || config.selection_size < 2 {
+            return Err("Rosomaxa algorithm requires some parameters to be above thresholds".to_string());
         }
 
         Ok(Self {
             problem: problem.clone(),
-            random: random.clone(),
-            elite: Elitism::new(problem, random, config.elite_size, config.selection_size),
+            environment: environment.clone(),
+            elite: Elitism::new(problem, environment.random.clone(), config.elite_size, config.selection_size),
             phase: RosomaxaPhases::Initial { individuals: vec![] },
             config,
         })
-    }
-
-    /// Creates a new instance of `Rosomaxa` or `Elitism` if config is too restrictive.
-    pub fn new_with_fallback(
-        problem: Arc<Problem>,
-        random: Arc<dyn Random + Send + Sync>,
-        config: RosomaxaConfig,
-    ) -> Box<dyn Population + Send + Sync> {
-        let selection_size = config.selection_size;
-        let max_population_size = config.elite_size;
-
-        Rosomaxa::new(problem.clone(), random.clone(), config)
-            .map::<Box<dyn Population + Send + Sync>, _>(|population| Box::new(population))
-            .unwrap_or_else(|()| Box::new(Elitism::new(problem, random, max_population_size, selection_size)))
     }
 
     fn update_phase(&mut self, statistics: &Statistics) {
@@ -177,7 +160,7 @@ impl Rosomaxa {
                 if individuals.len() >= 4 {
                     let mut network = Self::create_network(
                         self.problem.clone(),
-                        self.random.clone(),
+                        self.environment.clone(),
                         &self.config,
                         individuals.drain(0..4).collect(),
                     );
@@ -196,7 +179,12 @@ impl Rosomaxa {
                         Self::optimize_network(network, best_fitness.as_slice(), self.config.rebalance_count)
                     }
 
-                    Self::fill_populations(network, populations, best_fitness.as_slice(), self.random.as_ref());
+                    Self::fill_populations(
+                        network,
+                        populations,
+                        best_fitness.as_slice(),
+                        self.environment.random.as_ref(),
+                    );
                 } else {
                     self.phase = RosomaxaPhases::Exploitation
                 }
@@ -268,7 +256,7 @@ impl Rosomaxa {
 
     fn create_network(
         problem: Arc<Problem>,
-        random: Arc<dyn Random + Send + Sync>,
+        environment: Arc<Environment>,
         config: &RosomaxaConfig,
         individuals: Vec<Individual>,
     ) -> IndividualNetwork {
@@ -287,8 +275,10 @@ impl Rosomaxa {
             config.distribution_factor,
             config.learning_rate,
             config.rebalance_memory,
+            environment.parallelism.max_degree.clone(),
             Box::new({
                 let node_size = config.node_size;
+                let random = environment.random.clone();
                 move || IndividualStorage {
                     population: Arc::new(Elitism::new(problem.clone(), random.clone(), node_size, node_size)),
                 }

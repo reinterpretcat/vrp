@@ -77,11 +77,12 @@
 //! # use std::sync::Arc;
 //! use vrp_core::solver::Builder;
 //! use vrp_core::models::Problem;
+//! use vrp_core::utils::Environment;
 //!
 //! // create your VRP problem
 //! let problem: Arc<Problem> = create_example_problem();
 //! // build solver to run 10 secs or 1000 generation
-//! let solver = Builder::new(problem)
+//! let solver = Builder::new(problem, Environment::default())
 //!     .with_max_time(Some(10))
 //!     .with_max_generations(Some(1000))
 //!     .build()?;

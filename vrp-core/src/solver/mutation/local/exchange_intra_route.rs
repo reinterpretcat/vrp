@@ -47,7 +47,7 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                     &NoiseResultSelector::new(Noise::new(
                         self.probability,
                         self.noise_range,
-                        insertion_ctx.random.clone(),
+                        insertion_ctx.environment.random.clone(),
                     )),
                 );
 
@@ -69,7 +69,7 @@ impl LocalOperator for ExchangeIntraRouteRandom {
 fn get_shuffled_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
     let mut jobs =
         route_ctx.route.tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect::<Vec<_>>();
-    jobs.shuffle(&mut insertion_ctx.random.get_rng());
+    jobs.shuffle(&mut insertion_ctx.environment.random.get_rng());
 
     jobs
 }
@@ -86,6 +86,6 @@ fn get_random_route_idx(insertion_ctx: &InsertionContext) -> Option<usize> {
     if routes.is_empty() {
         None
     } else {
-        Some(routes[insertion_ctx.random.uniform_int(0, (routes.len() - 1) as i32) as usize])
+        Some(routes[insertion_ctx.environment.random.uniform_int(0, (routes.len() - 1) as i32) as usize])
     }
 }

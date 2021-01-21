@@ -74,14 +74,14 @@ impl JobMapReducer for SkipBestJobMapReducer {
         jobs: Vec<Job>,
         insertion_position: InsertionPosition,
     ) -> InsertionResult {
-        let skip_index = ctx.random.uniform_int(self.min as i32, self.max as i32);
+        let skip_index = ctx.environment.random.uniform_int(self.min as i32, self.max as i32);
 
         // NOTE no need to proceed with skip, fallback to more performant reducer
         if skip_index == 1 || jobs.len() == 1 {
             return self.inner_reducer.reduce(ctx, jobs, insertion_position);
         }
 
-        let mut results = parallel_collect(&jobs, |job| {
+        let mut results = parallel_collect(&jobs, ctx.environment.parallelism.inner_degree.clone(), |job| {
             evaluate_job_insertion(
                 &job,
                 &ctx,

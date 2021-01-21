@@ -4,7 +4,7 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::OP_START_MSG;
 use crate::models::{LockOrder, Problem, Solution};
-use crate::utils::Random;
+use crate::utils::Environment;
 use hashbrown::{HashMap, HashSet};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -12,13 +12,13 @@ use std::sync::Arc;
 type ActivityPlace = crate::models::solution::Place;
 
 /// Creates insertion context from existing solution.
-pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> InsertionContext {
+pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environment>) -> InsertionContext {
     let mut locked: HashSet<Job> = Default::default();
     let mut reserved: HashSet<Job> = Default::default();
     let mut ignored: HashSet<Job> = Default::default();
     let mut unassigned: HashMap<Job, i32> = Default::default();
     let mut routes: Vec<RouteContext> = Default::default();
-    let mut registry = Registry::new(&problem.fleet, random.clone());
+    let mut registry = Registry::new(&problem.fleet, environment.random.clone());
     let state = Default::default();
 
     let mut sequence_job_usage: HashMap<Job, usize> = Default::default();
@@ -105,7 +105,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
     let mut insertion_ctx = InsertionContext {
         problem,
         solution: SolutionContext { required, ignored: vec![], unassigned, locked, routes, registry, state },
-        random,
+        environment,
     };
 
     update_insertion_context(&mut insertion_ctx);
@@ -117,7 +117,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, random: Arc<dyn Random + 
 pub fn create_insertion_context_from_solution(
     problem: Arc<Problem>,
     solution: (Solution, Option<Cost>),
-    random: Arc<dyn Random + Send + Sync>,
+    environment: Arc<Environment>,
 ) -> InsertionContext {
     let required = solution.0.unassigned.iter().map(|(job, _)| job).cloned().collect();
     let locked = problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
@@ -150,7 +150,7 @@ pub fn create_insertion_context_from_solution(
             registry,
             state,
         },
-        random,
+        environment,
     };
 
     update_insertion_context(&mut insertion_ctx);

@@ -113,6 +113,7 @@ use self::evolution::{EvolutionConfig, EvolutionSimulator};
 
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
+use crate::utils::Environment;
 
 /// A key to store solution order information.
 pub const SOLUTION_ORDER_KEY: i32 = 100;
@@ -130,6 +131,9 @@ pub struct RefinementContext {
 
     /// A quota for refinement process.
     pub quota: Option<Arc<dyn Quota + Send + Sync>>,
+
+    /// An environmental context.
+    pub environment: Arc<Environment>,
 
     /// A refinement statistics.
     pub statistics: Statistics,
@@ -155,9 +159,10 @@ impl RefinementContext {
     pub fn new(
         problem: Arc<Problem>,
         population: Box<dyn Population + Sync + Send>,
+        environment: Arc<Environment>,
         quota: Option<Arc<dyn Quota + Send + Sync>>,
     ) -> Self {
-        Self { problem, population, state: Default::default(), quota, statistics: Statistics::default() }
+        Self { problem, population, state: Default::default(), quota, environment, statistics: Statistics::default() }
     }
 }
 
@@ -185,15 +190,17 @@ impl Solver {
     /// which has preconfigured settings:
     ///
     /// ```
-    /// # use vrp_core::models::examples::create_example_problem;
+    /// # use vrp_core::models::examples::{create_example_problem, create_example_environment};
     /// # use std::sync::Arc;
     /// use vrp_core::solver::Builder;
     /// use vrp_core::models::Problem;
     ///
     /// // create your VRP problem
     /// let problem: Arc<Problem> = create_example_problem();
+    /// // create optimal for your needs environment
+    /// let environment = create_example_environment();
     /// // build solver using builder with default settings
-    /// let solver = Builder::new(problem).build()?;
+    /// let solver = Builder::new(problem, environment).build()?;
     /// // run solver and get the best known solution within its cost.
     /// let (solution, cost, _) = solver.solve()?;
     ///

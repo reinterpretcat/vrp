@@ -32,6 +32,10 @@ impl Mutation for RuinAndRecreate {
         refinement_ctx: &RefinementContext,
         individuals: Vec<&InsertionContext>,
     ) -> Vec<InsertionContext> {
-        parallel_into_collect(individuals, |insertion_ctx| self.mutate_one(refinement_ctx, insertion_ctx))
+        parallel_into_collect(
+            individuals,
+            refinement_ctx.environment.parallelism.outer_degree.clone(),
+            |insertion_ctx| self.mutate_one(refinement_ctx, insertion_ctx),
+        )
     }
 }

@@ -56,12 +56,13 @@ impl LocalOperator for CompositeLocalOperator {
         refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
-        let times = insertion_ctx.random.uniform_int(self.times.0, self.times.1);
+        let random = insertion_ctx.environment.random.as_ref();
+        let times = random.uniform_int(self.times.0, self.times.1);
 
         let mut old_result = insertion_ctx.deep_copy();
 
         for _ in 0..times {
-            let index = insertion_ctx.random.weighted(self.weights.as_slice());
+            let index = random.weighted(self.weights.as_slice());
             let new_result = self.operators.get(index).unwrap().explore(refinement_ctx, &old_result);
 
             if let Some(new_result) = new_result {

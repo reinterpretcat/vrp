@@ -41,7 +41,7 @@ impl Default for WorstJobRemoval {
 impl Ruin for WorstJobRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
-        let random = insertion_ctx.random.clone();
+        let random = insertion_ctx.environment.random.clone();
 
         let can_remove_job = |job: &Job| -> bool {
             let solution = &insertion_ctx.solution;
@@ -52,7 +52,7 @@ impl Ruin for WorstJobRemoval {
         let mut routes_savings = get_routes_cost_savings(&insertion_ctx);
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
 
-        routes_savings.shuffle(&mut insertion_ctx.random.get_rng());
+        routes_savings.shuffle(&mut random.get_rng());
 
         let affected = get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
 
@@ -96,7 +96,7 @@ impl Ruin for WorstJobRemoval {
 }
 
 fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Job, Cost)>)> {
-    parallel_collect(&insertion_ctx.solution.routes, |rc| {
+    parallel_collect(&insertion_ctx.solution.routes, insertion_ctx.environment.parallelism.inner_degree.clone(), |rc| {
         let actor = rc.route.actor.as_ref();
         let mut savings: Vec<(Job, Cost)> = rc
             .route

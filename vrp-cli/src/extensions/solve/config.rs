@@ -8,6 +8,7 @@ mod config_test;
 
 extern crate serde_json;
 
+use crate::extensions::solve::defaults::{get_default_environment, get_default_selection_size};
 use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
@@ -16,7 +17,7 @@ use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::population::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
-use vrp_core::utils::{get_cpus, DefaultRandom};
+use vrp_core::utils::{Environment, ParallelismDegree};
 
 /// An algorithm configuration.
 #[derive(Clone, Deserialize, Debug)]
@@ -27,6 +28,8 @@ pub struct Config {
     pub mutation: Option<MutationType>,
     /// Specifies algorithm termination configuration.
     pub termination: Option<TerminationConfig>,
+    /// Specifies environment configuration.
+    pub environment: Option<EnvironmentConfig>,
     /// Specifies telemetry configuration.
     pub telemetry: Option<TelemetryConfig>,
 }
@@ -234,6 +237,7 @@ pub struct VariationConfig {
     cv: f64,
 }
 
+/// A telemetry config.
 #[derive(Clone, Deserialize, Debug)]
 pub struct TelemetryConfig {
     logging: Option<LoggingConfig>,
@@ -262,6 +266,20 @@ pub struct MetricsConfig {
     track_population: Option<usize>,
 }
 
+/// An environment specific configuration.
+#[derive(Clone, Deserialize, Debug)]
+pub struct EnvironmentConfig {
+    pub parallelism: ParallelismConfig,
+}
+
+/// Data parallelism configuration.
+#[derive(Clone, Deserialize, Debug)]
+pub struct ParallelismConfig {
+    pub max: Option<usize>,
+    pub outer: Option<usize>,
+    pub inner: Option<usize>,
+}
+
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
 pub struct MinMaxConfig {
     pub min: usize,
@@ -276,7 +294,7 @@ pub struct NameWeight {
 
 impl Default for Config {
     fn default() -> Self {
-        Self { evolution: None, mutation: None, termination: None, telemetry: None }
+        Self { evolution: None, mutation: None, termination: None, environment: None, telemetry: None }
     }
 }
 
@@ -284,6 +302,7 @@ fn configure_from_evolution(
     mut builder: Builder,
     population_config: &Option<EvolutionConfig>,
     problem: Arc<Problem>,
+    environment: Arc<Environment>,
 ) -> Result<Builder, String> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
@@ -297,16 +316,15 @@ fn configure_from_evolution(
         }
 
         if let Some(variation) = &config.population {
-            // TODO pass random from outside
-            let random = Arc::new(DefaultRandom::default());
-
+            let default_selection_size = get_default_selection_size(environment.as_ref());
             let population = match &variation {
                 PopulationType::Elitism { max_size, selection_size } => Box::new(Elitism::new(
                     problem,
-                    random,
+                    environment.random.clone(),
                     max_size.unwrap_or(4),
-                    selection_size.unwrap_or_else(get_cpus),
-                )),
+                    selection_size.unwrap_or(default_selection_size),
+                ))
+                    as Box<dyn Population + Send + Sync>,
                 PopulationType::Rosomaxa {
                     max_elite_size,
                     max_node_size,
@@ -319,7 +337,7 @@ fn configure_from_evolution(
                     rebalance_count,
                     exploration_ratio,
                 } => {
-                    let mut config = RosomaxaConfig::default();
+                    let mut config = RosomaxaConfig::new_with_defaults(default_selection_size);
                     if let Some(max_elite_size) = max_elite_size {
                         config.elite_size = *max_elite_size;
                     }
@@ -351,7 +369,7 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    Rosomaxa::new_with_fallback(problem, random, config)
+                    Box::new(Rosomaxa::new(problem, environment, config)?)
                 }
             };
 
@@ -516,6 +534,27 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
     Ok(builder.with_telemetry(Telemetry::new(telemetry_mode)))
 }
 
+fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) -> Result<Arc<Environment>, String> {
+    let mut environment = get_default_environment();
+
+    // TODO validate parameters
+    if let Some(config) = environment_config.as_ref() {
+        if let Some(max) = config.parallelism.max.as_ref() {
+            environment.parallelism.max_degree = ParallelismDegree::Limited { max: *max };
+        }
+
+        if let Some(outer) = config.parallelism.outer.as_ref() {
+            environment.parallelism.outer_degree = ParallelismDegree::Limited { max: *outer };
+        }
+
+        if let Some(inner) = config.parallelism.inner.as_ref() {
+            environment.parallelism.inner_degree = ParallelismDegree::Limited { max: *inner };
+        }
+    }
+
+    Ok(Arc::new(environment))
+}
+
 /// Reads config from reader.
 pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
     serde_json::from_reader(reader).map_err(|err| format!("cannot deserialize config: '{}'", err))
@@ -531,10 +570,11 @@ pub fn create_builder_from_config_file<R: Read>(
 
 /// Creates a solver `Builder` from config.
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
-    let mut builder = Builder::new(problem.clone());
+    let environment = configure_from_environment(&config.environment)?;
+    let mut builder = Builder::new(problem.clone(), environment.clone());
 
     builder = configure_from_telemetry(builder, &config.telemetry)?;
-    builder = configure_from_evolution(builder, &config.evolution, problem)?;
+    builder = configure_from_evolution(builder, &config.evolution, problem, environment)?;
     builder = configure_from_mutation(builder, &config.mutation)?;
     builder = configure_from_termination(builder, &config.termination)?;
 

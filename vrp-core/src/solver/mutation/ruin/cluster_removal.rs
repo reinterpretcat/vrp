@@ -48,10 +48,10 @@ impl ClusterRemoval {
 impl Ruin for ClusterRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
-        let random = insertion_ctx.random.clone();
+        let random = insertion_ctx.environment.random.clone();
 
         let mut clusters = create_job_clusters(&problem, &random, self.params.as_slice());
-        clusters.shuffle(&mut insertion_ctx.random.get_rng());
+        clusters.shuffle(&mut random.get_rng());
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
@@ -62,7 +62,7 @@ impl Ruin for ClusterRemoval {
         clusters.iter_mut().take_while(|_| removed_jobs.read().unwrap().len() < max_affected).for_each(|cluster| {
             let left = max_affected - removed_jobs.read().unwrap().len();
             if cluster.len() > left {
-                cluster.shuffle(&mut insertion_ctx.random.get_rng());
+                cluster.shuffle(&mut random.get_rng());
             }
 
             cluster

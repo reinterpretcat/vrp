@@ -47,7 +47,7 @@ impl Default for AllJobSelector {
 
 impl JobSelector for AllJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut ctx.random.get_rng());
+        ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
 
         Box::new(ctx.solution.required.iter().cloned())
     }
@@ -89,6 +89,7 @@ impl JobMapReducer for PairJobMapReducer {
     ) -> InsertionResult {
         map_reduce(
             &jobs,
+            ctx.environment.parallelism.inner_degree.clone(),
             |job| {
                 evaluate_job_insertion(
                     &job,

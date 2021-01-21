@@ -3,7 +3,7 @@
 mod network_test;
 
 use super::*;
-use crate::utils::parallel_collect;
+use crate::utils::{parallel_collect, ParallelismDegree};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
@@ -30,6 +30,8 @@ pub struct Network<I: Input, S: Storage<Item = I>> {
     time: usize,
     /// A rebalance memory.
     rebalance_memory: usize,
+    /// Parallelism degree.
+    parallelism_degree: ParallelismDegree,
 }
 
 impl<I: Input, S: Storage<Item = I>> Network<I, S> {
@@ -41,6 +43,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         distribution_factor: f64,
         learning_rate: f64,
         rebalance_memory: usize,
+        parallelism_degree: ParallelismDegree,
         storage_factory: Box<dyn Fn() -> S + Send + Sync>,
     ) -> Self {
         let dimension = roots[0].weights().len();
@@ -59,6 +62,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             storage_factory,
             time: 0,
             rebalance_memory,
+            parallelism_degree,
         }
     }
 
@@ -110,7 +114,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
     /// Trains network on inputs.
     fn train_batch<T: Send + Sync>(&mut self, item_data: &[T], is_new_input: bool, map_func: fn(&T) -> I) {
-        let nodes_data = parallel_collect(item_data, |item| {
+        let nodes_data = parallel_collect(item_data, self.parallelism_degree.clone(), |item| {
             let input = map_func(item);
             let bmu = self.find_bmu(&input);
             let error = bmu.read().unwrap().distance(input.weights());

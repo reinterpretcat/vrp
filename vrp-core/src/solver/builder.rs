@@ -6,7 +6,7 @@ use crate::solver::mutation::*;
 use crate::solver::population::Population;
 use crate::solver::termination::*;
 use crate::solver::{Solver, Telemetry};
-use crate::utils::{DefaultRandom, TimeQuota};
+use crate::utils::{Environment, TimeQuota};
 use std::sync::Arc;
 
 /// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent
@@ -59,8 +59,13 @@ pub struct Builder {
 
 impl Builder {
     /// Creates a new instance of `Builder`.
-    pub fn new(problem: Arc<Problem>) -> Self {
-        Self { max_generations: None, max_time: None, cost_variation: None, config: EvolutionConfig::new(problem) }
+    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+        Self {
+            max_generations: None,
+            max_time: None,
+            cost_variation: None,
+            config: EvolutionConfig::new(problem, environment),
+        }
     }
 }
 
@@ -117,7 +122,7 @@ impl Builder {
                 InsertionContext::new_from_solution(
                     self.config.problem.clone(),
                     (solution, None),
-                    Arc::new(DefaultRandom::default()),
+                    self.config.environment.clone(),
                 )
             })
             .collect();
@@ -191,8 +196,6 @@ impl Builder {
         let mut config = self.config;
         config.termination = Arc::new(CompositeTermination::new(criterias));
         config.quota = quota;
-
-        config.random = Arc::new(DefaultRandom::default());
 
         Ok(Solver { problem, config })
     }

@@ -74,7 +74,7 @@ impl InsertionHeuristic {
         prepare_insertion_ctx(&mut ctx);
 
         while !ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
-            ctx.solution.routes.shuffle(&mut ctx.random.get_rng());
+            ctx.solution.routes.shuffle(&mut ctx.environment.random.get_rng());
 
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Job>>();
             let result = job_reducer.reduce(&ctx, jobs, self.insertion_position);

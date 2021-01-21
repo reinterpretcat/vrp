@@ -9,7 +9,7 @@ use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
-use crate::utils::{as_mut, compare_floats, Random};
+use crate::utils::{as_mut, compare_floats, Environment};
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::ops::Deref;
@@ -23,23 +23,23 @@ pub struct InsertionContext {
     /// Solution context: discovered solution.
     pub solution: SolutionContext,
 
-    /// Random generator.
-    pub random: Arc<dyn Random + Send + Sync>,
+    /// Information about environment.
+    pub environment: Arc<Environment>,
 }
 
 impl InsertionContext {
     /// Creates insertion context from existing solution.
-    pub fn new(problem: Arc<Problem>, random: Arc<dyn Random + Send + Sync>) -> Self {
-        create_insertion_context(problem, random)
+    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+        create_insertion_context(problem, environment)
     }
 
     /// Creates insertion context from existing solution.
     pub fn new_from_solution(
         problem: Arc<Problem>,
         solution: (Solution, Option<Cost>),
-        random: Arc<dyn Random + Send + Sync>,
+        environment: Arc<Environment>,
     ) -> Self {
-        let mut ctx = create_insertion_context_from_solution(problem, solution, random);
+        let mut ctx = create_insertion_context_from_solution(problem, solution, environment);
         ctx.restore();
 
         ctx
@@ -65,7 +65,7 @@ impl InsertionContext {
         InsertionContext {
             problem: self.problem.clone(),
             solution: self.solution.deep_copy(),
-            random: self.random.clone(),
+            environment: self.environment.clone(),
         }
     }
 

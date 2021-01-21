@@ -76,14 +76,14 @@ impl JobMapReducer for RegretJobMapReducer {
         jobs: Vec<Job>,
         insertion_position: InsertionPosition,
     ) -> InsertionResult {
-        let regret_index = ctx.random.uniform_int(self.min as i32, self.max as i32) as usize;
+        let regret_index = ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
 
         // NOTE no need to proceed with regret, fallback to more performant reducer
         if regret_index == 1 || jobs.len() == 1 || ctx.solution.routes.len() < 2 {
             return self.inner_reducer.reduce(ctx, jobs, insertion_position);
         }
 
-        let mut results = parallel_collect(&jobs, |job| {
+        let mut results = parallel_collect(&jobs, ctx.environment.parallelism.inner_degree.clone(), |job| {
             self.route_selector
                 .select(ctx, job)
                 .map(|route_ctx| {

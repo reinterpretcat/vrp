@@ -37,7 +37,7 @@ impl LocalOperator for ExchangeInterRouteBest {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         find_best_insertion_pair(
             insertion_ctx,
-            Noise::new(self.noise_probability, self.noise_range, insertion_ctx.random.clone()),
+            Noise::new(self.noise_probability, self.noise_range, insertion_ctx.environment.random.clone()),
             Box::new(|_| true),
             Box::new(|_| true),
         )
@@ -59,15 +59,16 @@ impl Default for ExchangeInterRouteRandom {
 
 impl LocalOperator for ExchangeInterRouteRandom {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
+        let random = &insertion_ctx.environment.random;
         find_best_insertion_pair(
             insertion_ctx,
-            Noise::new(self.noise_probability, self.noise_range, insertion_ctx.random.clone()),
+            Noise::new(self.noise_probability, self.noise_range, random.clone()),
             {
-                let random = insertion_ctx.random.clone();
+                let random = random.clone();
                 Box::new(move |_idx| random.is_head_not_tails())
             },
             {
-                let random = insertion_ctx.random.clone();
+                let random = random.clone();
                 Box::new(move |_idx| random.is_head_not_tails())
             },
         )
@@ -83,7 +84,7 @@ fn find_best_insertion_pair(
     filter_jobs_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
 ) -> Option<InsertionContext> {
     if let Some((seed_route_idx, seed_job)) =
-        select_seed_job(insertion_ctx.solution.routes.as_slice(), &insertion_ctx.random)
+        select_seed_job(insertion_ctx.solution.routes.as_slice(), &insertion_ctx.environment.random)
     {
         let locked = &insertion_ctx.solution.locked;
 
@@ -112,6 +113,7 @@ fn find_best_insertion_pair(
                         .filter(|(idx, job)| !locked.contains(&job) && filter_jobs_indices(*idx))
                         .collect::<Vec<_>>()
                         .as_slice(),
+                    insertion_ctx.environment.parallelism.inner_degree.clone(),
                     |(_, test_job)| {
                         // try to insert test job into seed tour
                         let seed_success =

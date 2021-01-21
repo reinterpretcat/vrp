@@ -63,7 +63,7 @@ impl Ruin for AdjustedStringRemoval {
 
         let problem = insertion_ctx.problem.clone();
         let locked = insertion_ctx.solution.locked.clone();
-        let random = insertion_ctx.random.clone();
+        let random = insertion_ctx.environment.random.clone();
 
         let (lsmax, ks) = self.calculate_limits(&routes, &random);
 

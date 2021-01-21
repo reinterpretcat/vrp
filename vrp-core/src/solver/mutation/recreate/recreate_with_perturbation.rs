@@ -56,8 +56,8 @@ impl CostPerturbationResultSelector {
 impl ResultSelector for CostPerturbationResultSelector {
     fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
         InsertionResult::choose_best_result(
-            self.try_perturbation(left, ctx.random.as_ref()),
-            self.try_perturbation(right, ctx.random.as_ref()),
+            self.try_perturbation(left, ctx.environment.random.as_ref()),
+            self.try_perturbation(right, ctx.environment.random.as_ref()),
         )
     }
 }

@@ -123,9 +123,9 @@ impl Ruin for CompositeRuin {
             return insertion_ctx;
         }
 
-        let random = insertion_ctx.random.clone();
+        let random = insertion_ctx.environment.random.clone();
 
-        let index = insertion_ctx.random.weighted(self.weights.as_slice());
+        let index = random.weighted(self.weights.as_slice());
 
         let mut insertion_ctx = self.ruins[index]
             .iter()

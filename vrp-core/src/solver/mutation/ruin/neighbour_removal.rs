@@ -27,7 +27,7 @@ impl Ruin for NeighbourRemoval {
         let affected = get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
 
         let problem = insertion_ctx.problem.clone();
-        let random = insertion_ctx.random.clone();
+        let random = insertion_ctx.environment.random.clone();
 
         let routes = insertion_ctx.solution.routes.clone();
         let locked = insertion_ctx.solution.locked.clone();
