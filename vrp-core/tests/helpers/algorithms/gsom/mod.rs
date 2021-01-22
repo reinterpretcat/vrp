@@ -1,4 +1,4 @@
-use crate::algorithms::gsom::{Input, Network, Storage};
+use crate::algorithms::gsom::{Input, Network, NetworkConfig, Storage};
 use crate::utils::ParallelismDegree;
 use std::fmt::{Display, Formatter};
 
@@ -60,11 +60,13 @@ pub fn create_test_network() -> Network<Data, DataStorage> {
             Data::new(0.26027299, 0.17534256, 0.19371101),
             Data::new(0.18671211, 0.16638008, 0.77362103),
         ],
-        0.25,
-        0.1,
-        0.25,
-        0.1,
-        500,
+        NetworkConfig {
+            spread_factor: 0.25,
+            reduction_factor: 0.1,
+            distribution_factor: 0.25,
+            learning_rate: 0.1,
+            rebalance_memory: 500,
+        },
         ParallelismDegree::Full,
         Box::new(|| DataStorage::default()),
     )

@@ -4,7 +4,7 @@ mod rosomaxa_test;
 
 use super::super::rand::prelude::SliceRandom;
 use super::*;
-use crate::algorithms::gsom::{get_network_state, Input, Network, NodeLink, Storage};
+use crate::algorithms::gsom::{get_network_state, Input, Network, NetworkConfig, NodeLink, Storage};
 use crate::algorithms::statistics::relative_distance;
 use crate::construction::heuristics::*;
 use crate::models::Problem;
@@ -270,11 +270,13 @@ impl Rosomaxa {
 
         Network::new(
             *inputs_array,
-            config.spread_factor,
-            config.reduction_factor,
-            config.distribution_factor,
-            config.learning_rate,
-            config.rebalance_memory,
+            NetworkConfig {
+                spread_factor: config.spread_factor,
+                reduction_factor: config.reduction_factor,
+                distribution_factor: config.distribution_factor,
+                learning_rate: config.learning_rate,
+                rebalance_memory: config.rebalance_memory,
+            },
             environment.parallelism.max_degree.clone(),
             Box::new({
                 let node_size = config.node_size;

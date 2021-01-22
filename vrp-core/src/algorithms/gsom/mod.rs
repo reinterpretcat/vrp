@@ -3,7 +3,7 @@
 use std::fmt::Display;
 
 mod network;
-pub use self::network::Network;
+pub use self::network::*;
 
 mod node;
 pub use self::node::*;

@@ -94,7 +94,7 @@ impl EvolutionSimulator {
 
         let max_degree_par_env = create_max_degree_parallelism_environment(self.config.environment.as_ref());
         let empty_ctx = InsertionContext::new(self.config.problem.clone(), max_degree_par_env.clone());
-        refinement_ctx.environment = max_degree_par_env.clone();
+        refinement_ctx.environment = max_degree_par_env;
 
         let initial_time = Timer::start();
         let _ = (refinement_ctx.population.size()..self.config.population.initial.size).try_for_each(|idx| {
