@@ -70,6 +70,8 @@ mod actual {
 
 #[cfg(target_arch = "wasm32")]
 mod actual {
+    use crate::utils::ParallelismDegree;
+
     /// Map collections and collects results into vector synchronously.
     pub fn parallel_collect<T, F, R>(source: &[T], _degree: ParallelismDegree, map_op: F) -> Vec<R>
     where
