@@ -4,12 +4,12 @@ use crate::helpers::construction::constraints::create_constraint_pipeline_with_t
 use crate::helpers::models::domain::{create_empty_solution_context, test_random};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::helpers::utils::create_test_environment;
 use crate::models::common::Schedule;
 use crate::models::problem::{Job, Jobs, ObjectiveCost, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
 use crate::solver::objectives::TotalTransportCost;
+use crate::utils::Environment;
 use hashbrown::HashMap;
 use std::sync::Arc;
 
@@ -65,7 +65,7 @@ fn can_calculate_transport_cost() {
             registry: RegistryContext::new(Registry::new(&fleet, test_random())),
             ..create_empty_solution_context()
         },
-        environment: create_test_environment(),
+        environment: Arc::new(Environment::default()),
     };
     constraint.accept_solution_state(&mut insertion_ctx.solution);
 

@@ -1,12 +1,11 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext};
 use crate::helpers::models::problem::*;
-use crate::helpers::utils::create_test_environment;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs, ObjectiveCost};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
-use crate::utils::{DefaultRandom, Random};
+use crate::utils::{DefaultRandom, Environment, Random};
 use std::sync::Arc;
 
 pub fn test_random() -> Arc<dyn Random + Send + Sync> {
@@ -66,7 +65,7 @@ pub fn create_empty_insertion_context() -> InsertionContext {
     InsertionContext {
         problem: create_empty_problem(),
         solution: create_empty_solution_context(),
-        environment: create_test_environment(),
+        environment: Arc::new(Environment::default()),
     }
 }
 

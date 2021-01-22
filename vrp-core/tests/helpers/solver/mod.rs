@@ -3,22 +3,27 @@ use crate::helpers::construction::constraints::create_constraint_pipeline_with_t
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
-use crate::helpers::utils::create_test_environment;
 use crate::models::common::Location;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::solver::population::{Elitism, Population};
 use crate::solver::RefinementContext;
+use crate::utils::Environment;
 use std::sync::Arc;
 
 /// Creates default population.
 pub fn create_default_population(problem: Arc<Problem>) -> Box<dyn Population + Sync + Send> {
-    Box::new(Elitism::new_with_defaults(problem, create_test_environment()))
+    Box::new(Elitism::new_with_defaults(problem, Arc::new(Environment::default())))
 }
 
 pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext {
-    RefinementContext::new(problem.clone(), create_default_population(problem.clone()), create_test_environment(), None)
+    RefinementContext::new(
+        problem.clone(),
+        create_default_population(problem.clone()),
+        Arc::new(Environment::default()),
+        None,
+    )
 }
 
 /// Generates matrix routes. See `generate_matrix_routes`.

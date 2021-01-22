@@ -3,10 +3,9 @@ use crate::helpers::algorithms::p;
 use crate::helpers::models::domain::create_empty_problem;
 use crate::helpers::models::problem::test_single_with_id_and_location;
 use crate::helpers::solver::*;
-use crate::helpers::utils::create_test_environment;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Location;
-use crate::utils::Random;
+use crate::utils::{Environment, Random};
 use std::sync::Arc;
 
 fn create_test_distances() -> Vec<f64> {
@@ -193,7 +192,7 @@ fn can_ruin_jobs_impl(limit: usize, cluster_size: Range<usize>, expected: usize)
     );
     let problem = Arc::new(problem);
     let insertion_ctx =
-        InsertionContext::new_from_solution(problem.clone(), (solution, None), create_test_environment());
+        InsertionContext::new_from_solution(problem.clone(), (solution, None), Arc::new(Environment::default()));
 
     let insertion_ctx = ClusterRemoval::new(problem, cluster_size, limit)
         .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
