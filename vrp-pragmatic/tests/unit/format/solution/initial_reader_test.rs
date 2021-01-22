@@ -5,7 +5,7 @@ use crate::helpers::*;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::utils::DefaultRandom;
+use vrp_core::utils::Environment;
 
 fn create_basic_problem(breaks: Option<Vec<VehicleBreak>>) -> Problem {
     Problem {
@@ -57,6 +57,7 @@ fn create_unassigned_jobs(job_ids: &[&str]) -> Option<Vec<UnassignedJob>> {
 }
 
 fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, String> {
+    let environment = Arc::new(Environment::default());
     let matrix = create_matrix_from_problem(&problem);
     let core_problem = Arc::new(
         (problem, vec![matrix]).read_pragmatic().unwrap_or_else(|err| panic!("cannot read core problem: {:?}", err)),
@@ -65,11 +66,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
     let core_solution = to_core_solution(solution, core_problem.clone(), create_random())?;
 
     // NOTE: get statistic/tours updated
-    let insertion_ctx = InsertionContext::new_from_solution(
-        core_problem.clone(),
-        (core_solution, None),
-        Arc::new(DefaultRandom::default()),
-    );
+    let insertion_ctx = InsertionContext::new_from_solution(core_problem.clone(), (core_solution, None), environment);
     let core_solution = insertion_ctx.solution.to_solution(core_problem.extras.clone());
 
     let mut buffer = String::new();

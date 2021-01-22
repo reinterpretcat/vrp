@@ -334,5 +334,12 @@
       "enabled": false,
       "trackPopulation": 1000
     }
+  },
+  "environment": {
+    "parallelism":{
+      "max": 0,
+      "outer": 0,
+      "inner": 0
+    }
   }
 }

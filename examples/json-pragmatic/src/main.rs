@@ -6,6 +6,7 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_pragmatic::core::solver::Builder;
+use vrp_pragmatic::core::utils::Environment;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 use vrp_pragmatic::format::FormatError;
@@ -37,6 +38,7 @@ fn run_examples(base_path: &str) {
     ];
 
     for (name, matrices) in names {
+        let environment = Arc::new(Environment::default());
         let problem = get_pragmatic_problem(base_path, name);
 
         let (core_problem, problem, matrices) = if let Some(matrices) = matrices {
@@ -56,7 +58,7 @@ fn run_examples(base_path: &str) {
             panic!("cannot read pragmatic problem: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
         }));
 
-        let (solution, _, _) = Builder::new(core_problem.clone())
+        let (solution, _, _) = Builder::new(core_problem.clone(), environment)
             .with_max_generations(Some(100))
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))

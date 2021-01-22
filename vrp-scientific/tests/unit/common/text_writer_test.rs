@@ -6,11 +6,11 @@ use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::population::Elitism;
 use vrp_core::solver::RefinementContext;
-use vrp_core::utils::DefaultRandom;
+use vrp_core::utils::Environment;
 
 #[test]
 fn can_write_solomon_solution() {
-    let random = Arc::new(DefaultRandom::default());
+    let environment = Arc::new(Environment::default());
     let problem = Arc::new(
         SolomonBuilder::new()
             .set_title("Trivial problem")
@@ -22,13 +22,17 @@ fn can_write_solomon_solution() {
             .unwrap(),
     );
 
-    let mut refinement_ctx =
-        RefinementContext::new(problem.clone(), Box::new(Elitism::new(problem.clone(), random.clone(), 1, 1)), None);
+    let mut refinement_ctx = RefinementContext::new(
+        problem.clone(),
+        Box::new(Elitism::new(problem.clone(), environment.random.clone(), 1, 1)),
+        environment.clone(),
+        None,
+    );
 
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
     RecreateWithCheapest::default()
-        .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), random))
+        .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment))
         .solution
         .to_solution(problem.extras.clone())
         .write_solomon(writer)

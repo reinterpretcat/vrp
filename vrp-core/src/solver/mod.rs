@@ -190,15 +190,15 @@ impl Solver {
     /// which has preconfigured settings:
     ///
     /// ```
-    /// # use vrp_core::models::examples::{create_example_problem, create_example_environment};
+    /// # use vrp_core::models::examples::create_example_problem;
     /// # use std::sync::Arc;
     /// use vrp_core::solver::Builder;
     /// use vrp_core::models::Problem;
+    /// use vrp_core::utils::Environment;
     ///
     /// // create your VRP problem
     /// let problem: Arc<Problem> = create_example_problem();
-    /// // create optimal for your needs environment
-    /// let environment = create_example_environment();
+    /// let environment = Arc::new(Environment::default());
     /// // build solver using builder with default settings
     /// let solver = Builder::new(problem, environment).build()?;
     /// // run solver and get the best known solution within its cost.

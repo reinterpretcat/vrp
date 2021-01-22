@@ -12,10 +12,9 @@ use std::sync::Arc;
 use vrp_cli::core::solver::population::Population;
 use vrp_cli::extensions::check::check_pragmatic_solution;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
-use vrp_cli::extensions::solve::defaults::{get_default_environment, get_default_selection_size};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
-use vrp_core::solver::population::{Elitism, Rosomaxa, RosomaxaConfig};
+use vrp_core::solver::population::{get_default_selection_size, Elitism, Rosomaxa, RosomaxaConfig};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
 use vrp_core::utils::{DefaultRandom, Environment, Parallelism, ParallelismDegree, Random};
 
@@ -397,7 +396,7 @@ fn get_environment(matches: &ArgMatches) -> Arc<Environment> {
                 process::exit(1);
             }
         })
-        .unwrap_or_else(|| Arc::new(get_default_environment()))
+        .unwrap_or_else(|| Arc::new(Environment::default()))
 }
 
 fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {

@@ -1,6 +1,7 @@
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext};
 use crate::helpers::models::problem::*;
+use crate::helpers::utils::create_test_environment;
 use crate::models::common::IdDimension;
 use crate::models::problem::{Fleet, Job, Jobs, ObjectiveCost};
 use crate::models::solution::Registry;
@@ -65,7 +66,7 @@ pub fn create_empty_insertion_context() -> InsertionContext {
     InsertionContext {
         problem: create_empty_problem(),
         solution: create_empty_solution_context(),
-        random: Arc::new(DefaultRandom::default()),
+        environment: create_test_environment(),
     }
 }
 

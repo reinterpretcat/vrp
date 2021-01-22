@@ -2,7 +2,6 @@ use crate::construction::constraints::{ConstraintPipeline, TransportConstraintMo
 use crate::models::common::{TimeInterval, TimeSpan, TimeWindow};
 use crate::models::problem::*;
 use crate::models::Problem;
-use crate::utils::{DefaultRandom, Environment, Parallelism, ParallelismDegree};
 use std::sync::Arc;
 
 struct ExampleTransportCost {}
@@ -78,17 +77,5 @@ pub fn create_example_problem() -> Arc<Problem> {
         transport,
         objective: Arc::new(ObjectiveCost::default()),
         extras: Arc::new(Default::default()),
-    })
-}
-
-/// Creates an example environment.
-pub fn create_example_environment() -> Arc<Environment> {
-    Arc::new(Environment {
-        random: Arc::new(DefaultRandom::default()),
-        parallelism: Parallelism::new(
-            ParallelismDegree::Full,
-            ParallelismDegree::Limited { max: 4 },
-            ParallelismDegree::Limited { max: 4 },
-        ),
     })
 }

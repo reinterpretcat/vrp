@@ -1,6 +1,7 @@
 use super::*;
 use crate::helpers::models::domain::get_customer_ids_from_routes;
 use crate::helpers::solver::{create_default_refinement_ctx, generate_matrix_routes_with_defaults};
+use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::IdDimension;
 use std::sync::Arc;
@@ -60,7 +61,7 @@ fn can_use_exchange_inter_route_best_operator_impl(
         InsertionContext::new_from_solution(
             Arc::new(problem),
             (solution, None),
-            Arc::new(FakeRandom::new(ints, reals)),
+            create_test_environment_with_random(Arc::new(FakeRandom::new(ints, reals))),
         ),
         locked_ids,
     );

@@ -1,13 +1,13 @@
 use super::SelectionPhase::{Exploitation, Exploration, Initial};
 use super::*;
 use crate::helpers::models::domain::*;
+use crate::helpers::utils::create_test_environment;
 
 fn create_rosomaxa() -> Rosomaxa {
-    let mut config = RosomaxaConfig::default();
+    let mut config = RosomaxaConfig::new_with_defaults(4);
     config.rebalance_memory = 10;
-    config.selection_size = 4;
 
-    Rosomaxa::new(create_empty_problem(), test_random(), config).unwrap()
+    Rosomaxa::new(create_empty_problem(), create_test_environment(), config).unwrap()
 }
 
 fn create_statistics(termination_estimate: f64, generation: usize) -> Statistics {

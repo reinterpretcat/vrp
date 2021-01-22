@@ -8,7 +8,6 @@ mod config_test;
 
 extern crate serde_json;
 
-use crate::extensions::solve::defaults::{get_default_environment, get_default_selection_size};
 use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
@@ -338,6 +337,9 @@ fn configure_from_evolution(
                     exploration_ratio,
                 } => {
                     let mut config = RosomaxaConfig::new_with_defaults(default_selection_size);
+                    if let Some(selection_size) = selection_size {
+                        config.selection_size = *selection_size;
+                    }
                     if let Some(max_elite_size) = max_elite_size {
                         config.elite_size = *max_elite_size;
                     }
@@ -355,9 +357,6 @@ fn configure_from_evolution(
                     }
                     if let Some(learning_rate) = learning_rate {
                         config.learning_rate = *learning_rate;
-                    }
-                    if let Some(selection_size) = selection_size {
-                        config.selection_size = *selection_size;
                     }
                     if let Some(rebalance_memory) = rebalance_memory {
                         config.rebalance_memory = *rebalance_memory;
@@ -535,20 +534,28 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
 }
 
 fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) -> Result<Arc<Environment>, String> {
-    let mut environment = get_default_environment();
+    let mut environment = Environment::default();
+
+    let limited_or_full = |value: usize| {
+        if value == 0 {
+            ParallelismDegree::Full
+        } else {
+            ParallelismDegree::Limited { max: value }
+        }
+    };
 
     // TODO validate parameters
     if let Some(config) = environment_config.as_ref() {
         if let Some(max) = config.parallelism.max.as_ref() {
-            environment.parallelism.max_degree = ParallelismDegree::Limited { max: *max };
+            environment.parallelism.max_degree = limited_or_full(*max);
         }
 
         if let Some(outer) = config.parallelism.outer.as_ref() {
-            environment.parallelism.outer_degree = ParallelismDegree::Limited { max: *outer };
+            environment.parallelism.outer_degree = limited_or_full(*outer);
         }
 
         if let Some(inner) = config.parallelism.inner.as_ref() {
-            environment.parallelism.inner_degree = ParallelismDegree::Limited { max: *inner };
+            environment.parallelism.inner_degree = limited_or_full(*inner);
         }
     }
 

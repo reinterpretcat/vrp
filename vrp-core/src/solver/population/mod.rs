@@ -9,7 +9,7 @@ pub use self::rosomaxa::RosomaxaConfig;
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::Statistics;
-use crate::utils::compare_floats;
+use crate::utils::{compare_floats, Environment, ParallelismDegree};
 use std::cmp::Ordering;
 use std::fmt::Display;
 
@@ -63,4 +63,12 @@ fn is_same_fitness(a: &Individual, b: &Individual) -> bool {
     let fitness_b = b.get_fitness_values();
 
     fitness_a.zip(fitness_b).all(|(a, b)| compare_floats(a, b) == Ordering::Equal)
+}
+
+/// Gets default population selection size.
+pub fn get_default_selection_size(environment: &Environment) -> usize {
+    match environment.parallelism.outer_degree {
+        ParallelismDegree::Full => environment.parallelism.available_cpus,
+        ParallelismDegree::Limited { max } => max,
+    }
 }

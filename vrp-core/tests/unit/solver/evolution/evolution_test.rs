@@ -17,7 +17,10 @@ can_enable_telemetry_metrics! {
 }
 
 fn can_enable_telemetry_metrics_impl(mode: TelemetryMode) {
-    let config = EvolutionConfig { telemetry: Telemetry::new(mode), ..EvolutionConfig::new(create_example_problem()) };
+    let config = EvolutionConfig {
+        telemetry: Telemetry::new(mode),
+        ..EvolutionConfig::new(create_example_problem(), Arc::new(Environment::default()))
+    };
     let evolution = EvolutionSimulator::new(config).unwrap();
 
     let (_, metrics) = evolution.run().unwrap();
@@ -41,7 +44,10 @@ can_disable_telemetry_metrics! {
 }
 
 fn can_disable_telemetry_metrics_impl(mode: TelemetryMode) {
-    let config = EvolutionConfig { telemetry: Telemetry::new(mode), ..EvolutionConfig::new(create_example_problem()) };
+    let config = EvolutionConfig {
+        telemetry: Telemetry::new(mode),
+        ..EvolutionConfig::new(create_example_problem(), Arc::new(Environment::default()))
+    };
     let evolution = EvolutionSimulator::new(config).unwrap();
 
     let (_, metrics) = evolution.run().unwrap();
@@ -62,7 +68,7 @@ fn can_use_quota() {
     let config = EvolutionConfig {
         quota: Some(Arc::new(FullQuota {})),
         telemetry: Telemetry::new(TelemetryMode::OnlyMetrics { track_population: 100 }),
-        ..EvolutionConfig::new(create_example_problem())
+        ..EvolutionConfig::new(create_example_problem(), Arc::new(Environment::default()))
     };
     let evolution = EvolutionSimulator::new(config).unwrap();
 

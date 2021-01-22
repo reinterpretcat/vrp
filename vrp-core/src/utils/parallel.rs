@@ -15,7 +15,11 @@ mod actual {
         F: Fn(&T) -> R + Sync + Send,
         R: Send,
     {
-        source.par_iter().with_min_len(get_min_len(source.len(), degree)).map(map_op).collect()
+        if let Some(min_len) = get_min_len(source.len(), degree) {
+            source.par_iter().with_min_len(min_len).map(map_op).collect()
+        } else {
+            source.par_iter().map(map_op).collect()
+        }
     }
 
     /// Maps collection and collects results into vector in parallel.
@@ -25,8 +29,11 @@ mod actual {
         F: Fn(T) -> R + Sync + Send,
         R: Send,
     {
-        let min_len = get_min_len(source.len(), degree);
-        source.into_par_iter().with_min_len(min_len).map(map_op).collect()
+        if let Some(min_len) = get_min_len(source.len(), degree) {
+            source.into_par_iter().with_min_len(min_len).map(map_op).collect()
+        } else {
+            source.into_par_iter().map(map_op).collect()
+        }
     }
 
     /// Performs map reduce operations in parallel.
@@ -44,16 +51,20 @@ mod actual {
         FD: Fn() -> R + Sync + Send,
         R: Send,
     {
-        source.par_iter().with_min_len(get_min_len(source.len(), degree)).map(map_op).reduce(default_op, reduce_op)
+        if let Some(min_len) = get_min_len(source.len(), degree) {
+            source.par_iter().with_min_len(min_len).map(map_op).reduce(default_op, reduce_op)
+        } else {
+            source.par_iter().map(map_op).reduce(default_op, reduce_op)
+        }
     }
 
-    fn get_min_len(items: usize, degree: ParallelismDegree) -> usize {
+    fn get_min_len(items: usize, degree: ParallelismDegree) -> Option<usize> {
         let degree = match degree {
-            ParallelismDegree::Full => 0,
+            ParallelismDegree::Full => return None,
             ParallelismDegree::Limited { max } => max,
         };
 
-        (items as f64 / degree as f64).ceil() as usize
+        Some((items as f64 / degree as f64).ceil() as usize)
     }
 }
 

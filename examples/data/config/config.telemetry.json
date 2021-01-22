@@ -1,9 +1,4 @@
 {
-  "population": {
-    "initialSize": 1,
-    "populationSize": 4,
-    "offspringSize": 2
-  },
   "termination": {
     "maxTime": 300
   },
