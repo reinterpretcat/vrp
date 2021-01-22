@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- introduced parallelism control options (experimental).
+
+
 
 ## [v1.7.3] - 2021-01-08
 
