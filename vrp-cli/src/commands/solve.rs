@@ -385,11 +385,16 @@ fn get_environment(matches: &ArgMatches) -> Arc<Environment> {
             if let [max, outer, inner] =
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
             {
-                let parallelism = Parallelism::new(
-                    ParallelismDegree::Limited { max: *max },
-                    ParallelismDegree::Limited { max: *outer },
-                    ParallelismDegree::Limited { max: *inner },
-                );
+                let limited_or_full = |value: usize| {
+                    if value == 0 {
+                        ParallelismDegree::Full
+                    } else {
+                        ParallelismDegree::Limited { max: value }
+                    }
+                };
+
+                let parallelism =
+                    Parallelism::new(limited_or_full(*max), limited_or_full(*outer), limited_or_full(*inner));
                 Arc::new(Environment::new(Arc::new(DefaultRandom::default()), parallelism))
             } else {
                 eprintln!("cannot parse parallelism parameter");
