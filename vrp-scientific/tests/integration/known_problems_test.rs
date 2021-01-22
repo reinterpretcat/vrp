@@ -7,7 +7,7 @@ use vrp_core::algorithms::nsga2::Objective;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem;
 use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
-use vrp_core::solver::population::Elitism;
+use vrp_core::solver::population::create_elitism_population;
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::Environment;
 
@@ -79,7 +79,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     let environment = Arc::new(Environment::default());
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
-        Box::new(Elitism::new_with_defaults(problem.clone(), environment.clone())),
+        create_elitism_population(problem.clone(), environment.clone()),
         environment.clone(),
         None,
     );

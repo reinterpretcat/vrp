@@ -8,10 +8,12 @@ pub use self::rosomaxa::Rosomaxa;
 pub use self::rosomaxa::RosomaxaConfig;
 
 use crate::construction::heuristics::InsertionContext;
+use crate::models::Problem;
 use crate::solver::Statistics;
 use crate::utils::{compare_floats, Environment, ParallelismDegree};
 use std::cmp::Ordering;
 use std::fmt::Display;
+use std::sync::Arc;
 
 /// Represents solution in population defined as actual solution.
 pub type Individual = InsertionContext;
@@ -71,4 +73,31 @@ pub fn get_default_selection_size(environment: &Environment) -> usize {
         ParallelismDegree::Full => environment.parallelism.available_cpus,
         ParallelismDegree::Limited { max } => max,
     }
+}
+
+/// Gets default population algorithm.
+pub fn get_default_population(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> Box<dyn Population + Send + Sync> {
+    let selection_size = get_default_selection_size(environment.as_ref());
+    if selection_size == 1 {
+        // TODO use greedy instead
+        Box::new(Elitism::new(problem, environment.random.clone(), 1, 1))
+    } else {
+        let config = RosomaxaConfig::new_with_defaults(selection_size);
+        let population =
+            Rosomaxa::new(problem, environment, config).expect("cannot create rosomaxa with default configuration");
+
+        Box::new(population)
+    }
+}
+
+/// Creates elitism population algorithm.
+pub fn create_elitism_population(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> Box<dyn Population + Sync + Send> {
+    let selection_size = get_default_selection_size(environment.as_ref());
+    Box::new(Elitism::new(problem, environment.random.clone(), 4, selection_size))
 }

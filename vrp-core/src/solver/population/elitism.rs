@@ -6,7 +6,7 @@ use super::*;
 use crate::algorithms::nsga2::{select_and_rank, Objective};
 use crate::models::Problem;
 use crate::solver::{Population, Statistics, SOLUTION_ORDER_KEY};
-use crate::utils::{Environment, ParallelismDegree, Random};
+use crate::utils::Random;
 use std::cmp::Ordering;
 use std::fmt::{Formatter, Write};
 use std::iter::{empty, once};
@@ -110,15 +110,6 @@ impl Elitism {
         assert!(max_population_size > 0);
 
         Self { problem, random, selection_size, max_population_size, individuals: vec![] }
-    }
-
-    /// Creates a new instance of `Elitism` with default settings.
-    pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
-        let selection_size = match environment.parallelism.outer_degree {
-            ParallelismDegree::Full => environment.parallelism.available_cpus,
-            ParallelismDegree::Limited { max } => max,
-        };
-        Self::new(problem, environment.random.clone(), 4, selection_size)
     }
 
     /// Extracts all individuals out from population.

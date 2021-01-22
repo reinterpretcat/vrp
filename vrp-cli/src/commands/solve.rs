@@ -9,12 +9,12 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::process;
 use std::sync::Arc;
-use vrp_cli::core::solver::population::Population;
+use vrp_cli::core::solver::population::{get_default_population, Population};
 use vrp_cli::extensions::check::check_pragmatic_solution;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
-use vrp_core::solver::population::{get_default_selection_size, Elitism, Rosomaxa, RosomaxaConfig};
+use vrp_core::solver::population::{get_default_selection_size, Elitism};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
 use vrp_core::utils::{DefaultRandom, Environment, Parallelism, ParallelismDegree, Random};
 
@@ -416,15 +416,13 @@ fn get_population(
     environment: Arc<Environment>,
 ) -> Box<dyn Population + Send + Sync> {
     match mode {
-        Some("deep") => Box::new(Elitism::new_with_defaults(problem, environment)),
-        _ => {
-            let selection_size = get_default_selection_size(environment.as_ref());
-            let config = RosomaxaConfig::new_with_defaults(selection_size);
-            let population = Rosomaxa::new(problem, environment.clone(), config)
-                .expect("cannot create rosomaxa with default configuration");
-
-            Box::new(population)
-        }
+        Some("deep") => Box::new(Elitism::new(
+            problem,
+            environment.random.clone(),
+            4,
+            get_default_selection_size(environment.as_ref()),
+        )),
+        _ => get_default_population(problem, environment),
     }
 }
 

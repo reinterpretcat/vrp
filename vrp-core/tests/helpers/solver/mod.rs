@@ -7,21 +7,17 @@ use crate::models::common::Location;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
-use crate::solver::population::{Elitism, Population};
+use crate::solver::population::create_elitism_population;
 use crate::solver::RefinementContext;
 use crate::utils::Environment;
 use std::sync::Arc;
 
-/// Creates default population.
-pub fn create_default_population(problem: Arc<Problem>) -> Box<dyn Population + Sync + Send> {
-    Box::new(Elitism::new_with_defaults(problem, Arc::new(Environment::default())))
-}
-
 pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext {
+    let environment = Arc::new(Environment::default());
     RefinementContext::new(
         problem.clone(),
-        create_default_population(problem.clone()),
-        Arc::new(Environment::default()),
+        create_elitism_population(problem.clone(), environment.clone()),
+        environment,
         None,
     )
 }
