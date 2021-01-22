@@ -7,7 +7,7 @@ use crate::solver::population::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::TelemetryMode;
-use crate::utils::{Environment, ParallelismDegree};
+use crate::utils::Environment;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -69,17 +69,7 @@ impl EvolutionConfig {
                     methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
                     individuals: vec![],
                 },
-                variation: Some(Box::new(
-                    Rosomaxa::new(
-                        problem.clone(),
-                        environment.clone(),
-                        RosomaxaConfig::new_with_defaults(match &environment.parallelism.outer_degree {
-                            ParallelismDegree::Full => environment.parallelism.available_cpus,
-                            ParallelismDegree::Limited { max } => *max,
-                        }),
-                    )
-                    .expect("Cannot build rosomaxa population using default settings"),
-                )),
+                variation: Some(get_default_population(problem.clone(), environment.clone())),
             },
             mutation: Arc::new(CompositeMutation::new(vec![(
                 vec![
