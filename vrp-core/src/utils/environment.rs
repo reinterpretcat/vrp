@@ -29,11 +29,10 @@ impl Default for Environment {
 /// Specifies data parallelism settings.
 #[derive(Clone)]
 pub struct Parallelism {
-    /// Amount of total available CPUs.
-    pub available_cpus: usize,
-
-    /// Available thread pools.
-    pub thread_pools: Option<Arc<Vec<ThreadPool>>>,
+    available_cpus: usize,
+    // NOTE seems falls positive.
+    #[allow(clippy::rc_buffer)]
+    thread_pools: Option<Arc<Vec<ThreadPool>>>,
 }
 
 impl Default for Parallelism {
@@ -47,6 +46,11 @@ impl Parallelism {
     pub fn new(num_thread_pools: usize, threads_per_pool: usize) -> Self {
         let thread_pools = (0..num_thread_pools).map(|_| ThreadPool::new(threads_per_pool)).collect();
         Self { available_cpus: get_cpus(), thread_pools: Some(Arc::new(thread_pools)) }
+    }
+
+    /// Amount of total available CPUs.
+    pub fn available_cpus(&self) -> usize {
+        self.available_cpus
     }
 
     /// Executes operation on thread pool with given index. If there is no thread pool with such

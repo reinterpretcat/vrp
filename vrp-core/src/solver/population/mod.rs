@@ -69,7 +69,7 @@ fn is_same_fitness(a: &Individual, b: &Individual) -> bool {
 
 /// Gets default population selection size.
 pub fn get_default_selection_size(environment: &Environment) -> usize {
-    environment.parallelism.available_cpus
+    environment.parallelism.available_cpus()
 }
 
 /// Gets default population algorithm.
