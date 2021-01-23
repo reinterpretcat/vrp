@@ -67,8 +67,6 @@ mod actual {
 
 #[cfg(target_arch = "wasm32")]
 mod actual {
-    use crate::utils::ParallelismDegree;
-
     pub struct ThreadPool;
 
     impl ThreadPool {
@@ -88,7 +86,7 @@ mod actual {
     }
 
     /// Map collections and collects results into vector synchronously.
-    pub fn parallel_collect<T, F, R>(source: &[T], _degree: ParallelismDegree, map_op: F) -> Vec<R>
+    pub fn parallel_collect<T, F, R>(source: &[T], map_op: F) -> Vec<R>
     where
         T: Send + Sync,
         F: Fn(&T) -> R + Sync + Send,
@@ -98,7 +96,7 @@ mod actual {
     }
 
     /// Map collections and collects results into vector synchronously.
-    pub fn parallel_into_collect<T, F, R>(source: Vec<T>, _degree: ParallelismDegree, map_op: F) -> Vec<R>
+    pub fn parallel_into_collect<T, F, R>(source: Vec<T>, map_op: F) -> Vec<R>
     where
         T: Send + Sync,
         F: Fn(T) -> R + Sync + Send,
@@ -108,13 +106,7 @@ mod actual {
     }
 
     /// Performs map reduce operations synchronously.
-    pub fn map_reduce<T, FM, FR, FD, R>(
-        source: &[T],
-        _degree: ParallelismDegree,
-        map_op: FM,
-        default_op: FD,
-        reduce_op: FR,
-    ) -> R
+    pub fn map_reduce<T, FM, FR, FD, R>(source: &[T], map_op: FM, default_op: FD, reduce_op: FR) -> R
     where
         T: Send + Sync,
         FM: Fn(&T) -> R + Sync + Send,
