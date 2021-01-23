@@ -19,7 +19,7 @@ struct GridAgent {
 impl State for GridState {
     type Action = GridAction;
 
-    fn actions(&self) -> Option<ActionsEstimate<Self>> {
+    fn actions(&self) -> Option<&ActionsEstimate<Self>> {
         None
     }
 

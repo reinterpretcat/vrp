@@ -3,7 +3,7 @@
 mod simulator_test;
 
 use super::*;
-use crate::utils::{parallel_into_collect, CollectGroupBy, ParallelismDegree};
+use crate::utils::{parallel_into_collect, CollectGroupBy};
 
 /// A simulator to train agent with multiple episodes.
 pub struct Simulator<S: State> {
@@ -11,7 +11,6 @@ pub struct Simulator<S: State> {
     learning: Box<dyn LearningStrategy<S> + Send + Sync>,
     policy: Box<dyn PolicyStrategy<S> + Send + Sync>,
     termination: Box<dyn TerminationStrategy<S> + Send + Sync>,
-    degree: ParallelismDegree,
 }
 
 type QType<S> = HashMap<S, HashMap<<S as State>::Action, f64>>;
@@ -22,14 +21,13 @@ impl<S: State> Simulator<S> {
         learning: Box<dyn LearningStrategy<S> + Send + Sync>,
         policy: Box<dyn PolicyStrategy<S> + Send + Sync>,
         termination: Box<dyn TerminationStrategy<S> + Send + Sync>,
-        degree: ParallelismDegree,
     ) -> Self {
-        Self { q: Default::default(), learning, policy, termination, degree }
+        Self { q: Default::default(), learning, policy, termination }
     }
 
     /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>) {
-        let qs = parallel_into_collect(agents, self.degree.clone(), |mut a| {
+        let qs = parallel_into_collect(agents, |mut a| {
             Self::run_episode(
                 a.as_mut(),
                 self.learning.as_ref(),
