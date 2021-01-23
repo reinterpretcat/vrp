@@ -10,7 +10,6 @@ pub struct Simulator<S: State> {
     q: QType<S>,
     learning: Box<dyn LearningStrategy<S> + Send + Sync>,
     policy: Box<dyn PolicyStrategy<S> + Send + Sync>,
-    termination: Box<dyn TerminationStrategy<S> + Send + Sync>,
 }
 
 type QType<S> = HashMap<S, HashMap<<S as State>::Action, f64>>;
@@ -20,21 +19,14 @@ impl<S: State> Simulator<S> {
     pub fn new(
         learning: Box<dyn LearningStrategy<S> + Send + Sync>,
         policy: Box<dyn PolicyStrategy<S> + Send + Sync>,
-        termination: Box<dyn TerminationStrategy<S> + Send + Sync>,
     ) -> Self {
-        Self { q: Default::default(), learning, policy, termination }
+        Self { q: Default::default(), learning, policy }
     }
 
     /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>) {
         let qs = parallel_into_collect(agents, |mut a| {
-            Self::run_episode(
-                a.as_mut(),
-                self.learning.as_ref(),
-                self.policy.as_ref(),
-                self.termination.as_ref(),
-                &self.q,
-            )
+            Self::run_episode(a.as_mut(), self.learning.as_ref(), self.policy.as_ref(), &self.q)
         });
 
         merge_vec_maps(qs, |(state, values)| {
@@ -51,28 +43,27 @@ impl<S: State> Simulator<S> {
         agent: &mut dyn Agent<S>,
         learning: &(dyn LearningStrategy<S> + Send + Sync),
         policy: &(dyn PolicyStrategy<S> + Send + Sync),
-        termination: &(dyn TerminationStrategy<S> + Send + Sync),
         q: &QType<S>,
     ) -> QType<S> {
         let mut q_new = QType::new();
 
         loop {
             let old_state = agent.get_state().clone();
-            let estimates = q_new.get(&old_state).or_else(|| q.get(&old_state)).or_else(|| old_state.actions());
+            let estimates = q_new.get(&old_state).or_else(|| q.get(&old_state));
 
-            if estimates.is_none() || termination.is_termination(&old_state) {
-                break;
-            }
-
-            let estimates = estimates.unwrap();
-            let action = policy.select(estimates);
-
-            agent.take_action(&action);
+            let (action, old_value) = if let Some(estimates) = estimates {
+                Self::take_action(agent, estimates, policy)
+            } else {
+                let estimates = agent.get_actions(&old_state);
+                if let Some(estimates) = &estimates {
+                    Self::take_action(agent, estimates, policy)
+                } else {
+                    break;
+                }
+            };
 
             let next_state = agent.get_state();
             let reward_value = next_state.reward();
-
-            let old_value = estimates.get(&action).cloned();
             let new_estimates = q_new.get(next_state).or_else(|| q.get(next_state));
             let new_value = learning.value(reward_value, old_value, new_estimates);
 
@@ -80,6 +71,20 @@ impl<S: State> Simulator<S> {
         }
 
         q_new
+    }
+
+    fn take_action(
+        agent: &mut dyn Agent<S>,
+        estimates: &ActionsEstimate<S>,
+        policy: &(dyn PolicyStrategy<S> + Send + Sync),
+    ) -> (S::Action, Option<f64>) {
+        let action = policy.select(estimates);
+
+        agent.take_action(&action);
+
+        let value = estimates.get(&action).cloned();
+
+        (action, value)
     }
 }
 

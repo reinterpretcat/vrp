@@ -18,10 +18,6 @@ pub trait State: Clone + Hash + Eq + Send + Sync {
     /// Action type associated with the state.
     type Action: Clone + Hash + Eq + Send + Sync;
 
-    /// Returns actions associated with the state. If no actions are associated, then
-    /// the state is considered as terminal.
-    fn actions(&self) -> Option<&ActionsEstimate<Self>>;
-
     /// Returns reward to be in this state.
     fn reward(&self) -> f64;
 }
@@ -30,6 +26,10 @@ pub trait State: Clone + Hash + Eq + Send + Sync {
 pub trait Agent<S: State> {
     /// Returns the current state of the agent.
     fn get_state(&self) -> &S;
+
+    /// Returns agent's actions for given state with their estimates. If no actions are
+    /// associated, then the state is considered as terminal.
+    fn get_actions(&self, state: &S) -> Option<ActionsEstimate<S>>;
 
     /// Takes the action in the current agent's state. Potentially, changes agent state.
     fn take_action(&mut self, action: &S::Action);
@@ -45,10 +45,4 @@ pub trait LearningStrategy<S: State> {
 pub trait PolicyStrategy<S: State> {
     /// Selects an action from the estimated actions.
     fn select(&self, estimates: &ActionsEstimate<S>) -> S::Action;
-}
-
-/// A termination strategy.
-pub trait TerminationStrategy<S: State> {
-    /// Returns true if state is terminal.
-    fn is_termination(&self, state: &S) -> bool;
 }
