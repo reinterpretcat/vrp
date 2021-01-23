@@ -81,7 +81,7 @@ impl JobMapReducer for SkipBestJobMapReducer {
             return self.inner_reducer.reduce(ctx, jobs, insertion_position);
         }
 
-        let mut results = parallel_collect(&jobs, ctx.environment.parallelism.inner_degree.clone(), |job| {
+        let mut results = parallel_collect(&jobs, |job| {
             evaluate_job_insertion(
                 &job,
                 &ctx,

@@ -89,7 +89,6 @@ impl JobMapReducer for PairJobMapReducer {
     ) -> InsertionResult {
         map_reduce(
             &jobs,
-            ctx.environment.parallelism.inner_degree.clone(),
             |job| {
                 evaluate_job_insertion(
                     &job,

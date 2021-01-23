@@ -2,6 +2,7 @@ use super::*;
 use crate::construction::Quota;
 use crate::models::examples::create_example_problem;
 use crate::solver::TelemetryMode;
+use crate::utils::Environment;
 use std::sync::Arc;
 
 parameterized_test! {can_enable_telemetry_metrics, mode, {

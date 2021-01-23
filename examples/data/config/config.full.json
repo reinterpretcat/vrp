@@ -337,9 +337,8 @@
   },
   "environment": {
     "parallelism":{
-      "max": 0,
-      "outer": 0,
-      "inner": 0
+      "numThreadPools": 6,
+      "threadsPerPool": 8
     }
   }
 }

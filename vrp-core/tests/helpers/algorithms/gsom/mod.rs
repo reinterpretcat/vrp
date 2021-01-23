@@ -1,5 +1,4 @@
 use crate::algorithms::gsom::{Input, Network, NetworkConfig, Storage};
-use crate::utils::ParallelismDegree;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
@@ -67,7 +66,6 @@ pub fn create_test_network() -> Network<Data, DataStorage> {
             learning_rate: 0.1,
             rebalance_memory: 500,
         },
-        ParallelismDegree::Full,
         Box::new(|| DataStorage::default()),
     )
 }

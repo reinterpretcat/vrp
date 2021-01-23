@@ -113,7 +113,6 @@ fn find_best_insertion_pair(
                         .filter(|(idx, job)| !locked.contains(&job) && filter_jobs_indices(*idx))
                         .collect::<Vec<_>>()
                         .as_slice(),
-                    insertion_ctx.environment.parallelism.inner_degree.clone(),
                     |(_, test_job)| {
                         // try to insert test job into seed tour
                         let seed_success =

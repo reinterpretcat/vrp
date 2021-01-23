@@ -96,7 +96,7 @@ impl Ruin for WorstJobRemoval {
 }
 
 fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Job, Cost)>)> {
-    parallel_collect(&insertion_ctx.solution.routes, insertion_ctx.environment.parallelism.inner_degree.clone(), |rc| {
+    parallel_collect(&insertion_ctx.solution.routes, |rc| {
         let actor = rc.route.actor.as_ref();
         let mut savings: Vec<(Job, Cost)> = rc
             .route

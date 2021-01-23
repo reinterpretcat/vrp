@@ -83,7 +83,7 @@ impl JobMapReducer for RegretJobMapReducer {
             return self.inner_reducer.reduce(ctx, jobs, insertion_position);
         }
 
-        let mut results = parallel_collect(&jobs, ctx.environment.parallelism.inner_degree.clone(), |job| {
+        let mut results = parallel_collect(&jobs, |job| {
             self.route_selector
                 .select(ctx, job)
                 .map(|route_ctx| {

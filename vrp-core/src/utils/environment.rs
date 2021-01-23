@@ -1,6 +1,6 @@
 //! Contains environment specific logic.
 
-use crate::utils::{DefaultRandom, Random};
+use crate::utils::{DefaultRandom, Random, ThreadPool};
 use std::sync::Arc;
 
 /// Keeps track of environment specific information which influences algorithm behavior.
@@ -22,20 +22,7 @@ impl Environment {
 
 impl Default for Environment {
     fn default() -> Self {
-        let parallelism = Parallelism::new(ParallelismDegree::Full, ParallelismDegree::Full, ParallelismDegree::Full);
-
-        // TODO investigate better defaults
-        /*let (outer, inner) = match parallelism.available_cpus {
-            1..=2 => (2, 2),
-            3..=8 => (4, 4),
-            9..=12 => (6, 4),
-            _ => (12, 8),
-        };
-
-        parallelism.outer_degree = ParallelismDegree::Limited { max: outer };
-        parallelism.inner_degree = ParallelismDegree::Limited { max: inner };*/
-
-        Environment::new(Arc::new(DefaultRandom::default()), parallelism)
+        Environment::new(Arc::new(DefaultRandom::default()), Parallelism::default())
     }
 }
 
@@ -45,38 +32,36 @@ pub struct Parallelism {
     /// Amount of total available CPUs.
     pub available_cpus: usize,
 
-    /// A suggestion of outer loops parallelism degree without parallelized inner loops.
-    pub max_degree: ParallelismDegree,
+    /// Available thread pools.
+    pub thread_pools: Option<Arc<Vec<ThreadPool>>>,
+}
 
-    /// A suggestion of outer loops parallelism degree which might include parallelized inner loops.
-    pub outer_degree: ParallelismDegree,
-
-    /// A suggestion of inner loops parallelism degree.
-    pub inner_degree: ParallelismDegree,
+impl Default for Parallelism {
+    fn default() -> Self {
+        Self { available_cpus: get_cpus(), thread_pools: None }
+    }
 }
 
 impl Parallelism {
     /// Creates an instance of `Parallelism`.
-    pub fn new(
-        max_degree: ParallelismDegree,
-        outer_degree: ParallelismDegree,
-        inner_degree: ParallelismDegree,
-    ) -> Self {
-        Self { available_cpus: get_cpus(), max_degree, outer_degree, inner_degree }
+    pub fn new(num_thread_pools: usize, threads_per_pool: usize) -> Self {
+        let thread_pools = (0..num_thread_pools).map(|_| ThreadPool::new(threads_per_pool)).collect();
+        Self { available_cpus: get_cpus(), thread_pools: Some(Arc::new(thread_pools)) }
     }
-}
 
-/// Specifies degree of data parallelism
-#[derive(Clone)]
-pub enum ParallelismDegree {
-    /// No restrictions, use underlying defaults
-    Full,
-
-    /// Limited parallelism. Applies desired degree.
-    Limited {
-        /// Max degree of parallelism.
-        max: usize,
-    },
+    /// Executes operation on thread pool with given index. If there is no thread pool with such
+    /// index, then executes it without using any of thread pools.
+    pub fn thread_pool_execute<OP, R>(&self, idx: usize, op: OP) -> R
+    where
+        OP: FnOnce() -> R + Send,
+        R: Send,
+    {
+        if let Some(thread_pool) = self.thread_pools.as_ref().and_then(|tps| tps.get(idx)) {
+            thread_pool.execute(op)
+        } else {
+            op()
+        }
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]

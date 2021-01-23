@@ -277,7 +277,6 @@ impl Rosomaxa {
                 learning_rate: config.learning_rate,
                 rebalance_memory: config.rebalance_memory,
             },
-            environment.parallelism.max_degree.clone(),
             Box::new({
                 let node_size = config.node_size;
                 let random = environment.random.clone();

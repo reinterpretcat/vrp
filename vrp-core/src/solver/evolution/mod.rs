@@ -7,14 +7,13 @@ use crate::solver::mutation::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::{Metrics, Population, RefinementContext};
-use crate::utils::{Environment, Timer};
+use crate::utils::Timer;
 
 mod config;
 pub use self::config::*;
 
 mod run_simple;
 pub use self::run_simple::RunSimple;
-use std::sync::Arc;
 
 /// Defines evolution result type.
 pub type EvolutionResult = Result<(Box<dyn Population + Send + Sync>, Option<Metrics>), String>;
@@ -91,10 +90,7 @@ impl EvolutionSimulator {
             });
 
         let weights = self.config.population.initial.methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
-
-        let max_degree_par_env = create_max_degree_parallelism_environment(self.config.environment.as_ref());
-        let empty_ctx = InsertionContext::new(self.config.problem.clone(), max_degree_par_env.clone());
-        refinement_ctx.environment = max_degree_par_env;
+        let empty_ctx = InsertionContext::new(self.config.problem.clone(), refinement_ctx.environment.clone());
 
         let initial_time = Timer::start();
         let _ = (refinement_ctx.population.size()..self.config.population.initial.size).try_for_each(|idx| {
@@ -106,11 +102,10 @@ impl EvolutionSimulator {
 
             let method_idx = self.config.environment.random.weighted(weights.as_slice());
 
-            let mut insertion_ctx =
+            let insertion_ctx =
                 self.config.population.initial.methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
 
             if should_add_solution(&refinement_ctx) {
-                insertion_ctx.environment = self.config.environment.clone();
                 refinement_ctx.population.add(insertion_ctx);
                 self.config.telemetry.on_initial(idx, self.config.population.initial.size, item_time);
             } else {
@@ -119,8 +114,6 @@ impl EvolutionSimulator {
 
             Ok(())
         });
-
-        refinement_ctx.environment = self.config.environment.clone();
 
         if refinement_ctx.population.size() > 0 {
             on_generation(
@@ -136,16 +129,6 @@ impl EvolutionSimulator {
 
         Ok(refinement_ctx)
     }
-}
-
-fn create_max_degree_parallelism_environment(original: &Environment) -> Arc<Environment> {
-    let mut environment = original.clone();
-
-    // Override default parallelism settings to gain full performance while building initial solution.
-    environment.parallelism.outer_degree = original.parallelism.max_degree.clone();
-    environment.parallelism.inner_degree = original.parallelism.max_degree.clone();
-
-    Arc::new(environment)
 }
 
 fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {

@@ -16,7 +16,7 @@ use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::population::{get_default_selection_size, Elitism};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
-use vrp_core::utils::{DefaultRandom, Environment, Parallelism, ParallelismDegree, Random};
+use vrp_core::utils::{DefaultRandom, Environment, Parallelism, Random};
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -253,7 +253,7 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
         )
         .arg(
             Arg::with_name(PARALELLISM_ARG_NAME)
-                .help("Specifies data parallelism settings in format \"max,outer,inner\"")
+                .help("Specifies data parallelism settings in format \"num_thread_pools,threads_per_pool\"")
                 .long(PARALELLISM_ARG_NAME)
                 .short("p")
                 .required(false)
@@ -382,19 +382,10 @@ fn get_environment(matches: &ArgMatches) -> Arc<Environment> {
     matches
         .value_of(PARALELLISM_ARG_NAME)
         .map(|arg| {
-            if let [max, outer, inner] =
+            if let [num_thread_pools, threads_per_pool] =
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
             {
-                let limited_or_full = |value: usize| {
-                    if value == 0 {
-                        ParallelismDegree::Full
-                    } else {
-                        ParallelismDegree::Limited { max: value }
-                    }
-                };
-
-                let parallelism =
-                    Parallelism::new(limited_or_full(*max), limited_or_full(*outer), limited_or_full(*inner));
+                let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
                 Arc::new(Environment::new(Arc::new(DefaultRandom::default()), parallelism))
             } else {
                 eprintln!("cannot parse parallelism parameter");

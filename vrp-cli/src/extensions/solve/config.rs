@@ -16,7 +16,7 @@ use vrp_core::models::Problem;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::population::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
-use vrp_core::utils::{Environment, ParallelismDegree};
+use vrp_core::utils::{Environment, Parallelism};
 
 /// An algorithm configuration.
 #[derive(Clone, Deserialize, Debug)]
@@ -268,15 +268,18 @@ pub struct MetricsConfig {
 /// An environment specific configuration.
 #[derive(Clone, Deserialize, Debug)]
 pub struct EnvironmentConfig {
-    pub parallelism: ParallelismConfig,
+    /// Specifies a data parallelism configuration.
+    pub parallelism: Option<ParallelismConfig>,
 }
 
 /// Data parallelism configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ParallelismConfig {
-    pub max: Option<usize>,
-    pub outer: Option<usize>,
-    pub inner: Option<usize>,
+    /// Number of thread pools.
+    pub num_thread_pools: usize,
+    /// Specifies amount of threads in each thread pool.
+    pub threads_per_pool: usize,
 }
 
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
@@ -536,27 +539,9 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
 fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) -> Result<Arc<Environment>, String> {
     let mut environment = Environment::default();
 
-    let limited_or_full = |value: usize| {
-        if value == 0 {
-            ParallelismDegree::Full
-        } else {
-            ParallelismDegree::Limited { max: value }
-        }
-    };
-
     // TODO validate parameters
-    if let Some(config) = environment_config.as_ref() {
-        if let Some(max) = config.parallelism.max.as_ref() {
-            environment.parallelism.max_degree = limited_or_full(*max);
-        }
-
-        if let Some(outer) = config.parallelism.outer.as_ref() {
-            environment.parallelism.outer_degree = limited_or_full(*outer);
-        }
-
-        if let Some(inner) = config.parallelism.inner.as_ref() {
-            environment.parallelism.inner_degree = limited_or_full(*inner);
-        }
+    if let Some(config) = environment_config.as_ref().and_then(|c| c.parallelism.as_ref()) {
+        environment.parallelism = Parallelism::new(config.num_thread_pools, config.threads_per_pool);
     }
 
     Ok(Arc::new(environment))
