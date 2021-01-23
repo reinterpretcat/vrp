@@ -9,7 +9,7 @@ mod actual {
     use self::rayon::{ThreadPool as RayonThreadPool, ThreadPoolBuilder};
     use rayon::prelude::*;
 
-    /// Represents a thread pool.
+    /// Represents a thread pool wrapper.
     pub struct ThreadPool {
         inner: RayonThreadPool,
     }
@@ -67,6 +67,7 @@ mod actual {
 
 #[cfg(target_arch = "wasm32")]
 mod actual {
+    /// Represents a thread pool wrapper.
     pub struct ThreadPool;
 
     impl ThreadPool {
