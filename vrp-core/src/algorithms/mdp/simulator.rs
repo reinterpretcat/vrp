@@ -8,8 +8,8 @@ use crate::utils::{parallel_into_collect, CollectGroupBy};
 /// A simulator to train agent with multiple episodes.
 pub struct Simulator<S: State> {
     q: QType<S>,
-    learning: Box<dyn LearningStrategy<S> + Send + Sync>,
-    policy: Box<dyn PolicyStrategy<S> + Send + Sync>,
+    learning_strategy: Box<dyn LearningStrategy<S> + Send + Sync>,
+    policy_strategy: Box<dyn PolicyStrategy<S> + Send + Sync>,
 }
 
 type QType<S> = HashMap<S, HashMap<<S as State>::Action, f64>>;
@@ -17,40 +17,38 @@ type QType<S> = HashMap<S, HashMap<<S as State>::Action, f64>>;
 impl<S: State> Simulator<S> {
     /// Creates a new instance of MDP simulator.
     pub fn new(
-        learning: Box<dyn LearningStrategy<S> + Send + Sync>,
-        policy: Box<dyn PolicyStrategy<S> + Send + Sync>,
+        learning_strategy: Box<dyn LearningStrategy<S> + Send + Sync>,
+        policy_strategy: Box<dyn PolicyStrategy<S> + Send + Sync>,
     ) -> Self {
-        Self { q: Default::default(), learning, policy }
+        Self { q: Default::default(), learning_strategy, policy_strategy }
     }
 
     /// Return a learned optimal policy for given state.
     pub fn get_optimal_policy(&self, state: &S) -> Option<(<S as State>::Action, f64)> {
         self.q.get(state).and_then(|estimates| {
-            let policy: Box<dyn PolicyStrategy<S>> = Box::new(Greedy::default());
-            policy.select(estimates).and_then(|action| estimates.get(&action).map(|estimate| (action, *estimate)))
+            let strategy: Box<dyn PolicyStrategy<S>> = Box::new(Greedy::default());
+            strategy.select(estimates).and_then(|action| estimates.get(&action).map(|estimate| (action, *estimate)))
         })
     }
 
     /// Runs single episode for each of the given agents in parallel.
-    pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>) {
+    pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>, reduce: impl Fn(&[f64]) -> f64) {
         let qs = parallel_into_collect(agents, |mut a| {
-            Self::run_episode(a.as_mut(), self.learning.as_ref(), self.policy.as_ref(), &self.q)
+            Self::run_episode(a.as_mut(), self.learning_strategy.as_ref(), self.policy_strategy.as_ref(), &self.q)
         });
 
         merge_vec_maps(qs, |(state, values)| {
             let action_values = self.q.entry(state).or_insert_with(|| HashMap::new());
             merge_vec_maps(values, |(action, values)| {
-                // TODO is there something better than average?
-                let avg = values.iter().sum::<f64>() / values.len() as f64;
-                action_values.insert(action, avg);
+                action_values.insert(action, reduce(values.as_slice()));
             });
         });
     }
 
     fn run_episode(
         agent: &mut dyn Agent<S>,
-        learning: &(dyn LearningStrategy<S> + Send + Sync),
-        policy: &(dyn PolicyStrategy<S> + Send + Sync),
+        learning_strategy: &(dyn LearningStrategy<S> + Send + Sync),
+        policy_strategy: &(dyn PolicyStrategy<S> + Send + Sync),
         q: &QType<S>,
     ) -> QType<S> {
         let mut q_new = QType::new();
@@ -60,7 +58,7 @@ impl<S: State> Simulator<S> {
             Self::ensure_actions(&mut q_new, q, &old_state, agent);
             let old_estimates = q_new.get(&old_state).unwrap();
 
-            let action = policy.select(old_estimates);
+            let action = policy_strategy.select(old_estimates);
             if action.is_none() {
                 break;
             }
@@ -74,7 +72,7 @@ impl<S: State> Simulator<S> {
 
             Self::ensure_actions(&mut q_new, q, &next_state, agent);
             let new_estimates = q_new.get(&next_state).unwrap();
-            let new_value = learning.value(reward_value, old_value, new_estimates);
+            let new_value = learning_strategy.value(reward_value, old_value, new_estimates);
 
             q_new.entry(old_state.clone()).and_modify(|estimates| {
                 estimates.insert(action.clone(), new_value);

@@ -9,6 +9,7 @@ pub struct QLearning {
 }
 
 impl QLearning {
+    /// Creates a new instance of `QLearning`.
     pub fn new(alpha: f64, gamma: f64) -> Self {
         Self { alpha, gamma }
     }
@@ -30,6 +31,7 @@ pub struct EpsilonGreedy {
 }
 
 impl EpsilonGreedy {
+    /// Creates a new instance of `EpsilonGreedy`.
     pub fn new(epsilon: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
         Self { epsilon, random }
     }
@@ -37,6 +39,10 @@ impl EpsilonGreedy {
 
 impl<S: State> PolicyStrategy<S> for EpsilonGreedy {
     fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
+        if estimates.is_empty() {
+            return None;
+        }
+
         if self.random.is_hit(self.epsilon) {
             let random_idx = self.random.uniform_int(0, estimates.len() as i32 - 1) as usize;
             estimates.keys().skip(random_idx).next().cloned()
