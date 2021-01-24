@@ -7,7 +7,7 @@ pub use self::simulator::*;
 mod strategies;
 pub use self::strategies::*;
 
-use hashbrown::HashMap;
+use std::collections::HashMap;
 use std::hash::Hash;
 
 /// Keeps track of action estimation.
@@ -29,7 +29,7 @@ pub trait Agent<S: State> {
 
     /// Returns agent's actions for given state with their estimates. If no actions are
     /// associated, then the state is considered as terminal.
-    fn get_actions(&self, state: &S) -> Option<ActionsEstimate<S>>;
+    fn get_actions(&self, state: &S) -> ActionsEstimate<S>;
 
     /// Takes the action in the current agent's state. Potentially, changes agent state.
     fn take_action(&mut self, action: &S::Action);
@@ -38,7 +38,7 @@ pub trait Agent<S: State> {
 /// A learning strategy for the MDP.
 pub trait LearningStrategy<S: State> {
     /// Estimates an action value given received reward, current value, and actions values from the new state.
-    fn value(&self, reward_value: f64, old_value: Option<f64>, estimates: Option<&ActionsEstimate<S>>) -> f64;
+    fn value(&self, reward_value: f64, old_value: f64, estimates: &ActionsEstimate<S>) -> f64;
 }
 
 /// A policy strategy for MDP.

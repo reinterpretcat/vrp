@@ -49,43 +49,43 @@ impl<S: State> Simulator<S> {
 
         loop {
             let old_state = agent.get_state().clone();
-            let estimates = q_new.get(&old_state).or_else(|| q.get(&old_state));
-
-            let (action, old_value) = if let Some(estimates) = estimates {
-                Self::take_action(agent, estimates, policy)
+            let old_estimates = if let Some(estimates) = q_new.get(&old_state) {
+                estimates
             } else {
-                let estimates = agent.get_actions(&old_state);
-                if let Some(estimates) = &estimates {
-                    Self::take_action(agent, estimates, policy)
-                } else {
-                    break;
-                }
+                q.get(&old_state)
+                    .unwrap_or_else(|| q_new.entry(old_state.clone()).or_insert(agent.get_actions(&old_state)))
             };
+
+            if old_estimates.is_empty() {
+                break;
+            }
+
+            let action = policy.select(old_estimates);
+            agent.take_action(&action);
+            let old_value = old_estimates[&action];
 
             let next_state = agent.get_state();
             let reward_value = next_state.reward();
-            let new_estimates = q_new.get(next_state).or_else(|| q.get(next_state));
+
+            // TODO cannot extract it as a function due to borrow checker
+            let new_estimates = if let Some(estimates) = q_new.get(&next_state) {
+                estimates
+            } else {
+                q.get(&next_state)
+                    .unwrap_or_else(|| q_new.entry(next_state.clone()).or_insert(agent.get_actions(&next_state)))
+            };
+
             let new_value = learning.value(reward_value, old_value, new_estimates);
 
-            q_new.entry(old_state).or_insert_with(|| HashMap::new()).insert(action, new_value);
+            q_new.entry(old_state).and_modify(|estimates| {
+                estimates.insert(action, new_value);
+            });
         }
 
         q_new
     }
 
-    fn take_action(
-        agent: &mut dyn Agent<S>,
-        estimates: &ActionsEstimate<S>,
-        policy: &(dyn PolicyStrategy<S> + Send + Sync),
-    ) -> (S::Action, Option<f64>) {
-        let action = policy.select(estimates);
-
-        agent.take_action(&action);
-
-        let value = estimates.get(&action).cloned();
-
-        (action, value)
-    }
+    // TODO add policy method
 }
 
 fn merge_vec_maps<K: Eq + Hash, V, F: FnMut((K, Vec<V>)) -> ()>(vec_map: Vec<HashMap<K, V>>, merge_func: F) {
