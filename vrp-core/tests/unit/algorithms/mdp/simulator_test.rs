@@ -8,7 +8,6 @@ type ActionCounter = Arc<RwLock<Vec<GridAction>>>;
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum GridState {
     OnGrid { x: i32, y: i32 },
-    OffGrid { x: i32, y: i32 },
     Terminal,
 }
 
@@ -31,7 +30,6 @@ impl State for GridState {
     fn reward(&self) -> f64 {
         match &self {
             GridState::OnGrid { .. } => -1.,
-            GridState::OffGrid { .. } => -10.,
             GridState::Terminal => 10.,
         }
     }
@@ -58,7 +56,6 @@ impl Agent<GridState> for GridAgent {
     fn get_actions(&self, state: &GridState) -> ActionsEstimate<GridState> {
         match &state {
             GridState::OnGrid { .. } => self.actions.clone(),
-            GridState::OffGrid { .. } => self.actions.clone(),
             GridState::Terminal => ActionsEstimate::<GridState>::default(),
         }
     }
@@ -66,7 +63,6 @@ impl Agent<GridState> for GridAgent {
     fn take_action(&mut self, action: &<GridState as State>::Action) {
         let (x, y) = match self.get_state() {
             GridState::OnGrid { x, y, .. } => (*x, *y),
-            GridState::OffGrid { x, y, .. } => (*x, *y),
             GridState::Terminal => unreachable!(),
         };
 
@@ -82,7 +78,7 @@ impl Agent<GridState> for GridAgent {
         } else if self.grid.0.contains(&new_x) && self.grid.1.contains(&new_y) {
             GridState::OnGrid { x: new_x, y: new_y }
         } else {
-            GridState::OffGrid { x, y }
+            GridState::OnGrid { x, y }
         }
     }
 }
@@ -91,11 +87,12 @@ fn run_simulator(
     simulator: &mut Simulator<GridState>,
     repeat_count: usize,
     agent_count: usize,
+    visualize: bool,
     get_agent: impl Fn(ActionCounter) -> GridAgent,
 ) -> Vec<Vec<Vec<GridAction>>> {
     let mut results = vec![];
 
-    for _ in 0..repeat_count {
+    for episode in 0..repeat_count {
         let actions_taken = (0..agent_count).map(|_| Arc::new(RwLock::new(vec![]))).collect::<Vec<_>>();
         let agents = (0..agent_count)
             .map::<Box<dyn Agent<GridState> + Send + Sync>, _>(|idx| Box::new(get_agent(actions_taken[idx].clone())))
@@ -103,11 +100,29 @@ fn run_simulator(
 
         simulator.run_episodes(agents, |values| values.iter().sum::<f64>() / values.len() as f64);
 
+        if visualize {
+            print_board(simulator, episode);
+        }
+
         let states = actions_taken.iter().map(|at| at.read().unwrap().clone()).collect();
         results.push(states)
     }
 
     results
+}
+
+fn print_board(simulator: &Simulator<GridState>, episode: usize) {
+    println!("\nepisode {}: ", episode);
+    (0..4).for_each(|y| {
+        (0..4).for_each(|x| {
+            if let Some((_, value)) = simulator.get_optimal_policy(&GridState::OnGrid { x, y }) {
+                print!("|{ggg:>10.7}|", ggg = value)
+            } else {
+                print!("| --none-- |")
+            }
+        });
+        println!()
+    });
 }
 
 fn create_agent(state: GridState, actions_taken: ActionCounter) -> GridAgent {
@@ -126,19 +141,19 @@ fn create_agent(state: GridState, actions_taken: ActionCounter) -> GridAgent {
     GridAgent::new(actions, state, grid.clone(), terminal, actions_taken)
 }
 
-parameterized_test! {can_run_grid_episodes_impl, (agent_count, repeat_count, tolerance, expected_optimal, policy_strategy), {
-    can_run_grid_episodes_impl(agent_count, repeat_count, tolerance, expected_optimal, policy_strategy);
+parameterized_test! {can_run_grid_episodes_impl, (agent_count, repeat_count, tolerance, expected_optimal, visualize, policy_strategy), {
+    can_run_grid_episodes_impl(agent_count, repeat_count, tolerance, expected_optimal, visualize, policy_strategy);
 }}
 
 can_run_grid_episodes_impl! {
-    case01: (1, 1000, 0, 100, Box::new(Greedy::default())),
-    case02: (1, 1000, 2, 10, Box::new(EpsilonGreedy::new(0.001, test_random()))),
+    case01: (1, 1000, 0, 100, false, Box::new(Greedy::default())),
+    case02: (1, 1000, 2, 10, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
 
-    case03: (2, 1000, 0, 100, Box::new(Greedy::default())),
-    case04: (2, 1000, 2, 10, Box::new(EpsilonGreedy::new(0.001, test_random()))),
+    case03: (2, 1000, 0, 100, false, Box::new(Greedy::default())),
+    case04: (2, 1000, 2, 10, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
 
-    case05: (10, 1000, 0, 100, Box::new(Greedy::default())),
-    case06: (10, 1000, 2, 10, Box::new(EpsilonGreedy::new(0.001, test_random()))),
+    case05: (10, 1000, 0, 100, false, Box::new(Greedy::default())),
+    case06: (10, 1000, 2, 10, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
 }
 
 fn can_run_grid_episodes_impl(
@@ -146,14 +161,16 @@ fn can_run_grid_episodes_impl(
     repeat_count: usize,
     tolerance: usize,
     expected_optimal: usize,
+    visualize: bool,
     policy_strategy: Box<dyn PolicyStrategy<GridState> + Send + Sync>,
 ) {
     let learning_strategy = Box::new(QLearning::new(0.2, 0.01));
     let state = GridState::OnGrid { x: 0, y: 0 };
     let mut simulator = Simulator::new(learning_strategy, policy_strategy);
 
-    let actions_taken =
-        run_simulator(&mut simulator, repeat_count, agent_count, |counter| create_agent(state.clone(), counter));
+    let actions_taken = run_simulator(&mut simulator, repeat_count, agent_count, visualize, |counter| {
+        create_agent(state.clone(), counter)
+    });
 
     assert_eq!(actions_taken.len(), repeat_count);
     actions_taken.iter().rev().take(expected_optimal).for_each(|agents_actions| {
