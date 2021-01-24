@@ -23,8 +23,6 @@ impl<S: State> Simulator<S> {
         Self { q: Default::default(), learning, policy }
     }
 
-    // TODO add policy iterator
-
     /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>) {
         let qs = parallel_into_collect(agents, |mut a| {

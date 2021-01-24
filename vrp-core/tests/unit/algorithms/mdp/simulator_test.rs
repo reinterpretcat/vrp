@@ -2,6 +2,8 @@ use super::*;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
 
+type ActionCounter = Arc<RwLock<Vec<GridAction>>>;
+
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum GridState {
     OnGrid { x: i32, y: i32 },
@@ -19,7 +21,7 @@ struct GridAgent {
     state: GridState,
     grid: (Range<i32>, Range<i32>),
     terminal: (i32, i32),
-    actions_taken: Arc<RwLock<usize>>,
+    actions_taken: ActionCounter,
 }
 
 impl State for GridState {
@@ -40,9 +42,9 @@ impl GridAgent {
         state: GridState,
         grid: (Range<i32>, Range<i32>),
         terminal: (i32, i32),
-        actions_taken: Arc<RwLock<usize>>,
+        actions_taken: ActionCounter,
     ) -> Self {
-        assert_eq!(*actions_taken.read().unwrap(), 0);
+        assert!(actions_taken.read().unwrap().is_empty());
         Self { actions, state, grid, terminal, actions_taken }
     }
 }
@@ -69,9 +71,7 @@ impl Agent<GridState> for GridAgent {
 
         let (new_x, new_y) = match action {
             GridAction::Move { dx, dy } => {
-                let value = *self.actions_taken.read().unwrap() + 1;
-                *self.actions_taken.write().unwrap() = value;
-
+                self.actions_taken.write().unwrap().push(action.clone());
                 (x + dx, y + dy)
             }
         };
@@ -86,10 +86,31 @@ impl Agent<GridState> for GridAgent {
     }
 }
 
-#[test]
-fn can_run_grid_episodes() {
-    // TODO check epsilon greedy
-    let mut simulator = Simulator::new(Box::new(QLearning::new(0.2, 0.01)), Box::new(Greedy::default()));
+fn run_simulator(
+    simulator: Simulator<GridState>,
+    repeat_count: usize,
+    agent_count: usize,
+    get_agent: impl Fn(ActionCounter) -> GridAgent,
+) -> Vec<Vec<GridAction>> {
+    let mut simulator = simulator;
+    let mut results = vec![];
+
+    for _ in 0..repeat_count {
+        let actions_taken = Arc::new(RwLock::new(vec![]));
+        let agents = (0..agent_count)
+            .map::<Box<dyn Agent<GridState> + Send + Sync>, _>(|_| Box::new(get_agent(actions_taken.clone())))
+            .collect::<Vec<_>>();
+
+        simulator.run_episodes(agents);
+
+        let states = actions_taken.read().unwrap().clone();
+        results.push(states)
+    }
+
+    results
+}
+
+fn create_agent(state: GridState, actions_taken: ActionCounter) -> GridAgent {
     let actions = [
         (GridAction::Move { dx: 1, dy: 0 }, 0.),
         (GridAction::Move { dx: 0, dy: 1 }, 0.),
@@ -99,16 +120,25 @@ fn can_run_grid_episodes() {
     .iter()
     .cloned()
     .collect::<HashMap<_, _>>();
-    let state = GridState::OnGrid { x: 0, y: 0 };
     let grid = (0..4, 0..4);
     let terminal = (3, 3);
 
-    for _ in 0..500 {
-        let actions_taken = Arc::new(RwLock::new(0));
-        let agent = GridAgent::new(actions.clone(), state.clone(), grid.clone(), terminal, actions_taken.clone());
+    GridAgent::new(actions, state, grid.clone(), terminal, actions_taken)
+}
 
-        simulator.run_episodes(vec![Box::new(agent)]);
+#[test]
+fn can_run_grid_episodes() {
+    // TODO check epsilon greedy
+    // TODO check different states
+    // TODO check multiple agents
 
-        println!("{}", actions_taken.read().unwrap());
-    }
+    let simulator = Simulator::new(Box::new(QLearning::new(0.2, 0.01)), Box::new(Greedy::default()));
+    let state = GridState::OnGrid { x: 0, y: 0 };
+
+    let actions_taken = run_simulator(simulator, 500, 1, |counter| create_agent(state.clone(), counter));
+
+    assert_eq!(actions_taken.len(), 500);
+    actions_taken.iter().rev().take(100).for_each(|a| {
+        assert_eq!(a.len(), 6);
+    });
 }
