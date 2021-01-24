@@ -9,7 +9,7 @@ enum GridState {
     Terminal,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 enum GridAction {
     Move { dx: i32, dy: i32 },
 }
@@ -103,7 +103,7 @@ fn can_run_grid_episodes() {
     let grid = (0..4, 0..4);
     let terminal = (3, 3);
 
-    for _ in 0..1 {
+    for _ in 0..500 {
         let actions_taken = Arc::new(RwLock::new(0));
         let agent = GridAgent::new(actions.clone(), state.clone(), grid.clone(), terminal, actions_taken.clone());
 

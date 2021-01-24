@@ -23,6 +23,8 @@ impl<S: State> Simulator<S> {
         Self { q: Default::default(), learning, policy }
     }
 
+    // TODO add policy iterator
+
     /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>) {
         let qs = parallel_into_collect(agents, |mut a| {
@@ -49,12 +51,8 @@ impl<S: State> Simulator<S> {
 
         loop {
             let old_state = agent.get_state().clone();
-            let old_estimates = if let Some(estimates) = q_new.get(&old_state) {
-                estimates
-            } else {
-                q.get(&old_state)
-                    .unwrap_or_else(|| q_new.entry(old_state.clone()).or_insert(agent.get_actions(&old_state)))
-            };
+            Self::ensure_actions(&mut q_new, q, &old_state, agent);
+            let old_estimates = q_new.get(&old_state).unwrap();
 
             if old_estimates.is_empty() {
                 break;
@@ -67,25 +65,27 @@ impl<S: State> Simulator<S> {
             let next_state = agent.get_state();
             let reward_value = next_state.reward();
 
-            // TODO cannot extract it as a function due to borrow checker
-            let new_estimates = if let Some(estimates) = q_new.get(&next_state) {
-                estimates
-            } else {
-                q.get(&next_state)
-                    .unwrap_or_else(|| q_new.entry(next_state.clone()).or_insert(agent.get_actions(&next_state)))
-            };
-
+            Self::ensure_actions(&mut q_new, q, &next_state, agent);
+            let new_estimates = q_new.get(&next_state).unwrap();
             let new_value = learning.value(reward_value, old_value, new_estimates);
 
-            q_new.entry(old_state).and_modify(|estimates| {
-                estimates.insert(action, new_value);
+            q_new.entry(old_state.clone()).and_modify(|estimates| {
+                estimates.insert(action.clone(), new_value);
             });
         }
 
         q_new
     }
 
-    // TODO add policy method
+    fn ensure_actions(q_new: &mut QType<S>, q: &QType<S>, state: &S, agent: &dyn Agent<S>) {
+        match (q_new.get(state), q.get(state)) {
+            (None, Some(estimates)) => {
+                q_new.insert(state.clone(), estimates.iter().map(|(s, v)| (s.clone(), *v)).collect())
+            }
+            (None, None) => q_new.insert(state.clone(), agent.get_actions(&state)),
+            (Some(_), _) => None,
+        };
+    }
 }
 
 fn merge_vec_maps<K: Eq + Hash, V, F: FnMut((K, Vec<V>)) -> ()>(vec_map: Vec<HashMap<K, V>>, merge_func: F) {
