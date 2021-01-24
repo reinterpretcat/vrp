@@ -44,5 +44,5 @@ pub trait LearningStrategy<S: State> {
 /// A policy strategy for MDP.
 pub trait PolicyStrategy<S: State> {
     /// Selects an action from the estimated actions.
-    fn select(&self, estimates: &ActionsEstimate<S>) -> S::Action;
+    fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action>;
 }

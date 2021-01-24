@@ -36,12 +36,12 @@ impl EpsilonGreedy {
 }
 
 impl<S: State> PolicyStrategy<S> for EpsilonGreedy {
-    fn select(&self, estimates: &ActionsEstimate<S>) -> S::Action {
+    fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
         if self.random.is_hit(self.epsilon) {
             let random_idx = self.random.uniform_int(0, estimates.len() as i32 - 1) as usize;
-            estimates.keys().skip(random_idx).next().unwrap().clone()
+            estimates.keys().skip(random_idx).next().cloned()
         } else {
-            estimates.iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).unwrap().0.clone()
+            estimates.iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
         }
     }
 }
@@ -56,7 +56,7 @@ impl Default for Greedy {
 }
 
 impl<S: State> PolicyStrategy<S> for Greedy {
-    fn select(&self, estimates: &ActionsEstimate<S>) -> S::Action {
-        estimates.iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).unwrap().0.clone()
+    fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
+        estimates.iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
     }
 }

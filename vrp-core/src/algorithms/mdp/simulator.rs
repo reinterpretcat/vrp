@@ -23,6 +23,14 @@ impl<S: State> Simulator<S> {
         Self { q: Default::default(), learning, policy }
     }
 
+    /// Return a learned optimal policy for given state.
+    pub fn get_optimal_policy(&self, state: &S) -> Option<(<S as State>::Action, f64)> {
+        self.q.get(state).and_then(|estimates| {
+            let policy: Box<dyn PolicyStrategy<S>> = Box::new(Greedy::default());
+            policy.select(estimates).and_then(|action| estimates.get(&action).map(|estimate| (action, *estimate)))
+        })
+    }
+
     /// Runs single episode for each of the given agents in parallel.
     pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>) {
         let qs = parallel_into_collect(agents, |mut a| {
@@ -52,11 +60,12 @@ impl<S: State> Simulator<S> {
             Self::ensure_actions(&mut q_new, q, &old_state, agent);
             let old_estimates = q_new.get(&old_state).unwrap();
 
-            if old_estimates.is_empty() {
+            let action = policy.select(old_estimates);
+            if action.is_none() {
                 break;
             }
 
-            let action = policy.select(old_estimates);
+            let action = action.unwrap();
             agent.take_action(&action);
             let old_value = old_estimates[&action];
 
