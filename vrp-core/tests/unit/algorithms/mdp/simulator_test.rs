@@ -116,7 +116,7 @@ fn print_board(simulator: &Simulator<GridState>, episode: usize) {
     (0..4).for_each(|y| {
         (0..4).for_each(|x| {
             if let Some((_, value)) = simulator.get_optimal_policy(&GridState::OnGrid { x, y }) {
-                print!("|{ggg:>10.7}|", ggg = value)
+                print!("|{:>10.7}|", value)
             } else {
                 print!("| --none-- |")
             }
@@ -141,26 +141,25 @@ fn create_agent(state: GridState, actions_taken: ActionCounter) -> GridAgent {
     GridAgent::new(actions, state, grid.clone(), terminal, actions_taken)
 }
 
-parameterized_test! {can_run_grid_episodes_impl, (agent_count, repeat_count, tolerance, expected_optimal, visualize, policy_strategy), {
-    can_run_grid_episodes_impl(agent_count, repeat_count, tolerance, expected_optimal, visualize, policy_strategy);
+parameterized_test! {can_run_grid_episodes_impl, (agent_count, repeat_count, expected_optimal, visualize, policy_strategy), {
+    can_run_grid_episodes_impl(agent_count, repeat_count, expected_optimal, visualize, policy_strategy);
 }}
 
 can_run_grid_episodes_impl! {
-    case01: (1, 1000, 0, 100, false, Box::new(Greedy::default())),
-    case02: (1, 1000, 2, 10, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
+    case01: (1, 1000, Some(100), false, Box::new(Greedy::default())),
+    case02: (1, 1000, None, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
 
-    case03: (2, 1000, 0, 100, false, Box::new(Greedy::default())),
-    case04: (2, 1000, 2, 10, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
+    case03: (2, 1000, Some(100), false, Box::new(Greedy::default())),
+    case04: (2, 1000, None, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
 
-    case05: (10, 1000, 0, 100, false, Box::new(Greedy::default())),
-    case06: (10, 1000, 2, 10, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
+    case05: (10, 1000, Some(100), false, Box::new(Greedy::default())),
+    case06: (10, 1000, None, false, Box::new(EpsilonGreedy::new(0.001, test_random()))),
 }
 
 fn can_run_grid_episodes_impl(
     agent_count: usize,
     repeat_count: usize,
-    tolerance: usize,
-    expected_optimal: usize,
+    expected_optimal: Option<usize>,
     visualize: bool,
     policy_strategy: Box<dyn PolicyStrategy<GridState> + Send + Sync>,
 ) {
@@ -173,12 +172,15 @@ fn can_run_grid_episodes_impl(
     });
 
     assert_eq!(actions_taken.len(), repeat_count);
-    actions_taken.iter().rev().take(expected_optimal).for_each(|agents_actions| {
-        assert_eq!(agents_actions.len(), agent_count);
-        agents_actions.iter().for_each(|optimal_actions| {
-            assert!(optimal_actions.len() <= 6 + tolerance);
+    // NOTE do not check for EpsilonGreedy test due to its stochastic nature
+    if let Some(expected_optimal) = expected_optimal {
+        actions_taken.iter().rev().take(expected_optimal).for_each(|agents_actions| {
+            assert_eq!(agents_actions.len(), agent_count);
+            agents_actions.iter().for_each(|optimal_actions| {
+                assert_eq!(optimal_actions.len(), 6);
+            });
         });
-    });
+    }
 
     for ((x, y), (e_dx, e_dy)) in
         vec![((2, 3), (1, 0)), ((1, 3), (1, 0)), ((0, 3), (1, 0)), ((3, 2), (0, 1)), ((3, 1), (0, 1)), ((3, 0), (0, 1))]
