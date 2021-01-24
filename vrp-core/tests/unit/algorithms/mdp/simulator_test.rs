@@ -115,7 +115,7 @@ fn create_agent(state: GridState, actions_taken: ActionCounter) -> GridAgent {
         (GridAction::Move { dx: 1, dy: 0 }, 0.),
         (GridAction::Move { dx: 0, dy: 1 }, 0.),
         (GridAction::Move { dx: -1, dy: 0 }, 0.),
-        (GridAction::Move { dx: 0, dy: 1 }, 0.),
+        (GridAction::Move { dx: 0, dy: -1 }, 0.),
     ]
     .iter()
     .cloned()
