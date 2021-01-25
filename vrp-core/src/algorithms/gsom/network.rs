@@ -83,6 +83,8 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
     /// Optimizes network by rebalancing and compaction of the nodes.
     pub fn optimize(&mut self, rebalance_count: usize, compact_rule: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
+        // NOTE compact before rebalancing to reduce network size to be rebalanced
+        self.compact(compact_rule);
         self.rebalance(rebalance_count);
         self.compact(compact_rule);
     }
@@ -273,7 +275,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
         remove.iter().for_each(|coordinate| {
             self.nodes.remove(coordinate);
-        })
+        });
     }
 
     /// Resets accumulated error in all nodes.
