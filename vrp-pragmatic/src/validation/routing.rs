@@ -3,6 +3,7 @@
 mod routing_test;
 
 use super::*;
+use hashbrown::HashSet;
 
 /// Checks that no duplicated profile names specified.
 fn check_e1500_duplicated_profiles(ctx: &ValidationContext) -> Result<(), FormatError> {
@@ -120,6 +121,31 @@ fn check_e1505_index_size_mismatch(ctx: &ValidationContext) -> Result<(), Format
     }
 }
 
+/// Checks that no duplicated profile names specified.
+fn check_e1506_profiles_exist(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let known_profiles = ctx.problem.fleet.profiles.iter().map(|p| p.name.clone()).collect::<HashSet<_>>();
+
+    let unknown_profiles = ctx
+        .problem
+        .fleet
+        .vehicles
+        .iter()
+        .filter(|vehicle| !known_profiles.contains(&vehicle.profile))
+        .map(|vehicle| vehicle.profile.clone())
+        .collect::<HashSet<_>>();
+
+    if unknown_profiles.is_empty() {
+        Ok(())
+    } else {
+        let unknown_profiles = unknown_profiles.into_iter().collect::<Vec<_>>();
+        Err(FormatError::new(
+            "E1506".to_string(),
+            "unknown vehicle profile name".to_string(),
+            format!("ensure that profile '{}' are defined in profiles", unknown_profiles.join(", ")),
+        ))
+    }
+}
+
 /// Validates routing rules.
 pub fn validate_routing(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     let location_types = ctx.coord_index.get_used_types();
@@ -131,5 +157,6 @@ pub fn validate_routing(ctx: &ValidationContext) -> Result<(), Vec<FormatError>>
         check_e1503_no_matrix_when_indices_used(ctx, location_types),
         check_e1504_limit_areas_cannot_be_used_with_indices(ctx, location_types),
         check_e1505_index_size_mismatch(ctx),
+        check_e1506_profiles_exist(ctx),
     ])
 }

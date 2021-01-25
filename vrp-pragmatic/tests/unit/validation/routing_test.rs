@@ -119,3 +119,22 @@ fn can_detect_index_mismatch() {
 
     assert_eq!(result.err().map(|err| err.code), Some("E1505".to_string()));
 }
+
+#[test]
+fn can_detect_missing_profile() {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![
+                VehicleType { profile: "car".to_string(), ..create_default_vehicle_type() },
+                VehicleType { profile: "truck".to_string(), ..create_default_vehicle_type() },
+            ],
+            profiles: vec![Profile { name: "car".to_string(), profile_type: "car".to_string(), speed: None }],
+        },
+        ..create_empty_problem()
+    };
+    let ctx = ValidationContext::new(&problem, None);
+
+    let result = check_e1506_profiles_exist(&ctx);
+
+    assert_eq!(result.err().map(|err| err.code), Some("E1506".to_string()));
+}

@@ -538,8 +538,8 @@ routing matrix provided.
 
 #### E1504
 
-`area limit constraint requires coordinates to be used everywhere` is returned when  location indices are used within
-area limit on `fleet.types.limits.allowedAreas`.
+`area limit constraint requires coordinates to be used everywhere` is returned when location indices are used within
+area limit on `fleet.vehicles.limits.allowedAreas`.
 
 
 #### E1505
@@ -550,6 +550,13 @@ area limit on `fleet.types.limits.allowedAreas`.
 * amount of total locations is higher than matrix size
 
 Check locations in problem definition and matrix size.
+
+
+#### E1506
+
+`unknown vehicle profile name` is returned when vehicle has `fleet.vehicles.profile` name with value which is not
+specified in `fleet.profiles` collection. To fix issue, either change value to one specified or add a corresponding
+profile in profiles collection.
 
 
 ### E16xx: Objectives
