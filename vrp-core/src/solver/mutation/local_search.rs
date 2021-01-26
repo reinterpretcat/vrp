@@ -1,7 +1,6 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::mutation::{LocalOperator, Mutation};
 use crate::solver::RefinementContext;
-use crate::utils::parallel_into_collect;
 
 /// A mutation operator which applies local search principles.
 pub struct LocalSearch {
@@ -16,24 +15,11 @@ impl LocalSearch {
 }
 
 impl Mutation for LocalSearch {
-    fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
+    fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
         if let Some(new_insertion_ctx) = self.operator.explore(refinement_ctx, insertion_ctx) {
             new_insertion_ctx
         } else {
             insertion_ctx.deep_copy()
         }
-    }
-
-    fn mutate_all(
-        &self,
-        refinement_ctx: &RefinementContext,
-        individuals: Vec<&InsertionContext>,
-    ) -> Vec<InsertionContext> {
-        parallel_into_collect(individuals.iter().enumerate().collect(), |(idx, insertion_ctx)| {
-            refinement_ctx
-                .environment
-                .parallelism
-                .thread_pool_execute(idx, || self.mutate_one(refinement_ctx, insertion_ctx))
-        })
     }
 }

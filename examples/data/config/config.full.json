@@ -23,12 +23,9 @@
       "explorationRatio": 0.9
     }
   },
-  "mutation": {
-    "type": "composite",
-    "probability": {
-      "scalar": 1
-    },
-    "inners": [
+  "hyper": {
+    "type": "static-selective",
+    "mutations": [
       {
         "type": "decomposition",
         "maxSelected": 2,
@@ -365,7 +362,7 @@
     }
   },
   "environment": {
-    "parallelism":{
+    "parallelism": {
       "numThreadPools": 6,
       "threadsPerPool": 8
     }

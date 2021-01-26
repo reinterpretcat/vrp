@@ -2,7 +2,6 @@
 //! existing solution.
 
 use crate::construction::heuristics::InsertionContext;
-use crate::models::Problem;
 use crate::solver::RefinementContext;
 use std::iter::once;
 use std::sync::Arc;
@@ -70,50 +69,6 @@ impl CompositeRuin {
         let ruins = ruins.into_iter().map(|(ruin, _)| ruin).collect();
 
         Self { ruins, weights }
-    }
-
-    /// Creates a new instance of `CompositeRuin` with default ruin methods.
-    pub fn new_from_problem(problem: Arc<Problem>) -> Self {
-        let random_route = Arc::new(RandomRouteRemoval::default());
-        let random_job = Arc::new(RandomJobRemoval::new(JobRemovalLimit::default()));
-
-        Self::new(vec![
-            (
-                vec![
-                    (Arc::new(AdjustedStringRemoval::default()), 1.),
-                    (Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(2, 8, 0.1))), 0.1),
-                    (random_job.clone(), 0.05),
-                    (random_route.clone(), 0.01),
-                ],
-                100,
-            ),
-            (
-                vec![
-                    (Arc::new(WorstJobRemoval::default()), 1.),
-                    (random_job.clone(), 0.05),
-                    (random_route.clone(), 0.01),
-                ],
-                10,
-            ),
-            (
-                vec![
-                    (Arc::new(NeighbourRemoval::default()), 1.),
-                    (random_job.clone(), 0.05),
-                    (random_route.clone(), 0.01),
-                ],
-                10,
-            ),
-            (vec![(random_job.clone(), 1.), (random_route.clone(), 0.1)], 2),
-            (vec![(random_route.clone(), 1.), (random_job.clone(), 0.1)], 2),
-            (
-                vec![
-                    (Arc::new(ClusterRemoval::new_with_defaults(problem)), 1.),
-                    (random_job, 0.05),
-                    (random_route, 0.01),
-                ],
-                1,
-            ),
-        ])
     }
 }
 

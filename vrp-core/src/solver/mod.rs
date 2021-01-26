@@ -100,6 +100,7 @@ use hashbrown::HashMap;
 use std::any::Any;
 use std::sync::Arc;
 
+pub mod hyper;
 pub mod mutation;
 pub mod objectives;
 pub mod population;

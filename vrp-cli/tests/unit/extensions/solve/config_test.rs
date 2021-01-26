@@ -51,15 +51,13 @@ fn can_read_full_config() {
         PopulationType::Elitism { .. } => unreachable!(),
     }
 
-    let mutation_config = config.mutation.expect("cannot get mutation");
-    match mutation_config {
-        MutationType::Composite { inners, .. } => {
-            assert_eq!(inners.len(), 4);
-            match inners.first().unwrap() {
-                MutationType::Decomposition { inner, max_selected, routes, repeat, probability } => {
-                    assert!(inner.is_none());
+    let hyper_config = config.hyper.expect("cannot get hyper");
+    match hyper_config {
+        HyperType::StaticSelective { mutations } => {
+            assert_eq!(mutations.len(), 4);
+            match mutations.first().unwrap() {
+                MutationType::Decomposition { routes, repeat, probability } => {
                     assert_eq!(*repeat, 100);
-                    assert_eq!(*max_selected, 2);
                     assert_eq!(routes.min, 2);
                     assert_eq!(routes.max, 4);
                     match probability {
@@ -74,7 +72,7 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
 
-            match inners.get(1).unwrap() {
+            match mutations.get(1).unwrap() {
                 MutationType::LocalSearch { probability, times, operators: inners } => {
                     assert_eq!(as_scalar_probability(probability), 0.05);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
@@ -83,7 +81,7 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
 
-            match inners.get(2).unwrap() {
+            match mutations.get(2).unwrap() {
                 MutationType::RuinRecreate { probability, ruins, recreates } => {
                     assert_eq!(as_scalar_probability(probability), 1.);
                     assert_eq!(ruins.len(), 6);
@@ -92,7 +90,7 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
 
-            match inners.last().unwrap() {
+            match mutations.last().unwrap() {
                 MutationType::LocalSearch { probability, times, operators: inners } => {
                     assert_eq!(as_scalar_probability(probability), 0.01);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
@@ -101,7 +99,6 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
         }
-        _ => unreachable!(),
     }
 
     let termination = config.termination.expect("no termination config");
@@ -135,7 +132,7 @@ fn can_create_default_config() {
     let config = Config::default();
 
     assert!(config.evolution.is_none());
-    assert!(config.mutation.is_none());
+    assert!(config.hyper.is_none());
     assert!(config.termination.is_none());
     assert!(config.telemetry.is_none());
 }

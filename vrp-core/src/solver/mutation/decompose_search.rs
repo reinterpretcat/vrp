@@ -17,9 +17,8 @@ use std::sync::{Arc, RwLock};
 /// preforms search independently, and then merges partial solution back into one solution.
 pub struct DecomposeSearch {
     inner_mutation: Arc<dyn Mutation + Send + Sync>,
-    repeat_count: usize,
     max_routes_range: (i32, i32),
-    max_routes_selected: usize,
+    repeat_count: usize,
 }
 
 impl DecomposeSearch {
@@ -27,32 +26,19 @@ impl DecomposeSearch {
     pub fn new(
         inner_mutation: Arc<dyn Mutation + Send + Sync>,
         max_routes_range: (usize, usize),
-        max_routes_selected: usize,
         repeat_count: usize,
     ) -> Self {
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
-        Self { inner_mutation, repeat_count, max_routes_range, max_routes_selected }
+        Self { inner_mutation, max_routes_range, repeat_count }
     }
 }
 
 impl Mutation for DecomposeSearch {
-    fn mutate_one(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
+    fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
         decompose_individual(&refinement_ctx, insertion_ctx, self.max_routes_range)
             .map(|contexts| self.refine_decomposed(refinement_ctx, contexts))
-            .unwrap_or_else(|| self.inner_mutation.mutate_one(refinement_ctx, insertion_ctx))
-    }
-
-    fn mutate_all(
-        &self,
-        refinement_ctx: &RefinementContext,
-        individuals: Vec<&InsertionContext>,
-    ) -> Vec<InsertionContext> {
-        individuals
-            .into_iter()
-            .take(self.max_routes_selected)
-            .map(|individual| self.mutate_one(refinement_ctx, individual))
-            .collect()
+            .unwrap_or_else(|| self.inner_mutation.mutate(refinement_ctx, insertion_ctx))
     }
 }
 
@@ -68,7 +54,7 @@ impl DecomposeSearch {
         let decomposed_populations = parallel_into_collect(decomposed_contexts, |mut decomposed_ctx| {
             (0..self.repeat_count).for_each(|_| {
                 let insertion_ctx = decomposed_ctx.population.select().next().expect(GREEDY_ERROR);
-                let insertion_ctx = self.inner_mutation.mutate_one(&decomposed_ctx, insertion_ctx);
+                let insertion_ctx = self.inner_mutation.mutate(&decomposed_ctx, insertion_ctx);
                 decomposed_ctx.population.add(insertion_ctx);
             });
             decomposed_ctx.population

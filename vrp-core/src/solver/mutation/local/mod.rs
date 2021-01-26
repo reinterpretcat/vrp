@@ -36,20 +36,6 @@ impl CompositeLocalOperator {
     }
 }
 
-impl Default for CompositeLocalOperator {
-    fn default() -> Self {
-        Self::new(
-            vec![
-                (Box::new(ExchangeInterRouteBest::default()), 100),
-                (Box::new(ExchangeInterRouteRandom::default()), 30),
-                (Box::new(ExchangeIntraRouteRandom::default()), 30),
-            ],
-            1,
-            2,
-        )
-    }
-}
-
 impl LocalOperator for CompositeLocalOperator {
     fn explore(
         &self,

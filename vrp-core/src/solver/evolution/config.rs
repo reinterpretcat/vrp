@@ -2,7 +2,8 @@ use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::Problem;
 use crate::solver::evolution::{EvolutionStrategy, RunSimple};
-use crate::solver::mutation::*;
+use crate::solver::hyper::{HyperHeuristic, StaticSelective};
+use crate::solver::mutation::{Recreate, RecreateWithCheapest};
 use crate::solver::population::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
@@ -18,8 +19,8 @@ pub struct EvolutionConfig {
     /// A population configuration
     pub population: PopulationConfig,
 
-    /// A mutation applied to population.
-    pub mutation: Arc<dyn Mutation + Send + Sync>,
+    /// A hyper heuristic.
+    pub hyper: Box<dyn HyperHeuristic + Send + Sync>,
 
     /// A termination defines when evolution should stop.
     pub termination: Arc<dyn Termination + Send + Sync>,
@@ -71,37 +72,7 @@ impl EvolutionConfig {
                 },
                 variation: Some(get_default_population(problem.clone(), environment.clone())),
             },
-            mutation: Arc::new(CompositeMutation::new(vec![(
-                vec![
-                    (
-                        Arc::new(DecomposeSearch::new(
-                            Arc::new(RuinAndRecreate::new_from_problem(problem.clone())),
-                            (2, 4),
-                            2,
-                            100,
-                        )),
-                        create_context_mutation_probability(
-                            1000,
-                            10,
-                            vec![(SelectionPhase::Exploration, 0.001)],
-                            environment.random.clone(),
-                        ),
-                    ),
-                    (
-                        Arc::new(LocalSearch::new(Box::new(CompositeLocalOperator::default()))),
-                        create_scalar_mutation_probability(0.05, environment.random.clone()),
-                    ),
-                    (
-                        Arc::new(RuinAndRecreate::new_from_problem(problem)),
-                        create_scalar_mutation_probability(1., environment.random.clone()),
-                    ),
-                    (
-                        Arc::new(LocalSearch::new(Box::new(CompositeLocalOperator::default()))),
-                        create_scalar_mutation_probability(0.05, environment.random.clone()),
-                    ),
-                ],
-                1,
-            )])),
+            hyper: Box::new(StaticSelective::new_with_defaults(problem, environment.clone())),
             termination: Arc::new(CompositeTermination::new(vec![
                 Box::new(MaxTime::new(300.)),
                 Box::new(MaxGeneration::new(3000)),

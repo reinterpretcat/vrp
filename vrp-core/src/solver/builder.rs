@@ -2,6 +2,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::{Problem, Solution};
 use crate::solver::evolution::EvolutionConfig;
+use crate::solver::hyper::HyperHeuristic;
 use crate::solver::mutation::*;
 use crate::solver::population::Population;
 use crate::solver::termination::*;
@@ -138,10 +139,10 @@ impl Builder {
         self
     }
 
-    /// Sets mutation algorithm. Default is ruin and recreate.
-    pub fn with_mutation(mut self, mutation: Arc<dyn Mutation + Send + Sync>) -> Self {
-        self.config.telemetry.log("configured to use custom mutation");
-        self.config.mutation = mutation;
+    /// Sets hyper heuristic algorithm. Default is simple selective.
+    pub fn with_hyper(mut self, hyper: Box<dyn HyperHeuristic + Send + Sync>) -> Self {
+        self.config.telemetry.log("configured to use custom hyper-heuristic");
+        self.config.hyper = hyper;
         self
     }
 

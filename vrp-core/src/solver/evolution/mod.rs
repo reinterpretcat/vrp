@@ -3,7 +3,7 @@
 mod evolution_test;
 
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::mutation::*;
+use crate::solver::hyper::HyperHeuristic;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::{Metrics, Population, RefinementContext};
@@ -24,7 +24,7 @@ pub trait EvolutionStrategy {
     fn run(
         &self,
         refinement_ctx: RefinementContext,
-        mutation: &(dyn Mutation + Send + Sync),
+        hyper: Box<dyn HyperHeuristic + Send + Sync>,
         termination: &(dyn Termination + Send + Sync),
         telemetry: Telemetry,
     ) -> EvolutionResult;
@@ -50,12 +50,7 @@ impl EvolutionSimulator {
         let refinement_ctx = self.create_refinement_ctx()?;
         let strategy = self.config.strategy.clone();
 
-        strategy.run(
-            refinement_ctx,
-            self.config.mutation.as_ref(),
-            self.config.termination.as_ref(),
-            self.config.telemetry,
-        )
+        strategy.run(refinement_ctx, self.config.hyper, self.config.termination.as_ref(), self.config.telemetry)
     }
 
     /// Creates refinement context with population containing initial individuals.

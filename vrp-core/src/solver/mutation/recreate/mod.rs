@@ -33,10 +33,6 @@ pub use self::recreate_with_skip_best::RecreateWithSkipBest;
 mod recreate_with_regret;
 pub use self::recreate_with_regret::RecreateWithRegret;
 
-use crate::models::common::SingleDimLoad;
-use crate::models::Problem;
-use std::sync::Arc;
-
 /// Provides the way to run one of multiple recreate methods with different probability.
 pub struct CompositeRecreate {
     recreates: Vec<Box<dyn Recreate + Send + Sync>>,
@@ -49,24 +45,6 @@ impl CompositeRecreate {
         let weights = recreates.iter().map(|(_, weight)| *weight).collect();
         let recreates = recreates.into_iter().map(|(recreate, _)| recreate).collect();
         Self { recreates, weights }
-    }
-
-    /// Creates a new instance of `CompositeRecreate` for given problem using default recreate
-    /// strategies.
-    pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
-        Self::new(vec![
-            (Box::new(RecreateWithSkipBest::new(1, 2)), 50),
-            (Box::new(RecreateWithRegret::new(2, 3)), 20),
-            (Box::new(RecreateWithCheapest::default()), 20),
-            (Box::new(RecreateWithPerturbation::default()), 10),
-            (Box::new(RecreateWithSkipBest::new(3, 4)), 5),
-            (Box::new(RecreateWithGaps::default()), 5),
-            // TODO use dimension size from problem
-            (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), 5),
-            (Box::new(RecreateWithFarthest::default()), 2),
-            (Box::new(RecreateWithSkipBest::new(4, 8)), 2),
-            (Box::new(RecreateWithNearestNeighbor::default()), 1),
-        ])
     }
 }
 

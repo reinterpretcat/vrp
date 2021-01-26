@@ -13,6 +13,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::models::Problem;
+use vrp_core::solver::hyper::*;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::population::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
@@ -23,8 +24,8 @@ use vrp_core::utils::{Environment, Parallelism, Random};
 pub struct Config {
     /// Specifies evolution configuration.
     pub evolution: Option<EvolutionConfig>,
-    /// Specifies mutation operator type.
-    pub mutation: Option<MutationType>,
+    /// Specifies hyper heuristic type.
+    pub hyper: Option<HyperType>,
     /// Specifies algorithm termination configuration.
     pub termination: Option<TerminationConfig>,
     /// Specifies environment configuration.
@@ -103,28 +104,26 @@ pub enum SelectionType {
     },
 }
 
+/// A hyper heuristic configuration.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum HyperType {
+    /// A hyper heuristic which selects one mutation from the list based on its probability.
+    #[serde(rename(deserialize = "static-selective"))]
+    StaticSelective {
+        /// A collection of inner mutation operators (metaheuristics).
+        mutations: Vec<MutationType>,
+    },
+}
+
 /// A mutation operator configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum MutationType {
-    /// A metaheuristic which is composition of other metaheuristics with their
-    /// probability weights.
-    #[serde(rename(deserialize = "composite"))]
-    Composite {
-        /// Probability of mutation.
-        probability: MutationProbabilityType,
-        /// A collection of inner metaheuristics.
-        inners: Vec<MutationType>,
-    },
-
-    /// A metaheuristic which splits
+    /// A metaheuristic which splits problem into smaller and solves them independently.
     #[serde(rename(deserialize = "decomposition"))]
     #[serde(rename_all = "camelCase")]
     Decomposition {
-        /// Actual mutation type. If omitted, default ruin and recreate is used.
-        inner: Box<Option<MutationType>>,
-        /// Max amount of routes to be selected.
-        max_selected: usize,
         /// Max routes to be selected in decomposed solution.
         routes: MinMaxConfig,
         /// Amount of attempts to repeat refinement.
@@ -366,7 +365,7 @@ pub struct NameWeight {
 
 impl Default for Config {
     fn default() -> Self {
-        Self { evolution: None, mutation: None, termination: None, environment: None, telemetry: None }
+        Self { evolution: None, hyper: None, termination: None, environment: None, telemetry: None }
     }
 }
 
@@ -452,14 +451,22 @@ fn configure_from_evolution(
     Ok(builder)
 }
 
-fn configure_from_mutation(
+fn configure_from_hyper(
     mut builder: Builder,
-    mutation_config: &Option<MutationType>,
+    hyper_config: &Option<HyperType>,
     environment: Arc<Environment>,
 ) -> Result<Builder, String> {
-    if let Some(config) = mutation_config {
-        let mutation = create_mutation(&builder.config.problem, environment.random.clone(), config)?.0;
-        builder = builder.with_mutation(mutation)
+    if let Some(config) = hyper_config {
+        match config {
+            HyperType::StaticSelective { mutations } => {
+                let mutation_group = mutations
+                    .iter()
+                    .map(|mutation| create_mutation(&builder.config.problem, environment.random.clone(), mutation))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let static_selective = vrp_core::solver::hyper::StaticSelective::new(mutation_group);
+                builder = builder.with_hyper(Box::new(static_selective));
+            }
+        }
     }
 
     Ok(builder)
@@ -509,31 +516,19 @@ fn create_mutation(
             let operator = create_local_search(times, inners);
             (Arc::new(LocalSearch::new(operator)), create_mutation_probability(probability, random.clone()))
         }
-        MutationType::Decomposition { inner, max_selected, routes, repeat, probability } => {
-            if *max_selected < 1 {
-                return Err(format!("max selected must be greater than 1. Specified: {}", max_selected));
+        MutationType::Decomposition { routes, repeat, probability } => {
+            if *repeat < 1 {
+                return Err(format!("repeat must be greater than 1. Specified: {}", repeat));
             }
             if routes.min < 2 {
                 return Err(format!("min routes must be greater than 2. Specified: {}", routes.min));
             }
 
-            let inner_mutation = inner
-                .as_ref()
-                .as_ref()
-                .map(|mutation| create_mutation(problem, random.clone(), &mutation).map(|(m, _)| m))
-                .unwrap_or_else(|| Ok(Arc::new(RuinAndRecreate::new_from_problem(problem.clone()))))?;
+            let mutation = vrp_core::solver::hyper::StaticSelective::create_default_mutation(problem.clone());
             (
-                Arc::new(DecomposeSearch::new(inner_mutation, (routes.min, routes.max), *max_selected, *repeat)),
+                Arc::new(DecomposeSearch::new(mutation, (routes.min, routes.max), *repeat)),
                 create_mutation_probability(probability, random.clone()),
             )
-        }
-        MutationType::Composite { probability, inners } => {
-            let inners = inners
-                .iter()
-                .map(|mutation| create_mutation(problem, random.clone(), mutation))
-                .collect::<Result<Vec<_>, _>>()?;
-
-            (Arc::new(CompositeMutation::new(vec![(inners, 1)])), create_mutation_probability(probability, random))
         }
     })
 }
@@ -684,7 +679,7 @@ pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Res
 
     builder = configure_from_telemetry(builder, &config.telemetry)?;
     builder = configure_from_evolution(builder, &config.evolution, problem, environment.clone())?;
-    builder = configure_from_mutation(builder, &config.mutation, environment)?;
+    builder = configure_from_hyper(builder, &config.hyper, environment)?;
     builder = configure_from_termination(builder, &config.termination)?;
 
     Ok(builder)

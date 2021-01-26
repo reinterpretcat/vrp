@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
-use crate::solver::mutation::RuinAndRecreate;
+use crate::solver::hyper::StaticSelective;
 use crate::utils::Environment;
 
 #[test]
@@ -49,10 +49,9 @@ fn can_mutate() {
 
     let refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone(), None);
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment);
-    let decompose_search =
-        DecomposeSearch::new(Arc::new(RuinAndRecreate::new_from_problem(problem.clone())), (2, 2), 1, 10);
+    let decompose_search = DecomposeSearch::new(StaticSelective::create_default_mutation(problem.clone()), (2, 2), 10);
 
-    let result = decompose_search.mutate_one(&refinement_ctx, &insertion_ctx);
+    let result = decompose_search.mutate(&refinement_ctx, &insertion_ctx);
 
     let solution = &result.solution;
     assert!(solution.unassigned.is_empty());
