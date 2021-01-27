@@ -57,7 +57,7 @@ fn can_read_full_config() {
             assert_eq!(mutations.len(), 4);
             match mutations.first().unwrap() {
                 MutationType::Decomposition { routes, repeat, probability } => {
-                    assert_eq!(*repeat, 100);
+                    assert_eq!(*repeat, 4);
                     assert_eq!(routes.min, 2);
                     assert_eq!(routes.max, 4);
                     match probability {

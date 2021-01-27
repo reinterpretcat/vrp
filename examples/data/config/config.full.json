@@ -29,7 +29,7 @@
       {
         "type": "decomposition",
         "maxSelected": 2,
-        "repeat": 100,
+        "repeat": 4,
         "routes": {
           "min": 2,
           "max": 4
@@ -42,7 +42,7 @@
           "phases": [
             {
               "type": "exploration",
-              "chance": 0.001
+              "chance": 0.01
             }
           ]
         }

@@ -3,6 +3,7 @@
 mod decompose_search_test;
 
 use super::super::rand::prelude::SliceRandom;
+use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::{get_medoid, InsertionContext, SolutionContext};
 use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
@@ -37,7 +38,7 @@ impl DecomposeSearch {
 impl Mutation for DecomposeSearch {
     fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
         decompose_individual(&refinement_ctx, insertion_ctx, self.max_routes_range)
-            .map(|contexts| self.refine_decomposed(refinement_ctx, contexts))
+            .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
             .unwrap_or_else(|| self.inner_mutation.mutate(refinement_ctx, insertion_ctx))
     }
 }
@@ -48,40 +49,32 @@ impl DecomposeSearch {
     fn refine_decomposed(
         &self,
         refinement_ctx: &RefinementContext,
-        decomposed_contexts: Vec<RefinementContext>,
+        original_individual: &Individual,
+        decomposed: Vec<(RefinementContext, HashSet<usize>)>,
     ) -> Individual {
+        // NOTE: validate decomposition
+        decomposed.iter().enumerate().for_each(|(outer_ix, (_, outer))| {
+            decomposed.iter().enumerate().filter(|(inner_idx, _)| outer_ix != *inner_idx).for_each(
+                |(_, (_, inner))| {
+                    assert!(outer.intersection(&inner).next().is_none());
+                },
+            );
+        });
+
         // do actual refinement independently for each decomposed context
-        let decomposed_populations = parallel_into_collect(decomposed_contexts, |mut decomposed_ctx| {
+        let decomposed = parallel_into_collect(decomposed, |mut decomposed| {
             (0..self.repeat_count).for_each(|_| {
-                let insertion_ctx = decomposed_ctx.population.select().next().expect(GREEDY_ERROR);
-                let insertion_ctx = self.inner_mutation.mutate(&decomposed_ctx, insertion_ctx);
-                decomposed_ctx.population.add(insertion_ctx);
+                let insertion_ctx = decomposed.0.population.select().next().expect(GREEDY_ERROR);
+                let insertion_ctx = self.inner_mutation.mutate(&decomposed.0, insertion_ctx);
+                decomposed.0.population.add(insertion_ctx);
             });
-            decomposed_ctx.population
+            decomposed
         });
 
         // merge evolution results into one individual
-        let mut individual = decomposed_populations.into_iter().fold(
+        let mut individual = decomposed.into_iter().fold(
             Individual::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
-            |mut individual, decomposed_population| {
-                let (decomposed_individual, _) = decomposed_population.ranked().next().expect(GREEDY_ERROR);
-
-                let acc_solution = &mut individual.solution;
-                let dec_solution = &decomposed_individual.solution;
-
-                // NOTE theoretically, we can avoid deep copy here, but this would require extension in Population trait
-                acc_solution.routes.extend(dec_solution.routes.iter().map(|route_ctx| route_ctx.deep_copy()));
-                acc_solution.ignored.extend(dec_solution.ignored.iter().cloned());
-                acc_solution.required.extend(dec_solution.required.iter().cloned());
-                acc_solution.locked.extend(dec_solution.locked.iter().cloned());
-                acc_solution.unassigned.extend(dec_solution.unassigned.iter().map(|(k, v)| (k.clone(), *v)));
-
-                dec_solution.routes.iter().for_each(|route_ctx| {
-                    acc_solution.registry.use_route(route_ctx);
-                });
-
-                individual
-            },
+            |individual, decomposed| merge_best(decomposed, original_individual, individual),
         );
 
         refinement_ctx.problem.constraint.accept_solution_state(&mut individual.solution);
@@ -94,7 +87,10 @@ fn create_population(individual: Individual) -> Box<dyn Population + Send + Sync
     Box::new(Greedy::new(individual.problem.clone(), Some(individual)))
 }
 
-fn create_multiple_individuals(individual: &Individual, max_routes_range: (i32, i32)) -> Option<Vec<Individual>> {
+fn create_multiple_individuals(
+    individual: &Individual,
+    max_routes_range: (i32, i32),
+) -> Option<Vec<(Individual, HashSet<usize>)>> {
     let solution = &individual.solution;
     let profile = solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile)?;
     let transport = individual.problem.transport.as_ref();
@@ -165,7 +161,7 @@ fn create_multiple_individuals(individual: &Individual, max_routes_range: (i32, 
                 used_indices.write().unwrap().insert(*idx);
             });
 
-            create_partial_individual(individual, route_group.iter().cloned())
+            create_partial_individual(individual, route_group)
         })
         .chain(create_empty_individuals(individual))
         .collect();
@@ -173,49 +169,55 @@ fn create_multiple_individuals(individual: &Individual, max_routes_range: (i32, 
     Some(individuals)
 }
 
-fn create_partial_individual(individual: &Individual, route_indices: impl Iterator<Item = usize>) -> Individual {
-    let routes = route_indices.map(|idx| individual.solution.routes[idx].deep_copy()).collect::<Vec<_>>();
+fn create_partial_individual(individual: &Individual, route_indices: HashSet<usize>) -> (Individual, HashSet<usize>) {
+    let routes = route_indices.iter().map(|idx| individual.solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
     let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
     let registry = individual.solution.registry.deep_slice(|actor| actors.contains(actor));
     let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
     let locked = individual.solution.locked.iter().filter(|job| jobs.contains(job)).cloned().collect();
 
     // TODO it would be nice to fill ignored jobs with actor specific jobs
-    Individual {
-        problem: individual.problem.clone(),
-        solution: SolutionContext {
-            required: Default::default(),
-            ignored: Default::default(),
-            unassigned: Default::default(),
-            locked,
-            routes,
-            registry,
-            state: Default::default(),
+    (
+        Individual {
+            problem: individual.problem.clone(),
+            solution: SolutionContext {
+                required: Default::default(),
+                ignored: Default::default(),
+                unassigned: Default::default(),
+                locked,
+                routes,
+                registry,
+                state: Default::default(),
+            },
+            environment: individual.environment.clone(),
         },
-        environment: individual.environment.clone(),
-    }
+        route_indices,
+    )
 }
 
-fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = Individual>> {
+fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = (Individual, HashSet<usize>)>> {
     // TODO split into more individuals if too many required jobs are present
     //      this might increase overall refinement speed
 
     if individual.solution.required.is_empty() && individual.solution.unassigned.is_empty() {
         Box::new(empty())
     } else {
-        Box::new(once(Individual {
-            problem: individual.problem.clone(),
-            solution: SolutionContext {
-                required: individual.solution.required.clone(),
-                ignored: individual.solution.ignored.clone(),
-                unassigned: individual.solution.unassigned.clone(),
-                locked: individual.solution.locked.clone(),
-                routes: Default::default(),
-                registry: individual.solution.registry.deep_copy(),
-                state: Default::default(),
+        Box::new(once((
+            Individual {
+                problem: individual.problem.clone(),
+                solution: SolutionContext {
+                    required: individual.solution.required.clone(),
+                    ignored: individual.solution.ignored.clone(),
+                    unassigned: individual.solution.unassigned.clone(),
+                    locked: individual.solution.locked.clone(),
+                    routes: Default::default(),
+                    registry: individual.solution.registry.deep_copy(),
+                    state: Default::default(),
+                },
+                environment: individual.environment.clone(),
             },
-            environment: individual.environment.clone(),
-        }))
+            HashSet::default(),
+        )))
     }
 }
 
@@ -223,20 +225,59 @@ fn decompose_individual(
     refinement_ctx: &RefinementContext,
     individual: &Individual,
     max_routes_range: (i32, i32),
-) -> Option<Vec<RefinementContext>> {
+) -> Option<Vec<(RefinementContext, HashSet<usize>)>> {
     create_multiple_individuals(individual, max_routes_range)
         .map(|individuals| {
             individuals
                 .into_iter()
-                .map(|individual| RefinementContext {
-                    problem: refinement_ctx.problem.clone(),
-                    population: create_population(individual),
-                    state: Default::default(),
-                    quota: refinement_ctx.quota.clone(),
-                    environment: refinement_ctx.environment.clone(),
-                    statistics: Default::default(),
+                .map(|(individual, indices)| {
+                    (
+                        RefinementContext {
+                            problem: refinement_ctx.problem.clone(),
+                            population: create_population(individual),
+                            state: Default::default(),
+                            quota: refinement_ctx.quota.clone(),
+                            environment: refinement_ctx.environment.clone(),
+                            statistics: Default::default(),
+                        },
+                        indices,
+                    )
                 })
                 .collect::<Vec<_>>()
         })
         .and_then(|contexts| if contexts.len() > 1 { Some(contexts) } else { None })
+}
+
+fn merge_best(
+    decomposed: (RefinementContext, HashSet<usize>),
+    original_individual: &Individual,
+    accumulated: Individual,
+) -> Individual {
+    let (decomposed_ctx, route_indices) = decomposed;
+    let (decomposed_individual, _) = decomposed_ctx.population.ranked().next().expect(GREEDY_ERROR);
+
+    let (partial_individual, _) = create_partial_individual(original_individual, route_indices);
+    let objective = partial_individual.problem.objective.as_ref();
+
+    let source_solution = if objective.total_order(decomposed_individual, &partial_individual) == Ordering::Less {
+        &decomposed_individual.solution
+    } else {
+        &partial_individual.solution
+    };
+
+    let mut accumulated = accumulated;
+    let dest_solution = &mut accumulated.solution;
+
+    // NOTE theoretically, we can avoid deep copy here, but this would require extension in Population trait
+    dest_solution.routes.extend(source_solution.routes.iter().map(|route_ctx| route_ctx.deep_copy()));
+    dest_solution.ignored.extend(source_solution.ignored.iter().cloned());
+    dest_solution.required.extend(source_solution.required.iter().cloned());
+    dest_solution.locked.extend(source_solution.locked.iter().cloned());
+    dest_solution.unassigned.extend(source_solution.unassigned.iter().map(|(k, v)| (k.clone(), *v)));
+
+    source_solution.routes.iter().for_each(|route_ctx| {
+        dest_solution.registry.use_route(route_ctx);
+    });
+
+    accumulated
 }
