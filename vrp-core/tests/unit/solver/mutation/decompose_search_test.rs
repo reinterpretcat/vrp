@@ -11,10 +11,11 @@ fn can_create_multiple_individuals_without_unassigned() {
 
     let individuals = create_multiple_individuals(&individual, (2, 2)).unwrap();
 
-    assert_eq!(individuals.len(), 3);
-    assert_eq!(individuals[0].0.solution.routes.len(), 3);
-    assert_eq!(individuals[1].0.solution.routes.len(), 3);
-    assert_eq!(individuals[2].0.solution.routes.len(), 1);
+    assert_eq!(individuals.len(), 4);
+    assert_eq!(individuals[0].0.solution.routes.len(), 2);
+    assert_eq!(individuals[1].0.solution.routes.len(), 2);
+    assert_eq!(individuals[2].0.solution.routes.len(), 2);
+    assert_eq!(individuals[3].0.solution.routes.len(), 1);
 }
 
 #[test]
@@ -28,16 +29,19 @@ fn can_create_multiple_individuals_with_unassigned() {
 
     let individuals = create_multiple_individuals(&individual, (2, 2)).unwrap();
 
-    assert_eq!(individuals.len(), 3);
+    assert_eq!(individuals.len(), 4);
 
-    assert_eq!(individuals[0].0.solution.routes.len(), 3);
+    assert_eq!(individuals[0].0.solution.routes.len(), 2);
     assert_eq!(individuals[0].0.solution.unassigned.len(), 0);
 
     assert_eq!(individuals[1].0.solution.routes.len(), 2);
     assert_eq!(individuals[1].0.solution.unassigned.len(), 0);
 
-    assert_eq!(individuals[2].0.solution.routes.len(), 0);
-    assert_eq!(individuals[2].0.solution.unassigned.len(), 5);
+    assert_eq!(individuals[2].0.solution.routes.len(), 1);
+    assert_eq!(individuals[2].0.solution.unassigned.len(), 0);
+
+    assert_eq!(individuals[3].0.solution.routes.len(), 0);
+    assert_eq!(individuals[3].0.solution.unassigned.len(), 5);
 }
 
 #[test]

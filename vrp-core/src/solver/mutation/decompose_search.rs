@@ -148,13 +148,15 @@ fn create_multiple_individuals(
         .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
         .map(|(outer_idx, route_group_distance)| {
             let group_size = individual.environment.random.uniform_int(max_routes_range.0, max_routes_range.1) as usize;
-            let route_group = route_group_distance
-                .iter()
-                .cloned()
-                .filter(|(inner_idx, _)| !used_indices.read().unwrap().contains(*inner_idx))
+            let route_group = once(outer_idx)
+                .chain(
+                    route_group_distance
+                        .iter()
+                        .cloned()
+                        .filter(|(inner_idx, _)| !used_indices.read().unwrap().contains(*inner_idx))
+                        .map(|(inner_idx, _)| *inner_idx),
+                )
                 .take(group_size)
-                .map(|(inner_idx, _)| *inner_idx)
-                .chain(once(outer_idx))
                 .collect::<HashSet<_>>();
 
             route_group.iter().for_each(|idx| {
@@ -170,20 +172,22 @@ fn create_multiple_individuals(
 }
 
 fn create_partial_individual(individual: &Individual, route_indices: HashSet<usize>) -> (Individual, HashSet<usize>) {
-    let routes = route_indices.iter().map(|idx| individual.solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
-    let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
-    let registry = individual.solution.registry.deep_slice(|actor| actors.contains(actor));
-    let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
-    let locked = individual.solution.locked.iter().filter(|job| jobs.contains(job)).cloned().collect();
+    let solution = &individual.solution;
 
-    // TODO it would be nice to fill ignored jobs with actor specific jobs
+    let routes = route_indices.iter().map(|idx| solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
+    let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
+    let registry = solution.registry.deep_slice(|actor| actors.contains(actor));
+    let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
+    let locked = solution.locked.iter().filter(|job| jobs.contains(job)).cloned().collect();
+
     (
         Individual {
             problem: individual.problem.clone(),
             solution: SolutionContext {
-                required: Default::default(),
-                ignored: Default::default(),
-                unassigned: Default::default(),
+                // NOTE we need to handle empty route indices case differently
+                required: if route_indices.is_empty() { solution.required.clone() } else { Default::default() },
+                ignored: if route_indices.is_empty() { solution.ignored.clone() } else { Default::default() },
+                unassigned: if route_indices.is_empty() { solution.unassigned.clone() } else { Default::default() },
                 locked,
                 routes,
                 registry,
@@ -199,19 +203,25 @@ fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = 
     // TODO split into more individuals if too many required jobs are present
     //      this might increase overall refinement speed
 
-    if individual.solution.required.is_empty() && individual.solution.unassigned.is_empty() {
+    let solution = &individual.solution;
+
+    if solution.required.is_empty()
+        && solution.unassigned.is_empty()
+        && solution.ignored.is_empty()
+        && solution.locked.is_empty()
+    {
         Box::new(empty())
     } else {
         Box::new(once((
             Individual {
                 problem: individual.problem.clone(),
                 solution: SolutionContext {
-                    required: individual.solution.required.clone(),
-                    ignored: individual.solution.ignored.clone(),
-                    unassigned: individual.solution.unassigned.clone(),
-                    locked: individual.solution.locked.clone(),
+                    required: solution.required.clone(),
+                    ignored: solution.ignored.clone(),
+                    unassigned: solution.unassigned.clone(),
+                    locked: solution.locked.clone(),
                     routes: Default::default(),
-                    registry: individual.solution.registry.deep_copy(),
+                    registry: solution.registry.deep_copy(),
                     state: Default::default(),
                 },
                 environment: individual.environment.clone(),
