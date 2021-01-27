@@ -55,9 +55,9 @@ impl StaticSelective {
             (
                 Arc::new(DecomposeSearch::new(default_mutation.clone(), (2, 4), 4)),
                 create_context_mutation_probability(
-                    1000,
+                    300,
                     10,
-                    vec![(SelectionPhase::Exploration, 0.001)],
+                    vec![(SelectionPhase::Exploration, 0.01), (SelectionPhase::Exploitation, 0.02)],
                     environment.random.clone(),
                 ),
             ),

@@ -62,9 +62,9 @@ fn can_read_full_config() {
                     assert_eq!(routes.max, 4);
                     match probability {
                         MutationProbabilityType::Context { threshold, phases } => {
-                            assert_eq!(threshold.jobs, 1000);
+                            assert_eq!(threshold.jobs, 300);
                             assert_eq!(threshold.routes, 10);
-                            assert_eq!(phases.len(), 1);
+                            assert_eq!(phases.len(), 2);
                         }
                         _ => unreachable!(),
                     }

@@ -36,13 +36,17 @@
         },
         "probability": {
           "threshold": {
-            "jobs": 1000,
+            "jobs": 300,
             "routes": 10
           },
           "phases": [
             {
               "type": "exploration",
               "chance": 0.01
+            },
+            {
+              "type": "exploitation",
+              "chance": 0.02
             }
           ]
         }
