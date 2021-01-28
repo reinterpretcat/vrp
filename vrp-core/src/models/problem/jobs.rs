@@ -192,7 +192,7 @@ impl Jobs {
     }
 
     /// Returns all jobs in original order.
-    pub fn all<'a>(&'a self) -> impl Iterator<Item = Job> + 'a {
+    pub fn all(&'_ self) -> impl Iterator<Item = Job> + '_ {
         self.jobs.iter().cloned()
     }
 
@@ -228,8 +228,8 @@ impl PartialEq<Job> for Job {
         match (&self, other) {
             (Job::Single(_), Job::Multi(_)) => false,
             (Job::Multi(_), Job::Single(_)) => false,
-            (Job::Single(lhs), Job::Single(rhs)) => lhs.as_ref() as *const Single == rhs.as_ref() as *const Single,
-            (Job::Multi(lhs), Job::Multi(rhs)) => lhs.as_ref() as *const Multi == rhs.as_ref() as *const Multi,
+            (Job::Single(lhs), Job::Single(rhs)) => std::ptr::eq(lhs.as_ref(), rhs.as_ref()),
+            (Job::Multi(lhs), Job::Multi(rhs)) => std::ptr::eq(lhs.as_ref(), rhs.as_ref()),
         }
     }
 }

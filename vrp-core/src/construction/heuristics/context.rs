@@ -100,7 +100,7 @@ impl InsertionContext {
     }
 
     /// Returns fitness values.
-    pub fn get_fitness_values<'a>(&'a self) -> impl Iterator<Item = f64> + 'a {
+    pub fn get_fitness_values(&'_ self) -> impl Iterator<Item = f64> + '_ {
         self.problem.objective.objectives().map(move |objective| objective.fitness(self))
     }
 }
@@ -297,7 +297,7 @@ impl RouteContext {
 
 impl PartialEq<RouteContext> for RouteContext {
     fn eq(&self, other: &RouteContext) -> bool {
-        self.route.deref() as *const Route == other.route.deref() as *const Route
+        std::ptr::eq(self.route.deref(), other.route.deref())
     }
 }
 
@@ -371,7 +371,7 @@ impl RouteState {
     }
 
     /// Returns all state keys.
-    pub fn all_keys<'a>(&'a self) -> impl Iterator<Item = i32> + 'a {
+    pub fn all_keys(&'_ self) -> impl Iterator<Item = i32> + '_ {
         self.keys.iter().cloned()
     }
 
@@ -434,7 +434,7 @@ impl RegistryContext {
     }
 
     /// Returns next route for insertion.
-    pub fn next<'a>(&'a self) -> impl Iterator<Item = RouteContext> + 'a {
+    pub fn next(&'_ self) -> impl Iterator<Item = RouteContext> + '_ {
         self.registry.next().map(move |actor| self.index[&actor].clone())
     }
 

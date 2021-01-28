@@ -109,7 +109,7 @@ impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
     }
 
     /// Gets neighbors.
-    pub fn neighbours<'a>(&'a self) -> impl Iterator<Item = &'a NodeLink<I, S>> + 'a {
+    pub fn neighbours(&self) -> impl Iterator<Item = &NodeLink<I, S>> {
         TopologyIterator { topology: self, state: 0 }
     }
 

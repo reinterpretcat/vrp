@@ -46,8 +46,8 @@ pub(crate) fn select_seed_jobs<'a>(
 }
 
 /// Selects seed job from existing solution
-pub(crate) fn select_seed_job<'a>(
-    routes: &'a [RouteContext],
+pub(crate) fn select_seed_job(
+    routes: &'_ [RouteContext],
     random: &Arc<dyn Random + Send + Sync>,
 ) -> Option<(usize, Job)> {
     if routes.is_empty() {

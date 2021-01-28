@@ -40,17 +40,17 @@ impl Registry {
     }
 
     /// Returns all actors.
-    pub fn all<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
+    pub fn all(&'_ self) -> impl Iterator<Item = Arc<Actor>> + '_ {
         self.all.iter().cloned()
     }
 
     /// Returns list of all available actors.
-    pub fn available<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
+    pub fn available(&'_ self) -> impl Iterator<Item = Arc<Actor>> + '_ {
         self.available.iter().flat_map(|(_, set)| set.iter().cloned())
     }
 
     /// Returns next available actors from each different type.
-    pub fn next<'a>(&'a self) -> impl Iterator<Item = Arc<Actor>> + 'a {
+    pub fn next(&'_ self) -> impl Iterator<Item = Arc<Actor>> + '_ {
         self.available.iter().flat_map(move |(_, set)| {
             // NOTE pick a random actor from set of available actors.
             let skip_amount = if set.len() < 2 { 0 } else { self.random.uniform_int(0, set.len() as i32 - 1) as usize };

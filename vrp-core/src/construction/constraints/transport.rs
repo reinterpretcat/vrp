@@ -405,11 +405,7 @@ impl TravelHardActivityConstraint {
 }
 
 fn has_travel_limits(limit_func: &TravelLimitFunc, route_ctx: &RouteContext) -> bool {
-    match (limit_func)(&route_ctx.route.actor) {
-        (Some(_), _) => true,
-        (_, Some(_)) => true,
-        _ => false,
-    }
+    matches!((limit_func)(&route_ctx.route.actor), (Some(_), _) | (_, Some(_)))
 }
 
 /// Applies fixed cost for actor usage.

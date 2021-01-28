@@ -5,7 +5,6 @@ use crate::format::problem::{
 };
 use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
-use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
@@ -15,7 +14,7 @@ use vrp_core::utils::{compare_floats, Random};
 use crate::constraints::JobSkills as ConstraintJobSkills;
 use crate::format::problem::JobSkills as FormatJobSkills;
 use crate::parse_time;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use std::cmp::Ordering;
 
 // TODO configure sample size
@@ -471,9 +470,9 @@ fn add_job_skills(dimens: &mut Dimensions, skills: &Option<FormatJobSkills>) {
         dimens.set_value(
             "skills",
             ConstraintJobSkills {
-                all_of: skills.all_of.as_ref().map(|all_of| HashSet::<String>::from_iter(all_of.iter().cloned())),
-                one_of: skills.one_of.as_ref().map(|any_of| HashSet::<String>::from_iter(any_of.iter().cloned())),
-                none_of: skills.none_of.as_ref().map(|none_of| HashSet::<String>::from_iter(none_of.iter().cloned())),
+                all_of: skills.all_of.as_ref().map(|all_of| all_of.iter().cloned().collect()),
+                one_of: skills.one_of.as_ref().map(|any_of| any_of.iter().cloned().collect()),
+                none_of: skills.none_of.as_ref().map(|none_of| none_of.iter().cloned().collect()),
             },
         );
     }

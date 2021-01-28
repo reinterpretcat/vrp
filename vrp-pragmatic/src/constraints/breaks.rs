@@ -216,7 +216,7 @@ fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
     as_single_job(activity, |job| is_break_single(job))
 }
 
-fn get_break_time_windows<'a>(break_job: &'a Arc<Single>, departure: f64) -> impl Iterator<Item = TimeWindow> + 'a {
+fn get_break_time_windows(break_job: &'_ Arc<Single>, departure: f64) -> impl Iterator<Item = TimeWindow> + '_ {
     break_job.places.first().unwrap().times.iter().map(move |span| span.to_time_window(departure))
 }
 

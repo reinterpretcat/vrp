@@ -8,7 +8,6 @@ use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::Matrix;
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
-use std::iter::FromIterator;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{Area, TravelLimitFunc};
 use vrp_core::models::common::*;
@@ -202,6 +201,6 @@ fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, i32> {
 
 fn add_vehicle_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {
     if let Some(skills) = skills {
-        dimens.set_value("skills", HashSet::<String>::from_iter(skills.iter().cloned()));
+        dimens.set_value("skills", skills.iter().cloned().collect::<HashSet<_>>());
     }
 }

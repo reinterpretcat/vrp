@@ -128,7 +128,7 @@ impl Tour {
     }
 
     /// Returns all jobs.
-    pub fn jobs<'a>(&'a self) -> impl Iterator<Item = Job> + 'a {
+    pub fn jobs(&'_ self) -> impl Iterator<Item = Job> + '_ {
         self.jobs.iter().cloned()
     }
 

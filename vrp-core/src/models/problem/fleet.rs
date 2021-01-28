@@ -165,7 +165,7 @@ impl Fleet {
 
 impl PartialEq<Actor> for Actor {
     fn eq(&self, other: &Actor) -> bool {
-        &*self as *const Actor == &*other as *const Actor
+        std::ptr::eq(&*self, &*other)
     }
 }
 

@@ -90,7 +90,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     /// Returns node coordinates in arbitrary order.
-    pub fn get_coordinates<'a>(&'a self) -> impl Iterator<Item = Coordinate> + 'a {
+    pub fn get_coordinates(&'_ self) -> impl Iterator<Item = Coordinate> + '_ {
         self.nodes.keys().cloned()
     }
 
