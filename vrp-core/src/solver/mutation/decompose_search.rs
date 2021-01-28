@@ -177,8 +177,6 @@ fn create_partial_individual(individual: &Individual, route_indices: HashSet<usi
     let routes = route_indices.iter().map(|idx| solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
     let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
     let registry = solution.registry.deep_slice(|actor| actors.contains(actor));
-    let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
-    let locked = solution.locked.iter().filter(|job| jobs.contains(job)).cloned().collect();
 
     (
         Individual {
@@ -188,7 +186,13 @@ fn create_partial_individual(individual: &Individual, route_indices: HashSet<usi
                 required: if route_indices.is_empty() { solution.required.clone() } else { Default::default() },
                 ignored: if route_indices.is_empty() { solution.ignored.clone() } else { Default::default() },
                 unassigned: if route_indices.is_empty() { solution.unassigned.clone() } else { Default::default() },
-                locked,
+                locked: if route_indices.is_empty() {
+                    let jobs = solution.routes.iter().flat_map(|rc| rc.route.tour.jobs()).collect::<HashSet<_>>();
+                    solution.locked.iter().filter(|job| !jobs.contains(job)).cloned().collect()
+                } else {
+                    let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route.tour.jobs()).collect::<HashSet<_>>();
+                    solution.locked.iter().filter(|job| jobs.contains(job)).cloned().collect()
+                },
                 routes,
                 registry,
                 state: Default::default(),
