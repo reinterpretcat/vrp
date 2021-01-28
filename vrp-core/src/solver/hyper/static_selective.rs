@@ -40,7 +40,7 @@ impl StaticSelective {
 
     /// Creates an instance of `StaticSelective` with default parameters.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
-        let default_mutation = Self::create_default_mutation(problem.clone());
+        let default_mutation = Self::create_default_mutation(problem);
         let local_search = Arc::new(LocalSearch::new(Box::new(CompositeLocalOperator::new(
             vec![
                 (Box::new(ExchangeInterRouteBest::default()), 100),

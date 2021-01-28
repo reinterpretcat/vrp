@@ -38,7 +38,7 @@ impl<S: State> Simulator<S> {
         });
 
         merge_vec_maps(qs, |(state, values)| {
-            let action_values = self.q.entry(state).or_insert_with(|| HashMap::new());
+            let action_values = self.q.entry(state).or_insert_with(HashMap::new);
             merge_vec_maps(values, |(action, values)| {
                 action_values.insert(action, reduce(values.as_slice()));
             });
@@ -93,6 +93,6 @@ impl<S: State> Simulator<S> {
     }
 }
 
-fn merge_vec_maps<K: Eq + Hash, V, F: FnMut((K, Vec<V>)) -> ()>(vec_map: Vec<HashMap<K, V>>, merge_func: F) {
+fn merge_vec_maps<K: Eq + Hash, V, F: FnMut((K, Vec<V>))>(vec_map: Vec<HashMap<K, V>>, merge_func: F) {
     vec_map.into_iter().flat_map(|q| q.into_iter()).collect_group_by().into_iter().for_each(merge_func)
 }

@@ -45,7 +45,7 @@ impl<S: State> PolicyStrategy<S> for EpsilonGreedy {
 
         if self.random.is_hit(self.epsilon) {
             let random_idx = self.random.uniform_int(0, estimates.len() as i32 - 1) as usize;
-            estimates.keys().skip(random_idx).next().cloned()
+            estimates.keys().nth(random_idx).cloned()
         } else {
             estimates.iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
         }
