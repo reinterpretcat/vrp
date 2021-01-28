@@ -17,8 +17,8 @@ mod generator;
 mod features;
 
 #[cfg(test)]
-#[path = "../tests/slow/mod.rs"]
-pub mod slow;
+#[path = "../tests/discovery/mod.rs"]
+pub mod discovery;
 
 pub use vrp_core as core;
 
