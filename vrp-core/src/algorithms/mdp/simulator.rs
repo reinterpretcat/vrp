@@ -3,7 +3,7 @@
 mod simulator_test;
 
 use super::*;
-use crate::utils::{parallel_into_collect, CollectGroupBy};
+use crate::utils::{parallel_into_collect, CollectGroupBy, Parallelism};
 
 /// A simulator to train agent with multiple episodes.
 pub struct Simulator<S: State> {
@@ -32,17 +32,39 @@ impl<S: State> Simulator<S> {
     }
 
     /// Runs single episode for each of the given agents in parallel.
-    pub fn run_episodes(&mut self, agents: Vec<Box<dyn Agent<S> + Send + Sync>>, reduce: impl Fn(&[f64]) -> f64) {
-        let qs = parallel_into_collect(agents, |mut a| {
-            Self::run_episode(a.as_mut(), self.learning_strategy.as_ref(), self.policy_strategy.as_ref(), &self.q)
-        });
+    pub fn run_episodes<A>(
+        &mut self,
+        agents: Vec<Box<A>>,
+        parallelism: Parallelism,
+        reducer: impl Fn(&[f64]) -> f64,
+    ) -> Vec<Box<A>>
+    where
+        A: Agent<S> + Send + Sync,
+    {
+        let (agents, qs): (Vec<_>, Vec<_>) =
+            parallel_into_collect(agents.into_iter().enumerate().collect(), |(idx, agent)| {
+                let mut agent = agent;
+                parallelism.thread_pool_execute(idx, || {
+                    let qs = Self::run_episode(
+                        agent.as_mut(),
+                        self.learning_strategy.as_ref(),
+                        self.policy_strategy.as_ref(),
+                        &self.q,
+                    );
+                    (agent, qs)
+                })
+            })
+            .into_iter()
+            .unzip();
 
         merge_vec_maps(qs, |(state, values)| {
             let action_values = self.q.entry(state).or_insert_with(HashMap::new);
             merge_vec_maps(values, |(action, values)| {
-                action_values.insert(action, reduce(values.as_slice()));
+                action_values.insert(action, reducer(values.as_slice()));
             });
         });
+
+        agents
     }
 
     fn run_episode(

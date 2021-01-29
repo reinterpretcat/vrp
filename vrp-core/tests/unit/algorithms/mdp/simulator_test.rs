@@ -94,11 +94,10 @@ fn run_simulator(
 
     for episode in 0..repeat_count {
         let actions_taken = (0..agent_count).map(|_| Arc::new(RwLock::new(vec![]))).collect::<Vec<_>>();
-        let agents = (0..agent_count)
-            .map::<Box<dyn Agent<GridState> + Send + Sync>, _>(|idx| Box::new(get_agent(actions_taken[idx].clone())))
-            .collect::<Vec<_>>();
+        let agents = (0..agent_count).map(|idx| Box::new(get_agent(actions_taken[idx].clone()))).collect::<Vec<_>>();
 
-        simulator.run_episodes(agents, |values| values.iter().sum::<f64>() / values.len() as f64);
+        simulator
+            .run_episodes(agents, Parallelism::default(), |values| values.iter().sum::<f64>() / values.len() as f64);
 
         if visualize {
             print_board(simulator, episode);

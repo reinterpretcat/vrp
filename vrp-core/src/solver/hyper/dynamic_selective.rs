@@ -9,38 +9,39 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 
 pub struct DynamicSelective {
-    simulator: Simulator<SearchState>,
+    heuristic_simulator: Simulator<SearchState>,
     action_registry: SearchActionRegistry,
     initial_estimates: HashMap<SearchState, ActionsEstimate<SearchState>>,
 }
 
 impl HyperHeuristic for DynamicSelective {
     fn search(&mut self, refinement_ctx: &RefinementContext, individuals: Vec<&Individual>) -> Vec<Individual> {
-        //let registry = self.action_registry;
+        let registry = &self.action_registry;
+        let estimates = &self.initial_estimates;
 
-/*        let agents = individuals
+        let agents = individuals
             .into_iter()
-            .map(move |individual| {
-                let agent: Box<dyn Agent<SearchState> + Send + Sync> = Box::new(SearchAgent {
+            .map(|individual| {
+                Box::new(SearchAgent {
                     refinement_ctx,
-                    registry: &self.action_registry,
-                    estimates: &self.initial_estimates,
+                    registry,
+                    estimates,
                     state: match compare_to_best(refinement_ctx, individual) {
                         Ordering::Greater => SearchState::Diverse,
                         _ => SearchState::BestKnown,
                     },
                     individual: Some(individual.deep_copy()),
-                });
-
-                agent
+                })
             })
             .collect();
 
-        self.simulator.run_episodes(agents, |values| values.iter().sum::<f64>() / values.len() as f64);
-*/
-        // TODO need to get individuals back from agents
-
-        unimplemented!()
+        self.heuristic_simulator
+            .run_episodes(agents, refinement_ctx.environment.parallelism.clone(), |values| {
+                values.iter().sum::<f64>() / values.len() as f64
+            })
+            .into_iter()
+            .filter_map(|agent| agent.individual)
+            .collect()
     }
 }
 
