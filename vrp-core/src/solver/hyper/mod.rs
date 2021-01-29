@@ -1,5 +1,8 @@
 //! This module contains a hyper-heuristic logic.
 
+mod dynamic_selective;
+pub use self::dynamic_selective::*;
+
 mod static_selective;
 pub use self::static_selective::*;
 
