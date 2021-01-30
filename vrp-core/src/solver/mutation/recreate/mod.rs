@@ -2,6 +2,7 @@
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
+use std::sync::Arc;
 
 /// A trait which specifies logic to produce a new feasible solution from partial one.
 pub trait Recreate {
@@ -35,13 +36,13 @@ pub use self::recreate_with_regret::RecreateWithRegret;
 
 /// Provides the way to run one of multiple recreate methods with different probability.
 pub struct CompositeRecreate {
-    recreates: Vec<Box<dyn Recreate + Send + Sync>>,
+    recreates: Vec<Arc<dyn Recreate + Send + Sync>>,
     weights: Vec<usize>,
 }
 
 impl CompositeRecreate {
     /// Creates a new instance of `CompositeRecreate` using list of recreate strategies.
-    pub fn new(recreates: Vec<(Box<dyn Recreate + Send + Sync>, usize)>) -> Self {
+    pub fn new(recreates: Vec<(Arc<dyn Recreate + Send + Sync>, usize)>) -> Self {
         let weights = recreates.iter().map(|(_, weight)| *weight).collect();
         let recreates = recreates.into_iter().map(|(recreate, _)| recreate).collect();
         Self { recreates, weights }

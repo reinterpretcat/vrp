@@ -1,17 +1,23 @@
-use crate::algorithms::mdp::{ActionsEstimate, Agent, Simulator, State};
+use crate::algorithms::mdp::{ActionsEstimate, Agent, EpsilonGreedy, PolicyStrategy, QLearning, Simulator, State};
 use crate::algorithms::nsga2::Objective;
-use crate::solver::hyper::HyperHeuristic;
-use crate::solver::mutation::{Mutation, Ruin};
+use crate::models::common::SingleDimLoad;
+use crate::models::Problem;
+use crate::solver::hyper::{HyperHeuristic, StaticSelective};
+use crate::solver::mutation::*;
 use crate::solver::population::Individual;
 use crate::solver::RefinementContext;
+use crate::utils::Environment;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
+use std::iter::once;
 use std::sync::Arc;
+
+// TODO limit ruin by max unassigned/required jobs
 
 pub struct DynamicSelective {
     heuristic_simulator: Simulator<SearchState>,
-    action_registry: SearchActionRegistry,
     initial_estimates: HashMap<SearchState, ActionsEstimate<SearchState>>,
+    action_registry: SearchActionRegistry,
 }
 
 impl HyperHeuristic for DynamicSelective {
@@ -42,6 +48,60 @@ impl HyperHeuristic for DynamicSelective {
             .into_iter()
             .filter_map(|agent| agent.individual)
             .collect()
+    }
+}
+
+impl DynamicSelective {
+    /// Creates a new instance of `DynamicSelective`.
+    pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+        let recreates: Vec<Arc<dyn Recreate + Send + Sync>> = vec![
+            Arc::new(RecreateWithSkipBest::new(1, 2)),
+            Arc::new(RecreateWithRegret::new(2, 3)),
+            Arc::new(RecreateWithCheapest::default()),
+            Arc::new(RecreateWithPerturbation::default()),
+            Arc::new(RecreateWithSkipBest::new(3, 4)),
+            Arc::new(RecreateWithGaps::default()),
+            Arc::new(RecreateWithBlinks::<SingleDimLoad>::default()),
+            Arc::new(RecreateWithFarthest::default()),
+            Arc::new(RecreateWithSkipBest::new(4, 8)),
+            Arc::new(RecreateWithNearestNeighbor::default()),
+        ];
+
+        let ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![
+            Arc::new(AdjustedStringRemoval::default()),
+            Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(2, 8, 0.1))),
+            Arc::new(WorstJobRemoval::default()),
+            Arc::new(NeighbourRemoval::default()),
+            Arc::new(ClusterRemoval::new_with_defaults(problem.clone())),
+            Arc::new(RandomRouteRemoval::default()),
+            Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())),
+        ];
+
+        let mutations: Vec<Arc<dyn Mutation + Send + Sync>> = vec![
+            Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
+            Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteRandom::default()))),
+            Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
+            Arc::new(DecomposeSearch::new(StaticSelective::create_default_mutation(problem), (2, 4), 4)),
+        ];
+
+        let mutations = recreates
+            .iter()
+            .flat_map(|recreate| {
+                ruins.iter().map::<Arc<dyn Mutation + Send + Sync>, _>(move |ruin| {
+                    Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone()))
+                })
+            })
+            .chain(mutations.into_iter())
+            .collect::<Vec<_>>();
+
+        Self {
+            heuristic_simulator: Simulator::new(
+                Box::new(QLearning::new(0.1, 0.02)),
+                Box::new(EpsilonGreedy::new(0.2, environment.random.clone())),
+            ),
+            initial_estimates: vec![].into_iter().collect(),
+            action_registry: SearchActionRegistry { ruins, mutations },
+        }
     }
 }
 

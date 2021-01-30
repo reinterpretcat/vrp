@@ -101,7 +101,7 @@ impl Builder {
     pub fn with_init_params(
         mut self,
         size: Option<usize>,
-        initial_methods: Option<Vec<(Box<dyn Recreate + Send + Sync>, usize)>>,
+        initial_methods: Option<Vec<(Arc<dyn Recreate + Send + Sync>, usize)>>,
     ) -> Self {
         self.config.telemetry.log("configured to use custom initial population parameters");
 

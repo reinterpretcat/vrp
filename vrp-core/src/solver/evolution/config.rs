@@ -53,7 +53,7 @@ pub struct InitialConfig {
     pub size: usize,
 
     /// Create methods to produce initial individuals.
-    pub methods: Vec<(Box<dyn Recreate + Send + Sync>, usize)>,
+    pub methods: Vec<(Arc<dyn Recreate + Send + Sync>, usize)>,
 
     /// Initial individuals in population.
     pub individuals: Vec<InsertionContext>,
@@ -67,7 +67,7 @@ impl EvolutionConfig {
             population: PopulationConfig {
                 initial: InitialConfig {
                     size: 1,
-                    methods: vec![(Box::new(RecreateWithCheapest::default()), 10)],
+                    methods: vec![(Arc::new(RecreateWithCheapest::default()), 10)],
                     individuals: vec![],
                 },
                 variation: Some(get_default_population(problem.clone(), environment.clone())),

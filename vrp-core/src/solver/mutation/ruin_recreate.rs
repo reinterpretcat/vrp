@@ -1,16 +1,17 @@
 ///! Contains a mutation operator based on ruin and recreate principle.
 use super::*;
+use std::sync::Arc;
 
 /// A mutation operator based on ruin and recreate principle.
 pub struct RuinAndRecreate {
-    ruin: Box<dyn Ruin + Send + Sync>,
-    recreate: Box<dyn Recreate + Send + Sync>,
+    ruin: Arc<dyn Ruin + Send + Sync>,
+    recreate: Arc<dyn Recreate + Send + Sync>,
 }
 
 impl RuinAndRecreate {
     /// Creates a new instance of `RuinAndRecreate` using given ruin and recreate methods.
-    pub fn new(recreate: Box<dyn Recreate + Send + Sync>, ruin: Box<dyn Ruin + Send + Sync>) -> Self {
-        Self { recreate, ruin }
+    pub fn new(ruin: Arc<dyn Ruin + Send + Sync>, recreate: Arc<dyn Recreate + Send + Sync>) -> Self {
+        Self { ruin, recreate }
     }
 }
 

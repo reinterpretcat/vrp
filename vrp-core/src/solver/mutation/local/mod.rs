@@ -10,6 +10,7 @@ pub use self::exchange_inter_route::*;
 
 mod exchange_intra_route;
 pub use self::exchange_intra_route::*;
+use std::sync::Arc;
 
 /// Specifies behavior of a local search operator.
 pub trait LocalOperator {
@@ -21,14 +22,14 @@ pub trait LocalOperator {
 
 /// Provides the way to run multiple local search operators with different probability.
 pub struct CompositeLocalOperator {
-    operators: Vec<Box<dyn LocalOperator + Send + Sync>>,
+    operators: Vec<Arc<dyn LocalOperator + Send + Sync>>,
     weights: Vec<usize>,
     times: (i32, i32),
 }
 
 impl CompositeLocalOperator {
     /// Creates a new instance of `CompositeLocalOperator`.
-    pub fn new(operators: Vec<(Box<dyn LocalOperator + Send + Sync>, usize)>, min: usize, max: usize) -> Self {
+    pub fn new(operators: Vec<(Arc<dyn LocalOperator + Send + Sync>, usize)>, min: usize, max: usize) -> Self {
         let weights = operators.iter().map(|(_, weight)| *weight).collect();
         let operators = operators.into_iter().map(|(operator, _)| operator).collect();
 

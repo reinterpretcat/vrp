@@ -1,15 +1,16 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::mutation::{LocalOperator, Mutation};
 use crate::solver::RefinementContext;
+use std::sync::Arc;
 
 /// A mutation operator which applies local search principles.
 pub struct LocalSearch {
-    operator: Box<dyn LocalOperator + Send + Sync>,
+    operator: Arc<dyn LocalOperator + Send + Sync>,
 }
 
 impl LocalSearch {
     /// Creates a new instance of `LocalSearch`.
-    pub fn new(operator: Box<dyn LocalOperator + Send + Sync>) -> Self {
+    pub fn new(operator: Arc<dyn LocalOperator + Send + Sync>) -> Self {
         Self { operator }
     }
 }

@@ -485,17 +485,17 @@ fn configure_from_termination(
     Ok(builder)
 }
 
-fn create_recreate_method(method: &RecreateMethod) -> (Box<dyn Recreate + Send + Sync>, usize) {
+fn create_recreate_method(method: &RecreateMethod) -> (Arc<dyn Recreate + Send + Sync>, usize) {
     match method {
-        RecreateMethod::Cheapest { weight } => (Box::new(RecreateWithCheapest::default()), *weight),
-        RecreateMethod::Farthest { weight } => (Box::new(RecreateWithFarthest::default()), *weight),
-        RecreateMethod::SkipBest { weight, start, end } => (Box::new(RecreateWithSkipBest::new(*start, *end)), *weight),
-        RecreateMethod::Blinks { weight } => (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), *weight),
-        RecreateMethod::Gaps { weight, min } => (Box::new(RecreateWithGaps::new(*min)), *weight),
-        RecreateMethod::Nearest { weight } => (Box::new(RecreateWithNearestNeighbor::default()), *weight),
-        RecreateMethod::Regret { weight, start, end } => (Box::new(RecreateWithRegret::new(*start, *end)), *weight),
+        RecreateMethod::Cheapest { weight } => (Arc::new(RecreateWithCheapest::default()), *weight),
+        RecreateMethod::Farthest { weight } => (Arc::new(RecreateWithFarthest::default()), *weight),
+        RecreateMethod::SkipBest { weight, start, end } => (Arc::new(RecreateWithSkipBest::new(*start, *end)), *weight),
+        RecreateMethod::Blinks { weight } => (Arc::new(RecreateWithBlinks::<SingleDimLoad>::default()), *weight),
+        RecreateMethod::Gaps { weight, min } => (Arc::new(RecreateWithGaps::new(*min)), *weight),
+        RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::default()), *weight),
+        RecreateMethod::Regret { weight, start, end } => (Arc::new(RecreateWithRegret::new(*start, *end)), *weight),
         RecreateMethod::Perturbation { weight, probability, min, max } => {
-            (Box::new(RecreateWithPerturbation::new(*probability, *min, *max)), *weight)
+            (Arc::new(RecreateWithPerturbation::new(*probability, *min, *max)), *weight)
         }
     }
 }
@@ -507,10 +507,10 @@ fn create_mutation(
 ) -> Result<(Arc<dyn Mutation + Send + Sync>, MutationProbability), String> {
     Ok(match mutation {
         MutationType::RuinRecreate { probability, ruins, recreates } => {
-            let ruin = Box::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(problem, g)).collect()));
+            let ruin = Arc::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(problem, g)).collect()));
             let recreate =
-                Box::new(CompositeRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect()));
-            (Arc::new(RuinAndRecreate::new(recreate, ruin)), create_mutation_probability(probability, random.clone()))
+                Arc::new(CompositeRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect()));
+            (Arc::new(RuinAndRecreate::new(ruin, recreate)), create_mutation_probability(probability, random.clone()))
         }
         MutationType::LocalSearch { probability, times, operators: inners } => {
             let operator = create_local_search(times, inners);
@@ -583,23 +583,23 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
     }
 }
 
-fn create_local_search(times: &MinMaxConfig, inners: &[LocalOperatorType]) -> Box<dyn LocalOperator + Send + Sync> {
+fn create_local_search(times: &MinMaxConfig, inners: &[LocalOperatorType]) -> Arc<dyn LocalOperator + Send + Sync> {
     let operators = inners
         .iter()
-        .map::<(Box<dyn LocalOperator + Send + Sync>, usize), _>(|op| match op {
+        .map::<(Arc<dyn LocalOperator + Send + Sync>, usize), _>(|op| match op {
             LocalOperatorType::InterRouteBest { weight, noise } => {
-                (Box::new(ExchangeInterRouteBest::new(noise.probability, noise.min, noise.max)), *weight)
+                (Arc::new(ExchangeInterRouteBest::new(noise.probability, noise.min, noise.max)), *weight)
             }
             LocalOperatorType::InterRouteRandom { weight, noise } => {
-                (Box::new(ExchangeInterRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
+                (Arc::new(ExchangeInterRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
             }
             LocalOperatorType::IntraRouteRandom { weight, noise } => {
-                (Box::new(ExchangeIntraRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
+                (Arc::new(ExchangeIntraRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
             }
         })
         .collect::<Vec<_>>();
 
-    Box::new(CompositeLocalOperator::new(operators, times.min, times.max))
+    Arc::new(CompositeLocalOperator::new(operators, times.min, times.max))
 }
 
 fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Result<Builder, String> {
