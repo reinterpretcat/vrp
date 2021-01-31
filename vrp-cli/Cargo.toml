@@ -29,12 +29,12 @@ vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.7.4" }
 
 csv = { version = "1.1.5", optional = true }
 serde_json = "1.0.61"
-serde = { version = "1.0.118", features = ["derive"] }
+serde = { version = "1.0.123", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 clap = "2.33.3"
 num_cpus = "1.13.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.69", features = ["serde-serialize"] }
-js-sys = "0.3.46"
+wasm-bindgen = { version = "0.2.70", features = ["serde-serialize"] }
+js-sys = "0.3.47"
