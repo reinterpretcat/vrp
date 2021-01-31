@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - a new mutation operator: decompose search which is used for bigger problem instances
 - `breaking`: introduced hyper-heuristic model
+- an experimental dynamic selective hyper-heuristic (WIP)
 
 
 ## [v1.7.4] - 2021-01-23

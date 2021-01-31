@@ -16,9 +16,10 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 
 // TODO limit ruin by max unassigned/required jobs
+//      improve terminal conditions
 
-/// A dynamic selective hyper heuristic which selects inner heuristics based
-/// on how they work during the search. The selection process is modeled by
+/// An experimental dynamic selective hyper heuristic which selects inner heuristics
+/// based on how they work during the search. The selection process is modeled by
 /// Markov Decision Process.
 pub struct DynamicSelective {
     heuristic_simulator: Simulator<SearchState>,
@@ -232,7 +233,6 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
     }
 
     fn take_action(&mut self, action: &<SearchState as State>::Action) {
-        // TODO improve terminate conditions
         if self.recreates > 2 || self.ruins > 3 {
             self.state = SearchState::Terminal;
             return;
