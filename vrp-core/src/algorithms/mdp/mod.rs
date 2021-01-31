@@ -7,7 +7,7 @@ pub use self::simulator::*;
 mod strategies;
 pub use self::strategies::*;
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::hash::Hash;
 
 /// Keeps track of action estimation.

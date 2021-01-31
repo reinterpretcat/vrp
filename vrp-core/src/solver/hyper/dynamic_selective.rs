@@ -1,4 +1,8 @@
-use crate::algorithms::mdp::{ActionsEstimate, Agent, EpsilonGreedy, PolicyStrategy, QLearning, Simulator, State};
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/hyper/dynamic_selective_test.rs"]
+mod dynamic_selective_test;
+
+use crate::algorithms::mdp::{ActionsEstimate, Agent, EpsilonGreedy, QLearning, Simulator, State};
 use crate::algorithms::nsga2::Objective;
 use crate::models::common::SingleDimLoad;
 use crate::models::Problem;
@@ -9,11 +13,13 @@ use crate::solver::RefinementContext;
 use crate::utils::Environment;
 use hashbrown::HashMap;
 use std::cmp::Ordering;
-use std::iter::once;
 use std::sync::Arc;
 
 // TODO limit ruin by max unassigned/required jobs
 
+/// A dynamic selective hyper heuristic which selects inner heuristics based
+/// on how they work during the search. The selection process is modeled by
+/// Markov Decision Process.
 pub struct DynamicSelective {
     heuristic_simulator: Simulator<SearchState>,
     initial_estimates: HashMap<SearchState, ActionsEstimate<SearchState>>,
@@ -54,6 +60,32 @@ impl HyperHeuristic for DynamicSelective {
 impl DynamicSelective {
     /// Creates a new instance of `DynamicSelective`.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+        let (ruins, recreates, mutations) = Self::get_methods(problem);
+        let (ruin_estimates, all_estimates) = Self::get_estimates(ruins.clone(), recreates.clone(), mutations.clone());
+
+        Self {
+            heuristic_simulator: Simulator::new(
+                Box::new(QLearning::new(0.1, 0.02)),
+                Box::new(EpsilonGreedy::new(0.2, environment.random.clone())),
+            ),
+            initial_estimates: vec![
+                (SearchState::BestKnown, ruin_estimates.clone()),
+                (SearchState::Diverse, ruin_estimates.clone()),
+                (SearchState::Ruined, all_estimates.clone()),
+                (SearchState::Improved, ruin_estimates.clone()),
+                (SearchState::Degraded, ruin_estimates.clone()),
+                (SearchState::NewBest, Default::default()),
+            ]
+            .into_iter()
+            .collect(),
+            action_registry: SearchActionRegistry { ruins, recreates, mutations },
+        }
+    }
+
+    fn get_methods(
+        problem: Arc<Problem>,
+    ) -> (Vec<Arc<dyn Ruin + Send + Sync>>, Vec<Arc<dyn Recreate + Send + Sync>>, Vec<Arc<dyn Mutation + Send + Sync>>)
+    {
         let recreates: Vec<Arc<dyn Recreate + Send + Sync>> = vec![
             Arc::new(RecreateWithSkipBest::new(1, 2)),
             Arc::new(RecreateWithRegret::new(2, 3)),
@@ -94,14 +126,34 @@ impl DynamicSelective {
             .chain(mutations.into_iter())
             .collect::<Vec<_>>();
 
-        Self {
-            heuristic_simulator: Simulator::new(
-                Box::new(QLearning::new(0.1, 0.02)),
-                Box::new(EpsilonGreedy::new(0.2, environment.random.clone())),
-            ),
-            initial_estimates: vec![].into_iter().collect(),
-            action_registry: SearchActionRegistry { ruins, mutations },
-        }
+        (ruins, recreates, mutations)
+    }
+
+    fn get_estimates(
+        ruins: Vec<Arc<dyn Ruin + Send + Sync>>,
+        recreates: Vec<Arc<dyn Recreate + Send + Sync>>,
+        mutations: Vec<Arc<dyn Mutation + Send + Sync>>,
+    ) -> (ActionsEstimate<SearchState>, ActionsEstimate<SearchState>) {
+        let ruin_estimates =
+            (0..ruins.len()).map(|idx| (SearchAction::Ruin { ruin_index: idx }, 0.)).collect::<HashMap<_, _>>();
+
+        let recreate_estimates = (0..recreates.len())
+            .map(|idx| (SearchAction::Recreate { recreate_index: idx }, 0.))
+            .collect::<HashMap<_, _>>();
+
+        let mutation_estimate = (0..mutations.len())
+            .map(|idx| (SearchAction::Mutate { mutation_index: idx }, 0.))
+            .collect::<HashMap<_, _>>();
+
+        let all_estimates = ruin_estimates
+            .clone()
+            .into_iter()
+            .chain(recreate_estimates.clone())
+            .chain(mutation_estimate.clone())
+            .into_iter()
+            .collect::<HashMap<_, _>>();
+
+        (ruin_estimates, all_estimates)
     }
 }
 
@@ -140,12 +192,15 @@ impl State for SearchState {
 enum SearchAction {
     /// An action which only ruins solution.
     Ruin { ruin_index: usize },
+    /// An action which only recreates solution.
+    Recreate { recreate_index: usize },
     /// An action which restores solution from partially ruined, might apply an extra ruin.
     Mutate { mutation_index: usize },
 }
 
 struct SearchActionRegistry {
     pub ruins: Vec<Arc<dyn Ruin + Send + Sync>>,
+    pub recreates: Vec<Arc<dyn Recreate + Send + Sync>>,
     pub mutations: Vec<Arc<dyn Mutation + Send + Sync>>,
 }
 
@@ -167,13 +222,20 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
     }
 
     fn take_action(&mut self, action: &<SearchState as State>::Action) {
+        // TODO do we need to call accept solution in the end of ruin/recreate?
+
         let new_individual = match action {
             SearchAction::Ruin { ruin_index } => {
                 let individual = std::mem::replace(&mut self.individual, None).expect("no insertion ctx");
                 let ruin = &self.registry.ruins[*ruin_index];
 
-                // TODO do we need to call accept solution in the end?
                 ruin.run(self.refinement_ctx, individual)
+            }
+            SearchAction::Recreate { recreate_index } => {
+                let individual = std::mem::replace(&mut self.individual, None).expect("no insertion ctx");
+                let recreate = &self.registry.recreates[*recreate_index];
+
+                recreate.run(self.refinement_ctx, individual)
             }
             SearchAction::Mutate { mutation_index } => {
                 let indvidual = self.individual.as_ref().unwrap();
