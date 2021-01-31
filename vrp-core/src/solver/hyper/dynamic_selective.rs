@@ -36,6 +36,7 @@ impl HyperHeuristic for DynamicSelective {
             .map(|individual| {
                 Box::new(SearchAgent {
                     refinement_ctx,
+                    original_ctx: individual,
                     registry,
                     estimates,
                     state: match compare_to_best(refinement_ctx, individual) {
@@ -43,6 +44,8 @@ impl HyperHeuristic for DynamicSelective {
                         _ => SearchState::BestKnown,
                     },
                     individual: Some(individual.deep_copy()),
+                    ruins: 0,
+                    recreates: 0,
                 })
             })
             .collect();
@@ -75,6 +78,7 @@ impl DynamicSelective {
                 (SearchState::Improved, ruin_estimates.clone()),
                 (SearchState::Degraded, ruin_estimates.clone()),
                 (SearchState::NewBest, Default::default()),
+                (SearchState::Terminal, Default::default()),
             ]
             .into_iter()
             .collect(),
@@ -171,6 +175,8 @@ enum SearchState {
     Improved,
     /// A state with degraded solution.
     Degraded,
+    /// A terminal state.
+    Terminal,
 }
 
 impl State for SearchState {
@@ -182,8 +188,9 @@ impl State for SearchState {
             SearchState::Diverse => 0.,
             SearchState::Ruined => 0.,
             SearchState::NewBest => 100.,
-            SearchState::Improved => 1.,
+            SearchState::Improved => 5.,
             SearchState::Degraded => -10.,
+            SearchState::Terminal => -5.,
         }
     }
 }
@@ -206,10 +213,13 @@ struct SearchActionRegistry {
 
 struct SearchAgent<'a> {
     refinement_ctx: &'a RefinementContext,
+    original_ctx: &'a Individual,
     registry: &'a SearchActionRegistry,
     estimates: &'a HashMap<SearchState, ActionsEstimate<SearchState>>,
     state: SearchState,
     individual: Option<Individual>,
+    ruins: usize,
+    recreates: usize,
 }
 
 impl<'a> Agent<SearchState> for SearchAgent<'a> {
@@ -222,31 +232,39 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
     }
 
     fn take_action(&mut self, action: &<SearchState as State>::Action) {
-        // TODO do we need to call accept solution in the end of ruin/recreate?
+        // TODO improve terminate conditions
+        if self.recreates > 2 || self.ruins > 3 {
+            self.state = SearchState::Terminal;
+            return;
+        }
 
-        let new_individual = match action {
+        let (new_individual, is_complete_solution) = match action {
             SearchAction::Ruin { ruin_index } => {
                 let individual = std::mem::replace(&mut self.individual, None).expect("no insertion ctx");
                 let ruin = &self.registry.ruins[*ruin_index];
 
-                ruin.run(self.refinement_ctx, individual)
+                self.ruins += 1;
+                (ruin.run(self.refinement_ctx, individual), false)
             }
             SearchAction::Recreate { recreate_index } => {
                 let individual = std::mem::replace(&mut self.individual, None).expect("no insertion ctx");
                 let recreate = &self.registry.recreates[*recreate_index];
 
-                recreate.run(self.refinement_ctx, individual)
+                self.recreates += 1;
+                (recreate.run(self.refinement_ctx, individual), true)
             }
             SearchAction::Mutate { mutation_index } => {
-                let indvidual = self.individual.as_ref().unwrap();
+                let individual = self.individual.as_ref().unwrap();
                 let mutation = &self.registry.mutations[*mutation_index];
 
-                mutation.mutate(self.refinement_ctx, indvidual)
+                self.ruins += 1;
+                self.recreates += 1;
+                (mutation.mutate(self.refinement_ctx, individual), true)
             }
         };
 
-        self.state = if let Some(old_individual) = self.individual.as_ref() {
-            let compare_to_old = self.refinement_ctx.problem.objective.total_order(&new_individual, old_individual);
+        self.state = if is_complete_solution {
+            let compare_to_old = self.refinement_ctx.problem.objective.total_order(&new_individual, self.original_ctx);
             let compare_to_best = compare_to_best(self.refinement_ctx, &new_individual);
 
             match (compare_to_old, compare_to_best) {
