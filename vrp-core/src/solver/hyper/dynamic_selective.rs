@@ -61,6 +61,9 @@ impl HyperHeuristic for DynamicSelective {
     }
 }
 
+type HeuristicMethods =
+    (Vec<Arc<dyn Ruin + Send + Sync>>, Vec<Arc<dyn Recreate + Send + Sync>>, Vec<Arc<dyn Mutation + Send + Sync>>);
+
 impl DynamicSelective {
     /// Creates a new instance of `DynamicSelective`.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
@@ -75,9 +78,9 @@ impl DynamicSelective {
             initial_estimates: vec![
                 (SearchState::BestKnown, ruin_estimates.clone()),
                 (SearchState::Diverse, ruin_estimates.clone()),
-                (SearchState::Ruined, all_estimates.clone()),
+                (SearchState::Ruined, all_estimates),
                 (SearchState::Improved, ruin_estimates.clone()),
-                (SearchState::Degraded, ruin_estimates.clone()),
+                (SearchState::Degraded, ruin_estimates),
                 (SearchState::NewBest, Default::default()),
                 (SearchState::Terminal, Default::default()),
             ]
@@ -87,10 +90,7 @@ impl DynamicSelective {
         }
     }
 
-    fn get_methods(
-        problem: Arc<Problem>,
-    ) -> (Vec<Arc<dyn Ruin + Send + Sync>>, Vec<Arc<dyn Recreate + Send + Sync>>, Vec<Arc<dyn Mutation + Send + Sync>>)
-    {
+    fn get_methods(problem: Arc<Problem>) -> HeuristicMethods {
         let recreates: Vec<Arc<dyn Recreate + Send + Sync>> = vec![
             Arc::new(RecreateWithSkipBest::new(1, 2)),
             Arc::new(RecreateWithRegret::new(2, 3)),
@@ -153,8 +153,8 @@ impl DynamicSelective {
         let all_estimates = ruin_estimates
             .clone()
             .into_iter()
-            .chain(recreate_estimates.clone())
-            .chain(mutation_estimate.clone())
+            .chain(recreate_estimates)
+            .chain(mutation_estimate)
             .into_iter()
             .collect::<HashMap<_, _>>();
 
