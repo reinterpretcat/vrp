@@ -53,3 +53,7 @@
     * [Kotlin](examples/interop/kotlin.md)
     * [Javascript](examples/interop/javascript.md)
     * [Python](examples/interop/python.md)
+
+* [Internals](internals/index.md)
+  * [Overview](internals/overview.md)
+  * [Rosomaxa](internals/rosomaxa.md)
