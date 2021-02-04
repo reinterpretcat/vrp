@@ -7,9 +7,13 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - a new mutation operator: decompose search which is used for bigger problem instances
+- a new population type: greedy
 - `breaking`: introduced hyper-heuristic model
 - an experimental dynamic selective hyper-heuristic (WIP)
 
+### Changed
+
+- improved processing of unassigned jobs
 
 ## [v1.7.4] - 2021-01-23
 
