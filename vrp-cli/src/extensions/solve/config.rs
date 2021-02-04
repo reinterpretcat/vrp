@@ -46,6 +46,10 @@ pub struct EvolutionConfig {
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
 pub enum PopulationType {
+    /// A greedy population keeps track only of one best-known individual.
+    #[serde(rename(deserialize = "greedy"))]
+    Greedy,
+
     /// A basic population which sorts individuals based on their
     /// dominance order.
     #[serde(rename(deserialize = "elitism"))]
@@ -389,6 +393,7 @@ fn configure_from_evolution(
         if let Some(variation) = &config.population {
             let default_selection_size = get_default_selection_size(environment.as_ref());
             let population = match &variation {
+                PopulationType::Greedy => Box::new(Greedy::new(problem, None)),
                 PopulationType::Elitism { max_size, selection_size } => Box::new(Elitism::new(
                     problem,
                     environment.random.clone(),

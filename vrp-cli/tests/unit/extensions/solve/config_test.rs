@@ -48,7 +48,7 @@ fn can_read_full_config() {
             assert_eq!(rebalance_count, Some(4));
             assert_eq!(exploration_ratio, Some(0.9));
         }
-        PopulationType::Elitism { .. } => unreachable!(),
+        _ => unreachable!(),
     }
 
     let hyper_config = config.hyper.expect("cannot get hyper");
