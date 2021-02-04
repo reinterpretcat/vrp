@@ -49,14 +49,7 @@ pub fn evaluate_job_insertion_in_route(
 ) -> InsertionResult {
     // NOTE do not evaluate unassigned job in unmodified route if it has a positive code
     match (route_ctx.is_stale(), ctx.solution.unassigned.get(job)) {
-        (false, Some(code)) if *code > 0 => {
-            return match &alternative {
-                InsertionResult::Failure(InsertionFailure { constraint, .. }) if *constraint <= 0 => {
-                    InsertionResult::make_failure_with_code(*code, false, Some(job.clone()))
-                }
-                _ => alternative,
-            }
-        }
+        (false, Some(code)) if *code > 0 => return alternative,
         _ => {}
     }
 
