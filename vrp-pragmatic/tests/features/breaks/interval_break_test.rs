@@ -1,7 +1,15 @@
+use crate::format::problem::Objective::{MinimizeCost, MinimizeTours, MinimizeUnassignedJobs};
 use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
+
+fn create_test_objectives() -> Option<Objectives> {
+    Some(Objectives {
+        primary: vec![MinimizeUnassignedJobs { breaks: Some(10.) }, MinimizeTours],
+        secondary: Some(vec![MinimizeCost]),
+    })
+}
 
 #[test]
 fn can_assign_interval_break_between_jobs() {
@@ -24,6 +32,7 @@ fn can_assign_interval_break_between_jobs() {
             }],
             profiles: create_default_profiles(),
         },
+        objectives: create_test_objectives(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -155,6 +164,7 @@ fn can_assign_interval_break_with_reload() {
             }],
             profiles: create_default_profiles(),
         },
+        objectives: create_test_objectives(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -291,6 +301,7 @@ fn can_consider_departure_rescheduling() {
             }],
             profiles: create_default_profiles(),
         },
+        objectives: create_test_objectives(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

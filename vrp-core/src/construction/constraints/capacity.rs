@@ -56,6 +56,7 @@ pub trait MultiTrip<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
 
 /// A module which ensures vehicle capacity limitation while serving customer's demand.
 pub struct CapacityConstraintModule<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+    code: i32,
     state_keys: Vec<i32>,
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
@@ -73,6 +74,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
     /// Creates a new instance of `CapacityConstraintModule` with multi trip (reload) functionality
     pub fn new_with_multi_trip(code: i32, multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>) -> Self {
         Self {
+            code,
             state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],
             conditional: ConditionalJobModule::new(Box::new(ConcreteJobContextTransition {
                 remove_required: {
@@ -294,6 +296,12 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
             let jobs = self.multi_trip.get_reloads(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|job| !jobs.contains(job));
             solution_ctx.ignored.extend(jobs.into_iter());
+            // NOTE reevaluate insertion of unassigned due to capacity constraint jobs
+            solution_ctx.unassigned.iter_mut().for_each(|pair| {
+                if *pair.1 == self.code {
+                    *pair.1 = 0;
+                }
+            });
 
             self.accept_route_state(route_ctx);
         } else {

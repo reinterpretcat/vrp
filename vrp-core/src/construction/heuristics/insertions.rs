@@ -122,12 +122,15 @@ impl InsertionResult {
 }
 
 pub(crate) fn prepare_insertion_ctx(ctx: &mut InsertionContext) {
-    ctx.solution.required.extend(ctx.solution.unassigned.drain().map(|(job, _)| job));
+    ctx.solution.required.extend(ctx.solution.unassigned.iter().map(|(job, _)| job.clone()));
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
 
 pub(crate) fn finalize_insertion_ctx(ctx: &mut InsertionContext) {
-    ctx.solution.unassigned.extend(ctx.solution.required.drain(0..).map(|job| (job, 0)));
+    let unassigned = &ctx.solution.unassigned;
+    ctx.solution.required.retain(|job| !unassigned.contains_key(job));
+    ctx.solution.unassigned.extend(ctx.solution.required.drain(0..).map(|job| (job, -1)));
+
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
 
@@ -149,6 +152,7 @@ pub(crate) fn apply_insertion_result(ctx: &mut InsertionContext, result: Inserti
 
             let job = success.job;
             ctx.solution.required.retain(|j| *j != job);
+            ctx.solution.unassigned.remove(&job);
             ctx.problem.constraint.accept_insertion(&mut ctx.solution, route_index, &job);
         }
         InsertionResult::Failure(failure) => {
