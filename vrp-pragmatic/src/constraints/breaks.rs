@@ -193,7 +193,7 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext) {
         })
     });
 
-    ctx.unassigned.extend(breaks_to_remove.into_iter().map(|b| (b, 1)));
+    ctx.unassigned.extend(breaks_to_remove.into_iter().map(|b| (b, 0)));
 
     // NOTE remove stale breaks from violation list
     ctx.ignored.extend(

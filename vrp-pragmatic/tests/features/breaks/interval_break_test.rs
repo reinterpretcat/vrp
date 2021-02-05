@@ -313,7 +313,7 @@ fn can_consider_departure_rescheduling() {
         Some(vec![Violation::Break {
             vehicle_id: "my_vehicle_1".to_string(),
             shift_index: 0,
-            reason: "cannot be visited within time window".to_string()
+            reason: "unknown".to_string()
         }])
     );
 }
