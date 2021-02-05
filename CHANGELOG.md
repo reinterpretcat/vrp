@@ -2,6 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
+
 ## [Unreleased]
 
 ### Added
@@ -13,7 +14,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- improved processing of unassigned jobs
+- speedup processing of unassigned jobs
+
 
 ## [v1.7.4] - 2021-01-23
 

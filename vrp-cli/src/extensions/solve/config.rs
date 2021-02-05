@@ -48,7 +48,11 @@ pub struct EvolutionConfig {
 pub enum PopulationType {
     /// A greedy population keeps track only of one best-known individual.
     #[serde(rename(deserialize = "greedy"))]
-    Greedy,
+    #[serde(rename_all = "camelCase")]
+    Greedy {
+        /// Selection size. Default is number of cpus.
+        selection_size: Option<usize>,
+    },
 
     /// A basic population which sorts individuals based on their
     /// dominance order.
@@ -393,7 +397,9 @@ fn configure_from_evolution(
         if let Some(variation) = &config.population {
             let default_selection_size = get_default_selection_size(environment.as_ref());
             let population = match &variation {
-                PopulationType::Greedy => Box::new(Greedy::new(problem, None)),
+                PopulationType::Greedy { selection_size } => {
+                    Box::new(Greedy::new(problem, selection_size.unwrap_or(default_selection_size), None))
+                }
                 PopulationType::Elitism { max_size, selection_size } => Box::new(Elitism::new(
                     problem,
                     environment.random.clone(),

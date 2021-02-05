@@ -8,12 +8,14 @@ use crate::solver::population::{Individual, SelectionPhase};
 use crate::solver::{Population, Statistics};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
+use std::iter::{empty, repeat};
 use std::sync::Arc;
 
 /// A population which keeps track of the best known individuals only.
 /// If solutions are equal, prefers to keep first discovered.
 pub struct Greedy {
     problem: Arc<Problem>,
+    selection_size: usize,
     best_known: Option<Individual>,
 }
 
@@ -42,7 +44,11 @@ impl Population for Greedy {
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        Box::new(self.best_known.iter())
+        if let Some(best_known) = self.best_known.as_ref() {
+            Box::new(repeat(best_known).take(self.selection_size))
+        } else {
+            Box::new(empty())
+        }
     }
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Individual, usize)> + 'a> {
@@ -76,7 +82,7 @@ impl Display for Greedy {
 
 impl Greedy {
     /// Creates a new instance of `Greedy`.
-    pub fn new(problem: Arc<Problem>, best_known: Option<Individual>) -> Self {
-        Self { problem, best_known }
+    pub fn new(problem: Arc<Problem>, selection_size: usize, best_known: Option<Individual>) -> Self {
+        Self { problem, selection_size, best_known }
     }
 }

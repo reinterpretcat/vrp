@@ -9,7 +9,7 @@ fn get_best_fitness(population: &Greedy) -> f64 {
 #[test]
 fn can_keep_best_solution() {
     let problem = create_example_problem();
-    let mut population = Greedy::new(problem.clone(), None);
+    let mut population = Greedy::new(problem.clone(), 1, None);
 
     population.add(create_simple_insertion_ctx(100., 0));
     assert_eq!(population.size(), 1);

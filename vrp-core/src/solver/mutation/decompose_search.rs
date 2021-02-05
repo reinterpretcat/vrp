@@ -84,7 +84,7 @@ impl DecomposeSearch {
 }
 
 fn create_population(individual: Individual) -> Box<dyn Population + Send + Sync> {
-    Box::new(Greedy::new(individual.problem.clone(), Some(individual)))
+    Box::new(Greedy::new(individual.problem.clone(), 1, Some(individual)))
 }
 
 fn create_multiple_individuals(
