@@ -295,6 +295,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
             // move all unassigned reloads back to ignored
             let jobs = self.multi_trip.get_reloads(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();
             solution_ctx.required.retain(|job| !jobs.contains(job));
+            solution_ctx.unassigned.retain(|job, _| !jobs.contains(job));
             solution_ctx.ignored.extend(jobs.into_iter());
             // NOTE reevaluate insertion of unassigned due to capacity constraint jobs
             solution_ctx.unassigned.iter_mut().for_each(|pair| {

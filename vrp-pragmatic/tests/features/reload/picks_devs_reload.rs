@@ -46,91 +46,90 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
     let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 1000);
 
     assert_eq!(
-        solution,
-        Solution {
+        solution.tours,
+        vec![Tour {
+            vehicle_id: "my_vehicle_1".to_string(),
+            type_id: "my_vehicle".to_string(),
+            shift_index: 0,
+            stops: vec![
+                create_stop_with_activity(
+                    "departure",
+                    "departure",
+                    (0., 0.),
+                    1,
+                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                    0
+                ),
+                create_stop_with_activity(
+                    "d1",
+                    "delivery",
+                    (1., 0.),
+                    0,
+                    ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                    1
+                ),
+                create_stop_with_activity(
+                    "p1",
+                    "pickup",
+                    (2., 0.),
+                    1,
+                    ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
+                    2
+                ),
+                create_stop_with_activity(
+                    "reload",
+                    "reload",
+                    (3., 0.),
+                    1,
+                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
+                    3
+                ),
+                create_stop_with_activity(
+                    "d2",
+                    "delivery",
+                    (4., 0.),
+                    0,
+                    ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
+                    4
+                ),
+                create_stop_with_activity(
+                    "p2",
+                    "pickup",
+                    (5., 0.),
+                    1,
+                    ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
+                    5
+                ),
+                create_stop_with_activity(
+                    "arrival",
+                    "arrival",
+                    (6., 0.),
+                    0,
+                    ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
+                    6
+                ),
+            ],
             statistic: Statistic {
                 cost: 28.,
                 distance: 6,
                 duration: 12,
                 times: Timing { driving: 6, serving: 6, waiting: 0, break_time: 0 },
             },
-            tours: vec![Tour {
-                vehicle_id: "my_vehicle_1".to_string(),
-                type_id: "my_vehicle".to_string(),
-                shift_index: 0,
-                stops: vec![
-                    create_stop_with_activity(
-                        "departure",
-                        "departure",
-                        (0., 0.),
-                        1,
-                        ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
-                        0
-                    ),
-                    create_stop_with_activity(
-                        "d1",
-                        "delivery",
-                        (1., 0.),
-                        0,
-                        ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
-                        1
-                    ),
-                    create_stop_with_activity(
-                        "p1",
-                        "pickup",
-                        (2., 0.),
-                        1,
-                        ("1970-01-01T00:00:03Z", "1970-01-01T00:00:04Z"),
-                        2
-                    ),
-                    create_stop_with_activity(
-                        "reload",
-                        "reload",
-                        (3., 0.),
-                        1,
-                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
-                        3
-                    ),
-                    create_stop_with_activity(
-                        "d2",
-                        "delivery",
-                        (4., 0.),
-                        0,
-                        ("1970-01-01T00:00:08Z", "1970-01-01T00:00:09Z"),
-                        4
-                    ),
-                    create_stop_with_activity(
-                        "p2",
-                        "pickup",
-                        (5., 0.),
-                        1,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                        5
-                    ),
-                    create_stop_with_activity(
-                        "arrival",
-                        "arrival",
-                        (6., 0.),
-                        0,
-                        ("1970-01-01T00:00:12Z", "1970-01-01T00:00:12Z"),
-                        6
-                    ),
-                ],
-                statistic: Statistic {
-                    cost: 28.,
-                    distance: 6,
-                    duration: 12,
-                    times: Timing { driving: 6, serving: 6, waiting: 0, break_time: 0 },
-                },
-            }],
-            unassigned: Some(vec![UnassignedJob {
-                job_id: "d3".to_string(),
-                reasons: vec![UnassignedJobReason {
-                    code: "CAPACITY_CONSTRAINT".to_string(),
-                    description: "does not fit into any vehicle due to capacity".to_string()
-                }],
-            }]),
-            ..create_empty_solution()
+        }]
+    );
+    assert_eq!(
+        solution.statistic,
+        Statistic {
+            cost: 28.,
+            distance: 6,
+            duration: 12,
+            times: Timing { driving: 6, serving: 6, waiting: 0, break_time: 0 },
         }
     );
+    assert!(solution.violations.is_none());
+
+    // NOTE reason can be sometimes NO_REASON_FOUND or CAPACITY_CONSTRAINT
+    let unassigned = solution.unassigned.expect("no unassigned");
+    assert_eq!(unassigned.len(), 1);
+    assert_eq!(unassigned.first().unwrap().job_id, "d3");
 }

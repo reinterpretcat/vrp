@@ -115,6 +115,7 @@ fn analyze_and_perform_transitions(
         .cloned()
         .collect();
     solution_ctx.required.retain(|job| !ignored.contains(job));
+    solution_ctx.unassigned.retain(|job, _| !ignored.contains(job));
 
     // identify required inside ignored
     let required: HashSet<Job> = solution_ctx
