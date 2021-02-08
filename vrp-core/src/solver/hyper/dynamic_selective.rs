@@ -15,9 +15,6 @@ use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-// TODO limit ruin by max unassigned/required jobs
-//      improve terminal conditions
-
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled by
 /// Markov Decision Process.
