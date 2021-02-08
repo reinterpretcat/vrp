@@ -45,8 +45,6 @@ impl HyperHeuristic for DynamicSelective {
                         _ => SearchState::BestKnown,
                     },
                     individual: Some(individual.deep_copy()),
-                    ruins: 0,
-                    recreates: 0,
                 })
             })
             .collect();
@@ -61,14 +59,11 @@ impl HyperHeuristic for DynamicSelective {
     }
 }
 
-type HeuristicMethods =
-    (Vec<Arc<dyn Ruin + Send + Sync>>, Vec<Arc<dyn Recreate + Send + Sync>>, Vec<Arc<dyn Mutation + Send + Sync>>);
-
 impl DynamicSelective {
     /// Creates a new instance of `DynamicSelective`.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
-        let (ruins, recreates, mutations) = Self::get_methods(problem);
-        let (ruin_estimates, all_estimates) = Self::get_estimates(ruins.clone(), recreates.clone(), mutations.clone());
+        let mutations = Self::get_mutations(problem);
+        let mutation_estimates = Self::get_estimates(mutations.clone());
 
         Self {
             heuristic_simulator: Simulator::new(
@@ -76,21 +71,19 @@ impl DynamicSelective {
                 Box::new(EpsilonGreedy::new(0.2, environment.random.clone())),
             ),
             initial_estimates: vec![
-                (SearchState::BestKnown, ruin_estimates.clone()),
-                (SearchState::Diverse, ruin_estimates.clone()),
-                (SearchState::Ruined, all_estimates),
-                (SearchState::Improved, ruin_estimates.clone()),
-                (SearchState::Degraded, ruin_estimates),
+                (SearchState::BestKnown, mutation_estimates.clone()),
+                (SearchState::Diverse, mutation_estimates.clone()),
+                (SearchState::Improved, Default::default()),
+                (SearchState::Degraded, Default::default()),
                 (SearchState::NewBest, Default::default()),
-                (SearchState::Terminal, Default::default()),
             ]
             .into_iter()
             .collect(),
-            action_registry: SearchActionRegistry { ruins, recreates, mutations },
+            action_registry: SearchActionRegistry { mutations },
         }
     }
 
-    fn get_methods(problem: Arc<Problem>) -> HeuristicMethods {
+    fn get_mutations(problem: Arc<Problem>) -> Vec<Arc<dyn Mutation + Send + Sync>> {
         let recreates: Vec<Arc<dyn Recreate + Send + Sync>> = vec![
             Arc::new(RecreateWithSkipBest::new(1, 2)),
             Arc::new(RecreateWithRegret::new(2, 3)),
@@ -104,15 +97,29 @@ impl DynamicSelective {
             Arc::new(RecreateWithNearestNeighbor::default()),
         ];
 
-        let ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![
+        let simple_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![
             Arc::new(AdjustedStringRemoval::default()),
-            Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(2, 8, 0.1))),
-            Arc::new(WorstJobRemoval::default()),
             Arc::new(NeighbourRemoval::default()),
+            Arc::new(WorstJobRemoval::default()),
             Arc::new(ClusterRemoval::new_with_defaults(problem.clone())),
-            Arc::new(RandomRouteRemoval::default()),
             Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())),
+            Arc::new(RandomRouteRemoval::default()),
         ];
+
+        let composite_ruins = simple_ruins
+            .iter()
+            .enumerate()
+            .flat_map(|(outer_idx, outer_ruin)| {
+                simple_ruins
+                    .iter()
+                    .enumerate()
+                    .filter(move |(inner_idx, _)| *inner_idx != outer_idx)
+                    .map(move |(_, inner_ruin)| (outer_ruin.clone(), inner_ruin.clone()))
+            })
+            .map::<Arc<dyn Ruin + Send + Sync>, _>(|(a, b)| Arc::new(CompositeRuin::new(vec![(a, 1.), (b, 1.)])))
+            .collect::<Vec<_>>();
+
+        let ruins = simple_ruins.into_iter().chain(composite_ruins.into_iter()).collect::<Vec<_>>();
 
         let mutations: Vec<Arc<dyn Mutation + Send + Sync>> = vec![
             Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
@@ -131,34 +138,15 @@ impl DynamicSelective {
             .chain(mutations.into_iter())
             .collect::<Vec<_>>();
 
-        (ruins, recreates, mutations)
+        mutations
     }
 
-    fn get_estimates(
-        ruins: Vec<Arc<dyn Ruin + Send + Sync>>,
-        recreates: Vec<Arc<dyn Recreate + Send + Sync>>,
-        mutations: Vec<Arc<dyn Mutation + Send + Sync>>,
-    ) -> (ActionsEstimate<SearchState>, ActionsEstimate<SearchState>) {
-        let ruin_estimates =
-            (0..ruins.len()).map(|idx| (SearchAction::Ruin { ruin_index: idx }, 0.)).collect::<HashMap<_, _>>();
-
-        let recreate_estimates = (0..recreates.len())
-            .map(|idx| (SearchAction::Recreate { recreate_index: idx }, 0.))
-            .collect::<HashMap<_, _>>();
-
-        let mutation_estimate = (0..mutations.len())
+    fn get_estimates(mutations: Vec<Arc<dyn Mutation + Send + Sync>>) -> ActionsEstimate<SearchState> {
+        let mutation_estimates = (0..mutations.len())
             .map(|idx| (SearchAction::Mutate { mutation_index: idx }, 0.))
             .collect::<HashMap<_, _>>();
 
-        let all_estimates = ruin_estimates
-            .clone()
-            .into_iter()
-            .chain(recreate_estimates)
-            .chain(mutation_estimate)
-            .into_iter()
-            .collect::<HashMap<_, _>>();
-
-        (ruin_estimates, all_estimates)
+        mutation_estimates
     }
 }
 
@@ -168,16 +156,12 @@ enum SearchState {
     BestKnown,
     /// A state with diverse (not the best known) solution.
     Diverse,
-    /// A state with partially ruined solution.
-    Ruined,
     /// A state with new best known solution found.
     NewBest,
     /// A state with improved from diverse solution.
     Improved,
     /// A state with degraded solution.
     Degraded,
-    /// A terminal state.
-    Terminal,
 }
 
 impl State for SearchState {
@@ -187,28 +171,20 @@ impl State for SearchState {
         match &self {
             SearchState::BestKnown => 0.,
             SearchState::Diverse => 0.,
-            SearchState::Ruined => 0.,
             SearchState::NewBest => 100.,
-            SearchState::Improved => 5.,
+            SearchState::Improved => 10.,
             SearchState::Degraded => -10.,
-            SearchState::Terminal => -5.,
         }
     }
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum SearchAction {
-    /// An action which only ruins solution.
-    Ruin { ruin_index: usize },
-    /// An action which only recreates solution.
-    Recreate { recreate_index: usize },
     /// An action which restores solution from partially ruined, might apply an extra ruin.
     Mutate { mutation_index: usize },
 }
 
 struct SearchActionRegistry {
-    pub ruins: Vec<Arc<dyn Ruin + Send + Sync>>,
-    pub recreates: Vec<Arc<dyn Recreate + Send + Sync>>,
     pub mutations: Vec<Arc<dyn Mutation + Send + Sync>>,
 }
 
@@ -219,8 +195,6 @@ struct SearchAgent<'a> {
     estimates: &'a HashMap<SearchState, ActionsEstimate<SearchState>>,
     state: SearchState,
     individual: Option<Individual>,
-    ruins: usize,
-    recreates: usize,
 }
 
 impl<'a> Agent<SearchState> for SearchAgent<'a> {
@@ -233,48 +207,23 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
     }
 
     fn take_action(&mut self, action: &<SearchState as State>::Action) {
-        if self.recreates > 2 || self.ruins > 3 {
-            self.state = SearchState::Terminal;
-            return;
-        }
-
-        let (new_individual, is_complete_solution) = match action {
-            SearchAction::Ruin { ruin_index } => {
-                let individual = std::mem::replace(&mut self.individual, None).expect("no insertion ctx");
-                let ruin = &self.registry.ruins[*ruin_index];
-
-                self.ruins += 1;
-                (ruin.run(self.refinement_ctx, individual), false)
-            }
-            SearchAction::Recreate { recreate_index } => {
-                let individual = std::mem::replace(&mut self.individual, None).expect("no insertion ctx");
-                let recreate = &self.registry.recreates[*recreate_index];
-
-                self.recreates += 1;
-                (recreate.run(self.refinement_ctx, individual), true)
-            }
+        let new_individual = match action {
             SearchAction::Mutate { mutation_index } => {
                 let individual = self.individual.as_ref().unwrap();
                 let mutation = &self.registry.mutations[*mutation_index];
 
-                self.ruins += 1;
-                self.recreates += 1;
-                (mutation.mutate(self.refinement_ctx, individual), true)
+                mutation.mutate(self.refinement_ctx, individual)
             }
         };
 
-        self.state = if is_complete_solution {
-            let compare_to_old = self.refinement_ctx.problem.objective.total_order(&new_individual, self.original_ctx);
-            let compare_to_best = compare_to_best(self.refinement_ctx, &new_individual);
+        let compare_to_old = self.refinement_ctx.problem.objective.total_order(&new_individual, self.original_ctx);
+        let compare_to_best = compare_to_best(self.refinement_ctx, &new_individual);
 
-            match (compare_to_old, compare_to_best) {
-                (_, Ordering::Less) => SearchState::NewBest,
-                (_, Ordering::Equal) => SearchState::Improved,
-                (Ordering::Less, _) => SearchState::Improved,
-                (_, _) => SearchState::Degraded,
-            }
-        } else {
-            SearchState::Ruined
+        self.state = match (compare_to_old, compare_to_best) {
+            (_, Ordering::Less) => SearchState::NewBest,
+            (_, Ordering::Equal) => SearchState::Improved,
+            (Ordering::Less, _) => SearchState::Improved,
+            (_, _) => SearchState::Degraded,
         };
 
         self.individual = Some(new_individual);

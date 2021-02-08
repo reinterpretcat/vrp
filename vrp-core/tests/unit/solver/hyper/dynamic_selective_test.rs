@@ -19,7 +19,7 @@ fn can_search_individual() {
     assert!(!individual.solution.routes.is_empty());
     assert!(individual.solution.unassigned.is_empty());
     assert!(!heuristic.initial_estimates.is_empty());
-    for state in &[SearchState::Diverse, SearchState::BestKnown, SearchState::Ruined] {
+    for state in &[SearchState::Diverse, SearchState::BestKnown] {
         let actions = heuristic.initial_estimates.get(state).expect("cannot get state");
         assert!(!actions.is_empty());
         assert!(actions.iter().any(|(_, estimate)| compare_floats(*estimate, 0.) != Ordering::Less));
