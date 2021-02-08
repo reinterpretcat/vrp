@@ -33,9 +33,9 @@ pub use self::worst_jobs_removal::WorstJobRemoval;
 /// A type which specifies a group of multiple ruin strategies with their probability.
 pub type RuinGroup = (Vec<(Arc<dyn Ruin + Send + Sync>, f64)>, usize);
 
-/// Provides the way to run multiple ruin methods one by one on the same solution.
-pub struct CompositeRuin {
-    ruins: Vec<Vec<(Arc<dyn Ruin + Send + Sync>, f64)>>,
+/// Provides the way to pick one ruin from the group ruin methods.
+pub struct WeightedRuin {
+    ruins: Vec<CompositeRuin>,
     weights: Vec<usize>,
 }
 
@@ -62,13 +62,33 @@ impl Default for JobRemovalLimit {
     }
 }
 
-impl CompositeRuin {
-    /// Creates a new instance of `CompositeRuin` with passed ruin methods.
+impl WeightedRuin {
+    /// Creates a new instance of `WeightedRuin` with passed ruin methods.
     pub fn new(ruins: Vec<RuinGroup>) -> Self {
         let weights = ruins.iter().map(|(_, weight)| *weight).collect();
-        let ruins = ruins.into_iter().map(|(ruin, _)| ruin).collect();
+        let ruins = ruins.into_iter().map(|(ruin, _)| CompositeRuin::new(ruin)).collect();
 
         Self { ruins, weights }
+    }
+}
+
+impl Ruin for WeightedRuin {
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
+
+        self.ruins[index].run(refinement_ctx, insertion_ctx)
+    }
+}
+
+/// Provides the way to run multiple ruin methods one by one on the same solution.
+pub struct CompositeRuin {
+    ruins: Vec<(Arc<dyn Ruin + Send + Sync>, f64)>,
+}
+
+impl CompositeRuin {
+    /// Creates a new instance of `CompositeRuin` using list of ruin strategies.
+    pub fn new(ruins: Vec<(Arc<dyn Ruin + Send + Sync>, f64)>) -> Self {
+        Self { ruins }
     }
 }
 
@@ -80,9 +100,8 @@ impl Ruin for CompositeRuin {
 
         let random = insertion_ctx.environment.random.clone();
 
-        let index = random.weighted(self.weights.as_slice());
-
-        let mut insertion_ctx = self.ruins[index]
+        let mut insertion_ctx = self
+            .ruins
             .iter()
             .filter(|(_, probability)| random.is_hit(*probability))
             .fold(insertion_ctx, |ctx, (ruin, _)| ruin.run(refinement_ctx, ctx));

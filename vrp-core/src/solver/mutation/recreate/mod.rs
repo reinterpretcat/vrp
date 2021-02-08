@@ -34,22 +34,21 @@ pub use self::recreate_with_skip_best::RecreateWithSkipBest;
 mod recreate_with_regret;
 pub use self::recreate_with_regret::RecreateWithRegret;
 
-/// Provides the way to run one of multiple recreate methods with different probability.
-pub struct CompositeRecreate {
+/// Provides the way to run one of multiple recreate methods.
+pub struct WeightedRecreate {
     recreates: Vec<Arc<dyn Recreate + Send + Sync>>,
     weights: Vec<usize>,
 }
 
-impl CompositeRecreate {
-    /// Creates a new instance of `CompositeRecreate` using list of recreate strategies.
+impl WeightedRecreate {
+    /// Creates a new instance of `WeightedRecreate` using list of recreate strategies.
     pub fn new(recreates: Vec<(Arc<dyn Recreate + Send + Sync>, usize)>) -> Self {
-        let weights = recreates.iter().map(|(_, weight)| *weight).collect();
-        let recreates = recreates.into_iter().map(|(recreate, _)| recreate).collect();
+        let (recreates, weights) = recreates.into_iter().unzip();
         Self { recreates, weights }
     }
 }
 
-impl Recreate for CompositeRecreate {
+impl Recreate for WeightedRecreate {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
         self.recreates.get(index).unwrap().run(refinement_ctx, insertion_ctx)

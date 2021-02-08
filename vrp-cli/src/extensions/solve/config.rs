@@ -518,9 +518,9 @@ fn create_mutation(
 ) -> Result<(Arc<dyn Mutation + Send + Sync>, MutationProbability), String> {
     Ok(match mutation {
         MutationType::RuinRecreate { probability, ruins, recreates } => {
-            let ruin = Arc::new(CompositeRuin::new(ruins.iter().map(|g| create_ruin_group(problem, g)).collect()));
+            let ruin = Arc::new(WeightedRuin::new(ruins.iter().map(|g| create_ruin_group(problem, g)).collect()));
             let recreate =
-                Arc::new(CompositeRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect()));
+                Arc::new(WeightedRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect()));
             (Arc::new(RuinAndRecreate::new(ruin, recreate)), create_mutation_probability(probability, random.clone()))
         }
         MutationType::LocalSearch { probability, times, operators: inners } => {

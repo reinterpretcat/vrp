@@ -90,7 +90,7 @@ impl StaticSelective {
     /// Creates default mutation (ruin and recreate) with default parameters.
     pub fn create_default_mutation(problem: Arc<Problem>) -> Arc<dyn Mutation + Send + Sync> {
         // initialize recreate
-        let recreate = Arc::new(CompositeRecreate::new(vec![
+        let recreate = Arc::new(WeightedRecreate::new(vec![
             (Arc::new(RecreateWithSkipBest::new(1, 2)), 50),
             (Arc::new(RecreateWithRegret::new(2, 3)), 20),
             (Arc::new(RecreateWithCheapest::default()), 20),
@@ -107,7 +107,7 @@ impl StaticSelective {
         // initialize ruin
         let random_route = Arc::new(RandomRouteRemoval::default());
         let random_job = Arc::new(RandomJobRemoval::new(JobRemovalLimit::default()));
-        let ruin = Arc::new(CompositeRuin::new(vec![
+        let ruin = Arc::new(WeightedRuin::new(vec![
             (
                 vec![
                     (Arc::new(AdjustedStringRemoval::default()), 1.),
