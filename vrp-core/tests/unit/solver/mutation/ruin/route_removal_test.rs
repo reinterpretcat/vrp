@@ -8,7 +8,7 @@ use crate::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
 use std::sync::Arc;
 
 #[test]
-fn can_remove_whole_routes_from_context() {
+fn can_remove_whole_random_routes_from_context() {
     let params = (1usize, 3usize, 1.);
     let matrix = (4, 4);
     let ints = vec![2, 0, 2];
@@ -27,7 +27,7 @@ fn can_remove_whole_routes_from_context() {
 }
 
 #[test]
-fn can_remove_parts_routes_from_context() {
+fn can_remove_parts_random_routes_from_context() {
     let params = (1usize, 3usize, 1.);
     let matrix = (8, 1);
     let ints = vec![2, 0, 2];

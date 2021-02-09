@@ -242,6 +242,12 @@ pub enum RuinMethod {
     /// Random route removal method.
     #[serde(rename(deserialize = "random-route"))]
     RandomRoute { probability: f64, min: usize, max: usize, threshold: f64 },
+    /// Close route removal method.
+    #[serde(rename(deserialize = "close-route"))]
+    CloseRoute { probability: f64 },
+    /// Random ruin removal method.
+    #[serde(rename(deserialize = "random-ruin"))]
+    RandomRuin { probability: f64 },
     /// Worst job removal method.
     #[serde(rename(deserialize = "worst-job"))]
     WorstJob { probability: f64, min: usize, max: usize, threshold: f64, skip: usize },
@@ -591,6 +597,8 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
             Arc::new(ClusterRemoval::new(problem.clone(), *cmin..*cmax, JobRemovalLimit::new(*min, *max, *threshold))),
             *probability,
         ),
+        RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::default()), *probability),
+        RuinMethod::RandomRuin { probability } => (StaticSelective::create_default_random_ruin(), *probability),
     }
 }
 

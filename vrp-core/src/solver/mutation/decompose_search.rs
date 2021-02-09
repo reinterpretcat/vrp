@@ -4,11 +4,11 @@ mod decompose_search_test;
 
 use super::super::rand::prelude::SliceRandom;
 use crate::algorithms::nsga2::Objective;
-use crate::construction::heuristics::{get_medoid, InsertionContext, SolutionContext};
+use crate::construction::heuristics::{group_routes_by_proximity, InsertionContext, SolutionContext};
 use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
 use crate::solver::RefinementContext;
-use crate::utils::{compare_floats, parallel_into_collect};
+use crate::utils::parallel_into_collect;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::iter::{empty, once};
@@ -91,54 +91,12 @@ fn create_multiple_individuals(
     individual: &Individual,
     max_routes_range: (i32, i32),
 ) -> Option<Vec<(Individual, HashSet<usize>)>> {
-    let solution = &individual.solution;
-    let profile = solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile)?;
-    let transport = individual.problem.transport.as_ref();
-
-    let indexed_medoids = solution
-        .routes
-        .iter()
-        .enumerate()
-        .map(|(idx, route_ctx)| (idx, get_medoid(route_ctx, transport)))
-        .collect::<Vec<_>>();
-
-    // estimate distances between all routes using their medoids
-    let route_groups_distances = indexed_medoids
-        .iter()
-        .map(|(outer_idx, outer_medoid)| {
-            let mut route_distances = indexed_medoids
-                .iter()
-                .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
-                .map(move |(inner_idx, inner_medoid)| {
-                    let distance = match (outer_medoid, inner_medoid) {
-                        (Some(outer_medoid), Some(inner_medoid)) => {
-                            let distance =
-                                transport.distance(profile, *outer_medoid, *inner_medoid, Default::default());
-                            if distance < 0. {
-                                None
-                            } else {
-                                Some(distance)
-                            }
-                        }
-                        _ => None,
-                    };
-                    (inner_idx, distance)
-                })
-                .collect::<Vec<_>>();
-
-            route_distances.sort_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
-                (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
-                (Some(_), None) => Ordering::Less,
-                _ => Ordering::Greater,
-            });
-
-            let random = &individual.environment.random;
-            let shuffle_count = random.uniform_int(2, (route_distances.len() as i32 / 4).max(2)) as usize;
-            route_distances.partial_shuffle(&mut random.get_rng(), shuffle_count);
-
-            route_distances
-        })
-        .collect::<Vec<_>>();
+    let mut route_groups_distances = group_routes_by_proximity(individual)?;
+    route_groups_distances.iter_mut().for_each(|route_distances| {
+        let random = &individual.environment.random;
+        let shuffle_count = random.uniform_int(2, (route_distances.len() as i32 / 4).max(2)) as usize;
+        route_distances.partial_shuffle(&mut random.get_rng(), shuffle_count);
+    });
 
     // identify route groups and create individuals from them
     let used_indices = RwLock::new(HashSet::new());
@@ -153,8 +111,8 @@ fn create_multiple_individuals(
                     route_group_distance
                         .iter()
                         .cloned()
-                        .filter(|(inner_idx, _)| !used_indices.read().unwrap().contains(*inner_idx))
-                        .map(|(inner_idx, _)| *inner_idx),
+                        .filter(|(inner_idx, _)| !used_indices.read().unwrap().contains(inner_idx))
+                        .map(|(inner_idx, _)| inner_idx),
                 )
                 .take(group_size)
                 .collect::<HashSet<_>>();

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- a new ruin method which destroys closest routes
+
+### Changed
+
+- rebalance ruin methods
+
 
 ## [v1.8.0] - 2021-02-07
 

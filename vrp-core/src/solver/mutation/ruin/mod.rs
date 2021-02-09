@@ -21,8 +21,8 @@ pub use self::cluster_removal::ClusterRemoval;
 mod neighbour_removal;
 pub use self::neighbour_removal::NeighbourRemoval;
 
-mod random_route_removal;
-pub use self::random_route_removal::RandomRouteRemoval;
+mod route_removal;
+pub use self::route_removal::*;
 
 mod random_job_removal;
 pub use self::random_job_removal::RandomJobRemoval;

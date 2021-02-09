@@ -8,6 +8,7 @@ use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_D
 use crate::construction::heuristics::RouteContext;
 use crate::models::problem::TransportCost;
 use crate::utils::compare_floats;
+use std::cmp::Ordering;
 
 /// Gets max load variance in tours.
 pub fn get_max_load_variance(insertion_ctx: &InsertionContext) -> f64 {
@@ -98,6 +99,58 @@ pub fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost + Sen
         })
         .min_by(|(sum_a, _), (sum_b, _)| compare_floats(*sum_a, *sum_b))
         .map(|(_, location)| location)
+}
+
+/// A type which represents routes grouped by their proximity.
+pub type RouteProximityGroup = Option<Vec<Vec<(usize, Option<f64>)>>>;
+
+/// Estimates distances between all routes using their medoids and returns the sorted groups.
+pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProximityGroup {
+    let solution = &insertion_ctx.solution;
+    let profile = solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile)?;
+    let transport = insertion_ctx.problem.transport.as_ref();
+
+    let indexed_medoids = solution
+        .routes
+        .iter()
+        .enumerate()
+        .map(|(idx, route_ctx)| (idx, get_medoid(route_ctx, transport)))
+        .collect::<Vec<_>>();
+
+    Some(
+        indexed_medoids
+            .iter()
+            .map(|(outer_idx, outer_medoid)| {
+                let mut route_distances = indexed_medoids
+                    .iter()
+                    .filter(move |(inner_idx, _)| *outer_idx != *inner_idx)
+                    .map(move |(inner_idx, inner_medoid)| {
+                        let distance = match (outer_medoid, inner_medoid) {
+                            (Some(outer_medoid), Some(inner_medoid)) => {
+                                let distance =
+                                    transport.distance(profile, *outer_medoid, *inner_medoid, Default::default());
+                                if distance < 0. {
+                                    None
+                                } else {
+                                    Some(distance)
+                                }
+                            }
+                            _ => None,
+                        };
+                        (*inner_idx, distance)
+                    })
+                    .collect::<Vec<_>>();
+
+                route_distances.sort_by(|(_, a_distance), (_, b_distance)| match (a_distance, b_distance) {
+                    (Some(a_distance), Some(b_distance)) => compare_floats(*a_distance, *b_distance),
+                    (Some(_), None) => Ordering::Less,
+                    _ => Ordering::Greater,
+                });
+
+                route_distances
+            })
+            .collect::<Vec<_>>(),
+    )
 }
 
 fn get_values_from_route_state(insertion_ctx: &InsertionContext, state_key: i32) -> Vec<f64> {

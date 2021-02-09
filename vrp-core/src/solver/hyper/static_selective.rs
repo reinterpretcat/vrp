@@ -105,47 +105,30 @@ impl StaticSelective {
         ]));
 
         // initialize ruin
+        let close_route = Arc::new(CloseRouteRemoval::default());
         let random_route = Arc::new(RandomRouteRemoval::default());
         let random_job = Arc::new(RandomJobRemoval::new(JobRemovalLimit::default()));
+        let random_ruin = Self::create_default_random_ruin();
+
         let ruin = Arc::new(WeightedRuin::new(vec![
-            (
-                vec![
-                    (Arc::new(AdjustedStringRemoval::default()), 1.),
-                    (Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(2, 8, 0.1))), 0.1),
-                    (random_job.clone(), 0.05),
-                    (random_route.clone(), 0.01),
-                ],
-                100,
-            ),
-            (
-                vec![
-                    (Arc::new(WorstJobRemoval::default()), 1.),
-                    (random_job.clone(), 0.05),
-                    (random_route.clone(), 0.01),
-                ],
-                10,
-            ),
-            (
-                vec![
-                    (Arc::new(NeighbourRemoval::default()), 1.),
-                    (random_job.clone(), 0.05),
-                    (random_route.clone(), 0.01),
-                ],
-                10,
-            ),
-            (vec![(random_job.clone(), 1.), (random_route.clone(), 0.1)], 2),
-            (vec![(random_route.clone(), 1.), (random_job.clone(), 0.1)], 2),
-            (
-                vec![
-                    (Arc::new(ClusterRemoval::new_with_defaults(problem)), 1.),
-                    (random_job, 0.05),
-                    (random_route, 0.01),
-                ],
-                1,
-            ),
+            (vec![(Arc::new(AdjustedStringRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 100),
+            (vec![(Arc::new(NeighbourRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
+            (vec![(Arc::new(ClusterRemoval::new_with_defaults(problem)), 1.), (random_ruin, 0.1)], 5),
+            (vec![(close_route, 1.), (random_job.clone(), 0.1)], 2),
+            (vec![(random_route, 1.), (random_job, 0.1)], 1),
         ]));
 
         Arc::new(RuinAndRecreate::new(ruin, recreate))
+    }
+
+    /// Creates default random ruin method.
+    pub fn create_default_random_ruin() -> Arc<dyn Ruin + Send + Sync> {
+        Arc::new(WeightedRuin::new(vec![
+            (vec![(Arc::new(CloseRouteRemoval::default()), 1.)], 100),
+            (vec![(Arc::new(RandomRouteRemoval::default()), 1.)], 10),
+            (vec![(Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())), 1.)], 2),
+        ]))
     }
 }
 

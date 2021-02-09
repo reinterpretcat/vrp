@@ -107,25 +107,8 @@
                 "alpha": 0.01
               },
               {
-                "probability": 0.1,
-                "type": "neighbour",
-                "min": 4,
-                "max": 8,
-                "threshold": 0.05
-              },
-              {
-                "probability": 0.05,
-                "type": "random-job",
-                "min": 4,
-                "max": 8,
-                "threshold": 0.05
-              },
-              {
-                "probability": 0.01,
-                "type": "random-route",
-                "min": 1,
-                "max": 2,
-                "threshold": 0.05
+                "type": "random-ruin",
+                "probability": 0.1
               }
             ]
           },
@@ -140,23 +123,13 @@
                 "threshold": 0.1
               },
               {
-                "probability": 0.15,
-                "type": "random-job",
-                "min": 8,
-                "max": 16,
-                "threshold": 0.1
-              },
-              {
-                "probability": 0.05,
-                "type": "random-route",
-                "min": 1,
-                "max": 4,
-                "threshold": 0.1
+                "type": "random-ruin",
+                "probability": 0.1
               }
             ]
           },
           {
-            "weight": 5,
+            "weight": 10,
             "methods": [
               {
                 "probability": 1,
@@ -167,49 +140,35 @@
                 "threshold": 0.1
               },
               {
-                "probability": 0.05,
-                "type": "random-job",
-                "min": 8,
-                "max": 16,
-                "threshold": 0.1
-              },
-              {
-                "probability": 0.01,
-                "type": "random-route",
-                "min": 1,
-                "max": 4,
-                "threshold": 0.1
+                "type": "random-ruin",
+                "probability": 0.1
               }
             ]
           },
           {
-            "weight": 2,
+            "weight": 5,
             "methods": [
               {
                 "probability": 1,
-                "type": "random-job",
+                "type": "cluster",
                 "min": 8,
                 "max": 16,
+                "cmin": 3,
+                "cmax": 9,
                 "threshold": 0.1
               },
               {
-                "probability": 0.1,
-                "type": "random-route",
-                "min": 1,
-                "max": 4,
-                "threshold": 0.1
+                "type": "random-ruin",
+                "probability": 0.1
               }
             ]
           },
           {
-            "weight": 2,
+            "weight": 1,
             "methods": [
               {
                 "probability": 1,
-                "type": "random-route",
-                "min": 1,
-                "max": 4,
-                "threshold": 0.1
+                "type": "close-route"
               },
               {
                 "probability": 0.1,
@@ -225,25 +184,16 @@
             "methods": [
               {
                 "probability": 1,
-                "type": "cluster",
-                "min": 8,
-                "max": 16,
-                "cmin": 3,
-                "cmax": 9,
-                "threshold": 0.1
-              },
-              {
-                "probability": 0.05,
-                "type": "random-job",
-                "min": 8,
-                "max": 16,
-                "threshold": 0.1
-              },
-              {
-                "probability": 0.01,
                 "type": "random-route",
                 "min": 1,
                 "max": 4,
+                "threshold": 0.1
+              },
+              {
+                "probability": 0.1,
+                "type": "random-job",
+                "min": 8,
+                "max": 16,
                 "threshold": 0.1
               }
             ]
