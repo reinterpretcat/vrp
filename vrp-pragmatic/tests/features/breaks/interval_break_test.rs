@@ -310,10 +310,6 @@ fn can_consider_departure_rescheduling() {
 
     assert_eq!(
         solution.violations,
-        Some(vec![Violation::Break {
-            vehicle_id: "my_vehicle_1".to_string(),
-            shift_index: 0,
-            reason: "unknown".to_string()
-        }])
+        Some(vec![Violation::Break { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }])
     );
 }

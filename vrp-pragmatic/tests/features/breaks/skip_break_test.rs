@@ -176,11 +176,7 @@ fn can_skip_break_when_jobs_completed() {
                     times: Timing { driving: 2, serving: 10, waiting: 0, break_time: 0 },
                 },
             }],
-            violations: Some(vec![Violation::Break {
-                vehicle_id: "my_vehicle_1".to_string(),
-                shift_index: 0,
-                reason: "cannot be visited within time window".to_string(),
-            }]),
+            violations: Some(vec![Violation::Break { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }]),
             ..create_empty_solution()
         }
     );

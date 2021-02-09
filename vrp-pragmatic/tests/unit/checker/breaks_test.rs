@@ -4,11 +4,7 @@ use crate::helpers::*;
 use vrp_core::models::examples::create_example_problem;
 
 fn test_violations() -> Option<Vec<Violation>> {
-    Some(vec![Violation::Break {
-        vehicle_id: "my_vehicle_1".to_string(),
-        shift_index: 0,
-        reason: "some reason".to_string(),
-    }])
+    Some(vec![Violation::Break { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }])
 }
 
 fn get_matched_break_error_msg(matched: usize, actual: usize) -> Result<(), String> {

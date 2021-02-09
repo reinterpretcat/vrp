@@ -129,8 +129,6 @@ pub enum Violation {
         vehicle_id: String,
         /// Index of the shift.
         shift_index: usize,
-        /// A reason of violation.
-        reason: String,
     },
 }
 

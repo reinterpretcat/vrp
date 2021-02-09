@@ -13,7 +13,6 @@ violated, the following object is returned:
 {
   "type": "break",
   "vehicleId": "my_vehicle_id",
-  "shiftIndex": 0,
-  "reason": "cannot be visited within time window"
+  "shiftIndex": 0
 }
 ```
