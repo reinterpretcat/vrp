@@ -40,9 +40,10 @@ impl Ruin for RandomRouteRemoval {
 
         (0..affected).for_each(|_| {
             let route_index = random.uniform_int(0, (insertion_ctx.solution.routes.len() - 1) as i32) as usize;
-            let route_ctx = &mut insertion_ctx.solution.routes.get(route_index).unwrap().clone();
+            let solution = &mut insertion_ctx.solution;
+            let route_ctx = &mut solution.routes.get(route_index).unwrap().clone();
 
-            remove_route(&mut insertion_ctx, route_ctx)
+            remove_route(solution, route_ctx)
         });
 
         insertion_ctx
@@ -59,6 +60,8 @@ impl Default for CloseRouteRemoval {
 }
 
 impl Ruin for CloseRouteRemoval {
+    // NOTE clippy's false positive in route_groups_distances loop
+    #[allow(clippy::needless_collect)]
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         if let Some(route_groups_distances) = group_routes_by_proximity(&insertion_ctx) {
             let random = &insertion_ctx.environment.random;
@@ -80,11 +83,11 @@ impl Ruin for CloseRouteRemoval {
             let routes = route_groups_distances[route_index]
                 .iter()
                 .take(2)
-                .filter_map(|(idx, _)| insertion_ctx.solution.routes.get_mut(*idx).cloned())
+                .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx).cloned())
                 .collect::<Vec<_>>();
 
             routes.into_iter().for_each(|mut route_ctx| {
-                remove_route(&mut insertion_ctx, &mut route_ctx);
+                remove_route(&mut insertion_ctx.solution, &mut route_ctx);
             });
         }
 
@@ -92,8 +95,7 @@ impl Ruin for CloseRouteRemoval {
     }
 }
 
-fn remove_route(insertion_ctx: &mut InsertionContext, route_ctx: &mut RouteContext) {
-    let solution = &mut insertion_ctx.solution;
+fn remove_route(solution: &mut SolutionContext, route_ctx: &mut RouteContext) {
     if solution.locked.is_empty() {
         remove_whole_route(solution, route_ctx);
     } else {
