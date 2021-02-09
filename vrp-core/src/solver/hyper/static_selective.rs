@@ -57,7 +57,7 @@ impl StaticSelective {
                 create_context_mutation_probability(
                     300,
                     10,
-                    vec![(SelectionPhase::Exploration, 0.01), (SelectionPhase::Exploitation, 0.02)],
+                    vec![(SelectionPhase::Exploration, 0.05), (SelectionPhase::Exploitation, 0.05)],
                     environment.random.clone(),
                 ),
             ),
