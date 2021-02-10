@@ -10,7 +10,7 @@ use crate::solver::hyper::{HyperHeuristic, StaticSelective};
 use crate::solver::mutation::*;
 use crate::solver::population::Individual;
 use crate::solver::RefinementContext;
-use crate::utils::Environment;
+use crate::utils::{compare_floats, Environment};
 use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -48,7 +48,7 @@ impl HyperHeuristic for DynamicSelective {
 
         self.heuristic_simulator
             .run_episodes(agents, refinement_ctx.environment.parallelism.clone(), |values| {
-                values.iter().sum::<f64>() / values.len() as f64
+                values.iter().max_by(|a, b| compare_floats(**a, **b)).cloned().unwrap_or(0.)
             })
             .into_iter()
             .filter_map(|agent| agent.individual)
@@ -72,8 +72,7 @@ impl DynamicSelective {
                 (SearchState::Diverse, mutation_estimates.clone()),
                 (SearchState::NewBest, Default::default()),
                 (SearchState::Improved, Default::default()),
-                (SearchState::Equal, Default::default()),
-                (SearchState::Degraded, Default::default()),
+                (SearchState::Stagnated, Default::default()),
             ]
             .into_iter()
             .collect(),
@@ -159,11 +158,9 @@ enum SearchState {
     /// A state with new best known solution found.
     NewBest,
     /// A state with the same equal solution.
-    Equal,
-    /// A state with improved from diverse solution.
     Improved,
-    /// A state with degraded solution.
-    Degraded,
+    /// A state with equal or degraded solution.
+    Stagnated,
 }
 
 impl State for SearchState {
@@ -175,8 +172,7 @@ impl State for SearchState {
             SearchState::Diverse => 0.,
             SearchState::NewBest => 100.,
             SearchState::Improved => 10.,
-            SearchState::Equal => -1.,
-            SearchState::Degraded => -10.,
+            SearchState::Stagnated => -1.,
         }
     }
 }
@@ -224,9 +220,8 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
 
         self.state = match (compare_to_old, compare_to_best) {
             (_, Ordering::Less) => SearchState::NewBest,
-            (Ordering::Equal, Ordering::Equal) => SearchState::Equal,
             (Ordering::Less, _) => SearchState::Improved,
-            (_, _) => SearchState::Degraded,
+            (_, _) => SearchState::Stagnated,
         };
 
         self.individual = Some(new_individual);
