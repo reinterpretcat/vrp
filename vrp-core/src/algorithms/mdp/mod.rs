@@ -7,8 +7,9 @@ pub use self::simulator::*;
 mod strategies;
 pub use self::strategies::*;
 
-use crate::utils::compare_floats;
+use crate::utils::{compare_floats, Random};
 use hashbrown::HashMap;
+use std::cmp::Ordering;
 use std::hash::Hash;
 
 /// Represents a state in MDP.
@@ -63,8 +64,24 @@ impl<S: State> ActionsEstimate<S> {
     }
 
     /// Returns an action based on its estimate interpreted as weight.
-    pub fn weighted(&self) -> <S as State>::Action {
-        unimplemented!()
+    pub fn weighted(&self, random: &(dyn Random + Send + Sync)) -> <S as State>::Action {
+        // NOTE algorithm below doesn't work with negative values and zeros
+        let offset = match self.min_estimate {
+            Some(value) if value < 0. => -value,
+            Some(value) if compare_floats(value, 0.) == Ordering::Equal => 0.01,
+            _ => 0.,
+        };
+
+        self.estimations
+            .iter()
+            .map(|(action, value)| {
+                let value = value + offset;
+                (-random.uniform_real(0., 1.).ln() / value, action)
+            })
+            .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
+            .unwrap()
+            .1
+            .clone()
     }
 
     /// Returns a max estimate.
