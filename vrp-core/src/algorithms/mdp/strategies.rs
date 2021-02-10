@@ -17,7 +17,7 @@ impl QLearning {
 
 impl<S: State> LearningStrategy<S> for QLearning {
     fn value(&self, reward_value: f64, old_value: f64, estimates: &ActionsEstimate<S>) -> f64 {
-        let next_max = estimates.max_estimate.unwrap_or(0.);
+        let next_max = estimates.max_estimate.as_ref().map_or(0., |(_, v)| *v);
 
         old_value + self.alpha * (reward_value + self.gamma * next_max - old_value)
     }
@@ -62,8 +62,7 @@ impl<S: State> PolicyStrategy<S> for EpsilonGreedy {
         }
 
         if self.random.is_hit(self.epsilon) {
-            let random_idx = self.random.uniform_int(0, estimates.data().len() as i32 - 1) as usize;
-            estimates.data().keys().nth(random_idx).cloned()
+            estimates.random(self.random.as_ref())
         } else {
             estimates.data().iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
         }
@@ -82,5 +81,32 @@ impl Default for Greedy {
 impl<S: State> PolicyStrategy<S> for Greedy {
     fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
         estimates.data().iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
+    }
+}
+
+/// An e-weighted action selection strategy.
+pub struct EpsilonWeighted {
+    epsilon: f64,
+    random: Arc<dyn Random + Send + Sync>,
+}
+
+impl EpsilonWeighted {
+    /// Creates a new instance of `EpsilonWeighted`.
+    pub fn new(epsilon: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self { epsilon, random }
+    }
+}
+
+impl<S: State> PolicyStrategy<S> for EpsilonWeighted {
+    fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
+        if estimates.data().is_empty() {
+            return None;
+        }
+
+        if self.random.is_hit(self.epsilon) {
+            estimates.random(self.random.as_ref())
+        } else {
+            estimates.weighted(self.random.as_ref())
+        }
     }
 }

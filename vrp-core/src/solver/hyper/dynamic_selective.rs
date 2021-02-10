@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/solver/hyper/dynamic_selective_test.rs"]
 mod dynamic_selective_test;
 
-use crate::algorithms::mdp::{ActionsEstimate, Agent, EpsilonGreedy, MonteCarlo, Simulator, State};
+use crate::algorithms::mdp::*;
 use crate::algorithms::nsga2::Objective;
 use crate::models::common::SingleDimLoad;
 use crate::models::Problem;
@@ -65,7 +65,7 @@ impl DynamicSelective {
         Self {
             heuristic_simulator: Simulator::new(
                 Box::new(MonteCarlo::new(0.1)),
-                Box::new(EpsilonGreedy::new(0.2, environment.random.clone())),
+                Box::new(EpsilonWeighted::new(0.01, environment.random.clone())),
             ),
             initial_estimates: vec![
                 (SearchState::BestKnown, mutation_estimates.clone()),
