@@ -23,6 +23,24 @@ impl<S: State> LearningStrategy<S> for QLearning {
     }
 }
 
+/// Applies monte cargo learning strategy to calculate values for taken actions.
+pub struct MonteCarlo {
+    alpha: f64,
+}
+
+impl MonteCarlo {
+    /// Creates a new instance of `MonteCarlo`.
+    pub fn new(alpha: f64) -> Self {
+        Self { alpha }
+    }
+}
+
+impl<S: State> LearningStrategy<S> for MonteCarlo {
+    fn value(&self, reward_value: f64, old_value: f64, _estimates: &ActionsEstimate<S>) -> f64 {
+        old_value + self.alpha * (reward_value - old_value)
+    }
+}
+
 /// An e-greedy action selection strategy which acts as greedy except it can select some
 /// random action with probability specified.
 pub struct EpsilonGreedy {
