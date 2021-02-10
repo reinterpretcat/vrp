@@ -149,7 +149,7 @@ impl<'a, I: Input, S: Storage<Item = I>> TopologyIterator<'a, I, S> {
 impl<'a, I: Input, S: Storage<Item = I>> Iterator for TopologyIterator<'a, I, S> {
     type Item = &'a NodeLink<I, S>;
 
-    fn next(&mut self) -> Option<&'a NodeLink<I, S>> {
+    fn next(&mut self) -> Option<Self::Item> {
         if let Err(node) = self.iterate() {
             node
         } else {

@@ -17,7 +17,7 @@ impl QLearning {
 
 impl<S: State> LearningStrategy<S> for QLearning {
     fn value(&self, reward_value: f64, old_value: f64, estimates: &ActionsEstimate<S>) -> f64 {
-        let next_max = estimates.values().max_by(|a, b| a.partial_cmp(b).unwrap()).cloned().unwrap_or(0.);
+        let next_max = estimates.max_estimate.unwrap_or(0.);
 
         old_value + self.alpha * (reward_value + self.gamma * next_max - old_value)
     }
@@ -57,15 +57,15 @@ impl EpsilonGreedy {
 
 impl<S: State> PolicyStrategy<S> for EpsilonGreedy {
     fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
-        if estimates.is_empty() {
+        if estimates.data().is_empty() {
             return None;
         }
 
         if self.random.is_hit(self.epsilon) {
-            let random_idx = self.random.uniform_int(0, estimates.len() as i32 - 1) as usize;
-            estimates.keys().nth(random_idx).cloned()
+            let random_idx = self.random.uniform_int(0, estimates.data().len() as i32 - 1) as usize;
+            estimates.data().keys().nth(random_idx).cloned()
         } else {
-            estimates.iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
+            estimates.data().iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
         }
     }
 }
@@ -81,6 +81,6 @@ impl Default for Greedy {
 
 impl<S: State> PolicyStrategy<S> for Greedy {
     fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
-        estimates.iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
+        estimates.data().iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
     }
 }

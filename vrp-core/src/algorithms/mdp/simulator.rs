@@ -12,7 +12,7 @@ pub struct Simulator<S: State> {
     policy_strategy: Box<dyn PolicyStrategy<S> + Send + Sync>,
 }
 
-type QType<S> = HashMap<S, HashMap<<S as State>::Action, f64>>;
+type QType<S> = HashMap<S, ActionsEstimate<S>>;
 
 impl<S: State> Simulator<S> {
     /// Creates a new instance of MDP simulator.
@@ -27,7 +27,9 @@ impl<S: State> Simulator<S> {
     pub fn get_optimal_policy(&self, state: &S) -> Option<(<S as State>::Action, f64)> {
         self.q.get(state).and_then(|estimates| {
             let strategy: Box<dyn PolicyStrategy<S>> = Box::new(Greedy::default());
-            strategy.select(estimates).and_then(|action| estimates.get(&action).map(|estimate| (action, *estimate)))
+            strategy
+                .select(estimates)
+                .and_then(|action| estimates.data().get(&action).map(|estimate| (action, *estimate)))
         })
     }
 
@@ -58,8 +60,9 @@ impl<S: State> Simulator<S> {
             .unzip();
 
         merge_vec_maps(qs, |(state, values)| {
-            let action_values = self.q.entry(state).or_insert_with(HashMap::new);
-            merge_vec_maps(values, |(action, values)| {
+            let action_values = self.q.entry(state).or_insert_with(ActionsEstimate::default);
+            let vec_map = values.into_iter().map(|estimates| estimates.into()).collect();
+            merge_vec_maps(vec_map, |(action, values)| {
                 action_values.insert(action, reducer(values.as_slice()));
             });
         });
@@ -87,7 +90,7 @@ impl<S: State> Simulator<S> {
 
             let action = action.unwrap();
             agent.take_action(&action);
-            let old_value = old_estimates[&action];
+            let old_value = *old_estimates.data().get(&action).unwrap();
 
             let next_state = agent.get_state();
             let reward_value = next_state.reward();
@@ -106,9 +109,7 @@ impl<S: State> Simulator<S> {
 
     fn ensure_actions(q_new: &mut QType<S>, q: &QType<S>, state: &S, agent: &dyn Agent<S>) {
         match (q_new.get(state), q.get(state)) {
-            (None, Some(estimates)) => {
-                q_new.insert(state.clone(), estimates.iter().map(|(s, v)| (s.clone(), *v)).collect())
-            }
+            (None, Some(estimates)) => q_new.insert(state.clone(), estimates.clone()),
             (None, None) => q_new.insert(state.clone(), agent.get_actions(&state)),
             (Some(_), _) => None,
         };

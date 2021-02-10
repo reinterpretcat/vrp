@@ -7,11 +7,9 @@ pub use self::simulator::*;
 mod strategies;
 pub use self::strategies::*;
 
+use crate::utils::compare_floats;
 use hashbrown::HashMap;
 use std::hash::Hash;
-
-/// Keeps track of action estimation.
-pub type ActionsEstimate<S> = HashMap<<S as State>::Action, f64>;
 
 /// Represents a state in MDP.
 pub trait State: Clone + Hash + Eq + Send + Sync {
@@ -45,4 +43,63 @@ pub trait LearningStrategy<S: State> {
 pub trait PolicyStrategy<S: State> {
     /// Selects an action from the estimated actions.
     fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action>;
+}
+
+/// Keeps track of action estimation.
+#[derive(Clone)]
+pub struct ActionsEstimate<S: State> {
+    estimations: HashMap<S::Action, f64>,
+    max_estimate: Option<f64>,
+    min_estimate: Option<f64>,
+}
+
+impl<S: State> ActionsEstimate<S> {
+    /// Sets estimate for given action.
+    pub fn insert(&mut self, action: <S as State>::Action, estimate: f64) {
+        self.estimations.insert(action, estimate);
+
+        self.max_estimate = self.max_estimate.map(|old| old.max(estimate)).or(Some(estimate));
+        self.min_estimate = self.min_estimate.map(|old| old.min(estimate)).or(Some(estimate));
+    }
+
+    /// Returns an action based on its estimate interpreted as weight.
+    pub fn weighted(&self) -> <S as State>::Action {
+        unimplemented!()
+    }
+
+    /// Returns a max estimate.
+    pub fn max_estimate(&self) -> Option<f64> {
+        self.max_estimate
+    }
+
+    /// Returns a min estimate.
+    pub fn min_estimate(&self) -> Option<f64> {
+        self.min_estimate
+    }
+
+    /// Returns actual estimation data.
+    pub fn data(&self) -> &HashMap<S::Action, f64> {
+        &self.estimations
+    }
+}
+
+impl<S: State> Default for ActionsEstimate<S> {
+    fn default() -> Self {
+        Self { estimations: Default::default(), max_estimate: None, min_estimate: None }
+    }
+}
+
+impl<S: State> From<HashMap<S::Action, f64>> for ActionsEstimate<S> {
+    fn from(map: HashMap<<S as State>::Action, f64>) -> Self {
+        let max_estimate = map.values().max_by(|a, b| compare_floats(**a, **b)).cloned();
+        let min_estimate = map.values().min_by(|a, b| compare_floats(**a, **b)).cloned();
+
+        Self { estimations: map, max_estimate, min_estimate }
+    }
+}
+
+impl<S: State> Into<HashMap<S::Action, f64>> for ActionsEstimate<S> {
+    fn into(self) -> HashMap<S::Action, f64> {
+        self.estimations
+    }
 }

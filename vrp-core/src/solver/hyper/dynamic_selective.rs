@@ -145,7 +145,7 @@ impl DynamicSelective {
             .map(|idx| (SearchAction::Mutate { mutation_index: idx }, 0.))
             .collect::<HashMap<_, _>>();
 
-        mutation_estimates
+        ActionsEstimate::from(mutation_estimates)
     }
 }
 
