@@ -47,8 +47,9 @@ impl HyperHeuristic for DynamicSelective {
             .collect();
 
         self.heuristic_simulator
-            .run_episodes(agents, refinement_ctx.environment.parallelism.clone(), |values| {
-                values.iter().max_by(|a, b| compare_floats(**a, **b)).cloned().unwrap_or(0.)
+            .run_episodes(agents, refinement_ctx.environment.parallelism.clone(), |state, values| match state {
+                SearchState::BestKnown => values.iter().max_by(|a, b| compare_floats(**a, **b)).cloned().unwrap_or(0.),
+                _ => values.iter().sum::<f64>() / values.len() as f64,
             })
             .into_iter()
             .filter_map(|agent| agent.individual)

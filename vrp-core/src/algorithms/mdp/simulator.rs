@@ -38,7 +38,7 @@ impl<S: State> Simulator<S> {
         &mut self,
         agents: Vec<Box<A>>,
         parallelism: Parallelism,
-        reducer: impl Fn(&[f64]) -> f64,
+        reducer: impl Fn(&S, &[f64]) -> f64,
     ) -> Vec<Box<A>>
     where
         A: Agent<S> + Send + Sync,
@@ -60,10 +60,10 @@ impl<S: State> Simulator<S> {
             .unzip();
 
         merge_vec_maps(qs, |(state, values)| {
-            let action_values = self.q.entry(state).or_insert_with(ActionsEstimate::default);
+            let action_values = self.q.entry(state.clone()).or_insert_with(ActionsEstimate::default);
             let vec_map = values.into_iter().map(|estimates| estimates.into()).collect();
             merge_vec_maps(vec_map, |(action, values)| {
-                action_values.insert(action, reducer(values.as_slice()));
+                action_values.insert(action, reducer(&state, values.as_slice()));
             });
         });
 
