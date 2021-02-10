@@ -65,14 +65,15 @@ impl DynamicSelective {
         Self {
             heuristic_simulator: Simulator::new(
                 Box::new(MonteCarlo::new(0.1)),
-                Box::new(EpsilonWeighted::new(0.01, environment.random.clone())),
+                Box::new(EpsilonWeighted::new(0.1, environment.random.clone())),
             ),
             initial_estimates: vec![
                 (SearchState::BestKnown, mutation_estimates.clone()),
                 (SearchState::Diverse, mutation_estimates.clone()),
-                (SearchState::Improved, Default::default()),
-                (SearchState::Degraded, Default::default()),
                 (SearchState::NewBest, Default::default()),
+                (SearchState::Improved, Default::default()),
+                (SearchState::Equal, Default::default()),
+                (SearchState::Degraded, Default::default()),
             ]
             .into_iter()
             .collect(),
@@ -157,6 +158,8 @@ enum SearchState {
     Diverse,
     /// A state with new best known solution found.
     NewBest,
+    /// A state with the same equal solution.
+    Equal,
     /// A state with improved from diverse solution.
     Improved,
     /// A state with degraded solution.
@@ -172,6 +175,7 @@ impl State for SearchState {
             SearchState::Diverse => 0.,
             SearchState::NewBest => 100.,
             SearchState::Improved => 10.,
+            SearchState::Equal => -1.,
             SearchState::Degraded => -10.,
         }
     }
@@ -220,7 +224,7 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
 
         self.state = match (compare_to_old, compare_to_best) {
             (_, Ordering::Less) => SearchState::NewBest,
-            (_, Ordering::Equal) => SearchState::Improved,
+            (Ordering::Equal, Ordering::Equal) => SearchState::Equal,
             (Ordering::Less, _) => SearchState::Improved,
             (_, _) => SearchState::Degraded,
         };
