@@ -117,7 +117,10 @@ impl DynamicSelective {
         let extra_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![
             Arc::new(CloseRouteRemoval::default()),
             Arc::new(RandomRouteRemoval::default()),
+            Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(1, 2, 0.1))),
+            Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(2, 8, 0.1))),
             Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())),
+            Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(16, 32, 0.2))),
         ];
 
         let ruins = simple_ruins
