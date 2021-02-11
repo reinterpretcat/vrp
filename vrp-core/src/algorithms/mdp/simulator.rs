@@ -120,10 +120,7 @@ impl<S: State> Simulator<S> {
 
     fn ensure_actions(q_new: &mut StateEstimates<S>, q: &StateEstimates<S>, state: &S, agent: &dyn Agent<S>) {
         match (q_new.get(state), q.get(state)) {
-            (None, Some(estimates)) => {
-                let estimates = estimates.data().iter().map(|(s, v)| (s.clone(), *v)).collect::<HashMap<_, _>>();
-                q_new.insert(state.clone(), ActionEstimates::from(estimates))
-            }
+            (None, Some(estimates)) => q_new.insert(state.clone(), estimates.clone()),
             (None, None) => q_new.insert(state.clone(), agent.get_actions(&state)),
             (Some(_), _) => None,
         };

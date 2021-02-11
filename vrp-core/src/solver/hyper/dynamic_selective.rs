@@ -243,8 +243,10 @@ fn try_exchange_estimates(heuristic_simulator: &mut Simulator<SearchState>) {
         )
     };
 
-    let is_best_known_stagnation = best_known_max.map_or(false, |(_, max)| compare_floats(max, 0.) != Ordering::Greater);
-    let is_diverse_improvement = diverse_state_max.map_or(false, |(_, max)| compare_floats(max, 0.) == Ordering::Greater);
+    let is_best_known_stagnation =
+        best_known_max.map_or(false, |(_, max)| compare_floats(max, 0.) != Ordering::Greater);
+    let is_diverse_improvement =
+        diverse_state_max.map_or(false, |(_, max)| compare_floats(max, 0.) == Ordering::Greater);
 
     if is_best_known_stagnation && is_diverse_improvement {
         let estimates = heuristic_simulator.get_state_estimates().get(&SearchState::Diverse).unwrap().clone();

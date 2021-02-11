@@ -47,7 +47,6 @@ pub trait PolicyStrategy<S: State> {
 }
 
 /// Keeps track of action estimation.
-#[derive(Clone)]
 pub struct ActionEstimates<S: State> {
     estimates: HashMap<S::Action, f64>,
     max_estimate: Option<(S::Action, f64)>,
@@ -116,6 +115,13 @@ impl<S: State> ActionEstimates<S> {
 impl<S: State> Default for ActionEstimates<S> {
     fn default() -> Self {
         Self { estimates: Default::default(), max_estimate: None, min_estimate: None }
+    }
+}
+
+impl<S: State> Clone for ActionEstimates<S> {
+    fn clone(&self) -> Self {
+        let estimates = self.estimates.iter().map(|(s, v)| (s.clone(), *v)).collect::<HashMap<_, _>>();
+        ActionEstimates::from(estimates)
     }
 }
 

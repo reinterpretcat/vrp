@@ -28,9 +28,11 @@ fn can_search_individual() {
 
 #[test]
 fn can_exchange_estimates() {
-    let create_action_estimates = |base_value: f64| (0..10)
-        .map(|idx| (SearchAction::Mutate { mutation_index: idx }, idx as f64 * base_value))
-        .collect::<HashMap<_, _>>();
+    let create_action_estimates = |base_value: f64| {
+        (0..10)
+            .map(|idx| (SearchAction::Mutate { mutation_index: idx }, idx as f64 * base_value))
+            .collect::<HashMap<_, _>>()
+    };
     let mut simulator = Simulator::new(
         Box::new(MonteCarlo::new(0.1)),
         Box::new(EpsilonWeighted::new(0.1, Environment::default().random.clone())),
