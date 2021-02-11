@@ -17,7 +17,7 @@ impl QLearning {
 
 impl<S: State> LearningStrategy<S> for QLearning {
     fn value(&self, reward_value: f64, old_value: f64, estimates: &ActionEstimates<S>) -> f64 {
-        let next_max = estimates.max_estimate.as_ref().map_or(0., |(_, v)| *v);
+        let next_max = estimates.max.as_ref().map_or(0., |(_, v)| *v);
 
         old_value + self.alpha * (reward_value + self.gamma * next_max - old_value)
     }

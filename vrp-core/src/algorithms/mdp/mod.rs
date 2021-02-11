@@ -49,8 +49,8 @@ pub trait PolicyStrategy<S: State> {
 /// Keeps track of action estimation.
 pub struct ActionEstimates<S: State> {
     estimates: HashMap<S::Action, f64>,
-    max_estimate: Option<(S::Action, f64)>,
-    min_estimate: Option<(S::Action, f64)>,
+    max: Option<(S::Action, f64)>,
+    min: Option<(S::Action, f64)>,
 }
 
 impl<S: State> ActionEstimates<S> {
@@ -58,24 +58,24 @@ impl<S: State> ActionEstimates<S> {
     pub fn insert(&mut self, action: <S as State>::Action, estimate: f64) {
         self.estimates.insert(action.clone(), estimate);
 
-        self.max_estimate = self
-            .max_estimate
+        self.max = self
+            .max
             .as_ref()
-            .and_then(|old| if estimate > old.1 { None } else { Some(old.clone()) })
+            .and_then(|old| if compare_floats(estimate, old.1) == Ordering::Greater { None } else { Some(old.clone()) })
             .or_else(|| Some((action.clone(), estimate)));
 
-        self.min_estimate = self
-            .min_estimate
+        self.min = self
+            .min
             .as_ref()
-            .and_then(|old| if estimate < old.1 { None } else { Some(old.clone()) })
+            .and_then(|old| if compare_floats(estimate, old.1) == Ordering::Less { None } else { Some(old.clone()) })
             .or_else(|| Some((action, estimate)));
     }
 
     /// Returns an action based on its estimate interpreted as weight.
     pub fn weighted(&self, random: &(dyn Random + Send + Sync)) -> Option<S::Action> {
         // NOTE algorithm below doesn't work with negative values and zeros
-        let offset = match self.min_estimate {
-            Some((_, value)) if value < 0. => -value,
+        let offset = match self.min {
+            Some((_, value)) if compare_floats(value, 0.) == Ordering::Less => -value + 0.01,
             Some((_, value)) if compare_floats(value, 0.) == Ordering::Equal => 0.01,
             _ => 0.,
         };
@@ -98,12 +98,12 @@ impl<S: State> ActionEstimates<S> {
 
     /// Returns a max estimate.
     pub fn max_estimate(&self) -> Option<(S::Action, f64)> {
-        self.max_estimate.clone()
+        self.max.clone()
     }
 
     /// Returns a min estimate.
     pub fn min_estimate(&self) -> Option<(S::Action, f64)> {
-        self.min_estimate.clone()
+        self.min.clone()
     }
 
     /// Returns actual action estimates data.
@@ -114,7 +114,7 @@ impl<S: State> ActionEstimates<S> {
 
 impl<S: State> Default for ActionEstimates<S> {
     fn default() -> Self {
-        Self { estimates: Default::default(), max_estimate: None, min_estimate: None }
+        Self { estimates: Default::default(), max: None, min: None }
     }
 }
 
@@ -127,10 +127,10 @@ impl<S: State> Clone for ActionEstimates<S> {
 
 impl<S: State> From<HashMap<S::Action, f64>> for ActionEstimates<S> {
     fn from(map: HashMap<<S as State>::Action, f64>) -> Self {
-        let max_estimate = map.iter().max_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
-        let min_estimate = map.iter().min_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
+        let max = map.iter().max_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
+        let min = map.iter().min_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
 
-        Self { estimates: map, max_estimate, min_estimate }
+        Self { estimates: map, max, min }
     }
 }
 
