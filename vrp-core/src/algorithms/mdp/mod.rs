@@ -58,17 +58,10 @@ impl<S: State> ActionEstimates<S> {
     pub fn insert(&mut self, action: <S as State>::Action, estimate: f64) {
         self.estimates.insert(action.clone(), estimate);
 
-        self.max = self
-            .max
-            .as_ref()
-            .and_then(|old| if compare_floats(estimate, old.1) == Ordering::Greater { None } else { Some(old.clone()) })
-            .or_else(|| Some((action.clone(), estimate)));
-
-        self.min = self
-            .min
-            .as_ref()
-            .and_then(|old| if compare_floats(estimate, old.1) == Ordering::Less { None } else { Some(old.clone()) })
-            .or_else(|| Some((action, estimate)));
+        // TODO optimize to avoid loops?
+        let (min, max) = Self::get_min_max(&self.estimates);
+        self.min = min;
+        self.max = max;
     }
 
     /// Returns an action based on its estimate interpreted as weight.
@@ -110,6 +103,13 @@ impl<S: State> ActionEstimates<S> {
     pub fn data(&self) -> &HashMap<S::Action, f64> {
         &self.estimates
     }
+
+    fn get_min_max(map: &HashMap<S::Action, f64>) -> (Option<(S::Action, f64)>, Option<(S::Action, f64)>) {
+        let max = map.iter().max_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
+        let min = map.iter().min_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
+
+        (min, max)
+    }
 }
 
 impl<S: State> Default for ActionEstimates<S> {
@@ -127,8 +127,7 @@ impl<S: State> Clone for ActionEstimates<S> {
 
 impl<S: State> From<HashMap<S::Action, f64>> for ActionEstimates<S> {
     fn from(map: HashMap<<S as State>::Action, f64>) -> Self {
-        let max = map.iter().max_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
-        let min = map.iter().min_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
+       let (min, max) = Self::get_min_max(&map);
 
         Self { estimates: map, max, min }
     }
