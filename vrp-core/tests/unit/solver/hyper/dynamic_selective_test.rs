@@ -25,3 +25,25 @@ fn can_search_individual() {
         assert!(actions.data().iter().any(|(_, estimate)| compare_floats(*estimate, 0.) != Ordering::Less));
     }
 }
+
+#[test]
+fn can_exchange_estimates() {
+    let create_action_estimates = |base_value: f64| (0..10)
+        .map(|idx| (SearchAction::Mutate { mutation_index: idx }, idx as f64 * base_value))
+        .collect::<HashMap<_, _>>();
+    let mut simulator = Simulator::new(
+        Box::new(MonteCarlo::new(0.1)),
+        Box::new(EpsilonWeighted::new(0.1, Environment::default().random.clone())),
+    );
+    simulator.set_action_estimates(SearchState::BestKnown, ActionEstimates::from(create_action_estimates(-1.)));
+    simulator.set_action_estimates(SearchState::Diverse, ActionEstimates::from(create_action_estimates(1.)));
+
+    try_exchange_estimates(&mut simulator);
+    simulator.set_action_estimates(SearchState::Diverse, ActionEstimates::from(create_action_estimates(-10.)));
+
+    let estimate_values = simulator.get_state_estimates().get(&SearchState::BestKnown).unwrap();
+    assert!(!estimate_values.data().is_empty());
+    estimate_values.data().iter().for_each(|(_, value)| {
+        assert_ne!(compare_floats(*value, 0.), Ordering::Less);
+    });
+}

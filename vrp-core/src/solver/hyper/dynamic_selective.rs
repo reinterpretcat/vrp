@@ -56,7 +56,7 @@ impl HyperHeuristic for DynamicSelective {
             .filter_map(|agent| agent.individual)
             .collect();
 
-        self.try_exchange_estimates();
+        try_exchange_estimates(&mut self.heuristic_simulator);
 
         individuals
     }
@@ -153,24 +153,6 @@ impl DynamicSelective {
 
         ActionEstimates::from(mutation_estimates)
     }
-
-    fn try_exchange_estimates(&mut self) {
-        let (best_known_max, diverse_state_max) = {
-            let state_estimates = self.heuristic_simulator.get_state_estimates();
-            (
-                state_estimates.get(&SearchState::BestKnown).and_then(|state| state.max_estimate()),
-                state_estimates.get(&SearchState::Diverse).and_then(|state| state.max_estimate()),
-            )
-        };
-
-        let is_best_known_stagnation = best_known_max.map_or(false, |(_, max)| max < 0.);
-        let is_diverse_improvement = diverse_state_max.map_or(false, |(_, max)| max > 0.);
-
-        if is_best_known_stagnation && is_diverse_improvement {
-            let estimates = self.heuristic_simulator.get_state_estimates().get(&SearchState::Diverse).unwrap().clone();
-            self.heuristic_simulator.set_action_estimates(SearchState::BestKnown, estimates);
-        }
-    }
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -249,6 +231,24 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
         };
 
         self.individual = Some(new_individual);
+    }
+}
+
+fn try_exchange_estimates(heuristic_simulator: &mut Simulator<SearchState>) {
+    let (best_known_max, diverse_state_max) = {
+        let state_estimates = heuristic_simulator.get_state_estimates();
+        (
+            state_estimates.get(&SearchState::BestKnown).and_then(|state| state.max_estimate()),
+            state_estimates.get(&SearchState::Diverse).and_then(|state| state.max_estimate()),
+        )
+    };
+
+    let is_best_known_stagnation = best_known_max.map_or(false, |(_, max)| compare_floats(max, 0.) != Ordering::Greater);
+    let is_diverse_improvement = diverse_state_max.map_or(false, |(_, max)| compare_floats(max, 0.) == Ordering::Greater);
+
+    if is_best_known_stagnation && is_diverse_improvement {
+        let estimates = heuristic_simulator.get_state_estimates().get(&SearchState::Diverse).unwrap().clone();
+        heuristic_simulator.set_action_estimates(SearchState::BestKnown, estimates);
     }
 }
 
