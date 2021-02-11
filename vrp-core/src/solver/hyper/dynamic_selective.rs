@@ -4,7 +4,7 @@ mod dynamic_selective_test;
 
 use crate::algorithms::mdp::*;
 use crate::algorithms::nsga2::Objective;
-use crate::models::common::SingleDimLoad;
+use crate::models::common::{SingleDimLoad, MultiDimLoad};
 use crate::models::Problem;
 use crate::solver::hyper::{HyperHeuristic, StaticSelective};
 use crate::solver::mutation::*;
@@ -89,14 +89,16 @@ impl DynamicSelective {
     fn get_mutations(problem: Arc<Problem>) -> Vec<Arc<dyn Mutation + Send + Sync>> {
         let recreates: Vec<Arc<dyn Recreate + Send + Sync>> = vec![
             Arc::new(RecreateWithSkipBest::new(1, 2)),
+            Arc::new(RecreateWithSkipBest::new(3, 4)),
+            Arc::new(RecreateWithSkipBest::new(4, 8)),
             Arc::new(RecreateWithRegret::new(2, 3)),
             Arc::new(RecreateWithCheapest::default()),
             Arc::new(RecreateWithPerturbation::default()),
-            Arc::new(RecreateWithSkipBest::new(3, 4)),
+            Arc::new(RecreateWithPerturbation::new(0.1, 0.9, 1.1)),
             Arc::new(RecreateWithGaps::default()),
             Arc::new(RecreateWithBlinks::<SingleDimLoad>::default()),
+            Arc::new(RecreateWithBlinks::<MultiDimLoad>::default()),
             Arc::new(RecreateWithFarthest::default()),
-            Arc::new(RecreateWithSkipBest::new(4, 8)),
             Arc::new(RecreateWithNearestNeighbor::default()),
         ];
 
