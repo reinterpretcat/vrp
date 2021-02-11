@@ -16,7 +16,7 @@ impl QLearning {
 }
 
 impl<S: State> LearningStrategy<S> for QLearning {
-    fn value(&self, reward_value: f64, old_value: f64, estimates: &ActionsEstimate<S>) -> f64 {
+    fn value(&self, reward_value: f64, old_value: f64, estimates: &ActionEstimates<S>) -> f64 {
         let next_max = estimates.max_estimate.as_ref().map_or(0., |(_, v)| *v);
 
         old_value + self.alpha * (reward_value + self.gamma * next_max - old_value)
@@ -36,7 +36,7 @@ impl MonteCarlo {
 }
 
 impl<S: State> LearningStrategy<S> for MonteCarlo {
-    fn value(&self, reward_value: f64, old_value: f64, _estimates: &ActionsEstimate<S>) -> f64 {
+    fn value(&self, reward_value: f64, old_value: f64, _estimates: &ActionEstimates<S>) -> f64 {
         old_value + self.alpha * (reward_value - old_value)
     }
 }
@@ -56,7 +56,7 @@ impl EpsilonGreedy {
 }
 
 impl<S: State> PolicyStrategy<S> for EpsilonGreedy {
-    fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
+    fn select(&self, estimates: &ActionEstimates<S>) -> Option<S::Action> {
         if estimates.data().is_empty() {
             return None;
         }
@@ -79,7 +79,7 @@ impl Default for Greedy {
 }
 
 impl<S: State> PolicyStrategy<S> for Greedy {
-    fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
+    fn select(&self, estimates: &ActionEstimates<S>) -> Option<S::Action> {
         estimates.data().iter().max_by(|(_, x), (_, y)| compare_floats(**x, **y)).map(|(a, _)| a.clone())
     }
 }
@@ -98,7 +98,7 @@ impl EpsilonWeighted {
 }
 
 impl<S: State> PolicyStrategy<S> for EpsilonWeighted {
-    fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action> {
+    fn select(&self, estimates: &ActionEstimates<S>) -> Option<S::Action> {
         if estimates.data().is_empty() {
             return None;
         }

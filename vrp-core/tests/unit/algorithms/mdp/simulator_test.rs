@@ -17,7 +17,7 @@ enum GridAction {
 }
 
 struct GridAgent {
-    actions: ActionsEstimate<GridState>,
+    actions: ActionEstimates<GridState>,
     state: GridState,
     grid: (Range<i32>, Range<i32>),
     terminal: (i32, i32),
@@ -37,7 +37,7 @@ impl State for GridState {
 
 impl GridAgent {
     pub fn new(
-        actions: ActionsEstimate<GridState>,
+        actions: ActionEstimates<GridState>,
         state: GridState,
         grid: (Range<i32>, Range<i32>),
         terminal: (i32, i32),
@@ -53,10 +53,10 @@ impl Agent<GridState> for GridAgent {
         &self.state
     }
 
-    fn get_actions(&self, state: &GridState) -> ActionsEstimate<GridState> {
+    fn get_actions(&self, state: &GridState) -> ActionEstimates<GridState> {
         match &state {
             GridState::OnGrid { .. } => self.actions.clone(),
-            GridState::Terminal => ActionsEstimate::<GridState>::default(),
+            GridState::Terminal => ActionEstimates::<GridState>::default(),
         }
     }
 
@@ -97,7 +97,7 @@ fn run_simulator(
         let agents = (0..agent_count).map(|idx| Box::new(get_agent(actions_taken[idx].clone()))).collect::<Vec<_>>();
 
         simulator
-            .run_episodes(agents, Parallelism::default(), |values| values.iter().sum::<f64>() / values.len() as f64);
+            .run_episodes(agents, Parallelism::default(), |_, values| values.iter().sum::<f64>() / values.len() as f64);
 
         if visualize {
             print_board(simulator, episode);
@@ -137,7 +137,7 @@ fn create_agent(state: GridState, actions_taken: ActionCounter) -> GridAgent {
     let grid = (0..4, 0..4);
     let terminal = (3, 3);
 
-    GridAgent::new(actions, state, grid.clone(), terminal, actions_taken)
+    GridAgent::new(ActionEstimates::from(actions), state, grid.clone(), terminal, actions_taken)
 }
 
 parameterized_test! {can_run_grid_episodes_impl, (agent_count, repeat_count, expected_optimal, visualize, policy_strategy), {

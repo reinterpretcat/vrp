@@ -5,14 +5,15 @@ mod simulator_test;
 use super::*;
 use crate::utils::{parallel_into_collect, CollectGroupBy, Parallelism};
 
+/// A type which keeps track of all state-action estimates.
+pub type StateEstimates<S> = HashMap<S, ActionEstimates<S>>;
+
 /// A simulator to train agent with multiple episodes.
 pub struct Simulator<S: State> {
-    q: QType<S>,
+    q: StateEstimates<S>,
     learning_strategy: Box<dyn LearningStrategy<S> + Send + Sync>,
     policy_strategy: Box<dyn PolicyStrategy<S> + Send + Sync>,
 }
-
-type QType<S> = HashMap<S, ActionsEstimate<S>>;
 
 impl<S: State> Simulator<S> {
     /// Creates a new instance of MDP simulator.
@@ -31,6 +32,16 @@ impl<S: State> Simulator<S> {
                 .select(estimates)
                 .and_then(|action| estimates.data().get(&action).map(|estimate| (action, *estimate)))
         })
+    }
+
+    /// Gets state estimates.
+    pub fn get_state_estimates(&self) -> &StateEstimates<S> {
+        &self.q
+    }
+
+    /// Sets action estimates for given state.
+    pub fn set_action_estimates(&mut self, state: S, estimates: ActionEstimates<S>) {
+        self.q.insert(state, estimates);
     }
 
     /// Runs single episode for each of the given agents in parallel.
@@ -60,7 +71,7 @@ impl<S: State> Simulator<S> {
             .unzip();
 
         merge_vec_maps(qs, |(state, values)| {
-            let action_values = self.q.entry(state.clone()).or_insert_with(ActionsEstimate::default);
+            let action_values = self.q.entry(state.clone()).or_insert_with(ActionEstimates::default);
             let vec_map = values.into_iter().map(|estimates| estimates.into()).collect();
             merge_vec_maps(vec_map, |(action, values)| {
                 action_values.insert(action, reducer(&state, values.as_slice()));
@@ -74,9 +85,9 @@ impl<S: State> Simulator<S> {
         agent: &mut dyn Agent<S>,
         learning_strategy: &(dyn LearningStrategy<S> + Send + Sync),
         policy_strategy: &(dyn PolicyStrategy<S> + Send + Sync),
-        q: &QType<S>,
-    ) -> QType<S> {
-        let mut q_new = QType::new();
+        q: &StateEstimates<S>,
+    ) -> StateEstimates<S> {
+        let mut q_new = StateEstimates::new();
 
         loop {
             let old_state = agent.get_state().clone();
@@ -107,9 +118,12 @@ impl<S: State> Simulator<S> {
         q_new
     }
 
-    fn ensure_actions(q_new: &mut QType<S>, q: &QType<S>, state: &S, agent: &dyn Agent<S>) {
+    fn ensure_actions(q_new: &mut StateEstimates<S>, q: &StateEstimates<S>, state: &S, agent: &dyn Agent<S>) {
         match (q_new.get(state), q.get(state)) {
-            (None, Some(estimates)) => q_new.insert(state.clone(), estimates.clone()),
+            (None, Some(estimates)) => {
+                let estimates = estimates.data().iter().map(|(s, v)| (s.clone(), *v)).collect::<HashMap<_, _>>();
+                q_new.insert(state.clone(), ActionEstimates::from(estimates))
+            }
             (None, None) => q_new.insert(state.clone(), agent.get_actions(&state)),
             (Some(_), _) => None,
         };

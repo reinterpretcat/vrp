@@ -28,7 +28,7 @@ pub trait Agent<S: State> {
 
     /// Returns agent's actions for given state with their estimates. If no actions are
     /// associated, then the state is considered as terminal.
-    fn get_actions(&self, state: &S) -> ActionsEstimate<S>;
+    fn get_actions(&self, state: &S) -> ActionEstimates<S>;
 
     /// Takes the action in the current agent's state. Potentially, changes agent state.
     fn take_action(&mut self, action: &S::Action);
@@ -37,24 +37,24 @@ pub trait Agent<S: State> {
 /// A learning strategy for the MDP.
 pub trait LearningStrategy<S: State> {
     /// Estimates an action value given received reward, current value, and actions values from the new state.
-    fn value(&self, reward_value: f64, old_value: f64, estimates: &ActionsEstimate<S>) -> f64;
+    fn value(&self, reward_value: f64, old_value: f64, estimates: &ActionEstimates<S>) -> f64;
 }
 
 /// A policy strategy for MDP.
 pub trait PolicyStrategy<S: State> {
     /// Selects an action from the estimated actions.
-    fn select(&self, estimates: &ActionsEstimate<S>) -> Option<S::Action>;
+    fn select(&self, estimates: &ActionEstimates<S>) -> Option<S::Action>;
 }
 
 /// Keeps track of action estimation.
 #[derive(Clone)]
-pub struct ActionsEstimate<S: State> {
+pub struct ActionEstimates<S: State> {
     estimates: HashMap<S::Action, f64>,
     max_estimate: Option<(S::Action, f64)>,
     min_estimate: Option<(S::Action, f64)>,
 }
 
-impl<S: State> ActionsEstimate<S> {
+impl<S: State> ActionEstimates<S> {
     /// Sets estimate for given action.
     pub fn insert(&mut self, action: <S as State>::Action, estimate: f64) {
         self.estimates.insert(action.clone(), estimate);
@@ -107,19 +107,19 @@ impl<S: State> ActionsEstimate<S> {
         self.min_estimate.clone()
     }
 
-    /// Returns actual estimation data.
+    /// Returns actual action estimates data.
     pub fn data(&self) -> &HashMap<S::Action, f64> {
         &self.estimates
     }
 }
 
-impl<S: State> Default for ActionsEstimate<S> {
+impl<S: State> Default for ActionEstimates<S> {
     fn default() -> Self {
         Self { estimates: Default::default(), max_estimate: None, min_estimate: None }
     }
 }
 
-impl<S: State> From<HashMap<S::Action, f64>> for ActionsEstimate<S> {
+impl<S: State> From<HashMap<S::Action, f64>> for ActionEstimates<S> {
     fn from(map: HashMap<<S as State>::Action, f64>) -> Self {
         let max_estimate = map.iter().max_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
         let min_estimate = map.iter().min_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
@@ -128,7 +128,7 @@ impl<S: State> From<HashMap<S::Action, f64>> for ActionsEstimate<S> {
     }
 }
 
-impl<S: State> Into<HashMap<S::Action, f64>> for ActionsEstimate<S> {
+impl<S: State> Into<HashMap<S::Action, f64>> for ActionEstimates<S> {
     fn into(self) -> HashMap<S::Action, f64> {
         self.estimates
     }

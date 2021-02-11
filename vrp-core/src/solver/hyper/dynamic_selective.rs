@@ -20,7 +20,7 @@ use std::sync::Arc;
 /// Markov Decision Process.
 pub struct DynamicSelective {
     heuristic_simulator: Simulator<SearchState>,
-    initial_estimates: HashMap<SearchState, ActionsEstimate<SearchState>>,
+    initial_estimates: HashMap<SearchState, ActionEstimates<SearchState>>,
     action_registry: SearchActionRegistry,
 }
 
@@ -46,14 +46,19 @@ impl HyperHeuristic for DynamicSelective {
             })
             .collect();
 
-        self.heuristic_simulator
+        let individuals = self
+            .heuristic_simulator
             .run_episodes(agents, refinement_ctx.environment.parallelism.clone(), |state, values| match state {
                 SearchState::BestKnown => values.iter().max_by(|a, b| compare_floats(**a, **b)).cloned().unwrap_or(0.),
                 _ => values.iter().sum::<f64>() / values.len() as f64,
             })
             .into_iter()
             .filter_map(|agent| agent.individual)
-            .collect()
+            .collect();
+
+        self.try_exchange_estimates();
+
+        individuals
     }
 }
 
@@ -141,12 +146,30 @@ impl DynamicSelective {
         mutations
     }
 
-    fn get_estimates(mutations: Vec<Arc<dyn Mutation + Send + Sync>>) -> ActionsEstimate<SearchState> {
+    fn get_estimates(mutations: Vec<Arc<dyn Mutation + Send + Sync>>) -> ActionEstimates<SearchState> {
         let mutation_estimates = (0..mutations.len())
             .map(|idx| (SearchAction::Mutate { mutation_index: idx }, 0.))
             .collect::<HashMap<_, _>>();
 
-        ActionsEstimate::from(mutation_estimates)
+        ActionEstimates::from(mutation_estimates)
+    }
+
+    fn try_exchange_estimates(&mut self) {
+        let (best_known_max, diverse_state_max) = {
+            let state_estimates = self.heuristic_simulator.get_state_estimates();
+            (
+                state_estimates.get(&SearchState::BestKnown).and_then(|state| state.max_estimate()),
+                state_estimates.get(&SearchState::Diverse).and_then(|state| state.max_estimate()),
+            )
+        };
+
+        let is_best_known_stagnation = best_known_max.map_or(false, |(_, max)| max < 0.);
+        let is_diverse_improvement = diverse_state_max.map_or(false, |(_, max)| max > 0.);
+
+        if is_best_known_stagnation && is_diverse_improvement {
+            let estimates = self.heuristic_simulator.get_state_estimates().get(&SearchState::Diverse).unwrap().clone();
+            self.heuristic_simulator.set_action_estimates(SearchState::BestKnown, estimates);
+        }
     }
 }
 
@@ -192,7 +215,7 @@ struct SearchAgent<'a> {
     refinement_ctx: &'a RefinementContext,
     original_ctx: &'a Individual,
     registry: &'a SearchActionRegistry,
-    estimates: &'a HashMap<SearchState, ActionsEstimate<SearchState>>,
+    estimates: &'a HashMap<SearchState, ActionEstimates<SearchState>>,
     state: SearchState,
     individual: Option<Individual>,
 }
@@ -202,7 +225,7 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
         &self.state
     }
 
-    fn get_actions(&self, state: &SearchState) -> ActionsEstimate<SearchState> {
+    fn get_actions(&self, state: &SearchState) -> ActionEstimates<SearchState> {
         self.estimates[state].clone()
     }
 
