@@ -2,24 +2,6 @@ use super::*;
 use vrp_core::utils::DefaultRandom;
 
 #[test]
-fn can_generate_permutations() {
-    let mut permutations = get_permutations(0, 2);
-
-    assert_eq!(permutations.next().unwrap(), vec![0, 1, 2]);
-    assert_eq!(permutations.next().unwrap(), vec![1, 0, 2]);
-    assert_eq!(permutations.next().unwrap(), vec![2, 0, 1]);
-    assert_eq!(permutations.next().unwrap(), vec![0, 2, 1]);
-    assert_eq!(permutations.next().unwrap(), vec![1, 2, 0]);
-    assert_eq!(permutations.next().unwrap(), vec![2, 1, 0]);
-    assert_eq!(permutations.next(), None);
-
-    let mut permutations = get_permutations(3, 4);
-    assert_eq!(permutations.next().unwrap(), vec![3, 4]);
-    assert_eq!(permutations.next().unwrap(), vec![4, 3]);
-    assert_eq!(permutations.next(), None);
-}
-
-#[test]
 fn can_generate_split_permutations() {
     let random = DefaultRandom::default();
     let job_permutations = get_split_permutations(5, 3, 12, &random);
@@ -56,4 +38,12 @@ fn can_validate_permutations() {
 
     let permutator = VariableJobPermutation::new(3, 1, 3, random);
     assert!(permutator.validate(&vec![0, 1, 2]));
+}
+
+#[test]
+fn can_generate_huge_sample_permutations() {
+    for &end in &[3, 5, 10, 15, 20] {
+        let permutations = generate_sample_permutations(0, end, 3, &DefaultRandom::default());
+        assert_eq!(permutations.len(), 3);
+    }
 }

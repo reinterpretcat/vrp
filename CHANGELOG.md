@@ -13,6 +13,10 @@ All notable changes to this project will be documented in this file.
 
 - rebalance ruin methods
 
+### Fixed
+
+- fix an issue with huge amount of possible permutations in multi job
+
 
 ## [v1.8.0] - 2021-02-07
 

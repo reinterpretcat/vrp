@@ -1,5 +1,5 @@
 use hashbrown::HashSet;
-use rand::seq::IteratorRandom;
+use rand::prelude::SliceRandom;
 use std::sync::Arc;
 use vrp_core::models::problem::JobPermutation;
 use vrp_core::utils::Random;
@@ -39,50 +39,29 @@ impl JobPermutation for VariableJobPermutation {
     }
 }
 
-fn get_permutations(start: usize, end: usize) -> Permutations {
-    Permutations { idxs: (start..=end).collect(), swaps: vec![0; end - start + 1], i: 0 }
-}
-
-pub struct Permutations {
-    idxs: Vec<usize>,
-    swaps: Vec<usize>,
-    i: usize,
-}
-
-impl Iterator for Permutations {
-    type Item = Vec<usize>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.i > 0 {
-            loop {
-                if self.i >= self.swaps.len() {
-                    return None;
-                }
-                if self.swaps[self.i] < self.i {
-                    break;
-                }
-                self.swaps[self.i] = 0;
-                self.i += 1;
-            }
-            self.idxs.swap(self.i, (self.i & 1) * self.swaps[self.i]);
-            self.swaps[self.i] += 1;
-        }
-        self.i = 1;
-        Some(self.idxs.clone())
-    }
-}
-
 fn generate_sample_permutations(
     start: usize,
     end: usize,
     sample_size: usize,
     random: &(dyn Random + Sync + Send),
 ) -> Vec<Vec<usize>> {
-    get_permutations(start, end)
-        .choose_multiple(&mut random.get_rng(), sample_size)
-        .iter()
-        .map(|permutation| permutation.iter().copied().collect::<Vec<usize>>())
-        .collect()
+    // NOTE prevent to have more then possible unique permutations for simple cases
+    let size = end - start + 1;
+    let sample_size = if size < 10 {
+        let total_permutations = (1..=size).product();
+        sample_size.min(total_permutations)
+    } else {
+        sample_size
+    };
+
+    let data = (start..=end).collect::<Vec<_>>();
+    let mut result = vec![data; sample_size];
+    let mut rng = random.get_rng();
+    result.iter_mut().for_each(|data| {
+        data.shuffle(&mut rng);
+    });
+
+    result
 }
 
 fn get_split_permutations(
