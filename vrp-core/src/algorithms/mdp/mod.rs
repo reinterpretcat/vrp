@@ -73,14 +73,21 @@ impl<S: State> ActionEstimates<S> {
             _ => 0.,
         };
 
-        self.estimates
-            .iter()
-            .map(|(action, value)| {
-                let value = value + offset;
-                (-random.uniform_real(0., 1.).ln() / value, action)
-            })
-            .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
-            .map(|(_, action)| action.clone())
+        let sum = self.estimates.iter().fold(0.0, |acc, (_, &i)| acc + i + offset);
+        let spoke_gap = sum;
+        let spin = random.uniform_real(0., 1.) * spoke_gap;
+        let result = self.estimates.iter().try_fold((0., None), |(accumulated_weights, last_item), (item, &weight)| {
+            if accumulated_weights < spin {
+                Ok((accumulated_weights + weight + offset, Some(item.clone())))
+            } else {
+                Err(last_item)
+            }
+        });
+
+        match result {
+            Ok((_, item)) => item,
+            Err(item) => item,
+        }
     }
 
     /// Gets random action.
@@ -127,7 +134,7 @@ impl<S: State> Clone for ActionEstimates<S> {
 
 impl<S: State> From<HashMap<S::Action, f64>> for ActionEstimates<S> {
     fn from(map: HashMap<<S as State>::Action, f64>) -> Self {
-       let (min, max) = Self::get_min_max(&map);
+        let (min, max) = Self::get_min_max(&map);
 
         Self { estimates: map, max, min }
     }

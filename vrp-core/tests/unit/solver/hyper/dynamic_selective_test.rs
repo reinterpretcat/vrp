@@ -22,7 +22,7 @@ fn can_search_individual() {
     for state in &[SearchState::Diverse, SearchState::BestKnown] {
         let actions = heuristic.initial_estimates.get(state).expect("cannot get state");
         assert!(!actions.data().is_empty());
-        assert!(actions.data().iter().any(|(_, estimate)| compare_floats(*estimate, 0.) != Ordering::Less));
+        assert!(actions.data().iter().any(|(_, estimate)| compare_floats(*estimate, -2.) != Ordering::Less));
     }
 }
 

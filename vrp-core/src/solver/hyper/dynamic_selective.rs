@@ -4,7 +4,7 @@ mod dynamic_selective_test;
 
 use crate::algorithms::mdp::*;
 use crate::algorithms::nsga2::Objective;
-use crate::models::common::{SingleDimLoad, MultiDimLoad};
+use crate::models::common::{MultiDimLoad, SingleDimLoad};
 use crate::models::Problem;
 use crate::solver::hyper::{HyperHeuristic, StaticSelective};
 use crate::solver::mutation::*;
@@ -153,7 +153,8 @@ impl DynamicSelective {
 
     fn get_estimates(mutations: Vec<Arc<dyn Mutation + Send + Sync>>) -> ActionEstimates<SearchState> {
         let mutation_estimates = (0..mutations.len())
-            .map(|idx| (SearchAction::Mutate { mutation_index: idx }, 0.))
+            // NOTE default value should be less than reward for Stagnated state
+            .map(|idx| (SearchAction::Mutate { mutation_index: idx }, -2.))
             .collect::<HashMap<_, _>>();
 
         ActionEstimates::from(mutation_estimates)

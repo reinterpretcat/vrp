@@ -2,7 +2,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::Problem;
 use crate::solver::evolution::{EvolutionStrategy, RunSimple};
-use crate::solver::hyper::{HyperHeuristic, StaticSelective};
+use crate::solver::hyper::{DynamicSelective, HyperHeuristic};
 use crate::solver::mutation::{Recreate, RecreateWithCheapest};
 use crate::solver::population::*;
 use crate::solver::telemetry::Telemetry;
@@ -72,7 +72,7 @@ impl EvolutionConfig {
                 },
                 variation: Some(get_default_population(problem.clone(), environment.clone())),
             },
-            hyper: Box::new(StaticSelective::new_with_defaults(problem, environment.clone())),
+            hyper: Box::new(DynamicSelective::new_with_defaults(problem, environment.clone())),
             termination: Arc::new(CompositeTermination::new(vec![
                 Box::new(MaxTime::new(300.)),
                 Box::new(MaxGeneration::new(3000)),
