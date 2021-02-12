@@ -76,6 +76,7 @@ impl<S: State> Simulator<S> {
             merge_vec_maps(vec_map, |(action, values)| {
                 action_values.insert(action, reducer(&state, values.as_slice()));
             });
+            action_values.recalculate_min_max();
         });
 
         agents
@@ -112,6 +113,7 @@ impl<S: State> Simulator<S> {
 
             q_new.entry(old_state.clone()).and_modify(|estimates| {
                 estimates.insert(action.clone(), new_value);
+                estimates.recalculate_min_max();
             });
         }
 

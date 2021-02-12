@@ -54,10 +54,15 @@ pub struct ActionEstimates<S: State> {
 }
 
 impl<S: State> ActionEstimates<S> {
-    /// Sets estimate for given action.
+    /// Sets estimate for given action. Min-Max values are not updated and require a
+    /// `recalculate_min_max` call.
     pub fn insert(&mut self, action: <S as State>::Action, estimate: f64) {
         self.estimates.insert(action.clone(), estimate);
+        // TODO optimize and call recalculate min max here
+    }
 
+    /// Recalculates min max values.
+    pub fn recalculate_min_max(&mut self) {
         // TODO optimize to avoid loops?
         let (min, max) = Self::get_min_max(&self.estimates);
         self.min = min;
