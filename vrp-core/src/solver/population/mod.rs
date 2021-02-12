@@ -82,8 +82,7 @@ pub fn get_default_population(
 ) -> Box<dyn Population + Send + Sync> {
     let selection_size = get_default_selection_size(environment.as_ref());
     if selection_size == 1 {
-        // TODO use greedy instead
-        Box::new(Elitism::new(problem, environment.random.clone(), 1, 1))
+        Box::new(Greedy::new(problem, 1, None))
     } else {
         let config = RosomaxaConfig::new_with_defaults(selection_size);
         let population =
