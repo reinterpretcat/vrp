@@ -70,7 +70,7 @@ impl DynamicSelective {
 
         Self {
             heuristic_simulator: Simulator::new(
-                Box::new(MonteCarlo::new(0.1)),
+                Box::new(MonteCarlo::new(0.01)),
                 Box::new(EpsilonWeighted::new(0.1, environment.random.clone())),
             ),
             initial_estimates: vec![
