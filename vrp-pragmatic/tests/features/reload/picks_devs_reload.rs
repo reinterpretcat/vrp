@@ -43,7 +43,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 1000);
+    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 2000);
 
     assert_eq!(
         solution.tours,
