@@ -4,7 +4,7 @@ mod decompose_search_test;
 
 use super::super::rand::prelude::SliceRandom;
 use crate::algorithms::nsga2::Objective;
-use crate::construction::heuristics::{group_routes_by_proximity, InsertionContext, SolutionContext};
+use crate::construction::heuristics::*;
 use crate::solver::mutation::Mutation;
 use crate::solver::population::{Greedy, Individual, Population};
 use crate::solver::RefinementContext;
@@ -77,7 +77,8 @@ impl DecomposeSearch {
             |individual, decomposed| merge_best(decomposed, original_individual, individual),
         );
 
-        refinement_ctx.problem.constraint.accept_solution_state(&mut individual.solution);
+        individual.restore();
+        finalize_insertion_ctx(&mut individual);
 
         individual
     }
