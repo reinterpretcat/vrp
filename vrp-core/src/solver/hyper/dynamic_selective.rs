@@ -108,14 +108,6 @@ impl DynamicSelective {
             Arc::new(WorstJobRemoval::default()),
             Arc::new(ClusterRemoval::new_with_defaults(problem.clone())),
         ];
-
-        let combine_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![Arc::new(CloseRouteRemoval::default())];
-        let composite_ruins = simple_ruins
-            .iter()
-            .flat_map(|outer_ruin| combine_ruins.iter().map(move |inner_ruin| (outer_ruin.clone(), inner_ruin.clone())))
-            .map::<Arc<dyn Ruin + Send + Sync>, _>(|(a, b)| Arc::new(CompositeRuin::new(vec![(a, 1.), (b, 1.)])))
-            .collect::<Vec<_>>();
-
         let extra_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![
             Arc::new(CloseRouteRemoval::default()),
             Arc::new(RandomRouteRemoval::default()),
@@ -124,11 +116,18 @@ impl DynamicSelective {
             Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())),
             Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(16, 32, 0.2))),
         ];
+        let combine_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![Arc::new(CloseRouteRemoval::default())];
 
+        // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
         let ruins = simple_ruins
-            .into_iter()
-            .chain(composite_ruins.into_iter())
-            .chain(extra_ruins.into_iter())
+            .iter()
+            .flat_map(|outer_ruin| combine_ruins.iter().map(move |inner_ruin| (outer_ruin.clone(), inner_ruin.clone())))
+            .map::<Arc<dyn Ruin + Send + Sync>, _>(|(a, b)| Arc::new(CompositeRuin::new(vec![(a, 1.), (b, 1.)])))
+            .chain(
+                simple_ruins.iter().chain(extra_ruins.iter()).map::<Arc<dyn Ruin + Send + Sync>, _>(|ruin| {
+                    Arc::new(CompositeRuin::new(vec![(ruin.clone(), 1.)]))
+                }),
+            )
             .collect::<Vec<_>>();
 
         let mutations: Vec<Arc<dyn Mutation + Send + Sync>> = vec![

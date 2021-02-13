@@ -1,4 +1,3 @@
-use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassignedJobs};
 use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
@@ -214,10 +213,7 @@ pub fn create_empty_problem() -> Problem {
     Problem {
         plan: Plan { jobs: vec![], relations: None },
         fleet: Fleet { vehicles: vec![], profiles: vec![] },
-        objectives: Some(Objectives {
-            primary: vec![MinimizeUnassignedJobs { breaks: None }],
-            secondary: Some(vec![MinimizeCost]),
-        }),
+        objectives: None,
     }
 }
 
