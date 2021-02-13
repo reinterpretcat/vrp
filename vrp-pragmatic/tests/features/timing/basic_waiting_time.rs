@@ -87,6 +87,7 @@ fn can_skip_initial_waiting() {
             relations: None,
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
+        objectives: create_min_jobs_cost_objective(),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
