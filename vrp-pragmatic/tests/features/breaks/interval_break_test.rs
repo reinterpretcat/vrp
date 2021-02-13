@@ -1,4 +1,4 @@
-use crate::format::problem::Objective::{MinimizeCost, MinimizeTours, MinimizeUnassignedJobs};
+use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassignedJobs};
 use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format_time;
@@ -6,7 +6,7 @@ use crate::helpers::*;
 
 fn create_test_objectives() -> Option<Objectives> {
     Some(Objectives {
-        primary: vec![MinimizeUnassignedJobs { breaks: Some(10.) }, MinimizeTours],
+        primary: vec![MinimizeUnassignedJobs { breaks: Some(10.) }],
         secondary: Some(vec![MinimizeCost]),
     })
 }

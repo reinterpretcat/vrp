@@ -210,15 +210,14 @@ pub fn create_default_profiles() -> Vec<Profile> {
     vec![Profile { name: "car".to_string(), profile_type: "car".to_string(), speed: None }]
 }
 
-pub fn create_min_jobs_cost_objective() -> Option<Objectives> {
-    Some(Objectives { primary: vec![MinimizeUnassignedJobs { breaks: None }], secondary: Some(vec![MinimizeCost]) })
-}
-
 pub fn create_empty_problem() -> Problem {
     Problem {
         plan: Plan { jobs: vec![], relations: None },
         fleet: Fleet { vehicles: vec![], profiles: vec![] },
-        objectives: None,
+        objectives: Some(Objectives {
+            primary: vec![MinimizeUnassignedJobs { breaks: None }],
+            secondary: Some(vec![MinimizeCost]),
+        }),
     }
 }
 
