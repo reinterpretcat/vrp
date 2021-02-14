@@ -70,7 +70,7 @@ impl DynamicSelective {
 
         Self {
             heuristic_simulator: Simulator::new(
-                Box::new(MonteCarlo::new(0.01)),
+                Box::new(MonteCarlo::new(0.1)),
                 Box::new(EpsilonWeighted::new(0.1, environment.random.clone())),
             ),
             initial_estimates: vec![
@@ -93,7 +93,6 @@ impl DynamicSelective {
             Arc::new(RecreateWithRegret::new(1, 3)),
             Arc::new(RecreateWithCheapest::default()),
             Arc::new(RecreateWithPerturbation::default()),
-            Arc::new(RecreateWithPerturbation::new(0.1, 0.9, 1.1)),
             Arc::new(RecreateWithGaps::default()),
             Arc::new(RecreateWithBlinks::<SingleDimLoad>::default()),
             Arc::new(RecreateWithBlinks::<MultiDimLoad>::default()),
@@ -111,7 +110,7 @@ impl DynamicSelective {
         ];
         let secondary_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![
             Arc::new(CloseRouteRemoval::default()),
-            Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(1, 2, 0.1))),
+            Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(2, 8, 0.1))),
         ];
 
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
