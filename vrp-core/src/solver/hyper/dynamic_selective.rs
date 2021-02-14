@@ -89,9 +89,8 @@ impl DynamicSelective {
     fn get_mutations(problem: Arc<Problem>) -> Vec<Arc<dyn Mutation + Send + Sync>> {
         let recreates: Vec<Arc<dyn Recreate + Send + Sync>> = vec![
             Arc::new(RecreateWithSkipBest::new(1, 2)),
-            Arc::new(RecreateWithSkipBest::new(3, 4)),
-            Arc::new(RecreateWithSkipBest::new(4, 8)),
-            Arc::new(RecreateWithRegret::new(2, 3)),
+            Arc::new(RecreateWithSkipBest::new(1, 4)),
+            Arc::new(RecreateWithRegret::new(1, 3)),
             Arc::new(RecreateWithCheapest::default()),
             Arc::new(RecreateWithPerturbation::default()),
             Arc::new(RecreateWithPerturbation::new(0.1, 0.9, 1.1)),
@@ -107,27 +106,26 @@ impl DynamicSelective {
             Arc::new(NeighbourRemoval::default()),
             Arc::new(WorstJobRemoval::default()),
             Arc::new(ClusterRemoval::new_with_defaults(problem.clone())),
+            Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())),
+            Arc::new(RandomRouteRemoval::default()),
         ];
         let secondary_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![
             Arc::new(CloseRouteRemoval::default()),
-            Arc::new(RandomRouteRemoval::default()),
             Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(1, 2, 0.1))),
-            Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(2, 8, 0.1))),
-            Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())),
-            Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(16, 32, 0.2))),
         ];
 
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate
-        let ruins = primary_ruins
-            .iter()
-            .flat_map(|outer_ruin| secondary_ruins.iter().map(move |inner_ruin| (outer_ruin.clone(), inner_ruin.clone())))
-            .map::<Arc<dyn Ruin + Send + Sync>, _>(|(a, b)| Arc::new(CompositeRuin::new(vec![(a, 1.), (b, 1.)])))
-            .chain(
-                primary_ruins.iter().chain(secondary_ruins.iter()).map::<Arc<dyn Ruin + Send + Sync>, _>(|ruin| {
-                    Arc::new(CompositeRuin::new(vec![(ruin.clone(), 1.)]))
-                }),
-            )
-            .collect::<Vec<_>>();
+        let ruins =
+            primary_ruins
+                .iter()
+                .flat_map(|outer_ruin| {
+                    secondary_ruins.iter().map(move |inner_ruin| (outer_ruin.clone(), inner_ruin.clone()))
+                })
+                .map::<Arc<dyn Ruin + Send + Sync>, _>(|(a, b)| Arc::new(CompositeRuin::new(vec![(a, 1.), (b, 1.)])))
+                .chain(primary_ruins.iter().chain(secondary_ruins.iter()).map::<Arc<dyn Ruin + Send + Sync>, _>(
+                    |ruin| Arc::new(CompositeRuin::new(vec![(ruin.clone(), 1.)])),
+                ))
+                .collect::<Vec<_>>();
 
         let mutations: Vec<Arc<dyn Mutation + Send + Sync>> = vec![
             Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
