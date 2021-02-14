@@ -151,8 +151,7 @@ impl DynamicSelective {
 
     fn get_estimates(mutations: Vec<Arc<dyn Mutation + Send + Sync>>) -> ActionEstimates<SearchState> {
         let mutation_estimates = (0..mutations.len())
-            // NOTE default value should be less than reward for Stagnated state
-            .map(|idx| (SearchAction::Mutate { mutation_index: idx }, -2.))
+            .map(|idx| (SearchAction::Mutate { mutation_index: idx }, 0.))
             .collect::<HashMap<_, _>>();
 
         ActionEstimates::from(mutation_estimates)
