@@ -217,7 +217,7 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
     }
 
     fn take_action(&mut self, action: &<SearchState as State>::Action) {
-        let mut new_individual = match action {
+        let new_individual = match action {
             SearchAction::Mutate { mutation_index } => {
                 let individual = self.individual.as_ref().unwrap();
                 let mutation = &self.registry.mutations[*mutation_index];
@@ -225,8 +225,6 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
                 mutation.mutate(self.refinement_ctx, individual)
             }
         };
-
-        new_individual.restore();
 
         let compare_to_old = self.refinement_ctx.problem.objective.total_order(&new_individual, self.original_ctx);
         let compare_to_best = compare_to_best(self.refinement_ctx, &new_individual);
