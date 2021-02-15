@@ -105,14 +105,19 @@ impl Population for Rosomaxa {
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        let exploration_size = if self.config.selection_size > 4 { 2 } else { 1 };
+        let (elite_explore_size, node_explore_size) = match self.config.selection_size {
+            value if value > 6 => (4, 2),
+            value if value > 4 => (2, 2),
+            value if value > 2 => (2, 1),
+            _ => (1, 1),
+        };
 
         match &self.phase {
             RosomaxaPhases::Exploration { populations, .. } => Box::new(
                 self.elite
                     .select()
-                    .take(exploration_size)
-                    .chain(populations.iter().flat_map(move |population| population.0.select().take(exploration_size)))
+                    .take(elite_explore_size)
+                    .chain(populations.iter().flat_map(move |population| population.0.select().take(node_explore_size)))
                     .take(self.config.selection_size),
             ),
             _ => Box::new(self.elite.select()),
