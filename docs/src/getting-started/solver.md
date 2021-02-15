@@ -51,10 +51,24 @@ good local optimum, but suffers more from premature convergence.
 A general recommendation is to use `deep` on relatively simple dataset and/or when strict time limits should be applied.
 
 
+### Heuristic mode
+
+At the moment, the solver supports three types of hyper-heuristics:
+
+* `static selective`: chooses metaheuristic from the list of predefined within their probabilities
+* `dynamic selective`: applies reinforcement learning technics to adjust probabilities of predefined metaheuristics
+* `multi selective` (default): starts with dynamic selective and switches to static selective if the progression speed is slow
+
+You can switch between modes with `heuristic` setting:
+
+    vrp-cli solve pragmatic problem.json --heuristic=static
+
+
 ### Termination criteria
 
 Termination criteria defines when refinement algorithm should stop and return best known solution. At the moment, there
 are three types which can be used simultaneously:
+
 
 #### Max time
 
@@ -62,11 +76,13 @@ Max time specifies duration of solving in seconds:
 
     vrp-cli solve pragmatic problem.json --max-time=600
 
+
 #### Max generations
 
 Generation is one refinement step and it can be limited via _max-generations_ parameter:
 
     vrp-cli solve pragmatic problem.json --max-generations=1000
+
 
 #### Cost variation
 
@@ -76,6 +92,7 @@ Cost variation stops refinement process when cost does not significantly change:
 
 It calculates [coefficient of variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) of cost change over
 specific amount of generations specified by `sample` and stops algorithm when it is below specified `threshold`.
+
 
 #### Default behavior
 

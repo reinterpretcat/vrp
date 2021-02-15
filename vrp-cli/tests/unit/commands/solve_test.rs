@@ -58,3 +58,13 @@ fn can_specify_search_mode_setting() {
         get_solve_app().get_matches_from_safe(args).unwrap();
     }
 }
+
+#[test]
+fn can_specify_heuristic_setting() {
+    for (mode, result) in
+        vec![("default", Some(())), ("dynamic", Some(())), ("static", Some(())), ("ggg", None), ("multi", None)]
+    {
+        let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--heuristic", mode];
+        assert_eq!(get_solve_app().get_matches_from_safe(args).ok().map(|_| ()), result);
+    }
+}

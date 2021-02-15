@@ -14,6 +14,7 @@ use vrp_cli::extensions::check::check_pragmatic_solution;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::{Problem, Solution};
+use vrp_core::solver::hyper::*;
 use vrp_core::solver::population::{get_default_selection_size, Elitism};
 use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
 use vrp_core::utils::{DefaultRandom, Environment, Parallelism, Random};
@@ -34,6 +35,7 @@ const LOG_ARG_NAME: &str = "log";
 const CHECK_ARG_NAME: &str = "check";
 const SEARCH_MODE_ARG_NAME: &str = "search-mode";
 const PARALELLISM_ARG_NAME: &str = "parallelism";
+const HEURISTIC_ARG_NAME: &str = "heuristic";
 
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
@@ -259,6 +261,15 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .required(false)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name(HEURISTIC_ARG_NAME)
+                .help("Specifies hyper heuristic algorithm")
+                .long(HEURISTIC_ARG_NAME)
+                .short("e")
+                .required(false)
+                .possible_values(&["default", "dynamic", "static"])
+                .default_value("default"),
+        )
 }
 
 /// Runs solver commands.
@@ -329,11 +340,12 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
                             )
                         } else {
                             Builder::new(problem.clone(), environment.clone())
+                                .with_telemetry(telemetry)
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
                                 .with_cost_variation(cost_variation)
-                                .with_population(get_population(mode, problem.clone(), environment))
-                                .with_telemetry(telemetry)
+                                .with_population(get_population(mode, problem.clone(), environment.clone()))
+                                .with_hyper(get_heuristic(matches, problem.clone(), environment))
                         };
 
                         let (solution, _, metrics) = builder
@@ -414,6 +426,22 @@ fn get_population(
             get_default_selection_size(environment.as_ref()),
         )),
         _ => get_default_population(problem, environment),
+    }
+}
+
+fn get_heuristic(
+    matches: &ArgMatches,
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+) -> Box<dyn HyperHeuristic + Send + Sync> {
+    match matches.value_of(HEURISTIC_ARG_NAME) {
+        Some("dynamic") => Box::new(DynamicSelective::new_with_defaults(problem, environment)),
+        Some("static") => Box::new(StaticSelective::new_with_defaults(problem, environment)),
+        Some(name) if name != "default" => {
+            eprintln!("unknown heuristic type name: '{}'", name);
+            process::exit(1);
+        }
+        _ => Box::new(MultiSelective::new_with_defaults(problem, environment)),
     }
 }
 
