@@ -3,7 +3,8 @@
 mod dynamic_selective_test;
 
 use crate::algorithms::mdp::*;
-use crate::algorithms::nsga2::Objective;
+use crate::algorithms::nsga2::{MultiObjective, Objective};
+use crate::algorithms::statistics::relative_distance;
 use crate::models::common::{MultiDimLoad, SingleDimLoad};
 use crate::models::Problem;
 use crate::solver::hyper::{HyperHeuristic, StaticSelective};
@@ -76,8 +77,9 @@ impl DynamicSelective {
             initial_estimates: vec![
                 (SearchState::BestKnown, mutation_estimates.clone()),
                 (SearchState::Diverse, mutation_estimates.clone()),
-                (SearchState::NewBest, Default::default()),
-                (SearchState::Improved, Default::default()),
+                (SearchState::BestMajorImprovement, Default::default()),
+                (SearchState::BestMinorImprovement, Default::default()),
+                (SearchState::DiverseImprovement, Default::default()),
                 (SearchState::Stagnated, Default::default()),
             ]
             .into_iter()
@@ -162,10 +164,12 @@ enum SearchState {
     BestKnown,
     /// A state with diverse (not the best known) solution.
     Diverse,
-    /// A state with new best known solution found.
-    NewBest,
-    /// A state with the same equal solution.
-    Improved,
+    /// A state with new best known solution found (major improvement).
+    BestMajorImprovement,
+    /// A state with new best known solution found (minor improvement).
+    BestMinorImprovement,
+    /// A state with improved diverse solution.
+    DiverseImprovement,
     /// A state with equal or degraded solution.
     Stagnated,
 }
@@ -177,8 +181,9 @@ impl State for SearchState {
         match &self {
             SearchState::BestKnown => 0.,
             SearchState::Diverse => 0.,
-            SearchState::NewBest => 100.,
-            SearchState::Improved => 10.,
+            SearchState::BestMajorImprovement => 1000.,
+            SearchState::BestMinorImprovement => 100.,
+            SearchState::DiverseImprovement => 10.,
             SearchState::Stagnated => -1.,
         }
     }
@@ -226,8 +231,26 @@ impl<'a> Agent<SearchState> for SearchAgent<'a> {
         let compare_to_best = compare_to_best(self.refinement_ctx, &new_individual);
 
         self.state = match (compare_to_old, compare_to_best) {
-            (_, Ordering::Less) => SearchState::NewBest,
-            (Ordering::Less, _) => SearchState::Improved,
+            (_, Ordering::Less) => {
+                let is_significant_change = self.refinement_ctx.population.ranked().next().map_or(
+                    self.refinement_ctx.statistics.improvement_1000_ratio < 0.01,
+                    |(best, _)| {
+                        let objective = self.refinement_ctx.problem.objective.as_ref();
+                        let distance = relative_distance(
+                            objective.objectives().map(|o| o.fitness(best)),
+                            objective.objectives().map(|o| o.fitness(&new_individual)),
+                        );
+                        distance > 0.01
+                    },
+                );
+
+                if is_significant_change {
+                    SearchState::BestMajorImprovement
+                } else {
+                    SearchState::BestMinorImprovement
+                }
+            }
+            (Ordering::Less, _) => SearchState::DiverseImprovement,
             (_, _) => SearchState::Stagnated,
         };
 
