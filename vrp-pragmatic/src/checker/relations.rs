@@ -36,12 +36,12 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
                 } else if reserved_ids.contains(job_id.as_str()) {
                     Ok(acc + 1)
                 } else {
-                    Err(format!("Relation has unknown job id: {}", job_id))
+                    Err(format!("relation has unknown job id: {}", job_id))
                 }
             })?;
 
             if expected_relation_count != relation.jobs.len() {
-                return Err(format!("Relation {} contains duplicated ids: {:?}", idx, relation.jobs));
+                return Err(format!("relation {} contains duplicated ids: {:?}", idx, relation.jobs));
             }
 
             match relation.type_field {
@@ -49,7 +49,7 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
                     let common = intersection(activity_ids.clone(), relation.jobs.clone());
                     if common != relation.jobs {
                         Err(format!(
-                            "Relation {} does not follow strict rule: expected {:?}, got {:?}, common: {:?}",
+                            "relation {} does not follow strict rule: expected {:?}, got {:?}, common: {:?}",
                             idx, relation.jobs, activity_ids, common
                         ))
                     } else {
@@ -60,7 +60,7 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
                     let ids = activity_ids.iter().filter(|id| relation_ids.contains(id)).cloned().collect::<Vec<_>>();
                     if ids != relation.jobs {
                         Err(format!(
-                            "Relation {} does not follow sequence rule: expected {:?}, got {:?}, common: {:?}",
+                            "relation {} does not follow sequence rule: expected {:?}, got {:?}, common: {:?}",
                             idx, relation.jobs, activity_ids, ids
                         ))
                     } else {
@@ -76,7 +76,7 @@ pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
                         .any(|tour| get_activity_ids(tour).iter().any(|id| relation_ids.contains(id)));
 
                     if has_wrong_assignment {
-                        Err(format!("Relation {} has jobs assigned to another tour", idx))
+                        Err(format!("relation {} has jobs assigned to another tour", idx))
                     } else {
                         Ok(())
                     }
@@ -93,7 +93,7 @@ fn get_tour_by_vehicle_id(vehicle_id: &str, shift_index: Option<usize>, solution
         .iter()
         .find(|tour| tour.vehicle_id == vehicle_id && tour.shift_index == shift_index.unwrap_or(0))
         .cloned()
-        .ok_or_else(|| format!("Cannot find tour for '{}'", vehicle_id))
+        .ok_or_else(|| format!("cannot find tour for '{}'", vehicle_id))
 }
 
 fn get_activity_ids(tour: &Tour) -> Vec<String> {

@@ -20,7 +20,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                     idx,
                     match leg {
                         [from, to] => (from, to),
-                        _ => panic!("Unexpected leg configuration"),
+                        _ => panic!("unexpected leg configuration"),
                     },
                 )
             })
@@ -76,7 +76,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                     let to_load = MultiDimLoad::new(to.load.clone());
 
                     if !capacity.can_fit(&from_load) || !capacity.can_fit(&to_load) {
-                        return Err(format!("Load exceeds capacity in tour '{}'", tour.vehicle_id));
+                        return Err(format!("load exceeds capacity in tour '{}'", tour.vehicle_id));
                     }
 
                     let change = to.activities.iter().try_fold::<_, _, Result<_, String>>(
@@ -110,7 +110,7 @@ pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
                             _ => format!("at stops {}, {}", idx, idx + 1),
                         };
 
-                        Err(format!("Load mismatch {} in tour '{}'", message, tour.vehicle_id))
+                        Err(format!("load mismatch {} in tour '{}'", message, tour.vehicle_id))
                     }
                 })?;
 

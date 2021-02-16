@@ -9,14 +9,14 @@ fn test_violations() -> Option<Vec<Violation>> {
 
 fn get_matched_break_error_msg(matched: usize, actual: usize) -> Result<(), String> {
     Err(format!(
-        "Cannot match all breaks, matched: '{}', actual '{}' for vehicle 'my_vehicle_1', shift index '0'",
+        "cannot match all breaks, matched: '{}', actual '{}' for vehicle 'my_vehicle_1', shift index '0'",
         matched, actual
     ))
 }
 
 fn get_total_break_error_msg(expected: usize, actual: usize) -> Result<(), String> {
     Err(format!(
-        "Amount of breaks does not match, expected: '{}', got '{}' for vehicle 'my_vehicle_1', shift index '0'",
+        "amount of breaks does not match, expected: '{}', got '{}' for vehicle 'my_vehicle_1', shift index '0'",
         expected, actual
     ))
 }

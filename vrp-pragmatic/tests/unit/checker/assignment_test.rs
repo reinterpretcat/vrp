@@ -63,19 +63,19 @@ check_jobs! {
             ("my_vehicle_2", 0, vec![("job1", "delivery")])
         ],
         vec![],
-        Err("Job served in multiple tours: 'job1'".to_string())
+        Err("job served in multiple tours: 'job1'".to_string())
     ),
     case_03: (
         vec![("job1", vec!["pickup", "delivery"])],
         vec![("my_vehicle_1", 0, vec![("job1", "pickup")])],
         vec![],
-        Err("Not all tasks served for 'job1', expected: 2, assigned: 1".to_string())
+        Err("not all tasks served for 'job1', expected: 2, assigned: 1".to_string())
     ),
     case_04: (
         vec![("job1", vec!["pickup", "delivery"])],
         vec![("my_vehicle_1", 0, vec![("job1", "delivery"), ("job1", "pickup")])],
         vec![],
-        Err("Found pickup after delivery for 'job1'".to_string())
+        Err("found pickup after delivery for 'job1'".to_string())
     ),
     case_05: (
         vec![("job1", vec!["pickup", "delivery"])],
@@ -87,13 +87,13 @@ check_jobs! {
         vec![("job1", vec!["pickup", "delivery"])],
         vec![],
         vec!["job1", "job1"],
-        Err("Duplicated job ids in the list of unassigned jobs".to_string())
+        Err("duplicated job ids in the list of unassigned jobs".to_string())
     ),
     case_07: (
         vec![("job1", vec!["pickup", "delivery"])],
         vec![],
         vec!["job2"],
-        Err("Unknown job id in the list of unassigned jobs: 'job2'".to_string())
+        Err("unknown job id in the list of unassigned jobs: 'job2'".to_string())
     ),
     case_08: (
         vec![("job1", vec!["pickup", "delivery"])],
@@ -105,7 +105,7 @@ check_jobs! {
         vec![("job1", vec!["pickup", "delivery"])],
         vec![("my_vehicle_1", 0, vec![("job1", "pickup"), ("job1", "delivery")])],
         vec!["job1"],
-        Err("Job present as assigned and unassigned: 'job1'".to_string())
+        Err("job present as assigned and unassigned: 'job1'".to_string())
     ),
      case_10: (
         vec![("job1", vec!["pickup"])],

@@ -24,7 +24,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                     let break_time_window = get_break_time_window(tour, &vehicle_break)?;
                     if !visit_time.intersects(&break_time_window) {
                         return Err(format!(
-                            "Break visit time '{:?}' is invalid: expected is in '{:?}'",
+                            "break visit time '{:?}' is invalid: expected is in '{:?}'",
                             visit_time, break_time_window
                         ));
                     }
@@ -36,7 +36,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                             let is_correct = locations.iter().any(|location| actual_location == *location);
                             if !is_correct {
                                 return Err(format!(
-                                    "Break location '{:?}' is invalid: expected one of '{:?}'",
+                                    "break location '{:?}' is invalid: expected one of '{:?}'",
                                     actual_location, locations
                                 ));
                             }
@@ -44,7 +44,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
                         None => {
                             if *from_loc != actual_location {
                                 return Err(format!(
-                                    "Break location '{:?}' is invalid: expected previous activity location '{:?}'",
+                                    "break location '{:?}' is invalid: expected previous activity location '{:?}'",
                                     actual_location, from_loc
                                 ));
                             }
@@ -57,7 +57,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
 
         if actual_break_count != matched_break_count {
             return Err(format!(
-                "Cannot match all breaks, matched: '{}', actual '{}' for vehicle '{}', shift index '{}'",
+                "cannot match all breaks, matched: '{}', actual '{}' for vehicle '{}', shift index '{}'",
                 matched_break_count, actual_break_count, tour.vehicle_id, tour.shift_index
             ));
         }
@@ -66,7 +66,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
             .stops
             .last()
             .map(|stop| parse_time(&stop.time.arrival))
-            .ok_or_else(|| format!("Cannot get arrival for tour '{}'", tour.vehicle_id))?;
+            .ok_or_else(|| format!("cannot get arrival for tour '{}'", tour.vehicle_id))?;
 
         let expected_break_count =
             vehicle_shift.breaks.iter().flat_map(|breaks| breaks.iter()).fold(0, |acc, vehicle_break| {
@@ -82,7 +82,7 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
 
         if expected_break_count != total_break_count {
             Err(format!(
-                "Amount of breaks does not match, expected: '{}', got '{}' for vehicle '{}', shift index '{}'",
+                "amount of breaks does not match, expected: '{}', got '{}' for vehicle '{}', shift index '{}'",
                 expected_break_count, total_break_count, tour.vehicle_id, tour.shift_index
             ))
         } else {
@@ -118,14 +118,14 @@ fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<Ti
         VehicleBreakTime::TimeWindow(tw) => Ok(parse_time_window(tw)),
         VehicleBreakTime::TimeOffset(offset) => {
             if offset.len() != 2 {
-                return Err(format!("Invalid offset break for tour: '{}'", tour.vehicle_id));
+                return Err(format!("invalid offset break for tour: '{}'", tour.vehicle_id));
             }
 
             let departure = tour
                 .stops
                 .first()
                 .map(|stop| parse_time(&stop.time.departure))
-                .ok_or_else(|| format!("Cannot get departure time for tour: '{}'", tour.vehicle_id))?;
+                .ok_or_else(|| format!("cannot get departure time for tour: '{}'", tour.vehicle_id))?;
             Ok(TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap()))
         }
     }

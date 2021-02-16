@@ -24,11 +24,11 @@ fn check_vehicles(ctx: &CheckerContext) -> Result<(), String> {
 
     ctx.solution.tours.iter().try_for_each(|tour| {
         if !all_vehicles.contains(&tour.vehicle_id) {
-            return Err(format!("Used vehicle with unknown id: {}", tour.vehicle_id));
+            return Err(format!("used vehicle with unknown id: {}", tour.vehicle_id));
         }
 
         if !(used_vehicles.insert((tour.vehicle_id.to_string(), tour.shift_index))) {
-            Err(format!("Vehicle with '{}' id used more than once for shift {}", tour.vehicle_id, tour.shift_index))
+            Err(format!("vehicle with '{}' id used more than once for shift {}", tour.vehicle_id, tour.shift_index))
         } else {
             Ok(())
         }
@@ -70,7 +70,7 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
                     used_jobs.entry(activity.job_id.clone()).or_insert_with(|| new_assignment(tour_info.clone()));
 
                 if asgn.tour_info != tour_info {
-                    return Err(format!("Job served in multiple tours: '{}'", activity.job_id));
+                    return Err(format!("job served in multiple tours: '{}'", activity.job_id));
                 }
 
                 match activity.activity_type.as_str() {
@@ -96,13 +96,13 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
 
         if expected_tasks != assigned_tasks {
             return Err(format!(
-                "Not all tasks served for '{}', expected: {}, assigned: {}",
+                "not all tasks served for '{}', expected: {}, assigned: {}",
                 id, expected_tasks, assigned_tasks
             ));
         }
 
         if !asgn.deliveries.is_empty() && asgn.pickups.iter().max() > asgn.deliveries.iter().min() {
-            return Err(format!("Found pickup after delivery for '{}'", id));
+            return Err(format!("found pickup after delivery for '{}'", id));
         }
 
         Ok(())
@@ -119,16 +119,16 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
     let unique_unassigned_jobs = all_unassigned_jobs.iter().cloned().collect::<HashSet<_>>();
 
     if unique_unassigned_jobs.len() != all_unassigned_jobs.len() {
-        return Err("Duplicated job ids in the list of unassigned jobs".to_string());
+        return Err("duplicated job ids in the list of unassigned jobs".to_string());
     }
 
     unique_unassigned_jobs.iter().try_for_each(|job_id| {
         if !all_jobs.contains_key(job_id) {
-            return Err(format!("Unknown job id in the list of unassigned jobs: '{}'", job_id));
+            return Err(format!("unknown job id in the list of unassigned jobs: '{}'", job_id));
         }
 
         if used_jobs.contains_key(job_id) {
-            return Err(format!("Job present as assigned and unassigned: '{}'", job_id));
+            return Err(format!("job present as assigned and unassigned: '{}'", job_id));
         }
 
         Ok(())
@@ -139,7 +139,7 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
 
     if all_used_job.len() != all_jobs.len() {
         return Err(format!(
-            "Amount of jobs present in problem and solution doesn't match: {} vs {}",
+            "amount of jobs present in problem and solution doesn't match: {} vs {}",
             all_jobs.len(),
             all_used_job.len()
         ));
