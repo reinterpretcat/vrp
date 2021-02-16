@@ -158,6 +158,26 @@ pub fn create_insertion_context_from_solution(
     insertion_ctx
 }
 
+/// Creates an empty insertion context.
+pub fn create_empty_insertion_context(problem: Arc<Problem>, environment: Arc<Environment>) -> InsertionContext {
+    InsertionContext {
+        problem: problem.clone(),
+        solution: SolutionContext {
+            required: vec![],
+            ignored: vec![],
+            unassigned: Default::default(),
+            locked: Default::default(),
+            routes: vec![],
+            registry: create_registry_context(
+                problem.as_ref(),
+                Registry::new(problem.fleet.as_ref(), environment.random.clone()),
+            ),
+            state: Default::default(),
+        },
+        environment,
+    }
+}
+
 fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryContext {
     let modifier = problem.extras.get("route_modifier").and_then(|s| s.downcast_ref::<RouteModifier>());
 
