@@ -122,6 +122,11 @@ pub enum HyperType {
         /// A collection of inner mutation operators (metaheuristics).
         mutations: Vec<MutationType>,
     },
+
+    /// A hyper heuristic which selects mutations from the predefined list using reinforcement
+    /// learning technics.
+    #[serde(rename(deserialize = "dynamic-selective"))]
+    DynamicSelective,
 }
 
 /// A mutation operator configuration.
@@ -386,8 +391,6 @@ impl Default for Config {
 fn configure_from_evolution(
     mut builder: Builder,
     population_config: &Option<EvolutionConfig>,
-    problem: Arc<Problem>,
-    environment: Arc<Environment>,
 ) -> Result<Builder, String> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
@@ -401,14 +404,16 @@ fn configure_from_evolution(
         }
 
         if let Some(variation) = &config.population {
-            let default_selection_size = get_default_selection_size(environment.as_ref());
+            let default_selection_size = get_default_selection_size(builder.config.environment.as_ref());
             let population = match &variation {
-                PopulationType::Greedy { selection_size } => {
-                    Box::new(Greedy::new(problem, selection_size.unwrap_or(default_selection_size), None))
-                }
+                PopulationType::Greedy { selection_size } => Box::new(Greedy::new(
+                    builder.config.problem.clone(),
+                    selection_size.unwrap_or(default_selection_size),
+                    None,
+                )),
                 PopulationType::Elitism { max_size, selection_size } => Box::new(Elitism::new(
-                    problem,
-                    environment.random.clone(),
+                    builder.config.problem.clone(),
+                    builder.config.environment.random.clone(),
                     max_size.unwrap_or(4),
                     selection_size.unwrap_or(default_selection_size),
                 ))
@@ -457,7 +462,7 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    Box::new(Rosomaxa::new(problem, environment, config)?)
+                    Box::new(Rosomaxa::new(builder.config.problem.clone(), builder.config.environment.clone(), config)?)
                 }
             };
 
@@ -468,20 +473,25 @@ fn configure_from_evolution(
     Ok(builder)
 }
 
-fn configure_from_hyper(
-    mut builder: Builder,
-    hyper_config: &Option<HyperType>,
-    environment: Arc<Environment>,
-) -> Result<Builder, String> {
+fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) -> Result<Builder, String> {
     if let Some(config) = hyper_config {
         match config {
             HyperType::StaticSelective { mutations } => {
                 let mutation_group = mutations
                     .iter()
-                    .map(|mutation| create_mutation(&builder.config.problem, environment.random.clone(), mutation))
+                    .map(|mutation| {
+                        create_mutation(&builder.config.problem, builder.config.environment.random.clone(), mutation)
+                    })
                     .collect::<Result<Vec<_>, _>>()?;
                 let static_selective = vrp_core::solver::hyper::StaticSelective::new(mutation_group);
                 builder = builder.with_hyper(Box::new(static_selective));
+            }
+            HyperType::DynamicSelective => {
+                let dynamic_selective = vrp_core::solver::hyper::DynamicSelective::new_with_defaults(
+                    builder.config.problem.clone(),
+                    builder.config.environment.clone(),
+                );
+                builder = builder.with_hyper(Box::new(dynamic_selective));
             }
         }
     }
@@ -691,11 +701,11 @@ pub fn create_builder_from_config_file<R: Read>(
 /// Creates a solver `Builder` from config.
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
     let environment = configure_from_environment(&config.environment);
-    let mut builder = Builder::new(problem.clone(), environment.clone());
+    let mut builder = Builder::new(problem, environment);
 
     builder = configure_from_telemetry(builder, &config.telemetry);
-    builder = configure_from_evolution(builder, &config.evolution, problem, environment.clone())?;
-    builder = configure_from_hyper(builder, &config.hyper, environment)?;
+    builder = configure_from_evolution(builder, &config.evolution)?;
+    builder = configure_from_hyper(builder, &config.hyper)?;
     builder = configure_from_termination(builder, &config.termination);
 
     Ok(builder)

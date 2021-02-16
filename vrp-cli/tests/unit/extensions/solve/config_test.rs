@@ -99,6 +99,7 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
         }
+        HyperType::DynamicSelective => unreachable!(),
     }
 
     let termination = config.termination.expect("no termination config");
