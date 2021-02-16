@@ -184,11 +184,7 @@ fn get_location_index(location: &Location, coord_index: &CoordIndex) -> Result<u
 
 /// A workaround method for hre format output where distance is not defined.
 fn skip_distance_check(solution: &Solution) -> bool {
-    let skip_distance_check = if cfg!(feature = "hre-format") {
-        solution.tours.iter().flat_map(|tour| tour.stops.iter()).all(|stop| stop.distance == 0)
-    } else {
-        false
-    };
+    let skip_distance_check = solution.tours.iter().flat_map(|tour| tour.stops.iter()).all(|stop| stop.distance == 0);
 
     if skip_distance_check {
         // TODO use logging lib instead of println
