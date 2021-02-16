@@ -75,6 +75,7 @@ pub struct Stop {
     /// Stop schedule.
     pub time: Schedule,
     /// Distance traveled since departure from start.
+    #[serde(default)]
     pub distance: i64,
     /// Vehicle load after departure from this stop.
     pub load: Vec<i32>,
@@ -91,6 +92,7 @@ pub struct Tour {
     /// Vehicle type id.
     pub type_id: String,
     /// Shift index.
+    #[serde(default)]
     pub shift_index: usize,
     /// List of stops.
     pub stops: Vec<Stop>,

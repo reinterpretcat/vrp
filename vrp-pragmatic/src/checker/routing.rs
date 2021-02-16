@@ -15,6 +15,7 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
     let matrix_size = get_matrix_size(matrices);
     let profile_index = get_profile_index(context, matrices)?;
     let coord_index = CoordIndex::new(&context.problem);
+    let skip_distance_check = skip_distance_check(&context.solution);
 
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
         let profile = &context.get_vehicle(&tour.vehicle_id)?.profile;
@@ -43,19 +44,26 @@ pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
                 let time = time + duration;
                 let total_distance = total_distance + distance;
 
-                check_stop_statistic(time, total_distance, leg_idx + 1, to, tour)?;
+                check_stop_statistic(time, total_distance, leg_idx + 1, to, tour, skip_distance_check)?;
 
                 Ok((parse_time(&to.time.departure) as i64, to.distance))
             },
         )?;
 
-        check_tour_statistic(departure_time, total_distance, time_offset, tour)
+        check_tour_statistic(departure_time, total_distance, time_offset, tour, skip_distance_check)
     })?;
 
     check_solution_statistic(&context.solution)
 }
 
-fn check_stop_statistic(time: i64, total_distance: i64, stop_idx: usize, to: &Stop, tour: &Tour) -> Result<(), String> {
+fn check_stop_statistic(
+    time: i64,
+    total_distance: i64,
+    stop_idx: usize,
+    to: &Stop,
+    tour: &Tour,
+    skip_distance_check: bool,
+) -> Result<(), String> {
     if (time - parse_time(&to.time.arrival) as i64).abs() > 1 {
         return Err(format!(
             "arrival time mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
@@ -66,7 +74,7 @@ fn check_stop_statistic(time: i64, total_distance: i64, stop_idx: usize, to: &St
         ));
     }
 
-    if (total_distance - to.distance).abs() > 1 {
+    if !skip_distance_check && (total_distance - to.distance).abs() > 1 {
         return Err(format!(
             "distance mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
             stop_idx, tour.vehicle_id, total_distance, to.distance,
@@ -76,8 +84,14 @@ fn check_stop_statistic(time: i64, total_distance: i64, stop_idx: usize, to: &St
     Ok(())
 }
 
-fn check_tour_statistic(departure_time: i64, total_distance: i64, time_offset: i64, tour: &Tour) -> Result<(), String> {
-    if (total_distance - tour.statistic.distance).abs() > 1 {
+fn check_tour_statistic(
+    departure_time: i64,
+    total_distance: i64,
+    time_offset: i64,
+    tour: &Tour,
+    skip_distance_check: bool,
+) -> Result<(), String> {
+    if !skip_distance_check && (total_distance - tour.statistic.distance).abs() > 1 {
         return Err(format!(
             "distance mismatch for tour statistic: {}, expected: '{}', got: '{}'",
             tour.vehicle_id, total_distance, tour.statistic.distance,
@@ -166,4 +180,20 @@ fn get_profile_index<'a>(context: &'a CheckerContext, matrices: &[Matrix]) -> Re
 
 fn get_location_index(location: &Location, coord_index: &CoordIndex) -> Result<usize, String> {
     coord_index.get_by_loc(location).ok_or_else(|| format!("cannot find coordinate in coord index: {:?}", location))
+}
+
+/// A workaround method for hre format output where distance is not defined.
+fn skip_distance_check(solution: &Solution) -> bool {
+    let skip_distance_check = if cfg!(feature = "hre-format") {
+        solution.tours.iter().flat_map(|tour| tour.stops.iter()).all(|stop| stop.distance == 0)
+    } else {
+        false
+    };
+
+    if skip_distance_check {
+        // TODO use logging lib instead of println
+        println!("all stop distances are zeros: no distance check will be performed");
+    }
+
+    skip_distance_check
 }
