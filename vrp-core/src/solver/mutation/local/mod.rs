@@ -4,13 +4,13 @@ use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
 use std::cmp::Ordering;
+use std::sync::Arc;
 
 mod exchange_inter_route;
 pub use self::exchange_inter_route::*;
 
 mod exchange_intra_route;
 pub use self::exchange_intra_route::*;
-use std::sync::Arc;
 
 /// Specifies behavior of a local search operator.
 pub trait LocalOperator {

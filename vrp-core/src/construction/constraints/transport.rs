@@ -34,24 +34,27 @@ impl ConstraintModule for TransportConstraintModule {
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        self.update_route_schedules(ctx);
-        self.update_route_states(ctx);
+        Self::update_route_schedules(ctx, self.transport.as_ref(), self.activity.as_ref());
+        Self::update_route_states(ctx, self.transport.as_ref(), self.activity.as_ref());
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
         if has_travel_limits(&self.limit_func, ctx) {
-            self.reschedule_departure(ctx)
+            Self::reschedule_departure(ctx, self.transport.as_ref(), self.activity.as_ref(), false)
         }
         self.update_statistics(ctx);
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         ctx.routes.iter_mut().for_each(|route_ctx| {
+            let transport = self.transport.as_ref();
+            let activity = self.activity.as_ref();
+
             if route_ctx.is_stale() {
-                self.update_route_schedules(route_ctx);
-                self.update_route_states(route_ctx);
+                Self::update_route_schedules(route_ctx, transport, activity);
+                Self::update_route_states(route_ctx, transport, activity);
             }
 
-            self.reschedule_departure(route_ctx);
+            Self::reschedule_departure(route_ctx, transport, activity, false);
 
             if route_ctx.is_stale() {
                 self.update_statistics(route_ctx);
@@ -105,22 +108,39 @@ impl TransportConstraintModule {
         }
     }
 
-    fn update_route_schedules(&self, ctx: &mut RouteContext) {
+    /// Optimizes departure time of route.
+    pub(crate) fn optimize_departure_time(
+        route_ctx: &mut RouteContext,
+        transport: &(dyn TransportCost + Send + Sync),
+        activity: &(dyn ActivityCost + Send + Sync),
+    ) {
+        Self::reschedule_departure(route_ctx, transport, activity, true);
+    }
+
+    fn update_route_schedules(
+        ctx: &mut RouteContext,
+        transport: &(dyn TransportCost + Send + Sync),
+        activity: &(dyn ActivityCost + Send + Sync),
+    ) {
         let (init, actor) = {
             let start = ctx.route.tour.start().unwrap();
             ((start.place.location, start.schedule.departure), ctx.route.actor.clone())
         };
 
         ctx.route_mut().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
-            a.schedule.arrival = dep + self.transport.duration(actor.vehicle.profile, loc, a.place.location, dep);
+            a.schedule.arrival = dep + transport.duration(actor.vehicle.profile, loc, a.place.location, dep);
             a.schedule.departure = a.schedule.arrival.max(a.place.time.start)
-                + self.activity.duration(actor.as_ref(), a.deref(), a.schedule.arrival);
+                + activity.duration(actor.as_ref(), a.deref(), a.schedule.arrival);
 
             (a.place.location, a.schedule.departure)
         });
     }
 
-    fn update_route_states(&self, ctx: &mut RouteContext) {
+    fn update_route_states(
+        ctx: &mut RouteContext,
+        transport: &(dyn TransportCost + Send + Sync),
+        activity: &(dyn ActivityCost + Send + Sync),
+    ) {
         // update latest arrival and waiting states of non-terminate (jobs) activities
         let actor = ctx.route.actor.clone();
         let init = (
@@ -143,8 +163,8 @@ impl TransportConstraintModule {
 
             let (end_time, prev_loc, waiting) = acc;
             let potential_latest = end_time
-                - self.transport.duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
-                - self.activity.duration(actor.as_ref(), act.deref(), end_time);
+                - transport.duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
+                - activity.duration(actor.as_ref(), act.deref(), end_time);
 
             let latest_arrival_time = act.place.time.end.min(potential_latest);
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
@@ -156,36 +176,18 @@ impl TransportConstraintModule {
         });
     }
 
-    fn reschedule_departure(&self, ctx: &mut RouteContext) {
-        if let Some((last_departure_time, new_departure_time)) = self.analyze_departures(ctx) {
-            if new_departure_time > last_departure_time {
-                let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
-                start.schedule.departure = new_departure_time;
-                self.update_route_schedules(ctx);
-                self.update_route_states(ctx);
-            }
+    fn reschedule_departure(
+        ctx: &mut RouteContext,
+        transport: &(dyn TransportCost + Send + Sync),
+        activity: &(dyn ActivityCost + Send + Sync),
+        optimize_whole_tour: bool,
+    ) {
+        if let Some(new_departure_time) = try_get_new_departure_time(transport, ctx, optimize_whole_tour) {
+            let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
+            start.schedule.departure = new_departure_time;
+            Self::update_route_schedules(ctx, transport, activity);
+            Self::update_route_states(ctx, transport, activity);
         }
-    }
-
-    fn analyze_departures(&self, ctx: &RouteContext) -> Option<(Timestamp, Timestamp)> {
-        if let Some(first) = ctx.route.tour.get(1) {
-            let start = ctx.route.tour.start().unwrap();
-            let last_departure_time = start.schedule.departure;
-            let start_to_first = self.transport.duration(
-                ctx.route.actor.vehicle.profile,
-                start.place.location,
-                first.place.location,
-                last_departure_time,
-            );
-
-            let latest_allowed_departure =
-                ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(std::f64::MAX);
-
-            let new_departure_time =
-                last_departure_time.max(first.place.time.start - start_to_first).min(latest_allowed_departure);
-            return Some((last_departure_time, new_departure_time));
-        }
-        None
     }
 
     fn update_statistics(&self, ctx: &mut RouteContext) {
@@ -297,11 +299,11 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         let latest_arr_time_at_new_act = target.place.time.end.min(
             latest_arr_time_at_next_act
                 - self.transport.duration(
-                    profile,
-                    target.place.location,
-                    next_act_location,
-                    latest_arr_time_at_next_act,
-                )
+                profile,
+                target.place.location,
+                next_act_location,
+                latest_arr_time_at_next_act,
+            )
                 + self.activity.duration(actor, target.deref(), arr_time_at_target_act),
         );
 
@@ -482,6 +484,49 @@ impl SoftActivityConstraint for CostSoftActivityConstraint {
         let old_costs = tp_cost_old + act_cost_old + waiting_cost;
 
         new_costs - old_costs
+    }
+}
+
+fn try_get_new_departure_time(
+    transport: &(dyn TransportCost + Send + Sync),
+    route_ctx: &RouteContext,
+    optimize_whole_tour: bool,
+) -> Option<Timestamp> {
+    let first = route_ctx.route.tour.get(1)?;
+    let start = route_ctx.route.tour.start()?;
+
+    let latest_allowed_departure =
+        route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(std::f64::MAX);
+    let last_departure_time = start.schedule.departure;
+
+    let new_departure_time = if optimize_whole_tour {
+        let (total_waiting_time, max_shift) = route_ctx.route.tour.all_activities().rev().fold(
+            (0., std::f64::MAX),
+            |(total_waiting_time, max_shift), activity| {
+                let waiting_time = (activity.place.time.start - activity.schedule.arrival).max(0.);
+                let remaining_time = (activity.place.time.end - activity.schedule.arrival - waiting_time).max(0.);
+
+                (total_waiting_time + waiting_time, waiting_time + remaining_time.min(max_shift))
+            },
+        );
+        let departure_shift = total_waiting_time.min(max_shift);
+
+        (start.schedule.departure + departure_shift).min(latest_allowed_departure)
+    } else {
+        let start_to_first = transport.duration(
+            route_ctx.route.actor.vehicle.profile,
+            start.place.location,
+            first.place.location,
+            last_departure_time,
+        );
+
+        last_departure_time.max(first.place.time.start - start_to_first).min(latest_allowed_departure)
+    };
+
+    if new_departure_time > last_departure_time {
+        Some(new_departure_time)
+    } else {
+        None
     }
 }
 

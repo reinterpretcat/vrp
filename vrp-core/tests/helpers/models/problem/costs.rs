@@ -16,7 +16,13 @@ impl TransportCost for TestTransportCost {
 
 impl TestTransportCost {
     pub fn new_shared() -> Arc<dyn TransportCost + Sync + Send> {
-        Arc::new(Self {})
+        Arc::new(Self::default())
+    }
+}
+
+impl Default for TestTransportCost {
+    fn default() -> Self {
+        Self {}
     }
 }
 
