@@ -133,10 +133,12 @@ mod timing {
                 "v1",
                 vec![
                     ActivityBuilder::default()
-                        .place(Place { location: 10, duration: 5.0, time: TimeWindow { start: 20.0, end: 30.0 } })
+                        .place(Place { location: 10, duration: 5., time: TimeWindow { start: 20., end: 30. } })
+                        .schedule(Schedule::new(10., 25.))
                         .build(),
                     ActivityBuilder::default()
-                        .place(Place { location: 20, duration: 10.0, time: TimeWindow { start: 50.0, end: 10.0 } })
+                        .place(Place { location: 20, duration: 10., time: TimeWindow { start: 50., end: 100. } })
+                        .schedule(Schedule::new(35., 60.))
                         .build(),
                 ],
             )],
@@ -147,8 +149,8 @@ mod timing {
         create_constraint_pipeline_with_transport().accept_solution_state(&mut solution_ctx);
 
         let route_ctx = solution_ctx.routes.first().unwrap();
-        assert_eq!(route_ctx.route.tour.get(1).unwrap().schedule, Schedule { arrival: 20.0, departure: 25.0 });
-        assert_eq!(route_ctx.route.tour.get(2).unwrap().schedule, Schedule { arrival: 35.0, departure: 60.0 });
+        assert_eq!(route_ctx.route.tour.get(1).unwrap().schedule, Schedule { arrival: 30., departure: 35. });
+        assert_eq!(route_ctx.route.tour.get(2).unwrap().schedule, Schedule { arrival: 45., departure: 60. });
     }
 
     #[test]
