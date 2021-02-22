@@ -12,6 +12,9 @@ pub use self::exchange_inter_route::*;
 mod exchange_intra_route;
 pub use self::exchange_intra_route::*;
 
+mod reschedule_departure;
+pub use self::reschedule_departure::*;
+
 /// Specifies behavior of a local search operator.
 pub trait LocalOperator {
     /// Applies local search operator to passed solution in order to explore possible

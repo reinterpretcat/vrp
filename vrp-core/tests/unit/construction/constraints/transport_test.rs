@@ -149,8 +149,8 @@ mod timing {
         create_constraint_pipeline_with_transport().accept_solution_state(&mut solution_ctx);
 
         let route_ctx = solution_ctx.routes.first().unwrap();
-        assert_eq!(route_ctx.route.tour.get(1).unwrap().schedule, Schedule { arrival: 30., departure: 35. });
-        assert_eq!(route_ctx.route.tour.get(2).unwrap().schedule, Schedule { arrival: 45., departure: 60. });
+        assert_eq!(route_ctx.route.tour.get(1).unwrap().schedule, Schedule { arrival: 20., departure: 25. });
+        assert_eq!(route_ctx.route.tour.get(2).unwrap().schedule, Schedule { arrival: 35., departure: 60. });
     }
 
     #[test]

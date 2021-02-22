@@ -46,6 +46,7 @@ impl StaticSelective {
                 (Arc::new(ExchangeInterRouteBest::default()), 100),
                 (Arc::new(ExchangeInterRouteRandom::default()), 30),
                 (Arc::new(ExchangeIntraRouteRandom::default()), 30),
+                (Arc::new(RescheduleDeparture::default()), 20),
             ],
             1,
             2,
