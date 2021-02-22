@@ -1,5 +1,5 @@
 use crate::construction::heuristics::RouteState;
-use crate::helpers::models::solution::test_activity;
+use crate::helpers::models::solution::{create_empty_route_ctx, test_activity};
 
 #[test]
 fn can_put_and_get_activity_state() {
@@ -76,4 +76,21 @@ fn can_remove_activity_states() {
 
     assert!(result1.is_none());
     assert!(result2.is_none());
+}
+
+#[test]
+fn can_use_stale_flag() {
+    let mut route_ctx = create_empty_route_ctx();
+
+    assert_eq!(route_ctx.is_stale(), true);
+    route_ctx.mark_stale(false);
+    assert_eq!(route_ctx.is_stale(), false);
+
+    let route_ctx_clone = route_ctx.clone();
+    let route_ctx_fork = route_ctx.deep_copy();
+
+    route_ctx.as_mut();
+    assert!(route_ctx.is_stale());
+    assert!(route_ctx_clone.is_stale());
+    assert!(!route_ctx_fork.is_stale());
 }

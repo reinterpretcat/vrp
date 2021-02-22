@@ -184,11 +184,7 @@ impl RouteContext {
     /// Creates a new instance of `RouteContext`.
     pub fn new(actor: Arc<Actor>) -> Self {
         let tour = Tour::new(&actor);
-        RouteContext {
-            route: Arc::new(Route { actor, tour }),
-            state: Arc::new(RouteState::default()),
-            stale: Arc::new(StaleState { is_stale: true }),
-        }
+        Self::new_with_state(Arc::new(Route { actor, tour }), Arc::new(RouteState::default()))
     }
 
     /// Creates a new instance of `RouteContext` with arguments provided.

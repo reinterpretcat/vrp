@@ -149,7 +149,7 @@ fn evaluate_multi(
                 if out.is_failure(route_ctx.route.tour.activity_count()) {
                     return Result::Err(out);
                 }
-                shadow.restore(job);
+                shadow.restore(route_ctx);
 
                 // 2. analyze inner jobs
                 let sq_res = unwrap_from_result(services.iter().try_fold(out.next(), |in1, service| {
@@ -425,12 +425,7 @@ struct ShadowContext<'a> {
 
 impl<'a> ShadowContext<'a> {
     fn new(constraint: &'a ConstraintPipeline, ctx: &RouteContext) -> Self {
-        Self {
-            is_mutated: false,
-            is_dirty: false,
-            constraint,
-            ctx: RouteContext::new_with_state(ctx.route.clone(), ctx.state.clone()),
-        }
+        Self { is_mutated: false, is_dirty: false, constraint, ctx: ctx.clone() }
     }
 
     fn insert(&mut self, activity: Activity, index: usize) -> Activity {
@@ -439,21 +434,17 @@ impl<'a> ShadowContext<'a> {
             self.is_mutated = true;
         }
 
-        self.ctx.route_mut().tour.insert_at(activity, index + 1);
+        self.ctx.route_mut().tour.insert_at(activity.deep_copy(), index + 1);
         self.constraint.accept_route_state(&mut self.ctx);
         self.is_dirty = true;
 
-        self.ctx.route.tour.get(index + 1).unwrap().deep_copy()
+        activity
     }
 
-    fn restore(&mut self, job: &Job) {
+    fn restore(&mut self, original: &RouteContext) {
         if self.is_dirty {
-            let (route, state) = self.ctx.as_mut();
-
-            state.clear();
-            route.tour.remove(job);
-
-            self.constraint.accept_route_state(&mut self.ctx);
+            self.ctx = original.clone();
+            self.is_mutated = false;
             self.is_dirty = false;
         }
     }
