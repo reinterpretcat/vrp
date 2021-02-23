@@ -18,6 +18,7 @@ fn can_assign_break_between_jobs() {
                         time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
                         duration: 2.0,
                         locations: Some(vec![vec![6., 0.].to_loc()]),
+                        tag: Some("break_tag".to_string()),
                     }]),
                     ..create_default_vehicle_shift()
                 }],
@@ -61,13 +62,14 @@ fn can_assign_break_between_jobs() {
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
                         5,
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "break",
                         "break",
                         (6., 0.),
                         1,
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
                         6,
+                        "break_tag"
                     ),
                     create_stop_with_activity(
                         "job2",

@@ -248,7 +248,7 @@ fn read_breaks(
                         "break",
                         shift_index,
                         places,
-                        &None,
+                        &place.tag,
                     );
 
                     (job_id, job)

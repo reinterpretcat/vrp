@@ -286,6 +286,7 @@ fn can_write_hre_problem() {
                         ]),
                         duration: 1800.,
                         locations: None,
+                        tag: None,
                     }]),
                     reloads: None,
                 }],

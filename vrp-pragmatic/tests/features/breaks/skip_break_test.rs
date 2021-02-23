@@ -29,6 +29,7 @@ fn can_skip_break_when_vehicle_not_used() {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
                             duration: 2.0,
                             locations: Some(vec![vec![6., 0.].to_loc()]),
+                            tag: None,
                         }]),
                         reloads: None,
                     }],
@@ -117,6 +118,7 @@ fn can_skip_break_when_jobs_completed() {
                         time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
                         duration: 2.0,
                         locations: Some(vec![vec![6., 0.].to_loc()]),
+                        tag: None,
                     }]),
                     ..create_default_vehicle_shift()
                 }],
@@ -197,11 +199,13 @@ fn can_skip_second_break_when_jobs_completed() {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
                             duration: 2.0,
                             locations: Some(vec![vec![6., 0.].to_loc()]),
+                            tag: None,
                         },
                         VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
                             duration: 2.0,
                             locations: None,
+                            tag: None,
                         },
                     ]),
                     ..create_default_vehicle_shift()

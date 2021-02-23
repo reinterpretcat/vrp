@@ -74,6 +74,7 @@ prop_compose! {
             time,
             duration,
             locations,
+            tag: None,
         }
     }
 }

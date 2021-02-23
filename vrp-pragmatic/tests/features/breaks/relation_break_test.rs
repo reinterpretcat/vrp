@@ -36,7 +36,12 @@ fn get_solution(
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    breaks: Some(vec![VehicleBreak { time: break_time, duration: 2.0, locations: break_locations }]),
+                    breaks: Some(vec![VehicleBreak {
+                        time: break_time,
+                        duration: 2.0,
+                        locations: break_locations,
+                        tag: None,
+                    }]),
                     ..create_default_vehicle_shift()
                 }],
                 ..create_default_vehicle_type()

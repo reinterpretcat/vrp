@@ -23,6 +23,7 @@ fn can_assign_break_using_second_location() {
                         time: VehicleBreakTime::TimeWindow(vec![format_time(10.), format_time(30.)]),
                         duration: 2.0,
                         locations: Some(vec![vec![1., 0.].to_loc(), vec![11., 0.].to_loc()]),
+                        tag: None,
                     }]),
                     ..create_default_vehicle_shift()
                 }],

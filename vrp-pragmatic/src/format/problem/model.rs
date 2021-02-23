@@ -298,6 +298,10 @@ pub struct VehicleBreak {
     /// Break locations.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub locations: Option<Vec<Location>>,
+
+    /// A tag which will be propagated back within corresponding activity in solution.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
 }
 
 /// Specifies a vehicle type.

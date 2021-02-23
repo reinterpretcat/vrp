@@ -23,11 +23,13 @@ fn can_use_two_breaks() {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
                             duration: 2.0,
                             locations: Some(vec![vec![6., 0.].to_loc()]),
+                            tag: None,
                         },
                         VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
                             duration: 2.0,
                             locations: None,
+                            tag: None,
                         },
                     ]),
                     ..create_default_vehicle_shift()

@@ -25,6 +25,7 @@ fn can_assign_interval_break_between_jobs() {
                         time: VehicleBreakTime::TimeOffset(vec![5., 10.]),
                         duration: 2.0,
                         locations: None,
+                        tag: None,
                     }]),
                     ..create_default_vehicle_shift()
                 }],
@@ -151,6 +152,7 @@ fn can_assign_interval_break_with_reload() {
                         time: VehicleBreakTime::TimeOffset(vec![8., 12.]),
                         duration: 2.0,
                         locations: None,
+                        tag: None,
                     }]),
                     reloads: Some(vec![VehicleReload {
                         times: Some(vec![vec![format_time(0.), format_time(1000.)]]),
@@ -294,6 +296,7 @@ fn can_consider_departure_rescheduling() {
                         time: VehicleBreakTime::TimeOffset(vec![10., 12.]),
                         duration: 2.0,
                         locations: None,
+                        tag: None,
                     }]),
                     ..create_default_vehicle_shift()
                 }],

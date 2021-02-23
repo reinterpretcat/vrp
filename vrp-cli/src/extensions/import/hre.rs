@@ -341,6 +341,7 @@ mod deserialize {
                                         time: VehicleBreakTime::TimeWindow(b.times.first().unwrap().clone()),
                                         duration: b.duration,
                                         locations: b.location.as_ref().map(|l| vec![to_pragmatic_loc(l)]),
+                                        tag: None,
                                     })
                                     .collect()
                             }),

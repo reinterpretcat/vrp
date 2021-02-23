@@ -97,6 +97,7 @@ mod single {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)]),
                             duration: 2.0,
                             locations: None,
+                            tag: None,
                         }]),
                         reloads: Some(vec![VehicleReload {
                             times: None,

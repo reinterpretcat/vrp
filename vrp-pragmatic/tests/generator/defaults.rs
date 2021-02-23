@@ -82,6 +82,7 @@ pub fn default_breaks_prototype() -> impl Strategy<Value = Option<Vec<VehicleBre
         time: VehicleBreakTime::TimeWindow(vec![default_time_plus_offset(12), default_time_plus_offset(14)]),
         duration: 3600.,
         locations: None,
+        tag: None,
     }]))
 }
 

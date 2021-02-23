@@ -38,6 +38,7 @@ fn create_default_breaks() -> Option<Vec<VehicleBreak>> {
         time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
         duration: 2.0,
         locations: None,
+        tag: None,
     }])
 }
 
