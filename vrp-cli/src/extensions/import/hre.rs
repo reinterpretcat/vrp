@@ -259,7 +259,7 @@ mod deserialize {
         Location::Coordinate { lat: loc.lat, lng: loc.lng }
     }
 
-    fn create_pragmatic_plan(plan: &models::Plan) -> Result<Plan, String> {
+    fn create_pragmatic_plan(plan: &models::Plan) -> Plan {
         let job_place_mapper = |places: &Option<Vec<models::JobPlace>>| {
             places.as_ref().map(|places| {
                 places
@@ -277,7 +277,7 @@ mod deserialize {
             })
         };
 
-        Ok(Plan {
+        Plan {
             jobs: plan
                 .jobs
                 .iter()
@@ -306,11 +306,11 @@ mod deserialize {
                     })
                     .collect()
             }),
-        })
+        }
     }
 
-    fn create_pragmatic_fleet(fleet: &models::Fleet) -> Result<Fleet, String> {
-        Ok(Fleet {
+    fn create_pragmatic_fleet(fleet: &models::Fleet) -> Fleet {
+        Fleet {
             vehicles: fleet
                 .types
                 .iter()
@@ -362,16 +362,15 @@ mod deserialize {
                 .iter()
                 .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone(), speed: None })
                 .collect(),
-        })
+        }
     }
 
     pub fn convert_to_pragmatic<R: Read>(reader: BufReader<R>) -> Result<Problem, Error> {
         let hre_problem: models::Problem =
             serde_json::from_reader(reader).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
 
-        let plan = create_pragmatic_plan(&hre_problem.plan).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
-        let fleet =
-            create_pragmatic_fleet(&hre_problem.fleet).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
+        let plan = create_pragmatic_plan(&hre_problem.plan);
+        let fleet = create_pragmatic_fleet(&hre_problem.fleet);
 
         Ok(Problem { plan, fleet, objectives: None })
     }

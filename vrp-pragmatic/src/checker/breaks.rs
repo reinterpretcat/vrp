@@ -104,10 +104,8 @@ fn as_leg_info_with_break<'a>(
     };
 
     if let Some((from_loc, to)) = leg {
-        if let Ok(activity_type) = context.get_activity_type(tour, stop, to) {
-            if let ActivityType::Break(vehicle_break) = activity_type {
-                return Some((from_loc, to, vehicle_break));
-            }
+        if let Ok(ActivityType::Break(vehicle_break)) = context.get_activity_type(tour, stop, to) {
+            return Some((from_loc, to, vehicle_break));
         }
     }
     None

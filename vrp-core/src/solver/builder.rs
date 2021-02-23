@@ -176,7 +176,7 @@ impl Builder {
                     let quota = if let Some(limit) = self.max_time {
                         self.config.telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
                         criterias.push(Box::new(MaxTime::new(limit as f64)));
-                        create_time_quota(limit)
+                        Some(create_time_quota(limit))
                     } else {
                         None
                     };
@@ -204,6 +204,6 @@ impl Builder {
     }
 }
 
-fn create_time_quota(limit: usize) -> Option<Arc<dyn Quota + Sync + Send>> {
-    Some(Arc::new(TimeQuota::new(limit as f64)))
+fn create_time_quota(limit: usize) -> Arc<dyn Quota + Sync + Send> {
+    Arc::new(TimeQuota::new(limit as f64))
 }

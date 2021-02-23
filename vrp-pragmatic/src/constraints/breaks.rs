@@ -79,8 +79,8 @@ impl HardRouteConstraint for BreakHardRouteConstraint {
 }
 
 impl BreakHardActivityConstraint {
-    fn stop(&self) -> Option<ActivityConstraintViolation> {
-        Some(ActivityConstraintViolation { code: self.code, stopped: false })
+    fn stop(&self) -> ActivityConstraintViolation {
+        ActivityConstraintViolation { code: self.code, stopped: false }
     }
 }
 
@@ -91,7 +91,7 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
         match as_break_job(&activity_ctx.target) {
-            Some(_) if activity_ctx.prev.job.is_none() => self.stop(),
+            Some(_) if activity_ctx.prev.job.is_none() => Some(self.stop()),
             _ => None,
         }
     }

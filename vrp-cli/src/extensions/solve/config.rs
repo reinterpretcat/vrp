@@ -489,17 +489,14 @@ fn configure_from_hyper(
     Ok(builder)
 }
 
-fn configure_from_termination(
-    mut builder: Builder,
-    termination_config: &Option<TerminationConfig>,
-) -> Result<Builder, String> {
+fn configure_from_termination(mut builder: Builder, termination_config: &Option<TerminationConfig>) -> Builder {
     if let Some(config) = termination_config {
         builder = builder.with_max_time(config.max_time);
         builder = builder.with_max_generations(config.max_generations);
         builder = builder.with_cost_variation(config.variation.as_ref().map(|v| (v.sample, v.cv)));
     }
 
-    Ok(builder)
+    builder
 }
 
 fn create_recreate_method(method: &RecreateMethod) -> (Arc<dyn Recreate + Send + Sync>, usize) {
@@ -621,7 +618,7 @@ fn create_local_search(times: &MinMaxConfig, inners: &[LocalOperatorType]) -> Ar
     Arc::new(CompositeLocalOperator::new(operators, times.min, times.max))
 }
 
-fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Result<Builder, String> {
+fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Builder {
     const LOG_BEST: usize = 100;
     const LOG_POPULATION: usize = 1000;
     const TRACK_POPULATION: usize = 1000;
@@ -664,10 +661,10 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
         _ => TelemetryMode::None,
     };
 
-    Ok(builder.with_telemetry(Telemetry::new(telemetry_mode)))
+    builder.with_telemetry(Telemetry::new(telemetry_mode))
 }
 
-fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) -> Result<Arc<Environment>, String> {
+fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) -> Arc<Environment> {
     let mut environment = Environment::default();
 
     // TODO validate parameters
@@ -675,7 +672,7 @@ fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) ->
         environment.parallelism = Parallelism::new(config.num_thread_pools, config.threads_per_pool);
     }
 
-    Ok(Arc::new(environment))
+    Arc::new(environment)
 }
 
 /// Reads config from reader.
@@ -693,13 +690,13 @@ pub fn create_builder_from_config_file<R: Read>(
 
 /// Creates a solver `Builder` from config.
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
-    let environment = configure_from_environment(&config.environment)?;
+    let environment = configure_from_environment(&config.environment);
     let mut builder = Builder::new(problem.clone(), environment.clone());
 
-    builder = configure_from_telemetry(builder, &config.telemetry)?;
+    builder = configure_from_telemetry(builder, &config.telemetry);
     builder = configure_from_evolution(builder, &config.evolution, problem, environment.clone())?;
     builder = configure_from_hyper(builder, &config.hyper, environment)?;
-    builder = configure_from_termination(builder, &config.termination)?;
+    builder = configure_from_termination(builder, &config.termination);
 
     Ok(builder)
 }

@@ -298,10 +298,12 @@ impl SingleContext {
         }
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     fn success(index: usize, cost: Cost, place: Place) -> Result<Self, Self> {
         Result::Ok(Self { violation: None, index, cost: Some(cost), place: Some(place) })
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     fn skip(other: SingleContext) -> Result<Self, Self> {
         Result::Ok(other)
     }
@@ -383,6 +385,7 @@ impl MultiContext {
     }
 
     /// Creates successful insertion context.
+    #[allow(clippy::unnecessary_wraps)]
     fn success(cost: Cost, activities: Vec<(Activity, usize)>) -> Result<Self, Self> {
         Result::Ok(Self {
             violation: None,

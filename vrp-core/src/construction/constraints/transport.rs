@@ -485,14 +485,17 @@ impl SoftActivityConstraint for CostSoftActivityConstraint {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn fail(code: i32) -> Option<ActivityConstraintViolation> {
     Some(ActivityConstraintViolation { code, stopped: true })
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn stop(code: i32) -> Option<ActivityConstraintViolation> {
     Some(ActivityConstraintViolation { code, stopped: false })
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn success() -> Option<ActivityConstraintViolation> {
     None
 }

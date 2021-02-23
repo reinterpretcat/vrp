@@ -94,7 +94,7 @@ fn try_insert_activity(
 ) -> Result<(), String> {
     if let Some(JobInfo(job, single, place, time)) = try_match_job(tour, stop, activity, job_index, coord_index)? {
         added_jobs.insert(job);
-        try_insert_new_activity(route, single, place, time)?;
+        insert_new_activity(route, single, place, time);
     } else if activity.activity_type != "departure" && activity.activity_type != "arrival" {
         return Err(format!("cannot match activity with job id '{}' in tour: '{}'", activity.job_id, tour.vehicle_id));
     }
@@ -149,15 +149,8 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
     Ok(Route { actor, tour: core_tour })
 }
 
-fn try_insert_new_activity(
-    route: &mut Route,
-    single: Arc<Single>,
-    place: Place,
-    time: TimeWindow,
-) -> Result<(), String> {
+fn insert_new_activity(route: &mut Route, single: Arc<Single>, place: Place, time: TimeWindow) {
     let activity =
         Activity { place, schedule: Schedule { arrival: time.start, departure: time.end }, job: Some(single) };
     route.tour.insert_last(activity);
-
-    Ok(())
 }

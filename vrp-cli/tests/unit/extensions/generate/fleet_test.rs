@@ -17,7 +17,7 @@ fn can_generate_fleet_of_specific_size() {
         objectives: None,
     };
 
-    let generated = generate_fleet(&prototype, 2).unwrap();
+    let generated = generate_fleet(&prototype, 2);
 
     assert_eq!(generated.vehicles.len(), 2);
     assert_eq!(generated.profiles.len(), 1);

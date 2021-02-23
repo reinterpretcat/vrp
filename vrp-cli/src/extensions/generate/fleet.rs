@@ -6,7 +6,7 @@ use super::*;
 use vrp_pragmatic::format::problem::{Fleet, VehicleCosts, VehicleLimits, VehicleShift, VehicleType};
 
 /// Generates fleet of vehicles.
-pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize) -> Result<Fleet, String> {
+pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize) -> Fleet {
     let rnd = DefaultRandom::default();
 
     let profiles = problem_proto.fleet.profiles.clone();
@@ -34,7 +34,7 @@ pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize)
         })
         .collect();
 
-    Ok(Fleet { vehicles, profiles })
+    Fleet { vehicles, profiles }
 }
 
 fn get_from_vehicle<F, T>(problem_proto: &Problem, func: F) -> Vec<T>

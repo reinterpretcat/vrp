@@ -47,14 +47,14 @@ impl EvolutionSimulator {
     /// Runs evolution for given `problem` using evolution `config`.
     /// Returns populations filled with solutions.
     pub fn run(mut self) -> EvolutionResult {
-        let refinement_ctx = self.create_refinement_ctx()?;
+        let refinement_ctx = self.create_refinement_ctx();
         let strategy = self.config.strategy.clone();
 
         strategy.run(refinement_ctx, self.config.hyper, self.config.termination.as_ref(), self.config.telemetry)
     }
 
     /// Creates refinement context with population containing initial individuals.
-    fn create_refinement_ctx(&mut self) -> Result<RefinementContext, String> {
+    fn create_refinement_ctx(&mut self) -> RefinementContext {
         let mut refinement_ctx = RefinementContext::new(
             self.config.problem.clone(),
             std::mem::replace(&mut self.config.population.variation, None).unwrap(),
@@ -122,7 +122,7 @@ impl EvolutionSimulator {
             self.config.telemetry.log("created an empty population");
         }
 
-        Ok(refinement_ctx)
+        refinement_ctx
     }
 }
 
