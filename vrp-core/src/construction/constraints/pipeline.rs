@@ -145,6 +145,7 @@ impl ConstraintPipeline {
         loop {
             let required = solution_ctx.required.len();
             let ignored = solution_ctx.ignored.len();
+            let unassigned = solution_ctx.unassigned.len();
 
             self.modules.iter().for_each(|c| c.accept_solution_state(solution_ctx));
 
@@ -152,7 +153,10 @@ impl ConstraintPipeline {
             // job removal from a tour. As modules should not know about each other and it is
             // hard to maintain implicit dependencies between them, we recalculate everything.
             // However we do not expect recalculation to happen often.
-            if solution_ctx.required.len() == required && solution_ctx.ignored.len() == ignored {
+            if solution_ctx.required.len() == required
+                && solution_ctx.ignored.len() == ignored
+                && solution_ctx.unassigned.len() == unassigned
+            {
                 break;
             }
         }

@@ -3,9 +3,11 @@
 mod assignment_test;
 
 use super::*;
-use crate::format::solution::activity_matcher::try_match_job;
+use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
 use crate::format::{get_coord_index, get_job_index};
 use hashbrown::HashSet;
+use std::cmp::Ordering;
+use vrp_core::utils::compare_floats;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), String> {
@@ -159,14 +161,22 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                 stop.activities
                     .iter()
                     .filter(move |activity| {
-                        try_match_job(
+                        let result = try_match_job(
                             tour,
                             stop,
                             activity,
                             get_job_index(&ctx.core_problem),
                             get_coord_index(&ctx.core_problem),
-                        )
-                        .is_err()
+                        );
+
+                        match result {
+                            Err(_) => true,
+                            Ok(Some(JobInfo(_, _, place, time))) => {
+                                let expected_departure = time.start.max(place.time.start) + place.duration;
+                                compare_floats(time.end, expected_departure) != Ordering::Equal
+                            }
+                            _ => false,
+                        }
                     })
                     .map(|activity| {
                         format!(

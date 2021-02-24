@@ -241,6 +241,69 @@ fn can_detect_time_window_violation() {
 }
 
 #[test]
+fn can_detect_job_duration_violation() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(5, 10)], 1.)],
+            relations: None,
+        },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        ..create_empty_problem()
+    };
+    let solution = Solution {
+        statistic: Statistic {
+            cost: 18.,
+            distance: 2,
+            duration: 6,
+            times: Timing { driving: 2, serving: 2, waiting: 2, break_time: 0 },
+        },
+        tours: vec![Tour {
+            vehicle_id: "my_vehicle_1".to_string(),
+            type_id: "my_vehicle".to_string(),
+            shift_index: 0,
+            stops: vec![
+                create_stop_with_activity(
+                    "departure",
+                    "departure",
+                    (0., 0.),
+                    1,
+                    ("1970-01-01T00:00:02Z", "1970-01-01T00:00:02Z"),
+                    0,
+                ),
+                create_stop_with_activity(
+                    "job1",
+                    "delivery",
+                    (1., 0.),
+                    0,
+                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:07Z"),
+                    1,
+                ),
+                create_stop_with_activity(
+                    "arrival",
+                    "arrival",
+                    (0., 0.),
+                    0,
+                    ("1970-01-01T00:00:08Z", "1970-01-01T00:00:08Z"),
+                    2,
+                ),
+            ],
+            statistic: Statistic {
+                cost: 18.,
+                distance: 2,
+                duration: 6,
+                times: Timing { driving: 2, serving: 2, waiting: 2, break_time: 0 },
+            },
+        }],
+        ..create_empty_solution()
+    };
+    let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+
+    let result = check_assignment(&CheckerContext::new(core_problem, problem, None, solution));
+
+    assert_eq!(result, Err("cannot match activities to jobs: job1:<no tag>".to_owned()));
+}
+
+#[test]
 fn can_detect_dispatch_violations() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![2., 0.])], relations: None },
