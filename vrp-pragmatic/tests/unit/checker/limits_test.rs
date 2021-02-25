@@ -66,7 +66,7 @@ pub fn can_check_shift_and_distance_limit_impl(
     let solution =
         create_test_solution(Statistic { distance: actual, duration: actual, ..Statistic::default() }, vec![]);
 
-    let result = check_limits(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_shift_limits(&CheckerContext::new(create_example_problem(), problem, None, solution));
 
     assert_eq!(result, expected);
 }
@@ -125,11 +125,88 @@ pub fn can_check_tour_size_limit() {
         ],
     );
 
-    let result = check_limits(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_shift_limits(&CheckerContext::new(create_example_problem(), problem, None, solution));
 
     assert_eq!(
         result,
         Err("tour size limit violation, expected: not more than 2, got: 3, vehicle id 'some_real_vehicle', shift index: 0"
             .to_string())
     );
+}
+
+#[test]
+fn can_check_shift_time() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(5, 10)], 1.)],
+            relations: None,
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    end: Some(ShiftEnd {
+                        earliest: None,
+                        latest: format_time(5.).to_string(),
+                        location: vec![0., 0.].to_loc(),
+                    }),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            profiles: create_default_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let solution = Solution {
+        statistic: Statistic {
+            cost: 17.,
+            distance: 2,
+            duration: 5,
+            times: Timing { driving: 2, serving: 1, waiting: 2, break_time: 0 },
+        },
+        tours: vec![Tour {
+            vehicle_id: "my_vehicle_1".to_string(),
+            type_id: "my_vehicle".to_string(),
+            shift_index: 0,
+            stops: vec![
+                create_stop_with_activity(
+                    "departure",
+                    "departure",
+                    (0., 0.),
+                    1,
+                    ("1970-01-01T00:00:02Z", "1970-01-01T00:00:02Z"),
+                    0,
+                ),
+                create_stop_with_activity(
+                    "job1",
+                    "delivery",
+                    (1., 0.),
+                    0,
+                    ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
+                    1,
+                ),
+                create_stop_with_activity(
+                    "arrival",
+                    "arrival",
+                    (0., 0.),
+                    0,
+                    ("1970-01-01T00:00:07Z", "1970-01-01T00:00:07Z"),
+                    2,
+                ),
+            ],
+            statistic: Statistic {
+                cost: 17.,
+                distance: 2,
+                duration: 5,
+                times: Timing { driving: 2, serving: 1, waiting: 2, break_time: 0 },
+            },
+        }],
+        ..create_empty_solution()
+    };
+    let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+
+    let result = check_shift_time(&CheckerContext::new(core_problem, problem, None, solution));
+
+    assert_eq!(result, Err("tour time is outside shift time, vehicle id 'my_vehicle_1', shift index: 0".to_owned()));
 }
