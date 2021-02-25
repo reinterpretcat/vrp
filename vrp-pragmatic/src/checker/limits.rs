@@ -62,7 +62,7 @@ fn check_shift_time(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
         let vehicle = context.get_vehicle(&tour.vehicle_id)?;
 
-        let (start, end) = tour.stops.first().zip(tour.stops.last()).ok_or_else(|| "empty tour")?;
+        let (start, end) = tour.stops.first().zip(tour.stops.last()).ok_or("empty tour")?;
 
         let departure = parse_time(&start.time.departure);
         let arrival = parse_time(&end.time.arrival);
