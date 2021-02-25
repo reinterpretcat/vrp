@@ -13,7 +13,20 @@ fn vehicle_type_prototype() -> impl Strategy<Value = VehicleType> {
         default_costs_prototype(),
         generate_no_vehicle_skills(),
         generate_no_limits(),
-        default_vehicle_shifts(),
+        generate_shifts(
+            generate_shift(
+                generate_location(&DEFAULT_BOUNDING_BOX).prop_flat_map(|location| {
+                    Just((
+                        ShiftStart { earliest: default_time_plus_offset(9), latest: None, location: location.clone() },
+                        None,
+                    ))
+                }),
+                generate_no_dispatch(),
+                default_breaks_prototype(),
+                generate_no_reloads(),
+            ),
+            1..2,
+        ),
     )
 }
 
