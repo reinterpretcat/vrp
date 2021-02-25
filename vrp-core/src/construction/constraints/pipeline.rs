@@ -142,24 +142,7 @@ impl ConstraintPipeline {
 
     /// Accepts solution state.
     pub fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        loop {
-            let required = solution_ctx.required.len();
-            let ignored = solution_ctx.ignored.len();
-            let unassigned = solution_ctx.unassigned.len();
-
-            self.modules.iter().for_each(|c| c.accept_solution_state(solution_ctx));
-
-            // NOTE if a job promotion occurs, then we might need to recalculate states due to
-            // job removal from a tour. As modules should not know about each other and it is
-            // hard to maintain implicit dependencies between them, we recalculate everything.
-            // However we do not expect recalculation to happen often.
-            if solution_ctx.required.len() == required
-                && solution_ctx.ignored.len() == ignored
-                && solution_ctx.unassigned.len() == unassigned
-            {
-                break;
-            }
-        }
+        self.modules.iter().for_each(|c| c.accept_solution_state(solution_ctx));
 
         solution_ctx.routes.iter_mut().for_each(|route_ctx| {
             route_ctx.mark_stale(false);

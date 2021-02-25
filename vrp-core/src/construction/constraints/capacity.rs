@@ -59,6 +59,8 @@ pub struct CapacityConstraintModule<T: Load + Add<Output = T> + Sub<Output = T> 
     code: i32,
     state_keys: Vec<i32>,
     conditional: ConditionalJobModule,
+    transport: Arc<dyn TransportCost + Send + Sync>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
     constraints: Vec<ConstraintVariant>,
     multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
@@ -67,12 +69,21 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
     CapacityConstraintModule<T>
 {
     /// Creates a new instance of `CapacityConstraintModule` without multi trip (reload) functionality
-    pub fn new(code: i32) -> Self {
-        Self::new_with_multi_trip(code, Arc::new(NoMultiTrip { phantom: PhantomData }))
+    pub fn new(
+        transport: Arc<dyn TransportCost + Send + Sync>,
+        activity: Arc<dyn ActivityCost + Send + Sync>,
+        code: i32,
+    ) -> Self {
+        Self::new_with_multi_trip(transport, activity, code, Arc::new(NoMultiTrip { phantom: PhantomData }))
     }
 
     /// Creates a new instance of `CapacityConstraintModule` with multi trip (reload) functionality
-    pub fn new_with_multi_trip(code: i32, multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>) -> Self {
+    pub fn new_with_multi_trip(
+        transport: Arc<dyn TransportCost + Send + Sync>,
+        activity: Arc<dyn ActivityCost + Send + Sync>,
+        code: i32,
+        multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
+    ) -> Self {
         Self {
             code,
             state_keys: vec![CURRENT_CAPACITY_KEY, MAX_FUTURE_CAPACITY_KEY, MAX_PAST_CAPACITY_KEY],
@@ -88,6 +99,8 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
                     move |_, _, job| multi_trip.is_reload_job(job)
                 },
             })),
+            transport,
+            activity,
             constraints: vec![
                 ConstraintVariant::SoftRoute(Arc::new(CapacitySoftRouteConstraint { multi_trip: multi_trip.clone() })),
                 ConstraintVariant::HardRoute(Arc::new(CapacityHardRouteConstraint::<T> {
@@ -203,6 +216,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
 
             if rc.is_stale() {
                 self.actualize_intervals(rc);
+                update_route_schedule(rc, self.transport.as_ref(), self.activity.as_ref());
             }
         });
         ctx.ignored.extend(extra_ignored.into_iter());

@@ -62,8 +62,8 @@ pub fn create_example_problem() -> Arc<Problem> {
     let jobs = create_example_jobs(&fleet, &transport);
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TransportConstraintModule::new(
-        activity.clone(),
         transport.clone(),
+        activity.clone(),
         Arc::new(|_| (None, None)),
         1,
         2,

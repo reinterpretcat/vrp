@@ -98,3 +98,17 @@ pub use self::conditional::*;
 
 mod fleet_usage;
 pub use self::fleet_usage::*;
+
+use crate::construction::heuristics::RouteContext;
+use crate::models::problem::{ActivityCost, TransportCost};
+
+/// Updates route schedule.
+pub fn update_route_schedule(
+    route_ctx: &mut RouteContext,
+    transport: &(dyn TransportCost + Send + Sync),
+    activity: &(dyn ActivityCost + Send + Sync),
+) {
+    TransportConstraintModule::update_route_schedules(route_ctx, transport, activity);
+    TransportConstraintModule::update_route_states(route_ctx, transport, activity);
+    TransportConstraintModule::update_statistics(route_ctx, transport);
+}

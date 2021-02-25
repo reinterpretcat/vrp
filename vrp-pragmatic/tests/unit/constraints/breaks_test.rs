@@ -35,6 +35,7 @@ can_remove_orphan_break! {
 }
 
 fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_loc: Location, break_removed: bool) {
+    let (transport, activity) = get_costs();
     let fleet = Fleet::new(
         vec![Arc::new(test_driver())],
         vec![Arc::new(test_vehicle("v1"))],
@@ -56,7 +57,9 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
         ..create_solution_context_for_fleet(&fleet)
     };
 
-    ConstraintPipeline::default().add_module(Box::new(BreakModule::new(0))).accept_solution_state(&mut solution_ctx);
+    ConstraintPipeline::default()
+        .add_module(Box::new(BreakModule::new(transport, activity, 0)))
+        .accept_solution_state(&mut solution_ctx);
 
     if break_removed {
         assert_eq!(solution_ctx.unassigned.len(), 1);

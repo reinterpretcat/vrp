@@ -3,6 +3,8 @@ use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
+use std::sync::Arc;
+use vrp_core::models::problem::{ActivityCost, SimpleActivityCost, TransportCost};
 
 pub fn create_job_place(location: Vec<f64>) -> JobPlace {
     JobPlace { times: None, location: location.to_loc(), duration: 1. }
@@ -220,6 +222,22 @@ pub fn create_empty_problem() -> Problem {
         fleet: Fleet { vehicles: vec![], profiles: vec![] },
         objectives: None,
     }
+}
+
+pub fn get_costs() -> (Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>) {
+    struct ExampleTransportCost {}
+
+    impl TransportCost for ExampleTransportCost {
+        fn duration(&self, _: i32, _: usize, _: usize, _: f64) -> f64 {
+            42.
+        }
+
+        fn distance(&self, _: i32, _: usize, _: usize, _: f64) -> f64 {
+            42.
+        }
+    }
+
+    (Arc::new(ExampleTransportCost {}), Arc::new(SimpleActivityCost::default()))
 }
 
 pub fn create_matrix(data: Vec<i64>) -> Matrix {

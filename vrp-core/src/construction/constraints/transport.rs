@@ -22,8 +22,8 @@ pub type TravelLimitFunc = Arc<dyn Fn(&Actor) -> (Option<Distance>, Option<Durat
 pub struct TransportConstraintModule {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
     limit_func: TravelLimitFunc,
 }
 
@@ -41,7 +41,7 @@ impl ConstraintModule for TransportConstraintModule {
         if has_travel_limits(&self.limit_func, ctx) {
             Self::reschedule_departure(ctx, self.transport.as_ref(), self.activity.as_ref(), false)
         }
-        self.update_statistics(ctx);
+        Self::update_statistics(ctx, self.transport.as_ref());
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
@@ -57,7 +57,7 @@ impl ConstraintModule for TransportConstraintModule {
             Self::reschedule_departure(route_ctx, transport, activity, false);
 
             if route_ctx.is_stale() {
-                self.update_statistics(route_ctx);
+                Self::update_statistics(route_ctx, self.transport.as_ref());
             }
         })
     }
@@ -74,8 +74,8 @@ impl ConstraintModule for TransportConstraintModule {
 impl TransportConstraintModule {
     /// Creates a new instance of `TransportConstraintModule`.
     pub fn new(
-        activity: Arc<dyn ActivityCost + Send + Sync>,
         transport: Arc<dyn TransportCost + Send + Sync>,
+        activity: Arc<dyn ActivityCost + Send + Sync>,
         limit_func: TravelLimitFunc,
         time_window_code: i32,
         distance_code: i32,
@@ -117,7 +117,7 @@ impl TransportConstraintModule {
         Self::reschedule_departure(route_ctx, transport, activity, true);
     }
 
-    fn update_route_schedules(
+    pub(crate) fn update_route_schedules(
         ctx: &mut RouteContext,
         transport: &(dyn TransportCost + Send + Sync),
         activity: &(dyn ActivityCost + Send + Sync),
@@ -136,7 +136,7 @@ impl TransportConstraintModule {
         });
     }
 
-    fn update_route_states(
+    pub(crate) fn update_route_states(
         ctx: &mut RouteContext,
         transport: &(dyn TransportCost + Send + Sync),
         activity: &(dyn ActivityCost + Send + Sync),
@@ -176,7 +176,7 @@ impl TransportConstraintModule {
         });
     }
 
-    fn reschedule_departure(
+    pub(crate) fn reschedule_departure(
         ctx: &mut RouteContext,
         transport: &(dyn TransportCost + Send + Sync),
         activity: &(dyn ActivityCost + Send + Sync),
@@ -190,7 +190,7 @@ impl TransportConstraintModule {
         }
     }
 
-    fn update_statistics(&self, ctx: &mut RouteContext) {
+    pub(crate) fn update_statistics(ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
         let start = ctx.route.tour.start().unwrap();
         let end = ctx.route.tour.end().unwrap();
 
@@ -199,7 +199,7 @@ impl TransportConstraintModule {
         let init = (start.place.location, start.schedule.departure, Distance::default());
         let (_, _, total_dist) = ctx.route.tour.all_activities().skip(1).fold(init, |(loc, dep, total_dist), a| {
             let total_dist =
-                total_dist + self.transport.distance(ctx.route.actor.vehicle.profile, loc, a.place.location, dep);
+                total_dist + transport.distance(ctx.route.actor.vehicle.profile, loc, a.place.location, dep);
 
             (a.place.location, a.schedule.departure, total_dist)
         });
