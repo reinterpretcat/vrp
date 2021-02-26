@@ -115,10 +115,11 @@ fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'
                 is_same_location && is_proper_time
             })
             .map(|place| {
+                // NOTE search for the latest occurrence assuming that times are sorted
                 let time = place
                     .times
                     .iter()
-                    .find(|time| time.intersects(activity_ctx.route_start_time, &activity_ctx.time))
+                    .rfind(|time| time.intersects(activity_ctx.route_start_time, &activity_ctx.time))
                     .unwrap();
 
                 let time = match time {
