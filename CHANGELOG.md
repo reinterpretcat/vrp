@@ -5,9 +5,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.8.1] - 2021-02-26
+
 ### Added
 
 - a new ruin method which destroys closest routes
+- more solution checker rules
 
 ### Changed
 
