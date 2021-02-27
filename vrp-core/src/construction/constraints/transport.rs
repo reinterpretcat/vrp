@@ -299,11 +299,11 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         let latest_arr_time_at_new_act = target.place.time.end.min(
             latest_arr_time_at_next_act
                 - self.transport.duration(
-                profile,
-                target.place.location,
-                next_act_location,
-                latest_arr_time_at_next_act,
-            )
+                    profile,
+                    target.place.location,
+                    next_act_location,
+                    latest_arr_time_at_next_act,
+                )
                 + self.activity.duration(actor, target.deref(), arr_time_at_target_act),
         );
 
