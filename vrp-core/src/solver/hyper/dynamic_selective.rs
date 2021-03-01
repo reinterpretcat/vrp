@@ -66,7 +66,7 @@ impl HyperHeuristic for DynamicSelective {
 impl DynamicSelective {
     /// Creates a new instance of `DynamicSelective`.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
-        let mutations = Self::get_mutations(problem);
+        let mutations = Self::get_mutations(problem, environment.clone());
         let mutation_estimates = Self::get_estimates(mutations.clone());
 
         Self {
@@ -88,16 +88,16 @@ impl DynamicSelective {
         }
     }
 
-    fn get_mutations(problem: Arc<Problem>) -> Vec<Arc<dyn Mutation + Send + Sync>> {
+    fn get_mutations(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<Arc<dyn Mutation + Send + Sync>> {
         let recreates: Vec<Arc<dyn Recreate + Send + Sync>> = vec![
             Arc::new(RecreateWithSkipBest::new(1, 2)),
             Arc::new(RecreateWithSkipBest::new(1, 4)),
             Arc::new(RecreateWithRegret::new(1, 3)),
             Arc::new(RecreateWithCheapest::default()),
-            Arc::new(RecreateWithPerturbation::default()),
+            Arc::new(RecreateWithPerturbation::new_with_defaults(environment.random.clone())),
             Arc::new(RecreateWithGaps::default()),
-            Arc::new(RecreateWithBlinks::<SingleDimLoad>::default()),
-            Arc::new(RecreateWithBlinks::<MultiDimLoad>::default()),
+            Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())),
+            Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(environment.random.clone())),
             Arc::new(RecreateWithFarthest::default()),
             Arc::new(RecreateWithNearestNeighbor::default()),
         ];
@@ -133,7 +133,11 @@ impl DynamicSelective {
             Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteRandom::default()))),
             Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
             Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
-            Arc::new(DecomposeSearch::new(StaticSelective::create_default_mutation(problem.clone()), (2, 4), 2)),
+            Arc::new(DecomposeSearch::new(
+                StaticSelective::create_default_mutation(problem.clone(), environment.clone()),
+                (2, 4),
+                2,
+            )),
         ];
 
         let mutations = recreates

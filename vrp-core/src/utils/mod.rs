@@ -23,3 +23,6 @@ pub use self::time_quota::TimeQuota;
 
 mod timing;
 pub use self::timing::Timer;
+
+mod types;
+pub use self::types::Either;

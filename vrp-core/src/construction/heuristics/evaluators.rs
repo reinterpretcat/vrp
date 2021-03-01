@@ -9,7 +9,7 @@ use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Place};
-use crate::utils::unwrap_from_result;
+use crate::utils::{unwrap_from_result, Either};
 use std::iter::repeat;
 
 /// Specifies allowed insertion position in route for the job.
@@ -56,7 +56,7 @@ pub fn evaluate_job_insertion_in_route(
     let constraint = &ctx.problem.constraint;
 
     if let Some(violation) = constraint.evaluate_hard_route(&ctx.solution, &route_ctx, job) {
-        return result_selector.select(
+        return result_selector.select_insertion(
             ctx,
             alternative,
             InsertionResult::make_failure_with_code(violation.code, true, Some(job.clone())),
@@ -75,10 +75,18 @@ pub fn evaluate_job_insertion_in_route(
         }
     }
 
-    result_selector.select(
+    result_selector.select_insertion(
         ctx,
         alternative,
-        evaluate_job_constraint_in_route(job, constraint, &route_ctx, position, route_costs, best_known_cost),
+        evaluate_job_constraint_in_route(
+            job,
+            constraint,
+            &route_ctx,
+            position,
+            route_costs,
+            best_known_cost,
+            result_selector,
+        ),
     )
 }
 
@@ -90,12 +98,22 @@ pub fn evaluate_job_constraint_in_route(
     position: InsertionPosition,
     route_costs: Cost,
     best_known_cost: Option<Cost>,
+    result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> InsertionResult {
     match job {
-        Job::Single(single) => {
-            evaluate_single(job, single, constraint, &route_ctx, position, route_costs, best_known_cost)
+        Job::Single(single) => evaluate_single(
+            job,
+            single,
+            constraint,
+            &route_ctx,
+            position,
+            route_costs,
+            best_known_cost,
+            result_selector,
+        ),
+        Job::Multi(multi) => {
+            evaluate_multi(job, multi, constraint, &route_ctx, position, route_costs, best_known_cost, result_selector)
         }
-        Job::Multi(multi) => evaluate_multi(job, multi, constraint, &route_ctx, position, route_costs, best_known_cost),
     }
 }
 
@@ -107,6 +125,7 @@ fn evaluate_single(
     position: InsertionPosition,
     route_costs: Cost,
     best_known_cost: Option<Cost>,
+    result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> InsertionResult {
     let insertion_idx = get_insertion_index(route_ctx, position);
     let mut activity = Activity::new_with_job(single.clone());
@@ -118,6 +137,7 @@ fn evaluate_single(
         single,
         &mut activity,
         SingleContext::new(best_known_cost, 0),
+        result_selector,
     );
 
     if result.is_success() {
@@ -138,6 +158,7 @@ fn evaluate_multi(
     position: InsertionPosition,
     route_costs: Cost,
     best_known_cost: Option<Cost>,
+    result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> InsertionResult {
     let insertion_idx = get_insertion_index(route_ctx, position).unwrap_or(0);
     // 1. analyze permutations
@@ -165,6 +186,7 @@ fn evaluate_multi(
                         service,
                         &mut activity,
                         SingleContext::new(None, in1.next_index),
+                        result_selector,
                     );
 
                     if srv_res.is_success() {
@@ -201,20 +223,27 @@ fn analyze_insertion_in_route(
     single: &Single,
     target: &mut Activity,
     init: SingleContext,
+    result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> SingleContext {
     unwrap_from_result(match insertion_idx {
         Some(idx) => {
             if let Some(concrete_leg) = route_ctx.route.tour.legs().nth(idx) {
-                analyze_insertion_in_route_leg(constraint, route_ctx, concrete_leg, single, target, init)
+                analyze_insertion_in_route_leg(
+                    constraint,
+                    route_ctx,
+                    concrete_leg,
+                    single,
+                    target,
+                    init,
+                    result_selector,
+                )
             } else {
                 Ok(init)
             }
         }
-        None => {
-            route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
-                analyze_insertion_in_route_leg(constraint, route_ctx, leg, single, target, out)
-            })
-        }
+        None => route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
+            analyze_insertion_in_route_leg(constraint, route_ctx, leg, single, target, out, result_selector)
+        }),
     })
 }
 
@@ -226,6 +255,7 @@ fn analyze_insertion_in_route_leg<'a>(
     single: &Single,
     target: &mut Activity,
     out: SingleContext,
+    result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> Result<SingleContext, SingleContext> {
     let (items, index) = leg;
     let (prev, next) = match items {
@@ -251,11 +281,11 @@ fn analyze_insertion_in_route_leg<'a>(
             }
 
             let costs = constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
+            let other_costs = in2.cost.unwrap_or(std::f64::MAX);
 
-            if costs < in2.cost.unwrap_or(std::f64::MAX) {
-                SingleContext::success(activity_ctx.index, costs, target.place.clone())
-            } else {
-                SingleContext::skip(in2)
+            match result_selector.select_cost(costs, other_costs) {
+                Either::Left => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
+                Either::Right => SingleContext::skip(in2),
             }
         })
     })

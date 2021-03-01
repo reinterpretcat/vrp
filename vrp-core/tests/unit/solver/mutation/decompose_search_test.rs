@@ -52,8 +52,9 @@ fn can_mutate() {
     let population = Box::new(Greedy::new(problem.clone(), 1, None));
 
     let refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone(), None);
-    let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment);
-    let decompose_search = DecomposeSearch::new(StaticSelective::create_default_mutation(problem.clone()), (2, 2), 10);
+    let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
+    let decompose_search =
+        DecomposeSearch::new(StaticSelective::create_default_mutation(problem.clone(), environment), (2, 2), 10);
 
     let result = decompose_search.mutate(&refinement_ctx, &insertion_ctx);
 

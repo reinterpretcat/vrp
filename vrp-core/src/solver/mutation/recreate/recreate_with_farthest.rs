@@ -46,7 +46,7 @@ impl Recreate for RecreateWithFarthest {
 struct FarthestResultSelector {}
 
 impl ResultSelector for FarthestResultSelector {
-    fn select(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+    fn select_insertion(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
         match (&left, &right) {
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => left,
             (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,

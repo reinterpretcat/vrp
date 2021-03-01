@@ -4,7 +4,7 @@ mod selectors_test;
 
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::utils::{map_reduce, Noise};
+use crate::utils::{map_reduce, Either, Noise};
 use rand::prelude::*;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
@@ -99,7 +99,7 @@ impl JobMapReducer for PairJobMapReducer {
                 )
             },
             InsertionResult::make_failure,
-            |a, b| self.result_selector.select(&ctx, a, b),
+            |a, b| self.result_selector.select_insertion(&ctx, a, b),
         )
     }
 }
@@ -107,7 +107,21 @@ impl JobMapReducer for PairJobMapReducer {
 /// Insertion result selector.
 pub trait ResultSelector {
     /// Selects one insertion result from two to promote as best.
-    fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult;
+    fn select_insertion(
+        &self,
+        ctx: &InsertionContext,
+        left: InsertionResult,
+        right: InsertionResult,
+    ) -> InsertionResult;
+
+    /// Selects one insertion result from two to promote as best.
+    fn select_cost(&self, left: f64, right: f64) -> Either {
+        if left < right {
+            Either::Left
+        } else {
+            Either::Right
+        }
+    }
 }
 
 /// Selects best result.
@@ -120,7 +134,7 @@ impl Default for BestResultSelector {
 }
 
 impl ResultSelector for BestResultSelector {
-    fn select(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+    fn select_insertion(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
         InsertionResult::choose_best_result(left, right)
     }
 }
@@ -138,7 +152,7 @@ impl NoiseResultSelector {
 }
 
 impl ResultSelector for NoiseResultSelector {
-    fn select(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
+    fn select_insertion(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
         match (&left, &right) {
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => left,
             (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,
@@ -153,6 +167,17 @@ impl ResultSelector for NoiseResultSelector {
                 }
             }
             _ => right,
+        }
+    }
+
+    fn select_cost(&self, left: f64, right: f64) -> Either {
+        let left = self.noise.add(left);
+        let right = self.noise.add(right);
+
+        if left < right {
+            Either::Left
+        } else {
+            Either::Right
         }
     }
 }

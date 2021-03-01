@@ -40,7 +40,7 @@ impl StaticSelective {
 
     /// Creates an instance of `StaticSelective` with default parameters.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
-        let default_mutation = Self::create_default_mutation(problem);
+        let default_mutation = Self::create_default_mutation(problem, environment.clone());
         let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
                 (Arc::new(ExchangeInterRouteBest::default()), 100),
@@ -89,17 +89,20 @@ impl StaticSelective {
     }
 
     /// Creates default mutation (ruin and recreate) with default parameters.
-    pub fn create_default_mutation(problem: Arc<Problem>) -> Arc<dyn Mutation + Send + Sync> {
+    pub fn create_default_mutation(
+        problem: Arc<Problem>,
+        environment: Arc<Environment>,
+    ) -> Arc<dyn Mutation + Send + Sync> {
         // initialize recreate
         let recreate = Arc::new(WeightedRecreate::new(vec![
             (Arc::new(RecreateWithSkipBest::new(1, 2)), 50),
             (Arc::new(RecreateWithRegret::new(2, 3)), 20),
             (Arc::new(RecreateWithCheapest::default()), 20),
-            (Arc::new(RecreateWithPerturbation::default()), 10),
+            (Arc::new(RecreateWithPerturbation::new_with_defaults(environment.random.clone())), 10),
             (Arc::new(RecreateWithSkipBest::new(3, 4)), 5),
             (Arc::new(RecreateWithGaps::default()), 5),
             // TODO use dimension size from problem
-            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::default()), 5),
+            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())), 5),
             (Arc::new(RecreateWithFarthest::default()), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8)), 2),
             (Arc::new(RecreateWithNearestNeighbor::default()), 1),

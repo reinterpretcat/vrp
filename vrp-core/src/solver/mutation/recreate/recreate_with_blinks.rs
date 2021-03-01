@@ -9,7 +9,7 @@ use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::RefinementContext;
-use crate::utils::compare_floats;
+use crate::utils::{compare_floats, Either, Random};
 use rand::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
@@ -113,18 +113,30 @@ impl JobSelector for RankedJobSelector {
 /// A recreate strategy with blinks inspired by "Slack Induction by String Removals for Vehicle
 /// Routing Problems", Jan Christiaens, Greet Vanden Berghe.
 struct BlinkResultSelector {
+    random: Arc<dyn Random + Send + Sync>,
     ratio: f64,
 }
 
-impl Default for BlinkResultSelector {
-    fn default() -> Self {
-        Self { ratio: 0.01 }
+impl BlinkResultSelector {
+    /// Creates an instance of `BlinkResultSelector`.
+    fn new(ratio: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self { random, ratio }
+    }
+
+    /// Creates an instance of `BlinkResultSelector` with default values.
+    fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self::new(0.01, random)
     }
 }
 
 impl ResultSelector for BlinkResultSelector {
-    fn select(&self, ctx: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {
-        let is_blink = ctx.environment.random.is_hit(self.ratio);
+    fn select_insertion(
+        &self,
+        ctx: &InsertionContext,
+        left: InsertionResult,
+        right: InsertionResult,
+    ) -> InsertionResult {
+        let is_blink = self.random.is_hit(self.ratio);
         let is_locked = match &right {
             InsertionResult::Success(success) => ctx.solution.locked.contains(&success.job),
             _ => false,
@@ -132,6 +144,16 @@ impl ResultSelector for BlinkResultSelector {
         match (&left, is_blink, is_locked) {
             (InsertionResult::Success(_), true, false) => left,
             _ => InsertionResult::choose_best_result(left, right),
+        }
+    }
+
+    fn select_cost(&self, left: f64, right: f64) -> Either {
+        let is_blink = self.random.is_hit(self.ratio);
+
+        if is_blink || left < right {
+            Either::Left
+        } else {
+            Either::Right
         }
     }
 }
@@ -147,30 +169,35 @@ pub struct RecreateWithBlinks<T: Load + Add<Output = T> + Sub<Output = T> + 'sta
 
 impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T> {
     /// Creates a new instance of `RecreateWithBlinks`.
-    pub fn new(selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>) -> Self {
+    pub fn new(
+        selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>,
+        random: Arc<dyn Random + Send + Sync>,
+    ) -> Self {
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
             job_reducer: Box::new(PairJobMapReducer::new(
                 Box::new(AllRouteSelector::default()),
-                Box::new(BlinkResultSelector::default()),
+                Box::new(BlinkResultSelector::new_with_defaults(random)),
             )),
             weights,
             phantom: PhantomData,
         }
     }
-}
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Default for RecreateWithBlinks<T> {
-    fn default() -> Self {
-        Self::new(vec![
-            (Box::new(AllJobSelector::default()), 10),
-            (Box::new(ChunkJobSelector::new(8)), 10),
-            (Box::new(DemandJobSelector::<T>::new(false)), 10),
-            (Box::new(DemandJobSelector::<T>::new(true)), 1),
-            (Box::new(RankedJobSelector::new(true)), 5),
-            (Box::new(RankedJobSelector::new(false)), 1),
-        ])
+    /// Creates a new instance of `RecreateWithBlinks` with default prameters.
+    pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self::new(
+            vec![
+                (Box::new(AllJobSelector::default()), 10),
+                (Box::new(ChunkJobSelector::new(8)), 10),
+                (Box::new(DemandJobSelector::<T>::new(false)), 10),
+                (Box::new(DemandJobSelector::<T>::new(true)), 1),
+                (Box::new(RankedJobSelector::new(true)), 5),
+                (Box::new(RankedJobSelector::new(false)), 1),
+            ],
+            random,
+        )
     }
 }
 

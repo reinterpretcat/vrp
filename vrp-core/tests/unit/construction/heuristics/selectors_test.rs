@@ -35,7 +35,8 @@ fn can_compare_insertion_result_with_noise_impl(
     let random = Arc::new(FakeRandom::new(vec![], reals));
     let noise = Noise::new(noise_probability, noise_range, random);
 
-    let actual_result = NoiseResultSelector::new(noise).select(&create_empty_insertion_context(), left, right);
+    let actual_result =
+        NoiseResultSelector::new(noise).select_insertion(&create_empty_insertion_context(), left, right);
 
     match (actual_result, expected_result) {
         (InsertionResult::Success(success), Some(cost)) => assert_eq!(success.cost, cost),

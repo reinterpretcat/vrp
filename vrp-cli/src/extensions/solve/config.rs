@@ -394,12 +394,12 @@ fn configure_from_evolution(
 ) -> Result<Builder, String> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
+            let environment = builder.config.environment.clone();
             builder = builder.with_init_params(
                 initial.size,
-                initial
-                    .methods
-                    .as_ref()
-                    .map(|methods| methods.iter().map(|method| create_recreate_method(method)).collect()),
+                initial.methods.as_ref().map(|methods| {
+                    methods.iter().map(|method| create_recreate_method(method, environment.clone())).collect()
+                }),
             );
         }
 
@@ -480,7 +480,7 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
                 let mutation_group = mutations
                     .iter()
                     .map(|mutation| {
-                        create_mutation(&builder.config.problem, builder.config.environment.random.clone(), mutation)
+                        create_mutation(&builder.config.problem, builder.config.environment.clone(), mutation)
                     })
                     .collect::<Result<Vec<_>, _>>()?;
                 let static_selective = vrp_core::solver::hyper::StaticSelective::new(mutation_group);
@@ -509,36 +509,45 @@ fn configure_from_termination(mut builder: Builder, termination_config: &Option<
     builder
 }
 
-fn create_recreate_method(method: &RecreateMethod) -> (Arc<dyn Recreate + Send + Sync>, usize) {
+fn create_recreate_method(
+    method: &RecreateMethod,
+    environment: Arc<Environment>,
+) -> (Arc<dyn Recreate + Send + Sync>, usize) {
     match method {
         RecreateMethod::Cheapest { weight } => (Arc::new(RecreateWithCheapest::default()), *weight),
         RecreateMethod::Farthest { weight } => (Arc::new(RecreateWithFarthest::default()), *weight),
         RecreateMethod::SkipBest { weight, start, end } => (Arc::new(RecreateWithSkipBest::new(*start, *end)), *weight),
-        RecreateMethod::Blinks { weight } => (Arc::new(RecreateWithBlinks::<SingleDimLoad>::default()), *weight),
+        RecreateMethod::Blinks { weight } => {
+            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())), *weight)
+        }
         RecreateMethod::Gaps { weight, min } => (Arc::new(RecreateWithGaps::new(*min)), *weight),
         RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::default()), *weight),
         RecreateMethod::Regret { weight, start, end } => (Arc::new(RecreateWithRegret::new(*start, *end)), *weight),
         RecreateMethod::Perturbation { weight, probability, min, max } => {
-            (Arc::new(RecreateWithPerturbation::new(*probability, *min, *max)), *weight)
+            (Arc::new(RecreateWithPerturbation::new(*probability, *min, *max, environment.random.clone())), *weight)
         }
     }
 }
 
 fn create_mutation(
     problem: &Arc<Problem>,
-    random: Arc<dyn Random + Send + Sync>,
+    environment: Arc<Environment>,
     mutation: &MutationType,
 ) -> Result<(Arc<dyn Mutation + Send + Sync>, MutationProbability), String> {
     Ok(match mutation {
         MutationType::RuinRecreate { probability, ruins, recreates } => {
             let ruin = Arc::new(WeightedRuin::new(ruins.iter().map(|g| create_ruin_group(problem, g)).collect()));
-            let recreate =
-                Arc::new(WeightedRecreate::new(recreates.iter().map(|r| create_recreate_method(r)).collect()));
-            (Arc::new(RuinAndRecreate::new(ruin, recreate)), create_mutation_probability(probability, random.clone()))
+            let recreate = Arc::new(WeightedRecreate::new(
+                recreates.iter().map(|r| create_recreate_method(r, environment.clone())).collect(),
+            ));
+            (
+                Arc::new(RuinAndRecreate::new(ruin, recreate)),
+                create_mutation_probability(probability, environment.random.clone()),
+            )
         }
         MutationType::LocalSearch { probability, times, operators: inners } => {
             let operator = create_local_search(times, inners);
-            (Arc::new(LocalSearch::new(operator)), create_mutation_probability(probability, random.clone()))
+            (Arc::new(LocalSearch::new(operator)), create_mutation_probability(probability, environment.random.clone()))
         }
         MutationType::Decomposition { routes, repeat, probability } => {
             if *repeat < 1 {
@@ -548,10 +557,11 @@ fn create_mutation(
                 return Err(format!("min routes must be greater than 2. Specified: {}", routes.min));
             }
 
-            let mutation = vrp_core::solver::hyper::StaticSelective::create_default_mutation(problem.clone());
+            let mutation =
+                vrp_core::solver::hyper::StaticSelective::create_default_mutation(problem.clone(), environment.clone());
             (
                 Arc::new(DecomposeSearch::new(mutation, (routes.min, routes.max), *repeat)),
-                create_mutation_probability(probability, random.clone()),
+                create_mutation_probability(probability, environment.random.clone()),
             )
         }
     })
