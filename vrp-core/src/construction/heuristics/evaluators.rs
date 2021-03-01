@@ -98,21 +98,14 @@ pub fn evaluate_job_constraint_in_route(
     position: InsertionPosition,
     route_costs: Cost,
     best_known_cost: Option<Cost>,
-    result_selector: &(dyn ResultSelector + Send + Sync),
+    r_selector: &(dyn ResultSelector + Send + Sync),
 ) -> InsertionResult {
     match job {
-        Job::Single(single) => evaluate_single(
-            job,
-            single,
-            constraint,
-            &route_ctx,
-            position,
-            route_costs,
-            best_known_cost,
-            result_selector,
-        ),
+        Job::Single(single) => {
+            evaluate_single(job, single, constraint, &route_ctx, position, route_costs, best_known_cost, r_selector)
+        }
         Job::Multi(multi) => {
-            evaluate_multi(job, multi, constraint, &route_ctx, position, route_costs, best_known_cost, result_selector)
+            evaluate_multi(job, multi, constraint, &route_ctx, position, route_costs, best_known_cost, r_selector)
         }
     }
 }
@@ -227,16 +220,8 @@ fn analyze_insertion_in_route(
 ) -> SingleContext {
     unwrap_from_result(match insertion_idx {
         Some(idx) => {
-            if let Some(concrete_leg) = route_ctx.route.tour.legs().nth(idx) {
-                analyze_insertion_in_route_leg(
-                    constraint,
-                    route_ctx,
-                    concrete_leg,
-                    single,
-                    target,
-                    init,
-                    result_selector,
-                )
+            if let Some(leg) = route_ctx.route.tour.legs().nth(idx) {
+                analyze_insertion_in_route_leg(constraint, route_ctx, leg, single, target, init, result_selector)
             } else {
                 Ok(init)
             }
