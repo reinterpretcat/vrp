@@ -115,7 +115,7 @@ pub trait ResultSelector {
     ) -> InsertionResult;
 
     /// Selects one insertion result from two to promote as best.
-    fn select_cost(&self, left: f64, right: f64) -> Either {
+    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either {
         if left < right {
             Either::Left
         } else {
@@ -170,7 +170,7 @@ impl ResultSelector for NoiseResultSelector {
         }
     }
 
-    fn select_cost(&self, left: f64, right: f64) -> Either {
+    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either {
         let left = self.noise.add(left);
         let right = self.noise.add(right);
 

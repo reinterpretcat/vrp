@@ -46,18 +46,20 @@ pub trait PolicyStrategy<S: State> {
     fn select(&self, estimates: &ActionEstimates<S>) -> Option<S::Action>;
 }
 
+type ActionEstimate<S> = (<S as State>::Action, f64);
+
 /// Keeps track of action estimation.
 pub struct ActionEstimates<S: State> {
     estimates: HashMap<S::Action, f64>,
-    max: Option<(S::Action, f64)>,
-    min: Option<(S::Action, f64)>,
+    max: Option<ActionEstimate<S>>,
+    min: Option<ActionEstimate<S>>,
 }
 
 impl<S: State> ActionEstimates<S> {
     /// Sets estimate for given action. Min-Max values are not updated and require a
     /// `recalculate_min_max` call.
     pub fn insert(&mut self, action: <S as State>::Action, estimate: f64) {
-        self.estimates.insert(action.clone(), estimate);
+        self.estimates.insert(action, estimate);
         // TODO optimize and call recalculate min max here
     }
 
@@ -102,12 +104,12 @@ impl<S: State> ActionEstimates<S> {
     }
 
     /// Returns a max estimate.
-    pub fn max_estimate(&self) -> Option<(S::Action, f64)> {
+    pub fn max_estimate(&self) -> Option<ActionEstimate<S>> {
         self.max.clone()
     }
 
     /// Returns a min estimate.
-    pub fn min_estimate(&self) -> Option<(S::Action, f64)> {
+    pub fn min_estimate(&self) -> Option<ActionEstimate<S>> {
         self.min.clone()
     }
 
@@ -116,7 +118,7 @@ impl<S: State> ActionEstimates<S> {
         &self.estimates
     }
 
-    fn get_min_max(map: &HashMap<S::Action, f64>) -> (Option<(S::Action, f64)>, Option<(S::Action, f64)>) {
+    fn get_min_max(map: &HashMap<S::Action, f64>) -> (Option<ActionEstimate<S>>, Option<ActionEstimate<S>>) {
         let max = map.iter().max_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
         let min = map.iter().min_by(|(_, a), (_, b)| compare_floats(**a, **b)).map(|(a, b)| (a.clone(), *b));
 
