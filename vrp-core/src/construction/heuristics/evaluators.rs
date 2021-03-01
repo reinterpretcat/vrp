@@ -110,6 +110,7 @@ pub fn evaluate_job_constraint_in_route(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn evaluate_single(
     job: &Job,
     single: &Arc<Single>,
@@ -143,6 +144,7 @@ fn evaluate_single(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn evaluate_multi(
     job: &Job,
     multi: &Arc<Multi>,
