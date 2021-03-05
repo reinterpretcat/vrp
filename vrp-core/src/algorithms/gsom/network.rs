@@ -16,8 +16,6 @@ pub struct Network<I: Input, S: Storage<Item = I>> {
     dimension: usize,
     /// Growth threshold.
     growing_threshold: f64,
-    /// The reduction factor of learning rate.
-    reduction_factor: f64,
     /// The factor of distribution (FD), used in error distribution stage, 0 < FD < 1
     distribution_factor: f64,
     /// Initial learning rate.
@@ -36,8 +34,6 @@ pub struct Network<I: Input, S: Storage<Item = I>> {
 pub struct NetworkConfig {
     /// A spread factor.
     pub spread_factor: f64,
-    /// The reduction factor of learning rate.
-    pub reduction_factor: f64,
     /// The factor of distribution (FD), used in error distribution stage, 0 < FD < 1
     pub distribution_factor: f64,
     /// Initial learning rate.
@@ -52,13 +48,11 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         let dimension = roots[0].weights().len();
 
         assert!(roots.iter().all(|r| r.weights().len() == dimension));
-        assert!(config.reduction_factor > 0. && config.reduction_factor < 1.);
         assert!(config.distribution_factor > 0. && config.distribution_factor < 1.);
 
         Self {
             dimension,
             growing_threshold: -1. * dimension as f64 * config.spread_factor.log2(),
-            reduction_factor: config.reduction_factor,
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
             nodes: Self::create_initial_nodes(roots, 0, config.rebalance_memory, &storage_factory),
@@ -196,7 +190,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
 
         // weight adjustments
         let mut node = node.write().unwrap();
-        let learning_rate = self.learning_rate * self.reduction_factor * (1. - 3.8 / (self.nodes.len() as f64));
+        let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
 
         node.adjust(input.weights(), learning_rate);
         (node.topology.neighbours().map(|n| n.write().unwrap())).for_each(|mut neighbor| {

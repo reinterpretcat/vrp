@@ -15,7 +15,6 @@
       "maxEliteSize": 2,
       "maxNodeSize": 2,
       "spreadFactor": 0.25,
-      "reductionFactor": 0.1,
       "distributionFactor": 0.25,
       "learningRate": 0.1,
       "rebalanceMemory": 500,

@@ -77,8 +77,6 @@ pub enum PopulationType {
         max_node_size: Option<usize>,
         /// Spread factor. Default is 0.25.
         spread_factor: Option<f64>,
-        /// The reduction factor. Default is 0.1.
-        reduction_factor: Option<f64>,
         /// Distribution factor. Default is 0.25.
         distribution_factor: Option<f64>,
         /// Learning rate. Default is 0.1.
@@ -422,7 +420,6 @@ fn configure_from_evolution(
                     max_elite_size,
                     max_node_size,
                     spread_factor,
-                    reduction_factor,
                     distribution_factor,
                     learning_rate,
                     selection_size,
@@ -442,9 +439,6 @@ fn configure_from_evolution(
                     }
                     if let Some(spread_factor) = spread_factor {
                         config.spread_factor = *spread_factor;
-                    }
-                    if let Some(reduction_factor) = reduction_factor {
-                        config.reduction_factor = *reduction_factor;
                     }
                     if let Some(distribution_factor) = distribution_factor {
                         config.distribution_factor = *distribution_factor;

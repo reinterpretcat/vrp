@@ -20,7 +20,7 @@ impl ExchangeIntraRouteRandom {
 
 impl Default for ExchangeIntraRouteRandom {
     fn default() -> Self {
-        Self::new(1., 0.5, 2.)
+        Self::new(0.05, 0.75, 1.25)
     }
 }
 

@@ -30,7 +30,6 @@ fn can_read_full_config() {
             max_elite_size,
             max_node_size,
             spread_factor,
-            reduction_factor,
             distribution_factor,
             learning_rate,
             rebalance_memory,
@@ -41,7 +40,6 @@ fn can_read_full_config() {
             assert_eq!(max_elite_size, Some(2));
             assert_eq!(max_node_size, Some(2));
             assert_eq!(spread_factor, Some(0.25));
-            assert_eq!(reduction_factor, Some(0.1));
             assert_eq!(distribution_factor, Some(0.25));
             assert_eq!(learning_rate, Some(0.1));
             assert_eq!(rebalance_memory, Some(500));

@@ -24,8 +24,6 @@ pub struct RosomaxaConfig {
     pub node_size: usize,
     /// Spread factor of GSOM.
     pub spread_factor: f64,
-    /// The reduction factor of GSOM.
-    pub reduction_factor: f64,
     /// Distribution factor of GSOM.
     pub distribution_factor: f64,
     /// Learning rate of GSOM.
@@ -47,7 +45,6 @@ impl RosomaxaConfig {
             elite_size: 2,
             node_size: 2,
             spread_factor: 0.25,
-            reduction_factor: 0.1,
             distribution_factor: 0.25,
             learning_rate: 0.1,
             rebalance_memory: 500,
@@ -292,7 +289,6 @@ impl Rosomaxa {
             *inputs_array,
             NetworkConfig {
                 spread_factor: config.spread_factor,
-                reduction_factor: config.reduction_factor,
                 distribution_factor: config.distribution_factor,
                 learning_rate: config.learning_rate,
                 rebalance_memory: config.rebalance_memory,

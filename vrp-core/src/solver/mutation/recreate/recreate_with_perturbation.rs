@@ -25,7 +25,7 @@ impl RecreateWithPerturbation {
 
     /// Creates a new instance of `RecreateWithPerturbation` with default values.
     pub fn new_with_defaults(random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self::new(0.33, 0.8, 1.2, random)
+        Self::new(0.05, 0.75, 1.25, random)
     }
 }
 

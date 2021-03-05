@@ -29,7 +29,7 @@ impl ExchangeInterRouteBest {
 
 impl Default for ExchangeInterRouteBest {
     fn default() -> Self {
-        Self::new(0.1, 0.9, 1.1)
+        Self::new(0.05, 0.75, 1.25)
     }
 }
 
@@ -53,7 +53,7 @@ impl ExchangeInterRouteRandom {
 
 impl Default for ExchangeInterRouteRandom {
     fn default() -> Self {
-        Self::new(0.1, 0.9, 1.1)
+        Self::new(0.1, 0.75, 1.25)
     }
 }
 
