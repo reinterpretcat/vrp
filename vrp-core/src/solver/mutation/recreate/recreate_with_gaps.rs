@@ -2,6 +2,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::recreate::Recreate;
+use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
 use rand::prelude::*;
 
@@ -25,20 +26,19 @@ impl JobSelector for GapsJobSelector {
 
 /// A recreate method which selects on each insertion step only subset of randomly chosen jobs.
 pub struct RecreateWithGaps {
-    job_selector: Box<dyn JobSelector + Send + Sync>,
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
-    insertion_heuristic: InsertionHeuristic,
+    recreate: ConfigurableRecreate,
 }
 
 impl RecreateWithGaps {
     /// Creates a new instance of `RecreateWithGaps`.
     pub fn new(min_jobs: usize) -> Self {
         Self {
-            job_selector: Box::new(GapsJobSelector { min_jobs }),
-            route_selector: Box::new(AllRouteSelector::default()),
-            result_selector: Box::new(BestResultSelector::default()),
-            insertion_heuristic: Default::default(),
+            recreate: ConfigurableRecreate::new(
+                Box::new(GapsJobSelector { min_jobs }),
+                Box::new(AllRouteSelector::default()),
+                Box::new(BestResultSelector::default()),
+                Default::default(),
+            ),
         }
     }
 }
@@ -51,12 +51,6 @@ impl Default for RecreateWithGaps {
 
 impl Recreate for RecreateWithGaps {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        self.insertion_heuristic.process(
-            insertion_ctx,
-            self.job_selector.as_ref(),
-            self.route_selector.as_ref(),
-            self.result_selector.as_ref(),
-            &refinement_ctx.quota,
-        )
+        self.recreate.run(refinement_ctx, insertion_ctx)
     }
 }

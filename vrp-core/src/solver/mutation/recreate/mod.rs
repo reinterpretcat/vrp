@@ -1,6 +1,6 @@
 //! The recreate module contains logic to build a feasible solution from partially ruined.
 
-use crate::construction::heuristics::InsertionContext;
+use crate::construction::heuristics::*;
 use crate::solver::RefinementContext;
 use std::sync::Arc;
 
@@ -52,5 +52,37 @@ impl Recreate for WeightedRecreate {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
         self.recreates.get(index).unwrap().run(refinement_ctx, insertion_ctx)
+    }
+}
+
+/// Provides way to reuse generic behaviour.
+pub struct ConfigurableRecreate {
+    job_selector: Box<dyn JobSelector + Send + Sync>,
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    insertion_heuristic: InsertionHeuristic,
+}
+
+impl ConfigurableRecreate {
+    /// Creates a new instance of `ConfigurableRecreate`.
+    pub fn new(
+        job_selector: Box<dyn JobSelector + Send + Sync>,
+        route_selector: Box<dyn RouteSelector + Send + Sync>,
+        result_selector: Box<dyn ResultSelector + Send + Sync>,
+        insertion_heuristic: InsertionHeuristic,
+    ) -> Self {
+        Self { job_selector, route_selector, result_selector, insertion_heuristic }
+    }
+}
+
+impl Recreate for ConfigurableRecreate {
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        self.insertion_heuristic.process(
+            insertion_ctx,
+            self.job_selector.as_ref(),
+            self.route_selector.as_ref(),
+            self.result_selector.as_ref(),
+            &refinement_ctx.quota,
+        )
     }
 }

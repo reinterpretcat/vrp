@@ -1,7 +1,7 @@
 use crate::construction::heuristics::*;
 use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
-use crate::solver::mutation::Recreate;
+use crate::solver::mutation::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
 use crate::utils::{compare_floats, parallel_collect, CollectGroupBy};
 use hashbrown::HashSet;
@@ -10,10 +10,7 @@ use hashbrown::HashSet;
 /// best and kth best route, where `k` is a user-defined parameter. Then it inserts the
 /// customer with the max difference in its least cost position.
 pub struct RecreateWithRegret {
-    job_selector: Box<dyn JobSelector + Send + Sync>,
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
-    insertion_heuristic: InsertionHeuristic,
+    recreate: ConfigurableRecreate,
 }
 
 impl Default for RecreateWithRegret {
@@ -24,13 +21,7 @@ impl Default for RecreateWithRegret {
 
 impl Recreate for RecreateWithRegret {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        self.insertion_heuristic.process(
-            insertion_ctx,
-            self.job_selector.as_ref(),
-            self.route_selector.as_ref(),
-            self.result_selector.as_ref(),
-            &refinement_ctx.quota,
-        )
+        self.recreate.run(refinement_ctx, insertion_ctx)
     }
 }
 
@@ -38,10 +29,12 @@ impl RecreateWithRegret {
     /// Creates a new instance of `RecreateWithRegret`.
     pub fn new(min: usize, max: usize) -> Self {
         Self {
-            job_selector: Box::new(AllJobSelector::default()),
-            route_selector: Box::new(AllRouteSelector::default()),
-            result_selector: Box::new(BestResultSelector::default()),
-            insertion_heuristic: InsertionHeuristic::new(Box::new(RegretInsertionEvaluator::new(min, max))),
+            recreate: ConfigurableRecreate::new(
+                Box::new(AllJobSelector::default()),
+                Box::new(AllRouteSelector::default()),
+                Box::new(BestResultSelector::default()),
+                InsertionHeuristic::new(Box::new(RegretInsertionEvaluator::new(min, max))),
+            ),
         }
     }
 }

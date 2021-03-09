@@ -1,26 +1,26 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::solver::mutation::recreate::Recreate;
+use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
 use crate::utils::{Either, Random};
 use std::sync::Arc;
 
 /// A recreate method which perturbs the cost by a factor to introduce randomization.
 pub struct RecreateWithPerturbation {
-    job_selector: Box<dyn JobSelector + Send + Sync>,
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
-    insertion_heuristic: InsertionHeuristic,
+    recreate: ConfigurableRecreate,
 }
 
 impl RecreateWithPerturbation {
     /// Creates a new instance of `RecreateWithPerturbation`.
     pub fn new(probability: f64, min: f64, max: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
-            job_selector: Box::new(AllJobSelector::default()),
-            route_selector: Box::new(AllRouteSelector::default()),
-            result_selector: Box::new(CostPerturbationResultSelector::new(probability, min, max, random)),
-            insertion_heuristic: Default::default(),
+            recreate: ConfigurableRecreate::new(
+                Box::new(AllJobSelector::default()),
+                Box::new(AllRouteSelector::default()),
+                Box::new(CostPerturbationResultSelector::new(probability, min, max, random)),
+                Default::default(),
+            ),
         }
     }
 
@@ -32,13 +32,7 @@ impl RecreateWithPerturbation {
 
 impl Recreate for RecreateWithPerturbation {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        self.insertion_heuristic.process(
-            insertion_ctx,
-            self.job_selector.as_ref(),
-            self.route_selector.as_ref(),
-            self.result_selector.as_ref(),
-            &refinement_ctx.quota,
-        )
+        self.recreate.run(refinement_ctx, insertion_ctx)
     }
 }
 
