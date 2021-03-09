@@ -155,9 +155,9 @@ fn test_job_insertion(
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> Option<InsertionSuccess> {
     let insertion = evaluate_job_insertion_in_route(
-        job,
         &insertion_ctx,
         &route,
+        job,
         InsertionPosition::Any,
         InsertionResult::make_failure(),
         result_selector,

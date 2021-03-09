@@ -11,7 +11,8 @@ use rand::prelude::*;
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
 pub trait RouteSelector {
     /// Returns routes for job insertion.
-    fn select<'a>(&'a self, ctx: &'a InsertionContext, job: &'a Job) -> Box<dyn Iterator<Item = RouteContext> + 'a>;
+    fn select<'a>(&'a self, ctx: &'a mut InsertionContext, jobs: &[Job])
+        -> Box<dyn Iterator<Item = RouteContext> + 'a>;
 }
 
 /// Returns a list of all possible routes for insertion.
@@ -24,7 +25,12 @@ impl Default for AllRouteSelector {
 }
 
 impl RouteSelector for AllRouteSelector {
-    fn select<'a>(&'a self, ctx: &'a InsertionContext, _job: &'a Job) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
+    fn select<'a>(
+        &'a self,
+        ctx: &'a mut InsertionContext,
+        _jobs: &[Job],
+    ) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
+        ctx.solution.routes.shuffle(&mut ctx.environment.random.get_rng());
         Box::new(ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next()))
     }
 }
@@ -53,53 +59,70 @@ impl JobSelector for AllJobSelector {
     }
 }
 
-/// A job collection reducer.
-pub trait JobMapReducer {
-    /// Reduces job collection into single insertion result
-    fn reduce<'a>(
-        &'a self,
-        ctx: &'a InsertionContext,
-        jobs: Vec<Job>,
-        insertion_position: InsertionPosition,
+/// Evaluates insertion.
+pub trait InsertionEvaluator {
+    /// Evaluates insertion of a single job into given collection of routes.
+    fn evaluate_one(
+        &self,
+        ctx: &InsertionContext,
+        job: &Job,
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> InsertionResult;
+
+    /// Evaluates insertion of a job collection into given collection of routes.
+    fn evaluate_all(
+        &self,
+        ctx: &InsertionContext,
+        jobs: &[Job],
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 }
 
-/// A job map reducer which compares pairs of insertion results and pick one from those.
-pub struct PairJobMapReducer {
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
+/// Evaluates job insertion in routes at given position.
+pub struct PositionInsertionEvaluator {
+    insertion_position: InsertionPosition,
 }
 
-impl PairJobMapReducer {
-    /// Creates a new instance of `PairJobMapReducer`.
-    pub fn new(
-        route_selector: Box<dyn RouteSelector + Send + Sync>,
-        result_selector: Box<dyn ResultSelector + Send + Sync>,
-    ) -> Self {
-        Self { route_selector, result_selector }
+impl Default for PositionInsertionEvaluator {
+    fn default() -> Self {
+        Self::new(InsertionPosition::Any)
     }
 }
 
-impl JobMapReducer for PairJobMapReducer {
-    fn reduce<'a>(
-        &'a self,
-        ctx: &'a InsertionContext,
-        jobs: Vec<Job>,
-        insertion_position: InsertionPosition,
+impl PositionInsertionEvaluator {
+    /// Creates a new instance of `PositionInsertionEvaluator`.
+    pub fn new(insertion_position: InsertionPosition) -> Self {
+        Self { insertion_position }
+    }
+}
+
+impl InsertionEvaluator for PositionInsertionEvaluator {
+    fn evaluate_one(
+        &self,
+        ctx: &InsertionContext,
+        job: &Job,
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> InsertionResult {
+        routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
+            evaluate_job_insertion_in_route(&ctx, &route_ctx, job, self.insertion_position, acc, result_selector)
+        })
+    }
+
+    fn evaluate_all(
+        &self,
+        ctx: &InsertionContext,
+        jobs: &[Job],
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         map_reduce(
-            &jobs,
-            |job| {
-                evaluate_job_insertion(
-                    &job,
-                    &ctx,
-                    self.route_selector.as_ref(),
-                    self.result_selector.as_ref(),
-                    insertion_position,
-                )
-            },
+            jobs,
+            |job| self.evaluate_one(ctx, job, routes, result_selector),
             InsertionResult::make_failure,
-            |a, b| self.result_selector.select_insertion(&ctx, a, b),
+            |a, b| result_selector.select_insertion(&ctx, a, b),
         )
     }
 }

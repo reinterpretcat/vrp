@@ -11,7 +11,9 @@ use hashbrown::HashSet;
 /// customer with the max difference in its least cost position.
 pub struct RecreateWithRegret {
     job_selector: Box<dyn JobSelector + Send + Sync>,
-    job_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    insertion_heuristic: InsertionHeuristic,
 }
 
 impl Default for RecreateWithRegret {
@@ -22,10 +24,11 @@ impl Default for RecreateWithRegret {
 
 impl Recreate for RecreateWithRegret {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::default().process(
-            self.job_selector.as_ref(),
-            self.job_reducer.as_ref(),
+        self.insertion_heuristic.process(
             insertion_ctx,
+            self.job_selector.as_ref(),
+            self.route_selector.as_ref(),
+            self.result_selector.as_ref(),
             &refinement_ctx.quota,
         )
     }
@@ -36,106 +39,93 @@ impl RecreateWithRegret {
     pub fn new(min: usize, max: usize) -> Self {
         Self {
             job_selector: Box::new(AllJobSelector::default()),
-            job_reducer: Box::new(RegretJobMapReducer::new(min, max)),
+            route_selector: Box::new(AllRouteSelector::default()),
+            result_selector: Box::new(BestResultSelector::default()),
+            insertion_heuristic: InsertionHeuristic::new(Box::new(RegretInsertionEvaluator::new(min, max))),
         }
     }
 }
 
-struct RegretJobMapReducer {
+struct RegretInsertionEvaluator {
     min: usize,
     max: usize,
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
-    inner_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    fallback_evaluator: Box<dyn InsertionEvaluator + Send + Sync>,
 }
 
-impl RegretJobMapReducer {
-    /// Creates a new instance of `RegretJobMapReducer`.
+impl RegretInsertionEvaluator {
+    /// Creates a new instance of `RegretInsertionEvaluator`.
     pub fn new(min: usize, max: usize) -> Self {
         assert!(min > 0);
         assert!(min <= max);
 
-        Self {
-            min,
-            max,
-            route_selector: Box::new(AllRouteSelector::default()),
-            result_selector: Box::new(BestResultSelector::default()),
-            inner_reducer: Box::new(PairJobMapReducer::new(
-                Box::new(AllRouteSelector::default()),
-                Box::new(BestResultSelector::default()),
-            )),
-        }
+        Self { min, max, fallback_evaluator: Box::new(PositionInsertionEvaluator::default()) }
     }
 }
 
-impl JobMapReducer for RegretJobMapReducer {
-    #[allow(clippy::let_and_return)]
-    fn reduce<'a>(
-        &'a self,
-        ctx: &'a InsertionContext,
-        jobs: Vec<Job>,
-        insertion_position: InsertionPosition,
+impl InsertionEvaluator for RegretInsertionEvaluator {
+    fn evaluate_one(
+        &self,
+        ctx: &InsertionContext,
+        job: &Job,
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> InsertionResult {
+        self.fallback_evaluator.evaluate_one(ctx, job, routes, result_selector)
+    }
+
+    fn evaluate_all(
+        &self,
+        ctx: &InsertionContext,
+        jobs: &[Job],
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         let regret_index = ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
 
         // NOTE no need to proceed with regret, fallback to more performant reducer
         if regret_index == 1 || jobs.len() == 1 || ctx.solution.routes.len() < 2 {
-            return self.inner_reducer.reduce(ctx, jobs, insertion_position);
+            return self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector);
         }
 
-        let mut results = parallel_collect(&jobs, |job| {
-            self.route_selector
-                .select(ctx, job)
-                .map(|route_ctx| {
-                    evaluate_job_insertion_in_route(
-                        job,
-                        ctx,
-                        &route_ctx,
-                        insertion_position,
-                        InsertionResult::make_failure(),
-                        self.result_selector.as_ref(),
-                    )
+        let mut results =
+            parallel_collect(&jobs, |job| self.fallback_evaluator.evaluate_one(ctx, job, routes, result_selector))
+                .into_iter()
+                .filter_map(|result| match result {
+                    InsertionResult::Success(success) => Some(success),
+                    _ => None,
                 })
-                .collect::<Vec<_>>()
-        })
-        .into_iter()
-        .flat_map(|results| results.into_iter())
-        .filter_map(|result| match result {
-            InsertionResult::Success(success) => Some(success),
-            _ => None,
-        })
-        .collect_group_by_key::<Job, InsertionSuccess, _>(|success| success.job.clone())
-        .into_iter()
-        .filter_map(|(_, mut success)| {
-            if success.len() < regret_index {
-                return None;
-            }
-
-            success.sort_by(|a, b| compare_floats(a.cost, b.cost));
-
-            let (_, mut job_results) = success.into_iter().fold(
-                (HashSet::with_capacity(ctx.solution.routes.len()), Vec::default()),
-                |(mut routes, mut results), result| {
-                    if !routes.contains(&result.context.route.actor) {
-                        results.push(result);
-                    } else {
-                        routes.insert(result.context.route.actor.clone());
+                .collect_group_by_key::<Job, InsertionSuccess, _>(|success| success.job.clone())
+                .into_iter()
+                .filter_map(|(_, mut success)| {
+                    if success.len() < regret_index {
+                        return None;
                     }
 
-                    (routes, results)
-                },
-            );
+                    success.sort_by(|a, b| compare_floats(a.cost, b.cost));
 
-            if regret_index < job_results.len() {
-                let worst = job_results.swap_remove(regret_index);
-                let best = job_results.swap_remove(0);
+                    let (_, mut job_results) = success.into_iter().fold(
+                        (HashSet::with_capacity(ctx.solution.routes.len()), Vec::default()),
+                        |(mut routes, mut results), result| {
+                            if !routes.contains(&result.context.route.actor) {
+                                results.push(result);
+                            } else {
+                                routes.insert(result.context.route.actor.clone());
+                            }
 
-                Some((worst.cost - best.cost, best))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
+                            (routes, results)
+                        },
+                    );
+
+                    if regret_index < job_results.len() {
+                        let worst = job_results.swap_remove(regret_index);
+                        let best = job_results.swap_remove(0);
+
+                        Some((worst.cost - best.cost, best))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
 
         if !results.is_empty() {
             results.sort_by(|a, b| compare_floats(b.0, a.0));
@@ -144,7 +134,7 @@ impl JobMapReducer for RegretJobMapReducer {
 
             InsertionResult::Success(best_success)
         } else {
-            self.inner_reducer.reduce(ctx, jobs, insertion_position)
+            return self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector);
         }
     }
 }

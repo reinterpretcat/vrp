@@ -6,37 +6,29 @@ use crate::solver::RefinementContext;
 /// A recreate method which is equivalent to cheapest insertion heuristic.
 pub struct RecreateWithCheapest {
     job_selector: Box<dyn JobSelector + Send + Sync>,
-    job_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    insertion_heuristic: InsertionHeuristic,
 }
 
 impl Default for RecreateWithCheapest {
     fn default() -> Self {
-        Self::new(
-            Box::new(AllJobSelector::default()),
-            Box::new(PairJobMapReducer::new(
-                Box::new(AllRouteSelector::default()),
-                Box::new(BestResultSelector::default()),
-            )),
-        )
-    }
-}
-
-impl RecreateWithCheapest {
-    /// Creates a new instance of `RecreateWithCheapest`.
-    pub fn new(
-        job_selector: Box<dyn JobSelector + Send + Sync>,
-        job_reducer: Box<dyn JobMapReducer + Send + Sync>,
-    ) -> Self {
-        Self { job_selector, job_reducer }
+        Self {
+            job_selector: Box::new(AllJobSelector::default()),
+            route_selector: Box::new(AllRouteSelector::default()),
+            result_selector: Box::new(BestResultSelector::default()),
+            insertion_heuristic: Default::default(),
+        }
     }
 }
 
 impl Recreate for RecreateWithCheapest {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::default().process(
-            self.job_selector.as_ref(),
-            self.job_reducer.as_ref(),
+        self.insertion_heuristic.process(
             insertion_ctx,
+            self.job_selector.as_ref(),
+            self.route_selector.as_ref(),
+            self.result_selector.as_ref(),
             &refinement_ctx.quota,
         )
     }

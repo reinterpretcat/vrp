@@ -162,7 +162,9 @@ impl ResultSelector for BlinkResultSelector {
 /// Vehicle Routing Problems" (aka SISR) paper by Jan Christiaens, Greet Vanden Berghe.
 pub struct RecreateWithBlinks<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
-    job_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    insertion_heuristic: InsertionHeuristic,
     weights: Vec<usize>,
     phantom: PhantomData<T>,
 }
@@ -176,10 +178,9 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T
         let weights = selectors.iter().map(|(_, weight)| *weight).collect();
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
-            job_reducer: Box::new(PairJobMapReducer::new(
-                Box::new(AllRouteSelector::default()),
-                Box::new(BlinkResultSelector::new_with_defaults(random)),
-            )),
+            route_selector: Box::new(AllRouteSelector::default()),
+            result_selector: Box::new(BlinkResultSelector::new_with_defaults(random)),
+            insertion_heuristic: Default::default(),
             weights,
             phantom: PhantomData,
         }
@@ -204,11 +205,13 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T
 impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Recreate for RecreateWithBlinks<T> {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
-        let job_selector = self.job_selectors.get(index).unwrap();
-        InsertionHeuristic::default().process(
-            job_selector.as_ref(),
-            self.job_reducer.as_ref(),
+        let job_selector = self.job_selectors.get(index).unwrap().as_ref();
+
+        self.insertion_heuristic.process(
             insertion_ctx,
+            job_selector,
+            self.route_selector.as_ref(),
+            self.result_selector.as_ref(),
             &refinement_ctx.quota,
         )
     }

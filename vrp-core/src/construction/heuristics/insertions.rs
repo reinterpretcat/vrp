@@ -1,10 +1,8 @@
-use crate::construction::heuristics::evaluators::InsertionPosition;
-use crate::construction::heuristics::{InsertionContext, JobMapReducer, JobSelector, RouteContext};
+use crate::construction::heuristics::*;
 use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::solution::Activity;
-use rand::prelude::SliceRandom;
 use std::sync::Arc;
 
 /// Specifies insertion result variant.
@@ -41,32 +39,34 @@ pub struct InsertionFailure {
 }
 
 /// Implements generalized insertion heuristic.
-/// Using `JobSelector` and `ResultSelector`, it tries to identify next job to be inserted until
-/// there are no jobs left or it is not possible to insert due to constraint limitations.
+/// Using `JobSelector`, `RouteSelector`, and `ResultSelector` it tries to identify next job to
+/// be inserted until there are no jobs left or it is not possible to insert due to constraint
+/// limitations.
 pub struct InsertionHeuristic {
-    insertion_position: InsertionPosition,
+    insertion_evaluator: Box<dyn InsertionEvaluator + Send + Sync>,
 }
 
 impl Default for InsertionHeuristic {
     fn default() -> Self {
-        InsertionHeuristic::new(InsertionPosition::Any)
+        InsertionHeuristic::new(Box::new(PositionInsertionEvaluator::default()))
     }
 }
 
 impl InsertionHeuristic {
     /// Creates a new instance of `InsertionHeuristic`.
-    pub fn new(insertion_position: InsertionPosition) -> Self {
-        Self { insertion_position }
+    pub fn new(insertion_evaluator: Box<dyn InsertionEvaluator + Send + Sync>) -> Self {
+        Self { insertion_evaluator }
     }
 }
 
 impl InsertionHeuristic {
-    /// Runs common insertion heuristic algorithm using given selector and reducer specializations.
+    /// Runs common insertion heuristic algorithm using given selector specializations.
     pub fn process(
         &self,
-        job_selector: &(dyn JobSelector + Send + Sync),
-        job_reducer: &(dyn JobMapReducer + Send + Sync),
         ctx: InsertionContext,
+        job_selector: &(dyn JobSelector + Send + Sync),
+        route_selector: &(dyn RouteSelector + Send + Sync),
+        result_selector: &(dyn ResultSelector + Send + Sync),
         quota: &Option<Arc<dyn Quota + Send + Sync>>,
     ) -> InsertionContext {
         let mut ctx = ctx;
@@ -74,10 +74,11 @@ impl InsertionHeuristic {
         prepare_insertion_ctx(&mut ctx);
 
         while !ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
-            ctx.solution.routes.shuffle(&mut ctx.environment.random.get_rng());
-
             let jobs = job_selector.select(&mut ctx).collect::<Vec<Job>>();
-            let result = job_reducer.reduce(&ctx, jobs, self.insertion_position);
+            let routes = route_selector.select(&mut ctx, jobs.as_slice()).collect::<Vec<RouteContext>>();
+
+            let result =
+                self.insertion_evaluator.evaluate_all(&ctx, jobs.as_slice(), routes.as_slice(), result_selector);
 
             apply_insertion_result(&mut ctx, result);
         }

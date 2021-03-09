@@ -26,7 +26,9 @@ impl JobSelector for GapsJobSelector {
 /// A recreate method which selects on each insertion step only subset of randomly chosen jobs.
 pub struct RecreateWithGaps {
     job_selector: Box<dyn JobSelector + Send + Sync>,
-    job_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    insertion_heuristic: InsertionHeuristic,
 }
 
 impl RecreateWithGaps {
@@ -34,10 +36,9 @@ impl RecreateWithGaps {
     pub fn new(min_jobs: usize) -> Self {
         Self {
             job_selector: Box::new(GapsJobSelector { min_jobs }),
-            job_reducer: Box::new(PairJobMapReducer::new(
-                Box::new(AllRouteSelector::default()),
-                Box::new(BestResultSelector::default()),
-            )),
+            route_selector: Box::new(AllRouteSelector::default()),
+            result_selector: Box::new(BestResultSelector::default()),
+            insertion_heuristic: Default::default(),
         }
     }
 }
@@ -50,10 +51,11 @@ impl Default for RecreateWithGaps {
 
 impl Recreate for RecreateWithGaps {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::default().process(
-            self.job_selector.as_ref(),
-            self.job_reducer.as_ref(),
+        self.insertion_heuristic.process(
             insertion_ctx,
+            self.job_selector.as_ref(),
+            self.route_selector.as_ref(),
+            self.result_selector.as_ref(),
             &refinement_ctx.quota,
         )
     }

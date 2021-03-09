@@ -9,7 +9,9 @@ use std::cmp::Ordering::*;
 /// A recreate strategy which skips best job insertion for insertion.
 pub struct RecreateWithSkipBest {
     job_selector: Box<dyn JobSelector + Send + Sync>,
-    job_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    insertion_heuristic: InsertionHeuristic,
 }
 
 impl Default for RecreateWithSkipBest {
@@ -20,10 +22,11 @@ impl Default for RecreateWithSkipBest {
 
 impl Recreate for RecreateWithSkipBest {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::default().process(
-            self.job_selector.as_ref(),
-            self.job_reducer.as_ref(),
+        self.insertion_heuristic.process(
             insertion_ctx,
+            self.job_selector.as_ref(),
+            self.route_selector.as_ref(),
+            self.result_selector.as_ref(),
             &refinement_ctx.quota,
         )
     }
@@ -34,63 +37,57 @@ impl RecreateWithSkipBest {
     pub fn new(min: usize, max: usize) -> Self {
         Self {
             job_selector: Box::new(AllJobSelector::default()),
-            job_reducer: Box::new(SkipBestJobMapReducer::new(min, max)),
+            route_selector: Box::new(AllRouteSelector::default()),
+            result_selector: Box::new(BestResultSelector::default()),
+            insertion_heuristic: InsertionHeuristic::new(Box::new(SkipBestInsertionEvaluator::new(min, max))),
         }
     }
 }
 
-struct SkipBestJobMapReducer {
+struct SkipBestInsertionEvaluator {
     min: usize,
     max: usize,
-    route_selector: Box<dyn RouteSelector + Send + Sync>,
-    result_selector: Box<dyn ResultSelector + Send + Sync>,
-    inner_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    fallback_evaluator: Box<dyn InsertionEvaluator + Send + Sync>,
 }
 
-impl SkipBestJobMapReducer {
-    /// Creates a new instance of `SkipBestJobMapReducer`.
+impl SkipBestInsertionEvaluator {
+    /// Creates a new instance of `SkipBestInsertionEvaluator`.
     pub fn new(min: usize, max: usize) -> Self {
         assert!(min > 0);
         assert!(min <= max);
 
-        Self {
-            min,
-            max,
-            route_selector: Box::new(AllRouteSelector::default()),
-            result_selector: Box::new(BestResultSelector::default()),
-            inner_reducer: Box::new(PairJobMapReducer::new(
-                Box::new(AllRouteSelector::default()),
-                Box::new(BestResultSelector::default()),
-            )),
-        }
+        Self { min, max, fallback_evaluator: Box::new(PositionInsertionEvaluator::default()) }
     }
 }
 
-impl JobMapReducer for SkipBestJobMapReducer {
-    #[allow(clippy::let_and_return)]
-    fn reduce<'a>(
-        &'a self,
-        ctx: &'a InsertionContext,
-        jobs: Vec<Job>,
-        insertion_position: InsertionPosition,
+impl InsertionEvaluator for SkipBestInsertionEvaluator {
+    fn evaluate_one(
+        &self,
+        ctx: &InsertionContext,
+        job: &Job,
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> InsertionResult {
+        self.fallback_evaluator.evaluate_one(ctx, job, routes, result_selector)
+    }
+
+    fn evaluate_all(
+        &self,
+        ctx: &InsertionContext,
+        jobs: &[Job],
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         let skip_index = ctx.environment.random.uniform_int(self.min as i32, self.max as i32);
 
         // NOTE no need to proceed with skip, fallback to more performant reducer
         if skip_index == 1 || jobs.len() == 1 {
-            return self.inner_reducer.reduce(ctx, jobs, insertion_position);
+            return self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector);
         }
 
-        let mut results = parallel_collect(&jobs, |job| {
-            evaluate_job_insertion(
-                &job,
-                &ctx,
-                self.route_selector.as_ref(),
-                self.result_selector.as_ref(),
-                insertion_position,
-            )
-        });
+        let mut results = parallel_collect(&jobs, |job| self.evaluate_one(ctx, job, routes, result_selector));
 
+        // TODO use result_selector?
         results.sort_by(|a, b| match (a, b) {
             (InsertionResult::Success(a), InsertionResult::Success(b)) => a.cost.partial_cmp(&b.cost).unwrap_or(Less),
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => Less,

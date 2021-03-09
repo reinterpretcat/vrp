@@ -1,4 +1,3 @@
-use crate::construction::heuristics::evaluators::evaluate_job_insertion;
 use crate::construction::heuristics::*;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::construction::heuristics::{create_insertion_context, create_test_insertion_context};
@@ -20,6 +19,20 @@ fn create_activity_at(loc_and_time: usize) -> Activity {
         .place(Place { location: loc_and_time, duration: 0.0, time: DEFAULT_JOB_TIME_SPAN.to_time_window(0.) })
         .schedule(Schedule { arrival: loc_and_time as Timestamp, departure: loc_and_time as Timestamp })
         .build()
+}
+
+fn evaluate_job_insertion(
+    ctx: &mut InsertionContext,
+    job: &Job,
+    insertion_position: InsertionPosition,
+) -> InsertionResult {
+    let result_selector = BestResultSelector::default();
+    let route_selector = AllRouteSelector::default();
+    let routes = route_selector.select(ctx, vec![].as_slice()).collect::<Vec<_>>();
+
+    routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
+        evaluate_job_insertion_in_route(&ctx, &route_ctx, job, insertion_position, acc, &result_selector)
+    })
 }
 
 mod single {
@@ -46,10 +59,9 @@ mod single {
     }
 
     fn can_insert_job_with_location_into_empty_tour_impl(job: Job, position: InsertionPosition, has_result: bool) {
-        let ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_context(create_test_registry());
 
-        let result =
-            evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), &BestResultSelector::default(), position);
+        let result = evaluate_job_insertion(&mut ctx, &job, position);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -91,19 +103,17 @@ mod single {
 
     fn can_insert_job_with_location_into_tour_with_two_activities_and_variations_impl(
         job: Job,
-        position: InsertionPosition,
+        insertion_position: InsertionPosition,
         location: Location,
         index: usize,
     ) {
         let registry = create_test_registry();
         let mut route_ctx = RouteContext::new(registry.next().next().unwrap());
         route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
-        let routes = vec![route_ctx];
         let constraint = create_constraint_pipeline_with_transport();
-        let ctx = create_insertion_context(registry, constraint, routes);
+        let mut ctx = create_insertion_context(registry, constraint, vec![route_ctx]);
 
-        let result =
-            evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), &BestResultSelector::default(), position);
+        let result = evaluate_job_insertion(&mut ctx, &job, insertion_position);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -166,15 +176,9 @@ mod single {
             test_random(),
         );
         let job = Job::Single(test_single_with_location(Some(job_location)));
-        let ctx = create_test_insertion_context(registry);
+        let mut ctx = create_test_insertion_context(registry);
 
-        let result = evaluate_job_insertion(
-            &job,
-            &ctx,
-            &AllRouteSelector::default(),
-            &BestResultSelector::default(),
-            InsertionPosition::Any,
-        );
+        let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.activities.len(), 1);
@@ -188,15 +192,9 @@ mod single {
     #[test]
     fn can_detect_and_return_insertion_violation() {
         let job = Job::Single(test_single_with_location(Some(1111)));
-        let ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(
-            &job,
-            &ctx,
-            &AllRouteSelector::default(),
-            &BestResultSelector::default(),
-            InsertionPosition::Any,
-        );
+        let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
@@ -226,15 +224,9 @@ mod multi {
             .job(SingleBuilder::default().id("s1").location(Some(3)).build())
             .job(SingleBuilder::default().id("s2").location(Some(7)).build())
             .build();
-        let ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(
-            &job,
-            &ctx,
-            &AllRouteSelector::default(),
-            &BestResultSelector::default(),
-            InsertionPosition::Any,
-        );
+        let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, 28.0);
@@ -258,15 +250,9 @@ mod multi {
             job.job(SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build());
         });
         let job = job.build();
-        let ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_context(create_test_registry());
 
-        let result = evaluate_job_insertion(
-            &job,
-            &ctx,
-            &AllRouteSelector::default(),
-            &BestResultSelector::default(),
-            InsertionPosition::Any,
-        );
+        let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Failure(failure) = result {
             assert_eq!(failure.constraint, 1);
@@ -310,15 +296,14 @@ mod multi {
         });
         let routes = vec![route_ctx];
         let constraint = create_constraint_pipeline_with_transport();
-        let ctx = create_insertion_context(registry, constraint, routes);
+        let mut ctx = create_insertion_context(registry, constraint, routes);
         let mut job = MultiBuilder::default();
         expected.iter().zip(0usize..).for_each(|((_, loc), index)| {
             job.job(SingleBuilder::default().id(&index.to_string()).location(Some(*loc)).build());
         });
         let job = job.build();
 
-        let result =
-            evaluate_job_insertion(&job, &ctx, &AllRouteSelector::default(), &BestResultSelector::default(), position);
+        let result = evaluate_job_insertion(&mut ctx, &job, position);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, cost);
@@ -331,20 +316,14 @@ mod multi {
 
     #[test]
     fn can_choose_cheaper_permutation_from_two() {
-        let ctx = create_test_insertion_context(create_test_registry());
+        let mut ctx = create_test_insertion_context(create_test_registry());
         let job = MultiBuilder::new_with_permutations(vec![vec![0, 1, 2], vec![1, 0, 2], vec![2, 1, 0]])
             .job(SingleBuilder::default().id("s1").location(Some(10)).build())
             .job(SingleBuilder::default().id("s2").location(Some(5)).build())
             .job(SingleBuilder::default().id("s3").location(Some(15)).build())
             .build();
 
-        let result = evaluate_job_insertion(
-            &job,
-            &ctx,
-            &AllRouteSelector::default(),
-            &BestResultSelector::default(),
-            InsertionPosition::Any,
-        );
+        let result = evaluate_job_insertion(&mut ctx, &job, InsertionPosition::Any);
 
         if let InsertionResult::Success(success) = result {
             assert_eq!(success.cost, 60.0);

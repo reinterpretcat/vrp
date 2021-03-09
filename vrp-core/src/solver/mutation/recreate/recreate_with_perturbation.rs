@@ -8,7 +8,9 @@ use std::sync::Arc;
 /// A recreate method which perturbs the cost by a factor to introduce randomization.
 pub struct RecreateWithPerturbation {
     job_selector: Box<dyn JobSelector + Send + Sync>,
-    job_reducer: Box<dyn JobMapReducer + Send + Sync>,
+    route_selector: Box<dyn RouteSelector + Send + Sync>,
+    result_selector: Box<dyn ResultSelector + Send + Sync>,
+    insertion_heuristic: InsertionHeuristic,
 }
 
 impl RecreateWithPerturbation {
@@ -16,10 +18,9 @@ impl RecreateWithPerturbation {
     pub fn new(probability: f64, min: f64, max: f64, random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             job_selector: Box::new(AllJobSelector::default()),
-            job_reducer: Box::new(PairJobMapReducer::new(
-                Box::new(AllRouteSelector::default()),
-                Box::new(CostPerturbationResultSelector::new(probability, min, max, random)),
-            )),
+            route_selector: Box::new(AllRouteSelector::default()),
+            result_selector: Box::new(CostPerturbationResultSelector::new(probability, min, max, random)),
+            insertion_heuristic: Default::default(),
         }
     }
 
@@ -31,10 +32,11 @@ impl RecreateWithPerturbation {
 
 impl Recreate for RecreateWithPerturbation {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        InsertionHeuristic::default().process(
-            self.job_selector.as_ref(),
-            self.job_reducer.as_ref(),
+        self.insertion_heuristic.process(
             insertion_ctx,
+            self.job_selector.as_ref(),
+            self.route_selector.as_ref(),
+            self.result_selector.as_ref(),
             &refinement_ctx.quota,
         )
     }

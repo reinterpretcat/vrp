@@ -23,26 +23,12 @@ pub enum InsertionPosition {
     Last,
 }
 
-/// Evaluates possibility to preform insertion from given insertion context in all available
-/// routes at given position constraint.
-pub fn evaluate_job_insertion(
-    job: &Job,
-    ctx: &InsertionContext,
-    route_selector: &(dyn RouteSelector + Send + Sync),
-    result_selector: &(dyn ResultSelector + Send + Sync),
-    position: InsertionPosition,
-) -> InsertionResult {
-    route_selector.select(ctx, job).fold(InsertionResult::make_failure(), |acc, route_ctx| {
-        evaluate_job_insertion_in_route(job, ctx, &route_ctx, position, acc, result_selector)
-    })
-}
-
 /// Evaluates possibility to preform insertion from given insertion context in given route
 /// at given position constraint.
 pub fn evaluate_job_insertion_in_route(
-    job: &Job,
     ctx: &InsertionContext,
     route_ctx: &RouteContext,
+    job: &Job,
     position: InsertionPosition,
     alternative: InsertionResult,
     result_selector: &(dyn ResultSelector + Send + Sync),

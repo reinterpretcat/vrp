@@ -3,7 +3,7 @@
 mod context_test;
 
 use crate::algorithms::nsga2::MultiObjective;
-use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
+use crate::construction::constraints::*;
 use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
 use crate::models::problem::*;
@@ -169,8 +169,8 @@ pub struct RouteContext {
     /// Insertion state.
     pub state: Arc<RouteState>,
 
-    /// A flag which is used to signalize that context was touched as mutable.
-    stale: Arc<StaleState>,
+    /// A route cache.
+    cache: Arc<RouteCache>,
 }
 
 /// Provides the way to associate arbitrary data within route and activity.
@@ -189,7 +189,7 @@ impl RouteContext {
 
     /// Creates a new instance of `RouteContext` with arguments provided.
     pub fn new_with_state(route: Arc<Route>, state: Arc<RouteState>) -> Self {
-        RouteContext { route, state, stale: Arc::new(StaleState { is_stale: true }) }
+        RouteContext { route, state, cache: Arc::new(RouteCache { is_stale: true }) }
     }
 
     /// Creates a deep copy of `RouteContext`.
@@ -217,7 +217,7 @@ impl RouteContext {
         RouteContext {
             route: Arc::new(new_route),
             state: Arc::new(new_state),
-            stale: Arc::new(StaleState { is_stale: self.stale.is_stale }),
+            cache: Arc::new(RouteCache { is_stale: self.cache.is_stale }),
         }
     }
 
@@ -269,13 +269,13 @@ impl RouteContext {
     /// Returns true if context is stale. Context is marked stale when it is accessed by `mut`
     /// methods. A general motivation of the flag is to avoid recalculating non-changed states.
     pub fn is_stale(&self) -> bool {
-        self.stale.is_stale
+        self.cache.is_stale
     }
 
     /// Marks context stale or resets the flag.
     pub(crate) fn mark_stale(&mut self, is_stale: bool) {
-        let stale: &mut StaleState = unsafe { as_mut(&self.stale) };
-        stale.is_stale = is_stale;
+        let cache: &mut RouteCache = unsafe { as_mut(&self.cache) };
+        cache.is_stale = is_stale;
     }
 }
 
@@ -372,8 +372,8 @@ impl RouteState {
     }
 }
 
-struct StaleState {
-    pub is_stale: bool,
+struct RouteCache {
+    is_stale: bool,
 }
 
 /// A wrapper around route context modifier function.
