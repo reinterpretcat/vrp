@@ -134,7 +134,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
 
             InsertionResult::Success(best_success)
         } else {
-            return self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector);
+            self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector)
         }
     }
 }
