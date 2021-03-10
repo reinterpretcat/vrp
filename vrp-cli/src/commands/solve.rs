@@ -434,7 +434,7 @@ fn check_solution(matches: &ArgMatches) {
     let result = check_pragmatic_solution(problem_file, solution_file, matrix_files);
 
     if let Err(err) = result {
-        eprintln!("{}", err);
+        eprintln!("checker found {} errors:\n{}", err.len(), err.join("\n"));
         process::exit(1);
     } else {
         println!("solution feasibility check is completed successfully");

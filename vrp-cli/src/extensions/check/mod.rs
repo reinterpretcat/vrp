@@ -14,7 +14,7 @@ pub fn check_pragmatic_solution<F: Read>(
     problem_reader: BufReader<F>,
     solution_reader: BufReader<F>,
     matrices_readers: Option<Vec<BufReader<F>>>,
-) -> Result<(), String> {
+) -> Result<(), Vec<String>> {
     let problem = deserialize_problem(problem_reader).unwrap_or_else(|errs| {
         eprintln!("cannot read problem: '{}'", FormatError::format_many(&errs, ","));
         process::exit(1);

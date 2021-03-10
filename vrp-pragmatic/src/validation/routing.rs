@@ -3,6 +3,7 @@
 mod routing_test;
 
 use super::*;
+use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 
 /// Checks that no duplicated profile names specified.

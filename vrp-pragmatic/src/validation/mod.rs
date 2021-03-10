@@ -86,16 +86,6 @@ impl<'a> ValidationContext<'a> {
     }
 }
 
-fn combine_error_results(results: &[Result<(), FormatError>]) -> Result<(), Vec<FormatError>> {
-    let errors = results.iter().cloned().flat_map(|result| result.err().into_iter()).collect::<Vec<FormatError>>();
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
-}
-
 fn is_reserved_job_id(job_id: &str) -> bool {
     job_id == "departure" || job_id == "arrival" || job_id == "break" || job_id == "reload" || job_id == "dispatch"
 }

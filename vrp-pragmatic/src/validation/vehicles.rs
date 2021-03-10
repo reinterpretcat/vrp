@@ -4,6 +4,7 @@ mod vehicles_test;
 
 use super::*;
 use crate::parse_time;
+use crate::utils::combine_error_results;
 use crate::validation::common::get_time_windows;
 use hashbrown::HashSet;
 use std::cmp::Ordering;

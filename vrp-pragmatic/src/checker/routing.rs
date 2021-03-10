@@ -5,9 +5,14 @@ mod routing_test;
 use super::*;
 use crate::format::CoordIndex;
 use crate::format_time;
+use crate::utils::combine_error_results;
 
 /// Checks that matrix routing information is used properly.
-pub fn check_routing(context: &CheckerContext) -> Result<(), String> {
+pub fn check_routing(context: &CheckerContext) -> Result<(), Vec<String>> {
+    combine_error_results(&[check_routing_rules(context)])
+}
+
+fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
     if context.matrices.as_ref().map_or(true, |m| m.is_empty()) {
         return Ok(());
     }

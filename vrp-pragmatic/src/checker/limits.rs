@@ -3,13 +3,11 @@
 mod limits_test;
 
 use super::*;
+use crate::utils::combine_error_results;
 
 /// NOTE to ensure distance/duration correctness, routing check should be performed first.
-pub fn check_limits(context: &CheckerContext) -> Result<(), String> {
-    check_shift_limits(context)?;
-    check_shift_time(context)?;
-
-    Ok(())
+pub fn check_limits(context: &CheckerContext) -> Result<(), Vec<String>> {
+    combine_error_results(&[check_shift_limits(context), check_shift_time(context)])
 }
 
 /// Check that shift limits are not violated:

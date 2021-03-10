@@ -3,10 +3,15 @@
 mod relations_test;
 
 use super::*;
+use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 
 /// Checks relation rules.
-pub fn check_relations(context: &CheckerContext) -> Result<(), String> {
+pub fn check_relations(context: &CheckerContext) -> Result<(), Vec<String>> {
+    combine_error_results(&[check_relations_assignment(context)])
+}
+
+fn check_relations_assignment(context: &CheckerContext) -> Result<(), String> {
     let reserved_ids = vec!["departure", "arrival", "break", "dispatch", "reload"].into_iter().collect::<HashSet<_>>();
 
     (0_usize..)

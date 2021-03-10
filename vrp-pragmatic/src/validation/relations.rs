@@ -3,6 +3,7 @@
 mod relations_test;
 
 use super::*;
+use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 
 /// Checks that relation job ids are defined in plan.

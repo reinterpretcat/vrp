@@ -91,7 +91,12 @@ fn get_core_solution<F: Fn(Arc<CoreProblem>) -> CoreSolution>(
                 .check()
                 .err()
         {
-            panic!("check failed: '{}', problem: {:?}, solution: {:?}", err, format_problem, format_solution);
+            panic!(
+                "check failed: '{}', problem: {:?}, solution: {:?}",
+                err.join("\n"),
+                format_problem,
+                format_solution
+            );
         }
     }
 

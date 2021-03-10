@@ -44,15 +44,23 @@ impl CheckerContext {
     }
 
     /// Performs solution check.
-    pub fn check(&self) -> Result<(), String> {
-        check_vehicle_load(&self)?;
-        check_relations(&self)?;
-        check_breaks(&self)?;
-        check_assignment(&self)?;
-        check_routing(&self)?;
-        check_limits(&self)?;
+    pub fn check(&self) -> Result<(), Vec<String>> {
+        let errors = check_vehicle_load(&self)
+            .err()
+            .into_iter()
+            .chain(check_relations(&self).err().into_iter())
+            .chain(check_breaks(&self).err().into_iter())
+            .chain(check_assignment(&self).err().into_iter())
+            .chain(check_routing(&self).err().into_iter())
+            .chain(check_limits(&self).err().into_iter())
+            .flatten()
+            .collect::<Vec<_>>();
 
-        Ok(())
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     /// Gets vehicle by its id.

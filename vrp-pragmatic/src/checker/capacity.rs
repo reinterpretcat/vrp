@@ -3,13 +3,18 @@
 mod capacity_test;
 
 use super::*;
+use crate::utils::combine_error_results;
 use std::iter::once;
 use vrp_core::models::common::{Load, MultiDimLoad};
 
 /// Checks that vehicle load is assigned correctly. The following rules are checked:
 /// * max vehicle's capacity is not violated
 /// * load change is correct
-pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), String> {
+pub fn check_vehicle_load(context: &CheckerContext) -> Result<(), Vec<String>> {
+    combine_error_results(&[check_vehicle_load_assignment(context)])
+}
+
+fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each(|tour| {
         let capacity = MultiDimLoad::new(context.get_vehicle(&tour.vehicle_id)?.capacity.clone());
 

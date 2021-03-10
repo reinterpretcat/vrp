@@ -65,13 +65,13 @@ pub fn run_check(matches: &ArgMatches) {
             check_pragmatic_solution(problem_files.swap_remove(0), solution_file, matrix_files)
         }
         ("pragmatic", _, _) => {
-            Err("pragmatic format expects one problem, one solution file, and optionally matrices".to_string())
+            Err(vec!["pragmatic format expects one problem, one solution file, and optionally matrices".to_string()])
         }
-        _ => Err(format!("unknown format: '{}'", input_format)),
+        _ => Err(vec![format!("unknown format: '{}'", input_format)]),
     };
 
     if let Err(err) = result {
-        eprintln!("{}", err);
+        eprintln!("checker found {} errors:\n{}", err.len(), err.join("\n"));
         process::exit(1);
     }
 }

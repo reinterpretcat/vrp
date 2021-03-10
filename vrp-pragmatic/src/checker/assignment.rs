@@ -5,18 +5,14 @@ mod assignment_test;
 use super::*;
 use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
 use crate::format::{get_coord_index, get_job_index};
+use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use vrp_core::utils::compare_floats;
 
 /// Checks assignment of jobs and vehicles.
-pub fn check_assignment(ctx: &CheckerContext) -> Result<(), String> {
-    check_vehicles(ctx)?;
-    check_jobs_presence(ctx)?;
-    check_jobs_match(ctx)?;
-    check_dispatch(ctx)?;
-
-    Ok(())
+pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<String>> {
+    combine_error_results(&[check_vehicles(ctx), check_jobs_presence(ctx), check_jobs_match(ctx), check_dispatch(ctx)])
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.

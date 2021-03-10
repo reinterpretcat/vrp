@@ -3,6 +3,7 @@
 mod jobs_test;
 
 use super::*;
+use crate::utils::combine_error_results;
 use vrp_core::models::common::MultiDimLoad;
 
 /// Checks that plan has no jobs with duplicate ids.

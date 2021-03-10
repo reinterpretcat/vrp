@@ -3,9 +3,14 @@
 mod breaks_test;
 
 use super::*;
+use crate::utils::combine_error_results;
 
 /// Checks that breaks are properly assigned.
-pub fn check_breaks(context: &CheckerContext) -> Result<(), String> {
+pub fn check_breaks(context: &CheckerContext) -> Result<(), Vec<String>> {
+    combine_error_results(&[check_break_assignment(context)])
+}
+
+fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each(|tour| {
         let vehicle_shift = context.get_vehicle_shift(tour)?;
         let actual_break_count = tour
