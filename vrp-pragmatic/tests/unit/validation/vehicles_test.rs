@@ -89,3 +89,32 @@ fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Op
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
+
+parameterized_test! {can_detect_zero_costs, (costs, expected), {
+    can_detect_zero_costs_impl(costs, expected);
+}}
+
+can_detect_zero_costs! {
+    case01: ((0.0001, 0.0001), None),
+    case02: ((0., 0.0001), None),
+    case03: ((0.0001, 0.), None),
+    case04: ((0., 0.), Some("E1307".to_string())),
+}
+
+fn can_detect_zero_costs_impl(costs: (f64, f64), expected: Option<String>) {
+    let (distance, time) = costs;
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                costs: VehicleCosts { fixed: None, distance, time },
+                ..create_default_vehicle_type()
+            }],
+            profiles: vec![],
+        },
+        ..create_empty_problem()
+    };
+
+    let result = check_e1307_vehicle_has_no_zero_costs(&ValidationContext::new(&problem, None));
+
+    assert_eq!(result.err().map(|err| err.code), expected);
+}

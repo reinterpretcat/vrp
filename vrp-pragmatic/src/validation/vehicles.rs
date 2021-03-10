@@ -208,6 +208,32 @@ fn check_e1306_vehicle_dispatch_is_correct(ctx: &ValidationContext) -> Result<()
     }
 }
 
+/// Checks that vehicle area restrictions are valid.
+fn check_e1307_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let type_ids = ctx
+        .vehicles()
+        .filter(|vehicle| {
+            compare_floats(vehicle.costs.time, 0.) == Ordering::Equal
+                && compare_floats(vehicle.costs.distance, 0.) == Ordering::Equal
+        })
+        .map(|vehicle| vehicle.type_id.to_string())
+        .collect::<Vec<_>>();
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1307".to_string(),
+            "time and duration costs are zeros".to_string(),
+            format!(
+                "ensure that either time or distance cost is non-zero, \
+                 vehicle type ids: '{}'",
+                type_ids.join(", ")
+            ),
+        ))
+    }
+}
+
 fn get_invalid_type_ids(
     ctx: &ValidationContext,
     check_shift: Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>,
@@ -255,5 +281,6 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>
         check_e1304_vehicle_reload_time_is_correct(ctx),
         check_e1305_vehicle_limit_area_is_correct(ctx),
         check_e1306_vehicle_dispatch_is_correct(ctx),
+        check_e1307_vehicle_has_no_zero_costs(ctx),
     ])
 }

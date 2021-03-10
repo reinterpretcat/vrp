@@ -486,6 +486,29 @@ following rules:
 * has time window outside of vehicle shift time
 * has total sum of max not equal to amount of vehicle ids
 
+#### E1307
+
+`time and duration costs are zeros` is returned when both time and duration costs are zeros in vehicle type definition:
+
+```json
+{
+  "typeId": "vehicle",
+  "vehicleIds": [
+    "vehicle_1",
+  ],
+  "profile": "car",
+  "costs": {
+    "fixed": 20.0,
+    /** Error: distance and time are zero **/
+    "distance": 0,
+    "time": 0
+  },
+  /** omitted **/
+}
+```
+
+You can fix the error by defining a small value (e.g. 0.0000001) for duration or time costs.
+
 
 ### E15xx: Routing profiles
 
