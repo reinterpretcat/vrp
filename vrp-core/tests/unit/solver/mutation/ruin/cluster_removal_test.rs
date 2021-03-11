@@ -154,7 +154,7 @@ fn can_create_ruin_cluster_with_proper_params() {
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
-    let removal = ClusterRemoval::new(Arc::new(problem), 3..4, JobRemovalLimit::default());
+    let removal = ClusterRemoval::new(Arc::new(problem), 3..4, RuinLimits::default());
 
     assert_eq!(removal.params.len(), 1);
     assert_eq!(removal.params[0].0, 3);
@@ -165,7 +165,7 @@ fn can_create_ruin_cluster_with_proper_params() {
 fn can_handle_empty_problem() {
     let problem = create_empty_problem();
 
-    let removal = ClusterRemoval::new(problem, 3..4, JobRemovalLimit::default());
+    let removal = ClusterRemoval::new(problem, 3..4, RuinLimits::default());
 
     assert_eq!(removal.params.len(), 1);
 }
@@ -181,7 +181,7 @@ can_ruin_jobs! {
 }
 
 fn can_ruin_jobs_impl(limit: usize, cluster_size: Range<usize>, expected: usize) {
-    let limit = JobRemovalLimit::new(limit, limit, 1.);
+    let limit = RuinLimits::new(limit, limit, 1., 8);
     let (problem, solution) = generate_matrix_routes(
         8,
         1,

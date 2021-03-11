@@ -1,18 +1,10 @@
-use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::utils::Random;
 use hashbrown::HashMap;
 use std::iter::{empty, once};
 use std::sync::Arc;
-
-pub(crate) fn get_selection_chunk_size(ctx: &InsertionContext, min: usize, max: usize, threshold: f64) -> usize {
-    let assigned = ctx.problem.jobs.size() - ctx.solution.unassigned.len() - ctx.solution.ignored.len();
-
-    let max_limit = (assigned as f64 * threshold).min(max as f64).round() as usize;
-
-    ctx.environment.random.uniform_int(min as i32, max as i32).min(max_limit as i32) as usize
-}
 
 pub(crate) fn get_route_jobs(solution: &SolutionContext) -> HashMap<Job, RouteContext> {
     solution

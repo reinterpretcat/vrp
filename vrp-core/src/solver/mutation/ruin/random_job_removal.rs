@@ -1,24 +1,24 @@
 use super::*;
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::mutation::{get_selection_chunk_size, select_seed_job};
+use crate::solver::mutation::select_seed_job;
 use crate::solver::RefinementContext;
 
 /// A ruin strategy which removes random jobs from solution.
 pub struct RandomJobRemoval {
     /// Specifies limitation for job removal.
-    limit: JobRemovalLimit,
+    limits: RuinLimits,
 }
 
 impl RandomJobRemoval {
     /// Creates a new instance of `RandomJobRemoval`.
-    pub fn new(limit: JobRemovalLimit) -> Self {
-        Self { limit }
+    pub fn new(limits: RuinLimits) -> Self {
+        Self { limits }
     }
 }
 
 impl Default for RandomJobRemoval {
     fn default() -> Self {
-        Self::new(JobRemovalLimit::default())
+        Self::new(RuinLimits::default())
     }
 }
 
@@ -28,7 +28,7 @@ impl Ruin for RandomJobRemoval {
             return insertion_ctx;
         }
 
-        let affected = get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
+        let affected = self.limits.get_chunk_size(&insertion_ctx);
 
         (0..affected).for_each(|_| {
             let solution = &mut insertion_ctx.solution;

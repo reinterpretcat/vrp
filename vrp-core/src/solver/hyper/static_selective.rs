@@ -111,7 +111,7 @@ impl StaticSelective {
         // initialize ruin
         let close_route = Arc::new(CloseRouteRemoval::default());
         let random_route = Arc::new(RandomRouteRemoval::default());
-        let random_job = Arc::new(RandomJobRemoval::new(JobRemovalLimit::default()));
+        let random_job = Arc::new(RandomJobRemoval::new(RuinLimits::default()));
         let random_ruin = Self::create_default_random_ruin();
 
         let ruin = Arc::new(WeightedRuin::new(vec![
@@ -131,7 +131,7 @@ impl StaticSelective {
         Arc::new(WeightedRuin::new(vec![
             (vec![(Arc::new(CloseRouteRemoval::default()), 1.)], 100),
             (vec![(Arc::new(RandomRouteRemoval::default()), 1.)], 10),
-            (vec![(Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())), 1.)], 2),
+            (vec![(Arc::new(RandomJobRemoval::new(RuinLimits::default())), 1.)], 2),
         ]))
     }
 }

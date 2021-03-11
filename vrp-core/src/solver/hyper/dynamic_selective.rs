@@ -107,12 +107,12 @@ impl DynamicSelective {
             Arc::new(NeighbourRemoval::default()),
             Arc::new(WorstJobRemoval::default()),
             Arc::new(ClusterRemoval::new_with_defaults(problem.clone())),
-            Arc::new(RandomJobRemoval::new(JobRemovalLimit::default())),
+            Arc::new(RandomJobRemoval::new(RuinLimits::default())),
             Arc::new(RandomRouteRemoval::default()),
         ];
         let secondary_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![
             Arc::new(CloseRouteRemoval::default()),
-            Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(2, 8, 0.1))),
+            Arc::new(RandomJobRemoval::new(RuinLimits::new(2, 8, 0.1, 2))),
         ];
 
         // NOTE we need to wrap any of ruin methods in composite which calls restore context before recreate

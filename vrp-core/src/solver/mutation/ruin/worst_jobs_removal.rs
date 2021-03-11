@@ -7,34 +7,34 @@ use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::{Cost, Timestamp};
 use crate::models::problem::{Actor, Job, TransportCost};
 use crate::models::solution::Activity;
-use crate::solver::mutation::{get_route_jobs, get_selection_chunk_size};
+use crate::solver::mutation::get_route_jobs;
 use crate::solver::RefinementContext;
 use crate::utils::parallel_collect;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use rand::prelude::*;
 use std::cmp::Ordering::Less;
 use std::iter::once;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// A ruin strategy which detects the most cost expensive jobs in each route and delete them
 /// with their neighbours.
 pub struct WorstJobRemoval {
     /// Specifies limitation for job removal.
-    limit: JobRemovalLimit,
+    limits: RuinLimits,
     /// Amount of jobs to skip.
     worst_skip: usize,
 }
 
 impl WorstJobRemoval {
     /// Creates a new instance of `WorstJobRemoval`.
-    pub fn new(worst_skip: usize, limit: JobRemovalLimit) -> Self {
-        Self { limit, worst_skip }
+    pub fn new(worst_skip: usize, limits: RuinLimits) -> Self {
+        Self { limits, worst_skip }
     }
 }
 
 impl Default for WorstJobRemoval {
     fn default() -> Self {
-        Self::new(4, JobRemovalLimit::default())
+        Self::new(4, RuinLimits::default())
     }
 }
 
@@ -50,46 +50,46 @@ impl Ruin for WorstJobRemoval {
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let mut routes_savings = get_routes_cost_savings(&insertion_ctx);
-        let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
 
         routes_savings.shuffle(&mut random.get_rng());
 
-        let affected = get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
+        let max_affected = self.limits.get_chunk_size(&insertion_ctx);
+        let tracker = self.limits.get_tracker();
 
-        routes_savings.iter().take_while(|_| removed_jobs.read().unwrap().len() < affected).for_each(
-            |(rc, savings)| {
-                let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
-                let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
+        routes_savings.iter().take_while(|_| tracker.is_not_limit(max_affected)).for_each(|(rc, savings)| {
+            let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
+            let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
 
-                if let Some((job, _)) = worst {
-                    // TODO ensure that we do not remove more jobs than specified by affected
-                    let remove = random.uniform_int(self.limit.min as i32, self.limit.max as i32) as usize;
-                    once(job.clone())
-                        .chain(
-                            problem
-                                .jobs
-                                .neighbors(rc.route.actor.vehicle.profile, &job, Timestamp::default())
-                                .filter(|(_, cost)| *cost > 0.)
-                                .map(|(job, _)| job)
-                                .cloned(),
-                        )
-                        .filter(|job| can_remove_job(job))
-                        .take(remove)
-                        .for_each(|job| {
-                            // NOTE job can be absent if it is unassigned
-                            if let Some(rc) = route_jobs.get_mut(&job) {
-                                // NOTE actual insertion context modification via route mut
-                                if rc.route.tour.contains(&job) {
-                                    rc.route_mut().tour.remove(&job);
-                                    removed_jobs.write().unwrap().insert(job);
-                                }
+            if let Some((job, _)) = worst {
+                let remove = self.limits.get_chunk_size(&insertion_ctx);
+                once(job.clone())
+                    .chain(
+                        problem
+                            .jobs
+                            .neighbors(rc.route.actor.vehicle.profile, &job, Timestamp::default())
+                            .filter(|(_, cost)| *cost > 0.)
+                            .map(|(job, _)| job)
+                            .cloned(),
+                    )
+                    .filter(|job| can_remove_job(job))
+                    .take_while(|_| tracker.is_not_limit(max_affected))
+                    .take(remove)
+                    .for_each(|job| {
+                        // NOTE job can be absent if it is unassigned
+                        if let Some(rc) = route_jobs.get_mut(&job) {
+                            // NOTE actual insertion context modification via route mut
+                            if rc.route.tour.contains(&job) {
+                                rc.route_mut().tour.remove(&job);
+
+                                tracker.add_actor(rc.route.actor.clone());
+                                tracker.add_job(job.clone());
                             }
-                        });
-                }
-            },
-        );
+                        }
+                    });
+            }
+        });
 
-        removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
+        tracker.removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
     }

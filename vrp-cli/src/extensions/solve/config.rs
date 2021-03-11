@@ -593,19 +593,19 @@ fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn R
             (Arc::new(AdjustedStringRemoval::new(*lmax, *cavg, *alpha)), *probability)
         }
         RuinMethod::Neighbour { probability, min, max, threshold } => {
-            (Arc::new(NeighbourRemoval::new(JobRemovalLimit::new(*min, *max, *threshold))), *probability)
+            (Arc::new(NeighbourRemoval::new(RuinLimits::new(*min, *max, *threshold, 8))), *probability)
         }
         RuinMethod::RandomJob { probability, min, max, threshold } => {
-            (Arc::new(RandomJobRemoval::new(JobRemovalLimit::new(*min, *max, *threshold))), *probability)
+            (Arc::new(RandomJobRemoval::new(RuinLimits::new(*min, *max, *threshold, 8))), *probability)
         }
         RuinMethod::RandomRoute { probability, min, max, threshold } => {
             (Arc::new(RandomRouteRemoval::new(*min, *max, *threshold)), *probability)
         }
         RuinMethod::WorstJob { probability, min, max, threshold, skip: worst_skip } => {
-            (Arc::new(WorstJobRemoval::new(*worst_skip, JobRemovalLimit::new(*min, *max, *threshold))), *probability)
+            (Arc::new(WorstJobRemoval::new(*worst_skip, RuinLimits::new(*min, *max, *threshold, 8))), *probability)
         }
         RuinMethod::Cluster { probability, min, max, threshold, cmin, cmax } => (
-            Arc::new(ClusterRemoval::new(problem.clone(), *cmin..*cmax, JobRemovalLimit::new(*min, *max, *threshold))),
+            Arc::new(ClusterRemoval::new(problem.clone(), *cmin..*cmax, RuinLimits::new(*min, *max, *threshold, 8))),
             *probability,
         ),
         RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::default()), *probability),

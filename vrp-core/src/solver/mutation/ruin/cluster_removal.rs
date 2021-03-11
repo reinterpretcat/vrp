@@ -9,13 +9,12 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::common::Timestamp;
 use crate::models::problem::Job;
 use crate::models::Problem;
-use crate::solver::mutation::{get_route_jobs, get_selection_chunk_size};
+use crate::solver::mutation::get_route_jobs;
 use crate::solver::RefinementContext;
 use crate::utils::{compare_floats, Random};
-use hashbrown::HashSet;
 use rand::prelude::*;
 use std::ops::Range;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// A ruin strategy which removes job clusters using [`DBSCAN`] algorithm.
 ///
@@ -25,23 +24,23 @@ pub struct ClusterRemoval {
     /// Stores possible pairs of `min_point` and `epsilon` parameter values.
     params: Vec<(usize, f64)>,
     /// Specifies limitation for job removal.
-    limit: JobRemovalLimit,
+    limits: RuinLimits,
 }
 
 impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval`.
-    pub fn new(problem: Arc<Problem>, cluster_size: Range<usize>, limit: JobRemovalLimit) -> Self {
+    pub fn new(problem: Arc<Problem>, cluster_size: Range<usize>, limits: RuinLimits) -> Self {
         let min = cluster_size.start.max(3);
         let max = cluster_size.end.min(problem.jobs.size()).max(min + 1);
 
         let params = (min..max).map(|min_pts| (min_pts, estimate_epsilon(&problem, min_pts))).collect::<Vec<_>>();
 
-        Self { params, limit }
+        Self { params, limits }
     }
 
     /// Creates a new instance of `ClusterRemoval` with default parameters.
     pub fn new_with_defaults(problem: Arc<Problem>) -> Self {
-        Self::new(problem, 3..9, JobRemovalLimit::default())
+        Self::new(problem, 3..9, RuinLimits::default())
     }
 }
 
@@ -49,18 +48,17 @@ impl Ruin for ClusterRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         let problem = insertion_ctx.problem.clone();
         let random = insertion_ctx.environment.random.clone();
+        let locked = insertion_ctx.solution.locked.clone();
 
         let mut clusters = create_job_clusters(&problem, &random, self.params.as_slice());
         clusters.shuffle(&mut random.get_rng());
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
-        let removed_jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::default());
-        let locked = insertion_ctx.solution.locked.clone();
-        let max_affected =
-            get_selection_chunk_size(&insertion_ctx, self.limit.min, self.limit.max, self.limit.threshold);
+        let max_affected = self.limits.get_chunk_size(&insertion_ctx);
+        let tracker = self.limits.get_tracker();
 
-        clusters.iter_mut().take_while(|_| removed_jobs.read().unwrap().len() < max_affected).for_each(|cluster| {
-            let left = max_affected - removed_jobs.read().unwrap().len();
+        clusters.iter_mut().take_while(|_| tracker.is_not_limit(max_affected)).for_each(|cluster| {
+            let left = max_affected - tracker.removed_jobs.read().unwrap().len();
             if cluster.len() > left {
                 cluster.shuffle(&mut random.get_rng());
             }
@@ -68,20 +66,22 @@ impl Ruin for ClusterRemoval {
             cluster
                 .iter()
                 .filter(|job| !locked.contains(job))
-                .filter(|_| removed_jobs.read().unwrap().len() < max_affected)
+                .take_while(|_| tracker.is_not_limit(max_affected))
                 .take(left)
                 .for_each(|job| {
                     if let Some(rc) = route_jobs.get_mut(job) {
                         // NOTE actual insertion context modification via route mut
                         if rc.route.tour.contains(job) {
                             rc.route_mut().tour.remove(job);
-                            removed_jobs.write().unwrap().insert((*job).clone());
+
+                            tracker.add_actor(rc.route.actor.clone());
+                            tracker.add_job((*job).clone());
                         }
                     }
                 });
         });
 
-        removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
+        tracker.removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
     }

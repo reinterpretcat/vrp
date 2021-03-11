@@ -4,7 +4,7 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
 use std::iter::once;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// A trait which specifies logic to destroy parts of solution.
 pub trait Ruin {
@@ -29,6 +29,9 @@ pub use self::random_job_removal::RandomJobRemoval;
 
 mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
+use crate::models::problem::{Actor, Job};
+use crate::utils::Random;
+use hashbrown::HashSet;
 
 /// A type which specifies a group of multiple ruin strategies with their probability.
 pub type RuinGroup = (Vec<(Arc<dyn Ruin + Send + Sync>, f64)>, usize);
@@ -40,25 +43,86 @@ pub struct WeightedRuin {
 }
 
 /// Specifies a limit for amount of jobs to be removed.
-pub struct JobRemovalLimit {
-    /// Specifies minimum amount of removed jobs.
-    pub min: usize,
-    /// Specifies maximum amount of removed jobs.
-    pub max: usize,
-    /// Specifies threshold ratio of maximum removed jobs.
-    pub threshold: f64,
+pub struct RuinLimits {
+    /// Specifies minimum amount of ruined (removed) jobs.
+    pub min_ruined_jobs: usize,
+    /// Specifies maximum amount of ruined (removed) jobs.
+    pub max_ruined_jobs: usize,
+    /// Specifies threshold for amount of ruined (removed) jobs.
+    pub ruined_jobs_threshold: f64,
+    /// Specifies maximum amount of affected routes.
+    pub max_affected_routes: usize,
 }
 
-impl JobRemovalLimit {
-    /// Creates a new instance of `JobRemovalLimit`.
-    pub fn new(min: usize, max: usize, threshold: f64) -> Self {
-        Self { min, max, threshold }
+impl RuinLimits {
+    /// Creates a new instance of `RuinLimits`.
+    pub fn new(
+        min_ruined_jobs: usize,
+        max_ruined_jobs: usize,
+        ruined_jobs_threshold: f64,
+        max_affected_routes: usize,
+    ) -> Self {
+        Self { min_ruined_jobs, max_ruined_jobs, ruined_jobs_threshold, max_affected_routes }
+    }
+
+    /// Gets jobs sample size.
+    pub fn get_jobs_sample(&self, random: &(dyn Random + Sync + Send)) -> usize {
+        random.uniform_int(self.min_ruined_jobs as i32, self.max_ruined_jobs as i32) as usize
+    }
+
+    /// Gets chunk size based on limits.
+    pub fn get_chunk_size(&self, ctx: &InsertionContext) -> usize {
+        let total = ctx.problem.jobs.size() - ctx.solution.unassigned.len() - ctx.solution.ignored.len();
+
+        let max_limit = (total as f64 * self.ruined_jobs_threshold)
+            .max(self.min_ruined_jobs as f64)
+            .min(self.max_ruined_jobs as f64)
+            .round() as usize;
+
+        ctx.environment
+            .random
+            .uniform_int(self.min_ruined_jobs as i32, self.max_ruined_jobs as i32)
+            .min(max_limit as i32) as usize
+    }
+
+    /// Gets a tracker of affected routes and jobs.
+    pub(crate) fn get_tracker(&self) -> AffectedTracker {
+        AffectedTracker {
+            affected_actors: RwLock::new(HashSet::default()),
+            removed_jobs: RwLock::new(HashSet::default()),
+            limits: &self,
+        }
     }
 }
 
-impl Default for JobRemovalLimit {
+pub(crate) struct AffectedTracker<'a> {
+    pub affected_actors: RwLock<HashSet<Arc<Actor>>>,
+    pub removed_jobs: RwLock<HashSet<Job>>,
+    limits: &'a RuinLimits,
+}
+
+impl<'a> AffectedTracker<'a> {
+    pub fn add_job(&self, job: Job) {
+        self.removed_jobs.write().unwrap().insert(job);
+    }
+
+    pub fn add_actor(&self, actor: Arc<Actor>) {
+        self.affected_actors.write().unwrap().insert(actor);
+    }
+
+    pub fn is_not_limit(&self, max_affected: usize) -> bool {
+        let removed_jobs = self.removed_jobs.read().unwrap().len();
+        let affected_routes = self.affected_actors.read().unwrap().len();
+
+        removed_jobs <= self.limits.max_ruined_jobs
+            && removed_jobs <= max_affected
+            && affected_routes <= self.limits.max_affected_routes
+    }
+}
+
+impl Default for RuinLimits {
     fn default() -> Self {
-        Self { min: 8, max: 16, threshold: 0.1 }
+        Self { min_ruined_jobs: 8, max_ruined_jobs: 16, ruined_jobs_threshold: 0.1, max_affected_routes: 8 }
     }
 }
 
