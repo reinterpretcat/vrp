@@ -133,7 +133,7 @@ impl DynamicSelective {
             Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteRandom::default()))),
             Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
             Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
-            Arc::new(DecomposeSearch::new(StaticSelective::create_default_mutation(problem, environment), (2, 4), 2)),
+            Arc::new(DecomposeSearch::new(StaticSelective::create_default_mutation(problem, environment), (2, 8), 4)),
         ];
 
         let mutations = recreates

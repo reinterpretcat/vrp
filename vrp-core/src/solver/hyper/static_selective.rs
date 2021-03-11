@@ -54,7 +54,7 @@ impl StaticSelective {
 
         Self::new(vec![
             (
-                Arc::new(DecomposeSearch::new(default_mutation.clone(), (2, 4), 2)),
+                Arc::new(DecomposeSearch::new(default_mutation.clone(), (2, 8), 4)),
                 create_context_mutation_probability(
                     300,
                     10,
