@@ -46,15 +46,16 @@ fn can_switch_phases() {
 
 #[test]
 fn can_optimize_network() {
+    let termination_estimate = 0.75;
     let mut rosomaxa = create_rosomaxa();
     (0..10).for_each(|idx| {
         rosomaxa.add_all(vec![create_empty_insertion_context()]);
-        rosomaxa.update_phase(&create_statistics(0., idx))
+        rosomaxa.update_phase(&create_statistics(termination_estimate, idx))
     });
     assert_eq!(get_network(&rosomaxa).get_nodes().count(), 4);
 
     rosomaxa.add(create_empty_insertion_context());
-    rosomaxa.update_phase(&create_statistics(0., 10));
+    rosomaxa.update_phase(&create_statistics(termination_estimate, 10));
 
     assert_eq!(get_network(&rosomaxa).get_nodes().count(), 1);
 }
