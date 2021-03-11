@@ -22,7 +22,7 @@ fn check_vehicles(ctx: &CheckerContext) -> Result<(), String> {
 
     ctx.solution.tours.iter().try_for_each(|tour| {
         if !all_vehicles.contains(&tour.vehicle_id) {
-            return Err(format!("used vehicle with unknown id: {}", tour.vehicle_id));
+            return Err(format!("used vehicle with unknown id: '{}'", tour.vehicle_id));
         }
 
         if !(used_vehicles.insert((tour.vehicle_id.to_string(), tour.shift_index))) {

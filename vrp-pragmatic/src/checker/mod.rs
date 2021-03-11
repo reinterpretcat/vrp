@@ -1,10 +1,16 @@
 //! This module provides functionality to automatically check that given solution is feasible
 //! which means that there is no constraint violations.
 
+#[cfg(test)]
+#[path = "../../tests/unit/checker/checker_test.rs"]
+mod checker_test;
+
 use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format::Location;
 use crate::parse_time;
+use hashbrown::{HashMap, HashSet};
+use std::sync::Arc;
 use vrp_core::models::common::TimeWindow;
 use vrp_core::models::Problem as CoreProblem;
 
@@ -56,6 +62,16 @@ impl CheckerContext {
             .flatten()
             .collect::<Vec<_>>();
 
+        // avoid duplicates keeping original order
+        let (_, errors) = errors.into_iter().fold((HashSet::new(), Vec::default()), |(mut used, mut errors), error| {
+            if !used.contains(&error) {
+                errors.push(error.clone());
+                used.insert(error);
+            }
+
+            (used, errors)
+        });
+
         if errors.is_empty() {
             Ok(())
         } else {
@@ -70,7 +86,7 @@ impl CheckerContext {
             .vehicles
             .iter()
             .find(|v| v.vehicle_ids.contains(&vehicle_id.to_string()))
-            .ok_or_else(|| format!("Cannot find vehicle with id '{}'", vehicle_id))
+            .ok_or_else(|| format!("cannot find vehicle with id '{}'", vehicle_id))
     }
 
     /// Gets activity operation time range in seconds since Unix epoch.
@@ -92,9 +108,9 @@ impl CheckerContext {
     fn get_vehicle_shift(&self, tour: &Tour) -> Result<VehicleShift, String> {
         let tour_time = TimeWindow::new(
             parse_time(
-                &tour.stops.first().as_ref().ok_or_else(|| "Cannot get first activity".to_string())?.time.arrival,
+                &tour.stops.first().as_ref().ok_or_else(|| "cannot get first activity".to_string())?.time.arrival,
             ),
-            parse_time(&tour.stops.last().as_ref().ok_or_else(|| "Cannot get last activity".to_string())?.time.arrival),
+            parse_time(&tour.stops.last().as_ref().ok_or_else(|| "cannot get last activity".to_string())?.time.arrival),
         );
 
         self.get_vehicle(&tour.vehicle_id)?
@@ -108,7 +124,7 @@ impl CheckerContext {
                 shift_time.intersects(&tour_time)
             })
             .cloned()
-            .ok_or_else(|| format!("Cannot find shift for tour with vehicle if: '{}'", tour.vehicle_id))
+            .ok_or_else(|| format!("cannot find shift for tour with vehicle if: '{}'", tour.vehicle_id))
     }
 
     /// Returns stop's activity type names.
@@ -126,7 +142,7 @@ impl CheckerContext {
             "departure" | "arrival" => Ok(ActivityType::Terminal),
             "pickup" | "delivery" | "service" | "replacement" => {
                 self.job_map.get(activity.job_id.as_str()).map_or_else(
-                    || Err(format!("Cannot find job with id '{}'", activity.job_id)),
+                    || Err(format!("cannot find job with id '{}'", activity.job_id)),
                     |job| Ok(ActivityType::Job(Box::new(job.clone()))),
                 )
             }
@@ -148,21 +164,21 @@ impl CheckerContext {
                     })
                 })
                 .map(|b| ActivityType::Break(b.clone()))
-                .ok_or_else(|| format!("Cannot find break for tour '{}'", tour.vehicle_id)),
+                .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id)),
             "reload" => shift
                 .reloads
                 .as_ref()
                 // TODO match reload's time windows
                 .and_then(|reload| reload.iter().find(|r| r.location == location && r.tag == activity.job_tag))
                 .map(|r| ActivityType::Reload(r.clone()))
-                .ok_or_else(|| format!("Cannot find reload for tour '{}'", tour.vehicle_id)),
+                .ok_or_else(|| format!("cannot find reload for tour '{}'", tour.vehicle_id)),
             "dispatch" => shift
                 .dispatch
                 .as_ref()
                 .and_then(|dispatch| dispatch.iter().find(|d| d.location == location))
                 .map(|d| ActivityType::Depot(d.clone()))
-                .ok_or_else(|| format!("Cannot find dispatch for tour '{}'", tour.vehicle_id)),
-            _ => Err(format!("Unknown activity type: '{}'", activity.activity_type)),
+                .ok_or_else(|| format!("cannot find dispatch for tour '{}'", tour.vehicle_id)),
+            _ => Err(format!("unknown activity type: '{}'", activity.activity_type)),
         }
     }
 
@@ -191,7 +207,7 @@ impl CheckerContext {
                     match_job_task(activity.activity_type.as_str(), job, |tasks| tasks.first())
                 } else {
                     activity.job_tag.as_ref().ok_or_else(|| {
-                        format!("Checker requires that multi job activity must have tag: '{}'", activity.job_id)
+                        format!("checker requires that multi job activity must have tag: '{}'", activity.job_id)
                     })?;
 
                     match_job_task(activity.activity_type.as_str(), job, |tasks| {
@@ -200,7 +216,7 @@ impl CheckerContext {
                 }
                 .map(|task| job_visitor(job, task))
             }
-            .ok_or_else(|| "Cannot match activity to job place".to_string()),
+            .ok_or_else(|| "cannot match activity to job place".to_string()),
             _ => Ok(other_visitor()),
         }
     }
@@ -260,5 +276,3 @@ use crate::checker::relations::check_relations;
 
 mod routing;
 use crate::checker::routing::check_routing;
-use hashbrown::HashMap;
-use std::sync::Arc;
