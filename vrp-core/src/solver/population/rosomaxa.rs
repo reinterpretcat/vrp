@@ -103,7 +103,10 @@ impl Population for Rosomaxa {
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
         let (elite_explore_size, node_explore_size) = match self.config.selection_size {
-            value if value > 6 => (4, 2),
+            value if value > 6 => {
+                let elite_size = self.environment.random.uniform_int(2, 4) as usize;
+                (elite_size, 2)
+            }
             value if value > 4 => (2, 2),
             value if value > 2 => (2, 1),
             _ => (1, 1),
@@ -114,7 +117,10 @@ impl Population for Rosomaxa {
                 self.elite
                     .select()
                     .take(elite_explore_size)
-                    .chain(populations.iter().flat_map(move |population| population.0.select().take(node_explore_size)))
+                    .chain(populations.iter().flat_map(move |population| {
+                        let explore_size = self.environment.random.uniform_int(1, node_explore_size) as usize;
+                        population.0.select().take(explore_size)
+                    }))
                     .take(self.config.selection_size),
             ),
             _ => Box::new(self.elite.select()),
