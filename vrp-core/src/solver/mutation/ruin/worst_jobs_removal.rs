@@ -122,7 +122,6 @@ fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContex
     })
 }
 
-#[inline(always)]
 fn get_cost_savings(
     actor: &Actor,
     start: &Activity,

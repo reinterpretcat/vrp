@@ -196,7 +196,6 @@ fn evaluate_multi(
     }
 }
 
-#[inline(always)]
 fn analyze_insertion_in_route(
     constraint: &ConstraintPipeline,
     route_ctx: &RouteContext,
@@ -220,7 +219,6 @@ fn analyze_insertion_in_route(
     })
 }
 
-#[inline(always)]
 fn analyze_insertion_in_route_leg<'a>(
     constraint: &ConstraintPipeline,
     route_ctx: &RouteContext,
