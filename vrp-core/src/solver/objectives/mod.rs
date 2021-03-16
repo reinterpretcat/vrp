@@ -3,6 +3,9 @@
 use crate::construction::heuristics::InsertionContext;
 use std::cmp::Ordering;
 
+mod generic_value;
+pub(crate) use self::generic_value::GenericValue;
+
 mod total_routes;
 pub use self::total_routes::TotalRoutes;
 
