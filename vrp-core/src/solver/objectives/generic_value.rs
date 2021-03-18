@@ -12,7 +12,8 @@ use std::sync::Arc;
 pub(crate) struct GenericValue {}
 
 impl GenericValue {
-    pub fn new(
+    /// Creates a new instance of constraint and related objective.
+    pub fn new_constrained_objective(
         threshold: Option<f64>,
         tolerance: Option<f64>,
         route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,

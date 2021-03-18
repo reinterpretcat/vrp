@@ -38,7 +38,7 @@ impl WorkBalance {
                 .unwrap_or(0_f64)
         });
 
-        GenericValue::new(
+        GenericValue::new_constrained_objective(
             threshold,
             tolerance,
             Arc::new({
@@ -61,7 +61,7 @@ impl WorkBalance {
         threshold: Option<f64>,
         tolerance: Option<f64>,
     ) -> (TargetConstraint, TargetObjective) {
-        GenericValue::new(
+        GenericValue::new_constrained_objective(
             threshold,
             tolerance,
             Arc::new(|rc: &RouteContext| rc.route.tour.activity_count() as f64),
@@ -95,7 +95,7 @@ impl WorkBalance {
         transport_state_key: i32,
         memory_state_key: i32,
     ) -> (TargetConstraint, TargetObjective) {
-        GenericValue::new(
+        GenericValue::new_constrained_objective(
             threshold,
             tolerance,
             Arc::new(move |rc: &RouteContext| {
