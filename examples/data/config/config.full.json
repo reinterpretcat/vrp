@@ -11,14 +11,14 @@
     },
     "population": {
       "type": "rosomaxa",
-      "selectionSize": 12,
+      "selectionSize": 8,
       "maxEliteSize": 2,
       "maxNodeSize": 2,
       "spreadFactor": 0.25,
       "distributionFactor": 0.25,
       "learningRate": 0.1,
       "rebalanceMemory": 500,
-      "rebalanceCount": 4,
+      "rebalanceCount": 2,
       "explorationRatio": 0.9
     }
   },

@@ -48,7 +48,7 @@ impl RosomaxaConfig {
             distribution_factor: 0.25,
             learning_rate: 0.1,
             rebalance_memory: 500,
-            rebalance_count: 4,
+            rebalance_count: 2,
             exploration_ratio: 0.9,
         }
     }
@@ -252,41 +252,49 @@ impl Rosomaxa {
     ) {
         // TODO keep amount of nodes under control
 
-        if statistics.termination_estimate < 0.5 {
-            // NOTE at the beginning apply more exploration: clear random nodes
-            network.optimize(rebalance_count, &|node| {
-                let is_empty = node.read().unwrap().storage.population.size() == 0;
-                is_empty || random.is_hit(0.1)
-            });
-        } else {
-            // NOTE later apply more exploitation: clear worst nodes
-            let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
-                let node = node.read().unwrap();
-                let individual = node.storage.population.select().next();
-                if let Some(individual) = individual {
-                    Some(relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
-                } else {
-                    None
-                }
-            };
+        let is_early_time = statistics.termination_estimate < 0.5;
+        let is_big_size = network.size() > rebalance_memory;
 
-            // determine percentile value
-            let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
-            distances.sort_by(|a, b| compare_floats(*b, *a));
-            let percentile_idx = if distances.len() > rebalance_memory {
-                distances.len() - rebalance_memory
-            } else {
-                const PERCENTILE_THRESHOLD: f64 = 0.1;
-
-                (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize
-            };
-
-            if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
+        match (is_early_time, is_big_size) {
+            (true, _) => {
                 network.optimize(rebalance_count, &|node| {
                     let is_empty = node.read().unwrap().storage.population.size() == 0;
-
-                    is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
+                    is_empty || (is_big_size && random.is_hit(0.1))
                 });
+            }
+            (false, false) => {
+                network.optimize(rebalance_count, &|node| node.read().unwrap().storage.population.size() == 0);
+            }
+            _ => {
+                // NOTE later apply more exploitation: clear worst nodes
+                let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
+                    let node = node.read().unwrap();
+                    let individual = node.storage.population.select().next();
+                    if let Some(individual) = individual {
+                        Some(relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
+                    } else {
+                        None
+                    }
+                };
+
+                // determine percentile value
+                let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
+                distances.sort_by(|a, b| compare_floats(*b, *a));
+                let percentile_idx = if distances.len() > rebalance_memory {
+                    distances.len() - rebalance_memory
+                } else {
+                    const PERCENTILE_THRESHOLD: f64 = 0.1;
+
+                    (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize
+                };
+
+                if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
+                    network.optimize(rebalance_count, &|node| {
+                        let is_empty = node.read().unwrap().storage.population.size() == 0;
+
+                        is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
+                    });
+                }
             }
         }
     }
