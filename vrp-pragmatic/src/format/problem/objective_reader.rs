@@ -14,64 +14,64 @@ pub fn create_objective(
     props: &ProblemProperties,
 ) -> Arc<ObjectiveCost> {
     Arc::new(if let Some(objectives) = &api_problem.objectives {
-        let mut map_objectives = |objectives: &Vec<_>| {
-            let mut core_objectives: Vec<TargetObjective> = vec![];
-            objectives.iter().for_each(|objective| match objective {
-                MinimizeCost => core_objectives.push(Box::new(TotalTransportCost::default())),
-                MinimizeTours => {
-                    constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
-                    core_objectives.push(Box::new(TotalRoutes::new_minimized()))
-                }
-                MaximizeTours => {
-                    constraint.add_module(Box::new(FleetUsageConstraintModule::new_maximized()));
-                    core_objectives.push(Box::new(TotalRoutes::new_maximized()))
-                }
-                MinimizeUnassignedJobs { breaks } => {
-                    if let Some(breaks) = *breaks {
-                        core_objectives.push(Box::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
-                            job.dimens().get_value::<String>("type").map_or(1., |job_type| {
-                                if job_type == "break" {
-                                    breaks
-                                } else {
-                                    1.
-                                }
-                            })
-                        }))))
-                    } else {
-                        core_objectives.push(Box::new(TotalUnassignedJobs::default()))
-                    }
-                }
-                BalanceMaxLoad { options } => {
-                    let (module, objective) = get_load_balance(props, options);
-                    constraint.add_module(module);
-                    core_objectives.push(objective);
-                }
-                BalanceActivities { options } => {
-                    let (threshold, tolerance) = unwrap_options(options);
-                    let (module, objective) = WorkBalance::new_activity_balanced(threshold, tolerance);
-                    constraint.add_module(module);
-                    core_objectives.push(objective);
-                }
-                BalanceDistance { options } => {
-                    let (threshold, tolerance) = unwrap_options(options);
-                    let (module, objective) = WorkBalance::new_distance_balanced(threshold, tolerance);
-                    constraint.add_module(module);
-                    core_objectives.push(objective);
-                }
-                BalanceDuration { options } => {
-                    let (threshold, tolerance) = unwrap_options(options);
-                    let (module, objective) = WorkBalance::new_duration_balanced(threshold, tolerance);
-                    constraint.add_module(module);
-                    core_objectives.push(objective);
-                }
-            });
-            core_objectives
-        };
-
-        let primary_objectives = map_objectives(&objectives.primary);
-        let secondary_objectives = map_objectives(&objectives.secondary.clone().unwrap_or_else(Vec::new));
-
-        ObjectiveCost::new(primary_objectives, secondary_objectives)
+        ObjectiveCost::new(
+            objectives
+                .iter()
+                .map(|objectives| {
+                    let mut core_objectives: Vec<TargetObjective> = vec![];
+                    objectives.iter().for_each(|objective| match objective {
+                        MinimizeCost => core_objectives.push(Box::new(TotalTransportCost::default())),
+                        MinimizeTours => {
+                            constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
+                            core_objectives.push(Box::new(TotalRoutes::new_minimized()))
+                        }
+                        MaximizeTours => {
+                            constraint.add_module(Box::new(FleetUsageConstraintModule::new_maximized()));
+                            core_objectives.push(Box::new(TotalRoutes::new_maximized()))
+                        }
+                        MinimizeUnassignedJobs { breaks } => {
+                            if let Some(breaks) = *breaks {
+                                core_objectives.push(Box::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
+                                    job.dimens().get_value::<String>("type").map_or(1., |job_type| {
+                                        if job_type == "break" {
+                                            breaks
+                                        } else {
+                                            1.
+                                        }
+                                    })
+                                }))))
+                            } else {
+                                core_objectives.push(Box::new(TotalUnassignedJobs::default()))
+                            }
+                        }
+                        BalanceMaxLoad { options } => {
+                            let (module, objective) = get_load_balance(props, options);
+                            constraint.add_module(module);
+                            core_objectives.push(objective);
+                        }
+                        BalanceActivities { options } => {
+                            let (threshold, tolerance) = unwrap_options(options);
+                            let (module, objective) = WorkBalance::new_activity_balanced(threshold, tolerance);
+                            constraint.add_module(module);
+                            core_objectives.push(objective);
+                        }
+                        BalanceDistance { options } => {
+                            let (threshold, tolerance) = unwrap_options(options);
+                            let (module, objective) = WorkBalance::new_distance_balanced(threshold, tolerance);
+                            constraint.add_module(module);
+                            core_objectives.push(objective);
+                        }
+                        BalanceDuration { options } => {
+                            let (threshold, tolerance) = unwrap_options(options);
+                            let (module, objective) = WorkBalance::new_duration_balanced(threshold, tolerance);
+                            constraint.add_module(module);
+                            core_objectives.push(objective);
+                        }
+                    });
+                    core_objectives
+                })
+                .collect(),
+        )
     } else {
         constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
         ObjectiveCost::default()

@@ -72,13 +72,7 @@ fn check_e1602_no_cost_value_objective(objectives: &[&Objective]) -> Result<(), 
 }
 
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
-    ctx.problem.objectives.as_ref().map(|objectives| {
-        Some(&objectives.primary)
-            .iter()
-            .chain(objectives.secondary.as_ref().iter())
-            .flat_map(|objectives| objectives.iter())
-            .collect()
-    })
+    ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().flatten().collect())
 }
 
 pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {

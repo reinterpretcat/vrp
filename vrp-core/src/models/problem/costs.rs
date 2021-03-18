@@ -8,21 +8,20 @@ use crate::models::common::*;
 use crate::models::problem::{Actor, TargetObjective};
 use crate::models::solution::Activity;
 use crate::solver::objectives::{TotalRoutes, TotalTransportCost, TotalUnassignedJobs};
-use crate::utils::CollectGroupBy;
+use crate::utils::{unwrap_from_result, CollectGroupBy};
 use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// A hierarchical multi objective for vehicle routing problem.
 pub struct ObjectiveCost {
-    primary_objectives: Vec<TargetObjective>,
-    secondary_objectives: Vec<TargetObjective>,
+    objectives: Vec<Vec<TargetObjective>>,
 }
 
 impl ObjectiveCost {
     /// Creates an instance of `ObjectiveCost`.
-    pub fn new(primary_objectives: Vec<TargetObjective>, secondary_objectives: Vec<TargetObjective>) -> Self {
-        Self { primary_objectives, secondary_objectives }
+    pub fn new(objectives: Vec<Vec<TargetObjective>>) -> Self {
+        Self { objectives }
     }
 }
 
@@ -30,10 +29,12 @@ impl Objective for ObjectiveCost {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        match dominance_order(a, b, &self.primary_objectives) {
-            Ordering::Equal => dominance_order(a, b, &self.secondary_objectives),
-            order => order,
-        }
+        unwrap_from_result(self.objectives.iter().try_fold(Ordering::Equal, |_, objectives| {
+            match dominance_order(a, b, objectives) {
+                Ordering::Equal => Ok(Ordering::Equal),
+                order => Err(order),
+            }
+        }))
     }
 
     fn distance(&self, _a: &Self::Solution, _b: &Self::Solution) -> f64 {
@@ -47,16 +48,16 @@ impl Objective for ObjectiveCost {
 
 impl MultiObjective for ObjectiveCost {
     fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &TargetObjective> + 'a> {
-        Box::new(self.primary_objectives.iter().chain(self.secondary_objectives.iter()))
+        Box::new(self.objectives.iter().flatten())
     }
 }
 
 impl Default for ObjectiveCost {
     fn default() -> Self {
-        Self::new(
+        Self::new(vec![
             vec![Box::new(TotalUnassignedJobs::default()), Box::new(TotalRoutes::default())],
             vec![Box::new(TotalTransportCost::default())],
-        )
+        ])
     }
 }
 

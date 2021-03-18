@@ -4,11 +4,8 @@ use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
-fn create_test_objectives() -> Option<Objectives> {
-    Some(Objectives {
-        primary: vec![MinimizeUnassignedJobs { breaks: Some(10.) }],
-        secondary: Some(vec![MinimizeCost]),
-    })
+fn create_test_objectives() -> Option<Vec<Vec<Objective>>> {
+    Some(vec![vec![MinimizeUnassignedJobs { breaks: Some(10.) }], vec![MinimizeCost]])
 }
 
 #[test]

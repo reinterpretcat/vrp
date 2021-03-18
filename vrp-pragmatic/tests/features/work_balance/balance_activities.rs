@@ -51,10 +51,10 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_l
             ],
             profiles: create_default_profiles(),
         },
-        objectives: Some(Objectives {
-            primary: vec![BalanceActivities { options: Some(BalanceOptions { threshold, tolerance: None }) }],
-            secondary: Some(vec![MinimizeCost]),
-        }),
+        objectives: Some(vec![
+            vec![BalanceActivities { options: Some(BalanceOptions { threshold, tolerance: None }) }],
+            vec![MinimizeCost],
+        ]),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

@@ -80,3 +80,114 @@ fn can_interpolate_durations() {
     assert_eq!(costs.distance(0, 0, 1, 0.), 1.);
     assert_eq!(costs.distance(1, 0, 1, 0.), 5.);
 }
+
+mod objective {
+    use super::*;
+    use crate::helpers::models::domain::create_empty_insertion_context;
+    use crate::utils::compare_floats;
+
+    struct TestObjective {
+        index: usize,
+    }
+
+    impl Objective for TestObjective {
+        type Solution = InsertionContext;
+
+        fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+            let a = self.fitness(a);
+            let b = self.fitness(b);
+
+            compare_floats(a, b)
+        }
+
+        fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+            (self.fitness(a) - self.fitness(b)).abs()
+        }
+
+        fn fitness(&self, solution: &Self::Solution) -> f64 {
+            solution
+                .solution
+                .state
+                .get(&1)
+                .and_then(|any| any.downcast_ref::<Vec<f64>>())
+                .and_then(|data| data.get(self.index))
+                .cloned()
+                .unwrap()
+        }
+    }
+
+    fn create_individual(data: Vec<f64>) -> InsertionContext {
+        let mut individual = create_empty_insertion_context();
+        individual.solution.state.insert(1, Arc::new(data));
+
+        individual
+    }
+
+    parameterized_test! {can_use_total_order_with_hierarchy, (data_a, data_b, expected), {
+        can_use_total_order_with_hierarchy_impl(data_a, data_b, expected);
+    }}
+
+    can_use_total_order_with_hierarchy! {
+        case01: (vec![0., 1., 2.], vec![0., 1., 2.], Ordering::Equal),
+        case02: (vec![1., 1., 2.], vec![0., 1., 2.], Ordering::Greater),
+        case03: (vec![0., 1., 2.], vec![1., 1., 2.], Ordering::Less),
+        case04: (vec![0., 1., 2.], vec![0., 2., 2.], Ordering::Less),
+        case05: (vec![0., 2., 2.], vec![1., 0., 0.], Ordering::Less),
+    }
+
+    fn can_use_total_order_with_hierarchy_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
+        let objective = ObjectiveCost::new(vec![
+            vec![Box::new(TestObjective { index: 0 })],
+            vec![Box::new(TestObjective { index: 1 })],
+            vec![Box::new(TestObjective { index: 2 })],
+        ]);
+
+        let a = create_individual(data_a);
+        let b = create_individual(data_b);
+
+        let result = objective.total_order(&a, &b);
+
+        assert_eq!(result, expected);
+    }
+
+    parameterized_test! {can_use_total_order_with_multi, (data_a, data_b, case, expected), {
+        can_use_total_order_with_multi_impl(data_a, data_b, case, expected);
+    }}
+
+    can_use_total_order_with_multi! {
+        case01: (vec![0., 1., 2.], vec![0., 1., 2.], true, Ordering::Equal),
+        case02: (vec![1., 0., 2.], vec![0., 1., 2.], true, Ordering::Equal),
+        case03: (vec![1., 0., 2.], vec![0., 1., 0.], true, Ordering::Greater),
+        case04: (vec![1., 0., 2.], vec![0., 1., 3.], true, Ordering::Less),
+        case05: (vec![1., 1., 2.], vec![0., 1., 2.], true, Ordering::Greater),
+        case06: (vec![0., 0., 2.], vec![0., 1., 2.], true, Ordering::Less),
+        case07: (vec![1., 0., 2.], vec![0., 1., 2.], true, Ordering::Equal),
+
+        case08: (vec![0., 1., 2.], vec![0., 1., 2.], false, Ordering::Equal),
+        case09: (vec![0., 1., 0.], vec![0., 1., 1.], false, Ordering::Less),
+        case10: (vec![1., 0., 0.], vec![0., 1., 1.], false, Ordering::Greater),
+        case11: (vec![0., 1., 1.], vec![1., 0., 0.], false, Ordering::Less),
+        case12: (vec![0., 1., 0.], vec![0., 0., 1.], false, Ordering::Equal),
+    }
+
+    fn can_use_total_order_with_multi_impl(data_a: Vec<f64>, data_b: Vec<f64>, case: bool, expected: Ordering) {
+        let objective = ObjectiveCost::new(if case {
+            vec![
+                vec![Box::new(TestObjective { index: 0 }), Box::new(TestObjective { index: 1 })],
+                vec![Box::new(TestObjective { index: 2 })],
+            ]
+        } else {
+            vec![
+                vec![Box::new(TestObjective { index: 0 })],
+                vec![Box::new(TestObjective { index: 1 }), Box::new(TestObjective { index: 2 })],
+            ]
+        });
+
+        let a = create_individual(data_a);
+        let b = create_individual(data_b);
+
+        let result = objective.total_order(&a, &b);
+
+        assert_eq!(result, expected);
+    }
+}

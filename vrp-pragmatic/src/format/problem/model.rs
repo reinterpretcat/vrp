@@ -364,18 +364,6 @@ pub struct Fleet {
 
 // region Objective
 
-/// Specifies a group of objective functions.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct Objectives {
-    /// A list of primary objective functions. An accepted solution should not
-    /// be worse of any of these.
-    pub primary: Vec<Objective>,
-    /// A list of secondary objective functions. An accepted solution can be worse
-    /// by the secondary objective if it improves the primary one.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub secondary: Option<Vec<Objective>>,
-}
-
 /// Specifies objective function types.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(tag = "type")]
@@ -465,9 +453,9 @@ pub struct Problem {
     /// Problem resources: vehicles to be used, routing info.
     pub fleet: Fleet,
 
-    /// Specifies objective functions.
+    /// Specifies objective function hierarchy.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub objectives: Option<Objectives>,
+    pub objectives: Option<Vec<Vec<Objective>>>,
 }
 
 /// A routing matrix.

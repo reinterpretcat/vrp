@@ -25,10 +25,7 @@ fn can_balance_max_load() {
             }],
             profiles: create_default_profiles(),
         },
-        objectives: Some(Objectives {
-            primary: vec![BalanceMaxLoad { options: None }],
-            secondary: Some(vec![MinimizeCost]),
-        }),
+        objectives: Some(vec![vec![BalanceMaxLoad { options: None }], vec![MinimizeCost]]),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
