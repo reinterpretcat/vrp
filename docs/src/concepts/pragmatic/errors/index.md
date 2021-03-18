@@ -594,9 +594,7 @@ objective is set, e.g.:
 
 ```json
 {
-  "objectives": {
-    "primary":[]
-  }
+  "objectives": []
 }
 ```
 
@@ -609,8 +607,8 @@ objective is set, e.g.:
 
 ```json
 {
-  "objectives": {
-    "primary": [
+  "objectives": [
+    [
       {
         "type": "minimize-unassigned"
       },
@@ -618,12 +616,12 @@ objective is set, e.g.:
         "type": "minimize-unassigned"
       }
     ],
-    "secondary": [
+    [
       {
         "type": "minimize-cost"
       }
     ]
-  }
+  ]
 }
 ```
 
@@ -636,13 +634,13 @@ To fix this issue, just remove one, e.g. `minimize-unassigned`.
 
 ```json
 {
-  "objectives": {
-    "primary": [
+  "objectives": [
+    [
       {
         "type": "minimize-unassigned"
       }
     ]
-  }
+  ]
 }
 ```
 

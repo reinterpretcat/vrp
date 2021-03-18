@@ -1000,8 +1000,8 @@
       }
     ]
   },
-  "objectives": {
-    "primary": [
+  "objectives": [
+    [
       {
         "type": "minimize-unassigned"
       },
@@ -1009,7 +1009,7 @@
         "type": "minimize-tours"
       }
     ],
-    "secondary": [
+    [
       {
         "type": "minimize-cost"
       },
@@ -1021,5 +1021,5 @@
         }
       }
     ]
-  }
+  ]
 }

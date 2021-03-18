@@ -7,14 +7,9 @@ of multi objective.
 
 ## Understanding multi objective structure
 
-A multi objective is defined by `objectives` and consists of two properties:
-
-- **primary** (required): a list of primary objectives, at least one must be present
-- **secondary** (optional): a list of secondary objectives
-
-Splitting multiple objectives into two separate collections serves the purpose to solve the problem that many objectives
-are conflicting by their nature. So, secondary objectives are considered only if objectives in primary list cannot detect
-the change in newly discovered solution.
+A multi objective is defined by `objectives` property which has array of array type and defines some kind of "hierarchical"
+objective function where priority of objectives decreases from first to the last element of outer array. Objectives inside
+the same inner array have the same priority.
 
 
 ## Available objectives
@@ -49,8 +44,6 @@ There are four work balance objectives available:
 Each objective has optional parameters defined by `option` property:
 * `threshold`: a target coefficient of variation value which specifies desired minimum balancing level. All values below
 threshold are considered equal which helps the search algorithm to optimize conflicting objectives.
-* `tolerance`: a step tolerance by variation coefficient. Algorithm considers two fitness values equal if they differ
-not more than `tolerance` value.
 
 It is recommended to set both option values to guide the search towards optimum for conflicting objectives, e.g. cost
 minimization and any of work balance.
@@ -67,7 +60,7 @@ By default, decision maker minimizes amount of routes, unassigned jobs and total
 definition:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.default.problem.json:140:154}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.default.problem.json:140:156}}
 ```
 
 Here, cost minimization is a secondary objective which corresponds to a classical hierarchical objective used
@@ -76,30 +69,11 @@ by `Solomon` benchmark.
 
 ## Hints
 
-* if you're getting unassigned jobs, want to minimize their count, but not all vehicles are used, then try the following
-objective:
+* if you're using balancing objective and getting high cost or non-realistic, but balanced routes, try to add a threshold to balancing objective:
 
 ```json
-"objectives": {
-    "primary": [
-      {
-        "type": "minimize-unassigned"
-      }
-    ],
-    "secondary": [
-      {
-        "type": "minimize-cost"
-      }
-    ]
-  }
-```
-
-* if you're using balancing objective and getting high cost or non-realistic, but balanced routes, try to add a tolerance
-and threshold to balancing objective:
-
-```json
-"objectives": {
-    "primary": [
+"objectives": [
+    [
       {
         "type": "minimize-unassigned"
       },
@@ -107,19 +81,18 @@ and threshold to balancing objective:
         "type": "minimize-tours"
       }
     ],
-    "secondary": [
+    [
       {
         "type": "minimize-cost"
       },
       {
         "type": "balance-distance",
         "options": {
-          "tolerance": 0.01,
-          "threshold": 0.005
+          "threshold": 0.01
         }
       }
     ]
-    }
+]
 ```
 
 ## Related errors

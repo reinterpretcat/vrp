@@ -141,7 +141,9 @@
     [
       {
         "type": "minimize-tours"
-      },
+      }
+    ],
+    [
       {
         "type": "minimize-unassigned"
       }

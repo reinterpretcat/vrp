@@ -55,7 +55,8 @@ impl MultiObjective for ObjectiveCost {
 impl Default for ObjectiveCost {
     fn default() -> Self {
         Self::new(vec![
-            vec![Box::new(TotalUnassignedJobs::default()), Box::new(TotalRoutes::default())],
+            vec![Box::new(TotalUnassignedJobs::default())],
+            vec![Box::new(TotalRoutes::default())],
             vec![Box::new(TotalTransportCost::default())],
         ])
     }

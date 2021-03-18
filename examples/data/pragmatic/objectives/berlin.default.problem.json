@@ -1000,19 +1000,21 @@
       }
     ]
   },
-  "objectives": {
-    "primary": [
+  "objectives": [
+    [
       {
         "type": "minimize-tours"
-      },
+      }
+    ],
+    [
       {
         "type": "minimize-unassigned"
       }
     ],
-    "secondary": [
+    [
       {
         "type": "minimize-cost"
       }
     ]
-  }
+  ]
 }

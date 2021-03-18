@@ -26,11 +26,11 @@
 
 <div id="map"></div>
 
-By default, primary objective for the solver is to minimize fleet usage and amount of unassigned jobs, the secondary
-objective is total cost minimization:
+By default, the first objective for the solver is to minimize fleet usage, then amount of unassigned jobs, and the last
+is total cost minimization:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/objectives/berlin.default.problem.json:1003:1017}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.default.problem.json:1003:1019}}
 ```
 
 As result, solution has minimum amount of vehicles used to serve all jobs (`3`).
