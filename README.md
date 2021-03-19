@@ -2,14 +2,27 @@
 [![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli)
 ![build](https://github.com/reinterpretcat/vrp/workflows/build/badge.svg)
 [![codecov](https://codecov.io/gh/reinterpretcat/vrp/branch/master/graph/badge.svg)](https://codecov.io/gh/reinterpretcat/vrp)
+[![DOI](https://zenodo.org/badge/238436117.svg)](https://zenodo.org/badge/latestdoi/238436117)
 
 ![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
 
 # Description
 
 This project provides the way to solve multiple variations of **Vehicle Routing Problem** known as rich VRP. It provides
-default metaheuristic implementation which can be roughly described as
-`Multi-objective Parthenogenesis based Evolutionary Algorithm with Ruin and Recreate Mutation Operator`.
+custom hyper- and meta-heuristic implementations, shortly described [here](https://reinterpretcat.github.io/vrp/internals/index.html).
+
+If you use the project in academic work, please consider citing:
+
+```
+@misc{builuk_rosomaxa_2021,
+    author       = {Ilya Builuk},
+    title        = {{A new solver for rich Vehicle Routing Problem}},
+    year         = 2021,
+    doi          = {10.5281/zenodo.4624037},
+    publisher    = {Zenodo},
+    url          = {https://doi.org/10.5281/zenodo.4624037}
+}
+```
 
 # Design goal
 
