@@ -57,3 +57,4 @@
 * [Internals](internals/index.md)
   * [Overview](internals/overview.md)
   * [Rosomaxa](internals/rosomaxa.md)
+  * [Hyper-heuristic](internals/hyper.md)
