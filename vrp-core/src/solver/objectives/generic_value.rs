@@ -94,7 +94,7 @@ impl SoftRouteConstraint for GenericValueObjectives {
             .cloned()
             .unwrap_or_else(|| self.route_value_func.deref()(route_ctx));
 
-        if value.is_normal() && self.threshold.map_or(true, |threshold| value > threshold) {
+        if value.is_finite() && self.threshold.map_or(true, |threshold| value > threshold) {
             self.estimate_value_func.deref()(solution_ctx, route_ctx, job, value)
         } else {
             0.

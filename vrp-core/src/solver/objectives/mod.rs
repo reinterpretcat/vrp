@@ -15,5 +15,8 @@ pub use self::total_transport_cost::TotalTransportCost;
 mod total_unassigned_jobs;
 pub use self::total_unassigned_jobs::TotalUnassignedJobs;
 
+mod total_value;
+pub use self::total_value::TotalValue;
+
 mod work_balance;
 pub use self::work_balance::WorkBalance;
