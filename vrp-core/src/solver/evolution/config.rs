@@ -1,9 +1,10 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
+use crate::models::common::SingleDimLoad;
 use crate::models::Problem;
 use crate::solver::evolution::{EvolutionStrategy, RunSimple};
 use crate::solver::hyper::{HyperHeuristic, MultiSelective};
-use crate::solver::mutation::{Recreate, RecreateWithCheapest};
+use crate::solver::mutation::*;
 use crate::solver::population::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
@@ -49,12 +50,12 @@ pub struct PopulationConfig {
 
 /// An initial solutions configuration.
 pub struct InitialConfig {
-    /// Initial size of population to be generated.
-    pub size: usize,
-
     /// Create methods to produce initial individuals.
     pub methods: Vec<(Arc<dyn Recreate + Send + Sync>, usize)>,
-
+    /// Initial size of population to be generated.
+    pub max_size: usize,
+    /// Quota for initial solution generation.
+    pub quota: f64,
     /// Initial individuals in population.
     pub individuals: Vec<InsertionContext>,
 }
@@ -66,8 +67,22 @@ impl EvolutionConfig {
             problem: problem.clone(),
             population: PopulationConfig {
                 initial: InitialConfig {
-                    size: 1,
-                    methods: vec![(Arc::new(RecreateWithCheapest::default()), 10)],
+                    max_size: 7,
+                    quota: 0.05,
+                    methods: vec![
+                        (Arc::new(RecreateWithCheapest::default()), 1),
+                        (Arc::new(RecreateWithSkipBest::new(1, 2)), 1),
+                        (Arc::new(RecreateWithRegret::new(2, 3)), 1),
+                        (
+                            Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(
+                                environment.random.clone(),
+                            )),
+                            1,
+                        ),
+                        (Arc::new(RecreateWithPerturbation::new_with_defaults(environment.random.clone())), 1),
+                        (Arc::new(RecreateWithGaps::default()), 1),
+                        (Arc::new(RecreateWithFarthest::default()), 1),
+                    ],
                     individuals: vec![],
                 },
                 variation: Some(get_default_population(problem.clone(), environment.clone())),

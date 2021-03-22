@@ -128,15 +128,16 @@ impl Telemetry {
     }
 
     /// Reports initial solution statistics.
-    pub fn on_initial(&mut self, item_idx: usize, total_items: usize, item_time: Timer) {
+    pub fn on_initial(&mut self, item_idx: usize, total_items: usize, item_time: Timer, termination_estimate: f64) {
         match &self.mode {
             TelemetryMode::OnlyLogging { .. } | TelemetryMode::All { .. } => self.log(
                 format!(
-                    "[{}s] created {} of {} initial solutions in {}ms",
+                    "[{}s] created {} of {} initial solutions in {}ms (ts: {})",
                     self.time.elapsed_secs(),
                     item_idx + 1,
                     total_items,
-                    item_time.elapsed_millis()
+                    item_time.elapsed_millis(),
+                    termination_estimate,
                 )
                 .as_str(),
             ),

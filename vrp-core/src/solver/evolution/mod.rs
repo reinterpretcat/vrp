@@ -74,11 +74,16 @@ impl EvolutionSimulator {
         std::mem::replace(&mut self.config.population.initial.individuals, vec![])
             .into_iter()
             .zip(0_usize..)
-            .take(self.config.population.initial.size)
+            .take(self.config.population.initial.max_size)
             .for_each(|(ctx, idx)| {
                 if should_add_solution(&refinement_ctx) {
-                    self.config.telemetry.on_initial(idx, self.config.population.initial.size, Timer::start());
                     refinement_ctx.population.add(ctx);
+                    self.config.telemetry.on_initial(
+                        idx,
+                        self.config.population.initial.max_size,
+                        Timer::start(),
+                        self.config.termination.estimate(&refinement_ctx),
+                    );
                 } else {
                     self.config.telemetry.log(format!("skipping provided initial solution {}", idx).as_str())
                 }
@@ -88,21 +93,38 @@ impl EvolutionSimulator {
         let empty_ctx = InsertionContext::new(self.config.problem.clone(), refinement_ctx.environment.clone());
 
         let initial_time = Timer::start();
-        let _ = (refinement_ctx.population.size()..self.config.population.initial.size).try_for_each(|idx| {
+        let _ = (refinement_ctx.population.size()..self.config.population.initial.max_size).try_for_each(|idx| {
             let item_time = Timer::start();
 
-            if self.config.termination.is_termination(&mut refinement_ctx) {
+            let is_overall_termination = self.config.termination.is_termination(&mut refinement_ctx);
+            let is_initial_quota_reached =
+                self.config.termination.estimate(&refinement_ctx) > self.config.population.initial.quota;
+
+            if is_initial_quota_reached || is_overall_termination {
+                self.config.telemetry.log(
+                    format!(
+                        "stop building initial solutions due to initial quota reached ({}) or overall termination ({}).",
+                        is_initial_quota_reached, is_overall_termination
+                    )
+                        .as_str(),
+                );
                 return Err(());
             }
 
-            let method_idx = self.config.environment.random.weighted(weights.as_slice());
+            let method_idx = if idx < self.config.population.initial.methods.len() {
+                idx
+            } else {
+                self.config.environment.random.weighted(weights.as_slice())
+            };
 
-            let insertion_ctx =
-                self.config.population.initial.methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
+            // TODO consider initial quota limit
+            let insertion_ctx = self.config.population.initial.methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
 
             if should_add_solution(&refinement_ctx) {
                 refinement_ctx.population.add(insertion_ctx);
-                self.config.telemetry.on_initial(idx, self.config.population.initial.size, item_time);
+                self.config.telemetry.on_initial(idx,
+                                                 self.config.population.initial.max_size, item_time,
+                                                 self.config.termination.estimate(&refinement_ctx));
             } else {
                 self.config.telemetry.log(format!("skipping built initial solution {}", idx).as_str())
             }

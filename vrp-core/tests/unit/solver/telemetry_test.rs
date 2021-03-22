@@ -15,7 +15,7 @@ fn can_update_statistic() {
     let mut refinement_ctx = create_default_refinement_ctx(create_example_problem());
     let mut telemetry = Telemetry::new(TelemetryMode::None);
     telemetry.start();
-    telemetry.on_initial(0, 1, Timer::start());
+    telemetry.on_initial(0, 1, Timer::start(), 0.);
 
     telemetry.on_generation(&mut refinement_ctx, 0., Timer::start(), true);
     compare_statistic(&refinement_ctx, (0, 1., 1.));

@@ -100,18 +100,15 @@ impl Builder {
     /// Sets initial parameters used to construct initial population.
     pub fn with_init_params(
         mut self,
-        size: Option<usize>,
-        initial_methods: Option<Vec<(Arc<dyn Recreate + Send + Sync>, usize)>>,
+        max_size: usize,
+        quota: f64,
+        methods: Vec<(Arc<dyn Recreate + Send + Sync>, usize)>,
     ) -> Self {
         self.config.telemetry.log("configured to use custom initial population parameters");
 
-        if let Some(size) = size {
-            self.config.population.initial.size = size;
-        }
-
-        if let Some(initial_methods) = initial_methods {
-            self.config.population.initial.methods = initial_methods;
-        }
+        self.config.population.initial.max_size = max_size;
+        self.config.population.initial.quota = quota;
+        self.config.population.initial.methods = methods;
 
         self
     }

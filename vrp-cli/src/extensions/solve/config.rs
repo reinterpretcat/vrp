@@ -92,10 +92,18 @@ pub enum PopulationType {
 
 /// An initial solution configuration.
 #[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
 pub struct InitialConfig {
-    pub size: Option<usize>,
-    pub methods: Option<Vec<RecreateMethod>>,
+    pub method: RecreateMethod,
+    pub alternatives: InitialAlternativesConfig,
+}
+
+/// An initial solution alternatives configuration.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct InitialAlternativesConfig {
+    pub methods: Vec<RecreateMethod>,
+    pub max_size: usize,
+    pub quota: f64,
 }
 
 /// A selection operator configuration.
@@ -393,11 +401,19 @@ fn configure_from_evolution(
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
             let environment = builder.config.environment.clone();
+
             builder = builder.with_init_params(
-                initial.size,
-                initial.methods.as_ref().map(|methods| {
-                    methods.iter().map(|method| create_recreate_method(method, environment.clone())).collect()
-                }),
+                initial.alternatives.max_size,
+                initial.alternatives.quota,
+                std::iter::once(create_recreate_method(&initial.method, environment.clone()))
+                    .chain(
+                        initial
+                            .alternatives
+                            .methods
+                            .iter()
+                            .map(|method| create_recreate_method(method, environment.clone())),
+                    )
+                    .collect(),
             );
         }
 
