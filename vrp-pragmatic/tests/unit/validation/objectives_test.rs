@@ -84,3 +84,21 @@ fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>
 
     assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1602".to_string()));
 }
+
+#[test]
+fn can_detect_missing_value_jobs() {
+    let problem = Problem {
+        objectives: Some(vec![
+            vec![MinimizeUnassignedJobs { breaks: None }],
+            vec![MaximizeValue { reduction_factor: None }],
+            vec![MinimizeCost],
+        ]),
+        ..create_empty_problem()
+    };
+    let ctx = ValidationContext::new(&problem, None);
+    let objectives = get_objectives(&ctx).unwrap();
+
+    let result = check_e1603_no_jobs_with_value_objective(&ctx, &objectives);
+
+    assert_eq!(result.err().unwrap().code, "E1603".to_string());
+}

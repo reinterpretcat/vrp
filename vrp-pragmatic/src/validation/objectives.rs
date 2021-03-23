@@ -72,13 +72,17 @@ fn check_e1602_no_cost_objective(objectives: &[&Objective]) -> Result<(), Format
     }
 }
 
-/// Checks that value objective is specified when job with value is used.
-fn check_e1603_no_value_objective(ctx: &ValidationContext, objectives: &[&Objective]) -> Result<(), FormatError> {
-    let no_value_objective = objectives.iter().filter(|objective| matches!(objective, MinimizeCost)).next().is_none();
-    let has_jobs_with_value =
-        ctx.problem.plan.jobs.iter().filter_map(|job| job.value).filter(|value| *value > 0.).next().is_some();
+/// Checks that value objective can be specified only when job with value is used.
+fn check_e1603_no_jobs_with_value_objective(
+    ctx: &ValidationContext,
+    objectives: &[&Objective],
+) -> Result<(), FormatError> {
+    let has_value_objective =
+        objectives.iter().filter(|objective| matches!(objective, MaximizeValue { .. })).next().is_some();
+    let has_no_jobs_with_value =
+        ctx.problem.plan.jobs.iter().filter_map(|job| job.value).filter(|value| *value > 0.).next().is_none();
 
-    if no_value_objective && has_jobs_with_value {
+    if has_value_objective && has_no_jobs_with_value {
         Err(FormatError::new(
             "E1603".to_string(),
             "redundant value objective".to_string(),
@@ -99,7 +103,7 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatErro
             check_e1600_empty_objective(&objectives),
             check_e1601_duplicate_objectives(&objectives),
             check_e1602_no_cost_objective(&objectives),
-            check_e1603_no_value_objective(ctx, &objectives),
+            check_e1603_no_jobs_with_value_objective(ctx, &objectives),
         ])
     } else {
         Ok(())
