@@ -66,6 +66,7 @@ pub(crate) fn generate_plan(
                 services: generate_tasks(&job_proto.services, true),
                 priority: job_proto.priority,
                 skills: job_proto.skills.clone(),
+                value: job_proto.value.clone(),
             }
         })
         .collect();

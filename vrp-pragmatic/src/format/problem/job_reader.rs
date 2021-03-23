@@ -161,12 +161,13 @@ fn read_required_jobs(
                 &job.id,
                 job.priority,
                 &job.skills,
+                job.value,
                 singles,
                 job.pickups.as_ref().map_or(0, |p| p.len()),
                 random,
             )
         } else {
-            get_single_job(&job.id, singles.into_iter().next().unwrap(), job.priority, &job.skills)
+            get_single_job(&job.id, singles.into_iter().next().unwrap(), job.priority, &job.skills, job.value)
         };
 
         job_index.insert(job.id.clone(), problem_job.clone());
@@ -402,11 +403,18 @@ fn get_single_with_extras(
     single
 }
 
-fn get_single_job(id: &str, single: Single, priority: Option<i32>, skills: &Option<FormatJobSkills>) -> Job {
+fn get_single_job(
+    id: &str,
+    single: Single,
+    priority: Option<i32>,
+    skills: &Option<FormatJobSkills>,
+    value: Option<f64>,
+) -> Job {
     let mut single = single;
     single.dimens.set_id(id);
 
     add_priority(&mut single.dimens, priority);
+    add_value(&mut single.dimens, value);
     add_job_skills(&mut single.dimens, skills);
 
     Job::Single(Arc::new(single))
@@ -416,6 +424,7 @@ fn get_multi_job(
     id: &str,
     priority: Option<i32>,
     skills: &Option<FormatJobSkills>,
+    value: Option<f64>,
     singles: Vec<Single>,
     deliveries_start_index: usize,
     random: &Arc<dyn Random + Send + Sync>,
@@ -423,6 +432,7 @@ fn get_multi_job(
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id);
     add_priority(&mut dimens, priority);
+    add_value(&mut dimens, value);
     add_job_skills(&mut dimens, skills);
 
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
@@ -462,6 +472,12 @@ fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
 fn add_priority(dimens: &mut Dimensions, priority: Option<i32>) {
     if let Some(priority) = priority {
         dimens.set_value("priority", priority);
+    }
+}
+
+fn add_value(dimens: &mut Dimensions, value: Option<f64>) {
+    if let Some(value) = value {
+        dimens.set_value("value", value);
     }
 }
 

@@ -38,18 +38,7 @@ fn can_detect_reserved_ids_impl(job_id: String, expected: Option<&str>) {
 #[test]
 fn can_detect_empty_job() {
     let problem = Problem {
-        plan: Plan {
-            jobs: vec![Job {
-                id: "job1".to_string(),
-                pickups: None,
-                deliveries: Some(vec![]),
-                replacements: None,
-                services: None,
-                priority: None,
-                skills: None,
-            }],
-            relations: None,
-        },
+        plan: Plan { jobs: vec![Job { deliveries: Some(vec![]), ..create_job("job1") }], relations: None },
         ..create_empty_problem()
     };
 

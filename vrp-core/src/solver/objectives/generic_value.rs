@@ -141,18 +141,12 @@ impl Objective for GenericValueObjectives {
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        let value = solution
+        solution
             .solution
             .state
             .get(&self.state_key)
             .and_then(|s| s.downcast_ref::<f64>())
             .cloned()
-            .unwrap_or_else(|| self.solution_value_func.deref()(&solution.solution));
-
-        if value.is_nan() {
-            1.
-        } else {
-            value
-        }
+            .unwrap_or_else(|| self.solution_value_func.deref()(&solution.solution))
     }
 }

@@ -140,13 +140,11 @@ fn check_jobs_impl(
             jobs: jobs
                 .into_iter()
                 .map(|(id, tasks)| Job {
-                    id: id.to_string(),
                     pickups: Some(create_tasks("pickup", &tasks)),
                     deliveries: Some(create_tasks("delivery", &tasks)),
                     replacements: Some(create_tasks("replacement", &tasks)),
                     services: Some(create_tasks("service", &tasks)),
-                    priority: None,
-                    skills: None,
+                    ..create_job(id)
                 })
                 .collect(),
             relations: None,

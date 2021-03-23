@@ -103,13 +103,17 @@ pub struct Job {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub services: Option<Vec<JobTask>>,
 
+    /// A job skills limitations for serving a job.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skills: Option<JobSkills>,
+
     /// Job priority, bigger value - less important.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub priority: Option<i32>,
 
-    /// A job skills limitations for serving a job.
+    /// Job value.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub skills: Option<JobSkills>,
+    pub value: Option<f64>,
 }
 
 /// A plan specifies work which has to be done.
@@ -379,6 +383,15 @@ pub enum Objective {
     /// An objective to maximize total tour amount.
     #[serde(rename(deserialize = "maximize-tours", serialize = "maximize-tours"))]
     MaximizeTours,
+
+    /// An objective to maximize value of served jobs.
+    #[serde(rename(deserialize = "maximize-value", serialize = "maximize-value"))]
+    MaximizeValue {
+        /// A factor to reduce value cost compared to max cost.
+        /// Default value is 0.1.
+        #[serde(rename = "camelCase")]
+        reduction_factor: Option<f64>,
+    },
 
     /// An objective to minimize amount of unassigned jobs.
     #[serde(rename(deserialize = "minimize-unassigned", serialize = "minimize-unassigned"))]

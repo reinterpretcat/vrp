@@ -23,6 +23,7 @@ pub fn create_job(id: &str) -> Job {
         services: None,
         priority: None,
         skills: None,
+        value: None,
     }
 }
 
@@ -62,6 +63,10 @@ pub fn create_delivery_job_with_times(id: &str, location: Vec<f64>, times: Vec<(
         }]),
         ..create_job(id)
     }
+}
+
+pub fn create_delivery_job_with_value(id: &str, location: Vec<f64>, value: f64) -> Job {
+    Job { deliveries: Some(vec![create_task(location.clone())]), value: Some(value), ..create_job(id) }
 }
 
 pub fn create_pickup_job(id: &str, location: Vec<f64>) -> Job {

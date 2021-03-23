@@ -13,8 +13,8 @@ pub fn create_objective(
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
 ) -> Arc<ObjectiveCost> {
-    Arc::new(if let Some(objectives) = &api_problem.objectives {
-        ObjectiveCost::new(
+    Arc::new(match (&api_problem.objectives, props.max_job_value) {
+        (Some(objectives), _) => ObjectiveCost::new(
             objectives
                 .iter()
                 .map(|objectives| {
@@ -28,6 +28,17 @@ pub fn create_objective(
                         MaximizeTours => {
                             constraint.add_module(Box::new(FleetUsageConstraintModule::new_maximized()));
                             core_objectives.push(Box::new(TotalRoutes::new_maximized()))
+                        }
+                        MaximizeValue { reduction_factor } => {
+                            let (module, objective) = TotalValue::maximize(
+                                props
+                                    .max_job_value
+                                    .expect("expecting non-zero job value to be defined at least at on job"),
+                                reduction_factor.unwrap_or(0.1),
+                                Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)),
+                            );
+                            constraint.add_module(module);
+                            core_objectives.push(objective);
                         }
                         MinimizeUnassignedJobs { breaks } => {
                             if let Some(breaks) = *breaks {
@@ -71,10 +82,28 @@ pub fn create_objective(
                     core_objectives
                 })
                 .collect(),
-        )
-    } else {
-        constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
-        ObjectiveCost::default()
+        ),
+        (_, Some(max_value)) => {
+            let (module, objective) = TotalValue::maximize(
+                max_value,
+                0.1,
+                Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)),
+            );
+
+            constraint.add_module(module);
+            constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
+
+            ObjectiveCost::new(vec![
+                vec![Box::new(TotalUnassignedJobs::default())],
+                vec![Box::new(TotalRoutes::default())],
+                vec![objective],
+                vec![Box::new(TotalTransportCost::default())],
+            ])
+        }
+        _ => {
+            constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
+            ObjectiveCost::default()
+        }
     })
 }
 

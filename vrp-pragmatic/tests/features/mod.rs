@@ -1,4 +1,5 @@
-//! This module contains feature tests: minimalistic tests which check features in isolation and combination.
+//! This module contains feature tests: minimalistic tests which check features in isolation
+//! and their combination.
 
 mod breaks;
 mod dispatch;
@@ -12,4 +13,5 @@ mod relations;
 mod reload;
 mod skills;
 mod timing;
+mod values;
 mod work_balance;

@@ -114,6 +114,7 @@ pub struct ProblemProperties {
     has_priorities: bool,
     has_area_limits: bool,
     has_tour_size_limits: bool,
+    max_job_value: Option<f64>,
 }
 
 fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
@@ -372,6 +373,14 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .any(|shift| shift.breaks.as_ref().map_or(false, |b| !b.is_empty()));
 
     let has_skills = api_problem.plan.jobs.iter().any(|job| job.skills.is_some());
+    let max_job_value = api_problem
+        .plan
+        .jobs
+        .iter()
+        .filter_map(|job| job.value)
+        .filter(|value| *value > 0.)
+        .max_by(|a, b| compare_floats(*a, *b));
+
     let has_dispatch = api_problem
         .fleet
         .vehicles
@@ -402,5 +411,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_priorities,
         has_area_limits,
         has_tour_size_limits,
+        max_job_value,
     }
 }

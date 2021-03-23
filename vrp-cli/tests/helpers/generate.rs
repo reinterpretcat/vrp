@@ -10,6 +10,7 @@ pub fn create_empty_job() -> Job {
         services: None,
         priority: None,
         skills: None,
+        value: None,
     }
 }
 

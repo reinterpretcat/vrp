@@ -289,6 +289,7 @@ mod deserialize {
                     services: None,
                     priority: job.priority.as_ref().copied(),
                     skills: all_of_skills(job.skills.clone()),
+                    value: None,
                 })
                 .collect(),
             relations: plan.relations.as_ref().map(|relations| {

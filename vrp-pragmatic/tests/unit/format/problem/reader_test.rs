@@ -70,8 +70,6 @@ fn can_read_complex_problem() {
         plan: Plan {
             jobs: vec![
                 Job {
-                    id: "delivery_job".to_string(),
-                    pickups: None,
                     deliveries: Some(vec![JobTask {
                         places: vec![JobPlace {
                             times: Some(vec![
@@ -84,13 +82,10 @@ fn can_read_complex_problem() {
                         demand: Some(vec![0, 1]),
                         tag: Some("my_delivery".to_string()),
                     }]),
-                    replacements: None,
-                    services: None,
-                    priority: None,
                     skills: Some(all_of_skills(vec!["unique".to_string()])),
+                    ..create_job("delivery_job")
                 },
                 Job {
-                    id: "pickup_delivery_job".to_string(),
                     pickups: Some(vec![JobTask {
                         places: vec![JobPlace {
                             times: Some(vec![vec![
@@ -115,14 +110,9 @@ fn can_read_complex_problem() {
                         demand: Some(vec![2]),
                         tag: None,
                     }]),
-                    replacements: None,
-                    services: None,
-                    priority: None,
-                    skills: None,
+                    ..create_job("pickup_delivery_job")
                 },
                 Job {
-                    id: "pickup_job".to_string(),
-
                     pickups: Some(vec![JobTask {
                         places: vec![JobPlace {
                             times: Some(vec![vec![
@@ -135,11 +125,8 @@ fn can_read_complex_problem() {
                         demand: Some(vec![3]),
                         tag: None,
                     }]),
-                    deliveries: None,
-                    replacements: None,
-                    services: None,
-                    priority: None,
                     skills: Some(all_of_skills(vec!["unique2".to_string()])),
+                    ..create_job("pickup_job")
                 },
             ],
             relations: Option::None,

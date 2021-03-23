@@ -21,23 +21,23 @@ impl TotalValue {
     ) -> (TargetConstraint, TargetObjective) {
         assert!(max_value > 0.);
 
+        let get_route_value = {
+            let value_func = value_func.clone();
+            Arc::new(move |rc: &RouteContext| rc.route.tour.jobs().map(|job| -value_func.deref()(&job)).sum())
+        };
+
         GenericValue::new_constrained_objective(
             None,
             None,
-            Arc::new({
-                let value_func = value_func.clone();
-                move |rc: &RouteContext| rc.route.tour.jobs().map(|job| value_func.deref()(&job)).sum()
-            }),
-            Arc::new(move |ctx: &SolutionContext| {
-                ctx.routes.iter().map(|rc| rc.state.get_route_state(TOTAL_VALUE_KEY).cloned().unwrap_or(0.)).sum()
-            }),
+            get_route_value.clone(),
+            Arc::new(move |ctx: &SolutionContext| ctx.routes.iter().map(|rc| get_route_value(rc)).sum()),
             Arc::new(move |_, _, job, max_cost| {
-                let job_value = value_func.deref()(job);
+                let job_value = -value_func.deref()(job);
 
                 if max_cost > 0. {
-                    -(job_value / max_value) * max_cost * reduction_factor
+                    (job_value / max_value) * max_cost * reduction_factor
                 } else {
-                    -job_value * reduction_factor
+                    job_value * reduction_factor
                 }
             }),
             TOTAL_VALUE_KEY,

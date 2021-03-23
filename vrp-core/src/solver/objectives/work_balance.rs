@@ -48,7 +48,7 @@ impl WorkBalance {
             Arc::new({
                 let get_load_ratio = get_load_ratio.clone();
                 move |ctx: &SolutionContext| {
-                    get_cv(ctx.routes.iter().map(|rc| get_load_ratio(rc)).collect::<Vec<_>>().as_slice())
+                    get_cv_safe(ctx.routes.iter().map(|rc| get_load_ratio(rc)).collect::<Vec<_>>().as_slice())
                 }
             }),
             Arc::new(|solution_ctx, _, _, value| value * solution_ctx.get_max_cost()),
@@ -66,7 +66,9 @@ impl WorkBalance {
             tolerance,
             Arc::new(|rc: &RouteContext| rc.route.tour.activity_count() as f64),
             Arc::new(|ctx: &SolutionContext| {
-                get_cv(ctx.routes.iter().map(|rc| rc.route.tour.activity_count() as f64).collect::<Vec<_>>().as_slice())
+                get_cv_safe(
+                    ctx.routes.iter().map(|rc| rc.route.tour.activity_count() as f64).collect::<Vec<_>>().as_slice(),
+                )
             }),
             Arc::new(|solution_ctx, _, _, value| value * solution_ctx.get_max_cost()),
             BALANCE_ACTIVITY_KEY,
@@ -103,7 +105,7 @@ impl WorkBalance {
                 rc.state.get_route_state::<f64>(transport_state_key).cloned().unwrap_or(0.)
             }),
             Arc::new(move |ctx: &SolutionContext| {
-                get_cv(
+                get_cv_safe(
                     ctx.routes
                         .iter()
                         .map(|rc| rc.state.get_route_state::<f64>(transport_state_key).cloned().unwrap_or(0.))
@@ -114,5 +116,15 @@ impl WorkBalance {
             Arc::new(|solution_ctx, _, _, value| value * solution_ctx.get_max_cost()),
             memory_state_key,
         )
+    }
+}
+
+fn get_cv_safe(values: &[f64]) -> f64 {
+    let value = get_cv(values);
+
+    if value.is_nan() {
+        1.
+    } else {
+        value
     }
 }
