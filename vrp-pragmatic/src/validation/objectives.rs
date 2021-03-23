@@ -58,14 +58,31 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
 }
 
 /// Checks that cost objective is specified.
-fn check_e1602_no_cost_value_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
-    let min_costs = objectives.iter().filter(|objective| matches!(objective, MinimizeCost)).count();
+fn check_e1602_no_cost_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
+    let no_min_cost = objectives.iter().filter(|objective| matches!(objective, MinimizeCost)).next().is_none();
 
-    if min_costs == 0 {
+    if no_min_cost {
         Err(FormatError::new(
             "E1602".to_string(),
             "missing cost objective".to_string(),
             "specify 'minimize-cost' objective".to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+/// Checks that value objective is specified when job with value is used.
+fn check_e1603_no_value_objective(ctx: &ValidationContext, objectives: &[&Objective]) -> Result<(), FormatError> {
+    let no_value_objective = objectives.iter().filter(|objective| matches!(objective, MinimizeCost)).next().is_none();
+    let has_jobs_with_value =
+        ctx.problem.plan.jobs.iter().filter_map(|job| job.value).filter(|value| *value > 0.).next().is_some();
+
+    if no_value_objective && has_jobs_with_value {
+        Err(FormatError::new(
+            "E1603".to_string(),
+            "redundant value objective".to_string(),
+            "specify at least one non-zero valued job or delete 'maximize-value' objective".to_string(),
         ))
     } else {
         Ok(())
@@ -81,7 +98,8 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatErro
         combine_error_results(&[
             check_e1600_empty_objective(&objectives),
             check_e1601_duplicate_objectives(&objectives),
-            check_e1602_no_cost_value_objective(&objectives),
+            check_e1602_no_cost_objective(&objectives),
+            check_e1603_no_value_objective(ctx, &objectives),
         ])
     } else {
         Ok(())

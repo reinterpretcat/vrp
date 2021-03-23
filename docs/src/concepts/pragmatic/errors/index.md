@@ -601,7 +601,7 @@ objective is set, e.g.:
 `objectives` property is optional, just remove it to fix the problem and use default objectives.
 
 
-#### E1610
+#### E1601
 
 `duplicate objective specified` error is returned when objective of specific type specified more than once:
 
@@ -628,7 +628,7 @@ objective is set, e.g.:
 To fix this issue, just remove one, e.g. `minimize-unassigned`.
 
 
-#### E1611
+#### E1602
 
 `missing cost objective` error is returned when no cost objective specified (at the moment, only `minimize-cost` supported):
 
@@ -645,3 +645,10 @@ To fix this issue, just remove one, e.g. `minimize-unassigned`.
 ```
 
 This objective is used to calculate final costs, so it is required to be specified.
+
+
+#### E1603
+
+`redundant value objective"` error is returned when objectives definition is overridden with `maximize-value`, but
+there is no jobs with non-zero value specified. To fix the issue, specify at least one non-zero valued job or simply
+delete 'maximize-value' objective.

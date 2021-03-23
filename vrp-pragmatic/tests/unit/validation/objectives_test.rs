@@ -80,7 +80,7 @@ fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>
     let ctx = ValidationContext::new(&problem, None);
     let objectives = get_objectives(&ctx).unwrap();
 
-    let result = check_e1602_no_cost_value_objective(&objectives);
+    let result = check_e1602_no_cost_objective(&objectives);
 
     assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1602".to_string()));
 }

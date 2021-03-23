@@ -108,6 +108,7 @@ If at least one job has non-zero value associated, then the following objective 
 * [E1600 an empty objective specified](../errors/index.md#e1600)
 * [E1601 duplicate objective specified](../errors/index.md#e1601)
 * [E1602 missing cost objective](../errors/index.md#e1602)
+* [E1603 redundant value objective](../errors/index.md#e1603)
 
 
 ## Examples
