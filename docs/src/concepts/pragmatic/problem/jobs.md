@@ -15,6 +15,10 @@ represented as integer in range `[1, MAX_INT]` where the lower value means highe
     {{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:22:29}}
     ```
     These conditions are tested against vehicle's skills.
+- **value** (optional): a value associated with the job. With `maximize-value` objective, it is used to prioritize assignment
+  of specific jobs. The difference between value and priority is that priority related logic tries to assign prioritized
+  jobs in the beginning of the tour. In contrast, value related logic tries to maximize total solution value by prioritizing
+  assignment value scored jobs in any tour in any position.
 
 A job should have at least one task property specified.
 

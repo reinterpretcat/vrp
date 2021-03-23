@@ -31,6 +31,8 @@ constraints such as time windows. The objective has the following optional param
      assignment leads to more jobs unassigned.
 * `minimize-tours`: minimizes total amount of tours present in solution
 * `maximize-tours`: maximizes total amount of tours present in solution
+* `maximize-value`: maximizes total value of served jobs. It has an optional parameter:
+    * `reductionFactor`: a factor to reduce value cost compared to max routing costs.
 
 ### Work balance objectives
 
@@ -65,6 +67,12 @@ definition:
 
 Here, cost minimization is a secondary objective which corresponds to a classical hierarchical objective used
 by `Solomon` benchmark.
+
+If at least one job has non-zero value associated, then the following objective is used:
+
+```json
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.maximize-value.problem.json:142:164}}
+```
 
 
 ## Hints
