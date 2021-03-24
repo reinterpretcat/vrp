@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 
+## [v1.9.1] - 2021-03-24
+
+## Added
+
+- add maximize value objective
+
+### Changed
+
+- build multiple initial solutions
+
+
 ## [v1.9.0] - 2021-03-19
 
 ### Changed
@@ -199,7 +210,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.9.1...HEAD
+[v1.9.1]: https://github.com/reinterpretcat/vrp/compare/v1.9.0...v1.9.1
 [v1.9.0]: https://github.com/reinterpretcat/vrp/compare/v1.8.1...v1.9.0
 [v1.8.1]: https://github.com/reinterpretcat/vrp/compare/v1.8.0...v1.8.1
 [v1.8.0]: https://github.com/reinterpretcat/vrp/compare/v1.7.4...v1.8.0

@@ -59,7 +59,7 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
 
 /// Checks that cost objective is specified.
 fn check_e1602_no_cost_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
-    let no_min_cost = objectives.iter().filter(|objective| matches!(objective, MinimizeCost)).next().is_none();
+    let no_min_cost = objectives.iter().find(|objective| matches!(objective, MinimizeCost)).is_none();
 
     if no_min_cost {
         Err(FormatError::new(
@@ -77,10 +77,9 @@ fn check_e1603_no_jobs_with_value_objective(
     ctx: &ValidationContext,
     objectives: &[&Objective],
 ) -> Result<(), FormatError> {
-    let has_value_objective =
-        objectives.iter().filter(|objective| matches!(objective, MaximizeValue { .. })).next().is_some();
+    let has_value_objective = objectives.iter().any(|objective| matches!(objective, MaximizeValue { .. }));
     let has_no_jobs_with_value =
-        ctx.problem.plan.jobs.iter().filter_map(|job| job.value).filter(|value| *value > 0.).next().is_none();
+        ctx.problem.plan.jobs.iter().filter_map(|job| job.value).find(|value| *value > 0.).is_none();
 
     if has_value_objective && has_no_jobs_with_value {
         Err(FormatError::new(
