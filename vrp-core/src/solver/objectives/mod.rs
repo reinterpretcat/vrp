@@ -9,8 +9,8 @@ pub(crate) use self::generic_value::GenericValue;
 mod total_routes;
 pub use self::total_routes::TotalRoutes;
 
-mod total_transport_cost;
-pub use self::total_transport_cost::TotalTransportCost;
+mod total_transport;
+pub use self::total_transport::*;
 
 mod total_unassigned_jobs;
 pub use self::total_unassigned_jobs::TotalUnassignedJobs;

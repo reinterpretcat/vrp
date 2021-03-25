@@ -22,6 +22,8 @@ split into two groups.
 This objectives targeting for some scalar characteristic of solution:
 
 * `minimize-cost`: minimizes total transport cost calculated for all routes
+* `minimize-distance`: minimizes total distance of all routes
+* `minimize-duration`: minimizes total duration of all routes
 * `minimize-unassigned`: minimizes amount of unassigned jobs. Although, solver tries to minimize amount of
 unassigned jobs all the time, it is possible that solution, discovered during refinement, has more unassigned jobs than
 previously accepted. The reason of that can be conflicting objective (e.g. minimize tours) and restrictive

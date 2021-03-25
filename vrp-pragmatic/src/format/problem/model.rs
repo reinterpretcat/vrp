@@ -376,6 +376,14 @@ pub enum Objective {
     #[serde(rename(deserialize = "minimize-cost", serialize = "minimize-cost"))]
     MinimizeCost,
 
+    /// An objective to minimize total distance.
+    #[serde(rename(deserialize = "minimize-distance", serialize = "minimize-distance"))]
+    MinimizeDistance,
+
+    /// An objective to minimize total duration.
+    #[serde(rename(deserialize = "minimize-duration", serialize = "minimize-duration"))]
+    MinimizeDuration,
+
     /// An objective to minimize total tour amount.
     #[serde(rename(deserialize = "minimize-tours", serialize = "minimize-tours"))]
     MinimizeTours,

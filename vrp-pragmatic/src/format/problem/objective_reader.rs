@@ -20,7 +20,9 @@ pub fn create_objective(
                 .map(|objectives| {
                     let mut core_objectives: Vec<TargetObjective> = vec![];
                     objectives.iter().for_each(|objective| match objective {
-                        MinimizeCost => core_objectives.push(Box::new(TotalTransportCost::default())),
+                        MinimizeCost => core_objectives.push(TotalCost::minimize()),
+                        MinimizeDistance => core_objectives.push(TotalDistance::minimize()),
+                        MinimizeDuration => core_objectives.push(TotalDuration::minimize()),
                         MinimizeTours => {
                             constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
                             core_objectives.push(Box::new(TotalRoutes::new_minimized()))
@@ -97,7 +99,7 @@ pub fn create_objective(
                 vec![Box::new(TotalUnassignedJobs::default())],
                 vec![Box::new(TotalRoutes::default())],
                 vec![objective],
-                vec![Box::new(TotalTransportCost::default())],
+                vec![TotalCost::minimize()],
             ])
         }
         _ => {

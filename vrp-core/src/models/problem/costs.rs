@@ -7,7 +7,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::common::*;
 use crate::models::problem::{Actor, TargetObjective};
 use crate::models::solution::Activity;
-use crate::solver::objectives::{TotalRoutes, TotalTransportCost, TotalUnassignedJobs};
+use crate::solver::objectives::{TotalCost, TotalRoutes, TotalUnassignedJobs};
 use crate::utils::{unwrap_from_result, CollectGroupBy};
 use hashbrown::HashMap;
 use std::cmp::Ordering;
@@ -57,7 +57,7 @@ impl Default for ObjectiveCost {
         Self::new(vec![
             vec![Box::new(TotalUnassignedJobs::default())],
             vec![Box::new(TotalRoutes::default())],
-            vec![Box::new(TotalTransportCost::default())],
+            vec![TotalCost::minimize()],
         ])
     }
 }

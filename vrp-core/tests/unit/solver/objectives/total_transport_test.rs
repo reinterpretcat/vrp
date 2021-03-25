@@ -1,4 +1,3 @@
-use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::{InsertionContext, RegistryContext, RouteContext, RouteState, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::{create_empty_solution_context, test_random};
@@ -8,7 +7,7 @@ use crate::models::common::Schedule;
 use crate::models::problem::{Job, Jobs, ObjectiveCost, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
-use crate::solver::objectives::TotalTransportCost;
+use crate::solver::objectives::TotalCost;
 use crate::utils::Environment;
 use hashbrown::HashMap;
 use std::sync::Arc;
@@ -85,7 +84,7 @@ fn can_calculate_transport_cost() {
 
     // total: (70 * 2 + 100) + (21 * 2 + 100) = 382
 
-    let result = TotalTransportCost::default().fitness(&insertion_ctx);
+    let result = TotalCost::minimize().fitness(&insertion_ctx);
 
     assert_eq!(result.round(), 382.0);
 }
