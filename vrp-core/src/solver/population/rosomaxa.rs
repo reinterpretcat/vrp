@@ -78,7 +78,7 @@ impl Population for Rosomaxa {
 
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals: known_individuals } => {
-                known_individuals.extend(individuals.iter().map(|individual| individual.deep_copy()))
+                known_individuals.extend(individuals.into_iter())
             }
             RosomaxaPhases::Exploration { time, network, .. } => {
                 network.store_batch(individuals, *time, |individual| IndividualInput::new(individual));
@@ -98,7 +98,7 @@ impl Population for Rosomaxa {
         };
 
         match &mut self.phase {
-            RosomaxaPhases::Initial { individuals } => individuals.push(individual.deep_copy()),
+            RosomaxaPhases::Initial { individuals } => individuals.push(individual),
             RosomaxaPhases::Exploration { time, network, .. } => network.store(IndividualInput::new(individual), *time),
             RosomaxaPhases::Exploitation => {}
         }
