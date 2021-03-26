@@ -106,7 +106,7 @@ impl DynamicSelective {
             Arc::new(AdjustedStringRemoval::default()),
             Arc::new(NeighbourRemoval::default()),
             Arc::new(WorstJobRemoval::default()),
-            Arc::new(ClusterRemoval::new_with_defaults(problem.clone())),
+            Arc::new(ClusterRemoval::new_with_defaults(problem.clone(), environment.clone())),
             Arc::new(RandomJobRemoval::new(RuinLimits::default())),
             Arc::new(RandomRouteRemoval::default()),
         ];

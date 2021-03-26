@@ -121,6 +121,7 @@ can_create_job_clusters! {
 }
 
 fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>]) {
+    let (min_items, epsilon) = param;
     let (problem, _) = generate_matrix_routes(
         8,
         1,
@@ -129,9 +130,9 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
-    let random: Arc<dyn Random + Send + Sync> = Arc::new(FakeRandom::new(vec![0, 0], vec![param.1]));
+    let random: Arc<dyn Random + Send + Sync> = Arc::new(FakeRandom::new(vec![0, 0], vec![epsilon]));
 
-    let clusters = create_job_clusters(&problem, &random, &[param])
+    let clusters = create_job_clusters(&problem, random.as_ref(), min_items, epsilon)
         .iter()
         .map(|cluster| {
             let mut cluster =
@@ -145,7 +146,8 @@ fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>])
 }
 
 #[test]
-fn can_create_ruin_cluster_with_proper_params() {
+fn can_create_ruin_cluster_with_default_params() {
+    let environment = Arc::new(Environment::default());
     let (problem, _) = generate_matrix_routes(
         8,
         1,
@@ -154,20 +156,19 @@ fn can_create_ruin_cluster_with_proper_params() {
         |v| v,
         |_| (vec![0.; 64], create_test_distances()),
     );
-    let removal = ClusterRemoval::new(Arc::new(problem), 3..4, RuinLimits::default());
 
-    assert_eq!(removal.params.len(), 1);
-    assert_eq!(removal.params[0].0, 3);
-    assert_eq!(removal.params[0].1, 10.);
+    let removal = ClusterRemoval::new_with_defaults(Arc::new(problem), environment);
+
+    assert!(!removal.clusters.is_empty());
 }
 
 #[test]
 fn can_handle_empty_problem() {
     let problem = create_empty_problem();
 
-    let removal = ClusterRemoval::new(problem, 3..4, RuinLimits::default());
+    let removal = ClusterRemoval::new(problem, Arc::new(Environment::default()), 3, RuinLimits::default());
 
-    assert_eq!(removal.params.len(), 1);
+    assert!(removal.clusters.is_empty());
 }
 
 parameterized_test! {can_ruin_jobs, (limit, cluster_size, expected), {
@@ -175,12 +176,12 @@ parameterized_test! {can_ruin_jobs, (limit, cluster_size, expected), {
 }}
 
 can_ruin_jobs! {
-    case_01: (4, 3..4, 4),
-    case_02: (5, 3..4, 5),
-    case_03: (8, 3..4, 7),
+    case_01: (4, 3, 4),
+    case_02: (5, 3, 5),
+    case_03: (8, 3, 7),
 }
 
-fn can_ruin_jobs_impl(limit: usize, cluster_size: Range<usize>, expected: usize) {
+fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {
     let limit = RuinLimits::new(limit, limit, 1., 8);
     let (problem, solution) = generate_matrix_routes(
         8,
@@ -191,10 +192,10 @@ fn can_ruin_jobs_impl(limit: usize, cluster_size: Range<usize>, expected: usize)
         |_| (vec![0.; 64], create_test_distances()),
     );
     let problem = Arc::new(problem);
-    let insertion_ctx =
-        InsertionContext::new_from_solution(problem.clone(), (solution, None), Arc::new(Environment::default()));
+    let environment = Arc::new(Environment::default());
+    let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
 
-    let insertion_ctx = ClusterRemoval::new(problem, cluster_size, limit)
+    let insertion_ctx = ClusterRemoval::new(problem, environment, min_items, limit)
         .run(&mut create_default_refinement_ctx(insertion_ctx.problem.clone()), insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.unassigned.len(), 0);

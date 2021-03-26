@@ -18,7 +18,7 @@ pub type NeighborhoodFn<'a, T> = Box<dyn Fn(&'a T, f64) -> Box<dyn Iterator<Item
 /// NOTE: `neighborhood_fn` shall return point itself.
 pub fn create_clusters<'a, T>(
     items: &'a [T],
-    eps: f64,
+    epsilon: f64,
     min_items: usize,
     neighborhood_fn: &NeighborhoodFn<'a, T>,
 ) -> Vec<Cluster<'a, T>>
@@ -33,7 +33,7 @@ where
             continue;
         }
 
-        let mut neighbors = neighborhood_fn(item, eps).collect::<Vec<_>>();
+        let mut neighbors = neighborhood_fn(item, epsilon).collect::<Vec<_>>();
         if neighbors.len() < min_items {
             item_types.insert(item, ItemType::Noise);
         } else {
@@ -49,7 +49,7 @@ where
                 let item_type = item_types.get(item);
 
                 if item_type.is_none() {
-                    let other_neighbours = neighborhood_fn(item, eps).collect::<Vec<_>>();
+                    let other_neighbours = neighborhood_fn(item, epsilon).collect::<Vec<_>>();
                     if other_neighbours.len() >= min_items {
                         let set = neighbors.iter().cloned().collect::<HashSet<_>>();
                         neighbors.extend(other_neighbours.into_iter().filter(move |item| !set.contains(item)));

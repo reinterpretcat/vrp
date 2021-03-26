@@ -11,9 +11,8 @@ use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::mutation::get_route_jobs;
 use crate::solver::RefinementContext;
-use crate::utils::{compare_floats, Random};
+use crate::utils::{compare_floats, Environment, Random};
 use rand::prelude::*;
-use std::ops::Range;
 use std::sync::Arc;
 
 /// A ruin strategy which removes job clusters using [`DBSCAN`] algorithm.
@@ -21,47 +20,46 @@ use std::sync::Arc;
 /// [`DBSCAN`]: ../../algorithms/dbscan/index.html
 ///
 pub struct ClusterRemoval {
-    /// Stores possible pairs of `min_point` and `epsilon` parameter values.
-    params: Vec<(usize, f64)>,
-    /// Specifies limitation for job removal.
+    clusters: Vec<Vec<Job>>,
     limits: RuinLimits,
 }
 
 impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval`.
-    pub fn new(problem: Arc<Problem>, cluster_size: Range<usize>, limits: RuinLimits) -> Self {
-        let min = cluster_size.start.max(3);
-        let max = cluster_size.end.min(problem.jobs.size()).max(min + 1);
+    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, min_items: usize, limits: RuinLimits) -> Self {
+        let min_items = min_items.max(3);
+        let epsilon = estimate_epsilon(&problem, min_items);
 
-        let params = (min..max).map(|min_pts| (min_pts, estimate_epsilon(&problem, min_pts))).collect::<Vec<_>>();
+        let mut clusters = create_job_clusters(&problem, environment.random.as_ref(), min_items, epsilon)
+            .into_iter()
+            .map(|cluster| cluster.into_iter().cloned().collect::<Vec<_>>())
+            .collect::<Vec<_>>();
 
-        Self { params, limits }
+        clusters.shuffle(&mut environment.random.get_rng());
+
+        Self { clusters, limits }
     }
 
     /// Creates a new instance of `ClusterRemoval` with default parameters.
-    pub fn new_with_defaults(problem: Arc<Problem>) -> Self {
-        Self::new(problem, 3..9, RuinLimits::default())
+    pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+        Self::new(problem, environment, 4, RuinLimits::default())
     }
 }
 
 impl Ruin for ClusterRemoval {
     fn run(&self, _: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
-        let problem = insertion_ctx.problem.clone();
-        let random = insertion_ctx.environment.random.clone();
         let locked = insertion_ctx.solution.locked.clone();
-
-        let mut clusters = create_job_clusters(&problem, &random, self.params.as_slice());
-        clusters.shuffle(&mut random.get_rng());
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
         let max_affected = self.limits.get_chunk_size(&insertion_ctx);
         let tracker = self.limits.get_tracker();
 
-        clusters.iter_mut().take_while(|_| tracker.is_not_limit(max_affected)).for_each(|cluster| {
+        let mut indices = (0..self.clusters.len()).into_iter().collect::<Vec<usize>>();
+        indices.shuffle(&mut insertion_ctx.environment.random.get_rng());
+
+        indices.into_iter().take_while(|_| tracker.is_not_limit(max_affected)).for_each(|idx| {
+            let cluster = self.clusters.get(idx).unwrap();
             let left = max_affected - tracker.removed_jobs.read().unwrap().len();
-            if cluster.len() > left {
-                cluster.shuffle(&mut random.get_rng());
-            }
 
             cluster
                 .iter()
@@ -89,13 +87,12 @@ impl Ruin for ClusterRemoval {
 
 fn create_job_clusters<'a>(
     problem: &'a Problem,
-    random: &Arc<dyn Random + Send + Sync>,
-    params: &[(usize, f64)],
+    random: &(dyn Random + Send + Sync),
+    min_items: usize,
+    epsilon: f64,
 ) -> Vec<Cluster<'a, Job>> {
     // get main parameters with some randomization
     let profile = problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32 - 1) as usize];
-    let &(min_items, eps) = params.get(random.uniform_int(0, params.len() as i32 - 1) as usize).unwrap();
-    let eps = random.uniform_real(eps * 0.9, eps * 1.1);
 
     let neighbor_fn: NeighborhoodFn<'a, Job> = Box::new(move |job, eps| {
         Box::new(once(job).chain(
@@ -103,7 +100,7 @@ fn create_job_clusters<'a>(
         ))
     });
 
-    create_clusters(problem.jobs.all_as_slice(), eps, min_items, &neighbor_fn)
+    create_clusters(problem.jobs.all_as_slice(), epsilon, min_items, &neighbor_fn)
 }
 
 /// Estimates DBSCAN epsilon parameter.

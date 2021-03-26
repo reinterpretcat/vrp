@@ -118,7 +118,7 @@ impl StaticSelective {
             (vec![(Arc::new(AdjustedStringRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 100),
             (vec![(Arc::new(NeighbourRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
             (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
-            (vec![(Arc::new(ClusterRemoval::new_with_defaults(problem)), 1.), (random_ruin, 0.1)], 5),
+            (vec![(Arc::new(ClusterRemoval::new_with_defaults(problem, environment)), 1.), (random_ruin, 0.1)], 5),
             (vec![(close_route, 1.), (random_job.clone(), 0.1)], 2),
             (vec![(random_route, 1.), (random_job, 0.1)], 1),
         ]));
