@@ -5,6 +5,7 @@ mod rosomaxa_test;
 use super::super::rand::prelude::SliceRandom;
 use super::*;
 use crate::algorithms::gsom::{get_network_state, Input, Network, NetworkConfig, NodeLink, Storage};
+use crate::algorithms::nsga2::Objective;
 use crate::algorithms::statistics::relative_distance;
 use crate::construction::heuristics::*;
 use crate::models::Problem;
@@ -66,31 +67,43 @@ pub struct Rosomaxa {
 
 impl Population for Rosomaxa {
     fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
+        // NOTE avoid extra deep copy
+        let best_known = self.elite.ranked().map(|(i, _)| i).next();
+        let elite = individuals
+            .iter()
+            .filter(|individual| self.is_comparable_with_best_known(individual, best_known))
+            .map(|individual| individual.deep_copy())
+            .collect::<Vec<_>>();
+        let is_improved = self.elite.add_all(elite);
+
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals: known_individuals } => {
                 known_individuals.extend(individuals.iter().map(|individual| individual.deep_copy()))
             }
             RosomaxaPhases::Exploration { time, network, .. } => {
-                network.store_batch(individuals.as_slice(), *time, |individual| {
-                    IndividualInput::new(individual.deep_copy())
-                });
+                network.store_batch(individuals, *time, |individual| IndividualInput::new(individual));
             }
             RosomaxaPhases::Exploitation => {}
-        };
+        }
 
-        self.elite.add_all(individuals)
+        is_improved
     }
 
     fn add(&mut self, individual: Individual) -> bool {
-        match &mut self.phase {
-            RosomaxaPhases::Initial { individuals } => individuals.push(individual.deep_copy()),
-            RosomaxaPhases::Exploration { time, network, .. } => {
-                network.store(IndividualInput::new(individual.deep_copy()), *time)
-            }
-            RosomaxaPhases::Exploitation => {}
+        let best_known = self.elite.ranked().map(|(i, _)| i).next();
+        let is_improved = if self.is_comparable_with_best_known(&individual, best_known) {
+            self.elite.add(individual.deep_copy())
+        } else {
+            false
         };
 
-        self.elite.add(individual)
+        match &mut self.phase {
+            RosomaxaPhases::Initial { individuals } => individuals.push(individual.deep_copy()),
+            RosomaxaPhases::Exploration { time, network, .. } => network.store(IndividualInput::new(individual), *time),
+            RosomaxaPhases::Exploitation => {}
+        }
+
+        is_improved
     }
 
     fn on_generation(&mut self, statistics: &Statistics) {
@@ -206,6 +219,11 @@ impl Rosomaxa {
             }
             RosomaxaPhases::Exploitation => {}
         }
+    }
+
+    fn is_comparable_with_best_known(&self, individual: &Individual, best_known: Option<&Individual>) -> bool {
+        best_known
+            .map_or(true, |best_known| self.problem.objective.total_order(&individual, best_known) != Ordering::Greater)
     }
 
     fn is_optimization_time(time: usize, rebalance_memory: usize, statistics: &Statistics) -> bool {
