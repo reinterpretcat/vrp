@@ -101,7 +101,8 @@ Default termination criteria is max 3000 generations and 300 seconds at max.
 
 ### Initial solution
 
-You can supply initial solution to start with using `-i` option.
+You can supply initial solution to start with using `-i` option. Amount of initial solutions to be built can be
+overridden using `init-size` option.
 
 
 ### Writing solution to file

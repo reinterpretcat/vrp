@@ -176,7 +176,7 @@ fn can_use_init_solution_with_dispatch() {
 
     let (core_solution, _, metrics) = Builder::new(core_problem.clone(), environment)
         .with_max_generations(Some(100))
-        .with_init_solutions(vec![core_solution])
+        .with_init_solutions(vec![core_solution], None)
         .build()
         .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
         .solve()

@@ -4,10 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `minimize-distance` and `minimize-duration` objectives
+- `init-size` option to control amount of initial solutions to be built built from CLI
+
 
 ## [v1.9.1] - 2021-03-24
 
-## Added
+### Added
 
 - add maximize value objective
 

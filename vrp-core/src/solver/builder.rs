@@ -114,8 +114,19 @@ impl Builder {
     }
 
     /// Sets initial solutions in population. Default is no solutions in population.
-    pub fn with_init_solutions(mut self, solutions: Vec<Solution>) -> Self {
-        self.config.telemetry.log(format!("provided {} initial solutions to start with", solutions.len()).as_str());
+    pub fn with_init_solutions(mut self, solutions: Vec<Solution>, max_init_size: Option<usize>) -> Self {
+        self.config.telemetry.log(
+            format!(
+                "provided {} initial solutions to start with, max init size: {}",
+                solutions.len(),
+                if let Some(max_init_size) = max_init_size { max_init_size.to_string() } else { "default".to_string() }
+            )
+            .as_str(),
+        );
+
+        if let Some(max_size) = max_init_size {
+            self.config.population.initial.max_size = max_size;
+        }
         self.config.population.initial.individuals = solutions
             .into_iter()
             .map(|solution| {
@@ -126,6 +137,7 @@ impl Builder {
                 )
             })
             .collect();
+
         self
     }
 

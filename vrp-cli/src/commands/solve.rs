@@ -28,6 +28,7 @@ const COST_VARIATION_ARG_NAME: &str = "cost-variation";
 const GEO_JSON_ARG_NAME: &str = "geo-json";
 
 const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
+const INIT_SIZE_ARG_NAME: &str = "init-size";
 const OUT_RESULT_ARG_NAME: &str = "out-result";
 const GET_LOCATIONS_ARG_NAME: &str = "get-locations";
 const CONFIG_ARG_NAME: &str = "config";
@@ -191,6 +192,13 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name(INIT_SIZE_ARG_NAME)
+                .help("Specifies amount of initial solutions. Min is 1")
+                .long(INIT_SIZE_ARG_NAME)
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name(MATRIX_ARG_NAME)
                 .help("Specifies path to file with routing matrix")
                 .short("m")
@@ -300,6 +308,7 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
 
     let cost_variation = get_cost_variation(matches);
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
+    let init_size = get_init_size(matches);
     let config = matches.value_of(CONFIG_ARG_NAME).map(|path| open_file(path, "config"));
     let matrix_files = get_matrix_files(matches);
     let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out solution"));
@@ -349,7 +358,7 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
                         };
 
                         let (solution, _, metrics) = builder
-                            .with_init_solutions(solutions)
+                            .with_init_solutions(solutions, init_size)
                             .build()
                             .and_then(|solver| solver.solve())
                             .unwrap_or_else(|err| {
@@ -385,6 +394,17 @@ fn get_cost_variation(matches: &ArgMatches) -> Option<(usize, f64)> {
             (*sample as usize, *threshold)
         } else {
             eprintln!("cannot parse cost variation parameter");
+            process::exit(1);
+        }
+    })
+}
+
+fn get_init_size(matches: &ArgMatches) -> Option<usize> {
+    matches.value_of(INIT_SIZE_ARG_NAME).map(|size| {
+        if let Some(value) = size.parse::<usize>().ok().and_then(|value| if value < 1 { None } else { Some(value) }) {
+            value
+        } else {
+            eprintln!("init size must be a value than 0, got '{}'", size);
             process::exit(1);
         }
     })
