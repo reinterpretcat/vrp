@@ -147,8 +147,8 @@ impl<S: State> From<HashMap<S::Action, f64>> for ActionEstimates<S> {
     }
 }
 
-impl<S: State> Into<HashMap<S::Action, f64>> for ActionEstimates<S> {
-    fn into(self) -> HashMap<S::Action, f64> {
-        self.estimates
+impl<S: State> From<ActionEstimates<S>> for HashMap<S::Action, f64> {
+    fn from(action_estimates: ActionEstimates<S>) -> Self {
+        action_estimates.estimates
     }
 }

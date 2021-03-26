@@ -108,7 +108,7 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
             assert!(error.action.contains("job1, job3"))
         }
         (None, None) => {}
-        _ => panic!(format!("{:?} vs {}", result, expected.is_some())),
+        _ => panic!("{:?} vs {}", result, expected.is_some()),
     }
 }
 
@@ -154,6 +154,6 @@ fn can_detect_multi_vehicle_assignment_impl(relations: Vec<(&str, &str)>, expect
             assert!(error.action.contains(jobs))
         }
         (None, None) => {}
-        _ => panic!(format!("{:?} vs {}", result, expected.is_some())),
+        _ => panic!("{:?} vs {}", result, expected.is_some()),
     }
 }

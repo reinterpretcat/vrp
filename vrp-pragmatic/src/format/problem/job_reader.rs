@@ -83,7 +83,7 @@ pub fn read_locks(api_problem: &ApiProblem, job_index: &JobIndex) -> Vec<Arc<Loc
                     let job = job_index
                         .get(&job_id)
                         .cloned()
-                        .unwrap_or_else(|| panic!(format!("cannot find job with id: '{};", job_id)));
+                        .unwrap_or_else(|| panic!("cannot find job with id: '{};", job_id));
 
                     jobs.push(job);
 

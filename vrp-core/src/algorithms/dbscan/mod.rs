@@ -37,9 +37,7 @@ where
         if neighbors.len() < min_items {
             item_types.insert(item, ItemType::Noise);
         } else {
-            let mut cluster = Vec::new();
-
-            cluster.push(item);
+            let mut cluster = vec![item];
             item_types.insert(item, ItemType::Clustered);
 
             let mut index = 0;

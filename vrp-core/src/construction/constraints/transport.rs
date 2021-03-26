@@ -149,7 +149,7 @@ impl TransportConstraintModule {
                 .detail
                 .end
                 .as_ref()
-                .unwrap_or_else(|| actor.detail.start.as_ref().unwrap_or_else(|| panic!(OP_START_MSG)))
+                .unwrap_or_else(|| actor.detail.start.as_ref().unwrap_or_else(|| panic!("{}", OP_START_MSG)))
                 .location,
             0_f64,
         );

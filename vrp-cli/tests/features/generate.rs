@@ -10,11 +10,11 @@ use vrp_pragmatic::validation::ValidationContext;
 fn can_generate_problem_from_simple_prototype() {
     let reader = BufReader::new(File::open("../examples/data/pragmatic/simple.basic.problem.json").unwrap());
     let problem =
-        generate_problem("pragmatic", Some(vec![reader]), None, 50, 4, None).map_err(|err| panic!(err)).unwrap();
+        generate_problem("pragmatic", Some(vec![reader]), None, 50, 4, None).map_err(|err| panic!("{}", err)).unwrap();
 
     ValidationContext::new(&problem, None)
         .validate()
-        .map_err(|err| panic!(FormatError::format_many(&err, "\t\n")))
+        .map_err(|err| panic!("{}", FormatError::format_many(&err, "\t\n")))
         .unwrap();
 
     // TODO add more checks
