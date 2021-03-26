@@ -81,7 +81,7 @@ impl Population for Rosomaxa {
                 known_individuals.extend(individuals.into_iter())
             }
             RosomaxaPhases::Exploration { time, network, .. } => {
-                network.store_batch(individuals, *time, |individual| IndividualInput::new(individual));
+                network.store_batch(individuals, *time, IndividualInput::new);
             }
             RosomaxaPhases::Exploitation => {}
         }
