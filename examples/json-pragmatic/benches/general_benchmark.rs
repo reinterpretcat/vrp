@@ -10,9 +10,9 @@ use vrp_pragmatic::format::FormatError;
 
 fn solve_problem_with_max_generations(problem_path: &str, generations: usize) -> Solution {
     let file = File::open(problem_path)
-        .unwrap_or_else(|err| panic!(format!("cannot open {} file: '{}'", problem_path, err.to_string())));
+        .unwrap_or_else(|err| panic!("cannot open {} file: '{}'", problem_path, err.to_string()));
     let problem = Arc::new(BufReader::new(file).read_pragmatic().unwrap_or_else(|errs| {
-        panic!(format!("cannot create pragmatic problem: {}", FormatError::format_many(errs.as_slice(), ",")))
+        panic!("cannot create pragmatic problem: {}", FormatError::format_many(errs.as_slice(), ","))
     }));
 
     let (solution, _, _) = Builder::new(problem.clone(), Arc::new(Environment::default()))

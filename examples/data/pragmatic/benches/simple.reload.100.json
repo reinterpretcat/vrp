@@ -1967,20 +1967,5 @@
         "type": "car"
       }
     ]
-  },
-  "objectives": {
-    "primary": [
-      {
-        "type": "minimize-unassigned"
-      },
-      {
-        "type": "minimize-tours"
-      }
-    ],
-    "secondary": [
-      {
-        "type": "minimize-cost"
-      }
-    ]
   }
 }
