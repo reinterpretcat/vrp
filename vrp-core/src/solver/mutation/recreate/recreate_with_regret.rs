@@ -3,7 +3,7 @@ use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::solver::mutation::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
-use crate::utils::{compare_floats, parallel_collect, CollectGroupBy};
+use crate::utils::{compare_floats, CollectGroupBy};
 use hashbrown::HashSet;
 
 /// A recreate strategy which computes the difference in cost of inserting customer in its
@@ -42,7 +42,7 @@ impl RecreateWithRegret {
 struct RegretInsertionEvaluator {
     min: usize,
     max: usize,
-    fallback_evaluator: Box<dyn InsertionEvaluator + Send + Sync>,
+    fallback_evaluator: PositionInsertionEvaluator,
 }
 
 impl RegretInsertionEvaluator {
@@ -51,19 +51,29 @@ impl RegretInsertionEvaluator {
         assert!(min > 0);
         assert!(min <= max);
 
-        Self { min, max, fallback_evaluator: Box::new(PositionInsertionEvaluator::default()) }
+        Self { min, max, fallback_evaluator: PositionInsertionEvaluator::default() }
     }
 }
 
 impl InsertionEvaluator for RegretInsertionEvaluator {
-    fn evaluate_one(
+    fn evaluate_job(
         &self,
         ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        self.fallback_evaluator.evaluate_one(ctx, job, routes, result_selector)
+        self.fallback_evaluator.evaluate_job(ctx, job, routes, result_selector)
+    }
+
+    fn evaluate_route(
+        &self,
+        ctx: &InsertionContext,
+        route: &RouteContext,
+        jobs: &[Job],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> InsertionResult {
+        self.fallback_evaluator.evaluate_route(ctx, route, jobs, result_selector)
     }
 
     fn evaluate_all(
@@ -76,49 +86,50 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
         let regret_index = ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
 
         // NOTE no need to proceed with regret, fallback to more performant reducer
-        if regret_index == 1 || jobs.len() == 1 || ctx.solution.routes.len() < 2 {
+        if regret_index == 1 || jobs.len() == 1 || routes.is_empty() || ctx.solution.routes.len() < 2 {
             return self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector);
         }
 
-        let mut results =
-            parallel_collect(&jobs, |job| self.fallback_evaluator.evaluate_one(ctx, job, routes, result_selector))
-                .into_iter()
-                .filter_map(|result| match result {
-                    InsertionResult::Success(success) => Some(success),
-                    _ => None,
-                })
-                .collect_group_by_key::<Job, InsertionSuccess, _>(|success| success.job.clone())
-                .into_iter()
-                .filter_map(|(_, mut success)| {
-                    if success.len() < regret_index {
-                        return None;
-                    }
+        let mut results = self
+            .fallback_evaluator
+            .evaluate_and_collect_all(ctx, jobs, routes, result_selector)
+            .into_iter()
+            .filter_map(|result| match result {
+                InsertionResult::Success(success) => Some(success),
+                _ => None,
+            })
+            .collect_group_by_key::<Job, InsertionSuccess, _>(|success| success.job.clone())
+            .into_iter()
+            .filter_map(|(_, mut success)| {
+                if success.len() < regret_index {
+                    return None;
+                }
 
-                    success.sort_by(|a, b| compare_floats(a.cost, b.cost));
+                success.sort_by(|a, b| compare_floats(a.cost, b.cost));
 
-                    let (_, mut job_results) = success.into_iter().fold(
-                        (HashSet::with_capacity(ctx.solution.routes.len()), Vec::default()),
-                        |(mut routes, mut results), result| {
-                            if !routes.contains(&result.context.route.actor) {
-                                results.push(result);
-                            } else {
-                                routes.insert(result.context.route.actor.clone());
-                            }
+                let (_, mut job_results) = success.into_iter().fold(
+                    (HashSet::with_capacity(ctx.solution.routes.len()), Vec::default()),
+                    |(mut routes, mut results), result| {
+                        if !routes.contains(&result.context.route.actor) {
+                            results.push(result);
+                        } else {
+                            routes.insert(result.context.route.actor.clone());
+                        }
 
-                            (routes, results)
-                        },
-                    );
+                        (routes, results)
+                    },
+                );
 
-                    if regret_index < job_results.len() {
-                        let worst = job_results.swap_remove(regret_index);
-                        let best = job_results.swap_remove(0);
+                if regret_index < job_results.len() {
+                    let worst = job_results.swap_remove(regret_index);
+                    let best = job_results.swap_remove(0);
 
-                        Some((worst.cost - best.cost, best))
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
+                    Some((worst.cost - best.cost, best))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
 
         if !results.is_empty() {
             results.sort_by(|a, b| compare_floats(b.0, a.0));

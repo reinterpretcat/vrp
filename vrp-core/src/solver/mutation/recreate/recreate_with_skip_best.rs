@@ -3,7 +3,6 @@ use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::solver::mutation::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
-use crate::utils::parallel_collect;
 use std::cmp::Ordering::*;
 
 /// A recreate strategy which skips best job insertion for insertion.
@@ -40,7 +39,7 @@ impl RecreateWithSkipBest {
 struct SkipBestInsertionEvaluator {
     min: usize,
     max: usize,
-    fallback_evaluator: Box<dyn InsertionEvaluator + Send + Sync>,
+    fallback_evaluator: PositionInsertionEvaluator,
 }
 
 impl SkipBestInsertionEvaluator {
@@ -49,19 +48,29 @@ impl SkipBestInsertionEvaluator {
         assert!(min > 0);
         assert!(min <= max);
 
-        Self { min, max, fallback_evaluator: Box::new(PositionInsertionEvaluator::default()) }
+        Self { min, max, fallback_evaluator: PositionInsertionEvaluator::default() }
     }
 }
 
 impl InsertionEvaluator for SkipBestInsertionEvaluator {
-    fn evaluate_one(
+    fn evaluate_job(
         &self,
         ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        self.fallback_evaluator.evaluate_one(ctx, job, routes, result_selector)
+        self.fallback_evaluator.evaluate_job(ctx, job, routes, result_selector)
+    }
+
+    fn evaluate_route(
+        &self,
+        ctx: &InsertionContext,
+        route: &RouteContext,
+        jobs: &[Job],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> InsertionResult {
+        self.fallback_evaluator.evaluate_route(ctx, route, jobs, result_selector)
     }
 
     fn evaluate_all(
@@ -74,11 +83,11 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
         let skip_index = ctx.environment.random.uniform_int(self.min as i32, self.max as i32);
 
         // NOTE no need to proceed with skip, fallback to more performant reducer
-        if skip_index == 1 || jobs.len() == 1 {
+        if skip_index == 1 || jobs.len() == 1 || routes.is_empty() {
             return self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector);
         }
 
-        let mut results = parallel_collect(&jobs, |job| self.evaluate_one(ctx, job, routes, result_selector));
+        let mut results = self.fallback_evaluator.evaluate_and_collect_all(ctx, jobs, routes, result_selector);
 
         // TODO use result_selector?
         results.sort_by(|a, b| match (a, b) {

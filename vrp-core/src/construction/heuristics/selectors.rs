@@ -4,7 +4,7 @@ mod selectors_test;
 
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::utils::{map_reduce, Either, Noise};
+use crate::utils::{map_reduce, parallel_collect, Either, Noise};
 use rand::prelude::*;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
@@ -62,11 +62,20 @@ impl JobSelector for AllJobSelector {
 /// Evaluates insertion.
 pub trait InsertionEvaluator {
     /// Evaluates insertion of a single job into given collection of routes.
-    fn evaluate_one(
+    fn evaluate_job(
         &self,
         ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> InsertionResult;
+
+    /// Evaluates insertion of multiple jobs into given route.
+    fn evaluate_route(
+        &self,
+        ctx: &InsertionContext,
+        route: &RouteContext,
+        jobs: &[Job],
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 
@@ -96,10 +105,31 @@ impl PositionInsertionEvaluator {
     pub fn new(insertion_position: InsertionPosition) -> Self {
         Self { insertion_position }
     }
+
+    /// Evaluates all jobs ad routes.
+    pub(crate) fn evaluate_and_collect_all(
+        &self,
+        ctx: &InsertionContext,
+        jobs: &[Job],
+        routes: &[RouteContext],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> Vec<InsertionResult> {
+        if Self::is_fold_jobs(ctx) {
+            parallel_collect(&jobs, |job| self.evaluate_job(ctx, job, routes, result_selector))
+        } else {
+            parallel_collect(&routes, |route| self.evaluate_route(ctx, route, jobs, result_selector))
+        }
+    }
+
+    fn is_fold_jobs(ctx: &InsertionContext) -> bool {
+        // NOTE can be performance beneficial to use concrete strategy depending on jobs/routes ratio,
+        //      but this approach brings better exploration results
+        ctx.environment.random.is_head_not_tails()
+    }
 }
 
 impl InsertionEvaluator for PositionInsertionEvaluator {
-    fn evaluate_one(
+    fn evaluate_job(
         &self,
         ctx: &InsertionContext,
         job: &Job,
@@ -111,6 +141,18 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         })
     }
 
+    fn evaluate_route(
+        &self,
+        ctx: &InsertionContext,
+        route: &RouteContext,
+        jobs: &[Job],
+        result_selector: &(dyn ResultSelector + Send + Sync),
+    ) -> InsertionResult {
+        jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
+            evaluate_job_insertion_in_route(&ctx, &route, job, self.insertion_position, acc, result_selector)
+        })
+    }
+
     fn evaluate_all(
         &self,
         ctx: &InsertionContext,
@@ -118,12 +160,21 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         routes: &[RouteContext],
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        map_reduce(
-            jobs,
-            |job| self.evaluate_one(ctx, job, routes, result_selector),
-            InsertionResult::make_failure,
-            |a, b| result_selector.select_insertion(&ctx, a, b),
-        )
+        if Self::is_fold_jobs(ctx) {
+            map_reduce(
+                jobs,
+                |job| self.evaluate_job(ctx, job, routes, result_selector),
+                InsertionResult::make_failure,
+                |a, b| result_selector.select_insertion(&ctx, a, b),
+            )
+        } else {
+            map_reduce(
+                routes,
+                |route| self.evaluate_route(ctx, route, jobs, result_selector),
+                InsertionResult::make_failure,
+                |a, b| result_selector.select_insertion(&ctx, a, b),
+            )
+        }
     }
 }
 
