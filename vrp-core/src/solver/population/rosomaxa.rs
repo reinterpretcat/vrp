@@ -211,6 +211,7 @@ impl Rosomaxa {
                         network,
                         populations,
                         best_fitness.as_slice(),
+                        statistics,
                         self.environment.random.as_ref(),
                     );
                 } else {
@@ -240,6 +241,7 @@ impl Rosomaxa {
         network: &IndividualNetwork,
         populations: &mut Vec<(Arc<Elitism>, f64)>,
         best_fitness: &[f64],
+        statistics: &Statistics,
         random: &(dyn Random + Send + Sync),
     ) {
         populations.clear();
@@ -254,10 +256,16 @@ impl Rosomaxa {
             },
         ));
 
-        populations.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
-
-        // NOTE we keep track of actual populations and randomized order to keep selection algorithm simple
-        populations.shuffle(&mut random.get_rng());
+        if statistics.improvement_1000_ratio > 0.01 {
+            // NOTE partially randomize order
+            populations.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
+            // https://www.wolframalpha.com/input/?i=plot+1%2F%281%2Be%5E%28-10+*%28x+-+0.75%29%29%29%2C+x%3D0+to+2
+            let shuffle_ratio = 1. / (1. + std::f64::consts::E.powf(-10. * (statistics.termination_estimate - 0.75))).clamp(0.1, 1.);
+            let shuffle_amount = (populations.len() as f64 * shuffle_ratio) as usize;
+            populations.partial_shuffle(&mut random.get_rng(), shuffle_amount);
+        } else {
+            populations.shuffle(&mut random.get_rng());
+        }
     }
 
     fn optimize_network(
