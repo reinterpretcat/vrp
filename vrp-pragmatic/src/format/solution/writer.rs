@@ -191,7 +191,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let arrival = prev_departure + driving;
                 let start = act.schedule.arrival.max(act.place.time.start);
                 let waiting = start - act.schedule.arrival;
-                let serving = problem.activity.duration(route.actor.as_ref(), act, act.schedule.arrival);
+                let serving = act.place.duration;
                 let departure = start + serving;
 
                 // total cost and distance

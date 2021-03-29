@@ -37,7 +37,6 @@ pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
 pub fn create_constraint_pipeline_with_simple_capacity() -> ConstraintPipeline {
     create_constraint_pipeline_with_module(Box::new(CapacityConstraintModule::<SingleDimLoad>::new(
         TestTransportCost::new_shared(),
-        Arc::new(TestActivityCost::default()),
         2,
     )))
 }

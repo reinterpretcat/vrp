@@ -8,7 +8,6 @@ use crate::models::common::{Cost, Distance, Duration, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, Actor, Job, Single, TransportCost};
 use crate::models::solution::Activity;
 use crate::models::OP_START_MSG;
-use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -23,7 +22,6 @@ pub struct TransportConstraintModule {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
     limit_func: TravelLimitFunc,
 }
 
@@ -34,12 +32,12 @@ impl ConstraintModule for TransportConstraintModule {
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        Self::update_route_schedules(ctx, self.transport.as_ref(), self.activity.as_ref());
-        Self::update_route_states(ctx, self.transport.as_ref(), self.activity.as_ref());
+        Self::update_route_schedules(ctx, self.transport.as_ref());
+        Self::update_route_states(ctx, self.transport.as_ref());
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
         if has_travel_limits(&self.limit_func, ctx) {
-            Self::reschedule_departure(ctx, self.transport.as_ref(), self.activity.as_ref(), false)
+            Self::reschedule_departure(ctx, self.transport.as_ref(), false)
         }
         Self::update_statistics(ctx, self.transport.as_ref());
     }
@@ -47,14 +45,13 @@ impl ConstraintModule for TransportConstraintModule {
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         ctx.routes.iter_mut().for_each(|route_ctx| {
             let transport = self.transport.as_ref();
-            let activity = self.activity.as_ref();
 
             if route_ctx.is_stale() {
-                Self::update_route_schedules(route_ctx, transport, activity);
-                Self::update_route_states(route_ctx, transport, activity);
+                Self::update_route_schedules(route_ctx, transport);
+                Self::update_route_states(route_ctx, transport);
             }
 
-            Self::reschedule_departure(route_ctx, transport, activity, false);
+            Self::reschedule_departure(route_ctx, transport, false);
 
             if route_ctx.is_stale() {
                 Self::update_statistics(route_ctx, self.transport.as_ref());
@@ -89,7 +86,6 @@ impl TransportConstraintModule {
                 ConstraintVariant::HardActivity(Arc::new(TimeHardActivityConstraint {
                     code: time_window_code,
                     transport: transport.clone(),
-                    activity: activity.clone(),
                 })),
                 ConstraintVariant::HardActivity(Arc::new(TravelHardActivityConstraint {
                     limit_func: limit_func.clone(),
@@ -99,29 +95,20 @@ impl TransportConstraintModule {
                 })),
                 ConstraintVariant::SoftActivity(Arc::new(CostSoftActivityConstraint {
                     transport: transport.clone(),
-                    activity: activity.clone(),
+                    activity,
                 })),
             ],
-            activity,
             transport,
             limit_func,
         }
     }
 
     /// Optimizes departure time of route.
-    pub(crate) fn optimize_departure_time(
-        route_ctx: &mut RouteContext,
-        transport: &(dyn TransportCost + Send + Sync),
-        activity: &(dyn ActivityCost + Send + Sync),
-    ) {
-        Self::reschedule_departure(route_ctx, transport, activity, true);
+    pub(crate) fn optimize_departure_time(route_ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
+        Self::reschedule_departure(route_ctx, transport, true);
     }
 
-    pub(crate) fn update_route_schedules(
-        ctx: &mut RouteContext,
-        transport: &(dyn TransportCost + Send + Sync),
-        activity: &(dyn ActivityCost + Send + Sync),
-    ) {
+    pub(crate) fn update_route_schedules(ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
         let (init, actor) = {
             let start = ctx.route.tour.start().unwrap();
             ((start.place.location, start.schedule.departure), ctx.route.actor.clone())
@@ -129,18 +116,13 @@ impl TransportConstraintModule {
 
         ctx.route_mut().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
             a.schedule.arrival = dep + transport.duration(actor.vehicle.profile, loc, a.place.location, dep);
-            a.schedule.departure = a.schedule.arrival.max(a.place.time.start)
-                + activity.duration(actor.as_ref(), a.deref(), a.schedule.arrival);
+            a.schedule.departure = a.schedule.arrival.max(a.place.time.start) + a.place.duration;
 
             (a.place.location, a.schedule.departure)
         });
     }
 
-    pub(crate) fn update_route_states(
-        ctx: &mut RouteContext,
-        transport: &(dyn TransportCost + Send + Sync),
-        activity: &(dyn ActivityCost + Send + Sync),
-    ) {
+    pub(crate) fn update_route_states(ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
         // update latest arrival and waiting states of non-terminate (jobs) activities
         let actor = ctx.route.actor.clone();
         let init = (
@@ -164,7 +146,7 @@ impl TransportConstraintModule {
             let (end_time, prev_loc, waiting) = acc;
             let potential_latest = end_time
                 - transport.duration(actor.vehicle.profile, act.place.location, prev_loc, end_time)
-                - activity.duration(actor.as_ref(), act.deref(), end_time);
+                - act.place.duration;
 
             let latest_arrival_time = act.place.time.end.min(potential_latest);
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
@@ -179,14 +161,13 @@ impl TransportConstraintModule {
     pub(crate) fn reschedule_departure(
         ctx: &mut RouteContext,
         transport: &(dyn TransportCost + Send + Sync),
-        activity: &(dyn ActivityCost + Send + Sync),
         optimize_whole_tour: bool,
     ) {
         if let Some(new_departure_time) = try_get_new_departure_time(transport, ctx, optimize_whole_tour) {
             let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
             start.schedule.departure = new_departure_time;
-            Self::update_route_schedules(ctx, transport, activity);
-            Self::update_route_states(ctx, transport, activity);
+            Self::update_route_schedules(ctx, transport);
+            Self::update_route_states(ctx, transport);
         }
     }
 
@@ -240,7 +221,6 @@ impl HardRouteConstraint for TimeHardRouteConstraint {
 /// Checks time windows of actor and job.
 struct TimeHardActivityConstraint {
     code: i32,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
@@ -293,8 +273,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         let arr_time_at_target_act =
             departure + self.transport.duration(profile, prev.place.location, target.place.location, departure);
 
-        let end_time_at_new_act = arr_time_at_target_act.max(target.place.time.start)
-            + self.activity.duration(actor, target.deref(), arr_time_at_target_act);
+        let end_time_at_new_act = arr_time_at_target_act.max(target.place.time.start) + target.place.duration;
 
         let latest_arr_time_at_new_act = target.place.time.end.min(
             latest_arr_time_at_next_act
@@ -304,7 +283,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
                     next_act_location,
                     latest_arr_time_at_next_act,
                 )
-                + self.activity.duration(actor, target.deref(), arr_time_at_target_act),
+                + target.place.duration,
         );
 
         if arr_time_at_target_act > latest_arr_time_at_new_act {
@@ -439,7 +418,7 @@ impl CostSoftActivityConstraint {
     ) -> (Cost, Cost, Timestamp) {
         let arrival =
             time + self.transport.duration(actor.vehicle.profile, start.place.location, end.place.location, time);
-        let departure = arrival.max(end.place.time.start) + self.activity.duration(actor, end, arrival);
+        let departure = arrival.max(end.place.time.start) + end.place.duration;
 
         let transport_cost = self.transport.cost(actor, start.place.location, end.place.location, time);
         let activity_cost = self.activity.cost(actor, end, arrival);

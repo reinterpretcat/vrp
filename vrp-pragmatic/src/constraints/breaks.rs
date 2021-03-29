@@ -9,7 +9,7 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::common::{Schedule, TimeWindow, ValueDimension};
-use vrp_core::models::problem::{ActivityCost, Job, Single, TransportCost};
+use vrp_core::models::problem::{Job, Single, TransportCost};
 use vrp_core::models::solution::Activity;
 
 /// Implements break functionality with variable location and time.
@@ -18,15 +18,10 @@ pub struct BreakModule {
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
     transport: Arc<dyn TransportCost + Send + Sync>,
-    activity: Arc<dyn ActivityCost + Send + Sync>,
 }
 
 impl BreakModule {
-    pub fn new(
-        transport: Arc<dyn TransportCost + Send + Sync>,
-        activity: Arc<dyn ActivityCost + Send + Sync>,
-        code: i32,
-    ) -> Self {
+    pub fn new(transport: Arc<dyn TransportCost + Send + Sync>, code: i32) -> Self {
         Self {
             conditional: ConditionalJobModule::new(create_job_transition()),
             constraints: vec![
@@ -35,7 +30,6 @@ impl BreakModule {
                 ConstraintVariant::SoftRoute(Arc::new(BreakSoftRouteConstraint {})),
             ],
             transport,
-            activity,
         }
     }
 }
@@ -49,7 +43,7 @@ impl ConstraintModule for BreakModule {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
-        remove_invalid_breaks(ctx, self.transport.as_ref(), self.activity.as_ref());
+        remove_invalid_breaks(ctx, self.transport.as_ref());
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -157,11 +151,7 @@ fn is_required_job(routes: &[RouteContext], route_index: Option<usize>, job: &Jo
 /// Removes breaks which conditions are violated after ruin:
 /// * break without location served separately when original job is removed, but break is kept.
 /// * break is defined by interval, but its time is violated. This might happen due to departure time rescheduling.
-fn remove_invalid_breaks(
-    ctx: &mut SolutionContext,
-    transport: &(dyn TransportCost + Send + Sync),
-    activity: &(dyn ActivityCost + Send + Sync),
-) {
+fn remove_invalid_breaks(ctx: &mut SolutionContext, transport: &(dyn TransportCost + Send + Sync)) {
     let breaks_to_remove = ctx
         .routes
         .iter()
@@ -204,7 +194,7 @@ fn remove_invalid_breaks(
         ctx.routes.iter_mut().filter(|route_ctx| route_ctx.route.tour.contains(break_job)).for_each(|route_ctx| {
             route_ctx.route_mut().tour.remove(break_job);
 
-            update_route_schedule(route_ctx, transport, activity)
+            update_route_schedule(route_ctx, transport)
         })
     });
 

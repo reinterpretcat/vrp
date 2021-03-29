@@ -66,16 +66,11 @@ impl Default for ObjectiveCost {
 pub trait ActivityCost {
     /// Returns cost to perform activity.
     fn cost(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Cost {
-        let waiting = if activity.place.time.start > arrival { activity.place.time.start - arrival } else { 0.0 };
-        let service = self.duration(actor, activity, arrival);
+        let waiting = if activity.place.time.start > arrival { activity.place.time.start - arrival } else { 0. };
+        let service = activity.place.duration;
 
         waiting * (actor.driver.costs.per_waiting_time + actor.vehicle.costs.per_waiting_time)
             + service * (actor.driver.costs.per_service_time + actor.vehicle.costs.per_service_time)
-    }
-
-    /// Returns operation time spent to perform activity.
-    fn duration(&self, _actor: &Actor, activity: &Activity, _arrival: Timestamp) -> Cost {
-        activity.place.duration
     }
 }
 

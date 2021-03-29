@@ -260,7 +260,8 @@ impl Rosomaxa {
             // NOTE partially randomize order
             populations.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
             // https://www.wolframalpha.com/input/?i=plot+1%2F%281%2Be%5E%28-10+*%28x+-+0.75%29%29%29%2C+x%3D0+to+2
-            let shuffle_ratio = 1. / (1. + std::f64::consts::E.powf(-10. * (statistics.termination_estimate - 0.75))).clamp(0.1, 1.);
+            let shuffle_ratio =
+                1. / (1. + std::f64::consts::E.powf(-10. * (statistics.termination_estimate - 0.75))).clamp(0.1, 1.);
             let shuffle_amount = (populations.len() as f64 * shuffle_ratio) as usize;
             populations.partial_shuffle(&mut random.get_rng(), shuffle_amount);
         } else {

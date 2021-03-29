@@ -19,13 +19,12 @@ impl LocalOperator for RescheduleDeparture {
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
         let transport = refinement_ctx.problem.transport.as_ref();
-        let activity = refinement_ctx.problem.activity.as_ref();
 
         // TODO optionally, optimize only subset of the routes.
 
         let mut insertion_ctx = insertion_ctx.deep_copy();
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
-            TransportConstraintModule::optimize_departure_time(route_ctx, transport, activity);
+            TransportConstraintModule::optimize_departure_time(route_ctx, transport);
         });
 
         // TODO check is_stale flag and return None
