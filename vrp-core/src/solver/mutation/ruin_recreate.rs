@@ -1,5 +1,6 @@
 ///! Contains a mutation operator based on ruin and recreate principle.
 use super::*;
+use crate::construction::heuristics::finalize_insertion_ctx;
 use std::sync::Arc;
 
 /// A mutation operator based on ruin and recreate principle.
@@ -17,6 +18,11 @@ impl RuinAndRecreate {
 
 impl Mutation for RuinAndRecreate {
     fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
-        self.recreate.run(refinement_ctx, self.ruin.run(refinement_ctx, insertion_ctx.deep_copy()))
+        let mut insertion_ctx =
+            self.recreate.run(refinement_ctx, self.ruin.run(refinement_ctx, insertion_ctx.deep_copy()));
+
+        finalize_insertion_ctx(&mut insertion_ctx);
+
+        insertion_ctx
     }
 }
