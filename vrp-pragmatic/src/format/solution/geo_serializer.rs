@@ -1,9 +1,11 @@
 use super::Solution;
-use crate::format::solution::{Stop, Tour};
-use crate::format::Location;
+use crate::format::solution::{Stop, Tour, UnassignedJob};
+use crate::format::{get_coord_index, get_job_index, CoordIndex, Location};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::{BufWriter, Error, ErrorKind, Write};
+use vrp_core::models::problem::{Job, Place};
+use vrp_core::models::Problem;
 
 #[derive(Clone, Serialize, Debug)]
 #[serde(tag = "type")]
@@ -59,6 +61,44 @@ fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) ->
     })
 }
 
+fn get_unassigned_points(
+    coord_index: &CoordIndex,
+    unassigned: &UnassignedJob,
+    job: &Job,
+    color: &str,
+) -> Result<Vec<Feature>, Error> {
+    let places: Box<dyn Iterator<Item = &Place>> = match job {
+        Job::Single(single) => Box::new(single.places.iter()),
+        Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|single| single.places.iter())),
+    };
+
+    places
+        .filter_map(|place| place.location.and_then(|l| coord_index.get_by_idx(l)))
+        .map(|location| {
+            let coordinates = get_lng_lat(&location)?;
+            Ok(Feature {
+                properties: slice_to_map(&[
+                    ("marker-color", color),
+                    ("marker-size", "medium"),
+                    ("marker-symbol", "roadblock"),
+                    ("job_id", unassigned.job_id.as_str()),
+                    (
+                        "reasons",
+                        unassigned
+                            .reasons
+                            .iter()
+                            .map(|reason| format!("{}:{}", reason.code, reason.description))
+                            .collect::<Vec<_>>()
+                            .join(",")
+                            .as_str(),
+                    ),
+                ]),
+                geometry: Geometry::Point { coordinates },
+            })
+        })
+        .collect()
+}
+
 fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Result<Feature, Error> {
     let coordinates = tour.stops.iter().map(|stop| get_lng_lat(&stop.location)).collect::<Result<_, Error>>()?;
 
@@ -79,7 +119,11 @@ fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Result<Feature, E
 }
 
 /// Serializes solution into geo json format.
-pub fn serialize_solution_as_geojson<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
+pub fn serialize_solution_as_geojson<W: Write>(
+    writer: BufWriter<W>,
+    problem: &Problem,
+    solution: &Solution,
+) -> Result<(), Error> {
     let stop_markers = solution
         .tours
         .iter()
@@ -98,9 +142,29 @@ pub fn serialize_solution_as_geojson<W: Write>(writer: BufWriter<W>, solution: &
         .map(|(tour_idx, tour)| get_tour_line(tour_idx, tour, get_color(tour_idx).as_str()))
         .collect::<Result<Vec<_>, _>>()?;
 
+    let job_index = get_job_index(problem);
+    let coord_index = get_coord_index(problem);
+    let unassigned_markers = solution
+        .unassigned
+        .iter()
+        .flat_map(|unassigned| unassigned.iter())
+        .enumerate()
+        .map(|(idx, unassigned_job)| {
+            let job = job_index.get(&unassigned_job.job_id).ok_or_else(|| {
+                Error::new(ErrorKind::InvalidData, format!("cannot find job: {}", unassigned_job.job_id))
+            })?;
+            let color = get_color(idx);
+            get_unassigned_points(coord_index, unassigned_job, job, color.as_str())
+        })
+        .collect::<Result<Vec<Vec<Feature>>, Error>>()?
+        .into_iter()
+        .flatten();
+
     serde_json::to_writer_pretty(
         writer,
-        &FeatureCollection { features: stop_markers.into_iter().chain(stop_lines.into_iter()).collect() },
+        &FeatureCollection {
+            features: stop_markers.into_iter().chain(stop_lines.into_iter()).chain(unassigned_markers).collect(),
+        },
     )
     .map_err(Error::from)
 }

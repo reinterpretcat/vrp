@@ -44,7 +44,7 @@ impl<W: Write> PragmaticSolution<W> for Solution {
 
     fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
         let solution = create_solution(problem, &self, None);
-        serialize_solution_as_geojson(writer, &solution).map_err(|err| err.to_string())?;
+        serialize_solution_as_geojson(writer, problem, &solution).map_err(|err| err.to_string())?;
         Ok(())
     }
 }
