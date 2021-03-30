@@ -128,9 +128,7 @@ pub(crate) fn prepare_insertion_ctx(ctx: &mut InsertionContext) {
 }
 
 pub(crate) fn finalize_insertion_ctx(ctx: &mut InsertionContext) {
-    let unassigned = &ctx.solution.unassigned;
-    ctx.solution.required.retain(|job| !unassigned.contains_key(job));
-    ctx.solution.unassigned.extend(ctx.solution.required.drain(0..).map(|job| (job, -1)));
+    finalize_unassigned(ctx, -1);
 
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
@@ -162,10 +160,14 @@ pub(crate) fn apply_insertion_result(ctx: &mut InsertionContext, result: Inserti
                 ctx.solution.required.retain(|j| *j != job);
             } else {
                 // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
-                ctx.solution
-                    .unassigned
-                    .extend(ctx.solution.required.drain(0..).into_iter().map(|job| (job, failure.constraint)));
+                finalize_unassigned(ctx, failure.constraint)
             }
         }
     }
+}
+
+fn finalize_unassigned(ctx: &mut InsertionContext, code: i32) {
+    let unassigned = &ctx.solution.unassigned;
+    ctx.solution.required.retain(|job| !unassigned.contains_key(job));
+    ctx.solution.unassigned.extend(ctx.solution.required.drain(0..).map(|job| (job, code)));
 }

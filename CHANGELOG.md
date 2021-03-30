@@ -6,19 +6,20 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- `minimize-distance` and `minimize-duration` objectives
-- `init-size` option to control amount of initial solutions to be built built from CLI
+- new objectives: `minimize-distance` and `minimize-duration`
+- new CLI option: `init-size` to control amount of initial solutions to be built built
 
 ### Changed
 
 - optimize cluster ruin method
+- improve unassigned code reason handling
 
 
 ## [v1.9.1] - 2021-03-24
 
 ### Added
 
-- add maximize value objective
+- maximize value objective
 
 ### Changed
 

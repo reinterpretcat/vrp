@@ -94,7 +94,14 @@ impl InsertionEvaluator for SkipBestInsertionEvaluator {
             (InsertionResult::Success(a), InsertionResult::Success(b)) => a.cost.partial_cmp(&b.cost).unwrap_or(Less),
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => Less,
             (InsertionResult::Failure(_), InsertionResult::Success(_)) => Greater,
-            (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Equal,
+            (
+                InsertionResult::Failure(InsertionFailure { constraint: left, .. }),
+                InsertionResult::Failure(InsertionFailure { constraint: right, .. }),
+            ) => match (left, right) {
+                (-1, _) => Greater,
+                (_, -1) => Less,
+                _ => Equal,
+            },
         });
 
         let skip_index = skip_index.min(results.len() as i32) as usize - 1;
