@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/format/solution/geo_serializer_test.rs"]
+mod geo_serializer_test;
+
 use super::Solution;
 use crate::format::solution::{Stop, Tour, UnassignedJob};
 use crate::format::{get_coord_index, get_job_index, CoordIndex, Location};
@@ -118,12 +122,8 @@ fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Result<Feature, E
     })
 }
 
-/// Serializes solution into geo json format.
-pub fn serialize_solution_as_geojson<W: Write>(
-    writer: BufWriter<W>,
-    problem: &Problem,
-    solution: &Solution,
-) -> Result<(), Error> {
+/// Creates solution as geo json.
+fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<FeatureCollection, Error> {
     let stop_markers = solution
         .tours
         .iter()
@@ -160,13 +160,20 @@ pub fn serialize_solution_as_geojson<W: Write>(
         .into_iter()
         .flatten();
 
-    serde_json::to_writer_pretty(
-        writer,
-        &FeatureCollection {
-            features: stop_markers.into_iter().chain(stop_lines.into_iter()).chain(unassigned_markers).collect(),
-        },
-    )
-    .map_err(Error::from)
+    Ok(FeatureCollection {
+        features: stop_markers.into_iter().chain(stop_lines.into_iter()).chain(unassigned_markers).collect(),
+    })
+}
+
+/// Serializes solution into geo json format.
+pub fn serialize_solution_as_geojson<W: Write>(
+    writer: BufWriter<W>,
+    problem: &Problem,
+    solution: &Solution,
+) -> Result<(), Error> {
+    let geo_json = create_geojson_solution(problem, solution)?;
+
+    serde_json::to_writer_pretty(writer, &geo_json).map_err(Error::from)
 }
 
 fn get_color(idx: usize) -> String {
