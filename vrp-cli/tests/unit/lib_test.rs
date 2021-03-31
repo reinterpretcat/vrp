@@ -21,7 +21,12 @@ fn can_get_solution_serialized() {
         plan: Plan { jobs: vec![create_test_job(1., 0.)], relations: None },
         fleet: Fleet {
             vehicles: vec![create_test_vehicle_type()],
-            profiles: vec![Profile { name: "car".to_string(), profile_type: "car".to_string(), speed: None }],
+            profiles: vec![Profile {
+                name: "car".to_string(),
+                profile_type: "car".to_string(),
+                scale: None,
+                speed: None,
+            }],
         },
         objectives: None,
     };

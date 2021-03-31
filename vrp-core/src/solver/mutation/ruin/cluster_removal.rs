@@ -92,7 +92,7 @@ fn create_job_clusters<'a>(
     epsilon: f64,
 ) -> Vec<Cluster<'a, Job>> {
     // get main parameters with some randomization
-    let profile = problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32 - 1) as usize];
+    let profile = &problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32 - 1) as usize];
 
     let neighbor_fn: NeighborhoodFn<'a, Job> = Box::new(move |job, eps| {
         Box::new(once(job).chain(
@@ -118,7 +118,7 @@ fn estimate_epsilon(problem: &Problem, min_points: usize) -> f64 {
 
 /// Gets average costs across all profiles.
 fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
-    let mut costs = problem.fleet.profiles.iter().fold(vec![0.; problem.jobs.size()], |mut acc, &profile| {
+    let mut costs = problem.fleet.profiles.iter().fold(vec![0.; problem.jobs.size()], |mut acc, profile| {
         problem.jobs.all().enumerate().for_each(|(idx, job)| {
             acc[idx] += problem
                 .jobs

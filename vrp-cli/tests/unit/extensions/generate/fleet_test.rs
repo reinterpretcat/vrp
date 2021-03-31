@@ -11,6 +11,7 @@ fn can_generate_fleet_of_specific_size() {
             profiles: vec![Profile {
                 name: "normal_car".to_string(),
                 profile_type: "car_type".to_string(),
+                scale: None,
                 speed: None,
             }],
         },

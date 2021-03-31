@@ -182,7 +182,7 @@ type JobIndex = HashMap<Job, (Vec<(Job, Cost)>, HashMap<Job, Cost>, Cost)>;
 /// Stores all jobs taking into account their neighborhood.
 pub struct Jobs {
     jobs: Vec<Job>,
-    index: HashMap<Profile, JobIndex>,
+    index: HashMap<usize, JobIndex>,
 }
 
 impl Jobs {
@@ -203,18 +203,18 @@ impl Jobs {
 
     /// Returns range of jobs "near" to given one. Near is defined by costs with relation
     /// transport profile and departure time.
-    pub fn neighbors(&self, profile: Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = &(Job, Cost)> {
-        self.index.get(&profile).unwrap().get(job).unwrap().0.iter()
+    pub fn neighbors(&self, profile: &Profile, job: &Job, _: Timestamp) -> impl Iterator<Item = &(Job, Cost)> {
+        self.index.get(&profile.index).unwrap().get(job).unwrap().0.iter()
     }
 
     /// Returns cost distance between two jobs.
-    pub fn distance(&self, profile: Profile, from: &Job, to: &Job, _: Timestamp) -> Cost {
-        *self.index.get(&profile).unwrap().get(from).unwrap().1.get(to).unwrap()
+    pub fn distance(&self, profile: &Profile, from: &Job, to: &Job, _: Timestamp) -> Cost {
+        *self.index.get(&profile.index).unwrap().get(from).unwrap().1.get(to).unwrap()
     }
 
     /// Returns job rank as relative cost from any vehicle's start position.
-    pub fn rank(&self, profile: Profile, job: &Job) -> Cost {
-        self.index.get(&profile).unwrap().get(job).unwrap().2
+    pub fn rank(&self, profile: &Profile, job: &Job) -> Cost {
+        self.index.get(&profile.index).unwrap().get(job).unwrap().2
     }
 
     /// Returns amount of jobs.
@@ -261,16 +261,16 @@ fn create_index(
     fleet: &Fleet,
     jobs: Vec<Job>,
     transport: &Arc<dyn TransportCost + Send + Sync>,
-) -> HashMap<Profile, JobIndex> {
+) -> HashMap<usize, JobIndex> {
     let avg_profile_costs = get_avg_profile_costs(fleet);
 
-    fleet.profiles.iter().cloned().fold(HashMap::new(), |mut acc, profile| {
-        let avg_costs = avg_profile_costs.get(&profile).unwrap();
+    fleet.profiles.iter().fold(HashMap::new(), |mut acc, profile| {
+        let avg_costs = avg_profile_costs.get(&profile.index).unwrap();
         // get all possible start positions for given profile
         let starts: Vec<Location> = fleet
             .vehicles
             .iter()
-            .filter(|v| v.profile == profile)
+            .filter(|v| v.profile.index == profile.index)
             .flat_map(|v| v.details.iter().map(|d| d.start.as_ref().map(|s| s.location)))
             .filter(|s| s.is_some())
             .map(|s| s.unwrap())
@@ -288,7 +288,7 @@ fn create_index(
             let fleet_costs = starts
                 .iter()
                 .cloned()
-                .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport.as_ref(), &job, s))
+                .map(|s| get_cost_between_job_and_location(&profile, avg_costs, transport.as_ref(), &job, s))
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                 .unwrap_or(DEFAULT_COST);
 
@@ -298,20 +298,20 @@ fn create_index(
             acc
         });
 
-        acc.insert(profile, item);
+        acc.insert(profile.index, item);
         acc
     })
 }
 
 fn get_cost_between_locations(
-    profile: Profile,
+    profile: &Profile,
     costs: &Costs,
     transport: &(dyn TransportCost + Send + Sync),
     from: Location,
     to: Location,
 ) -> f64 {
-    let distance = transport.distance(profile, from, to, DEFAULT_DEPARTURE);
-    let duration = transport.duration(profile, from, to, DEFAULT_DEPARTURE);
+    let distance = transport.distance(&profile, from, to, DEFAULT_DEPARTURE);
+    let duration = transport.duration(&profile, from, to, DEFAULT_DEPARTURE);
 
     if distance < 0. || duration < 0. {
         // NOTE this happens if matrix uses negative values as a marker of unreachable location
@@ -323,7 +323,7 @@ fn get_cost_between_locations(
 
 /// Returns min cost between job and location.
 fn get_cost_between_job_and_location(
-    profile: Profile,
+    profile: &Profile,
     costs: &Costs,
     transport: &(dyn TransportCost + Send + Sync),
     job: &Job,
@@ -331,7 +331,7 @@ fn get_cost_between_job_and_location(
 ) -> Cost {
     get_job_locations(job)
         .map(|from| match from {
-            Some(from) => get_cost_between_locations(profile, costs, transport, from, to),
+            Some(from) => get_cost_between_locations(&profile, costs, transport, from, to),
             _ => DEFAULT_COST,
         })
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
@@ -340,7 +340,7 @@ fn get_cost_between_job_and_location(
 
 /// Returns minimal cost between jobs.
 fn get_cost_between_jobs(
-    profile: Profile,
+    profile: &Profile,
     costs: &Costs,
     transport: &(dyn TransportCost + Send + Sync),
     lhs: &Job,
@@ -368,7 +368,7 @@ fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Locatio
     }
 }
 
-fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<Profile, Costs> {
+fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {
     let get_avg_by = |costs: &Vec<Costs>, map_cost_fn: fn(&Costs) -> f64| -> f64 {
         costs.iter().map(map_cost_fn).sum::<f64>() / (costs.len() as f64)
     };
@@ -376,13 +376,13 @@ fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<Profile, Costs> {
         .vehicles
         .iter()
         .fold(HashMap::new(), |mut acc, vehicle| {
-            acc.entry(vehicle.profile).or_insert_with(Vec::new).push(vehicle.costs.clone());
+            acc.entry(vehicle.profile.index).or_insert_with(Vec::new).push(vehicle.costs.clone());
             acc
         })
         .iter()
-        .map(|(&profile, costs)| {
+        .map(|(&profile_idx, costs)| {
             (
-                profile,
+                profile_idx,
                 Costs {
                     fixed: get_avg_by(&costs, |c| c.fixed),
                     per_distance: get_avg_by(&costs, |c| c.per_distance),

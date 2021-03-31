@@ -10,7 +10,26 @@ use std::sync::Arc;
 pub type Location = usize;
 
 /// Represents a routing profile.
-pub type Profile = i32;
+#[derive(Clone, Debug)]
+pub struct Profile {
+    /// An unique index.
+    pub index: usize,
+    /// A duration scale factor.
+    pub scale: f64,
+}
+
+impl Profile {
+    /// Creates a new instance of `Profile`.
+    pub fn new(index: usize, scale: Option<f64>) -> Profile {
+        Self { index, scale: scale.unwrap_or(1.) }
+    }
+}
+
+impl Default for Profile {
+    fn default() -> Self {
+        Self { index: 0, scale: 1. }
+    }
+}
 
 /// Specifies cost value.
 pub type Cost = f64;

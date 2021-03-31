@@ -238,7 +238,8 @@ fn can_read_complex_problem() {
     (1..3).for_each(|index| {
         let vehicle = problem.fleet.vehicles.get(index - 1).unwrap();
         assert_eq!(*vehicle.dimens.get_id().unwrap(), format!("my_vehicle_{}", index));
-        assert_eq!(vehicle.profile, 0);
+        assert_eq!(vehicle.profile.index, 0);
+        assert_eq!(vehicle.profile.scale, 1.);
         assert_eq!(vehicle.costs.fixed, 100.0);
         assert_eq!(vehicle.costs.per_distance, 1.0);
         assert_eq!(vehicle.costs.per_driving_time, 2.0);
@@ -291,10 +292,25 @@ fn can_create_approximation_matrices() {
         fleet: Fleet {
             vehicles: vec![],
             profiles: vec![
-                FormatProfile { name: "car1".to_string(), profile_type: "car".to_string(), speed: Some(8.) },
-                FormatProfile { name: "car2".to_string(), profile_type: "car".to_string(), speed: Some(10.) },
-                FormatProfile { name: "car3".to_string(), profile_type: "car".to_string(), speed: Some(5.) },
-                FormatProfile { name: "car4".to_string(), profile_type: "car".to_string(), speed: None },
+                FormatProfile {
+                    name: "car1".to_string(),
+                    profile_type: "car".to_string(),
+                    scale: None,
+                    speed: Some(8.),
+                },
+                FormatProfile {
+                    name: "car2".to_string(),
+                    profile_type: "car".to_string(),
+                    scale: None,
+                    speed: Some(10.),
+                },
+                FormatProfile {
+                    name: "car3".to_string(),
+                    profile_type: "car".to_string(),
+                    scale: None,
+                    speed: Some(5.),
+                },
+                FormatProfile { name: "car4".to_string(), profile_type: "car".to_string(), scale: None, speed: None },
             ],
         },
         ..create_empty_problem()

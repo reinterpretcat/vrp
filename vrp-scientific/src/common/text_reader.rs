@@ -58,7 +58,7 @@ pub(crate) fn create_fleet_with_distance_costs(
                 let mut dimens = create_dimens_with_id("v", i);
                 dimens.set_capacity(SingleDimLoad::new(capacity as i32));
                 Arc::new(Vehicle {
-                    profile: 0,
+                    profile: Profile::default(),
                     costs: Costs {
                         fixed: 0.0,
                         per_distance: 1.0,

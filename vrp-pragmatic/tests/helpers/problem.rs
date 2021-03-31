@@ -4,6 +4,7 @@ use crate::format::{CoordIndex, Location};
 use crate::format_time;
 use crate::helpers::ToLocation;
 use std::sync::Arc;
+use vrp_core::models::common::Profile as CoreProfile;
 use vrp_core::models::problem::{ActivityCost, SimpleActivityCost, TransportCost};
 
 pub fn create_job_place(location: Vec<f64>) -> JobPlace {
@@ -214,7 +215,7 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
 }
 
 pub fn create_default_profiles() -> Vec<Profile> {
-    vec![Profile { name: "car".to_string(), profile_type: "car".to_string(), speed: None }]
+    vec![Profile { name: "car".to_string(), profile_type: "car".to_string(), scale: None, speed: None }]
 }
 
 pub fn create_min_jobs_cost_objective() -> Option<Vec<Vec<Objective>>> {
@@ -233,11 +234,11 @@ pub fn get_costs() -> (Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCos
     struct ExampleTransportCost {}
 
     impl TransportCost for ExampleTransportCost {
-        fn duration(&self, _: i32, _: usize, _: usize, _: f64) -> f64 {
+        fn duration(&self, _: &CoreProfile, _: usize, _: usize, _: f64) -> f64 {
             42.
         }
 
-        fn distance(&self, _: i32, _: usize, _: usize, _: f64) -> f64 {
+        fn distance(&self, _: &CoreProfile, _: usize, _: usize, _: f64) -> f64 {
             42.
         }
     }

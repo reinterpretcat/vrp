@@ -46,7 +46,7 @@ pub fn create_test_vehicle_type() -> VehicleType {
 }
 
 pub fn create_test_vehicle_profile() -> Profile {
-    Profile { name: "car".to_string(), profile_type: "car".to_string(), speed: None }
+    Profile { name: "car".to_string(), profile_type: "car".to_string(), scale: None, speed: None }
 }
 
 pub fn create_test_time_window() -> Vec<String> {

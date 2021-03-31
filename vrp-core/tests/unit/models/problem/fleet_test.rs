@@ -12,7 +12,10 @@ fn fleet_creates_unique_profiles_from_vehicles() {
             .add_vehicle(test_vehicle(profile2))
             .add_vehicle(test_vehicle(profile1))
             .build()
-            .profiles,
-        vec![profile1.to_owned(), profile2.to_owned()]
+            .profiles
+            .iter()
+            .map(|profile| profile.index)
+            .collect::<Vec<_>>(),
+        vec![profile1, profile2]
     )
 }

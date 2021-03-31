@@ -131,9 +131,10 @@ impl Fleet {
         assert_eq!(drivers.len(), 1);
         assert!(!vehicles.is_empty());
 
-        let profiles: HashSet<Profile> = vehicles.iter().map(|v| v.profile).collect();
+        let profiles: HashMap<usize, Profile> = vehicles.iter().map(|v| (v.profile.index, v.profile.clone())).collect();
         let mut profiles = profiles.into_iter().collect::<Vec<_>>();
-        profiles.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Less));
+        profiles.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
+        let (_, profiles): (Vec<_>, Vec<_>) = profiles.into_iter().unzip();
 
         let mut actors: Vec<Arc<Actor>> = Default::default();
         vehicles.iter().for_each(|vehicle| {

@@ -1,5 +1,5 @@
 use crate::construction::constraints::{ConstraintPipeline, TransportConstraintModule};
-use crate::models::common::{Dimensions, IdDimension, TimeInterval, TimeSpan, TimeWindow};
+use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::Problem;
 use std::sync::Arc;
@@ -7,11 +7,11 @@ use std::sync::Arc;
 struct ExampleTransportCost {}
 
 impl TransportCost for ExampleTransportCost {
-    fn duration(&self, _: i32, _: usize, _: usize, _: f64) -> f64 {
+    fn duration(&self, _: &Profile, _: usize, _: usize, _: f64) -> f64 {
         42.
     }
 
-    fn distance(&self, _: i32, _: usize, _: usize, _: f64) -> f64 {
+    fn distance(&self, _: &Profile, _: usize, _: usize, _: f64) -> f64 {
         42.
     }
 }
@@ -42,7 +42,7 @@ fn create_example_fleet() -> Arc<Fleet> {
     let mut vehicle_dimens = Dimensions::new();
     vehicle_dimens.set_id("v1");
     let vehicles = vec![Arc::new(Vehicle {
-        profile: 0,
+        profile: Profile::default(),
         costs: Costs { fixed: 0., per_distance: 1., per_driving_time: 0., per_waiting_time: 0., per_service_time: 0. },
         dimens: vehicle_dimens,
         details: vec![VehicleDetail {

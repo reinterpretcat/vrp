@@ -1,16 +1,15 @@
 use super::*;
-use crate::helpers::models::common::DEFAULT_PROFILE;
 use crate::helpers::models::problem::*;
 use crate::models::problem::{VehicleDetail, VehiclePlace};
 
 struct OnlyDistanceCost {}
 
 impl TransportCost for OnlyDistanceCost {
-    fn duration(&self, _profile: Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
+    fn duration(&self, _: &Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
         0.
     }
 
-    fn distance(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
+    fn distance(&self, _: &Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
         fake_routing(from, to)
     }
 }
@@ -22,21 +21,21 @@ impl Default for OnlyDistanceCost {
 }
 
 struct ProfileAwareTransportCost {
-    func: Box<dyn Fn(Profile, f64) -> f64 + Sync + Send>,
+    func: Box<dyn Fn(&Profile, f64) -> f64 + Sync + Send>,
 }
 
 impl ProfileAwareTransportCost {
-    pub fn new(func: Box<dyn Fn(Profile, f64) -> f64 + Sync + Send>) -> ProfileAwareTransportCost {
+    pub fn new(func: Box<dyn Fn(&Profile, f64) -> f64 + Sync + Send>) -> ProfileAwareTransportCost {
         ProfileAwareTransportCost { func }
     }
 }
 
 impl TransportCost for ProfileAwareTransportCost {
-    fn duration(&self, _profile: Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
+    fn duration(&self, _: &Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
         0.
     }
 
-    fn distance(&self, profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
+    fn distance(&self, profile: &Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
         (self.func)(profile, fake_routing(from, to))
     }
 }
@@ -47,11 +46,11 @@ struct FixedTransportCost {
 }
 
 impl TransportCost for FixedTransportCost {
-    fn duration(&self, _profile: Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
+    fn duration(&self, _: &Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
         self.duration_cost
     }
 
-    fn distance(&self, _profile: Profile, _from: Location, _to: Location, _departure: Timestamp) -> Distance {
+    fn distance(&self, _: &Profile, _from: Location, _to: Location, _departure: Timestamp) -> Distance {
         self.distance_cost
     }
 }
@@ -63,7 +62,7 @@ impl FixedTransportCost {
 }
 
 fn create_profile_aware_transport_cost() -> Arc<dyn TransportCost + Sync + Send> {
-    Arc::new(ProfileAwareTransportCost::new(Box::new(|p, d| if p == 2 { 10.0 - d } else { d })))
+    Arc::new(ProfileAwareTransportCost::new(Box::new(|p, d| if p.index == 2 { 10.0 - d } else { d })))
 }
 
 fn create_only_distance_transport_cost() -> Arc<dyn TransportCost + Sync + Send> {
@@ -82,7 +81,7 @@ fn all_returns_all_jobs() {
 }
 
 parameterized_test! {calculates_proper_cost_between_single_jobs, (left, right, expected), {
-    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE,
+    assert_eq!(get_cost_between_jobs(&Profile::default(),
                                     &create_costs(),
                                     create_only_distance_transport_cost().as_ref(),
                                     &Job::Single(left),
@@ -99,7 +98,7 @@ calculates_proper_cost_between_single_jobs! {
 }
 
 parameterized_test! {calculates_proper_cost_between_multi_jobs, (left, right, expected), {
-    assert_eq!(get_cost_between_jobs(DEFAULT_PROFILE,
+    assert_eq!(get_cost_between_jobs(&Profile::default(),
                                      &create_costs(),
                                      create_only_distance_transport_cost().as_ref(),
                                      &Job::Multi(left),
@@ -126,11 +125,12 @@ returns_proper_job_neighbours! {
 }
 
 fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
+    let p1 = Profile::new(1, None);
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::default().id("v1").profile(1).details(vec![test_vehicle_detail()]).build(),
-            VehicleBuilder::default().id("v2").profile(1).details(vec![test_vehicle_detail()]).build(),
+            VehicleBuilder::default().id("v1").profile(p1.clone()).details(vec![test_vehicle_detail()]).build(),
+            VehicleBuilder::default().id("v2").profile(p1.clone()).details(vec![test_vehicle_detail()]).build(),
         ])
         .build();
     let species = vec![
@@ -143,7 +143,7 @@ fn returns_proper_job_neighbours_impl(index: usize, expected: Vec<String>) {
     let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
 
     let result: Vec<String> =
-        jobs.neighbors(1, species.get(index).unwrap(), 0.0).map(|(j, _)| get_job_id(j).clone()).collect();
+        jobs.neighbors(&p1, species.get(index).unwrap(), 0.0).map(|(j, _)| get_job_id(j).clone()).collect();
 
     assert_eq!(result, expected);
 }
@@ -163,7 +163,10 @@ returns_proper_job_ranks! {
     case8: (3, 3, 1.0),
 }
 
-fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Distance) {
+fn returns_proper_job_ranks_impl(index: usize, profile_index: usize, expected: Distance) {
+    let profile = Profile::new(profile_index, None);
+    let p1 = Profile::new(1, None);
+    let p3 = Profile::new(3, None);
     let create_vehicle_detail = |start_location: usize| VehicleDetail {
         start: Some(VehiclePlace { location: start_location, time: TimeInterval::default() }),
         end: Some(VehiclePlace { location: 0, time: TimeInterval::default() }),
@@ -171,9 +174,9 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
         .add_vehicles(vec![
-            VehicleBuilder::default().id("v1_1").profile(1).details(vec![create_vehicle_detail(0)]).build(),
-            VehicleBuilder::default().id("v1_2").profile(1).details(vec![create_vehicle_detail(15)]).build(),
-            VehicleBuilder::default().id("v2_1").profile(3).details(vec![create_vehicle_detail(30)]).build(),
+            VehicleBuilder::default().id("v1_1").profile(p1.clone()).details(vec![create_vehicle_detail(0)]).build(),
+            VehicleBuilder::default().id("v1_2").profile(p1).details(vec![create_vehicle_detail(15)]).build(),
+            VehicleBuilder::default().id("v2_1").profile(p3).details(vec![create_vehicle_detail(30)]).build(),
         ])
         .build();
     let species = vec![
@@ -184,7 +187,7 @@ fn returns_proper_job_ranks_impl(index: usize, profile: Profile, expected: Dista
     ];
     let jobs = Jobs::new(&fleet, species.clone(), &create_profile_aware_transport_cost());
 
-    let result = jobs.rank(profile, species.get(index).unwrap());
+    let result = jobs.rank(&profile, species.get(index).unwrap());
 
     assert_eq!(result, expected);
 }
@@ -197,7 +200,7 @@ fn can_use_multi_job_bind_and_roots() {
     let jobs = Jobs::new(&test_fleet(), jobs, &create_only_distance_transport_cost());
     let job = Job::Multi(Multi::roots(&job.jobs.first().unwrap()).unwrap());
 
-    assert_eq!(jobs.neighbors(0, &job, 0.0).count(), 0);
+    assert_eq!(jobs.neighbors(&Profile::default(), &job, 0.0).count(), 0);
 }
 
 parameterized_test! {can_handle_negative_distances_durations, (duration_cost, distance_cost), {
@@ -212,7 +215,7 @@ can_handle_negative_distances_durations! {
 }
 
 fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn TransportCost + Send + Sync>) {
-    let profile = 0;
+    let profile = Profile::default();
     let species = vec![
         SingleBuilder::default().id("s0").location(Some(0)).build_as_job_ref(),
         SingleBuilder::default().id("s1").location(Some(1)).build_as_job_ref(),
@@ -222,7 +225,7 @@ fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn Transpo
 
     for job in &species {
         assert!(jobs
-            .neighbors(profile, job, 0.0)
+            .neighbors(&profile, job, 0.0)
             .all(|(_, cost)| { (*cost - UNREACHABLE_COST).abs() < std::f64::EPSILON }));
     }
 }

@@ -349,6 +349,11 @@ pub struct Profile {
     #[serde(rename(deserialize = "type", serialize = "type"))]
     pub profile_type: String,
 
+    /// Traveling duration scale factor.
+    /// Default value is 1.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scale: Option<f64>,
+
     /// Approximation speed (meters per second). Used only when routing matrix is not specified.
     /// Default value is 10.
     #[serde(skip_serializing_if = "Option::is_none")]

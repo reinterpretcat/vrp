@@ -45,14 +45,14 @@ struct ReachableHardActivityConstraint {
 impl HardActivityConstraint for ReachableHardActivityConstraint {
     fn evaluate_activity(
         &self,
-        _route_ctx: &RouteContext,
+        route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
         let prev = activity_ctx.prev;
         let target = activity_ctx.target;
         let next = activity_ctx.next;
 
-        let profile = _route_ctx.route.actor.vehicle.profile;
+        let profile = &route_ctx.route.actor.vehicle.profile;
 
         let prev_to_target =
             self.transport.distance(profile, prev.place.location, target.place.location, prev.schedule.departure);

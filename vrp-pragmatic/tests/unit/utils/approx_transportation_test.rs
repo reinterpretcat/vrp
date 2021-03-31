@@ -1,5 +1,6 @@
 use super::*;
 use crate::format::Location;
+use vrp_core::models::common::Profile;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData};
 
 fn get_test_locations() -> Vec<Location> {
@@ -22,6 +23,7 @@ fn can_calculate_distance_between_two_locations() {
 
 #[test]
 fn can_use_approximated_with_matrix_costs() {
+    let profile = Profile::default();
     let locations = get_test_locations();
     let speed = 10.;
     let approx_data = get_approx_transportation(&locations, &[speed]);
@@ -31,12 +33,12 @@ fn can_use_approximated_with_matrix_costs() {
     let durations = durations.iter().map(|&d| d as f64).collect();
     let distances = distances.iter().map(|&d| d as f64).collect();
 
-    let costs = create_matrix_transport_cost(vec![MatrixData::new(0, None, durations, distances)])
+    let costs = create_matrix_transport_cost(vec![MatrixData::new(profile.clone(), None, durations, distances)])
         .expect("Cannot create matrix transport costs");
 
     vec![(0, 1, 3048.), (1, 2, 2056.), (2, 0, 5078.)].into_iter().for_each(|(from, to, expected)| {
-        let distance = costs.distance(0, from, to, 0.);
-        let duration = costs.duration(0, from, to, 0.);
+        let distance = costs.distance(&profile, from, to, 0.);
+        let duration = costs.duration(&profile, from, to, 0.);
 
         assert_eq!(distance.round(), expected);
         assert_eq!(duration.round(), (distance / speed).round());

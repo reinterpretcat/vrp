@@ -52,7 +52,7 @@ pub fn get_waiting_mean(insertion_ctx: &InsertionContext) -> f64 {
 /// Gets average distance between routes using medoids.
 pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
     let transport = insertion_ctx.problem.transport.as_ref();
-    let profile = insertion_ctx.solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile);
+    let profile = insertion_ctx.solution.routes.first().map(|route_ctx| &route_ctx.route.actor.vehicle.profile);
 
     if let Some(profile) = profile {
         let medoids = insertion_ctx
@@ -66,7 +66,7 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
 
         for i in 0..medoids.len() {
             for j in (i + 1)..medoids.len() {
-                let distance = transport.distance(profile, medoids[i], medoids[j], Default::default());
+                let distance = transport.distance(&profile, medoids[i], medoids[j], Default::default());
                 // NOTE assume that negative distance is used between unroutable locations
                 distances.push(distance.max(0.));
             }
@@ -88,7 +88,7 @@ pub fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost + Sen
                 .iter()
                 .map(|inner_loc| {
                     transport.distance(
-                        route_ctx.route.actor.vehicle.profile,
+                        &route_ctx.route.actor.vehicle.profile,
                         *outer_loc,
                         *inner_loc,
                         Default::default(),
@@ -107,7 +107,7 @@ pub type RouteProximityGroup = Option<Vec<Vec<(usize, Option<f64>)>>>;
 /// Estimates distances between all routes using their medoids and returns the sorted groups.
 pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProximityGroup {
     let solution = &insertion_ctx.solution;
-    let profile = solution.routes.first().map(|route_ctx| route_ctx.route.actor.vehicle.profile)?;
+    let profile = &solution.routes.first().map(|route_ctx| &route_ctx.route.actor.vehicle.profile)?;
     let transport = insertion_ctx.problem.transport.as_ref();
 
     let indexed_medoids = solution

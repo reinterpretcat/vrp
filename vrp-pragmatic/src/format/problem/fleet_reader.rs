@@ -39,7 +39,12 @@ pub(crate) fn create_transport_costs(
         .iter()
         .enumerate()
         .map(|(idx, matrix)| {
-            let profile = matrix.profile.as_ref().and_then(|p| fleet_profiles.get(p)).cloned().unwrap_or(idx as i32);
+            let profile = matrix
+                .profile
+                .as_ref()
+                .and_then(|p| fleet_profiles.get(p))
+                .cloned()
+                .unwrap_or_else(|| Profile::new(idx, None));
             (profile, matrix.timestamp.clone(), matrix)
         })
         .map(|(profile, timestamp, matrix)| {
@@ -67,7 +72,7 @@ pub(crate) fn create_transport_costs(
         })
         .collect::<Vec<_>>();
 
-    let matrix_profiles = matrix_data.iter().map(|data| data.profile).collect::<HashSet<_>>().len();
+    let matrix_profiles = matrix_data.iter().map(|data| data.profile.index).collect::<HashSet<_>>().len();
     if fleet_profiles.len() != matrix_profiles {
         return Err("amount of fleet profiles does not match matrix profiles".to_string());
     }
@@ -88,7 +93,7 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
             per_service_time: vehicle.costs.time,
         };
 
-        let profile = *profiles.get(&vehicle.profile).unwrap() as Profile;
+        let profile = profiles.get(&vehicle.profile).unwrap();
 
         let tour_size = vehicle.limits.as_ref().and_then(|l| l.tour_size);
         let mut areas = vehicle.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map(|areas| {
@@ -147,7 +152,12 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 }
                 add_vehicle_skills(&mut dimens, &vehicle.skills);
 
-                vehicles.push(Arc::new(Vehicle { profile, costs: costs.clone(), dimens, details: details.clone() }));
+                vehicles.push(Arc::new(Vehicle {
+                    profile: profile.clone(),
+                    costs: costs.clone(),
+                    dimens,
+                    details: details.clone(),
+                }));
             });
         }
     });
@@ -190,10 +200,10 @@ pub fn read_travel_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
     }
 }
 
-fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, i32> {
+fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, Profile> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
-        if acc.get(&profile.name) == None {
-            acc.insert(profile.name.clone(), acc.len() as i32);
+        if acc.get(&profile.name).is_none() {
+            acc.insert(profile.name.clone(), Profile::new(acc.len(), profile.scale));
         }
         acc
     })

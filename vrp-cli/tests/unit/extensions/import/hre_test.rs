@@ -299,7 +299,12 @@ fn can_write_hre_problem() {
                     allowed_areas: None,
                 }),
             }],
-            profiles: vec![Profile { name: "normal_car".to_string(), profile_type: "car".to_string(), speed: None }],
+            profiles: vec![Profile {
+                name: "normal_car".to_string(),
+                profile_type: "car".to_string(),
+                scale: None,
+                speed: None,
+            }],
         },
         objectives: None,
     };

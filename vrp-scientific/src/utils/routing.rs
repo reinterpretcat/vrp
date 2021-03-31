@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use vrp_core::models::common::Location;
+use vrp_core::models::common::{Location, Profile};
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 
 #[derive(Clone)]
@@ -37,7 +37,7 @@ impl CoordIndex {
             })
             .collect::<Vec<f64>>();
 
-        let matrix_data = MatrixData::new(0, None, matrix_values.clone(), matrix_values);
+        let matrix_data = MatrixData::new(Profile::default(), None, matrix_values.clone(), matrix_values);
 
         create_matrix_transport_cost(vec![matrix_data])
     }

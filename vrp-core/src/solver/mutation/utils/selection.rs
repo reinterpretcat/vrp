@@ -27,7 +27,7 @@ pub(crate) fn select_seed_jobs<'a>(
             once(job.clone()).chain(
                 problem
                     .jobs
-                    .neighbors(routes.get(route_index).unwrap().route.actor.vehicle.profile, &job, Default::default())
+                    .neighbors(&routes.get(route_index).unwrap().route.actor.vehicle.profile, &job, Default::default())
                     .map(|(job, _)| job)
                     .cloned(),
             ),

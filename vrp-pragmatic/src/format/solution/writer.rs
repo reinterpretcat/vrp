@@ -187,7 +187,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 };
 
                 let driving =
-                    problem.transport.duration(vehicle.profile, prev_location, act.place.location, prev_departure);
+                    problem.transport.duration(&vehicle.profile, prev_location, act.place.location, prev_departure);
                 let arrival = prev_departure + driving;
                 let start = act.schedule.arrival.max(act.place.time.start);
                 let waiting = start - act.schedule.arrival;
@@ -199,7 +199,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     + problem.activity.cost(actor, act, act.schedule.arrival)
                     + problem.transport.cost(actor, prev_location, act.place.location, prev_departure);
                 let distance = leg.statistic.distance
-                    + problem.transport.distance(vehicle.profile, prev_location, act.place.location, prev_departure)
+                    + problem.transport.distance(&vehicle.profile, prev_location, act.place.location, prev_departure)
                         as i64;
 
                 let is_new_location = prev_location != act.place.location;

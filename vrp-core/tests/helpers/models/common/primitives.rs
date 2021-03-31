@@ -1,3 +1,1 @@
-use crate::models::common::Profile;
-
-pub const DEFAULT_PROFILE: Profile = 0;
+pub const DEFAULT_PROFILE_IDX: usize = 0;

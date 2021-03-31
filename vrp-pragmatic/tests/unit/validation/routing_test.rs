@@ -8,8 +8,8 @@ fn can_detect_duplicates() {
         fleet: Fleet {
             vehicles: vec![],
             profiles: vec![
-                Profile { name: "my_vehicle".to_string(), profile_type: "car".to_string(), speed: None },
-                Profile { name: "my_vehicle".to_string(), profile_type: "truck".to_string(), speed: None },
+                Profile { name: "my_vehicle".to_string(), profile_type: "car".to_string(), scale: None, speed: None },
+                Profile { name: "my_vehicle".to_string(), profile_type: "truck".to_string(), scale: None, speed: None },
             ],
         },
         ..create_empty_problem()
@@ -128,7 +128,12 @@ fn can_detect_missing_profile() {
                 VehicleType { profile: "car".to_string(), ..create_default_vehicle_type() },
                 VehicleType { profile: "truck".to_string(), ..create_default_vehicle_type() },
             ],
-            profiles: vec![Profile { name: "car".to_string(), profile_type: "car".to_string(), speed: None }],
+            profiles: vec![Profile {
+                name: "car".to_string(),
+                profile_type: "car".to_string(),
+                scale: None,
+                speed: None,
+            }],
         },
         ..create_empty_problem()
     };

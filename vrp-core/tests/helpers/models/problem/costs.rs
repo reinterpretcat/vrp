@@ -5,11 +5,11 @@ use std::sync::Arc;
 pub struct TestTransportCost {}
 
 impl TransportCost for TestTransportCost {
-    fn duration(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
+    fn duration(&self, _: &Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
         fake_routing(from, to)
     }
 
-    fn distance(&self, _profile: Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
+    fn distance(&self, _: &Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
         fake_routing(from, to)
     }
 }

@@ -162,7 +162,7 @@ mod actual {
                 vehicles,
                 profiles: profiles
                     .into_iter()
-                    .map(|p| Profile { name: p.clone(), profile_type: p, speed: None })
+                    .map(|p| Profile { name: p.clone(), profile_type: p, scale: None, speed: None })
                     .collect(),
             },
             objectives: None,

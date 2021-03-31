@@ -362,7 +362,12 @@ mod deserialize {
             profiles: fleet
                 .profiles
                 .iter()
-                .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone(), speed: None })
+                .map(|p| Profile {
+                    name: p.name.clone(),
+                    profile_type: p.profile_type.clone(),
+                    scale: None,
+                    speed: None,
+                })
                 .collect(),
         }
     }

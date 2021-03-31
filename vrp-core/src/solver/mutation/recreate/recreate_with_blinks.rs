@@ -88,7 +88,7 @@ impl RankedJobSelector {
             .fleet
             .profiles
             .iter()
-            .map(|profile| problem.jobs.rank(*profile, job))
+            .map(|profile| problem.jobs.rank(profile, job))
             .min_by(|a, b| compare_floats(*a, *b))
             .unwrap_or_default()
     }

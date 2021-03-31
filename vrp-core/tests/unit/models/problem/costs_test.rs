@@ -13,8 +13,8 @@ fn create_matrix_data(
 fn can_detect_dimensions_mismatch() {
     assert_eq!(
         create_matrix_transport_cost(vec![
-            create_matrix_data(0, Some(0.), (0., 2), (0., 2)),
-            create_matrix_data(0, Some(1.), (0., 1), (0., 2)),
+            create_matrix_data(Profile::default(), Some(0.), (0., 2), (0., 2)),
+            create_matrix_data(Profile::default(), Some(1.), (0., 1), (0., 2)),
         ])
         .err(),
         Some("distance and duration collections have different length".to_string())
@@ -23,14 +23,21 @@ fn can_detect_dimensions_mismatch() {
 
 #[test]
 fn can_return_error_when_mixing_timestamps() {
+    let p0 = Profile::default();
+    let p1 = Profile::new(1, None);
+
     assert_eq!(
-        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(0, None, (0., 1), (0., 1))], 1).err(),
+        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(Profile::default(), None, (0., 1), (0., 1))], 1)
+            .err(),
         Some("time-aware routing requires all matrices to have timestamp".to_string())
     );
 
     assert_eq!(
         TimeAwareMatrixTransportCost::new(
-            vec![create_matrix_data(0, Some(0.), (0., 1), (0., 1)), create_matrix_data(0, None, (0., 1), (0., 1))],
+            vec![
+                create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1)),
+                create_matrix_data(p0.clone(), None, (0., 1), (0., 1))
+            ],
             1,
         )
         .err(),
@@ -38,16 +45,16 @@ fn can_return_error_when_mixing_timestamps() {
     );
 
     assert_eq!(
-        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(0, Some(0.), (0., 1), (0., 1))], 1).err(),
+        TimeAwareMatrixTransportCost::new(vec![create_matrix_data(p0.clone(), Some(0.), (0., 1), (0., 1))], 1).err(),
         Some("should not use time aware matrix routing with single matrix".to_string())
     );
 
     assert_eq!(
         TimeAwareMatrixTransportCost::new(
             vec![
-                create_matrix_data(0, Some(0.), (1., 1), (1., 1)), //
-                create_matrix_data(0, Some(1.), (1., 1), (1., 1)), //
-                create_matrix_data(1, Some(0.), (1., 1), (1., 1)), //
+                create_matrix_data(p0.clone(), Some(0.), (1., 1), (1., 1)), //
+                create_matrix_data(p0, Some(1.), (1., 1), (1., 1)),         //
+                create_matrix_data(p1, Some(0.), (1., 1), (1., 1)),         //
             ],
             1,
         )
@@ -58,27 +65,29 @@ fn can_return_error_when_mixing_timestamps() {
 
 #[test]
 fn can_interpolate_durations() {
+    let p0 = Profile::default();
+    let p1 = Profile::new(1, None);
     let costs = TimeAwareMatrixTransportCost::new(
         vec![
-            create_matrix_data(0, Some(0.), (100., 2), (1., 2)),
-            create_matrix_data(0, Some(10.), (200., 2), (1., 2)),
-            create_matrix_data(1, Some(0.), (300., 2), (5., 2)),
-            create_matrix_data(1, Some(10.), (400., 2), (5., 2)),
+            create_matrix_data(p0.clone(), Some(0.), (100., 2), (1., 2)),
+            create_matrix_data(p0.clone(), Some(10.), (200., 2), (1., 2)),
+            create_matrix_data(p1.clone(), Some(0.), (300., 2), (5., 2)),
+            create_matrix_data(p1.clone(), Some(10.), (400., 2), (5., 2)),
         ],
         2,
     )
     .unwrap();
 
     for &(timestamp, duration) in &[(0., 100.), (10., 200.), (15., 200.), (3., 130.), (5., 150.), (7., 170.)] {
-        assert_eq!(costs.duration(0, 0, 1, timestamp), duration);
+        assert_eq!(costs.duration(&p0, 0, 1, timestamp), duration);
     }
 
     for &(timestamp, duration) in &[(0., 300.), (10., 400.), (15., 400.), (3., 330.), (5., 350.), (7., 370.)] {
-        assert_eq!(costs.duration(1, 0, 1, timestamp), duration);
+        assert_eq!(costs.duration(&p1, 0, 1, timestamp), duration);
     }
 
-    assert_eq!(costs.distance(0, 0, 1, 0.), 1.);
-    assert_eq!(costs.distance(1, 0, 1, 0.), 5.);
+    assert_eq!(costs.distance(&p0, 0, 1, 0.), 1.);
+    assert_eq!(costs.distance(&p1, 0, 1, 0.), 5.);
 }
 
 mod objective {

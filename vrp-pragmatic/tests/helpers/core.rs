@@ -24,7 +24,7 @@ pub fn test_vehicle(id: &str) -> Vehicle {
     dimens.set_value("shift_index", 0_usize);
 
     Vehicle {
-        profile: 0,
+        profile: Profile::default(),
         costs: DEFAULT_VEHICLE_COSTS,
         dimens,
         details: vec![VehicleDetail {

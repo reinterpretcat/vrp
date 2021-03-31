@@ -2,7 +2,7 @@ use super::create_transport_costs;
 use crate::format::problem::*;
 use crate::format_time;
 use crate::helpers::*;
-use vrp_core::models::common::{Distance, Timestamp};
+use vrp_core::models::common::{Distance, Profile as CoreProfile, Timestamp};
 
 fn matrix(profile: Option<&str>, timestamp: Option<f64>, fill_value: i64, size: usize) -> Matrix {
     Matrix {
@@ -30,7 +30,7 @@ fn create_problem(profiles: &[&str]) -> Problem {
             vehicles: vec![],
             profiles: profiles
                 .iter()
-                .map(|p| Profile { name: p.to_string(), profile_type: "car".to_string(), speed: None })
+                .map(|p| Profile { name: p.to_string(), profile_type: "car".to_string(), scale: None, speed: None })
                 .collect(),
         },
         ..create_empty_problem()
@@ -150,14 +150,15 @@ can_create_transport_costs_positive_cases! {
 fn can_create_transport_costs_positive_cases_impl(
     profiles: &[&str],
     matrices: &[Matrix],
-    probes: &[(i32, Timestamp, Distance)],
+    probes: &[(usize, Timestamp, Distance)],
 ) {
     let problem = create_problem(profiles);
 
     let transport = create_transport_costs(&problem, matrices).unwrap();
 
-    probes.iter().for_each(|&(profile, timestamp, distance)| {
-        let result = transport.distance(profile, 0, 1, timestamp);
+    probes.iter().for_each(|&(profile_idx, timestamp, distance)| {
+        let profile = CoreProfile::new(profile_idx, None);
+        let result = transport.distance(&profile, 0, 1, timestamp);
         assert_eq!(result, distance);
     });
 }
