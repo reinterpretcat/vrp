@@ -30,7 +30,7 @@ By default, the first objective for the solver is to minimize fleet usage, then 
 is total cost minimization:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/objectives/berlin.default.problem.json:1003:1019}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.default.problem.json:1004:1020}}
 ```
 
 As result, solution has minimum amount of vehicles used to serve all jobs (`3`).

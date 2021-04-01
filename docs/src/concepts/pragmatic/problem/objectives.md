@@ -55,16 +55,16 @@ minimization and any of work balance.
 An usage example:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.balance-load.problem.json:153:159}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.balance-load.problem.json:154:159}}
 ```
 
 ## Default behaviour
 
-By default, decision maker minimizes amount of routes, unassigned jobs and total cost which is equal to the following
+By default, decision maker minimizes amount of unassigned jobs, routes and then total cost. This is equal to the following
 definition:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.default.problem.json:140:156}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.default.problem.json:141:157}}
 ```
 
 Here, cost minimization is a secondary objective which corresponds to a classical hierarchical objective used
@@ -73,7 +73,7 @@ by `Solomon` benchmark.
 If at least one job has non-zero value associated, then the following objective is used:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.maximize-value.problem.json:142:164}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.maximize-value.problem.json:143:165}}
 ```
 
 

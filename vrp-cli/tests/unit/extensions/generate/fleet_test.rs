@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::generate::create_test_vehicle_type;
-use vrp_pragmatic::format::problem::{Plan, Profile};
+use vrp_pragmatic::format::problem::{MatrixProfile, Plan};
 
 #[test]
 fn can_generate_fleet_of_specific_size() {
@@ -8,12 +8,7 @@ fn can_generate_fleet_of_specific_size() {
         plan: Plan { jobs: vec![], relations: None },
         fleet: Fleet {
             vehicles: vec![create_test_vehicle_type()],
-            profiles: vec![Profile {
-                name: "normal_car".to_string(),
-                profile_type: "car_type".to_string(),
-                scale: None,
-                speed: None,
-            }],
+            profiles: vec![MatrixProfile { name: "normal_car".to_string(), speed: None }],
         },
         objectives: None,
     };

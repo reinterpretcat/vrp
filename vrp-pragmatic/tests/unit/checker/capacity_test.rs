@@ -54,7 +54,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                 capacity: vec![5],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

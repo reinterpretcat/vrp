@@ -17,7 +17,7 @@ List of tours is essentially individual vehicle routes. Each tour consists of th
 * **stops**: list of stops. See stop structure below
 * **statistic**: statistic of the tour.
     ```json
-    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:140:150}}
+    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:142:152}}
     ```
 
 ## Stop structure

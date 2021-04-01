@@ -52,7 +52,7 @@ fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: 
                 capacity: vec![1],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

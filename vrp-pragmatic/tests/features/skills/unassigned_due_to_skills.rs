@@ -15,7 +15,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("vehicle_without_skill")],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

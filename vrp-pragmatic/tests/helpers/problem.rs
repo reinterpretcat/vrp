@@ -193,6 +193,14 @@ pub fn create_default_vehicle_costs() -> VehicleCosts {
     VehicleCosts { fixed: Some(10.), distance: 1., time: 1. }
 }
 
+pub fn create_default_vehicle_profile() -> VehicleProfile {
+    VehicleProfile { matrix: "car".to_string(), scale: None }
+}
+
+pub fn create_vehicle_profile_with_name(name: &str) -> VehicleProfile {
+    VehicleProfile { matrix: name.to_string(), scale: None }
+}
+
 pub fn create_default_vehicle_type() -> VehicleType {
     create_default_vehicle("my_vehicle")
 }
@@ -205,7 +213,7 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
     VehicleType {
         type_id: id.to_string(),
         vehicle_ids: vec![format!("{}_1", id)],
-        profile: "car".to_string(),
+        profile: create_default_vehicle_profile(),
         costs: create_default_vehicle_costs(),
         shifts: vec![create_default_vehicle_shift()],
         capacity,
@@ -214,8 +222,8 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
     }
 }
 
-pub fn create_default_profiles() -> Vec<Profile> {
-    vec![Profile { name: "car".to_string(), profile_type: "car".to_string(), scale: None, speed: None }]
+pub fn create_default_matrix_profiles() -> Vec<MatrixProfile> {
+    vec![MatrixProfile { name: "car".to_string(), speed: None }]
 }
 
 pub fn create_min_jobs_cost_objective() -> Option<Vec<Vec<Objective>>> {

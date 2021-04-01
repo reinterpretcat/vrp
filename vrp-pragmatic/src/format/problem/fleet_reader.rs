@@ -25,12 +25,12 @@ pub(crate) fn create_transport_costs(
         return Err("when timestamp is set, all matrices should have profile set".to_string());
     }
 
-    let fleet_profiles = get_profile_map(api_problem);
-    if fleet_profiles.len() > matrices.len() {
+    let matrix_profiles = get_profile_index_map(api_problem);
+    if matrix_profiles.len() > matrices.len() {
         return Err(format!(
             "not enough routing matrices specified for fleet profiles defined: \
              {} must be less or equal to {}",
-            fleet_profiles.len(),
+            matrix_profiles.len(),
             matrices.len()
         ));
     }
@@ -39,12 +39,7 @@ pub(crate) fn create_transport_costs(
         .iter()
         .enumerate()
         .map(|(idx, matrix)| {
-            let profile = matrix
-                .profile
-                .as_ref()
-                .and_then(|p| fleet_profiles.get(p))
-                .cloned()
-                .unwrap_or_else(|| Profile::new(idx, None));
+            let profile = matrix.profile.as_ref().and_then(|p| matrix_profiles.get(p)).cloned().unwrap_or_else(|| idx);
             (profile, matrix.timestamp.clone(), matrix)
         })
         .map(|(profile, timestamp, matrix)| {
@@ -72,8 +67,8 @@ pub(crate) fn create_transport_costs(
         })
         .collect::<Vec<_>>();
 
-    let matrix_profiles = matrix_data.iter().map(|data| data.profile.index).collect::<HashSet<_>>().len();
-    if fleet_profiles.len() != matrix_profiles {
+    let matrix_indices = matrix_data.iter().map(|data| data.index).collect::<HashSet<_>>().len();
+    if matrix_profiles.len() != matrix_indices {
         return Err("amount of fleet profiles does not match matrix profiles".to_string());
     }
 
@@ -81,7 +76,7 @@ pub(crate) fn create_transport_costs(
 }
 
 pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
-    let profiles = get_profile_map(api_problem);
+    let profile_indices = get_profile_index_map(api_problem);
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
@@ -93,7 +88,8 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
             per_service_time: vehicle.costs.time,
         };
 
-        let profile = profiles.get(&vehicle.profile).unwrap();
+        let index = *profile_indices.get(&vehicle.profile.matrix).unwrap();
+        let profile = Profile::new(index, vehicle.profile.scale);
 
         let tour_size = vehicle.limits.as_ref().and_then(|l| l.tour_size);
         let mut areas = vehicle.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map(|areas| {
@@ -200,10 +196,10 @@ pub fn read_travel_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
     }
 }
 
-fn get_profile_map(api_problem: &ApiProblem) -> HashMap<String, Profile> {
+fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
         if acc.get(&profile.name).is_none() {
-            acc.insert(profile.name.clone(), Profile::new(acc.len(), profile.scale));
+            acc.insert(profile.name.clone(), acc.len());
         }
         acc
     })

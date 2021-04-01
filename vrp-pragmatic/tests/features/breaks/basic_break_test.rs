@@ -24,7 +24,7 @@ fn can_assign_break_between_jobs() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

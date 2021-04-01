@@ -7,7 +7,7 @@ use proptest::prelude::*;
 fn vehicle_type_prototype() -> impl Strategy<Value = VehicleType> {
     generate_vehicle(
         2..4,
-        Just("car".to_string()),
+        default_vehicle_profile(),
         // NOTE must be equal or bigger than total amount jobs in relations
         generate_simple_capacity(150..200),
         default_costs_prototype(),
@@ -51,7 +51,9 @@ prop_compose! {
     fn create_problem_with_relations()
     (
     plan  in generate_plan(generate_jobs(relation_job_prototype(), 1..512)),
-    fleet in generate_fleet(generate_vehicles(vehicle_type_prototype(), 1..4), default_profiles())
+    fleet in generate_fleet(
+        generate_vehicles(vehicle_type_prototype(), 1..4),
+        default_matrix_profiles())
     )
     (
     relations in generate_relations(&plan.jobs, &fleet.vehicles, 1..10, 1..15),

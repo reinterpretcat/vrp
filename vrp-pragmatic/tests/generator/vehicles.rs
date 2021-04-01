@@ -7,7 +7,7 @@ use core::ops::Range;
 prop_compose! {
     pub fn generate_vehicle(
         amount_proto: Range<usize>,
-        profile_proto: impl Strategy<Value = String>,
+        profile_proto: impl Strategy<Value = VehicleProfile>,
         capacity_proto: impl Strategy<Value = Vec<i32>>,
         costs_proto: impl Strategy<Value = VehicleCosts>,
         skills_proto: impl Strategy<Value = Option<Vec<String>>>,
@@ -121,7 +121,7 @@ pub fn generate_vehicles(
 prop_compose! {
     /// Generates fleet.
     pub fn generate_fleet(vehicles_proto: impl Strategy<Value = Vec<VehicleType>>,
-                          profiles_proto: impl Strategy<Value = Vec<Profile>>)
+                          profiles_proto: impl Strategy<Value = Vec<MatrixProfile>>)
     (
      vehicles in vehicles_proto,
      profiles in profiles_proto

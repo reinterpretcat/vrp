@@ -9,7 +9,7 @@ fn create_test_problem() -> Problem {
             jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
             relations: None,
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
     }
 }

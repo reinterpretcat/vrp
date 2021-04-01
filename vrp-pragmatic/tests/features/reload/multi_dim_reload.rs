@@ -34,7 +34,7 @@ fn can_use_multi_dim_capacity() {
                 capacity: vec![1, 1],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

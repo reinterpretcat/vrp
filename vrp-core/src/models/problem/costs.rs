@@ -105,8 +105,8 @@ pub trait TransportCost {
 
 /// Contains matrix routing data for specific profile and, optionally, time.
 pub struct MatrixData {
-    /// A routing profile.
-    pub profile: Profile,
+    /// A routing profile index.
+    pub index: usize,
     /// A timestamp for which routing info is applicable.
     pub timestamp: Option<Timestamp>,
     /// Travel durations.
@@ -116,14 +116,9 @@ pub struct MatrixData {
 }
 
 impl MatrixData {
-    /// Creates `MatrixData`.
-    pub fn new(
-        profile: Profile,
-        timestamp: Option<Timestamp>,
-        durations: Vec<Duration>,
-        distances: Vec<Distance>,
-    ) -> Self {
-        Self { profile, timestamp, durations, distances }
+    /// Creates `MatrixData` instance.
+    pub fn new(index: usize, timestamp: Option<Timestamp>, durations: Vec<Duration>, distances: Vec<Distance>) -> Self {
+        Self { index, timestamp, durations, distances }
     }
 }
 
@@ -165,13 +160,13 @@ impl TimeAgnosticMatrixTransportCost {
     /// Creates an instance of `TimeAgnosticMatrixTransportCost`.
     pub fn new(costs: Vec<MatrixData>, size: usize) -> Result<Self, String> {
         let mut costs = costs;
-        costs.sort_by(|a, b| a.profile.index.cmp(&b.profile.index));
+        costs.sort_by(|a, b| a.index.cmp(&b.index));
 
         if costs.iter().any(|costs| costs.timestamp.is_some()) {
             return Err("time aware routing".to_string());
         }
 
-        if (0..).zip(costs.iter().map(|c| &c.profile)).any(|(a, b)| a != b.index) {
+        if (0..).zip(costs.iter().map(|c| &c.index)).any(|(a, &b)| a != b) {
             return Err("duplicate profiles can be passed only for time aware routing".to_string());
         }
 
@@ -209,7 +204,7 @@ impl TimeAwareMatrixTransportCost {
             return Err("time-aware routing requires all matrices to have timestamp".to_string());
         }
 
-        let costs = costs.into_iter().collect_group_by_key(|matrix| matrix.profile.index);
+        let costs = costs.into_iter().collect_group_by_key(|matrix| matrix.index);
 
         if costs.iter().any(|(_, matrices)| matrices.len() == 1) {
             return Err("should not use time aware matrix routing with single matrix".to_string());

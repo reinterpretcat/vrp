@@ -115,7 +115,7 @@ mod actual {
                 VehicleType {
                     type_id: vehicle.id.clone(),
                     vehicle_ids: (1..vehicle.amount).map(|seq| format!("{}_{}", vehicle.profile, seq)).collect(),
-                    profile: vehicle.profile,
+                    profile: VehicleProfile { matrix: vehicle.profile, scale: None },
                     costs: VehicleCosts { fixed: Some(25.), distance: 0.0002, time: 0.005 },
                     shifts: vec![VehicleShift {
                         start: ShiftStart {
@@ -154,16 +154,13 @@ mod actual {
     ) -> Result<Problem, FormatError> {
         let jobs = read_jobs(jobs_reader).map_err(|err| create_format_error("jobs", err))?;
         let vehicles = read_vehicles(vehicles_reader).map_err(|err| create_format_error("vehicles", err))?;
-        let profiles = vehicles.iter().map(|v| v.profile.clone()).collect::<HashSet<_>>();
+        let matrix_profile_names = vehicles.iter().map(|v| v.profile.matrix.clone()).collect::<HashSet<_>>();
 
         Ok(Problem {
             plan: Plan { jobs, relations: None },
             fleet: Fleet {
                 vehicles,
-                profiles: profiles
-                    .into_iter()
-                    .map(|p| Profile { name: p.clone(), profile_type: p, scale: None, speed: None })
-                    .collect(),
+                profiles: matrix_profile_names.into_iter().map(|name| MatrixProfile { name, speed: None }).collect(),
             },
             objectives: None,
         })

@@ -83,7 +83,7 @@ mod single {
                 vehicles: vec![VehicleType {
                     type_id: "my_vehicle".to_string(),
                     vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
-                    profile: "car".to_string(),
+                    profile: create_default_vehicle_profile(),
                     costs: create_default_vehicle_costs(),
                     shifts: vec![VehicleShift {
                         start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
@@ -110,7 +110,7 @@ mod single {
                     skills: None,
                     limits: None,
                 }],
-                profiles: create_default_profiles(),
+                profiles: create_default_matrix_profiles(),
             },
             ..create_empty_problem()
         };

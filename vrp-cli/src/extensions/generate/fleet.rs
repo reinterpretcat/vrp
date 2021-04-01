@@ -24,7 +24,10 @@ pub(crate) fn generate_fleet(problem_proto: &Problem, vehicle_types_size: usize)
             VehicleType {
                 type_id,
                 vehicle_ids: (1..=vehicles).map(|vehicle_idx| format!("type{}_{}", type_idx, vehicle_idx)).collect(),
-                profile: get_random_item(profiles.as_slice(), &rnd).expect("cannot find any profile").name.clone(),
+                profile: VehicleProfile {
+                    matrix: get_random_item(profiles.as_slice(), &rnd).expect("cannot find any profile").name.clone(),
+                    scale: None,
+                },
                 costs: get_random_item(costs.as_slice(), &rnd).expect("cannot find any costs").clone(),
                 shifts: get_random_item(shifts.as_slice(), &rnd).expect("cannot find any shifts").clone(),
                 capacity: get_random_item(capacities.as_slice(), &rnd).expect("cannot find any capacity").clone(),

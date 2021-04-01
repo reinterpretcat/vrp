@@ -25,9 +25,9 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
         let profile = &context.get_vehicle(&tour.vehicle_id)?.profile;
         let matrix = profile_index
-            .get(profile.as_str())
+            .get(profile.matrix.as_str())
             .and_then(|idx| matrices.get(*idx))
-            .ok_or(format!("cannot get matrix for '{}' profile", profile))?;
+            .ok_or(format!("cannot get matrix for '{}' profile", profile.matrix))?;
         let time_offset =
             parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.time.departure) as i64;
 
@@ -45,6 +45,7 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
 
                 let distance = get_matrix_value(matrix_idx, &matrix.distances)?;
                 let duration = get_matrix_value(matrix_idx, &matrix.travel_times)?;
+                let duration = (duration as f64 * profile.scale.unwrap_or(1.)) as i64;
 
                 let time = time + duration;
                 let total_distance = total_distance + distance;

@@ -5390,7 +5390,9 @@
           "vehicle_4",
           "vehicle_5"
         ],
-        "profile": "car",
+        "profile": {
+          "matrix": "car"
+        },
         "costs": {
           "fixed": 25.0,
           "distance": 0.0002,
@@ -5430,8 +5432,7 @@
     ],
     "profiles": [
       {
-        "name": "car",
-        "type": "car"
+        "name": "car"
       }
     ]
   },

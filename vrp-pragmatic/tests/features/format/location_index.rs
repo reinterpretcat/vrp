@@ -22,7 +22,7 @@ fn create_test_problem() -> Problem {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     }

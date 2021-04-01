@@ -132,7 +132,6 @@ right side
      * dynamic probabilities
       *_ MDP model
       *_ apply RL
-      *_ WIP
 
     * generative
      *_ TBD

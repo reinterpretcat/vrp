@@ -9,7 +9,10 @@ fn can_create_solution() {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
             relations: Option::None,
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
+        fleet: Fleet {
+            vehicles: vec![create_default_vehicle("my_vehicle")],
+            profiles: create_default_matrix_profiles(),
+        },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -82,7 +85,10 @@ fn can_merge_activities_in_one_stop() {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![5., 0.])],
             relations: Option::None,
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle("my_vehicle")], profiles: create_default_profiles() },
+        fleet: Fleet {
+            vehicles: vec![create_default_vehicle("my_vehicle")],
+            profiles: create_default_matrix_profiles(),
+        },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

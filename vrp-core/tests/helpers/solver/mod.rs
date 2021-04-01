@@ -3,7 +3,7 @@ use crate::helpers::construction::constraints::create_constraint_pipeline_with_t
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::{create_route_with_activities, test_activity_with_job};
-use crate::models::common::{Location, Profile};
+use crate::models::common::Location;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
@@ -90,7 +90,7 @@ pub fn generate_matrix_routes(
 
     let (durations, distances) = matrix_modify(generate_matrix_from_sizes(rows, cols));
 
-    let matrix_data = MatrixData::new(Profile::default(), None, durations, distances);
+    let matrix_data = MatrixData::new(0, None, durations, distances);
     let transport = create_matrix_transport_cost(vec![matrix_data]).unwrap();
     let jobs = Jobs::new(&fleet, jobs, &transport);
 

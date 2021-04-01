@@ -15,7 +15,7 @@ fn can_use_only_deliveries_as_static_demand() {
                 shifts: vec![create_default_open_vehicle_shift()],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };
@@ -95,7 +95,7 @@ fn can_use_only_pickups_as_static_demand() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

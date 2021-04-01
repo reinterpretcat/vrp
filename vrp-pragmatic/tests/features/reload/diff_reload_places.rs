@@ -44,7 +44,7 @@ fn can_use_reloads_with_different_locations() {
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

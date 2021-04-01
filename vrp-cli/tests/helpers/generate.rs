@@ -26,7 +26,7 @@ pub fn create_test_vehicle_type() -> VehicleType {
     VehicleType {
         type_id: "vehicle".to_string(),
         vehicle_ids: vec!["vehicle_1".to_string()],
-        profile: "car".to_string(),
+        profile: VehicleProfile { matrix: "car".to_string(), scale: None },
         costs: VehicleCosts { fixed: None, distance: 1., time: 0. },
         shifts: vec![VehicleShift {
             start: ShiftStart {
@@ -45,8 +45,8 @@ pub fn create_test_vehicle_type() -> VehicleType {
     }
 }
 
-pub fn create_test_vehicle_profile() -> Profile {
-    Profile { name: "car".to_string(), profile_type: "car".to_string(), scale: None, speed: None }
+pub fn create_test_vehicle_profile() -> MatrixProfile {
+    MatrixProfile { name: "car".to_string(), speed: None }
 }
 
 pub fn create_test_time_window() -> Vec<String> {

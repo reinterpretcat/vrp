@@ -4,15 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## v1.10.0
+
+This release has breaking changes in pragmatic format and internal apis.
+
 ### Added
 
 - new objectives: `minimize-distance` and `minimize-duration`
 - new CLI option: `init-size` to control amount of initial solutions to be built built
+- travelling duration scale on vehicle profile: it can be used to adjust durations for specific vehicle type
 
 ### Changed
 
 - optimize cluster ruin method
 - improve unassigned code reason handling
+- `breaking`: convert profile property on vehicle type to an object
+
+### Removed
+
+- `type` property from matrix profile
 
 
 ## [v1.9.1] - 2021-03-24
@@ -220,7 +231,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.9.1...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.0...HEAD
+[v1.10.0]: https://github.com/reinterpretcat/vrp/compare/v1.9.1...v1.10.0
 [v1.9.1]: https://github.com/reinterpretcat/vrp/compare/v1.9.0...v1.9.1
 [v1.9.0]: https://github.com/reinterpretcat/vrp/compare/v1.8.1...v1.9.0
 [v1.8.1]: https://github.com/reinterpretcat/vrp/compare/v1.8.0...v1.8.1

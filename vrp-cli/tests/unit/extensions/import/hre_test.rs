@@ -113,8 +113,7 @@ fn can_import_hre_problem() {
     ],
     "profiles": [
       {
-        "name": "normal_car",
-        "type": "car"
+        "name": "normal_car"
       }
     ]
   }
@@ -137,7 +136,8 @@ fn can_import_hre_problem() {
     let vehicle = problem.fleet.vehicles.first().unwrap();
     assert_eq!(vehicle.vehicle_ids, vec!["vehicle_1"]);
     assert_eq!(vehicle.capacity, vec![10]);
-    assert_eq!(vehicle.profile, "normal_car");
+    assert_eq!(vehicle.profile.matrix, "normal_car");
+    assert_eq!(vehicle.profile.scale, None);
 
     assert!(vehicle.limits.is_some());
     let limits = vehicle.limits.as_ref().unwrap();
@@ -265,7 +265,7 @@ fn can_write_hre_problem() {
             vehicles: vec![VehicleType {
                 type_id: "vehicle".to_string(),
                 vehicle_ids: vec!["vehicle_1".to_string()],
-                profile: "car".to_string(),
+                profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                 costs: VehicleCosts { fixed: None, distance: 0.0, time: 0.0 },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
@@ -299,12 +299,7 @@ fn can_write_hre_problem() {
                     allowed_areas: None,
                 }),
             }],
-            profiles: vec![Profile {
-                name: "normal_car".to_string(),
-                profile_type: "car".to_string(),
-                scale: None,
-                speed: None,
-            }],
+            profiles: vec![MatrixProfile { name: "normal_car".to_string(), speed: None }],
         },
         objectives: None,
     };

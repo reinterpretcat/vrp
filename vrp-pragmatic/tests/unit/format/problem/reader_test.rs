@@ -1,6 +1,5 @@
 use super::create_approx_matrices;
 use crate::constraints::JobSkills as ConstraintJobSkills;
-use crate::format::problem::Profile as FormatProfile;
 use crate::format::problem::*;
 use crate::helpers::*;
 use hashbrown::HashSet;
@@ -135,7 +134,7 @@ fn can_read_complex_problem() {
             vehicles: vec![VehicleType {
                 type_id: "my_vehicle".to_string(),
                 vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
-                profile: "car".to_string(),
+                profile: create_default_vehicle_profile(),
                 costs: VehicleCosts { fixed: Some(100.), distance: 1., time: 2. },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
@@ -169,7 +168,7 @@ fn can_read_complex_problem() {
                     allowed_areas: None,
                 }),
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         objectives: None,
     };
@@ -292,25 +291,10 @@ fn can_create_approximation_matrices() {
         fleet: Fleet {
             vehicles: vec![],
             profiles: vec![
-                FormatProfile {
-                    name: "car1".to_string(),
-                    profile_type: "car".to_string(),
-                    scale: None,
-                    speed: Some(8.),
-                },
-                FormatProfile {
-                    name: "car2".to_string(),
-                    profile_type: "car".to_string(),
-                    scale: None,
-                    speed: Some(10.),
-                },
-                FormatProfile {
-                    name: "car3".to_string(),
-                    profile_type: "car".to_string(),
-                    scale: None,
-                    speed: Some(5.),
-                },
-                FormatProfile { name: "car4".to_string(), profile_type: "car".to_string(), scale: None, speed: None },
+                MatrixProfile { name: "car1".to_string(), speed: Some(8.) },
+                MatrixProfile { name: "car2".to_string(), speed: Some(10.) },
+                MatrixProfile { name: "car3".to_string(), speed: Some(5.) },
+                MatrixProfile { name: "car4".to_string(), speed: None },
             ],
         },
         ..create_empty_problem()

@@ -2,7 +2,6 @@
 
 This example shows how to use `pragmatic` library from java or kotlin.
 
-
 # Usage
 
 - Build `vrp-pragmatic` crate

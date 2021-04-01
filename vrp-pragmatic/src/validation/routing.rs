@@ -124,25 +124,25 @@ fn check_e1505_index_size_mismatch(ctx: &ValidationContext) -> Result<(), Format
 
 /// Checks that no duplicated profile names specified.
 fn check_e1506_profiles_exist(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let known_profiles = ctx.problem.fleet.profiles.iter().map(|p| p.name.clone()).collect::<HashSet<_>>();
+    let known_matrix_profiles = ctx.problem.fleet.profiles.iter().map(|p| p.name.clone()).collect::<HashSet<_>>();
 
-    let unknown_profiles = ctx
+    let unknown_vehicle_profiles = ctx
         .problem
         .fleet
         .vehicles
         .iter()
-        .filter(|vehicle| !known_profiles.contains(&vehicle.profile))
-        .map(|vehicle| vehicle.profile.clone())
+        .filter(|vehicle| !known_matrix_profiles.contains(&vehicle.profile.matrix))
+        .map(|vehicle| vehicle.profile.matrix.clone())
         .collect::<HashSet<_>>();
 
-    if unknown_profiles.is_empty() {
+    if unknown_vehicle_profiles.is_empty() {
         Ok(())
     } else {
-        let unknown_profiles = unknown_profiles.into_iter().collect::<Vec<_>>();
+        let unknown_profiles = unknown_vehicle_profiles.into_iter().collect::<Vec<_>>();
         Err(FormatError::new(
             "E1506".to_string(),
-            "unknown vehicle profile name".to_string(),
-            format!("ensure that profile '{}' are defined in profiles", unknown_profiles.join(", ")),
+            "unknown matrix profile name in vehicle profile".to_string(),
+            format!("ensure that matrix profiles '{}' are defined in profiles", unknown_profiles.join(", ")),
         ))
     }
 }

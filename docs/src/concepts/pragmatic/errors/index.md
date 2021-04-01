@@ -496,7 +496,9 @@ following rules:
   "vehicleIds": [
     "vehicle_1",
   ],
-  "profile": "car",
+          "profile": {
+          "matrix": "car"
+        },
   "costs": {
     "fixed": 20.0,
     /** Error: distance and time are zero **/
@@ -577,9 +579,9 @@ Check locations in problem definition and matrix size.
 
 #### E1506
 
-`unknown vehicle profile name` is returned when vehicle has `fleet.vehicles.profile` name with value which is not
-specified in `fleet.profiles` collection. To fix issue, either change value to one specified or add a corresponding
-profile in profiles collection.
+`unknown matrix profile name in vehicle profile` is returned when vehicle has `fleet.vehicles.profile.matrix`  with value
+which is not specified in `fleet.profiles` collection. To fix issue, either change value to one specified or add a
+corresponding profile in profiles collection.
 
 
 ### E16xx: Objectives

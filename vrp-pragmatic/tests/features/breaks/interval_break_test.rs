@@ -28,7 +28,7 @@ fn can_assign_interval_break_between_jobs() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         objectives: create_test_objectives(),
         ..create_empty_problem()
@@ -161,7 +161,7 @@ fn can_assign_interval_break_with_reload() {
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         objectives: create_test_objectives(),
         ..create_empty_problem()
@@ -299,7 +299,7 @@ fn can_consider_departure_rescheduling() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         objectives: create_test_objectives(),
         ..create_empty_problem()

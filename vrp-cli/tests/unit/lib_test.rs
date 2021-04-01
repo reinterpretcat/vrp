@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::generate::{create_test_job, create_test_vehicle_type};
-use vrp_pragmatic::format::problem::{Fleet, Plan, Profile};
+use vrp_pragmatic::format::problem::{Fleet, MatrixProfile, Plan};
 
 #[test]
 fn can_get_locations_serialized() {
@@ -21,12 +21,7 @@ fn can_get_solution_serialized() {
         plan: Plan { jobs: vec![create_test_job(1., 0.)], relations: None },
         fleet: Fleet {
             vehicles: vec![create_test_vehicle_type()],
-            profiles: vec![Profile {
-                name: "car".to_string(),
-                profile_type: "car".to_string(),
-                scale: None,
-                speed: None,
-            }],
+            profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
         },
         objectives: None,
     };

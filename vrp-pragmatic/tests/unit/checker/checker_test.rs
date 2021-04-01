@@ -5,7 +5,7 @@ use crate::helpers::*;
 fn can_remove_duplicates_in_error_list() {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job("job1", vec![2., 0.])], relations: None },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
     };
     let solution = Solution {

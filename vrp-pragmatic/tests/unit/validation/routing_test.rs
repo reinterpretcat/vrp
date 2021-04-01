@@ -8,8 +8,8 @@ fn can_detect_duplicates() {
         fleet: Fleet {
             vehicles: vec![],
             profiles: vec![
-                Profile { name: "my_vehicle".to_string(), profile_type: "car".to_string(), scale: None, speed: None },
-                Profile { name: "my_vehicle".to_string(), profile_type: "truck".to_string(), scale: None, speed: None },
+                MatrixProfile { name: "my_vehicle".to_string(), speed: None },
+                MatrixProfile { name: "my_vehicle".to_string(), speed: None },
             ],
         },
         ..create_empty_problem()
@@ -82,7 +82,7 @@ fn can_detect_limit_areas_with_indices() {
                 }),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };
@@ -125,15 +125,10 @@ fn can_detect_missing_profile() {
     let problem = Problem {
         fleet: Fleet {
             vehicles: vec![
-                VehicleType { profile: "car".to_string(), ..create_default_vehicle_type() },
-                VehicleType { profile: "truck".to_string(), ..create_default_vehicle_type() },
+                VehicleType { profile: create_vehicle_profile_with_name("car"), ..create_default_vehicle_type() },
+                VehicleType { profile: create_vehicle_profile_with_name("truck"), ..create_default_vehicle_type() },
             ],
-            profiles: vec![Profile {
-                name: "car".to_string(),
-                profile_type: "car".to_string(),
-                scale: None,
-                speed: None,
-            }],
+            profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
         },
         ..create_empty_problem()
     };

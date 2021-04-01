@@ -28,10 +28,7 @@ fn create_problem(profiles: &[&str]) -> Problem {
     Problem {
         fleet: Fleet {
             vehicles: vec![],
-            profiles: profiles
-                .iter()
-                .map(|p| Profile { name: p.to_string(), profile_type: "car".to_string(), scale: None, speed: None })
-                .collect(),
+            profiles: profiles.iter().map(|p| MatrixProfile { name: p.to_string(), speed: None }).collect(),
         },
         ..create_empty_problem()
     }

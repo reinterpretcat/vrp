@@ -20,7 +20,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                 vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         objectives: create_min_jobs_cost_objective(),
         ..create_empty_problem()

@@ -39,7 +39,7 @@ fn can_use_two_strict_relations_with_two_vehicles_with_new_jobs() {
                 capacity: vec![5],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

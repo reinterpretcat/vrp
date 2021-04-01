@@ -11,7 +11,7 @@ fn can_use_vehicle_with_open_end() {
                 shifts: vec![create_default_open_vehicle_shift()],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

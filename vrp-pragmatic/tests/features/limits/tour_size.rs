@@ -24,7 +24,7 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
                 }),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

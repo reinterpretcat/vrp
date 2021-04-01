@@ -77,7 +77,9 @@ prop_compose! {
     fn get_problem_with_breaks()
     (
      plan in generate_plan(generate_jobs(job_prototype(), 1..256)),
-     fleet in generate_fleet(generate_vehicles(get_vehicle_type_with_breaks(), 1..4), default_profiles())
+     fleet in generate_fleet(
+        generate_vehicles(get_vehicle_type_with_breaks(), 1..4),
+        default_matrix_profiles())
     ) -> Problem {
         Problem {
             plan,

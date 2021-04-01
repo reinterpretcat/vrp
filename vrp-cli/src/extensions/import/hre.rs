@@ -202,9 +202,6 @@ mod models {
     pub struct Profile {
         /// Profile name.
         pub name: String,
-        /// Profile type.
-        #[serde(rename(deserialize = "type", serialize = "type"))]
-        pub profile_type: String,
     }
 
     /// Specifies fleet.
@@ -318,7 +315,7 @@ mod deserialize {
                 .map(|v| VehicleType {
                     type_id: v.id.clone(),
                     vehicle_ids: (1..=v.amount).map(|seq| format!("{}_{}", v.id, seq)).collect(),
-                    profile: v.profile.clone(),
+                    profile: VehicleProfile { matrix: v.profile.clone(), scale: None },
                     costs: VehicleCosts { fixed: v.costs.fixed, distance: v.costs.distance, time: v.costs.time },
                     shifts: v
                         .shifts
@@ -359,16 +356,7 @@ mod deserialize {
                     }),
                 })
                 .collect(),
-            profiles: fleet
-                .profiles
-                .iter()
-                .map(|p| Profile {
-                    name: p.name.clone(),
-                    profile_type: p.profile_type.clone(),
-                    scale: None,
-                    speed: None,
-                })
-                .collect(),
+            profiles: fleet.profiles.iter().map(|p| MatrixProfile { name: p.name.clone(), speed: None }).collect(),
         }
     }
 
@@ -482,7 +470,7 @@ mod serialize {
                 .map(|vehicle| {
                     Ok(VehicleType {
                         id: vehicle.type_id.clone(),
-                        profile: vehicle.profile.clone(),
+                        profile: vehicle.profile.matrix.clone(),
                         costs: VehicleCosts {
                             fixed: vehicle.costs.fixed,
                             distance: vehicle.costs.distance,
@@ -548,11 +536,7 @@ mod serialize {
                     })
                 })
                 .collect::<Result<Vec<_>, String>>()?,
-            profiles: fleet
-                .profiles
-                .iter()
-                .map(|p| Profile { name: p.name.clone(), profile_type: p.profile_type.clone() })
-                .collect(),
+            profiles: fleet.profiles.iter().map(|p| Profile { name: p.name.clone() }).collect(),
         })
     }
 

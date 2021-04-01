@@ -42,7 +42,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 capacity: vec![1],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

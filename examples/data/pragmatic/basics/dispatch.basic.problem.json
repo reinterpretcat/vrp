@@ -69,7 +69,9 @@
           "vehicle_2",
           "vehicle_3"
         ],
-        "profile": "normal_car",
+        "profile": {
+          "matrix": "normal_car"
+        },
         "costs": {
           "fixed": 22.0,
           "distance": 0.0002,
@@ -118,8 +120,7 @@
     ],
     "profiles": [
       {
-        "name": "normal_car",
-        "type": "car"
+        "name": "normal_car"
       }
     ]
   }

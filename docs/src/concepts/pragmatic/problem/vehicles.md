@@ -12,9 +12,11 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 {{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:101:103}}
 ```
 
-- **profile** (required): a name of routing profile
+- **profile** (required): a vehicle profile which is defined by two properties:
+    - **matrix** (required) : a name of matrix profile
+    - **scale** (optional): duration scale applied to all travelling times (default is 1.0)
 ```json
-{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:104}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:104:106}}
 ```
 
 - **costs** (required): specifies how expensive is vehicle usage. It has three properties:
@@ -27,12 +29,12 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 
 - **capacity** (required): specifies vehicle capacity symmetric to job demand
 ```json
-{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:128:130}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:130:132}}
 ```
 
 - **skills** (optional): vehicle skills needed by some jobs
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:127:129}}
+{{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:131:133}}
 ```
 
 - **limits** (optional): vehicle limits. There are two:
@@ -58,7 +60,7 @@ An example:
 Essentially, shift specifies vehicle constraints such as time, start/end locations, etc.:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:111:126}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:112:129}}
 ```
 
 At least one shift has to be specified. More than one vehicle shift with different times means that this vehicle can be

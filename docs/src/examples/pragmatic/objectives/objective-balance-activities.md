@@ -29,7 +29,7 @@
 This objective balances amount of activities and minimizes fleet usage at the same time:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/objectives/berlin.balance-activities.problem.json:1003:1024}}
+{{#include ../../../../../examples/data/pragmatic/objectives/berlin.balance-activities.problem.json:1004:1025}}
 ```
 
 Only three vehicles used approximately 16 jobs per vehicle. If you remove `minimize-tours`, results should be similar

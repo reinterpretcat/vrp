@@ -24,7 +24,7 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
                 capacity: vec![3],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

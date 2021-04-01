@@ -23,7 +23,7 @@ fn can_balance_max_load() {
                 capacity: vec![5],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         objectives: Some(vec![vec![BalanceMaxLoad { options: None }], vec![MinimizeCost]]),
         ..create_empty_problem()

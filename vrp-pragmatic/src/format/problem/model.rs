@@ -318,8 +318,8 @@ pub struct VehicleType {
     /// Concrete vehicle ids.
     pub vehicle_ids: Vec<String>,
 
-    /// Vehicle profile name.
-    pub profile: String,
+    /// Vehicle profile.
+    pub profile: VehicleProfile,
 
     /// Vehicle costs.
     pub costs: VehicleCosts,
@@ -339,20 +339,23 @@ pub struct VehicleType {
     pub limits: Option<VehicleLimits>,
 }
 
-/// Specifies routing profile.
+/// Specifies a vehicle profile.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct Profile {
-    /// Profile name.
-    pub name: String,
-
-    /// Profile type.
-    #[serde(rename(deserialize = "type", serialize = "type"))]
-    pub profile_type: String,
+pub struct VehicleProfile {
+    /// Routing matrix profile name.
+    pub matrix: String,
 
     /// Traveling duration scale factor.
     /// Default value is 1.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scale: Option<f64>,
+}
+
+/// Specifies routing matrix profile.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct MatrixProfile {
+    /// Profile name.
+    pub name: String,
 
     /// Approximation speed (meters per second). Used only when routing matrix is not specified.
     /// Default value is 10.
@@ -366,7 +369,7 @@ pub struct Fleet {
     /// Vehicle types.
     pub vehicles: Vec<VehicleType>,
     /// Routing profiles.
-    pub profiles: Vec<Profile>,
+    pub profiles: Vec<MatrixProfile>,
 }
 
 // endregion

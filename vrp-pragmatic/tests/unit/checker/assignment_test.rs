@@ -21,7 +21,7 @@ fn check_vehicles_impl(known_ids: Vec<&str>, tours: Vec<(&str, usize)>, expected
                 vehicle_ids: known_ids.into_iter().map(|id| id.to_string()).collect(),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };
@@ -149,7 +149,7 @@ fn check_jobs_impl(
                 .collect(),
             relations: None,
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
     };
     let solution = Solution {
@@ -182,7 +182,7 @@ fn can_detect_time_window_violation() {
             jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(1, 2)], 1.)],
             relations: None,
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
     };
     let solution = Solution {
@@ -245,7 +245,7 @@ fn can_detect_job_duration_violation() {
             jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(5, 10)], 1.)],
             relations: None,
         },
-        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_profiles() },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
     };
     let solution = Solution {
@@ -317,7 +317,7 @@ fn can_detect_dispatch_violations() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

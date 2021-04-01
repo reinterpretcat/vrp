@@ -6,7 +6,12 @@ fn create_matrix_data(
     duration: (Duration, usize),
     distance: (Distance, usize),
 ) -> MatrixData {
-    MatrixData { profile, timestamp, durations: vec![duration.0; duration.1], distances: vec![distance.0; distance.1] }
+    MatrixData {
+        index: profile.index,
+        timestamp,
+        durations: vec![duration.0; duration.1],
+        distances: vec![distance.0; distance.1],
+    }
 }
 
 #[test]

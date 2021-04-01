@@ -25,7 +25,7 @@ fn can_limit_by_area() {
                 }),
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

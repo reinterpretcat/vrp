@@ -33,7 +33,7 @@ fn can_use_approximated_with_matrix_costs() {
     let durations = durations.iter().map(|&d| d as f64).collect();
     let distances = distances.iter().map(|&d| d as f64).collect();
 
-    let costs = create_matrix_transport_cost(vec![MatrixData::new(profile.clone(), None, durations, distances)])
+    let costs = create_matrix_transport_cost(vec![MatrixData::new(profile.index, None, durations, distances)])
         .expect("Cannot create matrix transport costs");
 
     vec![(0, 1, 3048.), (1, 2, 2056.), (2, 0, 5078.)].into_iter().for_each(|(from, to, expected)| {

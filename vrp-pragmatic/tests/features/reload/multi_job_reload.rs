@@ -41,7 +41,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };
@@ -189,7 +189,7 @@ fn can_properly_handle_load_without_capacity_violation() {
                 capacity: vec![2],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };

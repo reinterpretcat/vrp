@@ -48,7 +48,9 @@
         "vehicleIds": [
           "my_car_1"
         ],
-        "profile": "normal_car",
+        "profile": {
+          "matrix": "normal_car"
+        },
         "costs": {
           "fixed": 22.0,
           "distance": 0.0002,
@@ -81,7 +83,9 @@
         "vehicleIds": [
           "my_truck_1"
         ],
-        "profile": "normal_truck",
+        "profile": {
+          "matrix": "normal_truck"
+        },
         "costs": {
           "fixed": 44.0,
           "distance": 0.0003,
@@ -112,12 +116,10 @@
     ],
     "profiles": [
       {
-        "name": "normal_car",
-        "type": "car"
+        "name": "normal_car"
       },
       {
-        "name": "normal_truck",
-        "type": "truck"
+        "name": "normal_truck"
       }
     ]
   }

@@ -37,7 +37,9 @@ prop_compose! {
     fn create_problem_with_reloads()
     (
       plan in generate_plan(generate_jobs(default_job_prototype(), 1..256)),
-      fleet in generate_fleet(generate_vehicles(get_vehicle_type_with_reloads(), 1..4), default_profiles())
+      fleet in generate_fleet(
+        generate_vehicles(get_vehicle_type_with_reloads(), 1..4),
+        default_matrix_profiles())
     ) -> Problem {
         Problem {
             plan,

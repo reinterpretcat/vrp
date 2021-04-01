@@ -37,7 +37,7 @@ fn can_skip_break_when_vehicle_not_used() {
                 },
                 create_default_vehicle("vehicle_without_break"),
             ],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };
@@ -124,7 +124,7 @@ fn can_skip_break_when_jobs_completed() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };
@@ -212,7 +212,7 @@ fn can_skip_second_break_when_jobs_completed() {
                 }],
                 ..create_default_vehicle_type()
             }],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };
