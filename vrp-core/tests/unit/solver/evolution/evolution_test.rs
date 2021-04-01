@@ -5,19 +5,20 @@ use crate::solver::TelemetryMode;
 use crate::utils::Environment;
 use std::sync::Arc;
 
-parameterized_test! {can_enable_telemetry_metrics, mode, {
-        can_enable_telemetry_metrics_impl(mode);
+parameterized_test! {can_enable_telemetry_metrics, (mode, evolution_size), {
+        can_enable_telemetry_metrics_impl(mode, evolution_size);
 }}
 
 can_enable_telemetry_metrics! {
-        case01: TelemetryMode::OnlyMetrics { track_population: 100 },
-        case02: TelemetryMode::All {
+        case01: (TelemetryMode::OnlyMetrics { track_population: 100 }, 31),
+        case02: (TelemetryMode::OnlyMetrics { track_population: 99 }, 32),
+        case03: (TelemetryMode::All {
             logger: Arc::new(|_| {}), log_best: 100, log_population: 1000,
             track_population: 100, dump_population: false,
-        },
+        }, 31),
 }
 
-fn can_enable_telemetry_metrics_impl(mode: TelemetryMode) {
+fn can_enable_telemetry_metrics_impl(mode: TelemetryMode, evolution_size: usize) {
     let config = EvolutionConfig {
         telemetry: Telemetry::new(mode),
         ..EvolutionConfig::new(create_example_problem(), Arc::new(Environment::default()))
@@ -28,7 +29,7 @@ fn can_enable_telemetry_metrics_impl(mode: TelemetryMode) {
 
     let metrics = metrics.expect("metrics are empty");
     assert_eq!(metrics.generations, 3000);
-    assert_eq!(metrics.evolution.len(), 30 + 1);
+    assert_eq!(metrics.evolution.len(), evolution_size);
     assert!(metrics.duration > 0);
     assert!(metrics.speed > 0.);
 }

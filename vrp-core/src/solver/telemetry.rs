@@ -249,25 +249,21 @@ impl Telemetry {
 
     /// Reports final statistic.
     pub fn on_result(&mut self, refinement_ctx: &RefinementContext) {
-        let should_log_population = match &self.mode {
-            TelemetryMode::OnlyLogging { .. } => true,
-            TelemetryMode::OnlyMetrics { .. } => false,
-            TelemetryMode::All { .. } => true,
+        let generations = refinement_ctx.statistics.generation;
+
+        let (should_log_population, should_track_population) = match &self.mode {
+            TelemetryMode::OnlyLogging { .. } => (true, false),
+            TelemetryMode::OnlyMetrics { track_population, .. } => (false, generations % track_population != 0),
+            TelemetryMode::All { track_population, .. } => (true, generations % track_population != 0),
             _ => return,
         };
 
-        self.on_population(refinement_ctx, should_log_population, false, false);
+        self.on_population(refinement_ctx, should_log_population, should_track_population, false);
 
         let elapsed = self.time.elapsed_secs() as usize;
         let speed = refinement_ctx.statistics.generation as f64 / self.time.elapsed_secs_as_f64();
 
-        self.log(
-            format!(
-                "[{}s] total generations: {}, speed: {:.2} gen/sec",
-                elapsed, refinement_ctx.statistics.generation, speed
-            )
-            .as_str(),
-        );
+        self.log(format!("[{}s] total generations: {}, speed: {:.2} gen/sec", elapsed, generations, speed).as_str());
 
         self.metrics.duration = elapsed;
         self.metrics.speed = speed;
