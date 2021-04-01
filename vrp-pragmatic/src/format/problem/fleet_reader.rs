@@ -39,7 +39,7 @@ pub(crate) fn create_transport_costs(
         .iter()
         .enumerate()
         .map(|(idx, matrix)| {
-            let profile = matrix.profile.as_ref().and_then(|p| matrix_profiles.get(p)).cloned().unwrap_or_else(|| idx);
+            let profile = matrix.profile.as_ref().and_then(|p| matrix_profiles.get(p)).cloned().unwrap_or(idx);
             (profile, matrix.timestamp.clone(), matrix)
         })
         .map(|(profile, timestamp, matrix)| {
