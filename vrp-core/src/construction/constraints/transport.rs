@@ -475,12 +475,12 @@ fn try_get_new_departure_time(
     let start = route_ctx.route.tour.start()?;
 
     let latest_allowed_departure =
-        route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(std::f64::MAX);
+        route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.latest).unwrap_or(f64::MAX);
     let last_departure_time = start.schedule.departure;
 
     let new_departure_time = if optimize_whole_tour {
         let (total_waiting_time, max_shift) = route_ctx.route.tour.all_activities().rev().fold(
-            (0., std::f64::MAX),
+            (0., f64::MAX),
             |(total_waiting_time, max_shift), activity| {
                 let waiting_time = (activity.place.time.start - activity.schedule.arrival).max(0.);
                 let remaining_time = (activity.place.time.end - activity.schedule.arrival - waiting_time).max(0.);

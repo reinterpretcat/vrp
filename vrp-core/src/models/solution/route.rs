@@ -50,7 +50,7 @@ impl Activity {
     /// Creates an activity with a job.
     pub fn new_with_job(job: Arc<Single>) -> Self {
         Activity {
-            place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: std::f64::MAX } },
+            place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: f64::MAX } },
             schedule: Schedule { arrival: 0.0, departure: 0.0 },
             job: Some(job),
         }

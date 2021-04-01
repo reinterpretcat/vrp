@@ -70,7 +70,7 @@ fn check_shift_time(context: &CheckerContext) -> Result<(), String> {
             .iter()
             .map(|shift| {
                 let start = parse_time(&shift.start.earliest);
-                let end = shift.end.as_ref().map(|end| parse_time(&end.latest)).unwrap_or(std::f64::MAX);
+                let end = shift.end.as_ref().map(|end| parse_time(&end.latest)).unwrap_or(f64::MAX);
 
                 (start, end)
             })

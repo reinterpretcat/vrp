@@ -102,10 +102,10 @@ fn get_location_fn(
 }
 
 fn get_bounding_box_from_plan(plan: &Plan) -> ((f64, f64), (f64, f64)) {
-    let mut lat_min = std::f64::MAX;
-    let mut lat_max = std::f64::MIN;
-    let mut lng_min = std::f64::MAX;
-    let mut lng_max = std::f64::MIN;
+    let mut lat_min = f64::MAX;
+    let mut lat_max = f64::MIN;
+    let mut lng_min = f64::MAX;
+    let mut lng_max = f64::MIN;
 
     get_plan_places(&plan).map(|job_place| job_place.location.to_lat_lng()).for_each(|(lat, lng)| {
         lat_min = lat_min.min(lat);

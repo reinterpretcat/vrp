@@ -149,7 +149,7 @@ fn get_max_curvature(values: &[Point]) -> f64 {
 
     values
         .iter()
-        .fold((0., std::f64::MIN), |acc, p| {
+        .fold((0., f64::MIN), |acc, p| {
             let distance = p.distance_to_line(&first, &last);
 
             if distance > acc.1 {

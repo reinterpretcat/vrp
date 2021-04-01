@@ -252,7 +252,7 @@ fn analyze_insertion_in_route_leg<'a>(
             }
 
             let costs = constraint.evaluate_soft_activity(route_ctx, &activity_ctx);
-            let other_costs = in2.cost.unwrap_or(std::f64::MAX);
+            let other_costs = in2.cost.unwrap_or(f64::MAX);
 
             match result_selector.select_cost(route_ctx, costs, other_costs) {
                 Either::Left => SingleContext::success(activity_ctx.index, costs, target.place.clone()),

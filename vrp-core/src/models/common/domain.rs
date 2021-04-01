@@ -78,7 +78,7 @@ impl TimeWindow {
 
     /// Returns unlimited time window.
     pub fn max() -> Self {
-        Self { start: 0., end: std::f64::MAX }
+        Self { start: 0., end: f64::MAX }
     }
 
     /// Checks whether time window has intersection with another one.
@@ -146,7 +146,7 @@ impl Default for TimeInterval {
 impl TimeInterval {
     /// Converts time interval to time window.
     pub fn to_time_window(&self) -> TimeWindow {
-        TimeWindow { start: self.earliest.unwrap_or(0.), end: self.latest.unwrap_or(std::f64::MAX) }
+        TimeWindow { start: self.earliest.unwrap_or(0.), end: self.latest.unwrap_or(f64::MAX) }
     }
 }
 
@@ -221,7 +221,7 @@ impl IdDimension for Dimensions {
 impl Hash for TimeInterval {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let earliest = self.earliest.unwrap_or(0.).to_bits() as i64;
-        let latest = self.latest.unwrap_or(std::f64::MAX).to_bits() as i64;
+        let latest = self.latest.unwrap_or(f64::MAX).to_bits() as i64;
 
         earliest.hash(state);
         latest.hash(state);

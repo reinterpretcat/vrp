@@ -147,7 +147,7 @@ impl Fleet {
                         end: detail.end.clone(),
                         time: TimeWindow {
                             start: detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(0.),
-                            end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(std::f64::MAX),
+                            end: detail.end.as_ref().and_then(|e| e.time.latest).unwrap_or(f64::MAX),
                         },
                     },
                 }));

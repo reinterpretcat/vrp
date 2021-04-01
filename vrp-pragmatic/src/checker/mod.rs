@@ -119,7 +119,7 @@ impl CheckerContext {
             .find(|shift| {
                 let shift_time = TimeWindow::new(
                     parse_time(&shift.start.earliest),
-                    shift.end.as_ref().map_or_else(|| std::f64::MAX, |place| parse_time(&place.latest)),
+                    shift.end.as_ref().map_or_else(|| f64::MAX, |place| parse_time(&place.latest)),
                 );
                 shift_time.intersects(&tour_time)
             })
