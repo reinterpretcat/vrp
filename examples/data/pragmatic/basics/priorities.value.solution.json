@@ -1,0 +1,104 @@
+{
+  "statistic": {
+    "cost": 28.060000000000002,
+    "distance": 4800,
+    "duration": 1020,
+    "times": {
+      "driving": 480,
+      "serving": 540,
+      "waiting": 0,
+      "break": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5225,
+            "lng": 13.4095
+          },
+          "time": {
+            "arrival": "2019-07-04T09:02:55Z",
+            "departure": "2019-07-04T09:06:55Z"
+          },
+          "distance": 1752,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "job2",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T09:12:00Z",
+            "departure": "2019-07-04T09:17:00Z"
+          },
+          "distance": 4800,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 28.060000000000002,
+        "distance": 4800,
+        "duration": 1020,
+        "times": {
+          "driving": 480,
+          "serving": 540,
+          "waiting": 0,
+          "break": 0
+        }
+      }
+    }
+  ],
+  "unassigned": [
+    {
+      "jobId": "job3",
+      "reasons": [
+        {
+          "code": "CAPACITY_CONSTRAINT",
+          "description": "does not fit into any vehicle due to capacity"
+        }
+      ]
+    }
+  ]
+}

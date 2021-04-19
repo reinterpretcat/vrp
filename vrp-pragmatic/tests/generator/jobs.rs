@@ -45,7 +45,7 @@ prop_compose! {
         pickup_place: impl Strategy<Value = JobPlace>,
         delivery_place: impl Strategy<Value = JobPlace>,
         demand_proto: impl Strategy<Value = Option<Vec<i32>>>,
-        priority_proto: impl Strategy<Value = Option<i32>>,
+        order_proto: impl Strategy<Value = Option<i32>>,
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
         value_proto: impl Strategy<Value = Option<f64>>
     )
@@ -53,7 +53,7 @@ prop_compose! {
      pickup in pickup_place,
      delivery in delivery_place,
      demand in demand_proto,
-     priority in priority_proto,
+     order in order_proto,
      skills in skills_proto,
      value in value_proto,
     ) -> Job {
@@ -67,7 +67,7 @@ prop_compose! {
             ]),
             replacements: None,
             services: None,
-            priority,
+            order,
             skills,
             value
         }
@@ -90,7 +90,7 @@ prop_compose! {
         deliveries_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         replacements_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         services_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
-        priority_proto: impl Strategy<Value = Option<i32>>,
+        order_proto: impl Strategy<Value = Option<i32>>,
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
         value_proto: impl Strategy<Value = Option<f64>>,
     )
@@ -99,7 +99,7 @@ prop_compose! {
      deliveries in deliveries_proto,
      replacements in replacements_proto,
      services in services_proto,
-     priority in priority_proto,
+     order in order_proto,
      skills in skills_proto,
      value in value_proto
     ) -> Job {
@@ -109,7 +109,7 @@ prop_compose! {
             deliveries,
             replacements,
             services,
-            priority,
+            order,
             skills,
             value,
         }
@@ -168,8 +168,8 @@ prop_compose! {
 }
 
 prop_compose! {
-    /// Generates no job priority.
-    pub fn generate_no_priority()(_ in ".*") -> Option<i32> {
+    /// Generates no job order.
+    pub fn generate_no_order()(_ in ".*") -> Option<i32> {
         None
     }
 }

@@ -107,11 +107,11 @@ pub struct Job {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub skills: Option<JobSkills>,
 
-    /// Job priority, bigger value - less important.
+    /// Job order, bigger value - later assignment in the route.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub priority: Option<i32>,
+    pub order: Option<i32>,
 
-    /// Job value.
+    /// Job value, bigger value - more chances for assignment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<f64>,
 }

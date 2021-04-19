@@ -258,7 +258,7 @@ fn create_constraint_pipeline(
     }
 
     if props.has_priorities {
-        constraint.add_module(Box::new(PriorityModule::new(PRIORITY_CONSTRAINT_CODE)));
+        constraint.add_module(Box::new(OrderModule::new(PRIORITY_CONSTRAINT_CODE)));
     }
 
     if !locks.is_empty() {
@@ -389,7 +389,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .iter()
         .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
-    let has_priorities = api_problem.plan.jobs.iter().filter_map(|job| job.priority).any(|priority| priority > 1);
+    let has_priorities = api_problem.plan.jobs.iter().filter_map(|job| job.order).any(|priority| priority > 1);
     let has_area_limits = api_problem
         .fleet
         .vehicles

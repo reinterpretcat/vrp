@@ -22,7 +22,7 @@ pub fn create_job(id: &str) -> Job {
         deliveries: None,
         replacements: None,
         services: None,
-        priority: None,
+        order: None,
         skills: None,
         value: None,
     }
@@ -32,8 +32,8 @@ pub fn create_delivery_job(id: &str, location: Vec<f64>) -> Job {
     Job { deliveries: Some(vec![create_task(location.clone())]), ..create_job(id) }
 }
 
-pub fn create_delivery_job_with_priority(id: &str, location: Vec<f64>, priority: i32) -> Job {
-    Job { priority: Some(priority), ..create_delivery_job(id, location) }
+pub fn create_delivery_job_with_order(id: &str, location: Vec<f64>, order: i32) -> Job {
+    Job { order: Some(order), ..create_delivery_job(id, location) }
 }
 
 pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: JobSkills) -> Job {

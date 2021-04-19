@@ -8,17 +8,19 @@ consists of the following properties:
 - **deliveries** (optional): a list of delivery tasks
 - **replacements** (optional): a list of replacement tasks
 - **services** (optional): a list of service tasks
-- **priority** (optional): a job priority which makes preferable to serve some jobs before others. Priority is
-represented as integer in range `[1, MAX_INT]` where the lower value means higher priority. By default value is set to 1.
+- **order** (optional): a job assignment order which makes preferable to serve some jobs before others in the tour. Order
+  is represented as integer in range `[1, MAX_INT]` where the lower value means higher priority. By default value is set
+  to 1. Please note that this is experimental feature and has limited functionality at the moment (can be improved on demand).
 - **skills** (optional): job skills defined by `allOf`, `oneOf` or `noneOf` conditions:
     ```json
     {{#include ../../../../../examples/data/pragmatic/basics/skills.basic.problem.json:22:29}}
     ```
     These conditions are tested against vehicle's skills.
 - **value** (optional): a value associated with the job. With `maximize-value` objective, it is used to prioritize assignment
-  of specific jobs. The difference between value and priority is that priority related logic tries to assign prioritized
-  jobs in the beginning of the tour. In contrast, value related logic tries to maximize total solution value by prioritizing
-  assignment value scored jobs in any tour in any position.
+  of specific jobs. The difference between value and order is that order related logic tries to assign jobs with lower
+  order in the beginning of the tour. In contrast, value related logic tries to maximize total solution value by prioritizing
+  assignment value scored jobs in any position of a tour.
+  See [job priorities](../../../examples/pragmatic/basics/job-priorities.md) example.
 
 A job should have at least one task property specified.
 

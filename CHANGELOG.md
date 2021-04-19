@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* `breaking`: rename job's `priority` property to `order`
+* change default objective behaviour when `value` property is used
+
 
 ## v1.10.0
 

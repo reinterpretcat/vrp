@@ -35,6 +35,7 @@
   * [Pragmatic format](examples/pragmatic/index.md)
     * [Basic feature usage](examples/pragmatic/basics/index.md)
         * [Basic job usage](examples/pragmatic/basics/job-types.md)
+        * [Job priorities](examples/pragmatic/basics/job-priorities.md)
         * [Multi day plan](examples/pragmatic/basics/multi-day.md)
         * [Vehicle dispatch](examples/pragmatic/basics/dispatch.md)
         * [Vehicle break](examples/pragmatic/basics/break.md)

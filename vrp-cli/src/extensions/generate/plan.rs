@@ -64,7 +64,7 @@ pub(crate) fn generate_plan(
                 deliveries: generate_tasks(&job_proto.deliveries, keep_original_demand),
                 replacements: generate_tasks(&job_proto.replacements, false),
                 services: generate_tasks(&job_proto.services, true),
-                priority: job_proto.priority,
+                order: job_proto.order,
                 skills: job_proto.skills.clone(),
                 value: job_proto.value,
             }

@@ -34,7 +34,7 @@ pub fn default_job_place_prototype() -> impl Strategy<Value = JobPlace> {
 pub fn default_delivery_prototype() -> impl Strategy<Value = Job> {
     delivery_job_prototype(
         job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_tags()),
-        generate_no_priority(),
+        generate_no_order(),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
     )
@@ -43,7 +43,7 @@ pub fn default_delivery_prototype() -> impl Strategy<Value = Job> {
 pub fn default_pickup_prototype() -> impl Strategy<Value = Job> {
     pickup_job_prototype(
         job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_tags()),
-        generate_no_priority(),
+        generate_no_order(),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
     )
@@ -54,7 +54,7 @@ pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = Job> {
         default_job_place_prototype(),
         default_job_place_prototype(),
         generate_simple_demand(1..4),
-        generate_no_priority(),
+        generate_no_order(),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
     )

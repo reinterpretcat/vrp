@@ -7,8 +7,8 @@ fn can_follow_priorities() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_priority("job1", vec![2., 0.], 3),
-                create_delivery_job_with_priority("job2", vec![5., 0.], 2),
+                create_delivery_job_with_order("job1", vec![2., 0.], 3),
+                create_delivery_job_with_order("job2", vec![5., 0.], 2),
                 create_delivery_job("job3", vec![7., 0.]),
             ],
             relations: Option::None,

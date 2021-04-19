@@ -159,7 +159,7 @@ fn read_required_jobs(
         let problem_job = if singles.len() > 1 {
             get_multi_job(
                 &job.id,
-                job.priority,
+                job.order,
                 &job.skills,
                 job.value,
                 singles,
@@ -167,7 +167,7 @@ fn read_required_jobs(
                 random,
             )
         } else {
-            get_single_job(&job.id, singles.into_iter().next().unwrap(), job.priority, &job.skills, job.value)
+            get_single_job(&job.id, singles.into_iter().next().unwrap(), job.order, &job.skills, job.value)
         };
 
         job_index.insert(job.id.clone(), problem_job.clone());
@@ -413,7 +413,7 @@ fn get_single_job(
     let mut single = single;
     single.dimens.set_id(id);
 
-    add_priority(&mut single.dimens, priority);
+    add_order(&mut single.dimens, priority);
     add_value(&mut single.dimens, value);
     add_job_skills(&mut single.dimens, skills);
 
@@ -422,7 +422,7 @@ fn get_single_job(
 
 fn get_multi_job(
     id: &str,
-    priority: Option<i32>,
+    order: Option<i32>,
     skills: &Option<FormatJobSkills>,
     value: Option<f64>,
     singles: Vec<Single>,
@@ -431,7 +431,7 @@ fn get_multi_job(
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id);
-    add_priority(&mut dimens, priority);
+    add_order(&mut dimens, order);
     add_value(&mut dimens, value);
     add_job_skills(&mut dimens, skills);
 
@@ -469,9 +469,9 @@ fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
     }
 }
 
-fn add_priority(dimens: &mut Dimensions, priority: Option<i32>) {
-    if let Some(priority) = priority {
-        dimens.set_value("priority", priority);
+fn add_order(dimens: &mut Dimensions, order: Option<i32>) {
+    if let Some(order) = order {
+        dimens.set_value("order", order);
     }
 }
 

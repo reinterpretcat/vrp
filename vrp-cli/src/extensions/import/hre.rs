@@ -86,9 +86,6 @@ mod models {
         pub id: String,
         /// Job places.
         pub places: JobPlaces,
-        /// Job priority, bigger value - less important.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub priority: Option<i32>,
         /// Job skills.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub skills: Option<Vec<String>>,
@@ -284,7 +281,7 @@ mod deserialize {
                     deliveries: job_place_mapper(&job.places.deliveries),
                     replacements: None,
                     services: None,
-                    priority: job.priority.as_ref().copied(),
+                    order: None,
                     skills: all_of_skills(job.skills.clone()),
                     value: None,
                 })
@@ -439,7 +436,6 @@ mod serialize {
                             pickups: job_tasks_to_hre_job_place(&job.pickups)?,
                             deliveries: job_tasks_to_hre_job_place(&job.deliveries)?,
                         },
-                        priority: job.priority,
                         skills: job.skills.as_ref().and_then(|skills| skills.all_of.as_ref()).cloned(),
                     })
                 })

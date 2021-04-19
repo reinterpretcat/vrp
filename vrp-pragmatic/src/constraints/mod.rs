@@ -38,8 +38,8 @@ pub use self::breaks::BreakModule;
 mod dispatch;
 pub use self::dispatch::DispatchModule;
 
-mod priorities;
-pub use self::priorities::PriorityModule;
+mod order;
+pub use self::order::OrderModule;
 
 mod reloads;
 pub use self::reloads::ReloadMultiTrip;

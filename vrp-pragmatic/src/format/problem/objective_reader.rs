@@ -96,9 +96,9 @@ pub fn create_objective(
             constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
 
             ObjectiveCost::new(vec![
+                vec![objective],
                 vec![Box::new(TotalUnassignedJobs::default())],
                 vec![Box::new(TotalRoutes::default())],
-                vec![objective],
                 vec![TotalCost::minimize()],
             ])
         }
