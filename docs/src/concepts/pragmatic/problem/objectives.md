@@ -73,7 +73,7 @@ by `Solomon` benchmark.
 If at least one job has non-zero value associated, then the following objective is used:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.maximize-value.problem.json:143:160}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-objective.maximize-value.problem.json:143:165}}
 ```
 
 

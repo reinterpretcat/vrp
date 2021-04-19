@@ -1014,7 +1014,6 @@
       {
         "type": "balance-distance",
         "options": {
-          "tolerance": 0.05,
           "threshold": 0.075
         }
       }
