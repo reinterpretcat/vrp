@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## v1.10.1
+
 ### Changed
 
 * `breaking`: rename job's `priority` property to `order`
@@ -236,7 +239,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.1...HEAD
+[v1.10.1]: https://github.com/reinterpretcat/vrp/compare/v1.10.0...v1.10.1
 [v1.10.0]: https://github.com/reinterpretcat/vrp/compare/v1.9.1...v1.10.0
 [v1.9.1]: https://github.com/reinterpretcat/vrp/compare/v1.9.0...v1.9.1
 [v1.9.0]: https://github.com/reinterpretcat/vrp/compare/v1.8.1...v1.9.0
