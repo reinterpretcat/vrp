@@ -38,8 +38,8 @@ pub struct Config {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EvolutionConfig {
-    initial: Option<InitialConfig>,
-    population: Option<PopulationType>,
+    pub initial: Option<InitialConfig>,
+    pub population: Option<PopulationType>,
 }
 
 #[derive(Clone, Deserialize, Debug)]

@@ -3,7 +3,9 @@ use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
-fn can_follow_priorities() {
+// NOTE orders are unstable feature: need to add objective on solution level
+#[ignore]
+fn can_follow_orders() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
