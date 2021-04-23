@@ -128,3 +128,14 @@ fn can_select_individuals() {
 
     assert_eq!(parents.len(), 3);
 }
+
+#[test]
+fn can_handle_empty() {
+    let problem = create_example_problem();
+    let mut population = Elitism::new(problem.clone(), create_random(), 4, 3);
+
+    population.add_all(vec![]);
+    let parents = population.select().collect::<Vec<_>>();
+
+    assert!(parents.is_empty());
+}

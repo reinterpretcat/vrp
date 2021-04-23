@@ -40,6 +40,10 @@ struct DominanceOrder {
 
 impl Population for Elitism {
     fn add_all(&mut self, individuals: Vec<Individual>) -> bool {
+        if individuals.is_empty() {
+            return false;
+        }
+
         let was_empty = self.size() == 0;
 
         individuals.into_iter().for_each(|individual| {
