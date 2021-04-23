@@ -22,7 +22,7 @@ fn run_solve_with_out_writer(matches: &ArgMatches) {
 
 #[test]
 fn can_solve_pragmatic_problem_with_generation_limit() {
-    let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--max-generations", "10"];
+    let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--max-generations", "1"];
     let matches = get_solve_app().get_matches_from_safe(args).unwrap();
 
     run_solve_with_out_writer(&matches);
@@ -30,15 +30,15 @@ fn can_solve_pragmatic_problem_with_generation_limit() {
 
 #[test]
 fn can_solve_solomon_problem_with_generation_limit() {
-    let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--max-generations", "10"];
+    let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--max-generations", "1"];
     let matches = get_solve_app().get_matches_from_safe(args).unwrap();
 
     run_solve_with_out_writer(&matches);
 }
 
 #[test]
-fn can_solve_lilim_problem_with_time_limit() {
-    let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "10"];
+fn can_solve_lilim_problem_with_multiple_limits() {
+    let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "60", "--max-generations", "1"];
     let matches = get_solve_app().get_matches_from_safe(args).unwrap();
 
     run_solve_with_out_writer(&matches);

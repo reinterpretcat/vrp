@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* improved stability of some tests
+* bug fixes
+
 
 ## v1.10.1
 
