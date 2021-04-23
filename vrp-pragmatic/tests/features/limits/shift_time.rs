@@ -162,7 +162,9 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
     );
 }
 
-/*#[test]
+#[test]
+// NOTE: this is a specific use case of departure time optimization
+#[ignore]
 fn can_serve_job_when_it_starts_late() {
     let problem = Problem {
         plan: Plan {
@@ -182,4 +184,3 @@ fn can_serve_job_when_it_starts_late() {
     assert!(solution.unassigned.is_none());
     assert!(!solution.tours.is_empty());
 }
-*/
