@@ -173,7 +173,7 @@ fn can_serve_job_when_it_starts_late() {
         },
         fleet: Fleet {
             vehicles: vec![create_vehicle_type_with_shift_time_limit(50.)],
-            profiles: create_default_profiles(),
+            profiles: create_default_matrix_profiles(),
         },
         ..create_empty_problem()
     };
