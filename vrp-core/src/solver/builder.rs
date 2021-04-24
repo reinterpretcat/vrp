@@ -53,8 +53,8 @@ pub struct Builder {
     /// A max seconds to run evolution.
     pub max_time: Option<usize>,
 
-    /// A cost variation parameters for termination criteria.
-    pub cost_variation: Option<(usize, f64)>,
+    /// A variation coefficient parameters for termination criteria.
+    pub min_cv: Option<(usize, f64)>,
 
     /// An evolution configuration..
     pub config: EvolutionConfig,
@@ -66,7 +66,7 @@ impl Builder {
         Self {
             max_generations: None,
             max_time: None,
-            cost_variation: None,
+            min_cv: None,
             config: EvolutionConfig::new(problem, environment),
         }
     }
@@ -85,9 +85,9 @@ impl Builder {
         self
     }
 
-    /// Sets cost variation termination criteria. Default is None.
-    pub fn with_cost_variation(mut self, variation: Option<(usize, f64)>) -> Self {
-        self.cost_variation = variation;
+    /// Sets variation coefficient termination criteria. Default is None.
+    pub fn with_min_cv(mut self, min_cv: Option<(usize, f64)>) -> Self {
+        self.min_cv = min_cv;
         self
     }
 
@@ -167,7 +167,7 @@ impl Builder {
         let problem = self.config.problem.clone();
 
         let (criterias, quota): (Vec<Box<dyn Termination + Send + Sync>>, _) =
-            match (self.max_generations, self.max_time, self.cost_variation) {
+            match (self.max_generations, self.max_time, self.min_cv) {
                 (None, None, None) => {
                     self.config
                         .telemetry
@@ -190,15 +190,15 @@ impl Builder {
                         None
                     };
 
-                    if let Some((sample, threshold)) = self.cost_variation {
+                    if let Some((sample, threshold)) = self.min_cv {
                         self.config.telemetry.log(
                             format!(
-                                "configured to use cost variation with sample: {}, threshold: {}",
+                                "configured to use variation coefficient with sample: {}, threshold: {}",
                                 sample, threshold
                             )
                             .as_str(),
                         );
-                        criterias.push(Box::new(CostVariation::new(sample, threshold)))
+                        criterias.push(Box::new(MinVariation::new(sample, threshold)))
                     }
 
                     (criterias, quota)

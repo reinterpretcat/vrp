@@ -24,7 +24,7 @@ const PROBLEM_ARG_NAME: &str = "PROBLEM";
 const MATRIX_ARG_NAME: &str = "matrix";
 const GENERATIONS_ARG_NAME: &str = "max-generations";
 const TIME_ARG_NAME: &str = "max-time";
-const COST_VARIATION_ARG_NAME: &str = "cost-variation";
+const MIN_CV_ARG_NAME: &str = "min-cv";
 const GEO_JSON_ARG_NAME: &str = "geo-json";
 
 const INIT_SOLUTION_ARG_NAME: &str = "init-solution";
@@ -176,10 +176,10 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(COST_VARIATION_ARG_NAME)
-                .help("Specifies cost variation coefficient termination criteria in form \"sample_size,threshold\"")
+            Arg::with_name(MIN_CV_ARG_NAME)
+                .help("Specifies variation coefficient termination criteria in form \"sample_size,threshold\"")
                 .short("v")
-                .long(COST_VARIATION_ARG_NAME)
+                .long(MIN_CV_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
@@ -306,7 +306,7 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
     });
     let is_check_requested = matches.is_present(CHECK_ARG_NAME);
 
-    let cost_variation = get_cost_variation(matches);
+    let min_cv = get_cv(matches);
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let init_size = get_init_size(matches);
     let config = matches.value_of(CONFIG_ARG_NAME).map(|path| open_file(path, "config"));
@@ -352,7 +352,7 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
                                 .with_telemetry(telemetry)
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
-                                .with_cost_variation(cost_variation)
+                                .with_min_cv(min_cv)
                                 .with_population(get_population(mode, problem.clone(), environment.clone()))
                                 .with_hyper(get_heuristic(matches, problem.clone(), environment))
                         };
@@ -386,14 +386,14 @@ pub fn run_solve(matches: &ArgMatches, out_writer_func: fn(Option<File>) -> BufW
     }
 }
 
-fn get_cost_variation(matches: &ArgMatches) -> Option<(usize, f64)> {
-    matches.value_of(COST_VARIATION_ARG_NAME).map(|arg| {
+fn get_cv(matches: &ArgMatches) -> Option<(usize, f64)> {
+    matches.value_of(MIN_CV_ARG_NAME).map(|arg| {
         if let [sample, threshold] =
             arg.split(',').filter_map(|line| line.parse::<f64>().ok()).collect::<Vec<_>>().as_slice()
         {
             (*sample as usize, *threshold)
         } else {
-            eprintln!("cannot parse cost variation parameter");
+            eprintln!("cannot parse min_cv parameter");
             process::exit(1);
         }
     })

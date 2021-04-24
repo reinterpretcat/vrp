@@ -514,7 +514,7 @@ fn configure_from_termination(mut builder: Builder, termination_config: &Option<
     if let Some(config) = termination_config {
         builder = builder.with_max_time(config.max_time);
         builder = builder.with_max_generations(config.max_generations);
-        builder = builder.with_cost_variation(config.variation.as_ref().map(|v| (v.sample, v.cv)));
+        builder = builder.with_min_cv(config.variation.as_ref().map(|v| (v.sample, v.cv)));
     }
 
     builder

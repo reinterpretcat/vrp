@@ -6,8 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+* introduce `min-cv` parameter instead of `cost-variation`
 * improved stability of some tests
 * bug fixes
+
+### Removed
+
+* `cost-variation` parameter
 
 
 ## v1.10.1

@@ -2,6 +2,7 @@
 //! e.g. when to stop evolution in evolutionary algorithms.
 
 use crate::solver::RefinementContext;
+use crate::utils::compare_floats;
 
 /// A trait which specifies criteria when metaheuristic should stop searching for improved solution.
 pub trait Termination {
@@ -12,15 +13,14 @@ pub trait Termination {
     fn estimate(&self, refinement_ctx: &RefinementContext) -> f64;
 }
 
-mod cost_variation;
-pub use self::cost_variation::CostVariation;
+mod min_variation;
+pub use self::min_variation::MinVariation;
 
 mod max_generation;
 pub use self::max_generation::MaxGeneration;
 
 mod max_time;
 pub use self::max_time::MaxTime;
-use crate::utils::compare_floats;
 
 /// A trait which encapsulates multiple termination criteria.
 pub struct CompositeTermination {

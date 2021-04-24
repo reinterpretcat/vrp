@@ -84,14 +84,15 @@ Generation is one refinement step and it can be limited via _max-generations_ pa
     vrp-cli solve pragmatic problem.json --max-generations=1000
 
 
-#### Cost variation
+#### Coefficient of variation
 
-Cost variation stops refinement process when cost does not significantly change:
+This criteria calculates [coefficient of variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) for each
+objective over specific amount of generations specified by `sample` and stops algorithm when all calculated values are
+below specified `threshold`. It can be defined by `min-cv` parameter:
 
-    vrp-cli solve pragmatic problem.json --cost-variation=200,0.1
+    vrp-cli solve pragmatic problem.json --min-cv=200,0.1
 
-It calculates [coefficient of variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) of cost change over
-specific amount of generations specified by `sample` and stops algorithm when it is below specified `threshold`.
+Here, the first parameter is generation amount, the second - threshold.
 
 
 #### Default behavior
