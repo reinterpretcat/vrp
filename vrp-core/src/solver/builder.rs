@@ -63,12 +63,7 @@ pub struct Builder {
 impl Builder {
     /// Creates a new instance of `Builder`.
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
-        Self {
-            max_generations: None,
-            max_time: None,
-            min_cv: None,
-            config: EvolutionConfig::new(problem, environment),
-        }
+        Self { max_generations: None, max_time: None, min_cv: None, config: EvolutionConfig::new(problem, environment) }
     }
 }
 
