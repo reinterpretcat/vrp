@@ -18,5 +18,5 @@ fn can_run_check_solution() {
     ];
     let matches = get_check_app().get_matches_from_safe(args).unwrap();
 
-    run_check(&matches);
+    run_check(&matches).unwrap();
 }

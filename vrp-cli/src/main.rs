@@ -29,16 +29,19 @@ mod cli {
             .subcommand(get_generate_app())
             .get_matches();
 
-        match matches.subcommand() {
+        if let Err(err) = match matches.subcommand() {
             ("solve", Some(solve_matches)) => run_solve(solve_matches, create_write_buffer),
             ("import", Some(import_matches)) => run_import(import_matches),
             ("check", Some(check_matches)) => run_check(check_matches),
             ("generate", Some(generate_matches)) => run_generate(generate_matches),
             ("", None) => {
-                eprintln!("No subcommand was used. Use -h to print help information.");
+                eprintln!("no subcommand was used. Use -h to print help information.");
                 process::exit(1);
             }
             _ => unreachable!(),
+        } {
+            eprintln!("{}", err);
+            process::exit(1)
         }
     }
 }

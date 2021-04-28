@@ -17,7 +17,13 @@ impl Write for DummyWrite {
 }
 
 fn run_solve_with_out_writer(matches: &ArgMatches) {
-    run_solve(matches, |_| BufWriter::new(Box::new(DummyWrite {})));
+    run_solve(matches, |_| BufWriter::new(Box::new(DummyWrite {}))).unwrap();
+}
+
+fn get_solomon_matches<'a>(params: &'a [&str]) -> ArgMatches<'a> {
+    let args = [&["solve", "solomon", SOLOMON_PROBLEM_PATH], params].concat();
+
+    get_solve_app().get_matches_from_safe(args).unwrap()
 }
 
 #[test]
@@ -29,19 +35,16 @@ fn can_solve_pragmatic_problem_with_generation_limit() {
 }
 
 #[test]
-fn can_solve_solomon_problem_with_generation_limit() {
-    let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--max-generations", "1"];
+fn can_solve_lilim_problem_with_multiple_limits() {
+    let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "60", "--max-generations", "1"];
     let matches = get_solve_app().get_matches_from_safe(args).unwrap();
 
     run_solve_with_out_writer(&matches);
 }
 
 #[test]
-fn can_solve_lilim_problem_with_multiple_limits() {
-    let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "60", "--max-generations", "1"];
-    let matches = get_solve_app().get_matches_from_safe(args).unwrap();
-
-    run_solve_with_out_writer(&matches);
+fn can_solve_solomon_problem_with_generation_limit() {
+    run_solve_with_out_writer(&get_solomon_matches(&["--max-generations", "1"]));
 }
 
 #[test]
@@ -66,5 +69,49 @@ fn can_specify_heuristic_setting() {
     {
         let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--heuristic", mode];
         assert_eq!(get_solve_app().get_matches_from_safe(args).ok().map(|_| ()), result);
+    }
+}
+
+#[test]
+fn can_specify_parallelism() {
+    for (params, result) in vec![
+        (vec!["--parallelism", "3,1"], Ok(3_usize)),
+        (vec!["--parallelism", "3"], Err("cannot parse parallelism parameter".to_string())),
+    ] {
+        let matches = get_solomon_matches(params.as_slice());
+
+        let thread_pool_size = get_environment(&matches).map(|e| e.parallelism.thread_pool_size());
+
+        assert_eq!(thread_pool_size, result);
+    }
+}
+
+#[test]
+fn can_use_init_size() {
+    for (params, result) in vec![
+        (vec!["--init-size", "1"], Ok(Some(1))),
+        (vec!["--init-size", "0"], Err("init size must be an integer bigger than 0, got '0'".to_string())),
+        (vec![], Ok(None)),
+    ] {
+        let matches = get_solomon_matches(params.as_slice());
+
+        let init_size = get_init_size(&matches);
+
+        assert_eq!(init_size, result);
+    }
+}
+
+#[test]
+fn can_specify_cv() {
+    for (params, result) in vec![
+        (vec!["--min-cv", "200,0.05"], Ok(Some((200, 0.05)))),
+        (vec!["--min-cv", "0"], Err("cannot parse min_cv parameter".to_string())),
+        (vec![], Ok(None)),
+    ] {
+        let matches = get_solomon_matches(params.as_slice());
+
+        let init_size = get_cv(&matches);
+
+        assert_eq!(init_size, result);
     }
 }

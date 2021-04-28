@@ -3,9 +3,6 @@
 mod check_test;
 
 use super::*;
-use std::io::BufReader;
-use std::process;
-use vrp_cli::extensions::check::check_pragmatic_solution;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "problem-file";
@@ -50,28 +47,7 @@ pub fn get_check_app<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-pub fn run_check(matches: &ArgMatches) {
+pub fn run_check(matches: &ArgMatches) -> Result<(), String> {
     let input_format = matches.value_of(FORMAT_ARG_NAME).unwrap();
-    let problem_files = matches
-        .values_of(PROBLEM_ARG_NAME)
-        .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "problem"))).collect::<Vec<_>>());
-    let solution_file = matches.value_of(SOLUTION_ARG_NAME).map(|path| BufReader::new(open_file(path, "solution")));
-    let matrix_files = matches
-        .values_of(MATRIX_ARG_NAME)
-        .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "routing matrix"))).collect());
-
-    let result = match (input_format, problem_files, solution_file) {
-        ("pragmatic", Some(mut problem_files), Some(solution_file)) if problem_files.len() == 1 => {
-            check_pragmatic_solution(problem_files.swap_remove(0), solution_file, matrix_files)
-        }
-        ("pragmatic", _, _) => {
-            Err(vec!["pragmatic format expects one problem, one solution file, and optionally matrices".to_string()])
-        }
-        _ => Err(vec![format!("unknown format: '{}'", input_format)]),
-    };
-
-    if let Err(err) = result {
-        eprintln!("checker found {} errors:\n{}", err.len(), err.join("\n"));
-        process::exit(1);
-    }
+    check_solution(matches, input_format, PROBLEM_ARG_NAME, SOLUTION_ARG_NAME, MATRIX_ARG_NAME)
 }

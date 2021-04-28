@@ -1,6 +1,5 @@
 use super::*;
 use std::io::BufReader;
-use std::process;
 use vrp_cli::extensions::import::import_problem;
 use vrp_pragmatic::format::problem::serialize_problem;
 
@@ -37,7 +36,7 @@ pub fn get_import_app<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-pub fn run_import(matches: &ArgMatches) {
+pub fn run_import(matches: &ArgMatches) -> Result<(), String> {
     let input_format = matches.value_of(FORMAT_ARG_NAME).unwrap();
     let input_files = matches
         .values_of(INPUT_ARG_NAME)
@@ -47,14 +46,8 @@ pub fn run_import(matches: &ArgMatches) {
         Ok(problem) => {
             let out_result = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out result"));
             let out_buffer = create_write_buffer(out_result);
-            if let Err(err) = serialize_problem(out_buffer, &problem) {
-                eprintln!("Cannot serialize result problem: '{}'", err);
-                process::exit(1);
-            }
+            serialize_problem(out_buffer, &problem).map_err(|err| format!("cannot serialize result problem: '{}'", err))
         }
-        Err(err) => {
-            eprintln!("Cannot import problem: '{}'", err);
-            process::exit(1);
-        }
+        Err(err) => Err(format!("cannot import problem: '{}'", err)),
     }
 }

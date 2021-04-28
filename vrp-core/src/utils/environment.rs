@@ -66,6 +66,11 @@ impl Parallelism {
             op()
         }
     }
+
+    /// Returns amount of thread pools used. Returns zero if default thread pool is used.
+    pub fn thread_pool_size(&self) -> usize {
+        self.thread_pools.as_ref().map_or(0, |tp| tp.len())
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
