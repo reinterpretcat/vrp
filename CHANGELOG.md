@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## ## v1.10.2
+
 ### Changed
 
 * introduce `min-cv` parameter instead of `cost-variation`
@@ -249,7 +252,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.2...HEAD
+[v1.10.2]: https://github.com/reinterpretcat/vrp/compare/v1.10.1...v1.10.2
 [v1.10.1]: https://github.com/reinterpretcat/vrp/compare/v1.10.0...v1.10.1
 [v1.10.0]: https://github.com/reinterpretcat/vrp/compare/v1.9.1...v1.10.0
 [v1.9.1]: https://github.com/reinterpretcat/vrp/compare/v1.9.0...v1.9.1
