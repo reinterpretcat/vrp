@@ -294,7 +294,7 @@ pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Res
     Ok(buffer)
 }
 
-/// Gets errors serialized in json.
+/// Gets errors serialized in free form.
 pub fn get_errors_serialized(errors: &[FormatError]) -> String {
     errors.iter().map(|err| format!("{}", err)).collect::<Vec<_>>().join("\n")
 }

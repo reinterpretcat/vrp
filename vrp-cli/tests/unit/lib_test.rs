@@ -35,3 +35,29 @@ fn can_get_solution_serialized() {
     assert!(solution.contains("tours"));
     assert!(solution.contains("stops"));
 }
+
+#[test]
+fn can_get_errors_serialized() {
+    let errors = vec![
+        FormatError::new("code0".to_string(), "cause0".to_string(), "action0".to_string()),
+        FormatError::new("code1".to_string(), "cause1".to_string(), "action1".to_string()),
+    ];
+
+    let result = get_errors_serialized(errors.as_slice());
+
+    assert_eq!(
+        "code0, cause: \'cause0\', action: \'action0\'.\ncode1, cause: \'cause1\', action: \'action1\'.",
+        result
+    );
+}
+
+#[test]
+fn can_get_config_error() {
+    let result = to_config_error("some error");
+
+    assert!(result.starts_with("{"));
+    assert!(result.ends_with("}"));
+    assert!(result.contains("some error"));
+    assert!(result.contains("E0004"));
+    assert!(result.contains("cannot read config"));
+}
