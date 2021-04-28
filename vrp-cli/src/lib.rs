@@ -155,6 +155,40 @@ mod interop {
             call_back(result, success, failure);
         });
     }
+
+    #[test]
+    fn can_use_to_string() {
+        let c_str = CString::new("asd").unwrap();
+        assert_eq!(to_string(c_str.as_ptr() as *const c_char), "asd".to_string());
+    }
+
+    #[test]
+    fn can_use_callback() {
+        extern "C" fn success1(_: *const c_char) {}
+        extern "C" fn failure1(_: *const c_char) {
+            unreachable!()
+        }
+        call_back(Ok("success".to_string()), success1, failure1);
+
+        extern "C" fn success2(_: *const c_char) {
+            unreachable!()
+        }
+        extern "C" fn failure2(_: *const c_char) {}
+        call_back(Err("failure".to_string()), success2, failure2);
+
+        let result = std::panic::catch_unwind(|| {
+            call_back(Err("failure".to_string()), success1, failure1);
+        });
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn can_catch_panic() {
+        extern "C" fn callback(_: *const c_char) {}
+        catch_panic(callback, || {
+            panic!("invaders detected!");
+        })
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
