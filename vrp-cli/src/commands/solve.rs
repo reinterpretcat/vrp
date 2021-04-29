@@ -175,7 +175,9 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
         )
         .arg(
             Arg::with_name(MIN_CV_ARG_NAME)
-                .help("Specifies variation coefficient termination criteria in form \"sample_size,threshold\"")
+                .help(
+                    "Specifies variation coefficient termination criteria in form \"sample_size,threshold,is_global\"",
+                )
                 .short("v")
                 .long(MIN_CV_ARG_NAME)
                 .required(false)
@@ -374,17 +376,18 @@ pub fn run_solve(
     }
 }
 
-fn get_cv(matches: &ArgMatches) -> Result<Option<(usize, f64)>, String> {
+fn get_cv(matches: &ArgMatches) -> Result<Option<(usize, f64, bool)>, String> {
+    let err_result = Err("cannot parse min_cv parameter".to_string());
     matches
         .value_of(MIN_CV_ARG_NAME)
-        .map(|arg| {
-            if let [sample, threshold] =
-                arg.split(',').filter_map(|line| line.parse::<f64>().ok()).collect::<Vec<_>>().as_slice()
-            {
-                Ok(Some((*sample as usize, *threshold)))
-            } else {
-                Err("cannot parse min_cv parameter".to_string())
+        .map(|arg| match arg.split(',').collect::<Vec<_>>().as_slice() {
+            [sample, threshold, is_global] => {
+                match (sample.parse::<usize>(), threshold.parse::<f64>(), is_global.parse::<bool>()) {
+                    (Ok(sample), Ok(threshold), Ok(is_global)) => Ok(Some((sample, threshold, is_global))),
+                    _ => err_result,
+                }
             }
+            _ => err_result,
         })
         .unwrap_or(Ok(None))
 }
@@ -455,22 +458,5 @@ fn get_heuristic(
 }
 
 fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> Result<(), String> {
-    /*    let problem_file = matches
-        .value_of(PROBLEM_ARG_NAME)
-        .map(|path| BufReader::new(open_file(path, "problem")))
-        .ok_or_else(|| format!("cannot read problem"))?;
-
-    let solution_file = matches
-        .value_of(OUT_RESULT_ARG_NAME)
-        .map(|path| BufReader::new(open_file(path, "solution")))
-        .ok_or_else(|| format!("cannot read solution"))?;
-
-    let matrix_files = matches
-        .values_of(MATRIX_ARG_NAME)
-        .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "routing matrix"))).collect());
-
-    check_pragmatic_solution(problem_file, solution_file, matrix_files)
-        .map_err(|err| format!("checker found {} errors:\n{}", err.len(), err.join("\n")))*/
-
     check_solution(matches, "pragmatic", PROBLEM_ARG_NAME, OUT_RESULT_ARG_NAME, MATRIX_ARG_NAME)
 }

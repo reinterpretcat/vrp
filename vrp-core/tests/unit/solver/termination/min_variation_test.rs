@@ -20,7 +20,7 @@ fn can_detect_termination_impl(
     expected: Vec<bool>,
 ) {
     let mut refinement_ctx = create_default_refinement_ctx(create_empty_problem());
-    let termination = MinVariation::new(capacity, threshold);
+    let termination = MinVariation::new(capacity, threshold, false);
 
     let result = (0..capacity)
         .map(|i| {

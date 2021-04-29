@@ -54,7 +54,7 @@ pub struct Builder {
     pub max_time: Option<usize>,
 
     /// A variation coefficient parameters for termination criteria.
-    pub min_cv: Option<(usize, f64)>,
+    pub min_cv: Option<(usize, f64, bool)>,
 
     /// An evolution configuration..
     pub config: EvolutionConfig,
@@ -81,7 +81,7 @@ impl Builder {
     }
 
     /// Sets variation coefficient termination criteria. Default is None.
-    pub fn with_min_cv(mut self, min_cv: Option<(usize, f64)>) -> Self {
+    pub fn with_min_cv(mut self, min_cv: Option<(usize, f64, bool)>) -> Self {
         self.min_cv = min_cv;
         self
     }
@@ -185,7 +185,7 @@ impl Builder {
                         None
                     };
 
-                    if let Some((sample, threshold)) = self.min_cv {
+                    if let Some((sample, threshold, is_global)) = self.min_cv {
                         self.config.telemetry.log(
                             format!(
                                 "configured to use variation coefficient with sample: {}, threshold: {}",
@@ -193,7 +193,7 @@ impl Builder {
                             )
                             .as_str(),
                         );
-                        criterias.push(Box::new(MinVariation::new(sample, threshold)))
+                        criterias.push(Box::new(MinVariation::new(sample, threshold, is_global)))
                     }
 
                     (criterias, quota)

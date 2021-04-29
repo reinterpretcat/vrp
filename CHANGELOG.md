@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* `min-cv` can be used in exploration search phase
+
 
 ## ## v1.10.2
 

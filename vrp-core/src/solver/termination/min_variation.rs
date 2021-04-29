@@ -14,13 +14,14 @@ use crate::utils::{unwrap_from_result, CollectGroupBy};
 pub struct MinVariation {
     sample: usize,
     threshold: f64,
+    is_global: bool,
     key: String,
 }
 
 impl MinVariation {
     /// Creates a new instance of `MinVariation`.
-    pub fn new(sample: usize, threshold: f64) -> Self {
-        Self { sample, threshold, key: "max_var".to_string() }
+    pub fn new(sample: usize, threshold: f64, is_global: bool) -> Self {
+        Self { sample, threshold, is_global, key: "max_var".to_string() }
     }
 
     fn update_and_check(&self, refinement_ctx: &mut RefinementContext, fitness: Vec<f64>) -> bool {
@@ -63,8 +64,9 @@ impl Termination for MinVariation {
             let fitness = objective.objectives().map(|o| o.fitness(first)).collect::<Vec<_>>();
             let result = self.update_and_check(refinement_ctx, fitness);
 
-            match refinement_ctx.population.selection_phase() {
-                SelectionPhase::Exploitation => result,
+            match (self.is_global, refinement_ctx.population.selection_phase()) {
+                (true, _) => result,
+                (false, SelectionPhase::Exploitation) => result,
                 _ => false,
             }
         } else {
