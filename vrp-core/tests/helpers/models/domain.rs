@@ -71,15 +71,15 @@ pub fn create_empty_insertion_context() -> InsertionContext {
     }
 }
 
-/// Creates a simple insertion context with given fitness and unassigned.
-pub fn create_simple_insertion_ctx(fitness: f64, unassigned: usize) -> InsertionContext {
+/// Creates a simple insertion context with given distance and amount of unassigned jobs.
+pub fn create_simple_insertion_ctx(distance: f64, unassigned: usize) -> InsertionContext {
     let problem = create_example_problem();
 
     let mut insertion_ctx = create_empty_insertion_context();
 
     let mut route_ctx = create_route_context_with_activities(problem.fleet.as_ref(), "v1", vec![]);
 
-    route_ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, fitness);
+    route_ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, distance);
     route_ctx.state_mut().put_route_state(TOTAL_DURATION_KEY, 0.);
 
     insertion_ctx.solution.routes.push(route_ctx);

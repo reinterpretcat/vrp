@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/objectives/total_unassigned_jobs_test.rs"]
+mod total_unassigned_jobs_test;
+
 use super::*;
 use crate::algorithms::nsga2::Objective;
 use crate::models::problem::Job;
@@ -18,6 +22,21 @@ impl TotalUnassignedJobs {
     pub fn new(unassigned_job_estimator: UnassignedJobEstimator) -> Self {
         Self { unassigned_job_estimator }
     }
+
+    /// Checks the edge case when at least one solution has no routes and amount of unassigned is
+    /// equal to another solution (can happen with conditional jobs).
+    fn is_edge_case(
+        &self,
+        a: &<TotalUnassignedJobs as Objective>::Solution,
+        b: &<TotalUnassignedJobs as Objective>::Solution,
+        fitness_a: f64,
+        fitness_b: f64,
+    ) -> bool {
+        let with_empty_routes = a.solution.routes.is_empty() || b.solution.routes.is_empty();
+        let with_same_fitness = compare_floats(fitness_a, fitness_b) == Ordering::Equal;
+
+        with_same_fitness && with_empty_routes
+    }
 }
 
 impl Default for TotalUnassignedJobs {
@@ -30,7 +49,15 @@ impl Objective for TotalUnassignedJobs {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        compare_floats(self.fitness(a), self.fitness(b))
+        let fitness_a = self.fitness(a);
+        let fitness_b = self.fitness(b);
+
+        let order = compare_floats(fitness_a, fitness_b);
+
+        match (self.is_edge_case(a, b, fitness_a, fitness_b), order) {
+            (true, _) => b.solution.routes.len().cmp(&a.solution.routes.len()),
+            _ => order,
+        }
     }
 
     fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
