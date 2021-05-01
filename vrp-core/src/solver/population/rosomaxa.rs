@@ -396,6 +396,8 @@ impl IndividualInput {
             get_distance_mean(individual),
             get_waiting_mean(individual),
             get_distance_gravity_mean(individual),
+            individual.solution.unassigned.len() as f64,
+            individual.solution.routes.len() as f64,
         ]
     }
 }
