@@ -89,7 +89,7 @@ fn can_read_full_config() {
                 MutationType::RuinRecreate { probability, ruins, recreates } => {
                     assert_eq!(as_scalar_probability(probability), 1.);
                     assert_eq!(ruins.len(), 6);
-                    assert_eq!(recreates.len(), 10);
+                    assert_eq!(recreates.len(), 11);
                 }
                 _ => unreachable!(),
             }

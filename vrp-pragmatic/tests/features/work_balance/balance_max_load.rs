@@ -25,7 +25,11 @@ fn can_balance_max_load() {
             }],
             profiles: create_default_matrix_profiles(),
         },
-        objectives: Some(vec![vec![BalanceMaxLoad { options: None }], vec![MinimizeCost]]),
+        objectives: Some(vec![
+            vec![MinimizeUnassignedJobs { breaks: None }],
+            vec![BalanceMaxLoad { options: None }],
+            vec![MinimizeCost],
+        ]),
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);

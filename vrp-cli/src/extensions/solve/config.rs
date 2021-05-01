@@ -287,6 +287,9 @@ pub enum RecreateMethod {
     /// Nearest neighbour method.
     #[serde(rename(deserialize = "nearest"))]
     Nearest { weight: usize },
+    #[serde(rename(deserialize = "skip-random"))]
+    /// Insertion with skip random method.
+    SkipRandom { weight: usize },
     /// Farthest insertion method.
     #[serde(rename(deserialize = "farthest"))]
     Farthest { weight: usize },
@@ -533,6 +536,7 @@ fn create_recreate_method(
         RecreateMethod::Blinks { weight } => {
             (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())), *weight)
         }
+        RecreateMethod::SkipRandom { weight } => (Arc::new(RecreateWithSkipRandom::default()), *weight),
         RecreateMethod::Gaps { weight, min } => (Arc::new(RecreateWithGaps::new(*min)), *weight),
         RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::default()), *weight),
         RecreateMethod::Regret { weight, start, end } => (Arc::new(RecreateWithRegret::new(*start, *end)), *weight),

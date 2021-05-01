@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* new recreate method: `RecreateWithSkipRandom`
+
 ### Changed
 
 * `min-cv` can be used in exploration search phase
+* improve rosomaxa algorithm
 
 
 ## ## v1.10.2

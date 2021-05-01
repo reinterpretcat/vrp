@@ -28,11 +28,16 @@ pub use self::recreate_with_nearest_neighbor::RecreateWithNearestNeighbor;
 mod recreate_with_perturbation;
 pub use self::recreate_with_perturbation::RecreateWithPerturbation;
 
+mod recreate_with_regret;
+pub use self::recreate_with_regret::RecreateWithRegret;
+
 mod recreate_with_skip_best;
 pub use self::recreate_with_skip_best::RecreateWithSkipBest;
 
-mod recreate_with_regret;
-pub use self::recreate_with_regret::RecreateWithRegret;
+mod recreate_with_skip_random;
+pub use self::recreate_with_skip_random::RecreateWithSkipRandom;
+use crate::solver::population::SelectionPhase;
+use hashbrown::HashMap;
 
 /// Provides the way to run one of multiple recreate methods.
 pub struct WeightedRecreate {
@@ -84,5 +89,27 @@ impl Recreate for ConfigurableRecreate {
             self.result_selector.as_ref(),
             &refinement_ctx.quota,
         )
+    }
+}
+
+/// Provides way to use different recreate methods on different selection phases.
+pub struct PhasedRecreate {
+    recreates: HashMap<SelectionPhase, Arc<dyn Recreate + Send + Sync>>,
+}
+
+impl PhasedRecreate {
+    /// Creates a new instance of `PhasedRecreate`.
+    pub fn new(recreates: HashMap<SelectionPhase, Arc<dyn Recreate + Send + Sync>>) -> Self {
+        assert!([SelectionPhase::Initial, SelectionPhase::Exploration, SelectionPhase::Exploitation]
+            .iter()
+            .all(|key| recreates.contains_key(key)));
+
+        Self { recreates }
+    }
+}
+
+impl Recreate for PhasedRecreate {
+    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+        self.recreates.get(&refinement_ctx.population.selection_phase()).unwrap().run(refinement_ctx, insertion_ctx)
     }
 }

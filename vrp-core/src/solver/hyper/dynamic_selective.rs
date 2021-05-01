@@ -100,6 +100,7 @@ impl DynamicSelective {
             Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(environment.random.clone())),
             Arc::new(RecreateWithFarthest::default()),
             Arc::new(RecreateWithNearestNeighbor::default()),
+            Arc::new(RecreateWithSkipRandom::default_explorative_phased(Arc::new(RecreateWithCheapest::default()))),
         ];
 
         let primary_ruins: Vec<Arc<dyn Ruin + Send + Sync>> = vec![

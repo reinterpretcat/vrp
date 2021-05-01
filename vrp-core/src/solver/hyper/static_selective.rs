@@ -106,6 +106,10 @@ impl StaticSelective {
             (Arc::new(RecreateWithFarthest::default()), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8)), 2),
             (Arc::new(RecreateWithNearestNeighbor::default()), 1),
+            (
+                Arc::new(RecreateWithSkipRandom::default_explorative_phased(Arc::new(RecreateWithCheapest::default()))),
+                1,
+            ),
         ]));
 
         // initialize ruin

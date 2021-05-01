@@ -284,6 +284,10 @@
           {
             "weight": 1,
             "type": "nearest"
+          },
+          {
+            "weight": 1,
+            "type": "skip-random"
           }
         ]
       },
