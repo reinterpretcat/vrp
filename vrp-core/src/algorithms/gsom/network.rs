@@ -3,7 +3,7 @@
 mod network_test;
 
 use super::*;
-use crate::utils::parallel_into_collect;
+use crate::utils::{parallel_into_collect, Random};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
@@ -75,12 +75,36 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         self.train_batch(item_data, true, map_func);
     }
 
-    /// Optimizes network by rebalancing and compaction of the nodes.
-    pub fn optimize(&mut self, rebalance_count: usize, compact_rule: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
-        // NOTE compact before rebalancing to reduce network size to be rebalanced
-        self.compact(compact_rule);
-        self.rebalance(rebalance_count);
-        self.compact(compact_rule);
+    /// Retrains the whole network.
+    pub fn retrain(&mut self, random: &dyn Random, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
+        let extract_individual = |coordinate: Coordinate| {
+            let mut individuals = self.nodes.get(&coordinate).unwrap().write().unwrap().storage.drain(0..1);
+            assert_eq!(individuals.len(), 1);
+
+            individuals.remove(0)
+        };
+
+        let roots = [
+            extract_individual(Coordinate(0, 0)),
+            extract_individual(Coordinate(0, 1)),
+            extract_individual(Coordinate(1, 1)),
+            extract_individual(Coordinate(1, 0)),
+        ];
+
+        let mut data = self
+            .nodes
+            .drain()
+            .filter(|(_, node)| node_filter.deref()(node))
+            .flat_map(|(_, node)| node.write().unwrap().storage.drain(0..))
+            .collect::<Vec<_>>();
+
+        self.nodes = Self::create_initial_nodes(roots, self.time, self.rebalance_memory, &self.storage_factory);
+
+        data.shuffle(&mut random.get_rng());
+
+        data.into_iter().for_each(|input| {
+            self.train(input, false);
+        });
     }
 
     /// Returns node coordinates in arbitrary order.
@@ -233,51 +257,6 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         }
 
         self.nodes.insert(coordinate, new_node);
-    }
-
-    /// Rebalances network.
-    fn rebalance(&mut self, rebalance_count: usize) {
-        let mut data = Vec::with_capacity(self.nodes.len());
-        (0..rebalance_count).for_each(|_| {
-            self.reset_error();
-
-            data.clear();
-            data.extend(self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain(0..)));
-
-            data.shuffle(&mut rand::thread_rng());
-
-            data.drain(0..).for_each(|input| {
-                self.train(input, false);
-            });
-        });
-
-        self.reset_error();
-    }
-
-    /// Compacts network.
-    fn compact(&mut self, rule: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
-        let mut remove = vec![];
-        self.nodes.iter_mut().filter(|(_, node)| rule.deref()(node)).for_each(|(coordinate, node)| {
-            let topology = &mut node.write().unwrap().topology;
-            topology.left.iter_mut().for_each(|link| link.write().unwrap().topology.right = None);
-            topology.right.iter_mut().for_each(|link| link.write().unwrap().topology.left = None);
-            topology.up.iter_mut().for_each(|link| link.write().unwrap().topology.down = None);
-            topology.down.iter_mut().for_each(|link| link.write().unwrap().topology.up = None);
-
-            remove.push(coordinate.clone());
-        });
-
-        remove.iter().for_each(|coordinate| {
-            self.nodes.remove(coordinate);
-        });
-    }
-
-    /// Resets accumulated error in all nodes.
-    fn reset_error(&mut self) {
-        self.nodes.iter_mut().for_each(|(_, node)| {
-            let mut node = node.write().unwrap();
-            node.error = 0.;
-        })
     }
 
     /// Creates nodes for initial topology.

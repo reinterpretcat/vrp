@@ -201,7 +201,7 @@ impl Rosomaxa {
                         statistics,
                         best_fitness.as_slice(),
                         self.config.rebalance_memory,
-                        self.config.rebalance_count,
+                        self.environment.random.as_ref(),
                     );
 
                     Self::fill_populations(
@@ -261,7 +261,7 @@ impl Rosomaxa {
         statistics: &Statistics,
         best_fitness: &[f64],
         rebalance_memory: usize,
-        rebalance_count: usize,
+        random: &(dyn Random + Send + Sync),
     ) {
         let rebalance_memory = rebalance_memory as f64;
         let keep_size = match statistics.improvement_1000_ratio {
@@ -302,10 +302,10 @@ impl Rosomaxa {
         };
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-            network.optimize(rebalance_count, &|node| {
+            network.retrain(random, &|node| {
                 let is_empty = node.read().unwrap().storage.population.size() == 0;
 
-                is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
+                !(is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold))
             });
         }
     }
