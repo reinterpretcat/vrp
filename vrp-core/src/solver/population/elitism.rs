@@ -10,6 +10,7 @@ use crate::utils::Random;
 use std::cmp::Ordering;
 use std::fmt::{Formatter, Write};
 use std::iter::{empty, once};
+use std::ops::RangeBounds;
 use std::sync::Arc;
 
 /// A simple evolution aware implementation of [`Population`] trait with the the following
@@ -116,9 +117,12 @@ impl Elitism {
         Self { problem, random, selection_size, max_population_size, individuals: vec![] }
     }
 
-    /// Extracts all individuals out from population.
-    pub fn drain(&mut self) -> Vec<Individual> {
-        std::mem::replace(&mut self.individuals, vec![])
+    /// Extracts all individuals from population.
+    pub fn drain<R>(&mut self, range: R) -> Vec<Individual>
+    where
+        R: RangeBounds<usize>,
+    {
+        self.individuals.drain(range).collect()
     }
 
     fn sort(&mut self) {

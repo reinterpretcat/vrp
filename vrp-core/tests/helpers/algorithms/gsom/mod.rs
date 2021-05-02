@@ -1,5 +1,6 @@
 use crate::algorithms::gsom::{Input, Network, NetworkConfig, Storage};
 use std::fmt::{Display, Formatter};
+use std::ops::RangeBounds;
 
 #[derive(Clone)]
 pub struct Data {
@@ -30,8 +31,11 @@ impl Storage for DataStorage {
         self.data.push(input);
     }
 
-    fn drain(&mut self) -> Vec<Self::Item> {
-        self.data.drain(0..).collect()
+    fn drain<R>(&mut self, range: R) -> Vec<Self::Item>
+    where
+        R: RangeBounds<usize>,
+    {
+        self.data.drain(range).collect()
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {

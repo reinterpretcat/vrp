@@ -12,7 +12,7 @@ use crate::models::Problem;
 use crate::utils::{as_mut, Environment, Random};
 use std::convert::TryInto;
 use std::fmt::Formatter;
-use std::ops::Deref;
+use std::ops::{Deref, RangeBounds};
 use std::sync::Arc;
 
 /// Specifies rosomaxa configuration settings.
@@ -48,7 +48,7 @@ impl RosomaxaConfig {
             spread_factor: 0.25,
             distribution_factor: 0.25,
             learning_rate: 0.1,
-            rebalance_memory: 500,
+            rebalance_memory: 100,
             rebalance_count: 2,
             exploration_ratio: 0.9,
         }
@@ -196,16 +196,13 @@ impl Rosomaxa {
                     let best_individual = self.elite.select().next().expect("expected individuals in elite");
                     let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
 
-                    if Self::is_optimization_time(*time, self.config.rebalance_memory, statistics) {
-                        Self::optimize_network(
-                            network,
-                            best_fitness.as_slice(),
-                            self.config.rebalance_memory,
-                            self.config.rebalance_count,
-                            statistics,
-                            self.environment.random.as_ref(),
-                        )
-                    }
+                    Self::optimize_network(
+                        network,
+                        statistics,
+                        best_fitness.as_slice(),
+                        self.config.rebalance_memory,
+                        self.config.rebalance_count,
+                    );
 
                     Self::fill_populations(
                         network,
@@ -225,16 +222,6 @@ impl Rosomaxa {
     fn is_comparable_with_best_known(&self, individual: &Individual, best_known: Option<&Individual>) -> bool {
         best_known
             .map_or(true, |best_known| self.problem.objective.total_order(&individual, best_known) != Ordering::Greater)
-    }
-
-    fn is_optimization_time(time: usize, rebalance_memory: usize, statistics: &Statistics) -> bool {
-        let rebalance_factor = match statistics.improvement_1000_ratio {
-            v if v > 0.1 => 1,
-            v if v > 0.02 => 2,
-            v if v > 0.01 => 3,
-            _ => 4,
-        };
-        time > 0 && time % (rebalance_memory * rebalance_factor) == 0
     }
 
     fn fill_populations(
@@ -271,58 +258,55 @@ impl Rosomaxa {
 
     fn optimize_network(
         network: &mut IndividualNetwork,
+        statistics: &Statistics,
         best_fitness: &[f64],
         rebalance_memory: usize,
         rebalance_count: usize,
-        statistics: &Statistics,
-        random: &(dyn Random + Send + Sync),
     ) {
-        // TODO keep amount of nodes under control
-
-        let is_early_time = statistics.termination_estimate < 0.5;
-        let is_big_size = network.size() > rebalance_memory;
-
-        match (is_early_time, is_big_size) {
-            (true, _) => {
-                network.optimize(rebalance_count, &|node| {
-                    let is_empty = node.read().unwrap().storage.population.size() == 0;
-                    is_empty || (is_big_size && random.is_hit(0.1))
-                });
+        let rebalance_memory = rebalance_memory as f64;
+        let keep_size = match statistics.improvement_1000_ratio {
+            v if v > 0.2 => {
+                // https://www.wolframalpha.com/input/?i=plot+%281+-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
+                let x = statistics.termination_estimate.clamp(0., 1.);
+                let ratio = 1. - 1. / (1. + std::f64::consts::E.powf(-10. * (x - 0.5)));
+                rebalance_memory + rebalance_memory * ratio
             }
-            (false, false) => {
-                network.optimize(rebalance_count, &|node| node.read().unwrap().storage.population.size() == 0);
+            v if v > 0.1 => 2. * rebalance_memory,
+            v if v > 0.01 => 3. * rebalance_memory,
+            _ => 4. * rebalance_memory,
+        } as usize;
+
+        if statistics.generation == 0 || network.size() <= keep_size {
+            return;
+        }
+
+        let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
+            let node = node.read().unwrap();
+            let individual = node.storage.population.select().next();
+            if let Some(individual) = individual {
+                Some(relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
+            } else {
+                None
             }
-            _ => {
-                // NOTE later apply more exploitation: clear worst nodes
-                let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
-                    let node = node.read().unwrap();
-                    let individual = node.storage.population.select().next();
-                    if let Some(individual) = individual {
-                        Some(relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
-                    } else {
-                        None
-                    }
-                };
+        };
 
-                // determine percentile value
-                let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
-                distances.sort_by(|a, b| compare_floats(*b, *a));
-                let percentile_idx = if distances.len() > rebalance_memory {
-                    distances.len() - rebalance_memory
-                } else {
-                    const PERCENTILE_THRESHOLD: f64 = 0.1;
+        // determine percentile value
+        let mut distances = network.get_nodes().filter_map(get_distance).collect::<Vec<_>>();
+        distances.sort_by(|a, b| compare_floats(*b, *a));
+        let percentile_idx = if distances.len() > keep_size {
+            distances.len() - keep_size
+        } else {
+            const PERCENTILE_THRESHOLD: f64 = 0.1;
 
-                    (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize
-                };
+            (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize
+        };
 
-                if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-                    network.optimize(rebalance_count, &|node| {
-                        let is_empty = node.read().unwrap().storage.population.size() == 0;
+        if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
+            network.optimize(rebalance_count, &|node| {
+                let is_empty = node.read().unwrap().storage.population.size() == 0;
 
-                        is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
-                    });
-                }
-            }
+                is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold)
+            });
         }
     }
 
@@ -426,8 +410,11 @@ impl Storage for IndividualStorage {
         self.get_population_mut().add(input.individual);
     }
 
-    fn drain(&mut self) -> Vec<Self::Item> {
-        self.get_population_mut().drain().into_iter().map(IndividualInput::new).collect()
+    fn drain<R>(&mut self, range: R) -> Vec<Self::Item>
+    where
+        R: RangeBounds<usize>,
+    {
+        self.get_population_mut().drain(range).into_iter().map(IndividualInput::new).collect()
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {

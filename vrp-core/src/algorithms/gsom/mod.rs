@@ -1,6 +1,7 @@
 //! Provides customized implementation of Growing Self Organizing Map.
 
 use std::fmt::Display;
+use std::ops::RangeBounds;
 
 mod network;
 pub use self::network::*;
@@ -26,7 +27,9 @@ pub trait Storage: Display + Send + Sync {
     fn add(&mut self, input: Self::Item);
 
     /// Removes and returns all data from the storage.
-    fn drain(&mut self) -> Vec<Self::Item>;
+    fn drain<R>(&mut self, range: R) -> Vec<Self::Item>
+    where
+        R: RangeBounds<usize>;
 
     /// Returns a distance between two input weights.
     fn distance(&self, a: &[f64], b: &[f64]) -> f64;

@@ -242,7 +242,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             self.reset_error();
 
             data.clear();
-            data.extend(self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain()));
+            data.extend(self.nodes.iter_mut().flat_map(|(_, node)| node.write().unwrap().storage.drain(0..)));
 
             data.shuffle(&mut rand::thread_rng());
 

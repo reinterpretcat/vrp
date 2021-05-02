@@ -18,13 +18,6 @@ fn create_statistics(termination_estimate: f64, generation: usize) -> Statistics
     statistics
 }
 
-fn get_network(rosomaxa: &Rosomaxa) -> &IndividualNetwork {
-    match &rosomaxa.phase {
-        RosomaxaPhases::Exploration { network, .. } => network,
-        _ => unreachable!(),
-    }
-}
-
 #[test]
 fn can_switch_phases() {
     let mut rosomaxa = create_rosomaxa(10);
@@ -42,30 +35,6 @@ fn can_switch_phases() {
         rosomaxa.update_phase(&create_statistics(*termination_estimate, idx));
         assert_eq!(rosomaxa.selection_phase(), *phase);
     }
-}
-
-parameterized_test! {can_optimize_network, (rebalance_memory, expected_nodes), {
-    can_optimize_network_impl(rebalance_memory, expected_nodes);
-}}
-
-can_optimize_network! {
-    case_01: (10, 4),
-    case_02: (3, 1),
-}
-
-fn can_optimize_network_impl(rebalance_memory: usize, expected_nodes: usize) {
-    let termination_estimate = 0.75;
-    let mut rosomaxa = create_rosomaxa(rebalance_memory);
-    (0..10).for_each(|idx| {
-        rosomaxa.add_all(vec![create_empty_insertion_context()]);
-        rosomaxa.update_phase(&create_statistics(termination_estimate, idx))
-    });
-    assert_eq!(get_network(&rosomaxa).get_nodes().count(), expected_nodes);
-
-    rosomaxa.add(create_empty_insertion_context());
-    rosomaxa.update_phase(&create_statistics(termination_estimate, 10));
-
-    assert_eq!(get_network(&rosomaxa).get_nodes().count(), 1);
 }
 
 #[test]
