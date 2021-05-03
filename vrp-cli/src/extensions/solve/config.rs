@@ -83,8 +83,6 @@ pub enum PopulationType {
         learning_rate: Option<f64>,
         /// A rebalance memory. Default is 500.
         rebalance_memory: Option<usize>,
-        /// A rebalance count. Default is 10.
-        rebalance_count: Option<usize>,
         /// An exploration phase ratio. Default is 0.9.
         exploration_ratio: Option<f64>,
     },
@@ -446,7 +444,6 @@ fn configure_from_evolution(
                     learning_rate,
                     selection_size,
                     rebalance_memory,
-                    rebalance_count,
                     exploration_ratio,
                 } => {
                     let mut config = RosomaxaConfig::new_with_defaults(default_selection_size);
@@ -470,9 +467,6 @@ fn configure_from_evolution(
                     }
                     if let Some(rebalance_memory) = rebalance_memory {
                         config.rebalance_memory = *rebalance_memory;
-                    }
-                    if let Some(rebalance_count) = rebalance_count {
-                        config.rebalance_count = *rebalance_count;
                     }
                     if let Some(exploration_ratio) = exploration_ratio {
                         config.exploration_ratio = *exploration_ratio;

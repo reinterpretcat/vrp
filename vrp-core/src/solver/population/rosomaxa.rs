@@ -31,8 +31,6 @@ pub struct RosomaxaConfig {
     pub learning_rate: f64,
     /// A node rebalance memory of GSOM.
     pub rebalance_memory: usize,
-    /// A rebalance count.
-    pub rebalance_count: usize,
     /// A ratio of exploration phase.
     pub exploration_ratio: f64,
 }
@@ -49,7 +47,6 @@ impl RosomaxaConfig {
             distribution_factor: 0.25,
             learning_rate: 0.1,
             rebalance_memory: 100,
-            rebalance_count: 2,
             exploration_ratio: 0.9,
         }
     }
