@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.10.3]
+
 ### Added
 
 * new recreate method: `RecreateWithSkipRandom`
@@ -14,7 +17,7 @@ All notable changes to this project will be documented in this file.
 * improve rosomaxa algorithm
 
 
-## ## v1.10.2
+## [v1.10.2]
 
 ### Changed
 
@@ -27,7 +30,7 @@ All notable changes to this project will be documented in this file.
 * `cost-variation` parameter
 
 
-## v1.10.1
+## [v1.10.1]
 
 ### Changed
 
@@ -35,7 +38,7 @@ All notable changes to this project will be documented in this file.
 * change default objective behaviour when `value` property is used
 
 
-## v1.10.0
+## [v1.10.0]
 
 This release has breaking changes in pragmatic format and internal apis.
 
@@ -261,7 +264,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.2...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.3...HEAD
+[v1.10.3]: https://github.com/reinterpretcat/vrp/compare/v1.10.2...v1.10.3
 [v1.10.2]: https://github.com/reinterpretcat/vrp/compare/v1.10.1...v1.10.2
 [v1.10.1]: https://github.com/reinterpretcat/vrp/compare/v1.10.0...v1.10.1
 [v1.10.0]: https://github.com/reinterpretcat/vrp/compare/v1.9.1...v1.10.0

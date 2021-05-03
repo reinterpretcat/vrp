@@ -27,6 +27,7 @@ which is a growing variant of a self-organizing map. In `rosomaxa`, it has the f
      - mean of route distances
      - mean of route waiting times
      - average distance between route medoids
+     - amount of routes
 * periodically, the network is compacted and rebalanced to keep search analyzing most prominent local optimums
 
 
