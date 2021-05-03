@@ -38,7 +38,7 @@ impl RecreateWithSkipRandom {
         let recreates = vec![
             (SelectionPhase::Initial, default_recreate.clone()),
             (SelectionPhase::Exploration, Arc::new(RecreateWithSkipRandom::default())),
-            (SelectionPhase::Exploitation, default_recreate.clone()),
+            (SelectionPhase::Exploitation, default_recreate),
         ];
 
         PhasedRecreate { recreates: recreates.into_iter().collect() }
