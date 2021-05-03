@@ -156,38 +156,86 @@ mod interop {
         });
     }
 
-    #[test]
-    fn can_use_to_string() {
-        let c_str = CString::new("asd").unwrap();
-        assert_eq!(to_string(c_str.as_ptr() as *const c_char), "asd".to_string());
-    }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::helpers::generate::SIMPLE_PROBLEM;
 
-    #[test]
-    fn can_use_callback() {
-        extern "C" fn success1(_: *const c_char) {}
-        extern "C" fn failure1(_: *const c_char) {
-            unreachable!()
+        #[test]
+        fn can_use_to_string() {
+            let c_str = CString::new("asd").unwrap();
+            assert_eq!(to_string(c_str.as_ptr() as *const c_char), "asd".to_string());
         }
-        call_back(Ok("success".to_string()), success1, failure1);
 
-        extern "C" fn success2(_: *const c_char) {
-            unreachable!()
+        #[test]
+        fn can_use_callback() {
+            extern "C" fn success1(_: *const c_char) {}
+            extern "C" fn failure1(_: *const c_char) {
+                unreachable!()
+            }
+            call_back(Ok("success".to_string()), success1, failure1);
+
+            extern "C" fn success2(_: *const c_char) {
+                unreachable!()
+            }
+            extern "C" fn failure2(_: *const c_char) {}
+            call_back(Err("failure".to_string()), success2, failure2);
+
+            let result = std::panic::catch_unwind(|| {
+                call_back(Err("failure".to_string()), success1, failure1);
+            });
+            assert!(result.is_err());
         }
-        extern "C" fn failure2(_: *const c_char) {}
-        call_back(Err("failure".to_string()), success2, failure2);
 
-        let result = std::panic::catch_unwind(|| {
-            call_back(Err("failure".to_string()), success1, failure1);
-        });
-        assert!(result.is_err());
-    }
+        #[test]
+        fn can_catch_panic() {
+            extern "C" fn callback(_: *const c_char) {}
+            catch_panic(callback, || {
+                panic!("invaders detected!");
+            })
+        }
 
-    #[test]
-    fn can_catch_panic() {
-        extern "C" fn callback(_: *const c_char) {}
-        catch_panic(callback, || {
-            panic!("invaders detected!");
-        })
+        #[test]
+        fn can_get_locations() {
+            extern "C" fn success(locations: *const c_char) {
+                let locations = to_string(locations);
+                assert!(locations.starts_with("["));
+                assert!(locations.ends_with("]"));
+                assert!(locations.len() > 2);
+            }
+            extern "C" fn failure(err: *const c_char) {
+                unreachable!("{}", to_string(err))
+            }
+
+            let problem = CString::new(SIMPLE_PROBLEM).unwrap();
+            get_routing_locations(problem.as_ptr() as *const c_char, success, failure)
+        }
+
+        #[test]
+        fn can_solve_problem() {
+            extern "C" fn success(solution: *const c_char) {
+                let solution = to_string(solution);
+                assert!(solution.starts_with("{"));
+                assert!(solution.ends_with("}"));
+                assert!(solution.len() > 2);
+            }
+            extern "C" fn failure(err: *const c_char) {
+                unreachable!("{}", to_string(err))
+            }
+
+            let problem = CString::new(SIMPLE_PROBLEM).unwrap();
+            let matrices = CString::new("[]").unwrap();
+            let config = CString::new("{\"termination\": {\"max-generations\": 1}}").unwrap();
+
+            solve_pragmatic(
+                problem.as_ptr() as *const c_char,
+                matrices.as_ptr() as *const *const c_char,
+                0 as *const i32,
+                config.as_ptr() as *const c_char,
+                success,
+                failure,
+            );
+        }
     }
 }
 

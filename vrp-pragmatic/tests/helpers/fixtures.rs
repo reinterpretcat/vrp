@@ -88,7 +88,7 @@ pub const SIMPLE_PROBLEM: &str = r#"
         "vehicleIds": [
           "vehicle_1"
         ],
-                "profile": {
+          "profile": {
           "matrix": "normal_car"
         },
         "costs": {

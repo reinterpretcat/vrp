@@ -67,3 +67,75 @@ pub fn create_test_job(lat: f64, lng: f64) -> Job {
         ..create_empty_job()
     }
 }
+
+pub const SIMPLE_PROBLEM: &str = r#"
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "single_job",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5622847,
+                  "lng": 13.4023099
+                },
+                "duration": 240.0,
+                "times": [
+                  [
+                    "2019-07-04T10:00:00Z",
+                    "2019-07-04T16:00:00Z"
+                  ]
+                ]
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "vehicle",
+        "vehicleIds": [
+          "vehicle_1"
+        ],
+          "profile": {
+          "matrix": "normal_car"
+        },
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2019-07-04T09:00:00Z",
+              "latest": "2019-07-04T09:30:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car"
+      }
+    ]
+  }
+}
+"#;
