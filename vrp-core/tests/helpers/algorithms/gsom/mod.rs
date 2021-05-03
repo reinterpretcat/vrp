@@ -41,6 +41,10 @@ impl Storage for DataStorage {
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
         f64::sqrt((a[0] - b[0]).powf(2.0) + (a[1] - b[1]).powf(2.0) + (a[2] - b[2]).powf(2.0))
     }
+
+    fn size(&self) -> usize {
+        self.data.len()
+    }
 }
 
 impl Default for DataStorage {

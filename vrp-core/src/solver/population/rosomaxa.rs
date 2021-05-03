@@ -31,6 +31,8 @@ pub struct RosomaxaConfig {
     pub learning_rate: f64,
     /// A node rebalance memory of GSOM.
     pub rebalance_memory: usize,
+    /// A rebalance count.
+    pub rebalance_count: usize,
     /// A ratio of exploration phase.
     pub exploration_ratio: f64,
 }
@@ -47,6 +49,7 @@ impl RosomaxaConfig {
             distribution_factor: 0.25,
             learning_rate: 0.1,
             rebalance_memory: 100,
+            rebalance_count: 2,
             exploration_ratio: 0.9,
         }
     }
@@ -198,7 +201,7 @@ impl Rosomaxa {
                         statistics,
                         best_fitness.as_slice(),
                         self.config.rebalance_memory,
-                        self.environment.random.as_ref(),
+                        self.config.rebalance_count,
                     );
 
                     Self::fill_populations(
@@ -258,7 +261,7 @@ impl Rosomaxa {
         statistics: &Statistics,
         best_fitness: &[f64],
         rebalance_memory: usize,
-        random: &(dyn Random + Send + Sync),
+        rebalance_count: usize,
     ) {
         let rebalance_memory = rebalance_memory as f64;
         let keep_size = match statistics.improvement_1000_ratio {
@@ -299,10 +302,8 @@ impl Rosomaxa {
         };
 
         if let Some(distance_threshold) = distances.get(percentile_idx).cloned() {
-            network.retrain(random, &|node| {
-                let is_empty = node.read().unwrap().storage.population.size() == 0;
-
-                !(is_empty || get_distance(node).map_or(true, |distance| distance > distance_threshold))
+            network.retrain(rebalance_count, &|node| {
+                get_distance(node).map_or(false, |distance| distance < distance_threshold)
             });
         }
     }
@@ -415,6 +416,10 @@ impl Storage for IndividualStorage {
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
         relative_distance(a.iter().cloned(), b.iter().cloned())
+    }
+
+    fn size(&self) -> usize {
+        self.population.size()
     }
 }
 

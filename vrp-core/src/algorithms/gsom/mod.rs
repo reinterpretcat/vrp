@@ -33,4 +33,7 @@ pub trait Storage: Display + Send + Sync {
 
     /// Returns a distance between two input weights.
     fn distance(&self, a: &[f64], b: &[f64]) -> f64;
+
+    /// Returns size of the storage.
+    fn size(&self) -> usize;
 }

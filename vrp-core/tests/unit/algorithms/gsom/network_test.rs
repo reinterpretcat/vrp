@@ -14,7 +14,7 @@ fn can_train_network() {
             network.train(samples[sample_i].clone(), true);
         }
 
-        network.retrain(&random, &|node| node.read().unwrap().storage.data.is_empty());
+        network.retrain(10, &|node| node.read().unwrap().storage.data.is_empty());
     }
 
     assert!(!network.nodes.len() >= 3);
