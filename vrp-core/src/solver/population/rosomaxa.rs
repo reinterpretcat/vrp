@@ -243,17 +243,30 @@ impl Rosomaxa {
             },
         ));
 
-        if statistics.improvement_1000_ratio > 0.01 {
-            // NOTE partially randomize order
+        let shuffle_amount = Self::get_shuffle_amount(statistics, populations.len());
+
+        if shuffle_amount != populations.len() {
+            // partially randomize order
             populations.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
-            // https://www.wolframalpha.com/input/?i=plot+1%2F%281%2Be%5E%28-10+*%28x+-+0.75%29%29%29%2C+x%3D0+to+2
-            let shuffle_ratio =
-                1. / (1. + std::f64::consts::E.powf(-10. * (statistics.termination_estimate - 0.75))).clamp(0.1, 1.);
-            let shuffle_amount = (populations.len() as f64 * shuffle_ratio) as usize;
             populations.partial_shuffle(&mut random.get_rng(), shuffle_amount);
         } else {
             populations.shuffle(&mut random.get_rng());
         }
+    }
+
+    fn get_shuffle_amount(statistics: &Statistics, length: usize) -> usize {
+        let ratio = match statistics.improvement_1000_ratio {
+            v if v > 0.5 => {
+                // https://www.wolframalpha.com/input/?i=plot+0.66+*+%281-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
+                let progress = statistics.termination_estimate;
+                let ratio = 0.5 * (1. - 1. / (1. + std::f64::consts::E.powf(-10. * (progress - 0.5))));
+                ratio.clamp(0.1, 0.5)
+            }
+            v if v > 0.2 => 0.5,
+            _ => 1.,
+        };
+
+        (length as f64 * ratio).round() as usize
     }
 
     fn optimize_network(

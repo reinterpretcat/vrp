@@ -251,7 +251,6 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
-        // TODO retrain multiple times keeping nodes, then delete empty nodes surrounded by others
         let mut remove = vec![];
         let mut remove_node = |coordinate: &Coordinate, node: &mut NodeLink<I, S>| {
             let topology = &mut node.write().unwrap().topology;
