@@ -36,7 +36,7 @@ fn can_solve_pragmatic_problem_with_generation_limit() {
 
 #[test]
 fn can_solve_lilim_problem_with_multiple_limits() {
-    let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "60", "--max-generations", "1"];
+    let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "300", "--max-generations", "1"];
     let matches = get_solve_app().get_matches_from_safe(args).unwrap();
 
     run_solve_with_out_writer(&matches);

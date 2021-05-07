@@ -30,7 +30,6 @@ pub use self::random_job_removal::RandomJobRemoval;
 mod worst_jobs_removal;
 pub use self::worst_jobs_removal::WorstJobRemoval;
 use crate::models::problem::{Actor, Job};
-use crate::utils::Random;
 use hashbrown::HashSet;
 
 /// A type which specifies a group of multiple ruin strategies with their probability.
@@ -63,11 +62,6 @@ impl RuinLimits {
         max_affected_routes: usize,
     ) -> Self {
         Self { min_ruined_jobs, max_ruined_jobs, ruined_jobs_threshold, max_affected_routes }
-    }
-
-    /// Gets jobs sample size.
-    pub fn get_jobs_sample(&self, random: &(dyn Random + Sync + Send)) -> usize {
-        random.uniform_int(self.min_ruined_jobs as i32, self.max_ruined_jobs as i32) as usize
     }
 
     /// Gets chunk size based on limits.
