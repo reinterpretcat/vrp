@@ -37,25 +37,18 @@ impl ConstraintModule for TransportConstraintModule {
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
         if has_travel_limits(&self.limit_func, ctx) {
-            Self::reschedule_departure(ctx, self.transport.as_ref(), false)
+            Self::advance_departure_time(ctx, self.transport.as_ref(), false)
         }
         Self::update_statistics(ctx, self.transport.as_ref());
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
-        ctx.routes.iter_mut().for_each(|route_ctx| {
+        ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
             let transport = self.transport.as_ref();
 
-            if route_ctx.is_stale() {
-                Self::update_route_schedules(route_ctx, transport);
-                Self::update_route_states(route_ctx, transport);
-            }
-
-            Self::reschedule_departure(route_ctx, transport, false);
-
-            if route_ctx.is_stale() {
-                Self::update_statistics(route_ctx, self.transport.as_ref());
-            }
+            Self::update_route_schedules(route_ctx, transport);
+            Self::update_route_states(route_ctx, transport);
+            Self::update_statistics(route_ctx, transport);
         })
     }
 
@@ -101,11 +94,6 @@ impl TransportConstraintModule {
             transport,
             limit_func,
         }
-    }
-
-    /// Optimizes departure time of route.
-    pub(crate) fn optimize_departure_time(route_ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
-        Self::reschedule_departure(route_ctx, transport, true);
     }
 
     pub(crate) fn update_route_schedules(ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
@@ -158,19 +146,6 @@ impl TransportConstraintModule {
         });
     }
 
-    pub(crate) fn reschedule_departure(
-        ctx: &mut RouteContext,
-        transport: &(dyn TransportCost + Send + Sync),
-        optimize_whole_tour: bool,
-    ) {
-        if let Some(new_departure_time) = try_get_new_departure_time(transport, ctx, optimize_whole_tour) {
-            let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
-            start.schedule.departure = new_departure_time;
-            Self::update_route_schedules(ctx, transport);
-            Self::update_route_states(ctx, transport);
-        }
-    }
-
     pub(crate) fn update_statistics(ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
         let start = ctx.route.tour.start().unwrap();
         let end = ctx.route.tour.end().unwrap();
@@ -187,6 +162,35 @@ impl TransportConstraintModule {
 
         ctx.state_mut().put_route_state(TOTAL_DISTANCE_KEY, total_dist);
         ctx.state_mut().put_route_state(TOTAL_DURATION_KEY, total_dur);
+    }
+
+    /// Tries to move forward route's departure time.
+    pub(crate) fn advance_departure_time(
+        route_ctx: &mut RouteContext,
+        transport: &(dyn TransportCost + Send + Sync),
+        consider_whole_tour: bool,
+    ) {
+        let new_departure_time = try_advance_departure_time(route_ctx, transport, consider_whole_tour);
+        Self::try_update_route_departure(route_ctx, transport, new_departure_time);
+    }
+
+    /// Tries to move backward route's departure time.
+    pub(crate) fn recede_departure_time(route_ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
+        let new_departure_time = try_recede_departure_time(route_ctx);
+        Self::try_update_route_departure(route_ctx, transport, new_departure_time);
+    }
+
+    fn try_update_route_departure(
+        ctx: &mut RouteContext,
+        transport: &(dyn TransportCost + Send + Sync),
+        new_departure_time: Option<f64>,
+    ) {
+        if let Some(new_departure_time) = new_departure_time {
+            let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
+            start.schedule.departure = new_departure_time;
+            Self::update_route_schedules(ctx, transport);
+            Self::update_route_states(ctx, transport);
+        }
     }
 }
 
@@ -466,9 +470,9 @@ impl SoftActivityConstraint for CostSoftActivityConstraint {
     }
 }
 
-fn try_get_new_departure_time(
-    transport: &(dyn TransportCost + Send + Sync),
+fn try_advance_departure_time(
     route_ctx: &RouteContext,
+    transport: &(dyn TransportCost + Send + Sync),
     optimize_whole_tour: bool,
 ) -> Option<Timestamp> {
     let first = route_ctx.route.tour.get(1)?;
@@ -507,6 +511,22 @@ fn try_get_new_departure_time(
     } else {
         None
     }
+}
+
+fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
+    let first = route_ctx.route.tour.get(1)?;
+    let start = route_ctx.route.tour.start()?;
+
+    let max_recede = *route_ctx.state.get_activity_state::<f64>(LATEST_ARRIVAL_KEY, first)?;
+
+    let earliest_allowed_departure =
+        route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(0.);
+
+    let last_departure_time = start.schedule.departure;
+
+    let max_change = (last_departure_time - earliest_allowed_departure).min(max_recede);
+
+    Some(last_departure_time - max_change)
 }
 
 #[allow(clippy::unnecessary_wraps)]

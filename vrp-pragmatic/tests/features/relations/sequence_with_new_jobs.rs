@@ -3,9 +3,6 @@ use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
-// NOTE departure time optimization reschedules vehicle's departure too fast which makes
-// impossible to assign some jobs later in the search due to locked by relation jobs
-#[ignore]
 fn can_use_sequence_relation_with_strict_time_windows() {
     let problem = Problem {
         plan: Plan {

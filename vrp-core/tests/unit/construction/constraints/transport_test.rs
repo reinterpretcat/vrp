@@ -1,5 +1,5 @@
 mod timing {
-    use super::super::try_get_new_departure_time;
+    use super::super::try_advance_departure_time;
     use crate::construction::constraints::*;
     use crate::construction::heuristics::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
@@ -149,7 +149,7 @@ mod timing {
         create_constraint_pipeline_with_transport().accept_solution_state(&mut solution_ctx);
 
         let route_ctx = solution_ctx.routes.first().unwrap();
-        assert_eq!(route_ctx.route.tour.get(1).unwrap().schedule, Schedule { arrival: 20., departure: 25. });
+        assert_eq!(route_ctx.route.tour.get(1).unwrap().schedule, Schedule { arrival: 10., departure: 25. });
         assert_eq!(route_ctx.route.tour.get(2).unwrap().schedule, Schedule { arrival: 35., departure: 60. });
     }
 
@@ -272,7 +272,7 @@ mod timing {
             );
 
             let departure_time =
-                try_get_new_departure_time(&TestTransportCost::default(), &route_ctx, optimize_whole_tour);
+                try_advance_departure_time(&route_ctx, &TestTransportCost::default(), optimize_whole_tour);
 
             assert_eq!(departure_time, expected);
         } else {
