@@ -5,7 +5,7 @@ use crate::solver::evolution::EvolutionConfig;
 use crate::solver::hyper::HyperHeuristic;
 use crate::solver::mutation::*;
 use crate::solver::population::Population;
-use crate::solver::processing::post::{AdvanceDeparture, PostProcessing};
+use crate::solver::processing::post::PostProcessing;
 use crate::solver::processing::pre::PreProcessing;
 use crate::solver::termination::*;
 use crate::solver::{Solver, Telemetry};
@@ -49,25 +49,20 @@ use std::sync::Arc;
 /// # Ok::<(), String>(())
 /// ```
 pub struct Builder {
-    max_generations: Option<usize>,
-    max_time: Option<usize>,
-    min_cv: Option<(usize, f64, bool)>,
-    pre_processing: Option<Arc<dyn PreProcessing + Send + Sync>>,
-    post_processing: Option<Arc<dyn PostProcessing + Send + Sync>>,
-    config: EvolutionConfig,
+    /// A max amount generations in evolution.
+    pub max_generations: Option<usize>,
+    /// A max seconds to run evolution.
+    pub max_time: Option<usize>,
+    /// A variation coefficient parameters for termination criteria.
+    pub min_cv: Option<(usize, f64, bool)>,
+    /// An evolution configuration..
+    pub config: EvolutionConfig,
 }
 
 impl Builder {
     /// Creates a new instance of `Builder`.
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
-        Self {
-            max_generations: None,
-            max_time: None,
-            min_cv: None,
-            pre_processing: None,
-            post_processing: Some(Arc::new(AdvanceDeparture::default())),
-            config: EvolutionConfig::new(problem, environment),
-        }
+        Self { max_generations: None, max_time: None, min_cv: None, config: EvolutionConfig::new(problem, environment) }
     }
 }
 
@@ -163,13 +158,13 @@ impl Builder {
 
     /// Sets problem pre processing logic.
     pub fn with_pre_processing(mut self, pre_processing: Option<Arc<dyn PreProcessing + Send + Sync>>) -> Self {
-        self.pre_processing = pre_processing;
+        self.config.processing.pre = pre_processing;
         self
     }
 
     /// Sets solution post processing logic.
     pub fn with_post_processing(mut self, post_processing: Option<Arc<dyn PostProcessing + Send + Sync>>) -> Self {
-        self.post_processing = post_processing;
+        self.config.processing.post = post_processing;
         self
     }
 

@@ -218,12 +218,29 @@ impl Solver {
     /// # Ok::<(), String>(())
     /// ```
     pub fn solve(self) -> Result<(Solution, Cost, Option<Metrics>), String> {
-        let (population, metrics) = EvolutionSimulator::new(self.config)?.run()?;
+        let mut config = self.config;
+
+        config.problem = if let Some(pre_processing) = config.processing.pre.as_ref() {
+            pre_processing.process(config.problem.clone())
+        } else {
+            config.problem.clone()
+        };
+
+        let post_processing = config.processing.post.clone();
+
+        let (population, metrics) = EvolutionSimulator::new(config)?.run()?;
 
         // NOTE select the first best individual from population
         let (insertion_ctx, _) = population.ranked().next().ok_or_else(|| "cannot find any solution".to_string())?;
+
+        let insertion_ctx = if let Some(post_processing) = post_processing {
+            post_processing.process(insertion_ctx.deep_copy())
+        } else {
+            insertion_ctx.deep_copy()
+        };
+
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
-        let cost = self.problem.objective.fitness(insertion_ctx);
+        let cost = self.problem.objective.fitness(&insertion_ctx);
 
         Ok((solution, cost, metrics))
     }

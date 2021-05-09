@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* pre/post processing steps for problem and solution
+* optimization which moves backward departure time
+
+### Changed
+
+* do not always try to move forward departure time
+
 
 ## [v1.10.3]
 
