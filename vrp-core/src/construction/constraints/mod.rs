@@ -63,6 +63,8 @@ pub const WAITING_KEY: i32 = 2;
 pub const TOTAL_DISTANCE_KEY: i32 = 3;
 /// A key which track total duration.
 pub const TOTAL_DURATION_KEY: i32 = 4;
+/// A key which track duration limit.
+pub const LIMIT_DURATION_KEY: i32 = 5;
 
 /// A key which tracks current vehicle capacity.
 pub const CURRENT_CAPACITY_KEY: i32 = 11;

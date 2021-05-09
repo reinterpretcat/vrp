@@ -8,6 +8,8 @@ use crate::models::common::{Cost, Distance, Duration, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, Actor, Job, Single, TransportCost};
 use crate::models::solution::Activity;
 use crate::models::OP_START_MSG;
+use crate::utils::compare_floats;
+use std::cmp::Ordering;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -36,9 +38,16 @@ impl ConstraintModule for TransportConstraintModule {
         Self::update_route_states(ctx, self.transport.as_ref());
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
-        if has_travel_limits(&self.limit_func, ctx) {
-            Self::advance_departure_time(ctx, self.transport.as_ref(), false)
+        match (self.limit_func)(&ctx.route.actor) {
+            (None, None) => {}
+            (_, limit_duration) => {
+                Self::advance_departure_time(ctx, self.transport.as_ref(), false);
+                if let Some(limit_duration) = limit_duration {
+                    ctx.state_mut().put_route_state(LIMIT_DURATION_KEY, limit_duration);
+                }
+            }
         }
+
         Self::update_statistics(ctx, self.transport.as_ref());
     }
 
@@ -72,7 +81,13 @@ impl TransportConstraintModule {
         duration_code: i32,
     ) -> Self {
         Self {
-            state_keys: vec![LATEST_ARRIVAL_KEY, WAITING_KEY],
+            state_keys: vec![
+                LATEST_ARRIVAL_KEY,
+                WAITING_KEY,
+                TOTAL_DISTANCE_KEY,
+                TOTAL_DURATION_KEY,
+                LIMIT_DURATION_KEY,
+            ],
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(TimeHardRouteConstraint { code: time_window_code })),
                 ConstraintVariant::SoftRoute(Arc::new(RouteCostSoftRouteConstraint {})),
@@ -389,10 +404,6 @@ impl TravelHardActivityConstraint {
     }
 }
 
-fn has_travel_limits(limit_func: &TravelLimitFunc, route_ctx: &RouteContext) -> bool {
-    matches!((limit_func)(&route_ctx.route.actor), (Some(_), _) | (_, Some(_)))
-}
-
 /// Applies fixed cost for actor usage.
 struct RouteCostSoftRouteConstraint {}
 
@@ -525,6 +536,15 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
     let last_departure_time = start.schedule.departure;
 
     let max_change = (last_departure_time - earliest_allowed_departure).min(max_recede);
+
+    let max_change = route_ctx
+        .state
+        .get_route_state::<f64>(TOTAL_DURATION_KEY)
+        .zip(route_ctx.state.get_route_state::<f64>(LIMIT_DURATION_KEY))
+        .map(|(&total, &limit)| (limit - total).min(max_change))
+        .unwrap_or(max_change);
+
+    assert_ne!(compare_floats(max_change, 0.), Ordering::Less);
 
     Some(last_departure_time - max_change)
 }
