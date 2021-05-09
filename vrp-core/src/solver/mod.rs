@@ -104,6 +104,7 @@ pub mod hyper;
 pub mod mutation;
 pub mod objectives;
 pub mod population;
+pub mod processing;
 pub mod termination;
 
 mod builder;
