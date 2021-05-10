@@ -289,7 +289,7 @@ mod timing {
         case02: (Some(0.), 5., 10., (10., 20.), None, None),
         case03: (Some(5.), 10., 15., (10., 20.), None, Some(5.)),
         case04: (Some(5.), 10., 20., (10., 20.), None, Some(5.)),
-        case05: (None, 10., 50., (10., 20.), None, None),
+        case05: (None, 10., 50., (10., 20.), None, Some(0.)),
         case06: (Some(5.), 10., 11., (10., 20.), None, Some(9.)),
 
         case07: (Some(0.), 10., 20., (10., 20.), Some((20., 30.)), Some(0.)),
