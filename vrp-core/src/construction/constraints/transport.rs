@@ -533,9 +533,7 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
     let earliest_allowed_departure =
         route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(start.schedule.departure);
 
-    let last_departure_time = start.schedule.departure;
-
-    let max_change = (last_departure_time - earliest_allowed_departure).min(max_change);
+    let max_change = (start.schedule.departure - earliest_allowed_departure).min(max_change);
 
     let max_change = route_ctx
         .state
@@ -546,7 +544,7 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
 
     match compare_floats(max_change, 0.) {
         Ordering::Equal => None,
-        Ordering::Greater => Some(last_departure_time - max_change),
+        Ordering::Greater => Some(start.schedule.departure - max_change),
         _ => unreachable!(),
     }
 }
