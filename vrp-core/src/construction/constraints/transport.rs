@@ -543,9 +543,8 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
         .unwrap_or(max_change);
 
     match compare_floats(max_change, 0.) {
-        Ordering::Equal => None,
         Ordering::Greater => Some(start.schedule.departure - max_change),
-        _ => unreachable!("negative max_change: {}", max_change),
+        _ => None,
     }
 }
 
