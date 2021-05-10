@@ -528,14 +528,14 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
     let first = route_ctx.route.tour.get(1)?;
     let start = route_ctx.route.tour.start()?;
 
-    let max_recede = *route_ctx.state.get_activity_state::<f64>(LATEST_ARRIVAL_KEY, first)?;
+    let max_change = *route_ctx.state.get_activity_state::<f64>(LATEST_ARRIVAL_KEY, first)? - first.schedule.arrival;
 
     let earliest_allowed_departure =
-        route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(0.);
+        route_ctx.route.actor.detail.start.as_ref().and_then(|s| s.time.earliest).unwrap_or(start.schedule.departure);
 
     let last_departure_time = start.schedule.departure;
 
-    let max_change = (last_departure_time - earliest_allowed_departure).min(max_recede);
+    let max_change = (last_departure_time - earliest_allowed_departure).min(max_change);
 
     let max_change = route_ctx
         .state
@@ -544,9 +544,11 @@ fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
         .map(|(&total, &limit)| (limit - total).min(max_change))
         .unwrap_or(max_change);
 
-    assert_ne!(compare_floats(max_change, 0.), Ordering::Less);
-
-    Some(last_departure_time - max_change)
+    match compare_floats(max_change, 0.) {
+        Ordering::Equal => None,
+        Ordering::Greater => Some(last_departure_time - max_change),
+        _ => unreachable!(),
+    }
 }
 
 #[allow(clippy::unnecessary_wraps)]
