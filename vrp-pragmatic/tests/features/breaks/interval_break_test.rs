@@ -306,7 +306,7 @@ fn can_consider_departure_rescheduling() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    let solution = solve_with_metaheuristic_and_iterations(problem, Some(vec![matrix]), 1000);
 
     assert!(solution.violations.is_none());
     assert!(solution.unassigned.is_none());
