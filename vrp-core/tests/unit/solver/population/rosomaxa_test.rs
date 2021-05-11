@@ -1,6 +1,7 @@
 use super::SelectionPhase::{Exploitation, Exploration, Initial};
 use super::*;
 use crate::helpers::models::domain::*;
+use crate::utils::Timer;
 
 fn create_rosomaxa(rebalance_memory: usize) -> Rosomaxa {
     let mut config = RosomaxaConfig::new_with_defaults(4);
@@ -105,6 +106,7 @@ fn can_handle_empty_population() {
 fn can_get_population_shuffle_amount() {
     let high_improvement = |termination_estimate: f64| Statistics {
         generation: 1,
+        time: Timer::start(),
         improvement_all_ratio: 0.99,
         improvement_1000_ratio: 0.99,
         termination_estimate,
@@ -120,6 +122,7 @@ fn can_get_population_shuffle_amount() {
 
     let some_improvement = |ratio: f64, termination_estimate: f64| Statistics {
         generation: 1,
+        time: Timer::start(),
         improvement_all_ratio: ratio,
         improvement_1000_ratio: ratio,
         termination_estimate,

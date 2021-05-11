@@ -104,17 +104,19 @@ fn can_use_init_size() {
 #[test]
 fn can_specify_cv() {
     for (params, result) in vec![
-        (vec!["--min-cv", "200,0.05,true"], Ok(Some((200, 0.05, true)))),
-        (vec!["--min-cv", "100,0.01,false"], Ok(Some((100, 0.01, false)))),
-        (vec!["--min-cv", "200,0,tru"], Err("cannot parse min_cv parameter".to_string())),
+        (vec!["--min-cv", "sample,200,0.05,true"], Ok(Some(("sample".to_string(), 200, 0.05, true)))),
+        (vec!["--min-cv", "period,100,0.01,false"], Ok(Some(("period".to_string(), 100, 0.01, false)))),
+        (vec!["--min-cv", "sample,200,0,tru"], Err("cannot parse min_cv parameter".to_string())),
+        (vec!["--min-cv", "sampl,200,0,true"], Err("cannot parse min_cv parameter".to_string())),
+        (vec!["--min-cv", "perio,200,0,true"], Err("cannot parse min_cv parameter".to_string())),
         (vec!["--min-cv", "200,0"], Err("cannot parse min_cv parameter".to_string())),
         (vec!["--min-cv", "0"], Err("cannot parse min_cv parameter".to_string())),
         (vec![], Ok(None)),
     ] {
         let matches = get_solomon_matches(params.as_slice());
 
-        let init_size = get_cv(&matches);
+        let min_cv = get_min_cv(&matches);
 
-        assert_eq!(init_size, result);
+        assert_eq!(min_cv, result);
     }
 }

@@ -115,7 +115,7 @@ use self::evolution::{EvolutionConfig, EvolutionSimulator};
 
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
-use crate::utils::Environment;
+use crate::utils::{Environment, Timer};
 
 /// A key to store solution order information.
 const SOLUTION_ORDER_KEY: i32 = 1;
@@ -152,6 +152,9 @@ pub struct Statistics {
     /// A number which specifies refinement generation.
     pub generation: usize,
 
+    /// Elapsed seconds since algorithm start.
+    pub time: Timer,
+
     /// An improvement ratio from beginning.
     pub improvement_all_ratio: f64,
 
@@ -176,7 +179,13 @@ impl RefinementContext {
 
 impl Default for Statistics {
     fn default() -> Self {
-        Self { generation: 0, improvement_all_ratio: 0., improvement_1000_ratio: 0., termination_estimate: 0. }
+        Self {
+            generation: 0,
+            time: Timer::start(),
+            improvement_all_ratio: 0.,
+            improvement_1000_ratio: 0.,
+            termination_estimate: 0.,
+        }
     }
 }
 

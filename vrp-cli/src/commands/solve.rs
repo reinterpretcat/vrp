@@ -309,7 +309,7 @@ pub fn run_solve(
     });
     let is_check_requested = matches.is_present(CHECK_ARG_NAME);
 
-    let min_cv = get_cv(matches)?;
+    let min_cv = get_min_cv(matches)?;
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let init_size = get_init_size(matches)?;
     let config = matches.value_of(CONFIG_ARG_NAME).map(|path| open_file(path, "config"));
@@ -376,14 +376,18 @@ pub fn run_solve(
     }
 }
 
-fn get_cv(matches: &ArgMatches) -> Result<Option<(usize, f64, bool)>, String> {
+fn get_min_cv(matches: &ArgMatches) -> Result<Option<(String, usize, f64, bool)>, String> {
     let err_result = Err("cannot parse min_cv parameter".to_string());
     matches
         .value_of(MIN_CV_ARG_NAME)
         .map(|arg| match arg.split(',').collect::<Vec<_>>().as_slice() {
-            [sample, threshold, is_global] => {
-                match (sample.parse::<usize>(), threshold.parse::<f64>(), is_global.parse::<bool>()) {
-                    (Ok(sample), Ok(threshold), Ok(is_global)) => Ok(Some((sample, threshold, is_global))),
+            [cv_type, sample, threshold, is_global] => {
+                match (*cv_type, sample.parse::<usize>(), threshold.parse::<f64>(), is_global.parse::<bool>()) {
+                    (cv_type, Ok(sample), Ok(threshold), Ok(is_global))
+                        if cv_type == "sample" || cv_type == "period" =>
+                    {
+                        Ok(Some((cv_type.to_string(), sample, threshold, is_global)))
+                    }
                     _ => err_result,
                 }
             }

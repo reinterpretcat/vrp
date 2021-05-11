@@ -54,7 +54,7 @@ pub struct Builder {
     /// A max seconds to run evolution.
     pub max_time: Option<usize>,
     /// A variation coefficient parameters for termination criteria.
-    pub min_cv: Option<(usize, f64, bool)>,
+    pub min_cv: Option<(String, usize, f64, bool)>,
     /// An evolution configuration..
     pub config: EvolutionConfig,
 }
@@ -80,7 +80,7 @@ impl Builder {
     }
 
     /// Sets variation coefficient termination criteria. Default is None.
-    pub fn with_min_cv(mut self, min_cv: Option<(usize, f64, bool)>) -> Self {
+    pub fn with_min_cv(mut self, min_cv: Option<(String, usize, f64, bool)>) -> Self {
         self.min_cv = min_cv;
         self
     }
@@ -173,7 +173,7 @@ impl Builder {
         let problem = self.config.problem.clone();
 
         let (criterias, quota): (Vec<Box<dyn Termination + Send + Sync>>, _) =
-            match (self.max_generations, self.max_time, self.min_cv) {
+            match (self.max_generations, self.max_time, &self.min_cv) {
                 (None, None, None) => {
                     self.config
                         .telemetry
@@ -196,15 +196,22 @@ impl Builder {
                         None
                     };
 
-                    if let Some((sample, threshold, is_global)) = self.min_cv {
+                    if let Some((interval_type, value, threshold, is_global)) = &self.min_cv {
                         self.config.telemetry.log(
                             format!(
-                                "configured to use variation coefficient with sample: {}, threshold: {}",
-                                sample, threshold
+                                "configured to use variation coefficient {} with sample: {}, threshold: {}",
+                                interval_type, value, threshold
                             )
                             .as_str(),
                         );
-                        criterias.push(Box::new(MinVariation::new(sample, threshold, is_global)))
+
+                        let variation = match interval_type.as_str() {
+                            "sample" => Box::new(MinVariation::new_with_sample(*value, *threshold, *is_global)),
+                            "period" => Box::new(MinVariation::new_with_period(*value, *threshold, *is_global)),
+                            _ => unreachable!(),
+                        };
+
+                        criterias.push(variation)
                     }
 
                     (criterias, quota)

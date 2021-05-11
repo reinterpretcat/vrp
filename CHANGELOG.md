@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 * pre/post processing steps for problem and solution
 * optimization which moves backward departure time
+* coefficient of variation termination criteria is extended to support time period
 
 ### Changed
 

@@ -336,7 +336,8 @@
     "maxTime": 300,
     "maxGenerations": 3000,
     "variation": {
-      "sample": 3000,
+      "intervalType": "sample",
+      "value": 3000,
       "cv": 1,
       "isGlobal": true
     }

@@ -160,6 +160,7 @@ impl Telemetry {
 
         refinement_ctx.statistics = Statistics {
             generation,
+            time: self.time.clone(),
             improvement_all_ratio: self.improvement_tracker.i_all_ratio,
             improvement_1000_ratio: self.improvement_tracker.i_1000_ratio,
             termination_estimate,

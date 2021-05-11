@@ -90,10 +90,14 @@ This criteria calculates [coefficient of variation](https://en.wikipedia.org/wik
 objective over specific amount of generations specified by `sample` and stops algorithm when all calculated values are
 below specified `threshold`. It can be defined by `min-cv` parameter:
 
-    vrp-cli solve pragmatic problem.json --min-cv=200,0.1,true
+    vrp-cli solve pragmatic problem.json --min-cv=sample,200,0.1,true
 
 Here, the first parameter is generation amount, the second - threshold, the third - boolean flag whether the logic is
 applicable for all search phases, not only exploitation.
+
+Alternatively, period of time in seconds can be specified instead of sample:
+
+    vrp-cli solve pragmatic problem.json --min-cv=period,300,0.1,true
 
 
 #### Default behavior
