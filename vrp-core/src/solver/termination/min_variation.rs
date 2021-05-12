@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/solver/termination/min_variation_test.rs"]
 mod min_variation_test;
 
+use super::super::rand::prelude::SliceRandom;
 use crate::algorithms::nsga2::MultiObjective;
 use crate::algorithms::statistics::get_cv;
 use crate::solver::population::SelectionPhase;
@@ -20,7 +21,7 @@ pub struct MinVariation {
 
 enum IntervalType {
     Sample(usize),
-    Period(u64),
+    Period(u128),
 }
 
 impl MinVariation {
@@ -33,7 +34,7 @@ impl MinVariation {
     /// Creates a new instance of `MinVariation` with period interval type.
     pub fn new_with_period(period: usize, threshold: f64, is_global: bool) -> Self {
         assert_ne!(period, 0);
-        Self::new(IntervalType::Period(period as u64), threshold, is_global)
+        Self::new(IntervalType::Period(period as u128 * 1000), threshold, is_global)
     }
 
     fn new(interval_type: IntervalType, threshold: f64, is_global: bool) -> Self {
@@ -62,21 +63,35 @@ impl MinVariation {
                 let values = refinement_ctx
                     .state
                     .entry(self.key.clone())
-                    .or_insert_with(|| Box::new(Vec::<(u64, Vec<f64>)>::default()))
-                    .downcast_mut::<Vec<(u64, Vec<f64>)>>()
+                    .or_insert_with(|| Box::new(Vec::<(u128, Vec<f64>)>::default()))
+                    .downcast_mut::<Vec<(u128, Vec<f64>)>>()
                     .unwrap();
 
-                let current = refinement_ctx.statistics.time.elapsed_secs();
+                let current = refinement_ctx.statistics.time.elapsed_millis();
                 values.push((current, fitness));
+
+                // NOTE try to keep collection under maintainable size
+                if values.len() > 1000 {
+                    let mut i = 0;
+                    values.shuffle(&mut refinement_ctx.environment.random.get_rng());
+                    values.retain(|_| (i % 10 == 0, i += 1).0);
+                    values.sort_by(|(a, _), (b, _)| a.cmp(b));
+                }
 
                 if *period > current {
                     false
                 } else {
                     let earliest = current - *period;
                     let position = values.iter().rev().position(|(time, _)| *time < earliest);
-                    if let Some(position) = position {
-                        values.drain(0..position);
-                    }
+
+                    let position = match position {
+                        Some(position) if position < 2 && values.len() < 3 => 0,
+                        Some(position) if position < 2 && values.len() > 3 => values.len() - 2,
+                        Some(position) => values.len() - position,
+                        _ => 0,
+                    };
+
+                    values.drain(0..position);
 
                     self.check_threshold(values.iter().map(|(_, fitness)| fitness))
                 }

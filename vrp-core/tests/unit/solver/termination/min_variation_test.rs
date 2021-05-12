@@ -60,3 +60,39 @@ fn can_detect_termination_with_period() {
 
     assert_eq!(result, expected);
 }
+
+parameterized_test! {can_maintain_period_buffer_size, (size, check_sorted), {
+    can_maintain_period_buffer_size_impl(size, check_sorted);
+}}
+
+can_maintain_period_buffer_size! {
+    case_01: (0, false),
+    case_02: (1, false),
+    case_03: (1000, true),
+    case_04: (2000, true),
+}
+
+fn can_maintain_period_buffer_size_impl(size: u128, check_sorted: bool) {
+    let key = "max_var".to_string();
+    let mut refinement_ctx = create_default_refinement_ctx(create_empty_problem());
+    let buffer = (0..size).map(|i| (i, vec![0., 0.])).collect::<Vec<_>>();
+    refinement_ctx.state.insert(key.clone(), Box::new(buffer));
+    let termination = MinVariation::new_with_period(300, 0.01, false);
+
+    termination.update_and_check(&mut refinement_ctx, vec![0., 0.]);
+
+    let values = refinement_ctx.state.get(&key).and_then(|s| s.downcast_ref::<Vec<(u128, Vec<f64>)>>()).unwrap();
+
+    if check_sorted {
+        let all_sorted = values.windows(2).all(|data| {
+            let (a, b) = match data {
+                &[(a, _), (b, _)] => (a, b),
+                _ => unreachable!(),
+            };
+
+            a <= b
+        });
+        assert!(all_sorted);
+    }
+    assert!(values.len() < 1000);
+}
