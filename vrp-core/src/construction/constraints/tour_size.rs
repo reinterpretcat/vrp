@@ -22,7 +22,7 @@ impl TourSizeModule {
     /// Creates a new instance of `TourSizeModule`.
     pub fn new(limit_func: TourSizeResolver, code: i32) -> Self {
         Self {
-            constraints: vec![ConstraintVariant::HardRoute(Arc::new(TourSizeHardRouteConstraint { limit_func, code }))],
+            constraints: vec![ConstraintVariant::HardRoute(Arc::new(TourSizeHardRouteConstraint { code, limit_func }))],
             state_keys: vec![],
         }
     }

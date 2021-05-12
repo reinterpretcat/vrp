@@ -296,11 +296,9 @@ impl Rosomaxa {
         let get_distance = |node: &NodeLink<IndividualInput, IndividualStorage>| {
             let node = node.read().unwrap();
             let individual = node.storage.population.select().next();
-            if let Some(individual) = individual {
-                Some(relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
-            } else {
-                None
-            }
+
+            individual
+                .map(|individual| relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
         };
 
         // determine percentile value
@@ -380,7 +378,7 @@ struct IndividualInput {
 impl IndividualInput {
     pub fn new(individual: InsertionContext) -> Self {
         let weights = IndividualInput::get_weights(&individual);
-        Self { individual, weights }
+        Self { weights, individual }
     }
 
     fn get_weights(individual: &InsertionContext) -> Vec<f64> {

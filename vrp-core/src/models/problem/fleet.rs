@@ -160,7 +160,7 @@ impl Fleet {
             acc
         });
 
-        Fleet { drivers, vehicles, actors, profiles, groups }
+        Fleet { drivers, vehicles, profiles, actors, groups }
     }
 }
 

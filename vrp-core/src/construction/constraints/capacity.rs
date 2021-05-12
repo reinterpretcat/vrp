@@ -446,11 +446,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> HardActivityConstrai
             )
         };
 
-        if let Some(stopped) = violation {
-            Some(ActivityConstraintViolation { code: self.code, stopped })
-        } else {
-            None
-        }
+        violation.map(|stopped| ActivityConstraintViolation { code: self.code, stopped })
     }
 }
 

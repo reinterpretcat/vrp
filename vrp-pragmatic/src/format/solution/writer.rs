@@ -364,40 +364,36 @@ fn has_multi_dimensional_capacity(extras: &DomainExtras) -> bool {
 }
 
 fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extras> {
-    if let Some(metrics) = metrics {
-        Some(Extras {
-            metrics: Some(ApiMetrics {
-                duration: metrics.duration,
-                generations: metrics.generations,
-                speed: metrics.speed,
-                evolution: metrics
-                    .evolution
-                    .iter()
-                    .map(|g| ApiGeneration {
-                        number: g.number,
-                        timestamp: g.timestamp,
-                        i_all_ratio: g.i_all_ratio,
-                        i_1000_ratio: g.i_1000_ratio,
-                        is_improvement: g.is_improvement,
-                        population: AppPopulation {
-                            individuals: g
-                                .population
-                                .individuals
-                                .iter()
-                                .map(|i| ApiIndividual {
-                                    tours: i.tours,
-                                    unassigned: i.unassigned,
-                                    cost: i.cost,
-                                    improvement: i.improvement,
-                                    fitness: i.fitness.clone(),
-                                })
-                                .collect(),
-                        },
-                    })
-                    .collect(),
-            }),
-        })
-    } else {
-        None
-    }
+    metrics.map(|metrics| Extras {
+        metrics: Some(ApiMetrics {
+            duration: metrics.duration,
+            generations: metrics.generations,
+            speed: metrics.speed,
+            evolution: metrics
+                .evolution
+                .iter()
+                .map(|g| ApiGeneration {
+                    number: g.number,
+                    timestamp: g.timestamp,
+                    i_all_ratio: g.i_all_ratio,
+                    i_1000_ratio: g.i_1000_ratio,
+                    is_improvement: g.is_improvement,
+                    population: AppPopulation {
+                        individuals: g
+                            .population
+                            .individuals
+                            .iter()
+                            .map(|i| ApiIndividual {
+                                tours: i.tours,
+                                unassigned: i.unassigned,
+                                cost: i.cost,
+                                improvement: i.improvement,
+                                fitness: i.fitness.clone(),
+                            })
+                            .collect(),
+                    },
+                })
+                .collect(),
+        }),
+    })
 }
