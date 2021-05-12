@@ -72,9 +72,14 @@ impl MinVariation {
 
                 // NOTE try to keep collection under maintainable size
                 if values.len() > 1000 {
-                    let mut i = 0;
+                    let mut i = 0_usize;
                     values.shuffle(&mut refinement_ctx.environment.random.get_rng());
-                    values.retain(|_| (i % 10 == 0, i += 1).0);
+                    values.retain(|_| {
+                        let result = i % 10 == 0;
+                        i += 1;
+
+                        result
+                    });
                     values.sort_by(|(a, _), (b, _)| a.cmp(b));
                 }
 
