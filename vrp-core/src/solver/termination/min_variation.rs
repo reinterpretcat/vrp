@@ -83,7 +83,7 @@ impl MinVariation {
                     values.sort_by(|(a, _), (b, _)| a.cmp(b));
                 }
 
-                if *period > current {
+                if *period > current || values.len() < 2 {
                     false
                 } else {
                     let earliest = current - *period;
