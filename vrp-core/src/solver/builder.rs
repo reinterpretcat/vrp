@@ -137,21 +137,18 @@ impl Builder {
 
     /// Sets population algorithm. Default is rosomaxa.
     pub fn with_population(mut self, population: Box<dyn Population + Send + Sync>) -> Self {
-        self.config.telemetry.log("configured to use custom population");
         self.config.population.variation = Some(population);
         self
     }
 
     /// Sets hyper heuristic algorithm. Default is simple selective.
     pub fn with_hyper(mut self, hyper: Box<dyn HyperHeuristic + Send + Sync>) -> Self {
-        self.config.telemetry.log("configured to use custom hyper-heuristic");
         self.config.hyper = hyper;
         self
     }
 
     /// Sets termination algorithm. Default is max time and max generations.
     pub fn with_termination(mut self, termination: Arc<dyn Termination + Send + Sync>) -> Self {
-        self.config.telemetry.log("configured to use custom termination parameters");
         self.config.termination = termination;
         self
     }
