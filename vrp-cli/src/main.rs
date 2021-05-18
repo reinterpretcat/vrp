@@ -1,6 +1,10 @@
 //! A command line interface to *Vehicle Routing Problem* solver.
 //!
 
+#[cfg(test)]
+#[path = "../tests/unit/main_test.rs"]
+mod main_test;
+
 #[cfg(not(target_arch = "wasm32"))]
 mod commands;
 
@@ -15,11 +19,15 @@ mod cli {
     use crate::commands::check::{get_check_app, run_check};
     use crate::commands::create_write_buffer;
     use crate::commands::generate::{get_generate_app, run_generate};
-    use clap::{crate_version, App};
+    use clap::{crate_version, App, ArgMatches};
     use std::process;
 
     pub fn run_app() {
-        let matches = App::new("Vehicle Routing Problem Solver")
+        run_subcommand(get_app().get_matches());
+    }
+
+    pub fn get_app<'a, 'b>() -> App<'a, 'b> {
+        App::new("Vehicle Routing Problem Solver")
             .version(crate_version!())
             .author("Ilya Builuk <ilya.builuk@gmail.com>")
             .about("A command line interface to Vehicle Routing Problem solver")
@@ -27,9 +35,10 @@ mod cli {
             .subcommand(get_import_app())
             .subcommand(get_check_app())
             .subcommand(get_generate_app())
-            .get_matches();
+    }
 
-        if let Err(err) = match matches.subcommand() {
+    pub fn run_subcommand(arg_matches: ArgMatches) {
+        if let Err(err) = match arg_matches.subcommand() {
             ("solve", Some(solve_matches)) => run_solve(solve_matches, create_write_buffer),
             ("import", Some(import_matches)) => run_import(import_matches),
             ("check", Some(check_matches)) => run_check(check_matches),

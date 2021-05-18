@@ -35,11 +35,7 @@ Jobs csv defines a `plan` of the problem and should have the following columns:
 To model a job with more than one activity (e.g. pickup + delivery), specify same `ID` twice. Example:
 
 ```csv
-ID,LAT,LNG,DEMAND,DURATION,TW_START,TW_END
-job1,52.52599,13.45413,2,5,2020-07-04T08:00:00Z,2020-07-04T12:00:00Z
-job2,52.5225,13.4095,1,3,,
-job2,52.5165,13.3808,-1,3,,
-job3,52.5316,13.3884,-3,5,2020-07-04T08:00:00Z,2020-07-04T16:00:00Z
+{{#include ../../../examples/data/csv/jobs.csv}}
 ```
 
 job with `job2` id specified twice with positive and negative demand, so it will be considered as pickup and delivery job.
@@ -61,9 +57,7 @@ Vehicles csv defines a `fleet` of the problem and should have the following colu
 This is example of such csv:
 
 ```csv
-ID,LAT,LNG,CAPACITY,TW_START,TW_END,AMOUNT,PROFILE
-vehicle1,52.4664,13.4023,40,2020-07-04T08:00:00Z,2020-07-04T20:00:00Z,10,car
-vehicle2,52.4959,13.3539,50,2020-07-04T08:00:00Z,2020-07-04T20:00:00Z,20,truck
+{{#include ../../../examples/data/csv/vehicles.csv}}
 ```
 
 

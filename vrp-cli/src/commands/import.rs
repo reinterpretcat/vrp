@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/commands/import_test.rs"]
+mod import_test;
+
 use super::*;
 use std::io::BufReader;
 use vrp_cli::extensions::import::import_problem;
