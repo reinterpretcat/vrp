@@ -12,7 +12,7 @@ edition = "2018"
 description = "A command line interface for VRP solver"
 
 [features]
-default = ["csv-format", "hre-format", "scientific-format"]
+default = ["csv-format", "scientific-format"]
 
 csv-format = ["csv"]
 hre-format = []

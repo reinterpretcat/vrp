@@ -14,7 +14,7 @@ pub fn get_import_app<'a, 'b>() -> App<'a, 'b> {
             Arg::with_name(FORMAT_ARG_NAME)
                 .help("Specifies input type")
                 .required(true)
-                .possible_values(&["csv", "hre"])
+                .possible_values(&["csv"])
                 .index(1),
         )
         .arg(

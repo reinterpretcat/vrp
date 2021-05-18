@@ -5,7 +5,6 @@ mod generate_test;
 use super::*;
 use std::io::BufReader;
 use vrp_cli::extensions::generate::generate_problem;
-use vrp_cli::extensions::import::serialize_hre_problem;
 use vrp_pragmatic::format::problem::{serialize_problem, Problem};
 use vrp_pragmatic::format::FormatError;
 use vrp_pragmatic::validation::ValidationContext;
@@ -25,7 +24,7 @@ pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
             Arg::with_name(FORMAT_ARG_NAME)
                 .help("Specifies input type")
                 .required(true)
-                .possible_values(&["pragmatic", "hre"])
+                .possible_values(&["pragmatic"])
                 .index(1),
         )
         .arg(
@@ -88,8 +87,6 @@ pub fn run_generate(matches: &ArgMatches) -> Result<(), String> {
             match input_format.as_str() {
                 "pragmatic" => serialize_problem(out_buffer, &problem)
                     .map_err(|err| format!("cannot serialize as pragmatic problem: '{}'", err)),
-                "hre" => serialize_hre_problem(out_buffer, &problem)
-                    .map_err(|err| format!("cannot serialize as hre problem: '{}'", err)),
                 _ => Err(format!("unknown output format: '{}'", input_format)),
             }
         }
