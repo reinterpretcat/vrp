@@ -122,11 +122,11 @@ pub enum SelectionType {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum HyperType {
-    /// A hyper heuristic which selects one mutation from the list based on its probability.
+    /// A hyper heuristic which selects one mutation from the list based on its predefined probability.
     #[serde(rename(deserialize = "static-selective"))]
     StaticSelective {
         /// A collection of inner mutation operators (metaheuristics).
-        mutations: Vec<MutationType>,
+        mutations: Option<Vec<MutationType>>,
     },
 
     /// A hyper heuristic which selects mutations from the predefined list using reinforcement
@@ -494,13 +494,25 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
     if let Some(config) = hyper_config {
         match config {
             HyperType::StaticSelective { mutations } => {
-                let mutation_group = mutations
-                    .iter()
-                    .map(|mutation| {
-                        create_mutation(&builder.config.problem, builder.config.environment.clone(), mutation)
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                let static_selective = vrp_core::solver::hyper::StaticSelective::new(mutation_group);
+                let static_selective = if let Some(mutations) = mutations {
+                    let mutation_group = mutations
+                        .iter()
+                        .map(|mutation| {
+                            create_mutation(
+                                builder.config.problem.clone(),
+                                builder.config.environment.clone(),
+                                mutation,
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    vrp_core::solver::hyper::StaticSelective::new(mutation_group)
+                } else {
+                    vrp_core::solver::hyper::StaticSelective::new_with_defaults(
+                        builder.config.problem.clone(),
+                        builder.config.environment.clone(),
+                    )
+                };
+
                 builder = builder.with_hyper(Box::new(static_selective));
             }
             HyperType::DynamicSelective => {
@@ -549,14 +561,14 @@ fn create_recreate_method(
 }
 
 fn create_mutation(
-    problem: &Arc<Problem>,
+    problem: Arc<Problem>,
     environment: Arc<Environment>,
     mutation: &MutationType,
 ) -> Result<(Arc<dyn Mutation + Send + Sync>, MutationProbability), String> {
     Ok(match mutation {
         MutationType::RuinRecreate { probability, ruins, recreates } => {
             let ruin = Arc::new(WeightedRuin::new(
-                ruins.iter().map(|g| create_ruin_group(problem, environment.clone(), g)).collect(),
+                ruins.iter().map(|g| create_ruin_group(&problem, environment.clone(), g)).collect(),
             ));
             let recreate = Arc::new(WeightedRecreate::new(
                 recreates.iter().map(|r| create_recreate_method(r, environment.clone())).collect(),
@@ -579,7 +591,7 @@ fn create_mutation(
             }
 
             let mutation =
-                vrp_core::solver::hyper::StaticSelective::create_default_mutation(problem.clone(), environment.clone());
+                vrp_core::solver::hyper::StaticSelective::create_default_mutation(problem, environment.clone());
             (
                 Arc::new(DecomposeSearch::new(mutation, (routes.min, routes.max), *repeat)),
                 create_mutation_probability(probability, environment.random.clone()),

@@ -58,6 +58,7 @@ fn can_read_full_config() {
     let hyper_config = config.hyper.expect("cannot get hyper");
     match hyper_config {
         HyperType::StaticSelective { mutations } => {
+            let mutations = mutations.expect("cannot get mutations");
             assert_eq!(mutations.len(), 4);
             match mutations.first().unwrap() {
                 MutationType::Decomposition { routes, repeat, probability } => {
