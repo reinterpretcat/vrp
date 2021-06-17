@@ -157,3 +157,40 @@ fn can_detect_multi_vehicle_assignment_impl(relations: Vec<(&str, &str)>, expect
         _ => panic!("{:?} vs {}", result, expected.is_some()),
     }
 }
+
+parameterized_test! {can_detect_incomplete_multi_job_in_relation, (relation_type, jobs, expected), {
+    can_detect_incomplete_multi_job_in_relation_impl(relation_type,
+        jobs.iter().map(|job| job.to_string()).collect(),
+        expected.map(|result| result.to_string()));
+}}
+
+can_detect_incomplete_multi_job_in_relation! {
+    case01: (RelationType::Any, &["job1"], Some("E1207")),
+    case02: (RelationType::Sequence, &["job1"], Some("E1207")),
+    case03: (RelationType::Strict, &["job1"], Some("E1207")),
+    case04: (RelationType::Any, &["job1", "job1"], Option::<String>::None),
+}
+
+fn can_detect_incomplete_multi_job_in_relation_impl(
+    relation_type: RelationType,
+    jobs: Vec<String>,
+    expected: Option<String>,
+) {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_pickup_delivery_job("job1", vec![1., 0.], vec![2., 0.])],
+            relations: Some(vec![Relation {
+                type_field: relation_type,
+                jobs,
+                vehicle_id: "car_1".to_string(),
+                shift_index: None,
+            }]),
+        },
+        fleet: Fleet { vehicles: vec![create_default_vehicle("car")], profiles: vec![] },
+        ..create_empty_problem()
+    };
+
+    let result = validate_result(&ValidationContext::new(&problem, None));
+
+    assert_eq!(result.map(|err| err.code), expected);
+}

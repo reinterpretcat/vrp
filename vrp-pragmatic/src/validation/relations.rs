@@ -5,6 +5,7 @@ mod relations_test;
 use super::*;
 use crate::utils::combine_error_results;
 use hashbrown::HashSet;
+use vrp_core::utils::CollectGroupBy;
 
 /// Checks that relation job ids are defined in plan.
 fn check_e1200_job_existence(ctx: &ValidationContext, relations: &[Relation]) -> Result<(), FormatError> {
@@ -204,6 +205,57 @@ fn check_e1206_relation_has_no_missing_shift_properties(
     }
 }
 
+fn check_e1207_no_incomplete_relation(ctx: &ValidationContext, relations: &[Relation]) -> Result<(), FormatError> {
+    let get_tasks_size = |tasks: &Option<Vec<JobTask>>| {
+        if let Some(tasks) = tasks {
+            tasks.len()
+        } else {
+            0
+        }
+    };
+
+    let ids = relations
+        .iter()
+        .filter_map(|relation| {
+            let job_frequencies = relation.jobs.iter().collect_group_by_key(|&job| job);
+            let ids = relation
+                .jobs
+                .iter()
+                .filter_map(|job_id| ctx.job_index.get(job_id))
+                .filter(|job| {
+                    let size = get_tasks_size(&job.pickups)
+                        + get_tasks_size(&job.deliveries)
+                        + get_tasks_size(&job.replacements)
+                        + get_tasks_size(&job.services);
+
+                    job_frequencies.get(&job.id).unwrap().len() != size
+                })
+                .map(|job| job.id.clone())
+                .collect::<Vec<_>>();
+
+            if ids.is_empty() {
+                None
+            } else {
+                Some(ids)
+            }
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+
+    if ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1207".to_string(),
+            "some relations have incomplete job definitions".to_string(),
+            format!(
+                "ensure that job id specified in relation as many times, as it has tasks, problematic job ids: '{}'",
+                ids.join(", ")
+            ),
+        ))
+    }
+}
+
 /// Validates relations in the plan.
 pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError>> {
     let vehicle_map = ctx
@@ -220,6 +272,7 @@ pub fn validate_relations(ctx: &ValidationContext) -> Result<(), Vec<FormatError
             check_e1204_job_assigned_to_multiple_vehicles(relations),
             check_e1205_relation_has_correct_shift_index(relations, &vehicle_map),
             check_e1206_relation_has_no_missing_shift_properties(relations, &vehicle_map),
+            check_e1207_no_incomplete_relation(ctx, relations),
         ])
     } else {
         Ok(())

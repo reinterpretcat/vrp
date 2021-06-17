@@ -319,6 +319,13 @@ job id and corresponding property on `fleet.vehicles.shifts` is not defined. Res
 and `arrival`.
 
 
+#### E1207
+
+`some relations have incomplete job definitions` error is returned when `plan.relations` has relation with incomplete
+job definitions: e.g. job has two pickups, but in relation its job id is specified only once. To fix the issue, either
+remove job ids completely or add missing ones.
+
+
 ### E13xx: Vehicles
 
 These errors are related to `fleet.vehicles` property definition.
