@@ -2,8 +2,7 @@ use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::helpers::*;
 
-#[test]
-fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
+fn create_and_solve_problem_with_three_jobs(any_relation_jobs: Vec<String>) -> Solution {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -13,7 +12,7 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
             ],
             relations: Some(vec![Relation {
                 type_field: RelationType::Any,
-                jobs: to_strings(vec!["job1", "job3"]),
+                jobs: any_relation_jobs,
                 vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: None,
             }]),
@@ -30,7 +29,12 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
     };
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    solve_with_metaheuristic(problem, Some(vec![matrix]))
+}
+
+#[test]
+fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
+    let solution = create_and_solve_problem_with_three_jobs(to_strings(vec!["job1", "job3"]));
 
     assert_eq!(
         solution,
@@ -89,4 +93,12 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
             ..create_empty_solution()
         }
     );
+}
+
+#[test]
+fn can_reshuffle_jobs_in_more_effective_order_than_specified_by_any() {
+    let solution = create_and_solve_problem_with_three_jobs(to_strings(vec!["job3", "job1", "job2"]));
+
+    assert_eq!(solution.tours.len(), 1);
+    assert_eq!(get_ids_from_tour(solution.tours.first().unwrap()), vec![["departure"], ["job1"], ["job2"], ["job3"]]);
 }
