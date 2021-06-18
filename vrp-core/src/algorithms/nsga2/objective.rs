@@ -1,3 +1,4 @@
+use crate::utils::compare_floats;
 use std::cmp::Ordering;
 
 /// An *objective* defines a *total ordering relation* and a *distance metric* on a set of
@@ -13,14 +14,24 @@ pub trait Objective {
     ///
     /// This answers the question, is solution `a` better, equal or worse than solution `b`,
     /// according to the objective.
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering;
+    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
+        let fitness_a = self.fitness(a);
+        let fitness_b = self.fitness(b);
+
+        compare_floats(fitness_a, fitness_b)
+    }
 
     /// An objective defines a distance metric between any two solution values.
     ///
     /// The distance metric answer the question, how similar the solutions `a` and `b` are,
     /// according to the objective. A zero value would mean, that both solutions are in fact the same,
     /// according to the objective. Larger magnitudes would mean "less similar".
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64;
+    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
+        let fitness_a = self.fitness(a);
+        let fitness_b = self.fitness(b);
+
+        fitness_a - fitness_b
+    }
 
     /// An objective fitness value for given `solution`.
     fn fitness(&self, solution: &Self::Solution) -> f64;

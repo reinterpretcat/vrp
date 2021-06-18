@@ -7,7 +7,6 @@ use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::models::common::Cost;
 use crate::models::problem::TargetObjective;
-use crate::utils::compare_floats;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -47,14 +46,6 @@ struct TotalTransport {
 
 impl Objective for TotalTransport {
     type Solution = InsertionContext;
-
-    fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
-        compare_floats(self.fitness(a), self.fitness(b))
-    }
-
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        self.fitness(a) - self.fitness(b)
-    }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         self.fitness.deref()(solution)

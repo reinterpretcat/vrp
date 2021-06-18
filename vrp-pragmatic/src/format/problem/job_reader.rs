@@ -127,7 +127,7 @@ fn read_required_jobs(
         let places =
             task.places.iter().map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times))).collect();
 
-        get_single_with_extras(places, demand, &task.tag, activity_type, has_multi_dimens, &coord_index)
+        get_single_with_extras(places, demand, &task.tag, &task.order, activity_type, has_multi_dimens, &coord_index)
     };
 
     api_problem.plan.jobs.iter().for_each(|job| {
@@ -157,17 +157,9 @@ fn read_required_jobs(
         assert!(!singles.is_empty());
 
         let problem_job = if singles.len() > 1 {
-            get_multi_job(
-                &job.id,
-                job.order,
-                &job.skills,
-                job.value,
-                singles,
-                job.pickups.as_ref().map_or(0, |p| p.len()),
-                random,
-            )
+            get_multi_job(&job.id, &job.skills, job.value, singles, job.pickups.as_ref().map_or(0, |p| p.len()), random)
         } else {
-            get_single_job(&job.id, singles.into_iter().next().unwrap(), job.order, &job.skills, job.value)
+            get_single_job(&job.id, singles.into_iter().next().unwrap(), &job.skills, job.value)
         };
 
         job_index.insert(job.id.clone(), problem_job.clone());
@@ -384,36 +376,34 @@ fn get_single_with_extras(
     places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>,
     demand: Demand<MultiDimLoad>,
     tag: &Option<String>,
+    order: &Option<i32>,
     activity_type: &str,
     has_multi_dimens: bool,
     coord_index: &CoordIndex,
 ) -> Single {
     let mut single = get_single(places, coord_index);
+    let dimens = &mut single.dimens;
+
     if has_multi_dimens {
-        single.dimens.set_demand(demand);
+        dimens.set_demand(demand);
     } else {
-        single.dimens.set_demand(Demand {
+        dimens.set_demand(Demand {
             pickup: (SingleDimLoad::new(demand.pickup.0.load[0]), SingleDimLoad::new(demand.pickup.1.load[0])),
             delivery: (SingleDimLoad::new(demand.delivery.0.load[0]), SingleDimLoad::new(demand.delivery.1.load[0])),
         });
     }
-    single.dimens.set_value("type", activity_type.to_string());
-    add_tag(&mut single.dimens, tag);
+    dimens.set_value("type", activity_type.to_string());
+
+    add_tag(dimens, tag);
+    add_order(dimens, order);
 
     single
 }
 
-fn get_single_job(
-    id: &str,
-    single: Single,
-    priority: Option<i32>,
-    skills: &Option<FormatJobSkills>,
-    value: Option<f64>,
-) -> Job {
+fn get_single_job(id: &str, single: Single, skills: &Option<FormatJobSkills>, value: Option<f64>) -> Job {
     let mut single = single;
     single.dimens.set_id(id);
 
-    add_order(&mut single.dimens, priority);
     add_value(&mut single.dimens, value);
     add_job_skills(&mut single.dimens, skills);
 
@@ -422,7 +412,6 @@ fn get_single_job(
 
 fn get_multi_job(
     id: &str,
-    order: Option<i32>,
     skills: &Option<FormatJobSkills>,
     value: Option<f64>,
     singles: Vec<Single>,
@@ -431,7 +420,6 @@ fn get_multi_job(
 ) -> Job {
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id);
-    add_order(&mut dimens, order);
     add_value(&mut dimens, value);
     add_job_skills(&mut dimens, skills);
 
@@ -469,9 +457,9 @@ fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
     }
 }
 
-fn add_order(dimens: &mut Dimensions, order: Option<i32>) {
+fn add_order(dimens: &mut Dimensions, order: &Option<i32>) {
     if let Some(order) = order {
-        dimens.set_value("order", order);
+        dimens.set_value("order", *order);
     }
 }
 

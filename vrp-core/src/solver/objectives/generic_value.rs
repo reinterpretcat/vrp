@@ -21,7 +21,7 @@ impl GenericValue {
         estimate_value_func: Arc<dyn Fn(&SolutionContext, &RouteContext, &Job, f64) -> f64 + Send + Sync>,
         state_key: i32,
     ) -> (TargetConstraint, TargetObjective) {
-        let objective = GenericValueObjectives {
+        let objective = GenericValueObjective {
             threshold,
             tolerance,
             state_key,
@@ -30,7 +30,7 @@ impl GenericValue {
             estimate_value_func,
         };
 
-        let constraint = GenericValueModule {
+        let constraint = GenericValueConstraint {
             constraints: vec![ConstraintVariant::SoftRoute(Arc::new(objective.clone()))],
             route_value_func,
             state_key,
@@ -42,7 +42,7 @@ impl GenericValue {
     }
 }
 
-struct GenericValueModule {
+struct GenericValueConstraint {
     constraints: Vec<ConstraintVariant>,
     route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
@@ -50,7 +50,7 @@ struct GenericValueModule {
     keys: Vec<i32>,
 }
 
-impl ConstraintModule for GenericValueModule {
+impl ConstraintModule for GenericValueConstraint {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, _job: &Job) {
         self.accept_route_state(solution_ctx.routes.get_mut(route_index).unwrap());
     }
@@ -77,7 +77,7 @@ impl ConstraintModule for GenericValueModule {
 }
 
 #[derive(Clone)]
-struct GenericValueObjectives {
+struct GenericValueObjective {
     threshold: Option<f64>,
     tolerance: Option<f64>,
     state_key: i32,
@@ -86,7 +86,7 @@ struct GenericValueObjectives {
     estimate_value_func: Arc<dyn Fn(&SolutionContext, &RouteContext, &Job, f64) -> f64 + Send + Sync>,
 }
 
-impl SoftRouteConstraint for GenericValueObjectives {
+impl SoftRouteConstraint for GenericValueObjective {
     fn estimate_job(&self, solution_ctx: &SolutionContext, route_ctx: &RouteContext, job: &Job) -> f64 {
         let value = route_ctx
             .state
@@ -102,7 +102,7 @@ impl SoftRouteConstraint for GenericValueObjectives {
     }
 }
 
-impl Objective for GenericValueObjectives {
+impl Objective for GenericValueObjective {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -131,13 +131,6 @@ impl Objective for GenericValueObjectives {
         }
 
         compare_floats(fitness_a, fitness_b)
-    }
-
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        let fitness_a = self.fitness(a);
-        let fitness_b = self.fitness(b);
-
-        fitness_a - fitness_b
     }
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {

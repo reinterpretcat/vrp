@@ -39,10 +39,6 @@ impl Objective for TotalRoutes {
         compare_floats(fitness_a, fitness_b)
     }
 
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        a.solution.routes.len() as f64 - b.solution.routes.len() as f64
-    }
-
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         solution.solution.routes.len() as f64
     }

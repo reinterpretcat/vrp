@@ -2,19 +2,23 @@ use crate::core::models::common::ValueDimension;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::*;
+use crate::format::TOUR_ORDER_CONSTRAINT_CODE;
 use std::sync::Arc;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::{ObjectiveCost, TargetConstraint, TargetObjective};
+use vrp_core::models::problem::{ObjectiveCost, Single, TargetConstraint, TargetObjective};
 use vrp_core::solver::objectives::*;
+
+use crate::format::problem::Objective::TourOrder as FormatTourOrder;
+use vrp_core::solver::objectives::TourOrder as CoreTourOrder;
 
 pub fn create_objective(
     api_problem: &ApiProblem,
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
 ) -> Arc<ObjectiveCost> {
-    Arc::new(match (&api_problem.objectives, props.max_job_value) {
-        (Some(objectives), _) => ObjectiveCost::new(
+    Arc::new(match (&api_problem.objectives, props.max_job_value, props.order_info) {
+        (Some(objectives), _, _) => ObjectiveCost::new(
             objectives
                 .iter()
                 .map(|objectives| {
@@ -80,27 +84,57 @@ pub fn create_objective(
                             constraint.add_module(module);
                             core_objectives.push(objective);
                         }
+                        FormatTourOrder { is_constrained } => {
+                            let (module, objective) = get_order(*is_constrained);
+                            constraint.add_module(module);
+                            if let Some(objective) = objective {
+                                core_objectives.push(objective);
+                            }
+                        }
                     });
                     core_objectives
                 })
                 .collect(),
         ),
-        (_, Some(max_value)) => {
-            let (module, objective) = TotalValue::maximize(
-                max_value,
-                0.1,
-                Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)),
-            );
+        (None, Some(max_value), order_info) => {
+            let (value_module, value_objective) = get_value(max_value);
 
-            constraint.add_module(module);
+            constraint.add_module(value_module);
             constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
 
-            ObjectiveCost::new(vec![
-                vec![objective],
+            let mut objectives = vec![
+                vec![value_objective],
                 vec![Box::new(TotalUnassignedJobs::default())],
                 vec![Box::new(TotalRoutes::default())],
                 vec![TotalCost::minimize()],
-            ])
+            ];
+
+            if let Some(order_info) = order_info {
+                let (order_module, order_objective) = get_order(order_info);
+                constraint.add_module(order_module);
+
+                if let Some(order_objective) = order_objective {
+                    objectives.insert(2, vec![order_objective]);
+                }
+            }
+
+            ObjectiveCost::new(objectives)
+        }
+        (None, None, Some(order_info)) => {
+            let (order_module, order_objective) = get_order(order_info);
+            constraint.add_module(order_module);
+
+            let mut objectives: Vec<Vec<TargetObjective>> = vec![
+                vec![Box::new(TotalUnassignedJobs::default())],
+                vec![Box::new(TotalRoutes::default())],
+                vec![TotalCost::minimize()],
+            ];
+
+            if let Some(order_objective) = order_objective {
+                objectives.insert(2, vec![order_objective]);
+            }
+
+            ObjectiveCost::new(objectives)
         }
         _ => {
             constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
@@ -111,6 +145,21 @@ pub fn create_objective(
 
 fn unwrap_options(options: &Option<BalanceOptions>) -> (Option<f64>, Option<f64>) {
     (options.as_ref().and_then(|o| o.threshold), options.as_ref().and_then(|o| o.tolerance))
+}
+
+fn get_value(max_value: f64) -> (TargetConstraint, TargetObjective) {
+    TotalValue::maximize(max_value, 0.1, Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)))
+}
+
+fn get_order(order_info: bool) -> (TargetConstraint, Option<TargetObjective>) {
+    let order_func = Arc::new(|single: &Single| single.dimens.get_value::<i32>("order").map(|order| *order as f64));
+
+    if order_info {
+        (CoreTourOrder::new_constrained(order_func, TOUR_ORDER_CONSTRAINT_CODE), None)
+    } else {
+        let (constraint, objective) = CoreTourOrder::new_unconstrained(order_func);
+        (constraint, Some(objective))
+    }
 }
 
 fn get_load_balance(

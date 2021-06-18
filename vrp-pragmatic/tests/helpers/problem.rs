@@ -12,7 +12,7 @@ pub fn create_job_place(location: Vec<f64>) -> JobPlace {
 }
 
 pub fn create_task(location: Vec<f64>) -> JobTask {
-    JobTask { places: vec![create_job_place(location)], demand: Some(vec![1]), tag: None }
+    JobTask { places: vec![create_job_place(location)], demand: Some(vec![1]), tag: None, order: None }
 }
 
 pub fn create_job(id: &str) -> Job {
@@ -22,7 +22,6 @@ pub fn create_job(id: &str) -> Job {
         deliveries: None,
         replacements: None,
         services: None,
-        order: None,
         skills: None,
         value: None,
     }
@@ -33,7 +32,15 @@ pub fn create_delivery_job(id: &str, location: Vec<f64>) -> Job {
 }
 
 pub fn create_delivery_job_with_order(id: &str, location: Vec<f64>, order: i32) -> Job {
-    Job { order: Some(order), ..create_delivery_job(id, location) }
+    Job {
+        deliveries: Some(vec![JobTask {
+            places: vec![create_job_place(location)],
+            demand: Some(vec![1]),
+            tag: None,
+            order: Some(order),
+        }]),
+        ..create_job(id)
+    }
 }
 
 pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: JobSkills) -> Job {
@@ -50,6 +57,7 @@ pub fn create_delivery_job_with_duration(id: &str, location: Vec<f64>, duration:
             places: vec![JobPlace { duration, ..create_job_place(location) }],
             demand: Some(vec![1]),
             tag: None,
+            order: None,
         }]),
         ..create_job(id)
     }
@@ -61,6 +69,7 @@ pub fn create_delivery_job_with_times(id: &str, location: Vec<f64>, times: Vec<(
             places: vec![JobPlace { duration, times: convert_times(&times), ..create_job_place(location) }],
             demand: Some(vec![1]),
             tag: None,
+            order: None,
         }]),
         ..create_job(id)
     }
@@ -109,6 +118,7 @@ pub fn create_pickup_delivery_job_with_params(
             }],
             demand: Some(demand.clone()),
             tag: Some("p1".to_string()),
+            order: None,
         }]),
         deliveries: Some(vec![JobTask {
             places: vec![JobPlace {
@@ -118,6 +128,7 @@ pub fn create_pickup_delivery_job_with_params(
             }],
             demand: Some(demand.clone()),
             tag: Some("d1".to_string()),
+            order: None,
         }]),
 
         ..create_job(id)
@@ -130,6 +141,7 @@ pub fn create_delivery_job_with_index(id: &str, index: usize) -> Job {
             places: vec![JobPlace { times: None, location: Location::Reference { index }, duration: 1. }],
             demand: Some(vec![1]),
             tag: None,
+            order: None,
         }]),
         ..create_job(id)
     }
@@ -148,6 +160,7 @@ pub fn create_multi_job(
                 places: vec![JobPlace { duration, ..create_job_place(vec![location.0, location.1]) }],
                 demand: Some(demand),
                 tag: Some(format!("{}{}", prefix, i + 1)),
+                order: None,
             })
             .collect::<Vec<_>>();
 

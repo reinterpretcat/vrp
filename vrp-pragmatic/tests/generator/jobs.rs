@@ -7,7 +7,6 @@ use uuid::Uuid;
 /// Creates delivery job prototype.
 pub fn delivery_job_prototype(
     task_proto: impl Strategy<Value = JobTask>,
-    priority_proto: impl Strategy<Value = Option<i32>>,
     skills_proto: impl Strategy<Value = Option<JobSkills>>,
     value_proto: impl Strategy<Value = Option<f64>>,
 ) -> impl Strategy<Value = Job> {
@@ -16,7 +15,6 @@ pub fn delivery_job_prototype(
         task_proto.prop_map(|p| Some(vec![p])),
         generate_no_job_tasks(),
         generate_no_job_tasks(),
-        priority_proto,
         skills_proto,
         value_proto,
     )
@@ -25,7 +23,6 @@ pub fn delivery_job_prototype(
 /// Creates pickup job prototype.
 pub fn pickup_job_prototype(
     task_proto: impl Strategy<Value = JobTask>,
-    priority_proto: impl Strategy<Value = Option<i32>>,
     skills_proto: impl Strategy<Value = Option<JobSkills>>,
     value_proto: impl Strategy<Value = Option<f64>>,
 ) -> impl Strategy<Value = Job> {
@@ -34,7 +31,6 @@ pub fn pickup_job_prototype(
         generate_no_job_tasks(),
         generate_no_job_tasks(),
         generate_no_job_tasks(),
-        priority_proto,
         skills_proto,
         value_proto,
     )
@@ -60,14 +56,13 @@ prop_compose! {
        Job {
             id: Uuid::new_v4().to_string(),
             pickups: Some(vec![
-             JobTask { places: vec![pickup], demand: demand.clone(), tag: Some("p1".to_owned())}
+             JobTask { places: vec![pickup], demand: demand.clone(), tag: Some("p1".to_owned()), order }
             ]),
             deliveries: Some(vec![
-             JobTask { places: vec![delivery], demand: demand.clone(), tag: Some("d1".to_owned())}
+             JobTask { places: vec![delivery], demand: demand.clone(), tag: Some("d1".to_owned()), order: None }
             ]),
             replacements: None,
             services: None,
-            order,
             skills,
             value
         }
@@ -90,7 +85,6 @@ prop_compose! {
         deliveries_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         replacements_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         services_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
-        order_proto: impl Strategy<Value = Option<i32>>,
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
         value_proto: impl Strategy<Value = Option<f64>>,
     )
@@ -99,7 +93,6 @@ prop_compose! {
      deliveries in deliveries_proto,
      replacements in replacements_proto,
      services in services_proto,
-     order in order_proto,
      skills in skills_proto,
      value in value_proto
     ) -> Job {
@@ -109,7 +102,6 @@ prop_compose! {
             deliveries,
             replacements,
             services,
-            order,
             skills,
             value,
         }
@@ -121,13 +113,15 @@ prop_compose! {
         places: impl Strategy<Value = JobPlace>,
         demand_proto: impl Strategy<Value = Option<Vec<i32>>>,
         tags: impl Strategy<Value = Option<String>>,
+        order_proto: impl Strategy<Value = Option<i32>>,
     )
     (
      place in places,
      demand in demand_proto,
-     tag in tags
+     tag in tags,
+     order in order_proto,
     ) -> JobTask {
-       JobTask { places: vec![place], demand, tag}
+       JobTask { places: vec![place], demand, tag, order }
     }
 }
 
@@ -142,7 +136,7 @@ prop_compose! {
      duration in durations,
      times in time_windows
     ) -> JobPlace {
-      JobPlace { times, location, duration}
+      JobPlace { times, location, duration }
     }
 }
 

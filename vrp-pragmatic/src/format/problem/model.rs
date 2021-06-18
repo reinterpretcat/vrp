@@ -76,6 +76,9 @@ pub struct JobTask {
     /// A tag which will be propagated back within corresponding activity in solution.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
+    /// An order, bigger value - later assignment in the route.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<i32>,
 }
 
 /// A customer job model. Actual tasks of the job specified by list of pickups and deliveries
@@ -106,10 +109,6 @@ pub struct Job {
     /// A job skills limitations for serving a job.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub skills: Option<JobSkills>,
-
-    /// Job order, bigger value - later assignment in the route.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<i32>,
 
     /// Job value, bigger value - more chances for assignment.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -452,6 +451,10 @@ pub enum Objective {
         #[serde(skip_serializing_if = "Option::is_none")]
         options: Option<BalanceOptions>,
     },
+
+    /// An objective to control order of job activities in the tour.
+    #[serde(rename(deserialize = "balance-duration", serialize = "tour-order"))]
+    TourOrder { is_constrained: bool },
 }
 
 /// Specifies balance objective options. At the moment, it uses coefficient of variation as

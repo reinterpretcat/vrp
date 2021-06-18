@@ -129,6 +129,7 @@ fn check_jobs_impl(
                 places: vec![],
                 demand: if tgt != "service" { Some(vec![1]) } else { None },
                 tag: Some(format!("{}{}", tgt, idx)),
+                order: None,
             })
             .collect()
     };

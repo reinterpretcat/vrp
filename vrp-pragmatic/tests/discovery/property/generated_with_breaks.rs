@@ -27,8 +27,8 @@ fn job_prototype() -> impl Strategy<Value = Job> {
             ),
             generate_simple_demand(1..5),
             generate_no_tags(),
+            generate_no_order(),
         ),
-        generate_no_order(),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
     )

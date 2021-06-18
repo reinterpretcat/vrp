@@ -60,10 +60,6 @@ impl Objective for TotalUnassignedJobs {
         }
     }
 
-    fn distance(&self, a: &Self::Solution, b: &Self::Solution) -> f64 {
-        self.fitness(a) - self.fitness(b)
-    }
-
     fn fitness(&self, solution: &Self::Solution) -> f64 {
         solution
             .solution
