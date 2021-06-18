@@ -17,7 +17,7 @@ use self::objective_reader::create_objective;
 use crate::constraints::*;
 use crate::extensions::{get_route_modifier, OnlyVehicleActivityCost};
 use crate::format::coord_index::CoordIndex;
-use crate::format::problem::{deserialize_matrix, deserialize_problem, Matrix, Objective};
+use crate::format::problem::{deserialize_matrix, deserialize_problem, Matrix};
 use crate::format::*;
 use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
@@ -111,7 +111,7 @@ pub struct ProblemProperties {
     has_unreachable_locations: bool,
     has_dispatch: bool,
     has_reloads: bool,
-    order_info: Option<bool>,
+    has_order: bool,
     has_area_limits: bool,
     has_tour_size_limits: bool,
     max_job_value: Option<f64>,
@@ -348,34 +348,6 @@ fn parse_time_window(tw: &[String]) -> TimeWindow {
     TimeWindow::new(parse_time(tw.first().unwrap()), parse_time(tw.last().unwrap()))
 }
 
-fn get_order_info(api_problem: &ApiProblem) -> Option<bool> {
-    let has_orders = api_problem
-        .plan
-        .jobs
-        .iter()
-        .flat_map(|job| {
-            job.pickups.iter().chain(job.deliveries.iter()).chain(job.services.iter()).chain(job.replacements.iter())
-        })
-        .flatten()
-        .filter_map(|job_task| job_task.order)
-        .any(|order| order > 1);
-
-    if has_orders {
-        api_problem
-            .objectives
-            .iter()
-            .flat_map(|o| o.iter())
-            .flatten()
-            .filter_map(|o| match o {
-                Objective::TourOrder { is_constrained } => Some(*is_constrained),
-                _ => None,
-            })
-            .next()
-    } else {
-        None
-    }
-}
-
 fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> ProblemProperties {
     let has_unreachable_locations = matrices.iter().any(|m| m.error_codes.is_some());
     let has_multi_dimen_capacity = api_problem.fleet.vehicles.iter().any(|t| t.capacity.len() > 1)
@@ -413,7 +385,16 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .iter()
         .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
-    let order_info = get_order_info(api_problem);
+    let has_order = api_problem
+        .plan
+        .jobs
+        .iter()
+        .flat_map(|job| {
+            job.pickups.iter().chain(job.deliveries.iter()).chain(job.services.iter()).chain(job.replacements.iter())
+        })
+        .flatten()
+        .filter_map(|job_task| job_task.order)
+        .any(|order| order > 1);
 
     let has_area_limits = api_problem
         .fleet
@@ -430,7 +411,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_unreachable_locations,
         has_dispatch,
         has_reloads,
-        order_info,
+        has_order,
         has_area_limits,
         has_tour_size_limits,
         max_job_value,

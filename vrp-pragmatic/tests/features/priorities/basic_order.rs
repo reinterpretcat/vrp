@@ -3,25 +3,17 @@ use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
-// NOTE orders are unstable feature: need to add objective on solution level
-#[ignore]
 fn can_follow_orders() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                create_delivery_job_with_order("job1", vec![2., 0.], 3),
-                create_delivery_job_with_order("job2", vec![5., 0.], 2),
+                create_delivery_job_with_order("job1", vec![2., 0.], 2),
+                create_delivery_job_with_order("job2", vec![5., 0.], 1),
                 create_delivery_job("job3", vec![7., 0.]),
             ],
             relations: Option::None,
         },
-        fleet: Fleet {
-            vehicles: vec![VehicleType {
-                shifts: vec![create_default_vehicle_shift_with_locations((0., 0.), (10., 0.))],
-                ..create_default_vehicle_type()
-            }],
-            profiles: create_default_matrix_profiles(),
-        },
+        fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
     };
     let matrix = create_matrix_from_problem(&problem);
@@ -51,33 +43,33 @@ fn can_follow_orders() {
                         0
                     ),
                     create_stop_with_activity(
-                        "job3",
-                        "delivery",
-                        (7., 0.),
-                        2,
-                        ("1970-01-01T00:00:07Z", "1970-01-01T00:00:08Z"),
-                        7
-                    ),
-                    create_stop_with_activity(
                         "job2",
                         "delivery",
                         (5., 0.),
-                        1,
-                        ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
-                        9
+                        2,
+                        ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
+                        5
                     ),
                     create_stop_with_activity(
                         "job1",
                         "delivery",
                         (2., 0.),
+                        1,
+                        ("1970-01-01T00:00:09Z", "1970-01-01T00:00:10Z"),
+                        8
+                    ),
+                    create_stop_with_activity(
+                        "job3",
+                        "delivery",
+                        (7., 0.),
                         0,
-                        ("1970-01-01T00:00:14Z", "1970-01-01T00:00:15Z"),
-                        12
+                        ("1970-01-01T00:00:15Z", "1970-01-01T00:00:16Z"),
+                        13
                     ),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",
-                        (10., 0.),
+                        (0., 0.),
                         0,
                         ("1970-01-01T00:00:23Z", "1970-01-01T00:00:23Z"),
                         20

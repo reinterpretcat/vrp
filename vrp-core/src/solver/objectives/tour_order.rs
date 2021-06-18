@@ -9,10 +9,6 @@ use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
-// TODO make sure that when priority is used, then
-//   corresponding objective is defined
-//   value is bigger than 1
-
 /// Allows to control desired activity order in tours.
 pub struct TourOrder {}
 

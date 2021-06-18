@@ -17,7 +17,7 @@ pub fn create_objective(
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
 ) -> Arc<ObjectiveCost> {
-    Arc::new(match (&api_problem.objectives, props.max_job_value, props.order_info) {
+    Arc::new(match (&api_problem.objectives, props.max_job_value, props.has_order) {
         (Some(objectives), _, _) => ObjectiveCost::new(
             objectives
                 .iter()
@@ -96,7 +96,7 @@ pub fn create_objective(
                 })
                 .collect(),
         ),
-        (None, Some(max_value), order_info) => {
+        (None, Some(max_value), has_order) => {
             let (value_module, value_objective) = get_value(max_value);
 
             constraint.add_module(value_module);
@@ -109,8 +109,8 @@ pub fn create_objective(
                 vec![TotalCost::minimize()],
             ];
 
-            if let Some(order_info) = order_info {
-                let (order_module, order_objective) = get_order(order_info);
+            if has_order {
+                let (order_module, order_objective) = get_order(false);
                 constraint.add_module(order_module);
 
                 if let Some(order_objective) = order_objective {
@@ -120,8 +120,8 @@ pub fn create_objective(
 
             ObjectiveCost::new(objectives)
         }
-        (None, None, Some(order_info)) => {
-            let (order_module, order_objective) = get_order(order_info);
+        (None, None, true) => {
+            let (order_module, order_objective) = get_order(false);
             constraint.add_module(order_module);
 
             let mut objectives: Vec<Vec<TargetObjective>> = vec![
@@ -151,10 +151,10 @@ fn get_value(max_value: f64) -> (TargetConstraint, TargetObjective) {
     TotalValue::maximize(max_value, 0.1, Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)))
 }
 
-fn get_order(order_info: bool) -> (TargetConstraint, Option<TargetObjective>) {
+fn get_order(is_constrained: bool) -> (TargetConstraint, Option<TargetObjective>) {
     let order_func = Arc::new(|single: &Single| single.dimens.get_value::<i32>("order").map(|order| *order as f64));
 
-    if order_info {
+    if is_constrained {
         (CoreTourOrder::new_constrained(order_func, TOUR_ORDER_CONSTRAINT_CODE), None)
     } else {
         let (constraint, objective) = CoreTourOrder::new_unconstrained(order_func);
