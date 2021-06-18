@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* finalize tour order implementation and make it work on job place level
+* minor improvements in pragmatic format logic
+
+### Removed
+
+* undocumented `hre` format
+
 
 ## [1.10.4]
 
