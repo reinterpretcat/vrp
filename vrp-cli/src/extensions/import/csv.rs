@@ -73,6 +73,7 @@ mod actual {
             }],
             demand: if job.demand != 0 { Some(vec![job.demand.abs()]) } else { None },
             tag: None,
+            order: None,
         };
 
         let get_tasks = |jobs: &Vec<&CsvJob>, filter: Box<dyn Fn(&CsvJob) -> bool>| {
@@ -97,7 +98,6 @@ mod actual {
                 deliveries: get_tasks(&tasks, Box::new(|j| j.demand < 0)),
                 replacements: None,
                 services: get_tasks(&tasks, Box::new(|j| j.demand == 0)),
-                order: None,
                 skills: None,
                 value: None,
             })

@@ -43,8 +43,8 @@ pub(crate) fn generate_plan(
                     } else {
                         get_random_item(demands.as_slice(), &rnd).cloned()
                     },
-
                     tag: None,
+                    order: None,
                 })
                 .collect::<Vec<_>>()
         })
@@ -64,7 +64,6 @@ pub(crate) fn generate_plan(
                 deliveries: generate_tasks(&job_proto.deliveries, keep_original_demand),
                 replacements: generate_tasks(&job_proto.replacements, false),
                 services: generate_tasks(&job_proto.services, true),
-                order: job_proto.order,
                 skills: job_proto.skills.clone(),
                 value: job_proto.value,
             }

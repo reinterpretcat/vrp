@@ -454,7 +454,10 @@ pub enum Objective {
 
     /// An objective to control order of job activities in the tour.
     #[serde(rename(deserialize = "balance-duration", serialize = "tour-order"))]
-    TourOrder { is_constrained: bool },
+    TourOrder {
+        /// If the proper is set to true, then order is enforced as hard constraint.
+        is_constrained: bool,
+    },
 }
 
 /// Specifies balance objective options. At the moment, it uses coefficient of variation as

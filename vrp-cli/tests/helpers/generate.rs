@@ -8,14 +8,13 @@ pub fn create_empty_job() -> Job {
         deliveries: None,
         replacements: None,
         services: None,
-        order: None,
         skills: None,
         value: None,
     }
 }
 
 pub fn create_empty_job_task() -> JobTask {
-    JobTask { places: vec![], demand: None, tag: None }
+    JobTask { places: vec![], demand: None, tag: None, order: None }
 }
 
 pub fn create_empty_job_place() -> JobPlace {
