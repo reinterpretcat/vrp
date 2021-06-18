@@ -102,3 +102,21 @@ fn can_detect_missing_value_jobs() {
 
     assert_eq!(result.err().unwrap().code, "E1603".to_string());
 }
+
+#[test]
+fn can_detect_missing_order_jobs() {
+    let problem = Problem {
+        objectives: Some(vec![
+            vec![MinimizeUnassignedJobs { breaks: None }],
+            vec![TourOrder { is_constrained: false }],
+            vec![MinimizeCost],
+        ]),
+        ..create_empty_problem()
+    };
+    let ctx = ValidationContext::new(&problem, None);
+    let objectives = get_objectives(&ctx).unwrap();
+
+    let result = check_e1604_no_jobs_with_order_objective(&ctx, &objectives);
+
+    assert_eq!(result.err().unwrap().code, "E1604".to_string());
+}

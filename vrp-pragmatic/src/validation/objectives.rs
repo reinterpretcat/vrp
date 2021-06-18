@@ -95,6 +95,26 @@ fn check_e1603_no_jobs_with_value_objective(
     }
 }
 
+/// Checks that order objective can be specified only when job with order is used.
+fn check_e1604_no_jobs_with_order_objective(
+    ctx: &ValidationContext,
+    objectives: &[&Objective],
+) -> Result<(), FormatError> {
+    let has_order_objective = objectives.iter().any(|objective| matches!(objective, TourOrder { .. }));
+    let has_no_jobs_with_order =
+        get_job_tasks(ctx.problem.plan.jobs.as_slice()).filter_map(|job| job.order).find(|value| *value > 0).is_none();
+
+    if has_order_objective && has_no_jobs_with_order {
+        Err(FormatError::new(
+            "E1604".to_string(),
+            "redundant tour order objective".to_string(),
+            "specify at least one job with non-zero order or delete 'tour-order' objective".to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
     ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().flatten().collect())
 }
@@ -106,6 +126,7 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatErro
             check_e1601_duplicate_objectives(&objectives),
             check_e1602_no_cost_objective(&objectives),
             check_e1603_no_jobs_with_value_objective(ctx, &objectives),
+            check_e1604_no_jobs_with_order_objective(ctx, &objectives),
         ])
     } else {
         Ok(())

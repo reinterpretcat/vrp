@@ -661,3 +661,10 @@ This objective is used to calculate final costs, so it is required to be specifi
 `redundant value objective"` error is returned when objectives definition is overridden with `maximize-value`, but
 there is no jobs with non-zero value specified. To fix the issue, specify at least one non-zero valued job or simply
 delete 'maximize-value' objective.
+
+
+#### E1604
+
+`redundant tour order objective"` error is returned when objectives definition is overridden with `tour-order`, but
+there is no jobs with non-zero order specified. To fix the issue, specify at least one job with non-zero order or simply
+delete 'tour-order' objective.

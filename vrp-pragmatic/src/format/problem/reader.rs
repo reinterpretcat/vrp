@@ -17,7 +17,7 @@ use self::objective_reader::create_objective;
 use crate::constraints::*;
 use crate::extensions::{get_route_modifier, OnlyVehicleActivityCost};
 use crate::format::coord_index::CoordIndex;
-use crate::format::problem::{deserialize_matrix, deserialize_problem, Matrix};
+use crate::format::problem::{deserialize_matrix, deserialize_problem, get_job_tasks, Matrix};
 use crate::format::*;
 use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
@@ -385,16 +385,8 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .iter()
         .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
-    let has_order = api_problem
-        .plan
-        .jobs
-        .iter()
-        .flat_map(|job| {
-            job.pickups.iter().chain(job.deliveries.iter()).chain(job.services.iter()).chain(job.replacements.iter())
-        })
-        .flatten()
-        .filter_map(|job_task| job_task.order)
-        .any(|order| order > 1);
+    let has_order =
+        get_job_tasks(api_problem.plan.jobs.as_slice()).filter_map(|job_task| job_task.order).any(|order| order > 1);
 
     let has_area_limits = api_problem
         .fleet
