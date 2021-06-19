@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/objectives/tour_order_test.rs"]
+mod tour_order_test;
+
 use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
@@ -68,7 +72,7 @@ impl ConstraintModule for TourOrderConstraint {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         if let Some(state_key) = self.keys.first() {
-            let violations = get_violations(ctx, self.order_func.as_ref());
+            let violations = get_violations(ctx.routes.as_slice(), self.order_func.as_ref());
             ctx.state.insert(*state_key, Arc::new(violations));
         }
     }
@@ -132,13 +136,14 @@ impl Objective for OrderActivityObjective {
     type Solution = InsertionContext;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
+        let solution = &solution.solution;
+
         solution
-            .solution
             .state
             .get(&self.state_key)
             .and_then(|s| s.downcast_ref::<usize>())
             .cloned()
-            .unwrap_or_else(|| get_violations(&solution.solution, self.order_func.as_ref())) as f64
+            .unwrap_or_else(|| get_violations(solution.routes.as_slice(), self.order_func.as_ref())) as f64
     }
 }
 
@@ -172,9 +177,8 @@ fn evaluate_result<T>(
     }
 }
 
-fn get_violations(solution_ctx: &SolutionContext, order_func: &(dyn Fn(&Single) -> Option<f64>)) -> usize {
-    solution_ctx
-        .routes
+fn get_violations(routes: &[RouteContext], order_func: &(dyn Fn(&Single) -> Option<f64>)) -> usize {
+    routes
         .iter()
         .map(|route_ctx| {
             let priorities = route_ctx
