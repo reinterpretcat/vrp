@@ -1,6 +1,7 @@
 use super::*;
 use crate::format::problem::Objective::*;
 use crate::helpers::create_empty_problem;
+use crate::helpers::*;
 
 fn min_cost() -> Objective {
     MinimizeCost
@@ -119,4 +120,34 @@ fn can_detect_missing_order_jobs() {
     let result = check_e1604_no_jobs_with_order_objective(&ctx, &objectives);
 
     assert_eq!(result.err().unwrap().code, "E1604".to_string());
+}
+
+parameterized_test! {can_detect_invalid_value_or_order, (value, order, expected), {
+    can_detect_invalid_value_or_order_impl(value, order, expected);
+}}
+
+can_detect_invalid_value_or_order! {
+    case01: (Some(0.), Some(1), Some("E1605".to_string())),
+    case02: (Some(1.), Some(1), None),
+    case03: (Some(0.), None, Some("E1605".to_string())),
+    case04: (None, Some(0), Some("E1605".to_string())),
+}
+
+fn can_detect_invalid_value_or_order_impl(value: Option<f64>, order: Option<i32>, expected: Option<String>) {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![Job {
+                deliveries: Some(vec![JobTask { order, ..create_task(vec![1., 0.]) }]),
+                value,
+                ..create_job("job1")
+            }],
+            relations: None,
+        },
+        ..create_empty_problem()
+    };
+    let ctx = ValidationContext::new(&problem, None);
+
+    let result = check_e1605_check_positive_value_and_order(&ctx);
+
+    assert_eq!(result.err().map(|e| e.code), expected);
 }

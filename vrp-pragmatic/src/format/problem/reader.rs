@@ -385,8 +385,13 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .iter()
         .any(|t| t.shifts.iter().any(|s| s.reloads.as_ref().map_or(false, |reloads| !reloads.is_empty())));
 
-    let has_order =
-        get_job_tasks(api_problem.plan.jobs.as_slice()).filter_map(|job_task| job_task.order).any(|order| order > 1);
+    let has_order = api_problem
+        .plan
+        .jobs
+        .iter()
+        .flat_map(get_job_tasks)
+        .filter_map(|job_task| job_task.order)
+        .any(|order| order > 1);
 
     let has_area_limits = api_problem
         .fleet

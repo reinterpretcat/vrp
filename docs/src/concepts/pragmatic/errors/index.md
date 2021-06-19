@@ -668,3 +668,9 @@ delete 'maximize-value' objective.
 `redundant tour order objective"` error is returned when objectives definition is overridden with `tour-order`, but
 there is no jobs with non-zero order specified. To fix the issue, specify at least one job with non-zero order or simply
 delete 'tour-order' objective.
+
+
+#### E1605
+
+`value or order of a job should be greater than zero"` error is returned when job's order or value is less than 1. To
+fix the issue, make sure that value or order of all jobs are greater than zero.

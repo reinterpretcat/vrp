@@ -101,8 +101,15 @@ fn check_e1604_no_jobs_with_order_objective(
     objectives: &[&Objective],
 ) -> Result<(), FormatError> {
     let has_order_objective = objectives.iter().any(|objective| matches!(objective, TourOrder { .. }));
-    let has_no_jobs_with_order =
-        get_job_tasks(ctx.problem.plan.jobs.as_slice()).filter_map(|job| job.order).find(|value| *value > 0).is_none();
+    let has_no_jobs_with_order = ctx
+        .problem
+        .plan
+        .jobs
+        .iter()
+        .flat_map(get_job_tasks)
+        .filter_map(|job| job.order)
+        .find(|value| *value > 0)
+        .is_none();
 
     if has_order_objective && has_no_jobs_with_order {
         Err(FormatError::new(
@@ -112,6 +119,33 @@ fn check_e1604_no_jobs_with_order_objective(
         ))
     } else {
         Ok(())
+    }
+}
+
+fn check_e1605_check_positive_value_and_order(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let job_ids = ctx
+        .problem
+        .plan
+        .jobs
+        .iter()
+        .filter(|job| {
+            let has_invalid_order =
+                get_job_tasks(job).filter_map(|task| task.order).filter(|value| *value < 1).next().is_some();
+            let has_invalid_value = job.value.map_or(false, |v| v < 1.);
+
+            has_invalid_order || has_invalid_value
+        })
+        .map(|job| job.id.as_str())
+        .collect::<Vec<_>>();
+
+    if job_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1605".to_string(),
+            "value or order of a job should be greater than zero".to_string(),
+            format!("change value or order of jobs to be greater than zero: '{}'", job_ids.join(", ")),
+        ))
     }
 }
 
@@ -127,6 +161,7 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatErro
             check_e1602_no_cost_objective(&objectives),
             check_e1603_no_jobs_with_value_objective(ctx, &objectives),
             check_e1604_no_jobs_with_order_objective(ctx, &objectives),
+            check_e1605_check_positive_value_and_order(ctx),
         ])
     } else {
         Ok(())
