@@ -180,8 +180,8 @@ fn get_violations(routes: &[RouteContext], order_func: &(dyn Fn(&Single) -> Opti
                 .collect::<Vec<f64>>();
 
             priorities.windows(2).fold(0_usize, |acc, pair| {
-                let value = match pair {
-                    &[prev, next] => {
+                let value = match *pair {
+                    [prev, next] => {
                         if prev > next {
                             1
                         } else {
