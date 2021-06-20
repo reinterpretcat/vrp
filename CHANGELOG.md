@@ -4,10 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [1.10.5]
+
 ### Changed
 
 * finalize tour order implementation and make it work on job place level
 * minor improvements in pragmatic format logic
+* update dependencies
 
 ### Removed
 
@@ -286,7 +290,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.4...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.5...HEAD
+[v1.10.5]: https://github.com/reinterpretcat/vrp/compare/v1.10.4...v1.10.5
 [v1.10.4]: https://github.com/reinterpretcat/vrp/compare/v1.10.3...v1.10.4
 [v1.10.3]: https://github.com/reinterpretcat/vrp/compare/v1.10.2...v1.10.3
 [v1.10.2]: https://github.com/reinterpretcat/vrp/compare/v1.10.1...v1.10.2
