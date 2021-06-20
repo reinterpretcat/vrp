@@ -391,7 +391,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .iter()
         .flat_map(get_job_tasks)
         .filter_map(|job_task| job_task.order)
-        .any(|order| order > 1);
+        .any(|order| order > 0);
 
     let has_area_limits = api_problem
         .fleet
