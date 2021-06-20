@@ -35,6 +35,8 @@ constraints such as time windows. The objective has the following optional param
 * `maximize-tours`: maximizes total amount of tours present in solution
 * `maximize-value`: maximizes total value of served jobs. It has an optional parameter:
     * `reductionFactor`: a factor to reduce value cost compared to max routing costs.
+* `tour-order`: controls desired activity order in tours
+    * `is_constrained`: violating order is not allowed, even if it leads to less assigned jobs (default is false).
 
 ### Work balance objectives
 
@@ -75,6 +77,8 @@ If at least one job has non-zero value associated, then the following objective 
 ```json
 {{#include ../../../../../examples/data/pragmatic/basics/multi-objective.maximize-value.problem.json:143:165}}
 ```
+
+If order on job task is specified, then it is also added to the list of objectives after `minimize-tours` objective.
 
 
 ## Hints
