@@ -156,24 +156,14 @@ fn evaluate_result<T>(
     let target = activity_ctx.target.job.as_ref();
     let next = activity_ctx.next.and_then(|next| next.job.as_ref());
 
-    match (prev, target) {
-        (_, None) => None,
-        (None, Some(_)) => None,
-        (Some(prev), Some(target)) => {
-            let prev_order = order_func.deref()(prev).unwrap_or(f64::MAX);
-            let target_order = order_func.deref()(target).unwrap_or(f64::MAX);
+    let get_order = |single: &Single| order_func.deref()(single).unwrap_or(f64::MAX);
 
-            let result = check_order(prev_order, target_order, false);
-
-            if result.is_some() {
-                result
-            } else if let Some(next) = next {
-                let next_order = order_func(next).unwrap_or(f64::MAX);
-                check_order(target_order, next_order, true)
-            } else {
-                None
-            }
-        }
+    match (prev, target, next) {
+        (Some(prev), Some(target), None) => check_order.deref()(get_order(prev), get_order(target), true),
+        (None, Some(target), Some(next)) => check_order.deref()(get_order(target), get_order(next), false),
+        (Some(prev), Some(target), Some(next)) => check_order.deref()(get_order(prev), get_order(target), true)
+            .or_else(|| check_order.deref()(get_order(target), get_order(next), false)),
+        _ => None,
     }
 }
 
