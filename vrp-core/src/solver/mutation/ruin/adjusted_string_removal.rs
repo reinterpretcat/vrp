@@ -2,16 +2,15 @@
 #[path = "../../../../tests/unit/solver/mutation/ruin/adjusted_string_removal_test.rs"]
 mod adjusted_string_removal_test;
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use super::Ruin;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
-use crate::models::problem::{Actor, Job};
+use crate::models::problem::Job;
 use crate::models::solution::Tour;
-use crate::solver::mutation::select_seed_jobs;
+use crate::solver::mutation::{select_seed_jobs, RuinLimits};
 use crate::solver::RefinementContext;
 use crate::utils::Random;
-use hashbrown::HashSet;
 
 /// _Adjusted string removal_ ruin strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" by Jan Christiaens, Greet Vanden Berghe.
@@ -57,25 +56,25 @@ impl Default for AdjustedStringRemoval {
 
 impl Ruin for AdjustedStringRemoval {
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
-        let jobs: RwLock<HashSet<Job>> = RwLock::new(HashSet::new());
-        let actors: RwLock<HashSet<Arc<Actor>>> = RwLock::new(HashSet::new());
         let routes: Vec<RouteContext> = insertion_ctx.solution.routes.clone();
-
         let problem = insertion_ctx.problem.clone();
         let locked = insertion_ctx.solution.locked.clone();
         let random = insertion_ctx.environment.random.clone();
 
         let (lsmax, ks) = self.calculate_limits(&routes, &random);
 
+        let limits = RuinLimits::default();
+        let tracker = limits.get_tracker();
+
         select_seed_jobs(&problem, &routes, &random)
-            .filter(|job| !jobs.read().unwrap().contains(job))
-            .take_while(|_| actors.read().unwrap().len() != ks)
+            .filter(|job| !tracker.is_removed_job(job))
+            .take_while(|_| tracker.get_affected_actors() != ks)
             .for_each(|job| {
                 insertion_ctx
                     .solution
                     .routes
                     .iter_mut()
-                    .find(|rc| !actors.read().unwrap().contains(&rc.route.actor) && rc.route.tour.index(&job).is_some())
+                    .find(|rc| !tracker.is_affected_actor(&rc.route.actor) && rc.route.tour.index(&job).is_some())
                     .iter_mut()
                     .for_each(|rc| {
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
@@ -83,20 +82,20 @@ impl Ruin for AdjustedStringRemoval {
                         let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
                         if let Some(index) = rc.route.tour.index(&job) {
-                            actors.write().unwrap().insert(rc.route.actor.clone());
+                            tracker.add_actor(rc.route.actor.clone());
                             select_string((&rc.route.tour, index), lt, self.alpha, &random)
                                 .filter(|job| !locked.contains(job))
                                 .collect::<Vec<Job>>()
                                 .into_iter()
                                 .for_each(|job| {
                                     rc.route_mut().tour.remove(&job);
-                                    jobs.write().unwrap().insert(job);
+                                    tracker.add_job(job);
                                 });
                         }
                     });
             });
 
-        jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
+        tracker.iterate_removed_jobs(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
     }

@@ -30,12 +30,12 @@ impl Ruin for NeighbourRemoval {
         let routes = insertion_ctx.solution.routes.clone();
         let locked = insertion_ctx.solution.locked.clone();
 
-        let max_affected = self.limits.get_chunk_size(&insertion_ctx);
+        let max_removed_activities = self.limits.get_chunk_size(&insertion_ctx);
         let tracker = self.limits.get_tracker();
 
         select_seed_jobs(&problem, &routes, &random)
             .filter(|job| !locked.contains(job))
-            .take_while(|_| tracker.is_not_limit(max_affected))
+            .take_while(|_| tracker.is_not_limit(max_removed_activities))
             .for_each(|job| {
                 let route = insertion_ctx.solution.routes.iter_mut().find(|rc| rc.route.tour.contains(&job));
 

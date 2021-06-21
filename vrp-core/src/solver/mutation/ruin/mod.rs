@@ -46,9 +46,9 @@ pub struct RuinLimits {
     /// Specifies minimum amount of ruined (removed) jobs.
     pub min_ruined_jobs: usize,
     /// Specifies maximum amount of ruined (removed) jobs.
-    pub max_ruined_jobs: usize,
+    pub max_ruined_activities: usize,
     /// Specifies threshold for amount of ruined (removed) jobs.
-    pub ruined_jobs_threshold: f64,
+    pub ruined_activities_threshold: f64,
     /// Specifies maximum amount of affected routes.
     pub max_affected_routes: usize,
 }
@@ -56,26 +56,31 @@ pub struct RuinLimits {
 impl RuinLimits {
     /// Creates a new instance of `RuinLimits`.
     pub fn new(
-        min_ruined_jobs: usize,
-        max_ruined_jobs: usize,
+        min_ruined_activities: usize,
+        max_ruined_activities: usize,
         ruined_jobs_threshold: f64,
         max_affected_routes: usize,
     ) -> Self {
-        Self { min_ruined_jobs, max_ruined_jobs, ruined_jobs_threshold, max_affected_routes }
+        Self {
+            min_ruined_jobs: min_ruined_activities,
+            max_ruined_activities,
+            ruined_activities_threshold: ruined_jobs_threshold,
+            max_affected_routes,
+        }
     }
 
     /// Gets chunk size based on limits.
     pub fn get_chunk_size(&self, ctx: &InsertionContext) -> usize {
         let total = ctx.problem.jobs.size() - ctx.solution.unassigned.len() - ctx.solution.ignored.len();
 
-        let max_limit = (total as f64 * self.ruined_jobs_threshold)
+        let max_limit = (total as f64 * self.ruined_activities_threshold)
             .max(self.min_ruined_jobs as f64)
-            .min(self.max_ruined_jobs as f64)
+            .min(self.max_ruined_activities as f64)
             .round() as usize;
 
         ctx.environment
             .random
-            .uniform_int(self.min_ruined_jobs as i32, self.max_ruined_jobs as i32)
+            .uniform_int(self.min_ruined_jobs as i32, self.max_ruined_activities as i32)
             .min(max_limit as i32) as usize
     }
 
@@ -89,9 +94,15 @@ impl RuinLimits {
     }
 }
 
+impl Default for RuinLimits {
+    fn default() -> Self {
+        Self { min_ruined_jobs: 8, max_ruined_activities: 16, ruined_activities_threshold: 0.1, max_affected_routes: 8 }
+    }
+}
+
 pub(crate) struct AffectedTracker<'a> {
-    pub affected_actors: RwLock<HashSet<Arc<Actor>>>,
-    pub removed_jobs: RwLock<HashSet<Job>>,
+    affected_actors: RwLock<HashSet<Arc<Actor>>>,
+    removed_jobs: RwLock<HashSet<Job>>,
     limits: &'a RuinLimits,
 }
 
@@ -104,19 +115,39 @@ impl<'a> AffectedTracker<'a> {
         self.affected_actors.write().unwrap().insert(actor);
     }
 
-    pub fn is_not_limit(&self, max_affected: usize) -> bool {
-        let removed_jobs = self.removed_jobs.read().unwrap().len();
-        let affected_routes = self.affected_actors.read().unwrap().len();
-
-        removed_jobs <= self.limits.max_ruined_jobs
-            && removed_jobs <= max_affected
-            && affected_routes <= self.limits.max_affected_routes
+    pub fn is_affected_actor(&self, actor: &Actor) -> bool {
+        self.affected_actors.read().unwrap().contains(actor)
     }
-}
 
-impl Default for RuinLimits {
-    fn default() -> Self {
-        Self { min_ruined_jobs: 8, max_ruined_jobs: 16, ruined_jobs_threshold: 0.1, max_affected_routes: 8 }
+    pub fn is_removed_job(&self, job: &Job) -> bool {
+        self.removed_jobs.read().unwrap().contains(job)
+    }
+
+    pub fn is_not_limit(&self, max_removed_activities: usize) -> bool {
+        let removed_activities = self.get_removed_activities();
+        let affected_routes = self.get_affected_actors();
+
+        removed_activities < self.limits.max_ruined_activities
+            && removed_activities < max_removed_activities
+            && affected_routes < self.limits.max_affected_routes
+    }
+
+    pub fn get_affected_actors(&self) -> usize {
+        self.affected_actors.read().unwrap().len()
+    }
+
+    pub fn get_removed_activities(&self) -> usize {
+        // TODO cache value?
+        self.removed_jobs.read().unwrap().iter().fold(0, |acc, job| {
+            acc + match &job {
+                Job::Single(_) => 1,
+                Job::Multi(multi) => multi.jobs.len(),
+            }
+        })
+    }
+
+    pub fn iterate_removed_jobs<F: FnMut(&Job)>(&self, func: F) {
+        self.removed_jobs.read().unwrap().iter().for_each(func)
     }
 }
 

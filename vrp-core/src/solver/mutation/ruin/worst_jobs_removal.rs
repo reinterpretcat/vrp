@@ -53,10 +53,10 @@ impl Ruin for WorstJobRemoval {
 
         routes_savings.shuffle(&mut random.get_rng());
 
-        let max_affected = self.limits.get_chunk_size(&insertion_ctx);
+        let max_removed_activities = self.limits.get_chunk_size(&insertion_ctx);
         let tracker = self.limits.get_tracker();
 
-        routes_savings.iter().take_while(|_| tracker.is_not_limit(max_affected)).for_each(|(rc, savings)| {
+        routes_savings.iter().take_while(|_| tracker.is_not_limit(max_removed_activities)).for_each(|(rc, savings)| {
             let skip = savings.len().min(random.uniform_int(0, self.worst_skip as i32) as usize);
             let worst = savings.iter().filter(|(job, _)| can_remove_job(job)).nth(skip);
 
@@ -72,7 +72,7 @@ impl Ruin for WorstJobRemoval {
                             .cloned(),
                     )
                     .filter(|job| can_remove_job(job))
-                    .take_while(|_| tracker.is_not_limit(max_affected))
+                    .take_while(|_| tracker.is_not_limit(max_removed_activities))
                     .take(remove)
                     .for_each(|job| {
                         // NOTE job can be absent if it is unassigned
@@ -89,7 +89,7 @@ impl Ruin for WorstJobRemoval {
             }
         });
 
-        tracker.removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
+        tracker.iterate_removed_jobs(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
     }

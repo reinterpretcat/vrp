@@ -51,20 +51,20 @@ impl Ruin for ClusterRemoval {
         let locked = insertion_ctx.solution.locked.clone();
 
         let mut route_jobs = get_route_jobs(&insertion_ctx.solution);
-        let max_affected = self.limits.get_chunk_size(&insertion_ctx);
+        let max_removed_activities = self.limits.get_chunk_size(&insertion_ctx);
         let tracker = self.limits.get_tracker();
 
         let mut indices = (0..self.clusters.len()).into_iter().collect::<Vec<usize>>();
         indices.shuffle(&mut insertion_ctx.environment.random.get_rng());
 
-        indices.into_iter().take_while(|_| tracker.is_not_limit(max_affected)).for_each(|idx| {
+        indices.into_iter().take_while(|_| tracker.is_not_limit(max_removed_activities)).for_each(|idx| {
             let cluster = self.clusters.get(idx).unwrap();
-            let left = max_affected - tracker.removed_jobs.read().unwrap().len();
+            let left = max_removed_activities - tracker.get_removed_activities();
 
             cluster
                 .iter()
                 .filter(|job| !locked.contains(job))
-                .take_while(|_| tracker.is_not_limit(max_affected))
+                .take_while(|_| tracker.is_not_limit(max_removed_activities))
                 .take(left)
                 .for_each(|job| {
                     if let Some(rc) = route_jobs.get_mut(job) {
@@ -79,7 +79,7 @@ impl Ruin for ClusterRemoval {
                 });
         });
 
-        tracker.removed_jobs.write().unwrap().iter().for_each(|job| insertion_ctx.solution.required.push(job.clone()));
+        tracker.iterate_removed_jobs(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
     }
