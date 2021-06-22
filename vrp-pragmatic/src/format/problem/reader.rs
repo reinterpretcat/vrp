@@ -234,6 +234,11 @@ fn create_constraint_pipeline(
     limits: TravelLimitFunc,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
+
+    if props.has_unreachable_locations {
+        constraint.add_module(Box::new(ReachableModule::new(transport.clone(), REACHABLE_CONSTRAINT_CODE)));
+    }
+
     constraint.add_module(Box::new(TransportConstraintModule::new(
         transport.clone(),
         activity.clone(),
@@ -259,10 +264,6 @@ fn create_constraint_pipeline(
 
     if !locks.is_empty() {
         constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks, LOCKING_CONSTRAINT_CODE)));
-    }
-
-    if props.has_unreachable_locations {
-        constraint.add_module(Box::new(ReachableModule::new(transport.clone(), REACHABLE_CONSTRAINT_CODE)));
     }
 
     if props.has_tour_size_limits {
