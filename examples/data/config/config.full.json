@@ -345,6 +345,7 @@
   "telemetry": {
     "logging": {
       "enabled": true,
+      "prefix": "[config.full]",
       "logBest": 100,
       "logPopulation": 1000,
       "dumpPopulation": false

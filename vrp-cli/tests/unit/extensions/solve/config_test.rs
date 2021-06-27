@@ -11,6 +11,7 @@ fn can_read_full_config() {
     let telemetry = config.telemetry.expect("no telemetry config");
     let logging = telemetry.logging.expect("no logging config");
     assert!(logging.enabled);
+    assert_eq!(logging.prefix, Some("[config.full]".to_string()));
     assert_eq!(logging.log_best, Some(100));
     assert_eq!(logging.log_population, Some(1000));
     assert_eq!(logging.dump_population, Some(false));
