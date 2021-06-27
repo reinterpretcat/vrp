@@ -86,6 +86,11 @@ impl TimeWindow {
         compare_floats(self.start, other.end) != Ordering::Greater
             && compare_floats(other.start, self.end) != Ordering::Greater
     }
+
+    /// Checks whether time window contains given time.
+    pub fn contains(&self, time: Timestamp) -> bool {
+        compare_floats(time, self.start) != Ordering::Less && compare_floats(time, self.end) != Ordering::Greater
+    }
 }
 
 impl PartialEq<TimeWindow> for TimeWindow {
