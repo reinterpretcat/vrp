@@ -190,3 +190,84 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
 
     assert_eq!(result, expected_result);
 }
+
+#[test]
+#[ignore]
+fn can_check_load_when_departure_has_other_activity() {
+    let problem = Problem {
+        plan: Plan { jobs: vec![create_pickup_delivery_job("job1", vec![0., 0.], vec![1., 0.])], relations: None },
+        fleet: Fleet {
+            vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
+            profiles: create_default_matrix_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let solution = Solution {
+        statistic: Statistic {
+            cost: 6.,
+            distance: 2,
+            duration: 4,
+            times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
+        },
+        tours: vec![Tour {
+            vehicle_id: "my_vehicle_1".to_string(),
+            type_id: "my_vehicle".to_string(),
+            shift_index: 0,
+            stops: vec![
+                Stop {
+                    location: vec![0., 0.].to_loc(),
+                    time: Schedule {
+                        arrival: "1970-01-01T00:00:00Z".to_string(),
+                        departure: "1970-01-01T00:00:01Z".to_string(),
+                    },
+                    distance: 0,
+                    load: vec![1],
+                    activities: vec![
+                        Activity {
+                            job_id: "departure".to_string(),
+                            activity_type: "departure".to_string(),
+                            location: None,
+                            time: None,
+                            job_tag: None,
+                        },
+                        Activity {
+                            job_id: "job1".to_string(),
+                            activity_type: "pickup".to_string(),
+                            location: None,
+                            time: None,
+                            job_tag: Some("p1".to_string()),
+                        },
+                    ],
+                },
+                create_stop_with_activity_with_tag(
+                    "job1",
+                    "delivery",
+                    (1., 0.),
+                    0,
+                    ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
+                    1,
+                    "d1",
+                ),
+                create_stop_with_activity(
+                    "arrival",
+                    "arrival",
+                    (0., 0.),
+                    0,
+                    ("1970-01-01T00:00:04Z", "1970-01-01T00:00:04Z"),
+                    2,
+                ),
+            ],
+            statistic: Statistic {
+                cost: 6.,
+                distance: 2,
+                duration: 4,
+                times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
+            },
+        }],
+        ..create_empty_solution()
+    };
+
+    let result = check_vehicle_load(&CheckerContext::new(create_example_problem(), problem, None, solution));
+
+    assert_eq!(result, Ok(()));
+}
