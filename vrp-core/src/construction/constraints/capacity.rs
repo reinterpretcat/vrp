@@ -298,6 +298,8 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
 impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for CapacityConstraintModule<T> {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
+        self.accept_route_state(route_ctx);
+
         if self.multi_trip.is_reload_job(job) {
             // move all unassigned reloads back to ignored
             let jobs = self.multi_trip.get_reloads(&route_ctx.route, &solution_ctx.required).collect::<HashSet<_>>();
@@ -310,22 +312,17 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
                     *pair.1 = 0;
                 }
             });
+        } else if self.is_vehicle_full(route_ctx) {
+            // move all reloads for this shift to required
+            let jobs = self
+                .multi_trip
+                .get_reloads(&route_ctx.route, &solution_ctx.ignored)
+                .chain(self.multi_trip.get_reloads(&route_ctx.route, &solution_ctx.required))
+                .collect::<HashSet<_>>();
 
-            self.accept_route_state(route_ctx);
-        } else {
-            self.accept_route_state(route_ctx);
-            if self.is_vehicle_full(route_ctx) {
-                // move all reloads for this shift to required
-                let jobs = self
-                    .multi_trip
-                    .get_reloads(&route_ctx.route, &solution_ctx.ignored)
-                    .chain(self.multi_trip.get_reloads(&route_ctx.route, &solution_ctx.required))
-                    .collect::<HashSet<_>>();
-
-                solution_ctx.ignored.retain(|job| !jobs.contains(job));
-                solution_ctx.locked.extend(jobs.iter().cloned());
-                solution_ctx.required.extend(jobs.into_iter());
-            }
+            solution_ctx.ignored.retain(|job| !jobs.contains(job));
+            solution_ctx.locked.extend(jobs.iter().cloned());
+            solution_ctx.required.extend(jobs.into_iter());
         }
     }
 

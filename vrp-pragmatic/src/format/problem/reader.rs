@@ -137,7 +137,7 @@ fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .profiles
         .iter()
         .map(move |profile| {
-            let speed = profile.speed.clone().unwrap_or(DEFAULT_SPEED);
+            let speed = profile.speed.unwrap_or(DEFAULT_SPEED);
             let idx =
                 speeds.iter().position(|s| compare_floats(*s, speed) == Equal).expect("Cannot find profile speed");
 

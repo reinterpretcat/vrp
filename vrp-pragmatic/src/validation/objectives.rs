@@ -62,7 +62,7 @@ fn check_e1601_duplicate_objectives(objectives: &[&Objective]) -> Result<(), For
 
 /// Checks that cost objective is specified.
 fn check_e1602_no_cost_objective(objectives: &[&Objective]) -> Result<(), FormatError> {
-    let no_min_cost = objectives.iter().find(|objective| matches!(objective, MinimizeCost)).is_none();
+    let no_min_cost = !objectives.iter().any(|objective| matches!(objective, MinimizeCost));
 
     if no_min_cost {
         Err(FormatError::new(
@@ -81,8 +81,7 @@ fn check_e1603_no_jobs_with_value_objective(
     objectives: &[&Objective],
 ) -> Result<(), FormatError> {
     let has_value_objective = objectives.iter().any(|objective| matches!(objective, MaximizeValue { .. }));
-    let has_no_jobs_with_value =
-        ctx.problem.plan.jobs.iter().filter_map(|job| job.value).find(|value| *value > 0.).is_none();
+    let has_no_jobs_with_value = !ctx.problem.plan.jobs.iter().filter_map(|job| job.value).any(|value| value > 0.);
 
     if has_value_objective && has_no_jobs_with_value {
         Err(FormatError::new(
@@ -101,15 +100,8 @@ fn check_e1604_no_jobs_with_order_objective(
     objectives: &[&Objective],
 ) -> Result<(), FormatError> {
     let has_order_objective = objectives.iter().any(|objective| matches!(objective, TourOrder { .. }));
-    let has_no_jobs_with_order = ctx
-        .problem
-        .plan
-        .jobs
-        .iter()
-        .flat_map(get_job_tasks)
-        .filter_map(|job| job.order)
-        .find(|value| *value > 0)
-        .is_none();
+    let has_no_jobs_with_order =
+        !ctx.problem.plan.jobs.iter().flat_map(get_job_tasks).filter_map(|job| job.order).any(|value| value > 0);
 
     if has_order_objective && has_no_jobs_with_order {
         Err(FormatError::new(

@@ -73,7 +73,7 @@ impl EvolutionSimulator {
 
         self.config.telemetry.log("preparing initial solution(-s)");
 
-        std::mem::replace(&mut self.config.population.initial.individuals, vec![])
+        std::mem::take(&mut self.config.population.initial.individuals)
             .into_iter()
             .zip(0_usize..)
             .take(self.config.population.initial.max_size)
