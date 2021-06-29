@@ -156,6 +156,11 @@ impl MultiBuilder {
         self
     }
 
+    pub fn jobs(&mut self, jobs: Vec<Single>) -> &mut Self {
+        self.multi.jobs.extend(jobs.into_iter().map(Arc::new));
+        self
+    }
+
     pub fn build(&mut self) -> Job {
         let multi = std::mem::replace(&mut self.multi, test_multi());
         let multi = if !self.custom_permutator { Multi::new(multi.jobs, multi.dimens) } else { multi };

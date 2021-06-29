@@ -13,6 +13,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// Repairs a feasible solution from another, potentially infeasible.
+#[allow(clippy::needless_collect)]
 pub fn repair_solution_from_unknown(insertion_ctx: &InsertionContext) -> InsertionContext {
     // TODO handle relations
     let mut new_insertion_ctx = InsertionContext::new(insertion_ctx.problem.clone(), insertion_ctx.environment.clone());
@@ -106,7 +107,7 @@ fn synchronize_jobs(
                 evaluate_single(&job, single, &constraint, new_route_ctx, position, 0., None, &result_selector);
 
             if add_single_job(insertion_result, &constraint) {
-                synchronized_jobs.entry(job).or_insert_with(|| Vec::default()).push(single.clone());
+                synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
             }
 
             synchronized_jobs
