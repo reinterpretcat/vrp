@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/construction/processing/repair_solution_test.rs"]
+#[path = "../../../tests/unit/construction/probing/repair_solution_test.rs"]
 mod repair_solution_test;
 
 use crate::construction::constraints::ConstraintPipeline;
@@ -32,9 +32,12 @@ pub fn repair_solution_from_unknown(insertion_ctx: &InsertionContext) -> Inserti
         .iter()
         .filter(|route_ctx| route_ctx.route.tour.has_jobs())
         .map(|route_ctx| {
-            let mut new_route_ctx = get_new_route_ctx(&mut new_insertion_ctx, route_ctx);
+            let idx = get_new_route_ctx_idx(&mut new_insertion_ctx, route_ctx);
+            let mut new_route_ctx = new_insertion_ctx.solution.routes.get_mut(idx).unwrap();
 
             let synchronized = synchronize_jobs(route_ctx, new_route_ctx, &assigned_jobs, &constraint);
+
+            new_insertion_ctx.solution.unassigned.drain_filter(|j, _| synchronized.contains_key(j));
 
             unassign_invalid_multi_jobs(&mut new_route_ctx, synchronized)
         })
@@ -51,11 +54,8 @@ pub fn repair_solution_from_unknown(insertion_ctx: &InsertionContext) -> Inserti
     new_insertion_ctx
 }
 
-fn get_new_route_ctx<'a>(
-    new_insertion_ctx: &'a mut InsertionContext,
-    route_ctx: &RouteContext,
-) -> &'a mut RouteContext {
-    let idx = if let Some(idx) = new_insertion_ctx
+fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &RouteContext) -> usize {
+    if let Some(idx) = new_insertion_ctx
         .solution
         .routes
         .iter()
@@ -76,9 +76,7 @@ fn get_new_route_ctx<'a>(
 
         new_insertion_ctx.solution.routes.push(new_route_ctx);
         new_insertion_ctx.solution.routes.len() - 1
-    };
-
-    new_insertion_ctx.solution.routes.get_mut(idx).unwrap()
+    }
 }
 
 fn get_assigned_jobs(insertion_ctx: &InsertionContext) -> HashSet<Job> {
