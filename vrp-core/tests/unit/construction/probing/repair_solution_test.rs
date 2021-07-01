@@ -10,7 +10,7 @@ use crate::utils::Environment;
 type JobData = (Option<Location>, (f64, f64), Duration, i32);
 type VehicleData = ((Location, Option<f64>, Option<f64>), Option<(Location, Option<f64>, Option<f64>)>);
 type ActivityData = (Location, Duration, (Timestamp, Timestamp), Arc<Single>);
-type RouteData<'a> = Vec<(Location, Duration, (Timestamp, Timestamp), &'a str)>;
+type RouteData<'a> = Vec<(&'a str, Location, Duration, (Timestamp, Timestamp))>;
 
 fn create_test_problem(
     singles: Vec<(&str, JobData)>,
@@ -100,7 +100,7 @@ fn add_routes(insertion_ctx: &mut InsertionContext, routes: Vec<(&str, RouteData
             vehicle_id,
             activities
                 .into_iter()
-                .map(|(location, duration, (s, e), job_id)| {
+                .map(|(job_id, location, duration, (s, e))| {
                     (location, duration, (s, e), get_as_single(&problem, job_id))
                 })
                 .collect(),
@@ -144,22 +144,10 @@ mod single {
     }}
 
     can_restore_solution_without_relations! {
-        case01: (vec![
-                    ("job1", (Some(1), (1., 3.), 1., 1)),
-                    ("job2", (Some(2), (2., 4.), 1., 1)),
-                    ("job3", (Some(3), (3., 5.), 1., 1)),
-                ],
+        case01: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
                 vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
-                vec![(
-                    "v1",
-                    vec![
-                        (1, 1., (1., 3.), "job1"),
-                        (2, 1., (2., 4.), "job2"),
-                        (3, 1., (3., 5.), "job3"),
-                    ]
-                )],
-                ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])
-        ),
+                vec![("v1", vec![ ("job1", 1, 1., (1., 3.)), ("job2", 2, 1., (2., 4.)), ("job3", 3, 1., (3., 5.))])],
+                ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
     }
 
     fn can_restore_solution_without_relations_impl(
