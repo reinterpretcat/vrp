@@ -87,11 +87,20 @@ impl FormatError {
         Self { code, cause, action, details: Some(details) }
     }
 
-    /// Serializes error into json.
+    /// Serializes error into json string.
     pub fn to_json(&self) -> String {
         let mut buffer = String::new();
         let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
         serde_json::to_writer_pretty(writer, &self).unwrap();
+
+        buffer
+    }
+
+    /// Formats multiple format errors into json string.
+    pub fn format_many_to_json(errors: &[Self]) -> String {
+        let mut buffer = String::new();
+        let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
+        serde_json::to_writer_pretty(writer, errors).unwrap();
 
         buffer
     }

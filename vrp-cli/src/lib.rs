@@ -41,6 +41,7 @@ use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Proble
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_pragmatic::format::FormatError;
 use vrp_pragmatic::get_unique_locations;
+use vrp_pragmatic::validation::ValidationContext;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod interop {
@@ -51,7 +52,7 @@ mod interop {
     use std::panic;
     use std::panic::UnwindSafe;
     use std::slice;
-    use vrp_pragmatic::format::problem::deserialize_problem;
+    use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
 
     type Callback = extern "C" fn(*const c_char);
 
@@ -124,6 +125,41 @@ mod interop {
                     failure(error.as_ptr());
                 }
             }
+        });
+    }
+
+    /// Validates Vehicle Routing Problem passed in `pragmatic` format.
+    #[no_mangle]
+    extern "C" fn validate_pragmatic(
+        problem: *const c_char,
+        matrices: *const *const c_char,
+        matrices_len: *const i32,
+        success: Callback,
+        failure: Callback,
+    ) {
+        catch_panic(failure, || {
+            let problem = to_string(problem);
+            let matrices = unsafe { slice::from_raw_parts(matrices, matrices_len as usize).to_vec() };
+            let matrices = matrices.iter().map(|m| to_string(*m)).collect::<Vec<_>>();
+
+            let problem = deserialize_problem(BufReader::new(problem.as_bytes()));
+            let matrices = matrices
+                .iter()
+                .map(|matrix| deserialize_matrix(BufReader::new(matrix.as_bytes())))
+                .collect::<Result<Vec<_>, _>>();
+
+            let result = match (problem, matrices) {
+                (Ok(problem), Ok(matrices)) => {
+                    let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
+                    ValidationContext::new(&problem, matrices).validate()
+                }
+                (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors.into_iter().collect()),
+                (Err(errors1), Err(errors2)) => Err(errors1.into_iter().chain(errors2.into_iter()).collect()),
+            }
+            .map_err(|err| FormatError::format_many_to_json(&err))
+            .map(|_| "[]".to_string());
+
+            call_back(result, success, failure);
         });
     }
 
@@ -204,11 +240,58 @@ mod interop {
                 assert!(locations.len() > 2);
             }
             extern "C" fn failure(err: *const c_char) {
-                unreachable!("{}", to_string(err))
+                unreachable!("got {}", to_string(err))
             }
 
             let problem = CString::new(SIMPLE_PROBLEM).unwrap();
             get_routing_locations(problem.as_ptr() as *const c_char, success, failure)
+        }
+
+        #[test]
+        fn can_validate_simple_problem() {
+            extern "C" fn success(solution: *const c_char) {
+                assert_eq!(to_string(solution), "[]")
+            }
+            extern "C" fn failure(err: *const c_char) {
+                unreachable!("{}", to_string(err))
+            }
+
+            let problem = CString::new(SIMPLE_PROBLEM).unwrap();
+            let matrices = CString::new("[]").unwrap();
+
+            validate_pragmatic(
+                problem.as_ptr() as *const c_char,
+                matrices.as_ptr() as *const *const c_char,
+                0 as *const i32,
+                success,
+                failure,
+            );
+        }
+
+        #[test]
+        fn can_validate_empty_problem() {
+            extern "C" fn success(solution: *const c_char) {
+                unreachable!("got {}", to_string(solution))
+            }
+            extern "C" fn failure(err: *const c_char) {
+                let err = to_string(err);
+                assert!(err.starts_with("["));
+                assert!(err.contains("code"));
+                assert!(err.contains("cause"));
+                assert!(err.contains("action"));
+                assert!(err.ends_with("]"));
+            }
+
+            let problem = CString::new("").unwrap();
+            let matrices = CString::new("[]").unwrap();
+
+            validate_pragmatic(
+                problem.as_ptr() as *const c_char,
+                matrices.as_ptr() as *const *const c_char,
+                0 as *const i32,
+                success,
+                failure,
+            );
         }
 
         #[test]
@@ -258,6 +341,19 @@ mod wasm {
         get_locations_serialized(&problem)
             .map(|locations| JsValue::from_str(locations.as_str()))
             .map_err(|err| JsValue::from_str(err.to_string().as_str()))
+    }
+
+    /// Validates Vehicle Routing Problem passed in `pragmatic` format.
+    #[wasm_bindgen]
+    pub fn validate_pragmatic(problem: &JsValue, matrices: &JsValue) -> Result<JsValue, JsValue> {
+        let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+        let matrices: Vec<Matrix> = matrices.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+
+        let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
+        ValidationContext::new(&problem, matrices)
+            .validate()
+            .map_err(|err| JsValue::from_str(FormatError::format_many_to_json(&err).as_str()))
+            .map(|_| JsValue::from_str("[]"))
     }
 
     /// Converts `problem` from format specified by `format` to `pragmatic` format.
