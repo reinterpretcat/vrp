@@ -1,8 +1,9 @@
 use super::*;
+use crate::construction::constraints::TransportConstraintModule;
 use crate::helpers::construction::constraints::create_simple_demand;
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
-use crate::models::problem::{Jobs, ObjectiveCost, VehicleDetail, VehiclePlace};
+use crate::models::problem::*;
 use crate::models::solution::Place;
 use crate::models::Problem;
 use crate::utils::Environment;
@@ -56,15 +57,25 @@ fn create_test_problem(
         .collect::<Vec<_>>();
 
     let fleet = Arc::new(FleetBuilder::default().add_driver(test_driver()).add_vehicles(vehicles).build());
-
     let transport = TestTransportCost::new_shared();
+    let activity = Arc::new(SimpleActivityCost::default());
+
+    let mut constraint = ConstraintPipeline::default();
+    constraint.add_module(Box::new(TransportConstraintModule::new(
+        transport.clone(),
+        activity.clone(),
+        Arc::new(|_| (None, None)),
+        1,
+        2,
+        3,
+    )));
 
     Problem {
         fleet: fleet.clone(),
         jobs: Arc::new(Jobs::new(&fleet, jobs, &transport)),
         locks: vec![],
-        constraint: Arc::new(Default::default()),
-        activity: Arc::new(TestActivityCost::default()),
+        constraint: Arc::new(constraint),
+        activity,
         transport,
         objective: Arc::new(ObjectiveCost::default()),
         extras: Arc::new(Default::default()),
@@ -88,6 +99,8 @@ fn add_new_route(insertion_ctx: &mut InsertionContext, vehicle_id: &str, activit
             job: Some(single),
         });
     });
+
+    insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
 
     insertion_ctx.solution.routes.push(route_ctx);
 }
@@ -144,10 +157,15 @@ mod single {
     }}
 
     can_restore_solution_without_relations! {
-        case01: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
+        case01_all_correct: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
                 vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
                 vec![("v1", vec![ ("job1", 1, 1., (1., 3.)), ("job2", 2, 1., (2., 4.)), ("job3", 3, 1., (3., 5.))])],
                 ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
+
+        case02_invalid_second_job_tw: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (0., 1.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
+                vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+                vec![("v1", vec![ ("job1", 1, 1., (1., 3.)), ("job2", 2, 1., (0., 1.)), ("job3", 3, 1., (3., 5.))])],
+                ((1, 0), vec![("v1", vec!["job1", "job3"])])),
     }
 
     fn can_restore_solution_without_relations_impl(
