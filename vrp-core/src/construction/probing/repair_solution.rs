@@ -157,7 +157,7 @@ fn unassign_invalid_multi_jobs(
             Job::Single(_) => None,
         })
         .fold(Vec::default(), |mut unassigned, (job, multi, singles)| {
-            if multi.jobs.len() != singles.len() && compare_singles(multi, singles.as_slice()) {
+            if multi.jobs.len() != singles.len() || !compare_singles(multi, singles.as_slice()) {
                 new_route_ctx.route_mut().tour.remove(job);
                 unassigned.push(job.clone());
             }

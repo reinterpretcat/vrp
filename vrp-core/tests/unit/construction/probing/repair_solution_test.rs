@@ -11,7 +11,7 @@ use crate::utils::Environment;
 type JobData = (Option<Location>, (f64, f64), Duration, i32);
 type VehicleData = ((Location, Option<f64>, Option<f64>), Option<(Location, Option<f64>, Option<f64>)>);
 type ActivityData = (Location, Duration, (Timestamp, Timestamp), Arc<Single>);
-type RouteData<'a> = Vec<(&'a str, Location, Duration, (Timestamp, Timestamp))>;
+type RouteData<'a> = Vec<(&'a str, Location, Duration, (Timestamp, Timestamp), usize)>;
 
 fn create_test_problem(
     singles: Vec<(&str, JobData)>,
@@ -113,8 +113,8 @@ fn add_routes(insertion_ctx: &mut InsertionContext, routes: Vec<(&str, RouteData
             vehicle_id,
             activities
                 .into_iter()
-                .map(|(job_id, location, duration, (s, e))| {
-                    (location, duration, (s, e), get_as_single(&problem, job_id))
+                .map(|(job_id, location, duration, (s, e), index)| {
+                    (location, duration, (s, e), get_as_single(&problem, job_id, index))
                 })
                 .collect(),
         );
@@ -125,8 +125,14 @@ fn get_job_by_id(problem: &Problem, job_id: &str) -> Job {
     problem.jobs.all().find(|job| job.dimens().get_id().unwrap() == job_id).clone().unwrap()
 }
 
-fn get_as_single(problem: &Problem, job_id: &str) -> Arc<Single> {
-    get_job_by_id(&problem, job_id).to_single().clone()
+fn get_as_single(problem: &Problem, job_id: &str, index: usize) -> Arc<Single> {
+    match get_job_by_id(&problem, job_id) {
+        Job::Single(single) => {
+            assert_eq!(index, 0);
+            single
+        }
+        Job::Multi(multi) => multi.jobs.get(index).unwrap().clone(),
+    }
 }
 
 fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
@@ -149,41 +155,52 @@ fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
         .collect()
 }
 
-mod single {
-    use super::*;
+parameterized_test! {can_restore_solution_without_relations, (singles, mutlies, vehicles, routes, expected), {
+    can_restore_solution_without_relations_impl(singles, mutlies, vehicles, routes, expected);
+}}
 
-    parameterized_test! {can_restore_solution_without_relations, (singles, vehicles, routes, expected), {
-        can_restore_solution_without_relations_impl(singles, vehicles, routes, expected);
-    }}
+can_restore_solution_without_relations! {
+    case01_single_all_correct: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
+        vec![],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (2., 4.), 0), ("job3", 3, 1., (3., 5.), 0)])],
+        ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
 
-    can_restore_solution_without_relations! {
-        case01_all_correct: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
-                vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
-                vec![("v1", vec![ ("job1", 1, 1., (1., 3.)), ("job2", 2, 1., (2., 4.)), ("job3", 3, 1., (3., 5.))])],
-                ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
+    case02_single_invalid_second_job_tw: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (0., 1.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
+        vec![],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (0., 1.), 0), ("job3", 3, 1., (3., 5.), 0)])],
+        ((1, 0), vec![("v1", vec!["job1", "job3"])])),
 
-        case02_invalid_second_job_tw: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (0., 1.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
-                vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
-                vec![("v1", vec![ ("job1", 1, 1., (1., 3.)), ("job2", 2, 1., (0., 1.)), ("job3", 3, 1., (3., 5.))])],
-                ((1, 0), vec![("v1", vec!["job1", "job3"])])),
-    }
+    case03_multi_all_correct: (vec![],
+        vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 1), ("job1", 3, 1., (3., 5.), 2)])],
+        ((0, 0), vec![("v1", vec!["job1", "job1", "job1"])])),
 
-    fn can_restore_solution_without_relations_impl(
-        singles: Vec<(&str, JobData)>,
-        vehicles: Vec<(&str, VehicleData)>,
-        routes: Vec<(&str, RouteData)>,
-        expected: ((usize, usize), Vec<(&str, Vec<&str>)>),
-    ) {
-        let problem = Arc::new(create_test_problem(singles, vec![], vehicles));
-        let mut insertion_ctx = create_test_insertion_ctx(problem.clone());
-        add_routes(&mut insertion_ctx, routes);
-        problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
+    case04_multi_invalid_second_index: (vec![],
+        vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 0), ("job1", 3, 1., (3., 5.), 2)])],
+        ((1, 0), vec![("v1", vec![])])),
+}
 
-        let result = repair_solution_from_unknown(&insertion_ctx);
+fn can_restore_solution_without_relations_impl(
+    singles: Vec<(&str, JobData)>,
+    multies: Vec<(&str, Vec<JobData>)>,
+    vehicles: Vec<(&str, VehicleData)>,
+    routes: Vec<(&str, RouteData)>,
+    expected: ((usize, usize), Vec<(&str, Vec<&str>)>),
+) {
+    let problem = Arc::new(create_test_problem(singles, multies, vehicles));
+    let mut insertion_ctx = create_test_insertion_ctx(problem.clone());
+    add_routes(&mut insertion_ctx, routes);
+    problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
 
-        let ((unassigned, required), routes) = expected;
-        assert_eq!(result.solution.unassigned.len(), unassigned);
-        assert_eq!(result.solution.required.len(), required);
-        assert_eq!(get_routes(&result), routes);
-    }
+    let result = repair_solution_from_unknown(&insertion_ctx);
+
+    let ((unassigned, required), routes) = expected;
+    assert_eq!(result.solution.unassigned.len(), unassigned);
+    assert_eq!(result.solution.required.len(), required);
+    assert_eq!(get_routes(&result), routes);
 }
