@@ -156,11 +156,12 @@ fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
         .collect()
 }
 
-parameterized_test! {can_restore_solution_without_relations, (singles, mutlies, vehicles, routes, expected), {
-    can_restore_solution_without_relations_impl(singles, mutlies, vehicles, routes, expected);
+parameterized_test! {can_restore_solution_without_locks, (singles, mutlies, vehicles, routes, expected), {
+    can_restore_solution_without_locks_impl(singles, mutlies, vehicles, routes, expected);
 }}
 
-can_restore_solution_without_relations! {
+can_restore_solution_without_locks! {
+
     case01_single_all_correct: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
         vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
@@ -173,38 +174,50 @@ can_restore_solution_without_relations! {
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (0., 1.), 0), ("job3", 3, 1., (3., 5.), 0)])],
         ((1, 0), vec![("v1", vec!["job1", "job3"])])),
 
-    case03_single_multi_assignment: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1))],
+    case03_single_multi_assignment_in_one_route: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1))],
         vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)])],
         ((0, 0), vec![("v1", vec!["job1", "job2"])])),
 
-    case04_multi_all_correct: (vec![],
+    case04_single_multi_assignment_in_different_routes: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1))],
+        vec![],
+        vec![
+            ("v1", ((0, Some(0.), None), Some((0, None, Some(10.))))),
+            ("v2", ((0, Some(0.), None), Some((0, None, Some(10.))))),
+        ],
+        vec![
+            ("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)]),
+            ("v2", vec![ ("job1", 1, 1., (0., 10.), 0)]),
+        ],
+        ((0, 0), vec![("v1", vec!["job1", "job2"])])),
+
+    case05_multi_all_correct: (vec![],
         vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 1), ("job1", 3, 1., (3., 5.), 2)])],
         ((0, 0), vec![("v1", vec!["job1", "job1", "job1"])])),
 
-    case05_multi_invalid_second_index: (vec![],
+    case06_multi_invalid_second_index: (vec![],
         vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 0), ("job1", 3, 1., (3., 5.), 2)])],
-        ((1, 0), vec![("v1", vec![])])),
+        ((1, 0), vec![])),
 
-    case06_multi_partial_assignment: (vec![],
+    case07_multi_partial_assignment: (vec![],
         vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0),  ("job1", 2, 1., (2., 4.), 1), ])],
-        ((1, 0), vec![("v1", vec![])])),
+        ((1, 0), vec![])),
 
-    case07_multi_invalid_permutation: (vec![],
+    case08_multi_invalid_permutation: (vec![],
         vec![("job1", vec![(Some(1), (0., 10.), 1., 1), (Some(2), (0., 10.), 1., 1)])],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 2, 1., (0., 10.), 1), ("job1", 1, 1., (0., 10.), 0)])],
-        ((1, 0), vec![("v1", vec![])])),
+        ((1, 0), vec![])),
 }
 
-fn can_restore_solution_without_relations_impl(
+fn can_restore_solution_without_locks_impl(
     singles: Vec<(&str, JobData)>,
     multies: Vec<(&str, Vec<JobData>)>,
     vehicles: Vec<(&str, VehicleData)>,
@@ -225,7 +238,7 @@ fn can_restore_solution_without_relations_impl(
 }
 
 // TODO:
-//  check invalid jobs within relations:
+//  check invalid jobs within locks:
 //   - invalid order
 //   - multi assignment?
 //   - not all or no jobs

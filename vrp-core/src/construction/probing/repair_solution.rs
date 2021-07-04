@@ -23,7 +23,7 @@ pub fn repair_solution_from_unknown(insertion_ctx: &InsertionContext) -> Inserti
         .extend(insertion_ctx.solution.unassigned.iter().map(|(k, v)| (k.clone(), *v)));
     new_insertion_ctx.solution.locked.extend(insertion_ctx.solution.locked.iter().cloned());
 
-    let assigned_jobs = get_assigned_jobs(&new_insertion_ctx);
+    let mut assigned_jobs = get_assigned_jobs(&new_insertion_ctx);
     let constraint = new_insertion_ctx.problem.constraint.clone();
 
     let unassigned = insertion_ctx
@@ -37,6 +37,8 @@ pub fn repair_solution_from_unknown(insertion_ctx: &InsertionContext) -> Inserti
 
             let synchronized = synchronize_jobs(route_ctx, new_route_ctx, &assigned_jobs, &constraint);
 
+            assigned_jobs.extend(synchronized.keys().cloned());
+
             new_insertion_ctx.solution.unassigned.drain_filter(|j, _| synchronized.contains_key(j));
 
             unassign_invalid_multi_jobs(&mut new_route_ctx, synchronized)
@@ -49,7 +51,7 @@ pub fn repair_solution_from_unknown(insertion_ctx: &InsertionContext) -> Inserti
         .unassigned
         .extend(unassigned.into_iter().chain(insertion_ctx.solution.required.iter().cloned()).map(|job| (job, -1)));
 
-    constraint.accept_solution_state(&mut new_insertion_ctx.solution);
+    new_insertion_ctx.restore();
 
     new_insertion_ctx
 }
