@@ -101,14 +101,18 @@ fn synchronize_jobs(
         .filter_map(|(single, activity)| activity.retrieve_job().map(|job| (job, single)))
         .filter(|(job, _)| !assigned_jobs.contains(job))
         .fold(HashMap::default(), |mut synchronized_jobs, (job, single)| {
-            let insertion_result =
-                evaluate_single(&job, single, &constraint, new_route_ctx, position, 0., None, &result_selector);
+            if synchronized_jobs.contains_key(&job) && job.as_single().is_some() {
+                synchronized_jobs
+            } else {
+                let insertion_result =
+                    evaluate_single(&job, single, &constraint, new_route_ctx, position, 0., None, &result_selector);
 
-            if add_single_job(insertion_result, &constraint) {
-                synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
+                if add_single_job(insertion_result, &constraint) {
+                    synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
+                }
+
+                synchronized_jobs
             }
-
-            synchronized_jobs
         })
 }
 
