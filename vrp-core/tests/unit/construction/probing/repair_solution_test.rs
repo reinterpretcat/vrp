@@ -32,6 +32,7 @@ fn create_test_problem(
         .into_iter()
         .map(|(id, data)| Job::Single(Arc::new(create_single(id, data))))
         .chain(multies.into_iter().map(|(id, singles)| {
+            // TODO add permutation that last cannot be first
             let singles = singles.into_iter().map(|data| create_single(id, data)).collect();
             MultiBuilder::default().id(id).jobs(singles).build()
         }))
@@ -183,6 +184,18 @@ can_restore_solution_without_relations! {
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 0), ("job1", 3, 1., (3., 5.), 2)])],
         ((1, 0), vec![("v1", vec![])])),
+
+    case05_multi_partial_assignment: (vec![],
+        vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0),  ("job1", 2, 1., (2., 4.), 1), ])],
+        ((1, 0), vec![("v1", vec![])])),
+
+    case06_multi_invalid_permutation: (vec![],
+        vec![("job1", vec![(Some(1), (0., 10.), 1., 1), (Some(2), (0., 10.), 1., 1)])],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 2, 1., (0., 10.), 1), ("job1", 1, 1., (0., 10.), 0)])],
+        ((1, 0), vec![("v1", vec![])])),
 }
 
 fn can_restore_solution_without_relations_impl(
@@ -204,3 +217,9 @@ fn can_restore_solution_without_relations_impl(
     assert_eq!(result.solution.required.len(), required);
     assert_eq!(get_routes(&result), routes);
 }
+
+// TODO:
+//  check invalid jobs within relations:
+//   - invalid order
+//   - multi assignment?
+//   - not all or no jobs
