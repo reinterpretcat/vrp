@@ -32,16 +32,16 @@ pub fn repair_solution_from_unknown(insertion_ctx: &InsertionContext) -> Inserti
         .iter()
         .filter(|route_ctx| route_ctx.route.tour.has_jobs())
         .map(|route_ctx| {
-            let idx = get_new_route_ctx_idx(&mut new_insertion_ctx, route_ctx);
-            let mut new_route_ctx = new_insertion_ctx.solution.routes.get_mut(idx).unwrap();
+            let route_idx = get_new_route_ctx_idx(&mut new_insertion_ctx, route_ctx);
 
-            let synchronized = synchronize_jobs(route_ctx, new_route_ctx, &assigned_jobs, &constraint);
+            let synchronized =
+                synchronize_jobs(route_ctx, &mut new_insertion_ctx, route_idx, &assigned_jobs, &constraint);
 
             assigned_jobs.extend(synchronized.keys().cloned());
 
             new_insertion_ctx.solution.unassigned.drain_filter(|j, _| synchronized.contains_key(j));
 
-            unassign_invalid_multi_jobs(&mut new_route_ctx, synchronized)
+            unassign_invalid_multi_jobs(&mut new_insertion_ctx, route_idx, synchronized)
         })
         .flatten()
         .collect::<Vec<_>>();
@@ -87,7 +87,8 @@ fn get_assigned_jobs(insertion_ctx: &InsertionContext) -> HashSet<Job> {
 
 fn synchronize_jobs(
     route_ctx: &RouteContext,
-    new_route_ctx: &mut RouteContext,
+    new_insertion_ctx: &mut InsertionContext,
+    route_idx: usize,
     assigned_jobs: &HashSet<Job>,
     constraint: &ConstraintPipeline,
 ) -> HashMap<Job, Vec<Arc<Single>>> {
@@ -106,8 +107,19 @@ fn synchronize_jobs(
             if synchronized_jobs.contains_key(&job) && job.as_single().is_some() {
                 synchronized_jobs
             } else {
-                let insertion_result =
-                    evaluate_single(&job, single, &constraint, new_route_ctx, position, 0., None, &result_selector);
+                let new_route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
+
+                let insertion_result = evaluate_single_constraint_in_route(
+                    &job,
+                    single,
+                    &constraint,
+                    new_insertion_ctx,
+                    new_route_ctx,
+                    position,
+                    0.,
+                    None,
+                    &result_selector,
+                );
 
                 if add_single_job(insertion_result, &constraint) {
                     synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
@@ -153,9 +165,12 @@ fn is_activity_to_single_match(activity: &Activity, single: &Single) -> bool {
 }
 
 fn unassign_invalid_multi_jobs(
-    new_route_ctx: &mut RouteContext,
+    new_insertion_ctx: &mut InsertionContext,
+    route_idx: usize,
     synchronized: HashMap<Job, Vec<Arc<Single>>>,
 ) -> Vec<Job> {
+    let new_route_ctx = new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
+
     synchronized
         .iter()
         .filter_map(|(job, singles)| match job {

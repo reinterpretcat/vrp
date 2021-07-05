@@ -1,22 +1,24 @@
 use super::*;
-use crate::construction::constraints::TransportConstraintModule;
+use crate::construction::constraints::{StrictLockingModule, TransportConstraintModule};
 use crate::helpers::construction::constraints::create_simple_demand;
 use crate::helpers::models::problem::*;
 use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Place;
-use crate::models::Problem;
+use crate::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
 use crate::utils::Environment;
 
 type JobData = (Option<Location>, (f64, f64), Duration, i32);
 type VehicleData = ((Location, Option<f64>, Option<f64>), Option<(Location, Option<f64>, Option<f64>)>);
 type ActivityData = (Location, Duration, (Timestamp, Timestamp), Arc<Single>);
 type RouteData<'a> = Vec<(&'a str, Location, Duration, (Timestamp, Timestamp), usize)>;
+type LockData<'a> = (&'a str, LockOrder, LockPosition, Vec<&'a str>);
 
 fn create_test_problem(
     singles: Vec<(&str, JobData)>,
     multies: Vec<(&str, Vec<JobData>)>,
     vehicles: Vec<(&str, VehicleData)>,
+    locks: Vec<LockData>,
 ) -> Problem {
     let create_single = |id: &str, (location, (tw_start, tw_end), duration, demand)| {
         SingleBuilder::default()
@@ -32,7 +34,6 @@ fn create_test_problem(
         .into_iter()
         .map(|(id, data)| Job::Single(Arc::new(create_single(id, data))))
         .chain(multies.into_iter().map(|(id, singles)| {
-            // TODO add permutation that last cannot be first
             let singles = singles.into_iter().map(|data| create_single(id, data)).collect();
             MultiBuilder::default().id(id).jobs(singles).build()
         }))
@@ -61,6 +62,22 @@ fn create_test_problem(
     let transport = TestTransportCost::new_shared();
     let activity = Arc::new(SimpleActivityCost::default());
 
+    let locks = locks
+        .into_iter()
+        .map(|(vehicle_id, order, position, job_ids)| {
+            let vehicle_id = vehicle_id.to_string();
+            Arc::new(Lock {
+                condition: Arc::new(move |actor| actor.vehicle.dimens.get_id().unwrap().to_string() == vehicle_id),
+                details: vec![LockDetail {
+                    order,
+                    position,
+                    jobs: job_ids.iter().map(|job_id| get_job_by_id(jobs.iter().cloned(), job_id)).collect(),
+                }],
+                is_lazy: false,
+            })
+        })
+        .collect::<Vec<_>>();
+
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Box::new(TransportConstraintModule::new(
         transport.clone(),
@@ -70,11 +87,12 @@ fn create_test_problem(
         2,
         3,
     )));
+    constraint.add_module(Box::new(StrictLockingModule::new(&fleet, locks.as_slice(), 4)));
 
     Problem {
         fleet: fleet.clone(),
         jobs: Arc::new(Jobs::new(&fleet, jobs, &transport)),
-        locks: vec![],
+        locks,
         constraint: Arc::new(constraint),
         activity,
         transport,
@@ -122,12 +140,13 @@ fn add_routes(insertion_ctx: &mut InsertionContext, routes: Vec<(&str, RouteData
     });
 }
 
-fn get_job_by_id(problem: &Problem, job_id: &str) -> Job {
-    problem.jobs.all().find(|job| job.dimens().get_id().unwrap() == job_id).clone().unwrap()
+fn get_job_by_id<T: Iterator<Item = Job>>(jobs: T, job_id: &str) -> Job {
+    let mut jobs = jobs;
+    jobs.find(|job| job.dimens().get_id().unwrap() == job_id).unwrap()
 }
 
 fn get_as_single(problem: &Problem, job_id: &str, index: usize) -> Arc<Single> {
-    match get_job_by_id(&problem, job_id) {
+    match get_job_by_id(problem.jobs.all(), job_id) {
         Job::Single(single) => {
             assert_eq!(index, 0);
             single
@@ -137,7 +156,7 @@ fn get_as_single(problem: &Problem, job_id: &str, index: usize) -> Arc<Single> {
 }
 
 fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
-    insertion_ctx
+    let mut routes = insertion_ctx
         .solution
         .routes
         .iter()
@@ -153,35 +172,39 @@ fn get_routes(insertion_ctx: &InsertionContext) -> Vec<(&str, Vec<&str>)> {
                     .collect(),
             )
         })
-        .collect()
+        .collect::<Vec<_>>();
+
+    routes.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+    routes
 }
 
-parameterized_test! {can_restore_solution_without_locks, (singles, mutlies, vehicles, routes, expected), {
-    can_restore_solution_without_locks_impl(singles, mutlies, vehicles, routes, expected);
+parameterized_test! {can_restore_solution, (singles, mutlies, locks, vehicles, routes, expected), {
+    can_restore_solution_impl(singles, mutlies, locks, vehicles, routes, expected);
 }}
 
-can_restore_solution_without_locks! {
+can_restore_solution! {
 
     case01_single_all_correct: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
-        vec![],
+        vec![], vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (2., 4.), 0), ("job3", 3, 1., (3., 5.), 0)])],
         ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
 
     case02_single_invalid_second_job_tw: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (0., 1.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
-        vec![],
+        vec![], vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (0., 1.), 0), ("job3", 3, 1., (3., 5.), 0)])],
         ((1, 0), vec![("v1", vec!["job1", "job3"])])),
 
     case03_single_multi_assignment_in_one_route: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1))],
-        vec![],
+        vec![], vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)])],
         ((0, 0), vec![("v1", vec!["job1", "job2"])])),
 
     case04_single_multi_assignment_in_different_routes: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1))],
-        vec![],
+        vec![], vec![],
         vec![
             ("v1", ((0, Some(0.), None), Some((0, None, Some(10.))))),
             ("v2", ((0, Some(0.), None), Some((0, None, Some(10.))))),
@@ -194,37 +217,76 @@ can_restore_solution_without_locks! {
 
     case05_multi_all_correct: (vec![],
         vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 1), ("job1", 3, 1., (3., 5.), 2)])],
         ((0, 0), vec![("v1", vec!["job1", "job1", "job1"])])),
 
     case06_multi_invalid_second_index: (vec![],
         vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job1", 2, 1., (2., 4.), 0), ("job1", 3, 1., (3., 5.), 2)])],
         ((1, 0), vec![])),
 
     case07_multi_partial_assignment: (vec![],
         vec![("job1", vec![(Some(1), (1., 3.), 1., 1),  (Some(2), (2., 4.), 1., 1), (Some(3), (3., 5.), 1., 1)])],
+        vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0),  ("job1", 2, 1., (2., 4.), 1), ])],
         ((1, 0), vec![])),
 
     case08_multi_invalid_permutation: (vec![],
         vec![("job1", vec![(Some(1), (0., 10.), 1., 1), (Some(2), (0., 10.), 1., 1)])],
+        vec![],
         vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
         vec![("v1", vec![ ("job1", 2, 1., (0., 10.), 1), ("job1", 1, 1., (0., 10.), 0)])],
         ((1, 0), vec![])),
+
+    case09_relation_all_correct: (vec![("job1", (Some(1), (1., 3.), 1., 1)), ("job2", (Some(2), (2., 4.), 1., 1)), ("job3", (Some(3), (3., 5.), 1., 1))],
+        vec![],
+        vec![("v1", LockOrder::Sequence, LockPosition::Departure, vec!["job1", "job2"])],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 1, 1., (1., 3.), 0), ("job2", 2, 1., (2., 4.), 0), ("job3", 3, 1., (3., 5.), 0)])],
+        ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
+
+    case10_relation_sequence_middle: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1)), ("job3", (Some(3), (0., 10.), 1., 1))],
+        vec![],
+        vec![("v1", LockOrder::Sequence, LockPosition::Departure, vec!["job1", "job2"])],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job3", 3, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)])],
+        ((0, 0), vec![("v1", vec!["job1", "job2", "job3"])])),
+
+    case11_relation_strict_end: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1)), ("job3", (Some(3), (0., 10.), 1., 1))],
+        vec![],
+        vec![("v1", LockOrder::Strict, LockPosition::Arrival, vec!["job1", "job2"])],
+        vec![("v1", ((0, Some(0.), None), Some((0, None, Some(10.)))))],
+        vec![("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job3", 3, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)])],
+        ((1, 0), vec![("v1", vec!["job1", "job2"])])),
+
+    case12_relation_strict_another_route: (vec![("job1", (Some(1), (0., 10.), 1., 1)), ("job2", (Some(2), (0., 10.), 1., 1)), ("job3", (Some(3), (0., 10.), 1., 1))],
+        vec![],
+        vec![("v2", LockOrder::Strict, LockPosition::Arrival, vec!["job1", "job2"])],
+        vec![
+            ("v1", ((0, Some(0.), None), Some((0, None, Some(10.))))),
+            ("v2", ((0, Some(0.), None), Some((0, None, Some(10.)))))
+        ],
+        vec![
+            ("v1", vec![ ("job1", 1, 1., (0., 10.), 0), ("job3", 3, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0)]),
+            ("v2", vec![ ("job1", 1, 1., (0., 10.), 0), ("job2", 2, 1., (0., 10.), 0), ("job3", 3, 1., (0., 10.), 0)])
+        ],
+        ((0, 0), vec![("v1", vec!["job3"]), ("v2", vec!["job1", "job2"])])),
 }
 
-fn can_restore_solution_without_locks_impl(
+fn can_restore_solution_impl(
     singles: Vec<(&str, JobData)>,
     multies: Vec<(&str, Vec<JobData>)>,
+    locks: Vec<LockData>,
     vehicles: Vec<(&str, VehicleData)>,
     routes: Vec<(&str, RouteData)>,
     expected: ((usize, usize), Vec<(&str, Vec<&str>)>),
 ) {
-    let problem = Arc::new(create_test_problem(singles, multies, vehicles));
+    let problem = Arc::new(create_test_problem(singles, multies, vehicles, locks));
     let mut insertion_ctx = create_test_insertion_ctx(problem.clone());
     add_routes(&mut insertion_ctx, routes);
     problem.constraint.accept_solution_state(&mut insertion_ctx.solution);

@@ -77,6 +77,7 @@ pub fn evaluate_job_insertion_in_route(
 }
 
 /// Evaluates possibility to preform insertion in route context only.
+/// NOTE: doesn't evaluate constraints on route level.
 pub fn evaluate_job_constraint_in_route(
     job: &Job,
     constraint: &ConstraintPipeline,
@@ -96,8 +97,26 @@ pub fn evaluate_job_constraint_in_route(
     }
 }
 
+pub(crate) fn evaluate_single_constraint_in_route(
+    job: &Job,
+    single: &Arc<Single>,
+    constraint: &ConstraintPipeline,
+    insertion_ctx: &InsertionContext,
+    route_ctx: &RouteContext,
+    position: InsertionPosition,
+    route_costs: Cost,
+    best_known_cost: Option<Cost>,
+    result_selector: &(dyn ResultSelector + Send + Sync),
+) -> InsertionResult {
+    if let Some(violation) = constraint.evaluate_hard_route(&insertion_ctx.solution, &route_ctx, job) {
+        InsertionResult::Failure(InsertionFailure { constraint: violation.code, stopped: true, job: Some(job.clone()) })
+    } else {
+        evaluate_single(job, single, constraint, route_ctx, position, route_costs, best_known_cost, result_selector)
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn evaluate_single(
+fn evaluate_single(
     job: &Job,
     single: &Arc<Single>,
     constraint: &ConstraintPipeline,
