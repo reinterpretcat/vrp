@@ -4,7 +4,7 @@ mod pipeline_test;
 
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::Cost;
-use crate::models::problem::Job;
+use crate::models::problem::{Job, TargetConstraint};
 use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -150,7 +150,7 @@ impl ConstraintPipeline {
     }
 
     /// Adds constraint module.
-    pub fn add_module(&mut self, module: Arc<dyn ConstraintModule + Send + Sync>) -> &mut Self {
+    pub fn add_module(&mut self, module: TargetConstraint) -> &mut Self {
         module.state_keys().for_each(|key| {
             if let Some(duplicate) = self.state_keys.get(key) {
                 panic!("Attempt to register constraint with key duplication: {}", duplicate)

@@ -1,6 +1,7 @@
 use super::*;
 use crate::helpers::algorithms::nsga2::*;
 use std::f64::consts::PI;
+use std::sync::Arc;
 
 fn fitness(individual: &Vec<f64>) -> Vec<f64> {
     const SCALE: f64 = 10.;
@@ -33,8 +34,8 @@ fn can_use_select_and_rank() {
         vec![7.89, 8.97],
     ];
     let mo = SliceMultiObjective::new(vec![
-        Box::new(SliceDimensionObjective::new(0)),
-        Box::new(SliceDimensionObjective::new(1)),
+        Arc::new(SliceDimensionObjective::new(0)),
+        Arc::new(SliceDimensionObjective::new(1)),
     ]);
 
     // rate population (calculate fitness)
@@ -83,8 +84,8 @@ fn can_use_select_and_rank_with_non_transient_relationship_by_hierarchical_objec
         solutions,
         solutions.len(),
         &SliceHierarchicalObjective::new(
-            vec![Box::new(SliceDimensionObjective::new(0)), Box::new(SliceDimensionObjective::new(1))],
-            vec![Box::new(SliceDimensionObjective::new(2))],
+            vec![Arc::new(SliceDimensionObjective::new(0)), Arc::new(SliceDimensionObjective::new(1))],
+            vec![Arc::new(SliceDimensionObjective::new(2))],
         ),
     );
 

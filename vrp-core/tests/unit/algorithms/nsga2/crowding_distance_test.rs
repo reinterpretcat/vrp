@@ -1,12 +1,13 @@
 use super::*;
 use crate::algorithms::nsga2::non_dominated_sort::non_dominated_sort;
 use crate::helpers::algorithms::nsga2::*;
+use std::sync::Arc;
 
 #[test]
 fn can_get_crowding_distance() {
     let mo = SliceMultiObjective::new(vec![
-        Box::new(SliceDimensionObjective::new(0)),
-        Box::new(SliceDimensionObjective::new(1)),
+        Arc::new(SliceDimensionObjective::new(0)),
+        Arc::new(SliceDimensionObjective::new(1)),
     ]);
 
     let a = vec![1., 3.];

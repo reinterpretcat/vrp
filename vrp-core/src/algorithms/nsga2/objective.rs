@@ -1,5 +1,6 @@
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
+use std::sync::Arc;
 
 /// An *objective* defines a *total ordering relation* and a *distance metric* on a set of
 /// `solutions`. Given any two solutions, an objective answers the following two questions:
@@ -42,11 +43,11 @@ pub trait MultiObjective: Objective {
     /// Returns collection of objective functions.
     fn objectives<'a>(
         &'a self,
-    ) -> Box<dyn Iterator<Item = &Box<dyn Objective<Solution = Self::Solution> + Send + Sync>> + 'a>;
+    ) -> Box<dyn Iterator<Item = &Arc<dyn Objective<Solution = Self::Solution> + Send + Sync>> + 'a>;
 }
 
 /// Calculates dominance order of two solutions using multiple objectives.
-pub fn dominance_order<S>(a: &S, b: &S, objectives: &[Box<dyn Objective<Solution = S> + Send + Sync>]) -> Ordering {
+pub fn dominance_order<S>(a: &S, b: &S, objectives: &[Arc<dyn Objective<Solution = S> + Send + Sync>]) -> Ordering {
     let mut less_cnt = 0;
     let mut greater_cnt = 0;
 

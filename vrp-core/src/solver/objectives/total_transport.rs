@@ -16,7 +16,7 @@ pub struct TotalCost;
 impl TotalCost {
     /// Creates an objective to minimize total cost.
     pub fn minimize() -> TargetObjective {
-        Box::new(TotalTransport { fitness: Arc::new(|insertion_ctx| insertion_ctx.solution.get_total_cost()) })
+        Arc::new(TotalTransport { fitness: Arc::new(|insertion_ctx| insertion_ctx.solution.get_total_cost()) })
     }
 }
 
@@ -53,7 +53,7 @@ impl Objective for TotalTransport {
 }
 
 fn new_with_route_state_key(key: i32) -> TargetObjective {
-    Box::new(TotalTransport {
+    Arc::new(TotalTransport {
         fitness: Arc::new(move |insertion_ctx| {
             insertion_ctx
                 .solution

@@ -151,9 +151,9 @@ mod objective {
 
     fn can_use_total_order_with_hierarchy_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
         let objective = ObjectiveCost::new(vec![
-            vec![Box::new(TestObjective { index: 0 })],
-            vec![Box::new(TestObjective { index: 1 })],
-            vec![Box::new(TestObjective { index: 2 })],
+            vec![Arc::new(TestObjective { index: 0 })],
+            vec![Arc::new(TestObjective { index: 1 })],
+            vec![Arc::new(TestObjective { index: 2 })],
         ]);
 
         let a = create_individual(data_a);
@@ -187,13 +187,13 @@ mod objective {
     fn can_use_total_order_with_multi_impl(data_a: Vec<f64>, data_b: Vec<f64>, case: bool, expected: Ordering) {
         let objective = ObjectiveCost::new(if case {
             vec![
-                vec![Box::new(TestObjective { index: 0 }), Box::new(TestObjective { index: 1 })],
-                vec![Box::new(TestObjective { index: 2 })],
+                vec![Arc::new(TestObjective { index: 0 }), Arc::new(TestObjective { index: 1 })],
+                vec![Arc::new(TestObjective { index: 2 })],
             ]
         } else {
             vec![
-                vec![Box::new(TestObjective { index: 0 })],
-                vec![Box::new(TestObjective { index: 1 }), Box::new(TestObjective { index: 2 })],
+                vec![Arc::new(TestObjective { index: 0 })],
+                vec![Arc::new(TestObjective { index: 1 }), Arc::new(TestObjective { index: 2 })],
             ]
         });
 

@@ -29,11 +29,11 @@ pub fn create_objective(
                         MinimizeDuration => core_objectives.push(TotalDuration::minimize()),
                         MinimizeTours => {
                             constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
-                            core_objectives.push(Box::new(TotalRoutes::new_minimized()))
+                            core_objectives.push(Arc::new(TotalRoutes::new_minimized()))
                         }
                         MaximizeTours => {
                             constraint.add_module(Arc::new(FleetUsageConstraintModule::new_maximized()));
-                            core_objectives.push(Box::new(TotalRoutes::new_maximized()))
+                            core_objectives.push(Arc::new(TotalRoutes::new_maximized()))
                         }
                         MaximizeValue { reduction_factor } => {
                             let (module, objective) = TotalValue::maximize(
@@ -48,7 +48,7 @@ pub fn create_objective(
                         }
                         MinimizeUnassignedJobs { breaks } => {
                             if let Some(breaks) = *breaks {
-                                core_objectives.push(Box::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
+                                core_objectives.push(Arc::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
                                     job.dimens().get_value::<String>("type").map_or(1., |job_type| {
                                         if job_type == "break" {
                                             breaks
@@ -58,7 +58,7 @@ pub fn create_objective(
                                     })
                                 }))))
                             } else {
-                                core_objectives.push(Box::new(TotalUnassignedJobs::default()))
+                                core_objectives.push(Arc::new(TotalUnassignedJobs::default()))
                             }
                         }
                         BalanceMaxLoad { options } => {
@@ -104,8 +104,8 @@ pub fn create_objective(
 
             let mut objectives = vec![
                 vec![value_objective],
-                vec![Box::new(TotalUnassignedJobs::default())],
-                vec![Box::new(TotalRoutes::default())],
+                vec![Arc::new(TotalUnassignedJobs::default())],
+                vec![Arc::new(TotalRoutes::default())],
                 vec![TotalCost::minimize()],
             ];
 
@@ -125,8 +125,8 @@ pub fn create_objective(
             constraint.add_module(order_module);
 
             let mut objectives: Vec<Vec<TargetObjective>> = vec![
-                vec![Box::new(TotalUnassignedJobs::default())],
-                vec![Box::new(TotalRoutes::default())],
+                vec![Arc::new(TotalUnassignedJobs::default())],
+                vec![Arc::new(TotalRoutes::default())],
                 vec![TotalCost::minimize()],
             ];
 

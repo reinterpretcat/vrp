@@ -34,7 +34,7 @@ impl TourOrder {
 
         let objective = OrderActivityObjective { order_func, state_key };
 
-        (Arc::new(constraint), Box::new(objective))
+        (Arc::new(constraint), Arc::new(objective))
     }
 
     /// Creates instances of constrained tour order logic: more prioritized jobs are not allowed to

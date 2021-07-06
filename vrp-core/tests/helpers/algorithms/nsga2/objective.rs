@@ -1,8 +1,9 @@
 use crate::algorithms::nsga2::{dominance_order, MultiObjective, Objective};
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
+use std::sync::Arc;
 
-pub type SliceObjective = Box<dyn Objective<Solution = Vec<f64>> + Send + Sync>;
+pub type SliceObjective = Arc<dyn Objective<Solution = Vec<f64>> + Send + Sync>;
 
 pub struct SliceDimensionObjective {
     dimension: usize,
