@@ -91,7 +91,7 @@ fn can_check_skills_impl(
         Arc::new(RouteState::default()),
     );
 
-    let actual = ConstraintPipeline::default().add_module(Box::new(SkillsModule::new(0))).evaluate_hard_route(
+    let actual = ConstraintPipeline::default().add_module(Arc::new(SkillsModule::new(0))).evaluate_hard_route(
         &create_solution_context_for_fleet(&fleet),
         &route_ctx,
         &create_job_with_skills(all_of, one_of, none_of),

@@ -106,9 +106,9 @@ fn synchronize_jobs(
         .filter_map(|(single, activity)| activity.retrieve_job().map(|job| (job, single)))
         .filter(|(job, _)| !assigned_jobs.contains(job))
         .fold(HashMap::default(), |mut synchronized_jobs, (job, single)| {
-            if synchronized_jobs.contains_key(&job) && job.as_single().is_some() {
-                synchronized_jobs
-            } else {
+            let is_already_processed = synchronized_jobs.contains_key(&job) && job.as_single().is_some();
+
+            if !is_already_processed {
                 let new_route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
 
                 let insertion_result = evaluate_single_constraint_in_route(
@@ -126,9 +126,9 @@ fn synchronize_jobs(
                 if add_single_job(insertion_result, &constraint) {
                     synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
                 }
-
-                synchronized_jobs
             }
+
+            synchronized_jobs
         })
 }
 

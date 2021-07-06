@@ -79,7 +79,7 @@ fn create_test_problem(
         .collect::<Vec<_>>();
 
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Box::new(TransportConstraintModule::new(
+    constraint.add_module(Arc::new(TransportConstraintModule::new(
         transport.clone(),
         activity.clone(),
         Arc::new(|_| (None, None)),
@@ -87,7 +87,7 @@ fn create_test_problem(
         2,
         3,
     )));
-    constraint.add_module(Box::new(StrictLockingModule::new(&fleet, locks.as_slice(), 4)));
+    constraint.add_module(Arc::new(StrictLockingModule::new(&fleet, locks.as_slice(), 4)));
 
     Problem {
         fleet: fleet.clone(),

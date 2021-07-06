@@ -34,7 +34,7 @@ impl TourOrder {
 
         let objective = OrderActivityObjective { order_func, state_key };
 
-        (Box::new(constraint), Box::new(objective))
+        (Arc::new(constraint), Box::new(objective))
     }
 
     /// Creates instances of constrained tour order logic: more prioritized jobs are not allowed to
@@ -43,7 +43,7 @@ impl TourOrder {
         order_func: Arc<dyn Fn(&Single) -> Option<f64> + Send + Sync>,
         constraint_code: i32,
     ) -> TargetConstraint {
-        Box::new(TourOrderConstraint {
+        Arc::new(TourOrderConstraint {
             constraints: vec![
                 ConstraintVariant::SoftActivity(Arc::new(TourOrderSoftActivityConstraint {
                     order_func: order_func.clone(),

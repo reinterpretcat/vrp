@@ -104,7 +104,7 @@ pub trait ConstraintModule {
 
 /// Provides the way to work with multiple constraints.
 pub struct ConstraintPipeline {
-    modules: Vec<Box<dyn ConstraintModule + Send + Sync>>,
+    modules: Vec<Arc<dyn ConstraintModule + Send + Sync>>,
     state_keys: HashSet<i32>,
     hard_route_constraints: Vec<Arc<dyn HardRouteConstraint + Send + Sync>>,
     hard_activity_constraints: Vec<Arc<dyn HardActivityConstraint + Send + Sync>>,
@@ -150,7 +150,7 @@ impl ConstraintPipeline {
     }
 
     /// Adds constraint module.
-    pub fn add_module(&mut self, module: Box<dyn ConstraintModule + Send + Sync>) -> &mut Self {
+    pub fn add_module(&mut self, module: Arc<dyn ConstraintModule + Send + Sync>) -> &mut Self {
         module.state_keys().for_each(|key| {
             if let Some(duplicate) = self.state_keys.get(key) {
                 panic!("Attempt to register constraint with key duplication: {}", duplicate)

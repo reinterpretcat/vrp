@@ -58,7 +58,7 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
     };
 
     ConstraintPipeline::default()
-        .add_module(Box::new(BreakModule::new(transport, 0)))
+        .add_module(Arc::new(BreakModule::new(transport, 0)))
         .accept_solution_state(&mut solution_ctx);
 
     if break_removed {

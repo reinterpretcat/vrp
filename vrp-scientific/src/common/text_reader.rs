@@ -95,7 +95,7 @@ pub(crate) fn create_constraint(
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
-    constraint.add_module(Box::new(TransportConstraintModule::new(
+    constraint.add_module(Arc::new(TransportConstraintModule::new(
         transport.clone(),
         activity,
         Arc::new(|_| (None, None)),
@@ -103,8 +103,8 @@ pub(crate) fn create_constraint(
         2,
         3,
     )));
-    constraint.add_module(Box::new(CapacityConstraintModule::<SingleDimLoad>::new(transport, 4)));
-    constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
+    constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(transport, 4)));
+    constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
 
     constraint
 }

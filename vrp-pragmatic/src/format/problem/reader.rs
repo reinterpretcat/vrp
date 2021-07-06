@@ -236,10 +236,10 @@ fn create_constraint_pipeline(
     let mut constraint = ConstraintPipeline::default();
 
     if props.has_unreachable_locations {
-        constraint.add_module(Box::new(ReachableModule::new(transport.clone(), REACHABLE_CONSTRAINT_CODE)));
+        constraint.add_module(Arc::new(ReachableModule::new(transport.clone(), REACHABLE_CONSTRAINT_CODE)));
     }
 
-    constraint.add_module(Box::new(TransportConstraintModule::new(
+    constraint.add_module(Arc::new(TransportConstraintModule::new(
         transport.clone(),
         activity.clone(),
         limits,
@@ -251,19 +251,19 @@ fn create_constraint_pipeline(
     add_capacity_module(&mut constraint, &props, transport.clone());
 
     if props.has_breaks {
-        constraint.add_module(Box::new(BreakModule::new(transport.clone(), BREAK_CONSTRAINT_CODE)));
+        constraint.add_module(Arc::new(BreakModule::new(transport.clone(), BREAK_CONSTRAINT_CODE)));
     }
 
     if props.has_skills {
-        constraint.add_module(Box::new(SkillsModule::new(SKILL_CONSTRAINT_CODE)));
+        constraint.add_module(Arc::new(SkillsModule::new(SKILL_CONSTRAINT_CODE)));
     }
 
     if props.has_dispatch {
-        constraint.add_module(Box::new(DispatchModule::new(DISPATCH_CONSTRAINT_CODE)));
+        constraint.add_module(Arc::new(DispatchModule::new(DISPATCH_CONSTRAINT_CODE)));
     }
 
     if !locks.is_empty() {
-        constraint.add_module(Box::new(StrictLockingModule::new(fleet, locks, LOCKING_CONSTRAINT_CODE)));
+        constraint.add_module(Arc::new(StrictLockingModule::new(fleet, locks, LOCKING_CONSTRAINT_CODE)));
     }
 
     if props.has_tour_size_limits {
@@ -285,27 +285,27 @@ fn add_capacity_module(
     constraint.add_module(if props.has_reloads {
         let threshold = 0.9;
         if props.has_multi_dimen_capacity {
-            Box::new(CapacityConstraintModule::<MultiDimLoad>::new_with_multi_trip(
+            Arc::new(CapacityConstraintModule::<MultiDimLoad>::new_with_multi_trip(
                 transport,
                 CAPACITY_CONSTRAINT_CODE,
                 Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
             ))
         } else {
-            Box::new(CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(
+            Arc::new(CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(
                 transport,
                 CAPACITY_CONSTRAINT_CODE,
                 Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
             ))
         }
     } else if props.has_multi_dimen_capacity {
-        Box::new(CapacityConstraintModule::<MultiDimLoad>::new(transport, CAPACITY_CONSTRAINT_CODE))
+        Arc::new(CapacityConstraintModule::<MultiDimLoad>::new(transport, CAPACITY_CONSTRAINT_CODE))
     } else {
-        Box::new(CapacityConstraintModule::<SingleDimLoad>::new(transport, CAPACITY_CONSTRAINT_CODE))
+        Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(transport, CAPACITY_CONSTRAINT_CODE))
     });
 }
 
 fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIndex>) {
-    constraint.add_module(Box::new(AreaModule::new(
+    constraint.add_module(Arc::new(AreaModule::new(
         Arc::new(|actor| actor.vehicle.dimens.get_value::<Vec<Area>>("areas")),
         Arc::new(move |location| {
             coord_index
@@ -317,7 +317,7 @@ fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIn
 }
 
 fn add_tour_size_module(constraint: &mut ConstraintPipeline) {
-    constraint.add_module(Box::new(TourSizeModule::new(
+    constraint.add_module(Arc::new(TourSizeModule::new(
         Arc::new(|actor| actor.vehicle.dimens.get_value::<usize>("tour_size").cloned()),
         TOUR_SIZE_CONSTRAINT_CODE,
     )));

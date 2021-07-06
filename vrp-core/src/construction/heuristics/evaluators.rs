@@ -97,6 +97,7 @@ pub fn evaluate_job_constraint_in_route(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn evaluate_single_constraint_in_route(
     job: &Job,
     single: &Arc<Single>,

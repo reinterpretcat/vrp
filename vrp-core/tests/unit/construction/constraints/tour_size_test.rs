@@ -42,7 +42,7 @@ fn can_limit_by_job_activities_impl(
         (0..activities).map(|idx| test_activity_with_location(idx as Location)).collect(),
     );
 
-    let result = create_constraint_pipeline_with_module(Box::new(TourSizeModule::new(Arc::new(move |_| limit), 1)))
+    let result = create_constraint_pipeline_with_module(Arc::new(TourSizeModule::new(Arc::new(move |_| limit), 1)))
         .evaluate_hard_route(&create_empty_solution_context(), &route_ctx, &job);
 
     assert_eq!(result, expected);

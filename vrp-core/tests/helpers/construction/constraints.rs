@@ -17,14 +17,14 @@ pub fn create_simple_demand(size: i32) -> Demand<SingleDimLoad> {
     }
 }
 
-pub fn create_constraint_pipeline_with_module(module: Box<dyn ConstraintModule + Send + Sync>) -> ConstraintPipeline {
+pub fn create_constraint_pipeline_with_module(module: Arc<dyn ConstraintModule + Send + Sync>) -> ConstraintPipeline {
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(module);
     constraint
 }
 
 pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
-    create_constraint_pipeline_with_module(Box::new(TransportConstraintModule::new(
+    create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
         TestTransportCost::new_shared(),
         Arc::new(TestActivityCost::default()),
         Arc::new(|_| (None, None)),
@@ -35,7 +35,7 @@ pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
 }
 
 pub fn create_constraint_pipeline_with_simple_capacity() -> ConstraintPipeline {
-    create_constraint_pipeline_with_module(Box::new(CapacityConstraintModule::<SingleDimLoad>::new(
+    create_constraint_pipeline_with_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(
         TestTransportCost::new_shared(),
         2,
     )))

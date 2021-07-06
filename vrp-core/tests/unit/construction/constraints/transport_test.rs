@@ -357,7 +357,7 @@ mod traveling {
             Arc::new(create_route_with_activities(&fleet, vehicle, vec![])),
             Arc::new(state),
         );
-        let pipeline = create_constraint_pipeline_with_module(Box::new(TransportConstraintModule::new(
+        let pipeline = create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
             TestTransportCost::new_shared(),
             Arc::new(TestActivityCost::default()),
             Arc::new(

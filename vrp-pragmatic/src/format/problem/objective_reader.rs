@@ -28,11 +28,11 @@ pub fn create_objective(
                         MinimizeDistance => core_objectives.push(TotalDistance::minimize()),
                         MinimizeDuration => core_objectives.push(TotalDuration::minimize()),
                         MinimizeTours => {
-                            constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
+                            constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
                             core_objectives.push(Box::new(TotalRoutes::new_minimized()))
                         }
                         MaximizeTours => {
-                            constraint.add_module(Box::new(FleetUsageConstraintModule::new_maximized()));
+                            constraint.add_module(Arc::new(FleetUsageConstraintModule::new_maximized()));
                             core_objectives.push(Box::new(TotalRoutes::new_maximized()))
                         }
                         MaximizeValue { reduction_factor } => {
@@ -100,7 +100,7 @@ pub fn create_objective(
             let (value_module, value_objective) = get_value(max_value);
 
             constraint.add_module(value_module);
-            constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
+            constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
 
             let mut objectives = vec![
                 vec![value_objective],
@@ -137,7 +137,7 @@ pub fn create_objective(
             ObjectiveCost::new(objectives)
         }
         _ => {
-            constraint.add_module(Box::new(FleetUsageConstraintModule::new_minimized()));
+            constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
             ObjectiveCost::default()
         }
     })

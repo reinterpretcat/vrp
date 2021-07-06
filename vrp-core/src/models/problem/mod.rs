@@ -3,6 +3,7 @@
 use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::ConstraintModule;
 use crate::construction::heuristics::InsertionContext;
+use std::sync::Arc;
 
 mod costs;
 pub use self::costs::*;
@@ -17,4 +18,4 @@ pub use self::fleet::*;
 pub type TargetObjective = Box<dyn Objective<Solution = InsertionContext> + Send + Sync>;
 
 /// An actual constraint.
-pub type TargetConstraint = Box<dyn ConstraintModule + Send + Sync>;
+pub type TargetConstraint = Arc<dyn ConstraintModule + Send + Sync>;

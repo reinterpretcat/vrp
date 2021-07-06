@@ -60,11 +60,11 @@ impl SoftActivityConstraint for TestSoftActivityConstraint {
 #[test]
 fn can_evaluate_hard_activity_constraints() {
     let mut pipeline = ConstraintPipeline::default();
-    pipeline.add_module(Box::new(TestConstraintModule {
+    pipeline.add_module(Arc::new(TestConstraintModule {
         state_keys: vec![1, 2],
         constraints: vec![ConstraintVariant::HardActivity(Arc::new(TestHardActivityConstraint { violation: None }))],
     }));
-    pipeline.add_module(Box::new(TestConstraintModule {
+    pipeline.add_module(Arc::new(TestConstraintModule {
         state_keys: vec![3, 4],
         constraints: vec![ConstraintVariant::HardActivity(Arc::new(TestHardActivityConstraint {
             violation: Some(ActivityConstraintViolation { code: 5, stopped: true }),
@@ -90,11 +90,11 @@ fn can_evaluate_hard_activity_constraints() {
 #[test]
 fn can_estimate_hard_activity_constraints() {
     let mut pipeline = ConstraintPipeline::default();
-    pipeline.add_module(Box::new(TestConstraintModule {
+    pipeline.add_module(Arc::new(TestConstraintModule {
         state_keys: vec![1, 2],
         constraints: vec![ConstraintVariant::SoftActivity(Arc::new(TestSoftActivityConstraint { cost: 5.0 }))],
     }));
-    pipeline.add_module(Box::new(TestConstraintModule {
+    pipeline.add_module(Arc::new(TestConstraintModule {
         state_keys: vec![3, 4],
         constraints: vec![ConstraintVariant::SoftActivity(Arc::new(TestSoftActivityConstraint { cost: 7.0 }))],
     }));

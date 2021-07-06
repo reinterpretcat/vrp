@@ -38,7 +38,7 @@ impl GenericValue {
             solution_value_func,
         };
 
-        (Box::new(constraint), Box::new(objective))
+        (Arc::new(constraint), Box::new(objective))
     }
 }
 

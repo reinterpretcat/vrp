@@ -18,7 +18,7 @@ fn create_fleet(areas: Vec<Area>) -> Fleet {
 }
 
 fn create_area_constraint_pipeline() -> ConstraintPipeline {
-    create_constraint_pipeline_with_module(Box::new(AreaModule::new(
+    create_constraint_pipeline_with_module(Arc::new(AreaModule::new(
         Arc::new(move |actor| actor.vehicle.dimens.get_value::<Vec<Area>>("areas")),
         Arc::new(|location| (location as f64, 0.)),
         2,
