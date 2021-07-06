@@ -148,6 +148,7 @@ pub struct RefinementContext {
 }
 
 /// A refinement statistics to track evolution progress.
+#[derive(Clone)]
 pub struct Statistics {
     /// A number which specifies refinement generation.
     pub generation: usize,

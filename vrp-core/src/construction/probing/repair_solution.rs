@@ -14,9 +14,11 @@ use std::sync::Arc;
 
 /// Repairs a feasible solution from another, potentially infeasible.
 #[allow(clippy::needless_collect)]
-pub fn repair_solution_from_unknown(insertion_ctx: &InsertionContext) -> InsertionContext {
-    // TODO handle relations
-    let mut new_insertion_ctx = InsertionContext::new(insertion_ctx.problem.clone(), insertion_ctx.environment.clone());
+pub fn repair_solution_from_unknown(
+    insertion_ctx: &InsertionContext,
+    factory: &(dyn Fn() -> InsertionContext),
+) -> InsertionContext {
+    let mut new_insertion_ctx = factory();
     new_insertion_ctx
         .solution
         .unassigned

@@ -24,6 +24,9 @@ pub(crate) use self::utils::*;
 mod decompose_search;
 pub use self::decompose_search::DecomposeSearch;
 
+mod infeasible_search;
+pub use self::infeasible_search::InfeasibleSearch;
+
 mod local_search;
 pub use self::local_search::LocalSearch;
 
