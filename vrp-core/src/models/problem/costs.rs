@@ -8,8 +8,9 @@ use crate::models::common::*;
 use crate::models::problem::{Actor, TargetObjective};
 use crate::models::solution::Activity;
 use crate::solver::objectives::{TotalCost, TotalRoutes, TotalUnassignedJobs};
-use crate::utils::{unwrap_from_result, CollectGroupBy};
+use crate::utils::{unwrap_from_result, CollectGroupBy, Random};
 use hashbrown::HashMap;
+use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
@@ -21,6 +22,15 @@ pub struct ObjectiveCost {
 impl ObjectiveCost {
     /// Creates an instance of `ObjectiveCost`.
     pub fn new(objectives: Vec<Vec<TargetObjective>>) -> Self {
+        Self { objectives }
+    }
+
+    /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
+    pub fn shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
+        let mut objectives = self.objectives.clone();
+
+        objectives.shuffle(&mut random.get_rng());
+
         Self { objectives }
     }
 }

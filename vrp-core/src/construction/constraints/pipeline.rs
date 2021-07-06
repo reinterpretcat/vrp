@@ -200,6 +200,16 @@ impl ConstraintPipeline {
     pub fn evaluate_soft_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Cost {
         self.soft_activity_constraints.iter().map(|c| c.estimate_activity(route_ctx, activity_ctx)).sum()
     }
+
+    /// Iterates over all registered modules.
+    pub fn iterate_modules(&self) -> impl Iterator<Item = ConstraintVariant> + '_ {
+        self.hard_route_constraints
+            .iter()
+            .map(|c| ConstraintVariant::HardRoute(c.clone()))
+            .chain(self.hard_activity_constraints.iter().map(|c| ConstraintVariant::HardActivity(c.clone())))
+            .chain(self.soft_route_constraints.iter().map(|c| ConstraintVariant::SoftRoute(c.clone())))
+            .chain(self.soft_activity_constraints.iter().map(|c| ConstraintVariant::SoftActivity(c.clone())))
+    }
 }
 
 impl PartialEq<RouteConstraintViolation> for RouteConstraintViolation {
