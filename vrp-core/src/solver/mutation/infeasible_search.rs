@@ -1,3 +1,4 @@
+use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::construction::probing::repair_solution_from_unknown;
@@ -7,6 +8,7 @@ use crate::solver::mutation::Mutation;
 use crate::solver::population::Elitism;
 use crate::solver::RefinementContext;
 use crate::utils::Random;
+use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// A mutation operator which performs search in infeasible space.
@@ -43,12 +45,7 @@ impl Mutation for InfeasibleSearch {
             let new_insertion_ctx = if let Some(initial) = initial {
                 self.inner_mutation.mutate(&new_refinement_ctx, &initial)
             } else {
-                let size = new_refinement_ctx.population.size();
-                let skip = insertion_ctx.environment.random.uniform_int(0, size as i32 - 1) as usize;
-                let new_insertion_ctx =
-                    new_refinement_ctx.population.select().skip(skip).next().expect("no individual");
-
-                self.inner_mutation.mutate(&new_refinement_ctx, &new_insertion_ctx)
+                self.inner_mutation.mutate(&new_refinement_ctx, get_random_individual(&new_refinement_ctx))
             };
 
             new_refinement_ctx.population.add(new_insertion_ctx);
@@ -56,7 +53,7 @@ impl Mutation for InfeasibleSearch {
             None
         });
 
-        let new_insertion_ctx = new_refinement_ctx.population.select().next().expect("no individual");
+        let new_insertion_ctx = get_best_or_random_individual(&new_refinement_ctx, insertion_ctx);
 
         repair_solution_from_unknown(new_insertion_ctx, &|| {
             InsertionContext::new(insertion_ctx.problem.clone(), insertion_ctx.environment.clone())
@@ -136,6 +133,26 @@ fn create_wrapped_constraint(
         ))),
         _ => constraint,
     })
+}
+
+fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {
+    let size = new_refinement_ctx.population.size();
+    let skip = new_refinement_ctx.environment.random.uniform_int(0, size as i32 - 1) as usize;
+
+    new_refinement_ctx.population.select().skip(skip).next().expect("no individual")
+}
+
+fn get_best_or_random_individual<'a>(
+    new_refinement_ctx: &'a RefinementContext,
+    old_insertion_ctx: &InsertionContext,
+) -> &'a InsertionContext {
+    let new_insertion_ctx = new_refinement_ctx.population.select().next().expect("no individual");
+
+    if new_refinement_ctx.problem.objective.total_order(new_insertion_ctx, old_insertion_ctx) == Ordering::Less {
+        new_insertion_ctx
+    } else {
+        get_random_individual(new_refinement_ctx)
+    }
 }
 
 struct StochasticHardConstraint {
