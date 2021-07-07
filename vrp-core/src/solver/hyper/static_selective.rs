@@ -66,7 +66,7 @@ impl StaticSelective {
             (default_mutation.clone(), create_scalar_mutation_probability(1., environment.random.clone())),
             (local_search, create_scalar_mutation_probability(0.05, environment.random.clone())),
             (
-                Arc::new(InfeasibleSearch::new(default_mutation, 2, 0.1, 0.05)),
+                Arc::new(InfeasibleSearch::new(default_mutation, 4, (0.05, 0.2), (0.25, 0.9))),
                 create_scalar_mutation_probability(0.01, environment.random.clone()),
             ),
         ])

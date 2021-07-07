@@ -1,13 +1,10 @@
-use crate::construction::constraints::{
-    ActivityConstraintViolation, ConstraintPipeline, ConstraintVariant, HardActivityConstraint, HardRouteConstraint,
-    RouteConstraintViolation,
-};
-use crate::construction::heuristics::{ActivityContext, InsertionContext, RouteContext, SolutionContext};
+use crate::construction::constraints::*;
+use crate::construction::heuristics::*;
 use crate::construction::probing::repair_solution_from_unknown;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::mutation::Mutation;
-use crate::solver::population::Greedy;
+use crate::solver::population::Elitism;
 use crate::solver::RefinementContext;
 use crate::utils::Random;
 use std::sync::Arc;
@@ -16,8 +13,8 @@ use std::sync::Arc;
 pub struct InfeasibleSearch {
     inner_mutation: Arc<dyn Mutation + Send + Sync>,
     repeat_count: usize,
-    shuffle_objectives_probability: f64,
-    skip_constraint_check_probability: f64,
+    shuffle_objectives_probability: (f64, f64),
+    skip_constraint_check_probability: (f64, f64),
 }
 
 impl InfeasibleSearch {
@@ -25,8 +22,8 @@ impl InfeasibleSearch {
     pub fn new(
         inner_mutation: Arc<dyn Mutation + Send + Sync>,
         repeat_count: usize,
-        shuffle_objectives_probability: f64,
-        skip_constraint_check_probability: f64,
+        shuffle_objectives_probability: (f64, f64),
+        skip_constraint_check_probability: (f64, f64),
     ) -> Self {
         Self { inner_mutation, repeat_count, shuffle_objectives_probability, skip_constraint_check_probability }
     }
@@ -39,12 +36,24 @@ impl Mutation for InfeasibleSearch {
             self.shuffle_objectives_probability,
             self.skip_constraint_check_probability,
         );
-        let mut new_refinement_ctx = create_relaxed_refinement_ctx(refinement_ctx, new_insertion_ctx);
+        let mut new_refinement_ctx = create_relaxed_refinement_ctx(refinement_ctx);
 
-        (0..self.repeat_count).for_each(|_| {
-            let new_insertion_ctx = new_refinement_ctx.population.select().next().expect("no individual");
-            let new_insertion_ctx = self.inner_mutation.mutate(&new_refinement_ctx, &new_insertion_ctx);
+        (0..self.repeat_count).fold(Some(new_insertion_ctx), |initial, _| {
+            // NOTE from diversity reasons, we don't want to see original solution in population
+            let new_insertion_ctx = if let Some(initial) = initial {
+                self.inner_mutation.mutate(&new_refinement_ctx, &initial)
+            } else {
+                let size = new_refinement_ctx.population.size();
+                let skip = insertion_ctx.environment.random.uniform_int(0, size as i32 - 1) as usize;
+                let new_insertion_ctx =
+                    new_refinement_ctx.population.select().skip(skip).next().expect("no individual");
+
+                self.inner_mutation.mutate(&new_refinement_ctx, &new_insertion_ctx)
+            };
+
             new_refinement_ctx.population.add(new_insertion_ctx);
+
+            None
         });
 
         let new_insertion_ctx = new_refinement_ctx.population.select().next().expect("no individual");
@@ -55,13 +64,13 @@ impl Mutation for InfeasibleSearch {
     }
 }
 
-fn create_relaxed_refinement_ctx(
-    refinement_ctx: &RefinementContext,
-    new_insertion_ctx: InsertionContext,
-) -> RefinementContext {
+fn create_relaxed_refinement_ctx(refinement_ctx: &RefinementContext) -> RefinementContext {
+    let problem = refinement_ctx.problem.clone();
+    let population = Box::new(Elitism::new(problem.clone(), refinement_ctx.environment.random.clone(), 4, 4));
+
     RefinementContext {
-        problem: new_insertion_ctx.problem.clone(),
-        population: Box::new(Greedy::new(new_insertion_ctx.problem.clone(), 1, Some(new_insertion_ctx))),
+        problem,
+        population,
         state: Default::default(),
         quota: refinement_ctx.quota.clone(),
         environment: refinement_ctx.environment.clone(),
@@ -71,23 +80,22 @@ fn create_relaxed_refinement_ctx(
 
 fn create_relaxed_insertion_ctx(
     insertion_ctx: &InsertionContext,
-    shuffle_objectives_probability: f64,
-    skip_constraint_check_probability: f64,
+    shuffle_objectives_probability: (f64, f64),
+    skip_constraint_check_probability: (f64, f64),
 ) -> InsertionContext {
     let problem = &insertion_ctx.problem;
     let random = &insertion_ctx.environment.random;
 
-    let constraint = if random.is_hit(skip_constraint_check_probability) {
-        Arc::new(create_wrapped_constraint(
-            problem.constraint.as_ref(),
-            random.clone(),
-            skip_constraint_check_probability,
-        ))
+    let shuffle_prob = random.uniform_real(shuffle_objectives_probability.0, shuffle_objectives_probability.1);
+    let skip_prob = random.uniform_real(skip_constraint_check_probability.0, skip_constraint_check_probability.1);
+
+    let constraint = if random.is_hit(skip_prob) {
+        Arc::new(create_wrapped_constraint(problem.constraint.as_ref(), random.clone(), skip_prob))
     } else {
         problem.constraint.clone()
     };
 
-    let objective = if random.is_hit(shuffle_objectives_probability) {
+    let objective = if random.is_hit(shuffle_prob) {
         Arc::new(problem.objective.shuffled(random.as_ref()))
     } else {
         problem.objective.clone()
