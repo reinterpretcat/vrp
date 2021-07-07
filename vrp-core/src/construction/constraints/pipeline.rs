@@ -158,12 +158,7 @@ impl ConstraintPipeline {
             self.state_keys.insert(*key);
         });
 
-        module.get_constraints().for_each(|c| match c {
-            ConstraintVariant::HardRoute(c) => self.hard_route_constraints.push(c.clone()),
-            ConstraintVariant::HardActivity(c) => self.hard_activity_constraints.push(c.clone()),
-            ConstraintVariant::SoftRoute(c) => self.soft_route_constraints.push(c.clone()),
-            ConstraintVariant::SoftActivity(c) => self.soft_activity_constraints.push(c.clone()),
-        });
+        module.get_constraints().for_each(|constraint| Self::add_constraint(self, constraint));
 
         self.modules.push(module);
 
@@ -201,14 +196,37 @@ impl ConstraintPipeline {
         self.soft_activity_constraints.iter().map(|c| c.estimate_activity(route_ctx, activity_ctx)).sum()
     }
 
-    /// Iterates over all registered modules.
-    pub fn iterate_modules(&self) -> impl Iterator<Item = ConstraintVariant> + '_ {
+    pub fn copy_with_modifier(&self, modifier: &(dyn Fn(ConstraintVariant) -> ConstraintVariant)) -> Self {
+        let mut new_constraint = Self {
+            modules: self.modules.clone(),
+            state_keys: self.state_keys.clone(),
+            hard_route_constraints: vec![],
+            hard_activity_constraints: vec![],
+            soft_route_constraints: vec![],
+            soft_activity_constraints: vec![],
+        };
+
         self.hard_route_constraints
             .iter()
             .map(|c| ConstraintVariant::HardRoute(c.clone()))
             .chain(self.hard_activity_constraints.iter().map(|c| ConstraintVariant::HardActivity(c.clone())))
             .chain(self.soft_route_constraints.iter().map(|c| ConstraintVariant::SoftRoute(c.clone())))
             .chain(self.soft_activity_constraints.iter().map(|c| ConstraintVariant::SoftActivity(c.clone())))
+            .for_each(|constraint| {
+                let constraint = modifier(constraint);
+                Self::add_constraint(&mut new_constraint, &constraint);
+            });
+
+        new_constraint
+    }
+
+    fn add_constraint(pipeline: &mut Self, constraint: &ConstraintVariant) {
+        match constraint {
+            ConstraintVariant::HardRoute(c) => pipeline.hard_route_constraints.push(c.clone()),
+            ConstraintVariant::HardActivity(c) => pipeline.hard_activity_constraints.push(c.clone()),
+            ConstraintVariant::SoftRoute(c) => pipeline.soft_route_constraints.push(c.clone()),
+            ConstraintVariant::SoftActivity(c) => pipeline.soft_activity_constraints.push(c.clone()),
+        }
     }
 }
 
