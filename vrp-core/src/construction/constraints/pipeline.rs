@@ -196,6 +196,7 @@ impl ConstraintPipeline {
         self.soft_activity_constraints.iter().map(|c| c.estimate_activity(route_ctx, activity_ctx)).sum()
     }
 
+    /// Creates a copy of the constraint pipeline allowing external modifications in constraints.
     pub fn copy_with_modifier(&self, modifier: &(dyn Fn(ConstraintVariant) -> ConstraintVariant)) -> Self {
         let mut new_constraint = Self {
             modules: self.modules.clone(),

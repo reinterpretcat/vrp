@@ -20,6 +20,18 @@ pub struct InfeasibleSearch {
     skip_constraint_check_probability: f64,
 }
 
+impl InfeasibleSearch {
+    /// Creates a new instance of `InfeasibleSearch`.
+    pub fn new(
+        inner_mutation: Arc<dyn Mutation + Send + Sync>,
+        repeat_count: usize,
+        shuffle_objectives_probability: f64,
+        skip_constraint_check_probability: f64,
+    ) -> Self {
+        Self { inner_mutation, repeat_count, shuffle_objectives_probability, skip_constraint_check_probability }
+    }
+}
+
 impl Mutation for InfeasibleSearch {
     fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
         let new_insertion_ctx = create_relaxed_insertion_ctx(
