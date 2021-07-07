@@ -55,6 +55,8 @@ pub fn repair_solution_from_unknown(
 
     new_insertion_ctx.restore();
 
+    finalize_insertion_ctx(&mut new_insertion_ctx);
+
     new_insertion_ctx
 }
 
