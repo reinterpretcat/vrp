@@ -25,6 +25,8 @@ pub fn repair_solution_from_unknown(
         .extend(insertion_ctx.solution.unassigned.iter().map(|(k, v)| (k.clone(), *v)));
     new_insertion_ctx.solution.locked.extend(insertion_ctx.solution.locked.iter().cloned());
 
+    prepare_insertion_ctx(&mut new_insertion_ctx);
+
     let mut assigned_jobs = get_assigned_jobs(&new_insertion_ctx);
     let constraint = new_insertion_ctx.problem.constraint.clone();
 
