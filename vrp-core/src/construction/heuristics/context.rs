@@ -422,6 +422,11 @@ impl RegistryContext {
         self.registry.next().map(move |actor| self.index[&actor].clone())
     }
 
+    /// Returns route for given actor if it is available.
+    pub fn next_with_actor(&self, actor: &Actor) -> Option<RouteContext> {
+        self.registry.available().find(|a| actor == a.as_ref()).and_then(|a| self.index.get(&a).cloned())
+    }
+
     /// Sets this route as used.
     /// Returns whether the route was already marked as used in the registry.
     pub fn use_route(&mut self, route: &RouteContext) -> bool {

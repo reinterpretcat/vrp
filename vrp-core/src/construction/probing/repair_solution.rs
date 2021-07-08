@@ -69,7 +69,9 @@ fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &R
     {
         idx
     } else {
-        let mut new_route_ctx = RouteContext::new(route_ctx.route.actor.clone());
+        let mut new_route_ctx =
+            new_insertion_ctx.solution.registry.next_with_actor(route_ctx.route.actor.as_ref()).unwrap();
+
         new_insertion_ctx.solution.registry.use_route(&new_route_ctx);
 
         // check and set a valid departure shift
