@@ -48,16 +48,9 @@ pub fn repair_solution_from_unknown(
             unassign_invalid_multi_jobs(&mut new_insertion_ctx, route_idx, synchronized)
         })
         .flatten()
-        .collect::<Vec<_>>();
+        .collect::<HashSet<_>>();
 
-    new_insertion_ctx
-        .solution
-        .unassigned
-        .extend(unassigned.into_iter().chain(insertion_ctx.solution.required.iter().cloned()).map(|job| (job, -1)));
-
-    new_insertion_ctx.restore();
-
-    finalize_insertion_ctx(&mut new_insertion_ctx);
+    finalize_synchronization(&mut new_insertion_ctx, insertion_ctx, unassigned);
 
     new_insertion_ctx
 }
@@ -115,21 +108,19 @@ fn synchronize_jobs(
             let is_already_processed = synchronized_jobs.contains_key(&job) && job.as_single().is_some();
 
             if !is_already_processed {
-                let new_route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
-
                 let insertion_result = evaluate_single_constraint_in_route(
                     &job,
                     single,
                     &constraint,
                     new_insertion_ctx,
-                    new_route_ctx,
+                    new_insertion_ctx.solution.routes.get(route_idx).unwrap(),
                     position,
                     0.,
                     None,
                     &result_selector,
                 );
 
-                if add_single_job(insertion_result, &constraint) {
+                if add_single_job(new_insertion_ctx, route_idx, insertion_result, &constraint) {
                     synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
                 }
             }
@@ -138,14 +129,31 @@ fn synchronize_jobs(
         })
 }
 
-fn add_single_job(insertion_result: InsertionResult, constraint: &ConstraintPipeline) -> bool {
+fn add_single_job(
+    new_insertion_ctx: &mut InsertionContext,
+    route_idx: usize,
+    insertion_result: InsertionResult,
+    constraint: &ConstraintPipeline,
+) -> bool {
     if let InsertionResult::Success(success) = insertion_result {
         let mut route_ctx = success.context;
         let route = route_ctx.route_mut();
+        assert_eq!(success.activities.len(), 1);
         success.activities.into_iter().for_each(|(activity, index)| {
             route.tour.insert_at(activity, index + 1);
         });
-        constraint.accept_route_state(&mut route_ctx);
+
+        let total_job_activities = match &success.job {
+            Job::Single(_) => 1,
+            Job::Multi(multi) => multi.jobs.len(),
+        };
+
+        if route.tour.job_activities(&success.job).count() == total_job_activities {
+            constraint.accept_insertion(&mut new_insertion_ctx.solution, route_idx, &success.job);
+        } else {
+            constraint.accept_route_state(new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap());
+        }
+
         true
     } else {
         false
@@ -207,4 +215,28 @@ fn compare_singles(multi: &Multi, singles: &[Arc<Single>]) -> bool {
         singles.iter().filter_map(|single| job_map.get(&Job::Single(single.clone())).cloned()).collect::<Vec<_>>();
 
     multi.validate(permutation.as_slice())
+}
+
+fn finalize_synchronization(
+    new_insertion_ctx: &mut InsertionContext,
+    insertion_ctx: &InsertionContext,
+    unassigned: HashSet<Job>,
+) {
+    let assigned = new_insertion_ctx
+        .solution
+        .routes
+        .iter()
+        .flat_map(|route_ctx| route_ctx.route.tour.jobs())
+        .collect::<HashSet<_>>();
+
+    new_insertion_ctx
+        .solution
+        .unassigned
+        .extend(unassigned.into_iter().chain(insertion_ctx.solution.required.iter().cloned()).map(|job| (job, -1)));
+
+    new_insertion_ctx.solution.required.retain(|j| !assigned.contains(j));
+
+    new_insertion_ctx.restore();
+
+    finalize_insertion_ctx(new_insertion_ctx);
 }
