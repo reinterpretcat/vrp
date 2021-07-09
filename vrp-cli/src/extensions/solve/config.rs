@@ -79,6 +79,8 @@ pub enum PopulationType {
         spread_factor: Option<f64>,
         /// Distribution factor. Default is 0.25.
         distribution_factor: Option<f64>,
+        /// Objective reshuffling. Default is 0.05.
+        objective_reshuffling: Option<f64>,
         /// Learning rate. Default is 0.1.
         learning_rate: Option<f64>,
         /// A rebalance memory. Default is 500.
@@ -449,6 +451,7 @@ fn configure_from_evolution(
                     max_node_size,
                     spread_factor,
                     distribution_factor,
+                    objective_reshuffling,
                     learning_rate,
                     selection_size,
                     rebalance_memory,
@@ -470,6 +473,9 @@ fn configure_from_evolution(
                     }
                     if let Some(distribution_factor) = distribution_factor {
                         config.distribution_factor = *distribution_factor;
+                    }
+                    if let Some(objective_reshuffling) = objective_reshuffling {
+                        config.objective_reshuffling = *objective_reshuffling;
                     }
                     if let Some(learning_rate) = learning_rate {
                         config.learning_rate = *learning_rate;

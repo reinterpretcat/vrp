@@ -27,6 +27,8 @@ pub struct RosomaxaConfig {
     pub spread_factor: f64,
     /// Distribution factor of GSOM.
     pub distribution_factor: f64,
+    /// Objective reshuffling probability.
+    pub objective_reshuffling: f64,
     /// Learning rate of GSOM.
     pub learning_rate: f64,
     /// A node rebalance memory of GSOM.
@@ -47,6 +49,7 @@ impl RosomaxaConfig {
             node_size: 2,
             spread_factor: 0.25,
             distribution_factor: 0.25,
+            objective_reshuffling: 0.05,
             learning_rate: 0.1,
             rebalance_memory: 100,
             rebalance_count: 2,
@@ -343,10 +346,12 @@ impl Rosomaxa {
             },
             Box::new({
                 let node_size = config.node_size;
+                let reshuffling_probability = config.objective_reshuffling;
                 let random = environment.random.clone();
+
                 move || {
                     let mut elitism = Elitism::new(problem.clone(), random.clone(), node_size, node_size);
-                    if random.is_hit(0.05) {
+                    if random.is_hit(reshuffling_probability) {
                         elitism.shuffle_objective();
                     }
                     IndividualStorage { population: Arc::new(elitism) }
