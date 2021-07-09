@@ -10,11 +10,11 @@ fn create_random() -> Arc<dyn Random + Send + Sync> {
 }
 
 fn get_best_fitness(population: &Elitism) -> f64 {
-    population.problem.objective.fitness(population.ranked().next().unwrap().0)
+    population.objective.fitness(population.ranked().next().unwrap().0)
 }
 
 fn get_all_fitness(population: &Elitism) -> Vec<f64> {
-    population.ranked().map(|(individual, _)| population.problem.objective.fitness(individual)).collect()
+    population.ranked().map(|(individual, _)| population.objective.fitness(individual)).collect()
 }
 
 #[test]

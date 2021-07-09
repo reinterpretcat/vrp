@@ -4,6 +4,7 @@ mod elitism_test;
 
 use super::*;
 use crate::algorithms::nsga2::{select_and_rank, Objective};
+use crate::models::problem::ObjectiveCost;
 use crate::models::Problem;
 use crate::solver::{Population, Statistics, SOLUTION_ORDER_KEY};
 use crate::utils::Random;
@@ -23,7 +24,7 @@ use std::sync::Arc;
 /// [`NSGA-II`]: ../algorithms/nsga2/index.html
 ///
 pub struct Elitism {
-    problem: Arc<Problem>,
+    objective: Arc<ObjectiveCost>,
     random: Arc<dyn Random + Send + Sync>,
     selection_size: usize,
     max_population_size: usize,
@@ -69,7 +70,7 @@ impl Population for Elitism {
     fn on_generation(&mut self, _: &Statistics) {}
 
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
-        self.problem.objective.total_order(a, b)
+        self.objective.total_order(a, b)
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
@@ -114,7 +115,12 @@ impl Elitism {
     ) -> Self {
         assert!(max_population_size > 0);
 
-        Self { problem, random, selection_size, max_population_size, individuals: vec![] }
+        Self { objective: problem.objective.clone(), random, selection_size, max_population_size, individuals: vec![] }
+    }
+
+    /// Shuffles objective function.
+    pub fn shuffle_objective(&mut self) {
+        self.objective = Arc::new(self.objective.shuffled(self.random.as_ref()))
     }
 
     /// Extracts all individuals from population.
@@ -126,7 +132,7 @@ impl Elitism {
     }
 
     fn sort(&mut self) {
-        let objective = self.problem.objective.clone();
+        let objective = self.objective.clone();
 
         // get best order
         let best_order = select_and_rank(self.individuals.as_slice(), self.individuals.len(), objective.as_ref())

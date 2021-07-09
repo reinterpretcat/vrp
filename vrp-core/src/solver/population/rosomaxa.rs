@@ -344,8 +344,12 @@ impl Rosomaxa {
             Box::new({
                 let node_size = config.node_size;
                 let random = environment.random.clone();
-                move || IndividualStorage {
-                    population: Arc::new(Elitism::new(problem.clone(), random.clone(), node_size, node_size)),
+                move || {
+                    let mut elitism = Elitism::new(problem.clone(), random.clone(), node_size, node_size);
+                    if random.is_hit(0.05) {
+                        elitism.shuffle_objective();
+                    }
+                    IndividualStorage { population: Arc::new(elitism) }
                 }
             }),
         )
