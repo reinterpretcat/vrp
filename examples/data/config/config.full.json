@@ -359,6 +359,7 @@
     "parallelism": {
       "numThreadPools": 6,
       "threadsPerPool": 8
-    }
+    },
+    "is_experimental": false
   }
 }

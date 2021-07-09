@@ -112,7 +112,10 @@ fn can_read_full_config() {
     assert_eq!(termination.max_time, Some(300));
     assert_eq!(termination.max_generations, Some(3000));
 
-    let parallelism = config.environment.expect("no environment config").parallelism.expect("no parallelism config");
+    let environment = config.environment.expect("no environment config");
+    assert_eq!(environment.is_experimental, Some(false));
+
+    let parallelism = environment.parallelism.expect("no parallelism config");
     assert_eq!(parallelism.num_thread_pools, 6);
     assert_eq!(parallelism.threads_per_pool, 8);
 }
@@ -133,6 +136,7 @@ fn can_create_builder_from_config() {
     assert_eq!(builder.config.population.initial.methods.len(), 7);
     assert_eq!(builder.max_time, Some(300));
     assert_eq!(builder.max_generations, Some(3000));
+    assert_eq!(builder.config.environment.is_experimental, false);
 }
 
 #[test]

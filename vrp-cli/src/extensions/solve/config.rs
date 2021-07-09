@@ -373,6 +373,9 @@ pub struct MetricsConfig {
 pub struct EnvironmentConfig {
     /// Specifies a data parallelism configuration.
     pub parallelism: Option<ParallelismConfig>,
+
+    /// Specifies experimental behavior flag.
+    pub is_experimental: Option<bool>,
 }
 
 /// Data parallelism configuration.
@@ -745,6 +748,10 @@ fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) ->
     // TODO validate parameters
     if let Some(config) = environment_config.as_ref().and_then(|c| c.parallelism.as_ref()) {
         environment.parallelism = Parallelism::new(config.num_thread_pools, config.threads_per_pool);
+    }
+
+    if let Some(is_experimental) = environment_config.as_ref().and_then(|c| c.is_experimental) {
+        environment.is_experimental = is_experimental;
     }
 
     Arc::new(environment)

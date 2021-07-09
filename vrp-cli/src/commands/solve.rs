@@ -35,6 +35,7 @@ const CHECK_ARG_NAME: &str = "check";
 const SEARCH_MODE_ARG_NAME: &str = "search-mode";
 const PARALELLISM_ARG_NAME: &str = "parallelism";
 const HEURISTIC_ARG_NAME: &str = "heuristic";
+const EXPERIMENTAL_ARG_NAME: &str = "experimental";
 
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
@@ -278,6 +279,13 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .possible_values(&["default", "dynamic", "static"])
                 .default_value("default"),
         )
+        .arg(
+            Arg::with_name(EXPERIMENTAL_ARG_NAME)
+                .help("Specifies whether experimental (unstable) features are enabled.")
+                .long(EXPERIMENTAL_ARG_NAME)
+                .required(false)
+                .takes_value(false),
+        )
 }
 
 /// Runs solver commands.
@@ -307,8 +315,8 @@ pub fn run_solve(
     } else {
         TelemetryMode::None
     });
-    let is_check_requested = matches.is_present(CHECK_ARG_NAME);
 
+    let is_check_requested = matches.is_present(CHECK_ARG_NAME);
     let min_cv = get_min_cv(matches)?;
     let init_solution = matches.value_of(INIT_SOLUTION_ARG_NAME).map(|path| open_file(path, "init solution"));
     let init_size = get_init_size(matches)?;
@@ -418,7 +426,9 @@ fn get_environment(matches: &ArgMatches) -> Result<Arc<Environment>, String> {
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
             {
                 let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
-                Ok(Arc::new(Environment::new(Arc::new(DefaultRandom::default()), parallelism)))
+                let is_experimental = matches.is_present(EXPERIMENTAL_ARG_NAME);
+
+                Ok(Arc::new(Environment::new(Arc::new(DefaultRandom::default()), parallelism, is_experimental)))
             } else {
                 Err("cannot parse parallelism parameter".to_string())
             }

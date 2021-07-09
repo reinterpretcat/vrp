@@ -11,18 +11,21 @@ pub struct Environment {
 
     /// Keeps data parallelism settings.
     pub parallelism: Parallelism,
+
+    /// A boolean flag which signalizes that experimental behavior is allowed.
+    pub is_experimental: bool,
 }
 
 impl Environment {
     /// Creates an instance of `Environment`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>, parallelism: Parallelism) -> Self {
-        Self { random, parallelism }
+    pub fn new(random: Arc<dyn Random + Send + Sync>, parallelism: Parallelism, is_experimental: bool) -> Self {
+        Self { random, parallelism, is_experimental }
     }
 }
 
 impl Default for Environment {
     fn default() -> Self {
-        Environment::new(Arc::new(DefaultRandom::default()), Parallelism::default())
+        Environment::new(Arc::new(DefaultRandom::default()), Parallelism::default(), false)
     }
 }
 
