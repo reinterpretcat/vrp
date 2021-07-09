@@ -120,35 +120,14 @@ fn synchronize_jobs(
                     &result_selector,
                 );
 
-                if add_single_job(new_insertion_ctx, route_idx, insertion_result, &constraint) {
+                if let InsertionResult::Success(_) = &insertion_result {
+                    apply_insertion_result(new_insertion_ctx, insertion_result);
                     synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
                 }
             }
 
             synchronized_jobs
         })
-}
-
-fn add_single_job(
-    new_insertion_ctx: &mut InsertionContext,
-    route_idx: usize,
-    insertion_result: InsertionResult,
-    constraint: &ConstraintPipeline,
-) -> bool {
-    if let InsertionResult::Success(success) = insertion_result {
-        let mut route_ctx = success.context;
-        let route = route_ctx.route_mut();
-        assert_eq!(success.activities.len(), 1);
-        success.activities.into_iter().for_each(|(activity, index)| {
-            route.tour.insert_at(activity, index + 1);
-        });
-
-        constraint.accept_insertion(&mut new_insertion_ctx.solution, route_idx, &success.job);
-
-        true
-    } else {
-        false
-    }
 }
 
 fn is_activity_to_single_match(activity: &Activity, single: &Single) -> bool {
@@ -213,19 +192,10 @@ fn finalize_synchronization(
     insertion_ctx: &InsertionContext,
     unassigned: HashSet<Job>,
 ) {
-    let assigned = new_insertion_ctx
-        .solution
-        .routes
-        .iter()
-        .flat_map(|route_ctx| route_ctx.route.tour.jobs())
-        .collect::<HashSet<_>>();
-
     new_insertion_ctx
         .solution
         .unassigned
         .extend(unassigned.into_iter().chain(insertion_ctx.solution.required.iter().cloned()).map(|job| (job, -1)));
-
-    new_insertion_ctx.solution.required.retain(|j| !assigned.contains(j));
 
     new_insertion_ctx.restore();
 
