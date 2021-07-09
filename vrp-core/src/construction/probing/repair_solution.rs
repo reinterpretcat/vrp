@@ -143,16 +143,7 @@ fn add_single_job(
             route.tour.insert_at(activity, index + 1);
         });
 
-        let total_job_activities = match &success.job {
-            Job::Single(_) => 1,
-            Job::Multi(multi) => multi.jobs.len(),
-        };
-
-        if route.tour.job_activities(&success.job).count() == total_job_activities {
-            constraint.accept_insertion(&mut new_insertion_ctx.solution, route_idx, &success.job);
-        } else {
-            constraint.accept_route_state(new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap());
-        }
+        constraint.accept_insertion(&mut new_insertion_ctx.solution, route_idx, &success.job);
 
         true
     } else {
