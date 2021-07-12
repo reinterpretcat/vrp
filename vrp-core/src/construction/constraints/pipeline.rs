@@ -83,9 +83,11 @@ pub trait ConstraintModule {
     /// Target route is defined by `route_index` which refers to `routes` collection in solution context.
     /// Inserted job is `job`.
     /// This method should call `accept_route_state` internally.
+    /// This method should NOT modify amount of job activities in the tour.
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job);
 
     /// Accept route and updates its state to allow more efficient constraint checks.
+    /// This method should NOT modify amount of job activities in the tour.
     fn accept_route_state(&self, ctx: &mut RouteContext);
 
     /// Accepts insertion solution context allowing to update job insertion data.
@@ -128,14 +130,20 @@ impl Default for ConstraintPipeline {
 impl ConstraintPipeline {
     /// Accepts job insertion.
     pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
+        let activities = solution_ctx.routes.get_mut(route_index).unwrap().route.tour.activity_count();
         self.modules.iter().for_each(|c| c.accept_insertion(solution_ctx, route_index, job));
+        assert_eq!(activities, solution_ctx.routes.get_mut(route_index).unwrap().route.tour.activity_count());
+
         solution_ctx.routes.get_mut(route_index).unwrap().mark_stale(false)
     }
 
     /// Accepts route state.
     pub fn accept_route_state(&self, route_ctx: &mut RouteContext) {
         if route_ctx.is_stale() {
+            let activities = route_ctx.route.tour.activity_count();
             self.modules.iter().for_each(|c| c.accept_route_state(route_ctx));
+            assert_eq!(activities, route_ctx.route.tour.activity_count());
+
             route_ctx.mark_stale(false);
         }
     }
