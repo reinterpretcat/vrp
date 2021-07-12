@@ -142,7 +142,33 @@ impl ConstraintPipeline {
 
     /// Accepts solution state.
     pub fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        self.modules.iter().for_each(|c| c.accept_solution_state(solution_ctx));
+        let _ = (0..).try_fold((usize::MAX, usize::MAX), |(required, ignored), counter| {
+            // NOTE if any job promotion occurs, then we might need to recalculate states.
+            // As it is hard to maintain dependencies between different modules, we reset process to
+            // beginning. However we do not expect recalculation to happen often, so this condition
+            // here is to prevent infinite loops and signalize about error in pipeline configuration
+            assert_ne!(counter, 100);
+
+            if required != solution_ctx.required.len() || ignored != solution_ctx.ignored.len() {
+                let required = solution_ctx.required.len();
+                let ignored = solution_ctx.ignored.len();
+
+                self.modules
+                    .iter()
+                    .try_for_each(|c| {
+                        c.accept_solution_state(solution_ctx);
+                        if required != solution_ctx.required.len() || ignored != solution_ctx.ignored.len() {
+                            Err(())
+                        } else {
+                            Ok(())
+                        }
+                    })
+                    .map(|_| (required, ignored))
+                    .or_else(|_| Ok((usize::MAX, usize::MAX)))
+            } else {
+                Err(())
+            }
+        });
 
         solution_ctx.routes.iter_mut().for_each(|route_ctx| {
             route_ctx.mark_stale(false);
