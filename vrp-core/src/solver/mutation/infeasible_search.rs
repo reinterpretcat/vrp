@@ -38,10 +38,10 @@ impl Mutation for InfeasibleSearch {
             self.shuffle_objectives_probability,
             self.skip_constraint_check_probability,
         );
-        let mut new_refinement_ctx = create_relaxed_refinement_ctx(refinement_ctx);
+        let mut new_refinement_ctx = create_relaxed_refinement_ctx(refinement_ctx, &new_insertion_ctx);
 
         (0..self.repeat_count).fold(Some(new_insertion_ctx), |initial, _| {
-            // NOTE from diversity reasons, we don't want to see original solution in population
+            // NOTE from diversity reasons, we don't want to see original solution in the population
             let new_insertion_ctx = if let Some(initial) = initial {
                 self.inner_mutation.mutate(&new_refinement_ctx, &initial)
             } else {
@@ -61,16 +61,20 @@ impl Mutation for InfeasibleSearch {
     }
 }
 
-fn create_relaxed_refinement_ctx(refinement_ctx: &RefinementContext) -> RefinementContext {
-    let problem = refinement_ctx.problem.clone();
-    let population = Box::new(Elitism::new(problem.clone(), refinement_ctx.environment.random.clone(), 4, 4));
+fn create_relaxed_refinement_ctx(
+    refinement_ctx: &RefinementContext,
+    new_insertion_ctx: &InsertionContext,
+) -> RefinementContext {
+    let problem = new_insertion_ctx.problem.clone();
+    let environment = new_insertion_ctx.environment.clone();
+    let population = Box::new(Elitism::new(problem.clone(), environment.random.clone(), 4, 4));
 
     RefinementContext {
         problem,
         population,
         state: Default::default(),
         quota: refinement_ctx.quota.clone(),
-        environment: refinement_ctx.environment.clone(),
+        environment,
         statistics: refinement_ctx.statistics.clone(),
     }
 }
