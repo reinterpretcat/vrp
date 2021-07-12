@@ -5,8 +5,10 @@ on:
     inputs:
       release_tag:
         description: 'Release tag'
+        required: true
       docker_tag:
         description: 'Docker image tag'
+        required: true
 
 jobs:
   push-to-registry:
