@@ -49,7 +49,7 @@ fn can_read_full_config() {
             assert_eq!(max_node_size, Some(2));
             assert_eq!(spread_factor, Some(0.25));
             assert_eq!(distribution_factor, Some(0.25));
-            assert_eq!(objective_reshuffling, Some(0.05));
+            assert_eq!(objective_reshuffling, Some(0.01));
             assert_eq!(learning_rate, Some(0.1));
             assert_eq!(rebalance_memory, Some(100));
             assert_eq!(rebalance_count, Some(2));

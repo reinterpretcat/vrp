@@ -74,9 +74,12 @@ impl StaticSelective {
 
     fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
         unwrap_from_result(
-            self.mutation_group.iter().filter(|(_, probability)| probability(refinement_ctx, insertion_ctx)).try_fold(
-                insertion_ctx.deep_copy(),
-                |ctx, (mutation, _)| {
+            self.mutation_group
+                .iter()
+                .filter(|(_, probability)| probability(refinement_ctx, insertion_ctx))
+                // NOTE not more than two mutations in a row
+                .take(2)
+                .try_fold(insertion_ctx.deep_copy(), |ctx, (mutation, _)| {
                     let new_insertion_ctx = mutation.mutate(refinement_ctx, &ctx);
 
                     if refinement_ctx.problem.objective.total_order(&insertion_ctx, &new_insertion_ctx)
@@ -87,8 +90,7 @@ impl StaticSelective {
                     } else {
                         Ok(new_insertion_ctx)
                     }
-                },
-            ),
+                }),
         )
     }
 

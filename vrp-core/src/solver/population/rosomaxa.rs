@@ -49,7 +49,7 @@ impl RosomaxaConfig {
             node_size: 2,
             spread_factor: 0.25,
             distribution_factor: 0.25,
-            objective_reshuffling: 0.05,
+            objective_reshuffling: 0.01,
             learning_rate: 0.1,
             rebalance_memory: 100,
             rebalance_count: 2,

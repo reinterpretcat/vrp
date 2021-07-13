@@ -51,7 +51,7 @@
       "maxNodeSize": 2,
       "spreadFactor": 0.25,
       "distributionFactor": 0.25,
-      "objectiveReshuffling": 0.05,
+      "objectiveReshuffling": 0.01,
       "learningRate": 0.1,
       "rebalanceMemory": 100,
       "rebalanceCount": 2,
