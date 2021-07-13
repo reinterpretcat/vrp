@@ -40,7 +40,9 @@ impl Mutation for InfeasibleSearch {
         );
         let mut new_refinement_ctx = create_relaxed_refinement_ctx(refinement_ctx, &new_insertion_ctx);
 
-        (0..self.repeat_count).fold(Some(new_insertion_ctx), |initial, _| {
+        let repeat_count = refinement_ctx.environment.random.uniform_int(1, self.repeat_count as i32);
+
+        (0..repeat_count).fold(Some(new_insertion_ctx), |initial, _| {
             // NOTE from diversity reasons, we don't want to see original solution in the population
             let new_insertion_ctx = if let Some(initial) = initial {
                 self.inner_mutation.mutate(&new_refinement_ctx, &initial)
