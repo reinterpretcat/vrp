@@ -172,7 +172,7 @@ impl ConstraintPipeline {
                         }
                     })
                     .map(|_| (required, ignored))
-                    .or_else(|_| Ok((usize::MAX, usize::MAX)))
+                    .or(Ok((usize::MAX, usize::MAX)))
             } else {
                 Err(())
             }

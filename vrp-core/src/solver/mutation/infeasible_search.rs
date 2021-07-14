@@ -145,7 +145,7 @@ fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionCo
     let size = new_refinement_ctx.population.size();
     let skip = new_refinement_ctx.environment.random.uniform_int(0, size as i32 - 1) as usize;
 
-    new_refinement_ctx.population.select().skip(skip).next().expect("no individual")
+    new_refinement_ctx.population.select().nth(skip).expect("no individual")
 }
 
 fn get_best_or_random_individual<'a>(
