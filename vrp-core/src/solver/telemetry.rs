@@ -7,7 +7,7 @@ mod telemetry_test;
 use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::population::SelectionPhase;
-use crate::solver::{RefinementContext, Statistics};
+use crate::solver::{RefinementContext, RefinementSpeed, Statistics};
 use crate::utils::Timer;
 use std::fmt::Write;
 use std::ops::Deref;
@@ -107,6 +107,7 @@ pub struct Telemetry {
     time: Timer,
     mode: TelemetryMode,
     improvement_tracker: ImprovementTracker,
+    speed_tracker: SpeedTracker,
     next_generation: Option<usize>,
 }
 
@@ -118,6 +119,7 @@ impl Telemetry {
             metrics: Metrics { duration: 0, generations: 0, speed: 0.0, evolution: vec![] },
             mode,
             improvement_tracker: ImprovementTracker::new(1000),
+            speed_tracker: SpeedTracker::default(),
             next_generation: None,
         }
     }
@@ -157,10 +159,12 @@ impl Telemetry {
 
         self.metrics.generations = generation;
         self.improvement_tracker.track(generation, is_improved);
+        self.speed_tracker.track(generation, termination_estimate);
 
         refinement_ctx.statistics = Statistics {
             generation,
             time: self.time.clone(),
+            speed: self.speed_tracker.get_current_speed(),
             improvement_all_ratio: self.improvement_tracker.i_all_ratio,
             improvement_1000_ratio: self.improvement_tracker.i_1000_ratio,
             termination_estimate,
@@ -392,5 +396,34 @@ impl ImprovementTracker {
 
         self.i_all_ratio = (self.total_improvements as f64) / ((generation + 1) as f64);
         self.i_1000_ratio = (improvements as f64) / ((generation + 1).min(self.buffer.len()) as f64);
+    }
+}
+
+struct SpeedTracker {
+    initial: f64,
+    speed: RefinementSpeed,
+}
+
+impl Default for SpeedTracker {
+    fn default() -> Self {
+        Self { initial: 0., speed: RefinementSpeed::Moderate }
+    }
+}
+
+impl SpeedTracker {
+    pub fn track(&mut self, generation: usize, termination_estimate: f64) {
+        if generation == 0 {
+            self.initial = termination_estimate;
+        } else {
+            let delta = (termination_estimate - self.initial).max(0.);
+
+            if generation < 200 && delta > 0.1 {
+                self.speed = RefinementSpeed::Slow;
+            }
+        }
+    }
+
+    pub fn get_current_speed(&self) -> RefinementSpeed {
+        self.speed.clone()
     }
 }

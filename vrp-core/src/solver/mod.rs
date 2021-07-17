@@ -147,6 +147,15 @@ pub struct RefinementContext {
     pub statistics: Statistics,
 }
 
+/// Defines instant refinement speed type.
+#[derive(Clone)]
+pub enum RefinementSpeed {
+    /// Slow speed.
+    Slow,
+    /// Moderate speed.
+    Moderate,
+}
+
 /// A refinement statistics to track evolution progress.
 #[derive(Clone)]
 pub struct Statistics {
@@ -155,6 +164,9 @@ pub struct Statistics {
 
     /// Elapsed seconds since algorithm start.
     pub time: Timer,
+
+    /// A current refinement speed.
+    pub speed: RefinementSpeed,
 
     /// An improvement ratio from beginning.
     pub improvement_all_ratio: f64,
@@ -165,7 +177,15 @@ pub struct Statistics {
     /// A progress till algorithm's termination.
     pub termination_estimate: f64,
 }
+/*
+impl Statistics {
 
+
+    pub fn is_slow_progress(&self) -> bool {
+        self.termination_estimate > 0.1 && self.generation < 200
+    }
+}
+*/
 impl RefinementContext {
     /// Creates a new instance of `RefinementContext`.
     pub fn new(
@@ -183,6 +203,7 @@ impl Default for Statistics {
         Self {
             generation: 0,
             time: Timer::start(),
+            speed: RefinementSpeed::Moderate,
             improvement_all_ratio: 0.,
             improvement_1000_ratio: 0.,
             termination_estimate: 0.,

@@ -9,6 +9,7 @@ use crate::algorithms::nsga2::Objective;
 use crate::algorithms::statistics::relative_distance;
 use crate::construction::heuristics::*;
 use crate::models::Problem;
+use crate::solver::RefinementSpeed;
 use crate::utils::{as_mut, Environment, Random};
 use std::convert::TryInto;
 use std::fmt::Formatter;
@@ -83,8 +84,8 @@ impl Population for Rosomaxa {
             RosomaxaPhases::Initial { individuals: known_individuals } => {
                 known_individuals.extend(individuals.into_iter())
             }
-            RosomaxaPhases::Exploration { time, network, .. } => {
-                network.store_batch(individuals, *time, IndividualInput::new);
+            RosomaxaPhases::Exploration { network, statistics, .. } => {
+                network.store_batch(individuals, statistics.generation, IndividualInput::new);
             }
             RosomaxaPhases::Exploitation => {}
         }
@@ -102,7 +103,9 @@ impl Population for Rosomaxa {
 
         match &mut self.phase {
             RosomaxaPhases::Initial { individuals } => individuals.push(individual),
-            RosomaxaPhases::Exploration { time, network, .. } => network.store(IndividualInput::new(individual), *time),
+            RosomaxaPhases::Exploration { network, statistics, .. } => {
+                network.store(IndividualInput::new(individual), statistics.generation)
+            }
             RosomaxaPhases::Exploitation => {}
         }
 
@@ -118,27 +121,34 @@ impl Population for Rosomaxa {
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
-        let (elite_explore_size, node_explore_size) = match self.config.selection_size {
-            value if value > 6 => {
-                let elite_size = self.environment.random.uniform_int(2, 4) as usize;
-                (elite_size, 2)
-            }
-            value if value > 4 => (2, 2),
-            value if value > 2 => (2, 1),
-            _ => (1, 1),
-        };
-
         match &self.phase {
-            RosomaxaPhases::Exploration { populations, .. } => Box::new(
-                self.elite
-                    .select()
-                    .take(elite_explore_size)
-                    .chain(populations.iter().flat_map(move |population| {
-                        let explore_size = self.environment.random.uniform_int(1, node_explore_size) as usize;
-                        population.0.select().take(explore_size)
-                    }))
-                    .take(self.config.selection_size),
-            ),
+            RosomaxaPhases::Exploration { populations, statistics, .. } => {
+                let selection_size = match statistics.speed {
+                    RefinementSpeed::Slow => self.config.selection_size / 2,
+                    RefinementSpeed::Moderate => self.config.selection_size,
+                };
+
+                let (elite_explore_size, node_explore_size) = match selection_size {
+                    value if value > 6 => {
+                        let elite_size = self.environment.random.uniform_int(2, 4) as usize;
+                        (elite_size, 2)
+                    }
+                    value if value > 4 => (2, 2),
+                    value if value > 2 => (2, 1),
+                    _ => (1, 1),
+                };
+
+                Box::new(
+                    self.elite
+                        .select()
+                        .take(elite_explore_size)
+                        .chain(populations.iter().flat_map(move |population| {
+                            let explore_size = self.environment.random.uniform_int(1, node_explore_size) as usize;
+                            population.0.select().take(explore_size)
+                        }))
+                        .take(self.config.selection_size),
+                )
+            }
             _ => Box::new(self.elite.select()),
         }
     }
@@ -165,7 +175,7 @@ type IndividualNetwork = Network<IndividualInput, IndividualStorage>;
 impl Rosomaxa {
     /// Creates a new instance of `Rosomaxa`.
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, config: RosomaxaConfig) -> Result<Self, String> {
-        if config.elite_size < 2 || config.node_size < 2 || config.selection_size < 2 {
+        if config.elite_size < 1 || config.node_size < 1 || config.selection_size < 2 {
             return Err("Rosomaxa algorithm requires some parameters to be above thresholds".to_string());
         }
 
@@ -190,12 +200,13 @@ impl Rosomaxa {
                     );
                     individuals.drain(0..).for_each(|individual| network.store(IndividualInput::new(individual), 0));
 
-                    self.phase = RosomaxaPhases::Exploration { time: 0, network, populations: vec![] };
+                    self.phase =
+                        RosomaxaPhases::Exploration { network, populations: vec![], statistics: statistics.clone() };
                 }
             }
-            RosomaxaPhases::Exploration { time, network, populations, .. } => {
+            RosomaxaPhases::Exploration { network, populations, statistics: old_statistics, .. } => {
                 if statistics.termination_estimate < self.config.exploration_ratio {
-                    *time = statistics.generation;
+                    *old_statistics = statistics.clone();
                     let best_individual = self.elite.select().next().expect("expected individuals in elite");
                     let best_fitness = best_individual.get_fitness_values().collect::<Vec<_>>();
 
@@ -375,7 +386,7 @@ impl Display for Rosomaxa {
 
 enum RosomaxaPhases {
     Initial { individuals: Vec<InsertionContext> },
-    Exploration { time: usize, network: IndividualNetwork, populations: Vec<(Arc<Elitism>, f64)> },
+    Exploration { network: IndividualNetwork, populations: Vec<(Arc<Elitism>, f64)>, statistics: Statistics },
     Exploitation,
 }
 

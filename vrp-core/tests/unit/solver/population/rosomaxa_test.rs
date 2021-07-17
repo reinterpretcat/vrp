@@ -107,6 +107,7 @@ fn can_get_population_shuffle_amount() {
     let high_improvement = |termination_estimate: f64| Statistics {
         generation: 1,
         time: Timer::start(),
+        speed: RefinementSpeed::Moderate,
         improvement_all_ratio: 0.99,
         improvement_1000_ratio: 0.99,
         termination_estimate,
@@ -123,6 +124,7 @@ fn can_get_population_shuffle_amount() {
     let some_improvement = |ratio: f64, termination_estimate: f64| Statistics {
         generation: 1,
         time: Timer::start(),
+        speed: RefinementSpeed::Moderate,
         improvement_all_ratio: ratio,
         improvement_1000_ratio: ratio,
         termination_estimate,

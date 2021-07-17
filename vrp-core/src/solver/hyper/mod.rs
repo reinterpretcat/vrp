@@ -8,7 +8,7 @@ pub use self::static_selective::*;
 
 use crate::models::Problem;
 use crate::solver::population::Individual;
-use crate::solver::{RefinementContext, Statistics};
+use crate::solver::{RefinementContext, RefinementSpeed};
 use crate::utils::{Environment, Random};
 use hashbrown::HashMap;
 use std::sync::Arc;
@@ -27,15 +27,15 @@ pub struct MultiSelective {
 
 impl HyperHeuristic for MultiSelective {
     fn search(&mut self, refinement_ctx: &RefinementContext, individuals: Vec<&Individual>) -> Vec<Individual> {
-        self.is_slow_search = match (self.is_slow_search, is_slow_search(&refinement_ctx.statistics)) {
-            (false, true) => {
+        self.is_slow_search = match (self.is_slow_search, &refinement_ctx.statistics.speed) {
+            (false, RefinementSpeed::Slow) => {
                 self.inner = Box::new(StaticSelective::new_with_defaults(
                     refinement_ctx.problem.clone(),
                     refinement_ctx.environment.clone(),
                 ));
                 true
             }
-            (true, true) => true,
+            (true, RefinementSpeed::Slow) => true,
             _ => false,
         };
 
@@ -51,8 +51,4 @@ impl MultiSelective {
             is_slow_search: false,
         }
     }
-}
-
-fn is_slow_search(statistics: &Statistics) -> bool {
-    statistics.termination_estimate > 0.1 && statistics.generation < 200
 }
