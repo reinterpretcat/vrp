@@ -11,6 +11,7 @@ use crate::solver::population::Individual;
 use crate::solver::{RefinementContext, RefinementSpeed};
 use crate::utils::{Environment, Random};
 use hashbrown::HashMap;
+use std::ops::Deref;
 use std::sync::Arc;
 
 /// Represents a hyper heuristic functionality.
@@ -29,6 +30,9 @@ impl HyperHeuristic for MultiSelective {
     fn search(&mut self, refinement_ctx: &RefinementContext, individuals: Vec<&Individual>) -> Vec<Individual> {
         self.is_slow_search = match (self.is_slow_search, &refinement_ctx.statistics.speed) {
             (false, RefinementSpeed::Slow) => {
+                refinement_ctx.environment.logger.deref()(
+                    "slow refinement speed, switch to static selective hyper-heuristic",
+                );
                 self.inner = Box::new(StaticSelective::new_with_defaults(
                     refinement_ctx.problem.clone(),
                     refinement_ctx.environment.clone(),
