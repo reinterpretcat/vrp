@@ -3,6 +3,9 @@
 use crate::utils::{DefaultRandom, Random, ThreadPool};
 use std::sync::Arc;
 
+/// A logger type which is called with various information regarding the work done by the VRP solver.
+pub type InfoLogger = Arc<dyn Fn(&str) + Send + Sync>;
+
 /// Keeps track of environment specific information which influences algorithm behavior.
 #[derive(Clone)]
 pub struct Environment {
@@ -12,20 +15,33 @@ pub struct Environment {
     /// Keeps data parallelism settings.
     pub parallelism: Parallelism,
 
+    /// An information logger.
+    pub logger: InfoLogger,
+
     /// A boolean flag which signalizes that experimental behavior is allowed.
     pub is_experimental: bool,
 }
 
 impl Environment {
     /// Creates an instance of `Environment`.
-    pub fn new(random: Arc<dyn Random + Send + Sync>, parallelism: Parallelism, is_experimental: bool) -> Self {
-        Self { random, parallelism, is_experimental }
+    pub fn new(
+        random: Arc<dyn Random + Send + Sync>,
+        parallelism: Parallelism,
+        logger: InfoLogger,
+        is_experimental: bool,
+    ) -> Self {
+        Self { random, parallelism, logger, is_experimental }
     }
 }
 
 impl Default for Environment {
     fn default() -> Self {
-        Environment::new(Arc::new(DefaultRandom::default()), Parallelism::default(), false)
+        Environment::new(
+            Arc::new(DefaultRandom::default()),
+            Parallelism::default(),
+            Arc::new(|msg| println!("{}", msg)),
+            false,
+        )
     }
 }
 

@@ -307,7 +307,7 @@ pub fn run_solve(
     let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time")?;
     let telemetry = Telemetry::new(if matches.is_present(LOG_ARG_NAME) {
         TelemetryMode::OnlyLogging {
-            logger: Arc::new(|msg| println!("{}", msg)),
+            logger: environment.logger.clone(),
             log_best: 100,
             log_population: 1000,
             dump_population: false,
@@ -426,9 +426,14 @@ fn get_environment(matches: &ArgMatches) -> Result<Arc<Environment>, String> {
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
             {
                 let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
+                let logger: Arc<fn(&str)> = if matches.is_present(LOG_ARG_NAME) {
+                    Arc::new(|msg: &str| println!("{}", msg))
+                } else {
+                    Arc::new(|_: &str| {})
+                };
                 let is_experimental = matches.is_present(EXPERIMENTAL_ARG_NAME);
 
-                Ok(Arc::new(Environment::new(Arc::new(DefaultRandom::default()), parallelism, is_experimental)))
+                Ok(Arc::new(Environment::new(Arc::new(DefaultRandom::default()), parallelism, logger, is_experimental)))
             } else {
                 Err("cannot parse parallelism parameter".to_string())
             }

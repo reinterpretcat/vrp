@@ -344,9 +344,8 @@
     }
   },
   "telemetry": {
-    "logging": {
+    "progress": {
       "enabled": true,
-      "prefix": "[config.full]",
       "logBest": 100,
       "logPopulation": 1000,
       "dumpPopulation": false
@@ -361,6 +360,10 @@
       "numThreadPools": 6,
       "threadsPerPool": 8
     },
-    "is_experimental": false
+    "logging": {
+      "enabled": true,
+      "prefix": "[config.full]"
+    },
+    "isExperimental": false
   }
 }

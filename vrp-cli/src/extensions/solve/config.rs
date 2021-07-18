@@ -342,17 +342,15 @@ pub struct VariationConfig {
 /// A telemetry config.
 #[derive(Clone, Deserialize, Debug)]
 pub struct TelemetryConfig {
-    logging: Option<LoggingConfig>,
+    progress: Option<ProgressConfig>,
     metrics: Option<MetricsConfig>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct LoggingConfig {
+pub struct ProgressConfig {
     /// Specifies whether logging is enabled. Default is false.
     enabled: bool,
-    /// Prefix of logging messages.
-    prefix: Option<String>,
     /// Specifies how often best individual is logged. Default is 100 (generations).
     log_best: Option<usize>,
     /// Specifies how often population is logged. Default is 1000 (generations).
@@ -372,9 +370,13 @@ pub struct MetricsConfig {
 
 /// An environment specific configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct EnvironmentConfig {
     /// Specifies a data parallelism configuration.
     pub parallelism: Option<ParallelismConfig>,
+
+    /// Specifies a logging configuration.
+    pub logging: Option<LoggingConfig>,
 
     /// Specifies experimental behavior flag.
     pub is_experimental: Option<bool>,
@@ -388,6 +390,16 @@ pub struct ParallelismConfig {
     pub num_thread_pools: usize,
     /// Specifies amount of threads in each thread pool.
     pub threads_per_pool: usize,
+}
+
+/// Global logging configuration.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct LoggingConfig {
+    /// Specifies whether logging is enabled. Default is false.
+    enabled: bool,
+    /// Prefix of logging messages.
+    prefix: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
@@ -696,49 +708,36 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
     const LOG_POPULATION: usize = 1000;
     const TRACK_POPULATION: usize = 1000;
 
-    let create_logger = |prefix: Option<String>| -> Arc<dyn Fn(&str)> {
-        if let Some(prefix) = prefix {
-            Arc::new(move |msg: &str| println!("{}{}", prefix, msg))
-        } else {
-            Arc::new(|msg: &str| println!("{}", msg))
-        }
-    };
-
     let create_metrics = |track_population: &Option<usize>| TelemetryMode::OnlyMetrics {
         track_population: track_population.unwrap_or(TRACK_POPULATION),
     };
 
-    let create_logging = |log_best: &Option<usize>,
-                          log_population: &Option<usize>,
-                          dump_population: &Option<bool>,
-                          prefix: Option<String>| {
+    let create_progress = |log_best: &Option<usize>, log_population: &Option<usize>, dump_population: &Option<bool>| {
         TelemetryMode::OnlyLogging {
-            logger: create_logger(prefix),
+            logger: builder.config.environment.logger.clone(),
             log_best: log_best.unwrap_or(LOG_BEST),
             log_population: log_population.unwrap_or(LOG_POPULATION),
             dump_population: dump_population.unwrap_or(false),
         }
     };
 
-    let telemetry_mode = match telemetry_config.as_ref().map(|t| (&t.logging, &t.metrics)) {
+    let telemetry_mode = match telemetry_config.as_ref().map(|t| (&t.progress, &t.metrics)) {
         Some((None, Some(MetricsConfig { enabled, track_population }))) if *enabled => create_metrics(track_population),
-        Some((Some(LoggingConfig { enabled, prefix, log_best, log_population, dump_population }), None))
-            if *enabled =>
-        {
-            create_logging(log_best, log_population, dump_population, prefix.clone())
+        Some((Some(ProgressConfig { enabled, log_best, log_population, dump_population }), None)) if *enabled => {
+            create_progress(log_best, log_population, dump_population)
         }
         Some((
-            Some(LoggingConfig { enabled: logging_enabled, prefix, log_best, log_population, dump_population }),
+            Some(ProgressConfig { enabled: progress_enabled, log_best, log_population, dump_population }),
             Some(MetricsConfig { enabled: metrics_enabled, track_population }),
-        )) => match (logging_enabled, metrics_enabled) {
+        )) => match (progress_enabled, metrics_enabled) {
             (true, true) => TelemetryMode::All {
-                logger: create_logger(prefix.clone()),
+                logger: builder.config.environment.logger.clone(),
                 log_best: log_best.unwrap_or(LOG_BEST),
                 log_population: log_population.unwrap_or(LOG_POPULATION),
                 track_population: track_population.unwrap_or(TRACK_POPULATION),
                 dump_population: dump_population.unwrap_or(false),
             },
-            (true, false) => create_logging(log_best, log_population, dump_population, prefix.clone()),
+            (true, false) => create_progress(log_best, log_population, dump_population),
             (false, true) => create_metrics(track_population),
             _ => TelemetryMode::None,
         },
@@ -751,9 +750,17 @@ fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<Telemetr
 fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) -> Arc<Environment> {
     let mut environment = Environment::default();
 
-    // TODO validate parameters
-    if let Some(config) = environment_config.as_ref().and_then(|c| c.parallelism.as_ref()) {
-        environment.parallelism = Parallelism::new(config.num_thread_pools, config.threads_per_pool);
+    if let Some(parallelism) = environment_config.as_ref().and_then(|c| c.parallelism.as_ref()) {
+        // TODO validate parameters
+        environment.parallelism = Parallelism::new(parallelism.num_thread_pools, parallelism.threads_per_pool);
+    }
+
+    if let Some(logging) = environment_config.as_ref().and_then(|c| c.logging.as_ref()) {
+        environment.logger = match (logging.enabled, logging.prefix.clone()) {
+            (true, Some(prefix)) => Arc::new(move |msg: &str| println!("{}{}", prefix, msg)),
+            (true, None) => Arc::new(|msg: &str| println!("{}", msg)),
+            _ => Arc::new(|_: &str| {}),
+        };
     }
 
     if let Some(is_experimental) = environment_config.as_ref().and_then(|c| c.is_experimental) {
@@ -779,7 +786,7 @@ pub fn create_builder_from_config_file<R: Read>(
 /// Creates a solver `Builder` from config.
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
     let environment = configure_from_environment(&config.environment);
-    let mut builder = Builder::new(problem, environment);
+    let mut builder = Builder::new(problem, environment.clone());
 
     builder = configure_from_telemetry(builder, &config.telemetry);
     builder = configure_from_evolution(builder, &config.evolution)?;

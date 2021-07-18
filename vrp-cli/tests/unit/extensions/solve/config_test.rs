@@ -9,9 +9,8 @@ fn can_read_full_config() {
     let config = read_config(BufReader::new(file)).unwrap();
 
     let telemetry = config.telemetry.expect("no telemetry config");
-    let logging = telemetry.logging.expect("no logging config");
+    let logging = telemetry.progress.expect("no logging config");
     assert!(logging.enabled);
-    assert_eq!(logging.prefix, Some("[config.full]".to_string()));
     assert_eq!(logging.log_best, Some(100));
     assert_eq!(logging.log_population, Some(1000));
     assert_eq!(logging.dump_population, Some(false));
@@ -120,6 +119,10 @@ fn can_read_full_config() {
     let parallelism = environment.parallelism.expect("no parallelism config");
     assert_eq!(parallelism.num_thread_pools, 6);
     assert_eq!(parallelism.threads_per_pool, 8);
+
+    let logging = environment.logging.expect("no logging config");
+    assert_eq!(logging.enabled, true);
+    assert_eq!(logging.prefix, Some("[config.full]".to_string()));
 }
 
 #[test]

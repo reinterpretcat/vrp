@@ -8,13 +8,9 @@ use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::population::SelectionPhase;
 use crate::solver::{RefinementContext, RefinementSpeed, Statistics};
-use crate::utils::Timer;
+use crate::utils::{InfoLogger, Timer};
 use std::fmt::Write;
 use std::ops::Deref;
-use std::sync::Arc;
-
-/// A logger type which is called with various information regarding the work done by the VRP solver.
-pub type InfoLogger = Arc<dyn Fn(&str)>;
 
 /// Encapsulates different measurements regarding algorithm evaluation.
 pub struct Metrics {
