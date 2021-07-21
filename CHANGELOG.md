@@ -4,10 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* a metaheuristic which searches in infeasible solution space
+* logic to swap objective with some small probability in rosomaxa algorithm
+
 ### Changed
 
-* logging configuration
-
+* refactor logging configuration
+* change metaheuristic coefficients
 
 
 ## [1.10.8]
