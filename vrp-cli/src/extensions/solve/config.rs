@@ -786,7 +786,7 @@ pub fn create_builder_from_config_file<R: Read>(
 /// Creates a solver `Builder` from config.
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
     let environment = configure_from_environment(&config.environment);
-    let mut builder = Builder::new(problem, environment.clone());
+    let mut builder = Builder::new(problem, environment);
 
     builder = configure_from_telemetry(builder, &config.telemetry);
     builder = configure_from_evolution(builder, &config.evolution)?;
