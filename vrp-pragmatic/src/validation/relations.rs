@@ -73,7 +73,6 @@ fn check_e1202_empty_job_list(relations: &[Relation]) -> Result<(), FormatError>
 fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &[Relation]) -> Result<(), FormatError> {
     let mut job_ids = relations
         .iter()
-        .filter(|relation| !matches!(relation.type_field, RelationType::Any))
         .flat_map(|relation| {
             relation
                 .jobs

@@ -72,7 +72,7 @@ parameterized_test! {can_detect_multi_place_time_window_jobs, (relation_type, ex
 can_detect_multi_place_time_window_jobs! {
     case01: (RelationType::Strict, Some(())),
     case02: (RelationType::Sequence, Some(())),
-    case03: (RelationType::Any, None),
+    case03: (RelationType::Any, Some(())),
 }
 
 fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, expected: Option<()>) {
