@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 
+## [1.10.8]
+
+### Changed
+
+* validation rule for any relation
+
+
 ## [1.10.7]
 
 ### Added
@@ -308,7 +315,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.7...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.8...HEAD
+[v1.10.8]: https://github.com/reinterpretcat/vrp/compare/v1.10.7...v1.10.8
 [v1.10.7]: https://github.com/reinterpretcat/vrp/compare/v1.10.6...v1.10.7
 [v1.10.6]: https://github.com/reinterpretcat/vrp/compare/v1.10.5...v1.10.6
 [v1.10.5]: https://github.com/reinterpretcat/vrp/compare/v1.10.4...v1.10.5
