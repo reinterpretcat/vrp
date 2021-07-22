@@ -50,7 +50,7 @@ impl Ruin for RandomRouteRemoval {
     }
 }
 
-/// Removes two random, close to each other, routes from solution.
+/// Removes a few random, close to each other, routes from solution.
 pub struct CloseRouteRemoval {}
 
 impl Default for CloseRouteRemoval {
@@ -80,9 +80,11 @@ impl Ruin for CloseRouteRemoval {
                 random.uniform_int(0, (route_groups_distances.len() - 1) as i32) as usize
             };
 
+            let take_count = random.uniform_int(2, 3) as usize;
+
             let routes = route_groups_distances[route_index]
                 .iter()
-                .take(2)
+                .take(take_count)
                 .filter_map(|(idx, _)| insertion_ctx.solution.routes.get(*idx).cloned())
                 .collect::<Vec<_>>();
 
