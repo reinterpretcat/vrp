@@ -37,19 +37,18 @@ class SolverClient:
                 solution_str = f.read()
                 return json.loads(solution_str, object_hook=Deserializer.from_dict)
         else:
+            raise ValueError("cannot solve problem: {}".format(p.stderr))
             pass
 
     def solve_solomon(self, problem_path, config_path, solution_path):
-        p = subprocess.Popen([self.cli_path, 'solve', 'solomon', problem_path, '-c', config_path, '-o', solution_path],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, err = p.communicate()
+        p = subprocess.run([self.cli_path, 'solve', 'solomon', problem_path, '-c', config_path, '-o', solution_path],
+                           capture_output=True, text=True)
 
         if p.returncode == 0:
-            output_log = output.decode("utf-8")
             # expected: [10s] total generations: 471, speed: 46.13 gen/sec
             for statistic in re.finditer(
                     r"\[(?P<duration>[0-9]+)s] total generations: (?P<generations>[0-9]+), speed: (?P<speed>[0-9.]+)",
-                    output_log):
+                    p.stdout):
                 pass
 
             try:
@@ -60,7 +59,7 @@ class SolverClient:
             # expected: rank: 0, cost: 57137.26(0.000%), tours: 94, unassigned: 0, fitness: (0.000, 94.000, 57137.259)
             for best in re.finditer(
                     r"rank: 0, cost: (?P<cost>[0-9.]+)[^,]+, tours: (?P<tours>[0-9]+), unassigned: (?P<unassigned>[0-9]+)",
-                    output_log):
+                    p.stdout):
                 pass
 
             try:
@@ -72,7 +71,7 @@ class SolverClient:
                 return f.read(), statistic.group('duration'), statistic.group('generations'), statistic.group('speed'), \
                        best.group('cost'), best.group('tours'), best.group('unassigned')
         else:
-            raise ValueError('cannot solve problem:' + err.decode("utf-8"))
+            raise ValueError("cannot solve problem: {}".format(p.stderr))
             pass
 
 
@@ -127,6 +126,10 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
         experiment_config_content = f.read()
         experiment_config = json.loads(experiment_config_content, object_hook=Deserializer.from_dict)
 
+    print('downloading solver configs..')
+    solver_config_root = "{}/solver-config".format(root_temp_dir)
+    download_and_extract(experiment_config.data.config.url, solver_config_root)
+
     print('preparing solver clis..')
     solver_versions = prepare_solver_versions(root_temp_dir, experiment_config.versions)
 
@@ -137,10 +140,7 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
              "Unassigned"])
 
         for iteration_number in range(experiment_config.parameters.iterations):
-            print('downloading solver configs..')
-            solver_config_root = "{}/solver-config".format(root_temp_dir)
-            download_and_extract(experiment_config.data.config.url, solver_config_root)
-
+            print("iteration {}".format(iteration_number))
             for solver_config in experiment_config.data.config.files:
                 solver_config_path = "{}/{}".format(solver_config_root, solver_config.path)
 

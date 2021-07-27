@@ -1,0 +1,29 @@
+name: Experiment with configs
+
+on:
+  workflow_dispatch:
+    inputs:
+      config_url:
+        description: 'An experiment config url'
+        required: true
+
+jobs:
+  run-experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      -  run: python ./examples/experiments/collect-metrics.py ${{ github.event.inputs.config_url }}
+
+      - name: Upload Results artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: experiments-results.csv
+          path: examples/experiments/experiments-results.csv
+
