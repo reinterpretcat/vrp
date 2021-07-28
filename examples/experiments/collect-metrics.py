@@ -142,6 +142,7 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
         for iteration_number in range(experiment_config.parameters.iterations):
             print("iteration {}".format(iteration_number))
             for solver_config in experiment_config.data.config.files:
+                print("solver config: {}".format(solver_config.name))
                 solver_config_path = "{}/{}".format(solver_config_root, solver_config.path)
 
                 if hasattr(experiment_config.data, 'pragmatic'):
@@ -153,8 +154,10 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
                         pragmatic_name = pragmatic_problem.name
                         pragmatic_path = "{}/{}".format(pragmatic_root, pragmatic_problem.path)
                         pragmatic_matrices = pragmatic_problem.matrices
+                        print("processing {}".format(pragmatic_name))
 
                         for solver_cli in solver_versions:
+                            print("solver version name: {}".format(solver_cli.name))
                             pragmatic_solution_path = "{}/pragmatic_{}_solution_{}_{}.json".format(
                                 solver_cli.path, pragmatic_name, solver_config.name, iteration_number)
                             pragmatic_solution = solver_cli.client.solve_pragmatic(pragmatic_path, pragmatic_matrices,
@@ -178,6 +181,7 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
                     for solomon_problem in experiment_config.data.solomon.files:
                         solomon_name = solomon_problem.name
                         solomon_path = "{}/{}".format(solomon_root, solomon_problem.path)
+                        print("processing {}".format(solomon_name))
 
                         for solver_cli in solver_versions:
                             solomon_solution_path = "{}/solomon_{}_solution_{}_{}.txt".format(
