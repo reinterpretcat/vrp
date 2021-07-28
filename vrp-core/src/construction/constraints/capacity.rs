@@ -202,7 +202,15 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
                 .into_iter()
                 .rev()
                 .for_each(|idx| {
-                    let job = self.multi_trip.get_reload(rc.route.tour.get(idx).unwrap()).unwrap();
+                    // TODO there was some panic
+                    let activity = rc.route.tour.get(idx).unwrap_or_else(|| {
+                        panic!("cannot get index '{}' in tour of a size '{}'", idx, rc.route.tour.total())
+                    });
+                    let job = self
+                        .multi_trip
+                        .get_reload(activity)
+                        .unwrap_or_else(|| panic!("cannot get reload for index '{}'", idx));
+
                     extra_ignored.push(Job::Single(job.clone()));
                     rc.route_mut().tour.remove_activity_at(idx);
                 });
