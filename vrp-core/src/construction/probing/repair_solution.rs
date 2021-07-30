@@ -23,7 +23,6 @@ pub fn repair_solution_from_unknown(
         .solution
         .unassigned
         .extend(insertion_ctx.solution.unassigned.iter().map(|(k, v)| (k.clone(), *v)));
-    new_insertion_ctx.solution.locked.extend(insertion_ctx.solution.locked.iter().cloned());
 
     prepare_insertion_ctx(&mut new_insertion_ctx);
 
@@ -43,7 +42,9 @@ pub fn repair_solution_from_unknown(
 
             assigned_jobs.extend(synchronized.keys().cloned());
 
-            new_insertion_ctx.solution.unassigned.drain_filter(|j, _| synchronized.contains_key(j));
+            new_insertion_ctx.solution.unassigned.retain(|j, _| !synchronized.contains_key(j));
+            new_insertion_ctx.solution.ignored.retain(|j| !synchronized.contains_key(j));
+            new_insertion_ctx.solution.required.retain(|j| !synchronized.contains_key(j));
 
             unassign_invalid_multi_jobs(&mut new_insertion_ctx, route_idx, synchronized)
         })

@@ -196,23 +196,15 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
 
             (0..)
                 .zip(rc.route.tour.all_activities())
-                .filter_map(|(idx, activity)| self.multi_trip.get_reload(activity).map(|_| idx))
-                .filter(|&idx| idx < start || idx > end)
+                .filter_map(|(idx, activity)| self.multi_trip.get_reload(activity).map(|reload| (reload.clone(), idx)))
+                .filter(|(_, idx)| *idx < start || *idx > end)
                 .collect::<Vec<_>>()
                 .into_iter()
                 .rev()
-                .for_each(|idx| {
-                    // TODO there was some panic
-                    let activity = rc.route.tour.get(idx).unwrap_or_else(|| {
-                        panic!("cannot get index '{}' in tour of a size '{}'", idx, rc.route.tour.total())
-                    });
-                    let job = self
-                        .multi_trip
-                        .get_reload(activity)
-                        .unwrap_or_else(|| panic!("cannot get reload for index '{}'", idx));
-
-                    extra_ignored.push(Job::Single(job.clone()));
-                    rc.route_mut().tour.remove_activity_at(idx);
+                .for_each(|(reload, _)| {
+                    let job = Job::Single(reload);
+                    assert!(rc.route_mut().tour.remove(&job));
+                    extra_ignored.push(job);
                 });
 
             if rc.is_stale() {
