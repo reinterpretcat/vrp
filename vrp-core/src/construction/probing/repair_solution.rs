@@ -19,10 +19,6 @@ pub fn repair_solution_from_unknown(
     factory: &(dyn Fn() -> InsertionContext),
 ) -> InsertionContext {
     let mut new_insertion_ctx = factory();
-    new_insertion_ctx
-        .solution
-        .unassigned
-        .extend(insertion_ctx.solution.unassigned.iter().map(|(k, v)| (k.clone(), *v)));
 
     prepare_insertion_ctx(&mut new_insertion_ctx);
 
@@ -66,7 +62,7 @@ fn get_new_route_ctx_idx(new_insertion_ctx: &mut InsertionContext, route_ctx: &R
         idx
     } else {
         let mut new_route_ctx =
-            new_insertion_ctx.solution.registry.next_with_actor(route_ctx.route.actor.as_ref()).unwrap();
+            new_insertion_ctx.solution.registry.next_with_actor(route_ctx.route.actor.as_ref()).unwrap().deep_copy();
 
         new_insertion_ctx.solution.registry.use_route(&new_route_ctx);
 
