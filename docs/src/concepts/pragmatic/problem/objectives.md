@@ -90,7 +90,9 @@ If order on job task is specified, then it is also added to the list of objectiv
     [
       {
         "type": "minimize-unassigned"
-      },
+      }
+    ],
+    [
       {
         "type": "minimize-tours"
       }
