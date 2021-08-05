@@ -176,7 +176,7 @@ impl DynamicSelective {
             ),
         ];
 
-        let mutations = recreates
+        recreates
             .iter()
             .flat_map(|(recreate, recreate_name)| {
                 ruins.iter().map::<(Arc<dyn Mutation + Send + Sync>, String), _>(move |(ruin, ruin_name)| {
@@ -187,9 +187,7 @@ impl DynamicSelective {
                 })
             })
             .chain(mutations.into_iter())
-            .collect::<Vec<_>>();
-
-        mutations
+            .collect::<Vec<_>>()
     }
 
     fn get_estimates(mutations: &[(Arc<dyn Mutation + Send + Sync>, String)]) -> ActionEstimates<SearchState> {
