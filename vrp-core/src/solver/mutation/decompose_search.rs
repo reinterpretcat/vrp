@@ -37,7 +37,7 @@ impl DecomposeSearch {
 
 impl Mutation for DecomposeSearch {
     fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
-        decompose_individual(&refinement_ctx, insertion_ctx, self.max_routes_range)
+        decompose_individual(refinement_ctx, insertion_ctx, self.max_routes_range)
             .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
             .unwrap_or_else(|| self.inner_mutation.mutate(refinement_ctx, insertion_ctx))
     }
@@ -56,7 +56,7 @@ impl DecomposeSearch {
         decomposed.iter().enumerate().for_each(|(outer_ix, (_, outer))| {
             decomposed.iter().enumerate().filter(|(inner_idx, _)| outer_ix != *inner_idx).for_each(
                 |(_, (_, inner))| {
-                    assert!(outer.intersection(&inner).next().is_none());
+                    assert!(outer.intersection(inner).next().is_none());
                 },
             );
         });

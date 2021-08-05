@@ -51,14 +51,14 @@ impl CheckerContext {
 
     /// Performs solution check.
     pub fn check(&self) -> Result<(), Vec<String>> {
-        let errors = check_vehicle_load(&self)
+        let errors = check_vehicle_load(self)
             .err()
             .into_iter()
-            .chain(check_relations(&self).err().into_iter())
-            .chain(check_breaks(&self).err().into_iter())
-            .chain(check_assignment(&self).err().into_iter())
-            .chain(check_routing(&self).err().into_iter())
-            .chain(check_limits(&self).err().into_iter())
+            .chain(check_relations(self).err().into_iter())
+            .chain(check_breaks(self).err().into_iter())
+            .chain(check_assignment(self).err().into_iter())
+            .chain(check_routing(self).err().into_iter())
+            .chain(check_limits(self).err().into_iter())
             .flatten()
             .collect::<Vec<_>>();
 

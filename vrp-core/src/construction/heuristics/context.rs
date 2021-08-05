@@ -81,7 +81,7 @@ impl InsertionContext {
             if rc.route.tour.has_jobs() {
                 true
             } else {
-                registry.free_route(&rc);
+                registry.free_route(rc);
                 false
             }
         });

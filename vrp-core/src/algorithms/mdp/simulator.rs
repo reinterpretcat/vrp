@@ -107,8 +107,8 @@ impl<S: State> Simulator<S> {
             let next_state = agent.get_state();
             let reward_value = next_state.reward();
 
-            Self::ensure_actions(&mut q_new, q, &next_state, agent);
-            let new_estimates = q_new.get(&next_state).unwrap();
+            Self::ensure_actions(&mut q_new, q, next_state, agent);
+            let new_estimates = q_new.get(next_state).unwrap();
             let new_value = learning_strategy.value(reward_value, old_value, new_estimates);
 
             q_new.entry(old_state.clone()).and_modify(|estimates| {
@@ -123,7 +123,7 @@ impl<S: State> Simulator<S> {
     fn ensure_actions(q_new: &mut StateEstimates<S>, q: &StateEstimates<S>, state: &S, agent: &dyn Agent<S>) {
         match (q_new.get(state), q.get(state)) {
             (None, Some(estimates)) => q_new.insert(state.clone(), estimates.clone()),
-            (None, None) => q_new.insert(state.clone(), agent.get_actions(&state)),
+            (None, None) => q_new.insert(state.clone(), agent.get_actions(state)),
             (Some(_), _) => None,
         };
     }

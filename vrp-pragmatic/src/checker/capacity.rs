@@ -92,7 +92,7 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), String>
                                 if activity.activity_type == "arrival" || activity.activity_type == "reload" {
                                     (DemandType::StaticDelivery, end_pickup)
                                 } else {
-                                    get_demand(context, &activity, &activity_type)?
+                                    get_demand(context, activity, &activity_type)?
                                 };
 
                             Ok(match demand_type {
@@ -141,7 +141,7 @@ fn get_demand(
 ) -> Result<(DemandType, MultiDimLoad), String> {
     let (is_dynamic, demand) = context.visit_job(
         activity,
-        &activity_type,
+        activity_type,
         |job, task| {
             let is_dynamic = job.pickups.as_ref().map_or(false, |p| !p.is_empty())
                 && job.deliveries.as_ref().map_or(false, |p| !p.is_empty());

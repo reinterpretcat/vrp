@@ -106,7 +106,7 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
             let start = {
                 let location = coord_index.get_by_loc(&shift.start.location).unwrap();
                 let earliest = parse_time(&shift.start.earliest);
-                let latest = shift.start.latest.as_ref().map(|time| parse_time(&time));
+                let latest = shift.start.latest.as_ref().map(|time| parse_time(time));
                 (location, earliest, latest)
             };
 

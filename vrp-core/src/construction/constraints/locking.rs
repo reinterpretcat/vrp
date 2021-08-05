@@ -144,7 +144,7 @@ impl Rule {
             || match self.position {
                 LockPosition::Any => self.can_insert_after(prev, next) || self.can_insert_before(prev, next),
                 LockPosition::Departure => self.can_insert_after(prev, next),
-                LockPosition::Arrival => self.can_insert_before(prev, &next),
+                LockPosition::Arrival => self.can_insert_before(prev, next),
                 LockPosition::Fixed => false,
             }
     }

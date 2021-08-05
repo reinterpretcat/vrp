@@ -235,7 +235,7 @@ impl Rosomaxa {
 
     fn is_comparable_with_best_known(&self, individual: &Individual, best_known: Option<&Individual>) -> bool {
         best_known
-            .map_or(true, |best_known| self.problem.objective.total_order(&individual, best_known) != Ordering::Greater)
+            .map_or(true, |best_known| self.problem.objective.total_order(individual, best_known) != Ordering::Greater)
     }
 
     fn fill_populations(

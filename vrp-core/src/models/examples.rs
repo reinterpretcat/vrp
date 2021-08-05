@@ -28,7 +28,7 @@ fn create_example_jobs(fleet: &Fleet, transport: &Arc<dyn TransportCost + Sync +
             }],
             dimens: Default::default(),
         }))],
-        &transport,
+        transport,
     ))
 }
 

@@ -46,13 +46,13 @@ impl<'a> ValidationContext<'a> {
 
     /// Validates problem on set of rules.
     pub fn validate(&self) -> Result<(), Vec<FormatError>> {
-        let errors = validate_jobs(&self)
+        let errors = validate_jobs(self)
             .err()
             .into_iter()
-            .chain(validate_vehicles(&self).err().into_iter())
-            .chain(validate_objectives(&self).err().into_iter())
-            .chain(validate_routing(&self).err().into_iter())
-            .chain(validate_relations(&self).err().into_iter())
+            .chain(validate_vehicles(self).err().into_iter())
+            .chain(validate_objectives(self).err().into_iter())
+            .chain(validate_routing(self).err().into_iter())
+            .chain(validate_relations(self).err().into_iter())
             .flatten()
             .collect::<Vec<_>>();
 

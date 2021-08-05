@@ -10,7 +10,7 @@ pub trait SolomonSolution<W: Write> {
 
 impl<W: Write> SolomonSolution<W> for Solution {
     fn write_solomon(&self, writer: BufWriter<W>) -> Result<(), String> {
-        write_text_solution(writer, &self).map_err(|err| err.to_string())?;
+        write_text_solution(writer, self).map_err(|err| err.to_string())?;
         Ok(())
     }
 }

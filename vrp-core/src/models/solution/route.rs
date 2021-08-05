@@ -73,8 +73,8 @@ impl Activity {
     pub fn has_same_job(&self, job: &Job) -> bool {
         match self.retrieve_job() {
             Some(j) => match (&j, job) {
-                (Job::Multi(lhs), Job::Multi(rhs)) => compare_shared(&lhs, rhs),
-                (Job::Single(lhs), Job::Single(rhs)) => compare_shared(&lhs, rhs),
+                (Job::Multi(lhs), Job::Multi(rhs)) => compare_shared(lhs, rhs),
+                (Job::Single(lhs), Job::Single(rhs)) => compare_shared(lhs, rhs),
                 _ => false,
             },
             _ => false,

@@ -32,8 +32,8 @@ impl Tour {
     /// Creates a new tour with start and optional end using actor properties.
     pub fn new(actor: &Actor) -> Self {
         let mut tour = Self::default();
-        tour.set_start(create_start_activity(&actor));
-        create_end_activity(&actor).map(|end| tour.set_end(end));
+        tour.set_start(create_start_activity(actor));
+        create_end_activity(actor).map(|end| tour.set_end(end));
 
         tour
     }
@@ -159,7 +159,7 @@ impl Tour {
 
     /// Returns index of first job occurrence in the tour.
     pub fn index(&self, job: &Job) -> Option<usize> {
-        self.activities.iter().position(move |a| a.has_same_job(&job))
+        self.activities.iter().position(move |a| a.has_same_job(job))
     }
 
     /// Checks whether tour has jobs.

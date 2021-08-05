@@ -186,12 +186,12 @@ impl Telemetry {
 
             if should_log_best {
                 self.log_individual(
-                    &self.get_individual_metrics(refinement_ctx, &best_individual, rank),
+                    &self.get_individual_metrics(refinement_ctx, best_individual, rank),
                     Some((refinement_ctx.statistics.generation, generation_time)),
                 )
             }
 
-            self.on_population(&refinement_ctx, should_log_population, should_track_population, should_dump_population);
+            self.on_population(refinement_ctx, should_log_population, should_track_population, should_dump_population);
         } else {
             self.log("no progress yet");
         }
@@ -226,11 +226,11 @@ impl Telemetry {
         let individuals = refinement_ctx
             .population
             .ranked()
-            .map(|(insertion_ctx, rank)| self.get_individual_metrics(refinement_ctx, &insertion_ctx, rank))
+            .map(|(insertion_ctx, rank)| self.get_individual_metrics(refinement_ctx, insertion_ctx, rank))
             .collect::<Vec<_>>();
 
         if should_log_population {
-            individuals.iter().for_each(|metrics| self.log_individual(&metrics, None));
+            individuals.iter().for_each(|metrics| self.log_individual(metrics, None));
             if should_dump_population {
                 self.log(&format!("\t{}", Self::get_population_state(refinement_ctx)));
             }

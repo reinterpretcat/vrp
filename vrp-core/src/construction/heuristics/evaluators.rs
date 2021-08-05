@@ -41,7 +41,7 @@ pub fn evaluate_job_insertion_in_route(
 
     let constraint = &ctx.problem.constraint;
 
-    if let Some(violation) = constraint.evaluate_hard_route(&ctx.solution, &route_ctx, job) {
+    if let Some(violation) = constraint.evaluate_hard_route(&ctx.solution, route_ctx, job) {
         return result_selector.select_insertion(
             ctx,
             alternative,
@@ -49,7 +49,7 @@ pub fn evaluate_job_insertion_in_route(
         );
     }
 
-    let route_costs = constraint.evaluate_soft_route(&ctx.solution, &route_ctx, &job);
+    let route_costs = constraint.evaluate_soft_route(&ctx.solution, route_ctx, job);
     let best_known_cost = match &alternative {
         InsertionResult::Success(success) => Some(success.cost),
         _ => None,
@@ -67,7 +67,7 @@ pub fn evaluate_job_insertion_in_route(
         evaluate_job_constraint_in_route(
             job,
             constraint,
-            &route_ctx,
+            route_ctx,
             position,
             route_costs,
             best_known_cost,
@@ -89,10 +89,10 @@ pub fn evaluate_job_constraint_in_route(
 ) -> InsertionResult {
     match job {
         Job::Single(single) => {
-            evaluate_single(job, single, constraint, &route_ctx, position, route_costs, best_known_cost, r_selector)
+            evaluate_single(job, single, constraint, route_ctx, position, route_costs, best_known_cost, r_selector)
         }
         Job::Multi(multi) => {
-            evaluate_multi(job, multi, constraint, &route_ctx, position, route_costs, best_known_cost, r_selector)
+            evaluate_multi(job, multi, constraint, route_ctx, position, route_costs, best_known_cost, r_selector)
         }
     }
 }
@@ -109,7 +109,7 @@ pub(crate) fn evaluate_single_constraint_in_route(
     best_known_cost: Option<Cost>,
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> InsertionResult {
-    if let Some(violation) = constraint.evaluate_hard_route(&insertion_ctx.solution, &route_ctx, job) {
+    if let Some(violation) = constraint.evaluate_hard_route(&insertion_ctx.solution, route_ctx, job) {
         InsertionResult::Failure(InsertionFailure { constraint: violation.code, stopped: true, job: Some(job.clone()) })
     } else {
         evaluate_single(job, single, constraint, route_ctx, position, route_costs, best_known_cost, result_selector)
@@ -166,7 +166,7 @@ fn evaluate_multi(
     let result = unwrap_from_result(multi.permutations().into_iter().try_fold(
         MultiContext::new(best_known_cost, insertion_idx),
         |acc_res, services| {
-            let mut shadow = ShadowContext::new(constraint, &route_ctx);
+            let mut shadow = ShadowContext::new(constraint, route_ctx);
             let perm_res = unwrap_from_result(repeat(0).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
                 if out.is_failure(route_ctx.route.tour.activity_count()) {
                     return Result::Err(out);
@@ -181,7 +181,7 @@ fn evaluate_multi(
                     let mut activity = Activity::new_with_job(service.clone());
                     // 3. analyze legs
                     let srv_res = analyze_insertion_in_route(
-                        &constraint,
+                        constraint,
                         &shadow.ctx,
                         None,
                         service,
@@ -265,7 +265,7 @@ fn analyze_insertion_in_route_leg<'a>(
                 time: time.to_time_window(start_time),
             };
 
-            let activity_ctx = ActivityContext { index, prev, target: &target, next };
+            let activity_ctx = ActivityContext { index, prev, target, next };
 
             if let Some(violation) = constraint.evaluate_hard_activity(route_ctx, &activity_ctx) {
                 return SingleContext::fail(violation, in2);

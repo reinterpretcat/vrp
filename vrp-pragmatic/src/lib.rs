@@ -36,7 +36,7 @@ use chrono::{DateTime, ParseError, SecondsFormat, TimeZone, Utc};
 
 /// Get lists of problem.
 pub fn get_unique_locations(problem: &Problem) -> Vec<Location> {
-    CoordIndex::new(&problem).unique()
+    CoordIndex::new(problem).unique()
 }
 
 fn format_time(time: f64) -> String {

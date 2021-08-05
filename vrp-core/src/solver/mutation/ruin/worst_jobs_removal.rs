@@ -66,7 +66,7 @@ impl Ruin for WorstJobRemoval {
                     .chain(
                         problem
                             .jobs
-                            .neighbors(&rc.route.actor.vehicle.profile, &job, Timestamp::default())
+                            .neighbors(&rc.route.actor.vehicle.profile, job, Timestamp::default())
                             .filter(|(_, cost)| *cost > 0.)
                             .map(|(job, _)| job)
                             .cloned(),

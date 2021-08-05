@@ -30,7 +30,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> MultiTrip<T> for Rel
     fn is_assignable(&self, route: &Route, job: &Job) -> bool {
         if self.is_reload_job(job) {
             let job = job.to_single();
-            let vehicle_id = get_vehicle_id_from_job(&job).unwrap();
+            let vehicle_id = get_vehicle_id_from_job(job).unwrap();
             let shift_index = get_shift_index(&job.dimens);
 
             is_correct_vehicle(route, vehicle_id, shift_index)
@@ -67,9 +67,9 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> MultiTrip<T> for Rel
             jobs.iter()
                 .filter(move |job| match job {
                     Job::Single(job) => {
-                        self.is_reload_single(&job)
+                        self.is_reload_single(job)
                             && get_shift_index(&job.dimens) == shift_index
-                            && get_vehicle_id_from_job(&job).unwrap() == vehicle_id
+                            && get_vehicle_id_from_job(job).unwrap() == vehicle_id
                     }
                     _ => false,
                 })

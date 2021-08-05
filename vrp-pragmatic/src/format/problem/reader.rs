@@ -129,7 +129,7 @@ fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .collect::<HashSet<u64>>();
     let speeds = speeds.into_iter().map(f64::from_bits).collect::<Vec<_>>();
 
-    let locations = get_unique_locations(&problem);
+    let locations = get_unique_locations(problem);
     let approx_data = get_approx_transportation(&locations, speeds.as_slice());
 
     problem
@@ -248,7 +248,7 @@ fn create_constraint_pipeline(
         DURATION_LIMIT_CONSTRAINT_CODE,
     )));
 
-    add_capacity_module(&mut constraint, &props, transport.clone());
+    add_capacity_module(&mut constraint, props, transport.clone());
 
     if props.has_breaks {
         constraint.add_module(Arc::new(BreakModule::new(transport.clone(), BREAK_CONSTRAINT_CODE)));

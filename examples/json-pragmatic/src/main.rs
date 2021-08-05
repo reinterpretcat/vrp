@@ -88,7 +88,7 @@ fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Sol
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
-    solution.write_pragmatic_json(&problem, writer).expect("cannot write pragmatic solution");
+    solution.write_pragmatic_json(problem, writer).expect("cannot write pragmatic solution");
 
     deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
 }

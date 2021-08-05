@@ -37,13 +37,13 @@ pub trait PragmaticSolution<W: Write> {
 
 impl<W: Write> PragmaticSolution<W> for Solution {
     fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        let solution = create_solution(problem, &self, None);
+        let solution = create_solution(problem, self, None);
         serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
         Ok(())
     }
 
     fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        let solution = create_solution(problem, &self, None);
+        let solution = create_solution(problem, self, None);
         serialize_solution_as_geojson(writer, problem, &solution).map_err(|err| err.to_string())?;
         Ok(())
     }
@@ -181,7 +181,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     "pickup" | "delivery" | "replacement" | "service" => {
                         let single = act.job.as_ref().unwrap();
                         let id = single.dimens.get_id().cloned();
-                        id.unwrap_or_else(|| Multi::roots(&single).unwrap().dimens.get_id().unwrap().clone())
+                        id.unwrap_or_else(|| Multi::roots(single).unwrap().dimens.get_id().unwrap().clone())
                     }
                     _ => activity_type.clone(),
                 };

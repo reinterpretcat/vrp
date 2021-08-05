@@ -154,6 +154,7 @@ impl Multi {
     /// Wraps given multi job into [`Arc`] adding reference to it from all sub-jobs.
     pub fn bind(multi: Self) -> Arc<Self> {
         // NOTE: layout must be identical
+        #[allow(dead_code)]
         struct SingleConstruct {
             pub places: UnsafeCell<Vec<Place>>,
             pub dimens: UnsafeCell<Dimensions>,
@@ -287,7 +288,7 @@ fn create_index(
             let fleet_costs = starts
                 .iter()
                 .cloned()
-                .map(|s| get_cost_between_job_and_location(&profile, avg_costs, transport.as_ref(), &job, s))
+                .map(|s| get_cost_between_job_and_location(profile, avg_costs, transport.as_ref(), &job, s))
                 .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
                 .unwrap_or(DEFAULT_COST);
 
@@ -309,8 +310,8 @@ fn get_cost_between_locations(
     from: Location,
     to: Location,
 ) -> f64 {
-    let distance = transport.distance(&profile, from, to, DEFAULT_DEPARTURE);
-    let duration = transport.duration(&profile, from, to, DEFAULT_DEPARTURE);
+    let distance = transport.distance(profile, from, to, DEFAULT_DEPARTURE);
+    let duration = transport.duration(profile, from, to, DEFAULT_DEPARTURE);
 
     if distance < 0. || duration < 0. {
         // NOTE this happens if matrix uses negative values as a marker of unreachable location
@@ -330,7 +331,7 @@ fn get_cost_between_job_and_location(
 ) -> Cost {
     get_job_locations(job)
         .map(|from| match from {
-            Some(from) => get_cost_between_locations(&profile, costs, transport, from, to),
+            Some(from) => get_cost_between_locations(profile, costs, transport, from, to),
             _ => DEFAULT_COST,
         })
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
@@ -383,11 +384,11 @@ fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {
             (
                 profile_idx,
                 Costs {
-                    fixed: get_avg_by(&costs, |c| c.fixed),
-                    per_distance: get_avg_by(&costs, |c| c.per_distance),
-                    per_driving_time: get_avg_by(&costs, |c| c.per_driving_time),
-                    per_waiting_time: get_avg_by(&costs, |c| c.per_waiting_time),
-                    per_service_time: get_avg_by(&costs, |c| c.per_service_time),
+                    fixed: get_avg_by(costs, |c| c.fixed),
+                    per_distance: get_avg_by(costs, |c| c.per_distance),
+                    per_driving_time: get_avg_by(costs, |c| c.per_driving_time),
+                    per_waiting_time: get_avg_by(costs, |c| c.per_waiting_time),
+                    per_service_time: get_avg_by(costs, |c| c.per_service_time),
                 },
             )
         })

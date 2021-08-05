@@ -82,7 +82,7 @@ impl StaticSelective {
                 .try_fold(insertion_ctx.deep_copy(), |ctx, (mutation, _)| {
                     let new_insertion_ctx = mutation.mutate(refinement_ctx, &ctx);
 
-                    if refinement_ctx.problem.objective.total_order(&insertion_ctx, &new_insertion_ctx)
+                    if refinement_ctx.problem.objective.total_order(insertion_ctx, &new_insertion_ctx)
                         == Ordering::Greater
                     {
                         // NOTE exit immediately as we don't want to lose improvement from original individual

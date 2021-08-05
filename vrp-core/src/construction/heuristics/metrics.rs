@@ -66,7 +66,7 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
 
         for i in 0..medoids.len() {
             for j in (i + 1)..medoids.len() {
-                let distance = transport.distance(&profile, medoids[i], medoids[j], Default::default());
+                let distance = transport.distance(profile, medoids[i], medoids[j], Default::default());
                 // NOTE assume that negative distance is used between unroutable locations
                 distances.push(distance.max(0.));
             }

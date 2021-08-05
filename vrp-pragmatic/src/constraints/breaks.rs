@@ -92,7 +92,7 @@ impl HardActivityConstraint for BreakHardActivityConstraint {
         _: &RouteContext,
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
-        match as_break_job(&activity_ctx.target) {
+        match as_break_job(activity_ctx.target) {
             Some(_) if activity_ctx.prev.job.is_none() => Some(self.stop()),
             _ => None,
         }
@@ -138,7 +138,7 @@ fn is_required_job(routes: &[RouteContext], route_index: Option<usize>, job: &Jo
                     let shift_index = get_shift_index(&job.dimens);
                     routes
                         .iter()
-                        .any(move |rc| is_correct_vehicle(&rc.route, &vehicle_id, shift_index) && is_time(rc, job))
+                        .any(move |rc| is_correct_vehicle(&rc.route, vehicle_id, shift_index) && is_time(rc, job))
                 }
             } else {
                 default

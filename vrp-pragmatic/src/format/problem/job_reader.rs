@@ -127,7 +127,7 @@ fn read_required_jobs(
         let places =
             task.places.iter().map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times))).collect();
 
-        get_single_with_extras(places, demand, &task.tag, &task.order, activity_type, has_multi_dimens, &coord_index)
+        get_single_with_extras(places, demand, &task.tag, &task.order, activity_type, has_multi_dimens, coord_index)
     };
 
     api_problem.plan.jobs.iter().for_each(|job| {

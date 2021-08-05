@@ -110,13 +110,13 @@ fn find_best_insertion_pair(
                         .tour
                         .jobs()
                         .enumerate()
-                        .filter(|(idx, job)| !locked.contains(&job) && filter_jobs_indices(*idx))
+                        .filter(|(idx, job)| !locked.contains(job) && filter_jobs_indices(*idx))
                         .collect::<Vec<_>>()
                         .as_slice(),
                     |(_, test_job)| {
                         // try to insert test job into seed tour
                         let seed_success =
-                            test_job_insertion(&new_insertion_ctx, &seed_route, &test_job, &result_selector)?;
+                            test_job_insertion(&new_insertion_ctx, seed_route, test_job, &result_selector)?;
 
                         // try to insert seed job into test route
                         let mut test_route = test_route.deep_copy();
@@ -150,13 +150,13 @@ fn find_best_insertion_pair(
 
 fn test_job_insertion(
     insertion_ctx: &InsertionContext,
-    route: &RouteContext,
+    route_ctx: &RouteContext,
     job: &Job,
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> Option<InsertionSuccess> {
     let insertion = evaluate_job_insertion_in_route(
-        &insertion_ctx,
-        &route,
+        insertion_ctx,
+        route_ctx,
         job,
         InsertionPosition::Any,
         InsertionResult::make_failure(),
@@ -214,7 +214,7 @@ fn get_new_insertion_ctx(
     let mut new_insertion_ctx = insertion_ctx.deep_copy();
 
     let mut route_ctx = &mut new_insertion_ctx.solution.routes[seed_route_idx];
-    let removal_result = route_ctx.route_mut().tour.remove(&seed_job);
+    let removal_result = route_ctx.route_mut().tour.remove(seed_job);
     if !removal_result {
         return Err("cannot find job in insertion ctx".to_string());
     }

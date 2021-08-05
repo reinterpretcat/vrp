@@ -89,7 +89,7 @@ impl RuinLimits {
         AffectedTracker {
             affected_actors: RwLock::new(HashSet::default()),
             removed_jobs: RwLock::new(HashSet::default()),
-            limits: &self,
+            limits: self,
         }
     }
 }

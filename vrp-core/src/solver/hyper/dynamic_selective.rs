@@ -328,6 +328,6 @@ fn compare_to_best(refinement_ctx: &RefinementContext, individual: &Individual) 
         .population
         .ranked()
         .next()
-        .map(|(best_known, _)| refinement_ctx.problem.objective.total_order(&individual, best_known))
+        .map(|(best_known, _)| refinement_ctx.problem.objective.total_order(individual, best_known))
         .unwrap_or(Ordering::Less)
 }

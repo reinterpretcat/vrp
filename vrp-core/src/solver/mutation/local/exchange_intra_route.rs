@@ -39,8 +39,8 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                 new_insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
 
                 let insertion = evaluate_job_insertion_in_route(
-                    &insertion_ctx,
-                    &route_ctx,
+                    insertion_ctx,
+                    route_ctx,
                     &job,
                     InsertionPosition::Any,
                     InsertionResult::make_failure(),

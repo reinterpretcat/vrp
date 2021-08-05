@@ -108,7 +108,7 @@ fn synchronize_jobs(
                 let insertion_result = evaluate_single_constraint_in_route(
                     &job,
                     single,
-                    &constraint,
+                    constraint,
                     new_insertion_ctx,
                     new_insertion_ctx.solution.routes.get(route_idx).unwrap(),
                     position,

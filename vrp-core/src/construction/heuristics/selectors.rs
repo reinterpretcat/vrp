@@ -115,9 +115,9 @@ impl PositionInsertionEvaluator {
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> Vec<InsertionResult> {
         if Self::is_fold_jobs(ctx) {
-            parallel_collect(&jobs, |job| self.evaluate_job(ctx, job, routes, result_selector))
+            parallel_collect(jobs, |job| self.evaluate_job(ctx, job, routes, result_selector))
         } else {
-            parallel_collect(&routes, |route| self.evaluate_route(ctx, route, jobs, result_selector))
+            parallel_collect(routes, |route| self.evaluate_route(ctx, route, jobs, result_selector))
         }
     }
 
@@ -137,7 +137,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-            evaluate_job_insertion_in_route(&ctx, &route_ctx, job, self.insertion_position, acc, result_selector)
+            evaluate_job_insertion_in_route(ctx, route_ctx, job, self.insertion_position, acc, result_selector)
         })
     }
 
@@ -149,7 +149,7 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
-            evaluate_job_insertion_in_route(&ctx, &route, job, self.insertion_position, acc, result_selector)
+            evaluate_job_insertion_in_route(ctx, route, job, self.insertion_position, acc, result_selector)
         })
     }
 
@@ -165,14 +165,14 @@ impl InsertionEvaluator for PositionInsertionEvaluator {
                 jobs,
                 |job| self.evaluate_job(ctx, job, routes, result_selector),
                 InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(&ctx, a, b),
+                |a, b| result_selector.select_insertion(ctx, a, b),
             )
         } else {
             map_reduce(
                 routes,
                 |route| self.evaluate_route(ctx, route, jobs, result_selector),
                 InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(&ctx, a, b),
+                |a, b| result_selector.select_insertion(ctx, a, b),
             )
         }
     }

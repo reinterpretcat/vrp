@@ -54,7 +54,7 @@ fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) ->
         properties: slice_to_map(&[
             ("marker-color", color),
             ("marker-size", "medium"),
-            ("marker-symbol", get_marker_symbol(&stop).as_str()),
+            ("marker-symbol", get_marker_symbol(stop).as_str()),
             ("tour_idx", tour_idx.to_string().as_str()),
             ("stop_idx", stop_idx.to_string().as_str()),
             ("arrival", stop.time.arrival.as_str()),
@@ -130,7 +130,7 @@ fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<Fea
         .enumerate()
         .flat_map(|(tour_idx, tour)| {
             tour.stops.iter().enumerate().map(move |(stop_idx, stop)| {
-                get_stop_point(tour_idx, stop_idx, &stop, get_color_inverse(tour_idx).as_str())
+                get_stop_point(tour_idx, stop_idx, stop, get_color_inverse(tour_idx).as_str())
             })
         })
         .collect::<Result<Vec<_>, _>>()?;

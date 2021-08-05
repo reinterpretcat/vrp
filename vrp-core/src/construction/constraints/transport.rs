@@ -154,8 +154,8 @@ impl TransportConstraintModule {
             let latest_arrival_time = act.place.time.end.min(potential_latest);
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
 
-            state.put_activity_state(LATEST_ARRIVAL_KEY, &act, latest_arrival_time);
-            state.put_activity_state(WAITING_KEY, &act, future_waiting);
+            state.put_activity_state(LATEST_ARRIVAL_KEY, act, latest_arrival_time);
+            state.put_activity_state(WAITING_KEY, act, future_waiting);
 
             (latest_arrival_time, act.place.location, future_waiting)
         });
@@ -280,7 +280,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         };
 
         let arr_time_at_next =
-            departure + self.transport.duration(&profile, prev.place.location, next_act_location, departure);
+            departure + self.transport.duration(profile, prev.place.location, next_act_location, departure);
 
         if arr_time_at_next > latest_arr_time_at_next_act {
             return fail(self.code);
@@ -290,14 +290,14 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         }
 
         let arr_time_at_target_act =
-            departure + self.transport.duration(&profile, prev.place.location, target.place.location, departure);
+            departure + self.transport.duration(profile, prev.place.location, target.place.location, departure);
 
         let end_time_at_new_act = arr_time_at_target_act.max(target.place.time.start) + target.place.duration;
 
         let latest_arr_time_at_new_act = target.place.time.end.min(
             latest_arr_time_at_next_act
                 - self.transport.duration(
-                    &profile,
+                    profile,
                     target.place.location,
                     next_act_location,
                     latest_arr_time_at_next_act,
@@ -314,7 +314,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         }
 
         let arr_time_at_next_act = end_time_at_new_act
-            + self.transport.duration(&profile, target.place.location, next_act_location, end_time_at_new_act);
+            + self.transport.duration(profile, target.place.location, next_act_location, end_time_at_new_act);
 
         if arr_time_at_next_act > latest_arr_time_at_next_act {
             stop(self.code)

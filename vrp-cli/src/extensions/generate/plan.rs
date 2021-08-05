@@ -79,7 +79,7 @@ fn get_location_fn(
     area_size: Option<f64>,
 ) -> Result<Box<dyn Fn(&DefaultRandom) -> Location>, String> {
     if let Some(locations) = locations {
-        Ok(Box::new(move |rnd| get_random_item(locations.as_slice(), &rnd).cloned().expect("cannot get any location")))
+        Ok(Box::new(move |rnd| get_random_item(locations.as_slice(), rnd).cloned().expect("cannot get any location")))
     } else {
         let bounding_box = if let Some(area_size) = area_size {
             if area_size > 0. {
@@ -106,7 +106,7 @@ fn get_bounding_box_from_plan(plan: &Plan) -> ((f64, f64), (f64, f64)) {
     let mut lng_min = f64::MAX;
     let mut lng_max = f64::MIN;
 
-    get_plan_places(&plan).map(|job_place| job_place.location.to_lat_lng()).for_each(|(lat, lng)| {
+    get_plan_places(plan).map(|job_place| job_place.location.to_lat_lng()).for_each(|(lat, lng)| {
         lat_min = lat_min.min(lat);
         lat_max = lat_max.max(lat);
 
@@ -150,7 +150,7 @@ fn get_bounding_box_from_size(plan: &Plan, area_size: f64) -> ((f64, f64), (f64,
 }
 
 fn get_plan_time_windows(plan: &Plan) -> Vec<Vec<Vec<String>>> {
-    get_plan_places(&plan).flat_map(|job_place| job_place.times.iter()).cloned().collect()
+    get_plan_places(plan).flat_map(|job_place| job_place.times.iter()).cloned().collect()
 }
 
 fn get_plan_demands(plan: &Plan) -> Vec<Vec<i32>> {
@@ -163,7 +163,7 @@ fn get_plan_demands(plan: &Plan) -> Vec<Vec<i32>> {
 }
 
 fn get_plan_durations(plan: &Plan) -> Vec<f64> {
-    get_plan_places(&plan).map(|job_place| job_place.duration).collect()
+    get_plan_places(plan).map(|job_place| job_place.duration).collect()
 }
 
 fn get_plan_places(plan: &Plan) -> impl Iterator<Item = &JobPlace> {

@@ -47,7 +47,7 @@ impl ConstraintModule for DispatchModule {
                     tour.jobs().next().unwrap().as_single().map_or(false, |single| is_dispatch_single(single));
 
                 if is_dispatch {
-                    registry.free_route(&rc);
+                    registry.free_route(rc);
                     return false;
                 }
             }
