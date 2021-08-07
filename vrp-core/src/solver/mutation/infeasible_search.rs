@@ -185,6 +185,7 @@ fn use_permissive_rule(
         .enumerate()
         // NOTE as permissive rule, we just skip constraint entirely
         .filter(|(_, constraints)| constraints.iter().any(|(_, is_hard)| *is_hard))
+        .map(|(idx, _)| idx)
         .collect::<Vec<_>>();
 
     assert!(indices.len() > 0);
@@ -194,7 +195,7 @@ fn use_permissive_rule(
     constraints
         .iter()
         .enumerate()
-        .filter(|(index, _)| *index != skip_index)
+        .filter(|(index, _)| *index != indices[skip_index])
         .flat_map(|(_, constraints)| constraints.iter())
         .for_each(|(constraint, _)| modified.add_constraint(&constraint));
 }
