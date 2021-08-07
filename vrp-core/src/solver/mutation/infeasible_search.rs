@@ -93,7 +93,7 @@ fn create_relaxed_insertion_ctx(
     let skip_prob = random.uniform_real(skip_constraint_check_probability.0, skip_constraint_check_probability.1);
 
     let constraint = if random.is_hit(skip_prob) {
-        Arc::new(create_wrapped_constraint(problem.constraint.as_ref(), random.clone(), skip_prob))
+        Arc::new(create_modified_constraint(problem.constraint.as_ref(), random.clone(), skip_prob))
     } else {
         problem.constraint.clone()
     };
@@ -119,26 +119,84 @@ fn create_relaxed_insertion_ctx(
     insertion_ctx
 }
 
-fn create_wrapped_constraint(
+fn create_modified_constraint(
     original: &ConstraintPipeline,
     random: Arc<dyn Random + Send + Sync>,
     skip_probability: f64,
 ) -> ConstraintPipeline {
-    original.copy_with_modifier(&|constraint| match constraint {
-        ConstraintVariant::HardRoute(c) => ConstraintVariant::HardRoute(Arc::new(StochasticHardConstraint::new(
-            Some(c),
-            None,
-            random.clone(),
-            skip_probability,
-        ))),
-        ConstraintVariant::HardActivity(c) => ConstraintVariant::HardActivity(Arc::new(StochasticHardConstraint::new(
-            None,
-            Some(c),
-            random.clone(),
-            skip_probability,
-        ))),
-        _ => constraint,
-    })
+    let mut pipeline = ConstraintPipeline {
+        modules: original.modules.clone(),
+        state_keys: original.state_keys.clone(),
+        ..ConstraintPipeline::default()
+    };
+
+    if random.is_head_not_tails() {
+        use_stochastic_rule(original, &mut pipeline, random, skip_probability);
+    } else {
+        use_permissive_rule(original, &mut pipeline, random);
+    }
+
+    pipeline
+}
+
+fn use_stochastic_rule(
+    original: &ConstraintPipeline,
+    modified: &mut ConstraintPipeline,
+    random: Arc<dyn Random + Send + Sync>,
+    skip_probability: f64,
+) {
+    original.get_constraints().for_each(|constraint| {
+        let constraint: ConstraintVariant =
+            match constraint {
+                ConstraintVariant::HardRoute(c) => ConstraintVariant::HardRoute(Arc::new(
+                    StochasticHardConstraint::new(Some(c), None, random.clone(), skip_probability),
+                )),
+                ConstraintVariant::HardActivity(c) => ConstraintVariant::HardActivity(Arc::new(
+                    StochasticHardConstraint::new(None, Some(c), random.clone(), skip_probability),
+                )),
+                _ => constraint,
+            };
+        modified.add_constraint(&constraint);
+    });
+}
+
+fn use_permissive_rule(
+    original: &ConstraintPipeline,
+    modified: &mut ConstraintPipeline,
+    random: Arc<dyn Random + Send + Sync>,
+) {
+    let constraints = original
+        .modules
+        .iter()
+        .map(|module| {
+            module
+                .get_constraints()
+                .map(|constraint| match &constraint {
+                    ConstraintVariant::HardRoute(_) | ConstraintVariant::HardActivity(_) => (constraint, true),
+                    _ => (constraint, false),
+                })
+                .collect::<Vec<_>>()
+        })
+        .filter(|constraints| !constraints.is_empty())
+        .collect::<Vec<_>>();
+
+    let indices = constraints
+        .iter()
+        .enumerate()
+        // NOTE as permissive rule, we just skip constraint entirely
+        .filter(|(_, constraints)| constraints.iter().any(|(_, is_hard)| *is_hard))
+        .collect::<Vec<_>>();
+
+    assert!(indices.len() > 0);
+
+    let skip_index = random.uniform_int(0, indices.len() as i32 - 1) as usize;
+
+    constraints
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| *index != skip_index)
+        .flat_map(|(_, constraints)| constraints.iter())
+        .for_each(|(constraint, _)| modified.add_constraint(&constraint));
 }
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {

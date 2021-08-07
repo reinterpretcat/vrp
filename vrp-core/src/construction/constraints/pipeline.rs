@@ -106,12 +106,18 @@ pub trait ConstraintModule {
 
 /// Provides the way to work with multiple constraints.
 pub struct ConstraintPipeline {
-    modules: Vec<Arc<dyn ConstraintModule + Send + Sync>>,
-    state_keys: HashSet<i32>,
-    hard_route_constraints: Vec<Arc<dyn HardRouteConstraint + Send + Sync>>,
-    hard_activity_constraints: Vec<Arc<dyn HardActivityConstraint + Send + Sync>>,
-    soft_route_constraints: Vec<Arc<dyn SoftRouteConstraint + Send + Sync>>,
-    soft_activity_constraints: Vec<Arc<dyn SoftActivityConstraint + Send + Sync>>,
+    /// Pipeline modules.
+    pub modules: Vec<Arc<dyn ConstraintModule + Send + Sync>>,
+    /// Registered state keys.
+    pub state_keys: HashSet<i32>,
+    /// Hard route constraints.
+    pub hard_route_constraints: Vec<Arc<dyn HardRouteConstraint + Send + Sync>>,
+    /// Hard activity constraints.
+    pub hard_activity_constraints: Vec<Arc<dyn HardActivityConstraint + Send + Sync>>,
+    /// Soft route constraints.
+    pub soft_route_constraints: Vec<Arc<dyn SoftRouteConstraint + Send + Sync>>,
+    /// Soft activity constraints.
+    pub soft_activity_constraints: Vec<Arc<dyn SoftActivityConstraint + Send + Sync>>,
 }
 
 impl Default for ConstraintPipeline {
@@ -199,6 +205,16 @@ impl ConstraintPipeline {
         self
     }
 
+    /// Adds constraint into pipeline.
+    pub fn add_constraint(&mut self, constraint: &ConstraintVariant) {
+        match constraint {
+            ConstraintVariant::HardRoute(c) => self.hard_route_constraints.push(c.clone()),
+            ConstraintVariant::HardActivity(c) => self.hard_activity_constraints.push(c.clone()),
+            ConstraintVariant::SoftRoute(c) => self.soft_route_constraints.push(c.clone()),
+            ConstraintVariant::SoftActivity(c) => self.soft_activity_constraints.push(c.clone()),
+        }
+    }
+
     /// Checks whether all hard route constraints are fulfilled.
     /// Returns result of first failed constraint or empty value.
     pub fn evaluate_hard_route(
@@ -230,38 +246,14 @@ impl ConstraintPipeline {
         self.soft_activity_constraints.iter().map(|c| c.estimate_activity(route_ctx, activity_ctx)).sum()
     }
 
-    /// Creates a copy of the constraint pipeline allowing external modifications in constraints.
-    pub fn copy_with_modifier(&self, modifier: &(dyn Fn(ConstraintVariant) -> ConstraintVariant)) -> Self {
-        let mut new_constraint = Self {
-            modules: self.modules.clone(),
-            state_keys: self.state_keys.clone(),
-            hard_route_constraints: vec![],
-            hard_activity_constraints: vec![],
-            soft_route_constraints: vec![],
-            soft_activity_constraints: vec![],
-        };
-
+    /// Gets all constraint variants as a single iterator.
+    pub fn get_constraints(&self) -> impl Iterator<Item = ConstraintVariant> + '_ {
         self.hard_route_constraints
             .iter()
             .map(|c| ConstraintVariant::HardRoute(c.clone()))
             .chain(self.hard_activity_constraints.iter().map(|c| ConstraintVariant::HardActivity(c.clone())))
             .chain(self.soft_route_constraints.iter().map(|c| ConstraintVariant::SoftRoute(c.clone())))
             .chain(self.soft_activity_constraints.iter().map(|c| ConstraintVariant::SoftActivity(c.clone())))
-            .for_each(|constraint| {
-                let constraint = modifier(constraint);
-                Self::add_constraint(&mut new_constraint, &constraint);
-            });
-
-        new_constraint
-    }
-
-    fn add_constraint(pipeline: &mut Self, constraint: &ConstraintVariant) {
-        match constraint {
-            ConstraintVariant::HardRoute(c) => pipeline.hard_route_constraints.push(c.clone()),
-            ConstraintVariant::HardActivity(c) => pipeline.hard_activity_constraints.push(c.clone()),
-            ConstraintVariant::SoftRoute(c) => pipeline.soft_route_constraints.push(c.clone()),
-            ConstraintVariant::SoftActivity(c) => pipeline.soft_activity_constraints.push(c.clone()),
-        }
     }
 }
 
