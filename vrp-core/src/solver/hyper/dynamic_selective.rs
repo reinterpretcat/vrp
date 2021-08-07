@@ -169,7 +169,7 @@ impl DynamicSelective {
                 Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
                 "local_reschedule_departure".to_string(),
             ),
-            (Arc::new(DecomposeSearch::new(static_selective.clone(), (2, 8), 4)), "decompose_search".to_string()),
+            (Arc::new(DecomposeSearch::new(static_selective.clone(), (2, 4), 4)), "decompose_search".to_string()),
             (
                 Arc::new(InfeasibleSearch::new(static_selective, 4, (0.05, 0.2), (0.05, 0.33))),
                 "infeasible_search".to_string(),
