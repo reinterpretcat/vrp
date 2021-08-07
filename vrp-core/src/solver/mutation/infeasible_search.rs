@@ -188,7 +188,7 @@ fn use_permissive_rule(
         .map(|(idx, _)| idx)
         .collect::<Vec<_>>();
 
-    assert!(indices.len() > 0);
+    assert!(!indices.is_empty());
 
     let skip_index = random.uniform_int(0, indices.len() as i32 - 1) as usize;
 
@@ -197,7 +197,7 @@ fn use_permissive_rule(
         .enumerate()
         .filter(|(index, _)| *index != indices[skip_index])
         .flat_map(|(_, constraints)| constraints.iter())
-        .for_each(|(constraint, _)| modified.add_constraint(&constraint));
+        .for_each(|(constraint, _)| modified.add_constraint(constraint));
 }
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {
