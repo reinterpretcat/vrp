@@ -83,6 +83,7 @@ If order on job task is specified, then it is also added to the list of objectiv
 
 ## Hints
 
+* pay attention to the order of objectives
 * if you're using balancing objective and getting high cost or non-realistic, but balanced routes, try to add a threshold to balancing objective:
 
 ```json

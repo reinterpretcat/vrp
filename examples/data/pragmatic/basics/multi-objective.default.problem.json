@@ -141,12 +141,12 @@
   "objectives": [
     [
       {
-        "type": "minimize-tours"
+        "type": "minimize-unassigned"
       }
     ],
     [
       {
-        "type": "minimize-unassigned"
+        "type": "minimize-tours"
       }
     ],
     [

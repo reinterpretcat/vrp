@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [1.11.0] - 2021-08-08
+
 ### Added
 
 * a metaheuristic which searches in infeasible solution space
@@ -15,21 +18,21 @@ All notable changes to this project will be documented in this file.
 * change metaheuristic coefficients
 
 
-## [1.10.8]
+## [1.10.8] - 2021-07-21
 
 ### Changed
 
 * validation rule for any relation
 
 
-## [1.10.7]
+## [1.10.7] - 2021-07-12
 
 ### Added
 
 * export validation function
 
 
-## [1.10.6]
+## [1.10.6] - 2021-06-27
 
 ### Added
 
@@ -40,7 +43,7 @@ All notable changes to this project will be documented in this file.
 * minor changes in core logic
 
 
-## [1.10.5]
+## [1.10.5] - 2021-06-20
 
 ### Changed
 
@@ -53,7 +56,7 @@ All notable changes to this project will be documented in this file.
 * undocumented `hre` format
 
 
-## [1.10.4]
+## [1.10.4] - 2021-05-15
 
 ### Added
 
@@ -66,7 +69,7 @@ All notable changes to this project will be documented in this file.
 * do not always try to move forward departure time
 
 
-## [v1.10.3]
+## [v1.10.3] - 2021-05-03
 
 ### Added
 
@@ -78,7 +81,7 @@ All notable changes to this project will be documented in this file.
 * improve rosomaxa algorithm
 
 
-## [v1.10.2]
+## [v1.10.2] - 2021-04-28
 
 ### Changed
 
@@ -91,7 +94,7 @@ All notable changes to this project will be documented in this file.
 * `cost-variation` parameter
 
 
-## [v1.10.1]
+## [v1.10.1] - 2021-04-20
 
 ### Changed
 
@@ -99,7 +102,7 @@ All notable changes to this project will be documented in this file.
 * change default objective behaviour when `value` property is used
 
 
-## [v1.10.0]
+## [v1.10.0] - 2021-04-02
 
 This release has breaking changes in pragmatic format and internal apis.
 
@@ -325,7 +328,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.10.8...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.11.0...HEAD
+[v1.11.0]: https://github.com/reinterpretcat/vrp/compare/v1.10.8...v1.11.0
 [v1.10.8]: https://github.com/reinterpretcat/vrp/compare/v1.10.7...v1.10.8
 [v1.10.7]: https://github.com/reinterpretcat/vrp/compare/v1.10.6...v1.10.7
 [v1.10.6]: https://github.com/reinterpretcat/vrp/compare/v1.10.5...v1.10.6
