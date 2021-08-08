@@ -127,7 +127,7 @@ To test it, use the following index.html file:
         "vehicleIds": [
           "vehicle_1"
         ],
-                "profile": {
+       "profile": {
           "matrix": "normal_car"
         },
         "costs": {
@@ -174,9 +174,7 @@ To test it, use the following index.html file:
         // NOTE or just pass an empty array to use great-circle distance approximation
         const matrix_data= [
             {
-                        "profile": {
-          "matrix": "normal_car"
-        },
+                "matrix": "normal_car",
                 "travelTimes": [
                    0,    609, 981, 906,
                    813,  0,   371, 590,
