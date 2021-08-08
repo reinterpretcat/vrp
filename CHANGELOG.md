@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 
-## [1.11.0] - 2021-08-08
+## [v1.11.0] - 2021-08-08
 
 ### Added
 
@@ -18,21 +18,21 @@ All notable changes to this project will be documented in this file.
 * change metaheuristic coefficients
 
 
-## [1.10.8] - 2021-07-21
+## [v1.10.8] - 2021-07-21
 
 ### Changed
 
 * validation rule for any relation
 
 
-## [1.10.7] - 2021-07-12
+## [v1.10.7] - 2021-07-12
 
 ### Added
 
 * export validation function
 
 
-## [1.10.6] - 2021-06-27
+## [v1.10.6] - 2021-06-27
 
 ### Added
 
@@ -43,7 +43,7 @@ All notable changes to this project will be documented in this file.
 * minor changes in core logic
 
 
-## [1.10.5] - 2021-06-20
+## [v1.10.5] - 2021-06-20
 
 ### Changed
 
@@ -56,7 +56,7 @@ All notable changes to this project will be documented in this file.
 * undocumented `hre` format
 
 
-## [1.10.4] - 2021-05-15
+## [v1.10.4] - 2021-05-15
 
 ### Added
 
