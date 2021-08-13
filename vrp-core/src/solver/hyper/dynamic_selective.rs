@@ -116,6 +116,7 @@ impl DynamicSelective {
                 Arc::new(RecreateWithSkipRandom::default_explorative_phased(Arc::new(RecreateWithCheapest::default()))),
                 "skip_random".to_string(),
             ),
+            (Arc::new(RecreateWithSlice::default()), "slice".to_string()),
         ];
 
         let primary_ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![

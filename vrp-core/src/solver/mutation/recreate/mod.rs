@@ -36,6 +36,10 @@ pub use self::recreate_with_skip_best::RecreateWithSkipBest;
 
 mod recreate_with_skip_random;
 pub use self::recreate_with_skip_random::RecreateWithSkipRandom;
+
+mod recreate_with_slice;
+pub use self::recreate_with_slice::RecreateWithSlice;
+
 use crate::solver::population::SelectionPhase;
 use hashbrown::HashMap;
 

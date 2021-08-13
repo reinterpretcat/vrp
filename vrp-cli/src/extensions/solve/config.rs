@@ -280,23 +280,28 @@ pub enum RecreateMethod {
     /// SkipBest insertion method.
     #[serde(rename(deserialize = "skip-best"))]
     SkipBest { weight: usize, start: usize, end: usize },
-    #[serde(rename(deserialize = "blinks"))]
     /// Insertion with blinks method.
+    #[serde(rename(deserialize = "blinks"))]
     Blinks { weight: usize },
-    #[serde(rename(deserialize = "gaps"))]
     /// Insertion with gaps method.
+    #[serde(rename(deserialize = "gaps"))]
     Gaps { weight: usize, min: usize },
     /// Nearest neighbour method.
     #[serde(rename(deserialize = "nearest"))]
     Nearest { weight: usize },
-    #[serde(rename(deserialize = "skip-random"))]
     /// Insertion with skip random method.
+    #[serde(rename(deserialize = "skip-random"))]
     SkipRandom { weight: usize },
+    /// Insertion with slice method.
+    #[serde(rename(deserialize = "slice"))]
+    Slice { weight: usize },
     /// Farthest insertion method.
     #[serde(rename(deserialize = "farthest"))]
     Farthest { weight: usize },
+    /// Insertion with perturbation method.
     #[serde(rename(deserialize = "perturbation"))]
     Perturbation { weight: usize, probability: f64, min: f64, max: f64 },
+    /// Insertion with regret method.
     #[serde(rename(deserialize = "regret"))]
     Regret { weight: usize, start: usize, end: usize },
 }
@@ -570,6 +575,7 @@ fn create_recreate_method(
         RecreateMethod::Cheapest { weight } => (Arc::new(RecreateWithCheapest::default()), *weight),
         RecreateMethod::Farthest { weight } => (Arc::new(RecreateWithFarthest::default()), *weight),
         RecreateMethod::SkipBest { weight, start, end } => (Arc::new(RecreateWithSkipBest::new(*start, *end)), *weight),
+        RecreateMethod::Slice { weight } => (Arc::new(RecreateWithSlice::default()), *weight),
         RecreateMethod::Blinks { weight } => {
             (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())), *weight)
         }

@@ -289,6 +289,10 @@
           {
             "weight": 1,
             "type": "skip-random"
+          },
+          {
+            "weight": 1,
+            "type": "slice"
           }
         ]
       },

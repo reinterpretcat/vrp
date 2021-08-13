@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* slice recreate method
+
 
 ## [v1.11.0] - 2021-08-08
 
