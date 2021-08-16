@@ -177,10 +177,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let activity_type = activity_type.unwrap_or_else(|| "arrival".to_string());
                 let is_break = activity_type == "break";
 
-                let job_tag = act
-                    .job
-                    .as_ref()
-                    .and_then(|single| get_job_tag(single, (act.place.location, act.place.duration)).cloned());
+                let job_tag = act.job.as_ref().and_then(|single| get_job_tag(single, act.place.location).cloned());
                 let job_id = match activity_type.as_str() {
                     "pickup" | "delivery" | "replacement" | "service" => {
                         let single = act.job.as_ref().unwrap();

@@ -10,8 +10,6 @@ use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
 use hashbrown::HashSet;
-use std::cmp::Ordering;
-use vrp_core::utils::compare_floats;
 
 /// Aggregates job specific information for a job activity.
 pub(crate) struct JobInfo(pub Job, pub Arc<Single>, pub Place, pub TimeWindow);
@@ -102,7 +100,7 @@ struct ActivityContext<'a> {
 
 fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'a ActivityContext) -> Option<Place> {
     let job_id = get_job_id(single);
-    let job_tag = get_job_tag(single, (activity_ctx.location, activity_ctx.time.end - activity_ctx.time.start));
+    let job_tag = get_job_tag(single, activity_ctx.location);
 
     let is_same_ids = *activity_ctx.job_id == job_id;
     let is_same_tags = match (job_tag, activity_ctx.tag) {
@@ -144,21 +142,14 @@ fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'
     }
 }
 
-pub(crate) fn get_job_tag(single: &Single, place: (Location, Duration)) -> Option<&String> {
-    let (location, duration) = place;
-
+pub(crate) fn get_job_tag(single: &Single, location: Location) -> Option<&String> {
     single.dimens.get_value::<Vec<(usize, String)>>("tags").map(|tags| (tags, &single.places)).and_then(
         |(tags, places)| {
             tags.iter()
                 .find(|(place_idx, _)| {
                     let place = places.get(*place_idx).expect("invalid tag place index");
-
-                    let is_correct_location = place.location.map_or(true, |l| location == l);
-                    let is_correct_duration = compare_floats(place.duration, duration) == Ordering::Equal;
-
-                    // TODO compare times too
-
-                    is_correct_location && is_correct_duration
+                    // TODO use other place info
+                    place.location.map_or(true, |l| location == l)
                 })
                 .map(|(_, tag)| tag)
         },
