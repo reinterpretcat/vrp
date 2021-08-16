@@ -36,26 +36,18 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
 
                     // check location
                     let actual_location = get_location(stop, to);
-                    match &vehicle_break.locations {
-                        Some(locations) => {
-                            let is_correct = locations.iter().any(|location| actual_location == *location);
-                            if !is_correct {
-                                return Err(format!(
-                                    "break location '{:?}' is invalid: expected one of '{:?}'",
-                                    actual_location, locations
-                                ));
-                            }
-                        }
-                        None => {
-                            if *from_loc != actual_location {
-                                return Err(format!(
-                                    "break location '{:?}' is invalid: expected previous activity location '{:?}'",
-                                    actual_location, from_loc
-                                ));
-                            }
-                        }
-                    }
+                    // TODO check tag and duration
+                    let has_match = vehicle_break.places.iter().any(|place| match &place.location {
+                        Some(location) => actual_location == *location,
+                        None => *from_loc == actual_location,
+                    });
 
+                    if !has_match {
+                        return Err(format!(
+                            "break location '{:?}' is invalid: cannot match to any break place'",
+                            actual_location
+                        ));
+                    }
                     Ok(acc + 1)
                 })
         })?;

@@ -211,7 +211,7 @@ impl CheckerContext {
                     })?;
 
                     match_job_task(activity.activity_type.as_str(), job, |tasks| {
-                        tasks.iter().find(|task| task.tag == activity.job_tag)
+                        tasks.iter().find(|task| task.places.iter().any(|place| place.tag == activity.job_tag))
                     })
                 }
                 .map(|task| job_visitor(job, task))

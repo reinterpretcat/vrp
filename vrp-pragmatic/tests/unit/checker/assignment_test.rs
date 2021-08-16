@@ -126,9 +126,13 @@ fn check_jobs_impl(
             .zip(tasks.iter())
             .filter(|(_, t)| **t == tgt)
             .map(|(idx, _)| JobTask {
-                places: vec![],
+                places: vec![JobPlace {
+                    location: Location::Coordinate { lat: 0.0, lng: 0.0 },
+                    duration: 0.0,
+                    times: None,
+                    tag: Some(format!("{}{}", tgt, idx)),
+                }],
                 demand: if tgt != "service" { Some(vec![1]) } else { None },
-                tag: Some(format!("{}{}", tgt, idx)),
                 order: None,
             })
             .collect()

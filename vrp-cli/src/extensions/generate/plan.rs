@@ -32,10 +32,11 @@ pub(crate) fn generate_plan(
                     places: task
                         .places
                         .iter()
-                        .map(|_| JobPlace {
+                        .map(|place| JobPlace {
                             location: get_location_fn(&rnd),
                             duration: get_random_item(durations.as_slice(), &rnd).cloned().unwrap(),
                             times: get_random_item(time_windows.as_slice(), &rnd).cloned(),
+                            tag: place.tag.clone(),
                         })
                         .collect(),
                     demand: if keep_original_demand {
@@ -43,7 +44,6 @@ pub(crate) fn generate_plan(
                     } else {
                         get_random_item(demands.as_slice(), &rnd).cloned()
                     },
-                    tag: task.tag.clone(),
                     order: task.order,
                 })
                 .collect::<Vec<_>>()

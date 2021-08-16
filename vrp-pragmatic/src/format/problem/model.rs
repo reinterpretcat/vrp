@@ -63,6 +63,10 @@ pub struct JobPlace {
     /// A list of job place time windows with time specified in RFC3339 format.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub times: Option<Vec<Vec<String>>>,
+    /// A tag which will be propagated back within corresponding activity in solution.
+    /// You can use it to identify used place in solution.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
 }
 
 /// Specifies a job task.
@@ -73,9 +77,6 @@ pub struct JobTask {
     /// Job place demand.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub demand: Option<Vec<i32>>,
-    /// A tag which will be propagated back within corresponding activity in solution.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tag: Option<String>,
     /// An order, bigger value - later assignment in the route.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<i32>,
@@ -289,22 +290,26 @@ pub enum VehicleBreakTime {
     TimeOffset(Vec<f64>),
 }
 
+/// Vehicle break place.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct VehicleBreakPlace {
+    /// Break duration.
+    pub duration: f64,
+    /// Break location.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub location: Option<Location>,
+    /// A tag which will be propagated back within corresponding activity in solution.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
+}
+
 /// Vehicle break.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleBreak {
     /// Break time.
     pub time: VehicleBreakTime,
-
-    /// Break duration.
-    pub duration: f64,
-
-    /// Break locations.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub locations: Option<Vec<Location>>,
-
-    /// A tag which will be propagated back within corresponding activity in solution.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tag: Option<String>,
+    /// Vehicle break place.
+    pub places: Vec<VehicleBreakPlace>,
 }
 
 /// Specifies a vehicle type.

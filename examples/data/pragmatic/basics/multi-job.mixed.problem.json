@@ -62,13 +62,13 @@
                   "lat": 52.5252832,
                   "lng": 13.4188422
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "p1"
               }
             ],
             "demand": [
               1
-            ],
-            "tag": "p1"
+            ]
           }
         ],
         "deliveries": [
@@ -79,13 +79,13 @@
                   "lat": 52.52599,
                   "lng": 13.45413
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "d1"
               }
             ],
             "demand": [
               1
-            ],
-            "tag": "d1"
+            ]
           }
         ],
         "replacements": [
@@ -96,13 +96,13 @@
                   "lat": 52.4928,
                   "lng": 13.4597
                 },
-                "duration": 2400.0
+                "duration": 2400.0,
+                "tag": "r1"
               }
             ],
             "demand": [
               2
-            ],
-            "tag": "r1"
+            ]
           }
         ],
         "services": [
@@ -113,10 +113,10 @@
                   "lat": 52.4989,
                   "lng": 13.3917
                 },
-                "duration": 1800.0
+                "duration": 1800.0,
+                "tag": "s1"
               }
-            ],
-            "tag": "s1"
+            ]
           }
         ]
       }

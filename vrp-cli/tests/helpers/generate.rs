@@ -14,11 +14,11 @@ pub fn create_empty_job() -> Job {
 }
 
 pub fn create_empty_job_task() -> JobTask {
-    JobTask { places: vec![], demand: None, tag: None, order: None }
+    JobTask { places: vec![], demand: None, order: None }
 }
 
 pub fn create_empty_job_place() -> JobPlace {
-    JobPlace { location: Location::Coordinate { lat: 0.0, lng: 0.0 }, duration: 0.0, times: None }
+    JobPlace { location: Location::Coordinate { lat: 0.0, lng: 0.0 }, duration: 0.0, times: None, tag: None }
 }
 
 pub fn create_test_vehicle_type() -> VehicleType {

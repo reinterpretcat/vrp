@@ -11,13 +11,13 @@
                   "lat": 52.5622847,
                   "lng": 13.4023099
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "p1"
               }
             ],
             "demand": [
               1
-            ],
-            "tag": "p1"
+            ]
           },
           {
             "places": [
@@ -26,13 +26,13 @@
                   "lat": 52.5330881,
                   "lng": 13.3973059
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "p2"
               }
             ],
             "demand": [
               1
-            ],
-            "tag": "p2"
+            ]
           }
         ],
         "deliveries": [
@@ -43,13 +43,13 @@
                   "lat": 52.5252832,
                   "lng": 13.4188422
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "d1"
               }
             ],
             "demand": [
               2
-            ],
-            "tag": "d1"
+            ]
           }
         ]
       },
@@ -63,13 +63,13 @@
                   "lat": 52.52599,
                   "lng": 13.45413
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "p1"
               }
             ],
             "demand": [
               2
-            ],
-            "tag": "p1"
+            ]
           }
         ],
         "deliveries": [
@@ -80,13 +80,13 @@
                   "lat": 52.4928,
                   "lng": 13.4597
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "d1"
               }
             ],
             "demand": [
               1
-            ],
-            "tag": "d1"
+            ]
           },
           {
             "places": [
@@ -95,13 +95,13 @@
                   "lat": 52.4989,
                   "lng": 13.3917
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "d2"
               }
             ],
             "demand": [
               1
-            ],
-            "tag": "d2"
+            ]
           }
         ]
       }

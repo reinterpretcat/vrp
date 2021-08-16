@@ -3,6 +3,7 @@
 mod writer_test;
 
 use crate::format::coord_index::CoordIndex;
+use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
@@ -176,7 +177,10 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let activity_type = activity_type.unwrap_or_else(|| "arrival".to_string());
                 let is_break = activity_type == "break";
 
-                let job_tag = act.job.as_ref().and_then(|job| job.dimens.get_value::<String>("tag").cloned());
+                let job_tag = act
+                    .job
+                    .as_ref()
+                    .and_then(|single| get_job_tag(single, (act.place.location, act.place.duration)).cloned());
                 let job_id = match activity_type.as_str() {
                     "pickup" | "delivery" | "replacement" | "service" => {
                         let single = act.job.as_ref().unwrap();

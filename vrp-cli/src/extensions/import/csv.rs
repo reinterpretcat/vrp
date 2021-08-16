@@ -70,9 +70,9 @@ mod actual {
                 location: Location::Coordinate { lat: job.lat, lng: job.lng },
                 duration: job.duration as f64 * 60.,
                 times: parse_tw(job.tw_start.clone(), job.tw_end.clone()).map(|tw| vec![tw]),
+                tag: None,
             }],
             demand: if job.demand != 0 { Some(vec![job.demand.abs()]) } else { None },
-            tag: None,
             order: None,
         };
 

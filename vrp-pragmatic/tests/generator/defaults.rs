@@ -28,17 +28,13 @@ pub fn default_job_place_prototype() -> impl Strategy<Value = JobPlace> {
         generate_location(&DEFAULT_BOUNDING_BOX),
         generate_durations(1..10),
         default_job_single_day_time_windows(),
+        generate_no_tags(),
     )
 }
 
 pub fn default_delivery_prototype() -> impl Strategy<Value = Job> {
     delivery_job_prototype(
-        job_task_prototype(
-            default_job_place_prototype(),
-            generate_simple_demand(1..5),
-            generate_no_tags(),
-            generate_no_order(),
-        ),
+        job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_order()),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
     )
@@ -46,12 +42,7 @@ pub fn default_delivery_prototype() -> impl Strategy<Value = Job> {
 
 pub fn default_pickup_prototype() -> impl Strategy<Value = Job> {
     pickup_job_prototype(
-        job_task_prototype(
-            default_job_place_prototype(),
-            generate_simple_demand(1..5),
-            generate_no_tags(),
-            generate_no_order(),
-        ),
+        job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_order()),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
     )
@@ -91,9 +82,7 @@ pub fn default_shift_places_prototype() -> impl Strategy<Value = (ShiftStart, Op
 pub fn default_breaks_prototype() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
     Just(Some(vec![VehicleBreak {
         time: VehicleBreakTime::TimeWindow(vec![default_time_plus_offset(12), default_time_plus_offset(14)]),
-        duration: 3600.,
-        locations: None,
-        tag: None,
+        places: vec![VehicleBreakPlace { duration: 3600., location: None, tag: None }],
     }]))
 }
 

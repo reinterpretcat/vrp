@@ -10,6 +10,8 @@ use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
 use hashbrown::HashSet;
+use std::cmp::Ordering;
+use vrp_core::utils::compare_floats;
 
 /// Aggregates job specific information for a job activity.
 pub(crate) struct JobInfo(pub Job, pub Arc<Single>, pub Place, pub TimeWindow);
@@ -50,7 +52,12 @@ pub(crate) fn try_match_job(
             let singles: Box<dyn Iterator<Item = &Arc<_>>> = match job {
                 Job::Single(single) => Box::new(once(single)),
                 Job::Multi(multi) => {
-                    let tags = multi.jobs.iter().filter_map(|job| get_tag(job).cloned()).collect::<HashSet<_>>();
+                    let tags = multi
+                        .jobs
+                        .iter()
+                        .filter_map(|single| single.dimens.get_value::<Vec<(usize, String)>>("tags"))
+                        .flat_map(|tags| tags.iter().map(|(_, tag)| tag))
+                        .collect::<HashSet<_>>();
                     if tags.len() < multi.jobs.len() {
                         return Err(format!(
                             "cannot check multi job without unique tags, check '{}' job",
@@ -95,8 +102,10 @@ struct ActivityContext<'a> {
 
 fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'a ActivityContext) -> Option<Place> {
     let job_id = get_job_id(single);
+    let job_tag = get_job_tag(single, (activity_ctx.location, activity_ctx.time.end - activity_ctx.time.start));
+
     let is_same_ids = *activity_ctx.job_id == job_id;
-    let is_same_tags = match (get_tag(single), activity_ctx.tag) {
+    let is_same_tags = match (job_tag, activity_ctx.tag) {
         (Some(job_tag), Some(activity_tag)) => job_tag == activity_tag,
         (None, None) => true,
         _ => false,
@@ -135,8 +144,25 @@ fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'
     }
 }
 
-fn get_tag(single: &Single) -> Option<&String> {
-    single.dimens.get_value::<String>("tag")
+pub(crate) fn get_job_tag(single: &Single, place: (Location, Duration)) -> Option<&String> {
+    let (location, duration) = place;
+
+    single.dimens.get_value::<Vec<(usize, String)>>("tags").map(|tags| (tags, &single.places)).and_then(
+        |(tags, places)| {
+            tags.iter()
+                .find(|(place_idx, _)| {
+                    let place = places.get(*place_idx).expect("invalid tag place index");
+
+                    let is_correct_location = place.location.map_or(true, |l| location == l);
+                    let is_correct_duration = compare_floats(place.duration, duration) == Ordering::Equal;
+
+                    // TODO compare times too
+
+                    is_correct_location && is_correct_duration
+                })
+                .map(|(_, tag)| tag)
+        },
+    )
 }
 
 fn get_job_id(single: &Arc<Single>) -> String {

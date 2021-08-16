@@ -83,8 +83,8 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
                 create_delivery_job("job2", vec![1., 0.]),
                 Job {
                     deliveries: Some(vec![JobTask {
-                        places: vec![create_job_place(vec![1., 0.]), create_job_place(vec![2., 0.])],
-                        ..create_task(vec![1., 0.])
+                        places: vec![create_job_place(vec![1., 0.], None), create_job_place(vec![2., 0.], None)],
+                        ..create_task(vec![1., 0.], None)
                     }]),
                     ..create_job("job3")
                 },

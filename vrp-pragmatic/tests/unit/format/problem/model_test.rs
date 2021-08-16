@@ -42,7 +42,7 @@ fn can_deserialize_problem() {
     assert_eq!(deliveries.len(), 1);
     let delivery = deliveries.first().unwrap();
     assert_demand(&delivery.demand, 1);
-    assert!(delivery.tag.is_none());
+    assert!(delivery.places.first().unwrap().tag.is_none());
 
     assert_eq!(delivery.places.len(), 1);
     let place = delivery.places.first().unwrap();

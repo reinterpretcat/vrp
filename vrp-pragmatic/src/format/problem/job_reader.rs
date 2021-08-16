@@ -20,6 +20,8 @@ use std::cmp::Ordering;
 // TODO configure sample size
 const MULTI_JOB_SAMPLE_SIZE: usize = 3;
 
+type PlaceData = (Option<Location>, Duration, Vec<TimeSpan>, Option<String>);
+
 pub(crate) fn read_jobs_with_extra_locks(
     api_problem: &ApiProblem,
     props: &ProblemProperties,
@@ -124,10 +126,13 @@ fn read_required_jobs(
             _ => panic!("Invalid activity type."),
         };
 
-        let places =
-            task.places.iter().map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times))).collect();
+        let places = task
+            .places
+            .iter()
+            .map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times), p.tag.clone()))
+            .collect();
 
-        get_single_with_extras(places, demand, &task.tag, &task.order, activity_type, has_multi_dimens, coord_index)
+        get_single_with_extras(places, demand, &task.order, activity_type, has_multi_dimens, coord_index)
     };
 
     api_problem.plan.jobs.iter().for_each(|job| {
@@ -205,12 +210,12 @@ fn read_breaks(
 ) {
     (1..)
         .zip(breaks.iter())
-        .flat_map(|(break_idx, place)| {
+        .flat_map(|(break_idx, vehicle_break)| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let times = match &place.time {
+                    let times = match &vehicle_break.time {
                         VehicleBreakTime::TimeWindow(time) if time.len() != 2 => {
                             panic!("Break with invalid time window specified: must have start and end!")
                         }
@@ -224,25 +229,14 @@ fn read_breaks(
                     };
 
                     let job_id = format!("{}_break_{}_{}", vehicle_id, shift_index, break_idx);
-                    let places = if let Some(locations) = &place.locations {
-                        assert!(!locations.is_empty());
-                        locations
-                            .iter()
-                            .map(|location| (Some(location.clone()), place.duration, times.clone()))
-                            .collect()
-                    } else {
-                        vec![(None, place.duration, times)]
-                    };
+                    let places = vehicle_break
+                        .places
+                        .iter()
+                        .map(|place| (place.location.clone(), place.duration, times.clone(), place.tag.clone()))
+                        .collect();
 
-                    let job = get_conditional_job(
-                        coord_index,
-                        vehicle_id.clone(),
-                        &job_id,
-                        "break",
-                        shift_index,
-                        places,
-                        &place.tag,
-                    );
+                    let job =
+                        get_conditional_job(coord_index, vehicle_id.clone(), &job_id, "break", shift_index, places);
 
                     (job_id, job)
                 })
@@ -274,22 +268,20 @@ fn read_dispatch(
                 assert_ne!(compare_floats(start, end), Ordering::Greater);
 
                 (0..limit.max).map(move |_| {
-                    (location.clone(), end - start, vec![TimeSpan::Window(TimeWindow::new(start, start))])
+                    (
+                        location.clone(),
+                        end - start,
+                        vec![TimeSpan::Window(TimeWindow::new(start, start))],
+                        dispatch.tag.clone(),
+                    )
                 })
             })
             .zip(vehicle.vehicle_ids.iter())
             .for_each(|(place, vehicle_id)| {
                 let job_id = format!("{}_dispatch_{}_{}", vehicle_id, shift_index, dispatch_idx + 1);
 
-                let job = get_conditional_job(
-                    coord_index,
-                    vehicle_id.clone(),
-                    &job_id,
-                    "dispatch",
-                    shift_index,
-                    vec![place],
-                    &dispatch.tag,
-                );
+                let job =
+                    get_conditional_job(coord_index, vehicle_id.clone(), &job_id, "dispatch", shift_index, vec![place]);
 
                 add_conditional_job(job_index, jobs, job_id, job);
             });
@@ -320,8 +312,7 @@ fn read_reloads(
                         &job_id,
                         "reload",
                         shift_index,
-                        vec![(Some(place.location.clone()), place.duration, times)],
-                        &place.tag,
+                        vec![(Some(place.location.clone()), place.duration, times, place.tag.clone())],
                     );
 
                     (job_id, job)
@@ -337,17 +328,13 @@ fn get_conditional_job(
     job_id: &str,
     job_type: &str,
     shift_index: usize,
-    places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>,
-    tag: &Option<String>,
+    places: Vec<PlaceData>,
 ) -> Single {
     let mut single = get_single(places, coord_index);
     single.dimens.set_id(job_id);
     single.dimens.set_value("type", job_type.to_string());
     single.dimens.set_value("shift_index", shift_index);
     single.dimens.set_value("vehicle_id", vehicle_id);
-    if let Some(tag) = tag {
-        single.dimens.set_value("tag", tag.clone());
-    }
 
     single
 }
@@ -358,24 +345,33 @@ fn add_conditional_job(job_index: &mut JobIndex, jobs: &mut Vec<Job>, job_id: St
     jobs.push(job);
 }
 
-fn get_single(places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>, coord_index: &CoordIndex) -> Single {
-    Single {
-        places: places
-            .into_iter()
-            .map(|(location, duration, times)| Place {
-                location: location.as_ref().and_then(|l| coord_index.get_by_loc(l)),
-                duration,
-                times,
-            })
-            .collect(),
-        dimens: Default::default(),
-    }
+fn get_single(places: Vec<PlaceData>, coord_index: &CoordIndex) -> Single {
+    let tags = places
+        .iter()
+        .map(|(_, _, _, tag)| tag)
+        .enumerate()
+        .filter_map(|(idx, tag)| tag.as_ref().map(|tag| (idx, tag.clone())))
+        .collect::<Vec<_>>();
+
+    let places = places
+        .into_iter()
+        .map(|(location, duration, times, _)| Place {
+            location: location.as_ref().and_then(|l| coord_index.get_by_loc(l)),
+            duration,
+            times,
+        })
+        .collect();
+
+    let mut dimens = Default::default();
+
+    add_tags(&mut dimens, tags);
+
+    Single { places, dimens }
 }
 
 fn get_single_with_extras(
-    places: Vec<(Option<Location>, Duration, Vec<TimeSpan>)>,
+    places: Vec<PlaceData>,
     demand: Demand<MultiDimLoad>,
-    tag: &Option<String>,
     order: &Option<i32>,
     activity_type: &str,
     has_multi_dimens: bool,
@@ -393,8 +389,6 @@ fn get_single_with_extras(
         });
     }
     dimens.set_value("type", activity_type.to_string());
-
-    add_tag(dimens, tag);
     add_order(dimens, order);
 
     single
@@ -451,9 +445,9 @@ fn create_condition(vehicle_id: String, shift_index: usize) -> Arc<dyn Fn(&Actor
     })
 }
 
-fn add_tag(dimens: &mut Dimensions, tag: &Option<String>) {
-    if let Some(tag) = tag {
-        dimens.set_value("tag", tag.clone());
+fn add_tags(dimens: &mut Dimensions, tags: Vec<(usize, String)>) {
+    if !tags.is_empty() {
+        dimens.set_value("tags", tags);
     }
 }
 

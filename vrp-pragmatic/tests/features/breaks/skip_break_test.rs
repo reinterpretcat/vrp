@@ -27,9 +27,11 @@ fn can_skip_break_when_vehicle_not_used() {
                         dispatch: None,
                         breaks: Some(vec![VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
-                            duration: 2.0,
-                            locations: Some(vec![vec![6., 0.].to_loc()]),
-                            tag: None,
+                            places: vec![VehicleBreakPlace {
+                                duration: 2.0,
+                                location: Some(vec![6., 0.].to_loc()),
+                                tag: None,
+                            }],
                         }]),
                         reloads: None,
                     }],
@@ -116,9 +118,11 @@ fn can_skip_break_when_jobs_completed() {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak {
                         time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
-                        duration: 2.0,
-                        locations: Some(vec![vec![6., 0.].to_loc()]),
-                        tag: None,
+                        places: vec![VehicleBreakPlace {
+                            duration: 2.0,
+                            location: Some(vec![6., 0.].to_loc()),
+                            tag: None,
+                        }],
                     }]),
                     ..create_default_vehicle_shift()
                 }],
@@ -197,15 +201,15 @@ fn can_skip_second_break_when_jobs_completed() {
                     breaks: Some(vec![
                         VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
-                            duration: 2.0,
-                            locations: Some(vec![vec![6., 0.].to_loc()]),
-                            tag: None,
+                            places: vec![VehicleBreakPlace {
+                                duration: 2.0,
+                                location: Some(vec![6., 0.].to_loc()),
+                                tag: None,
+                            }],
                         },
                         VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
-                            duration: 2.0,
-                            locations: None,
-                            tag: None,
+                            places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
                         },
                     ]),
                     ..create_default_vehicle_shift()

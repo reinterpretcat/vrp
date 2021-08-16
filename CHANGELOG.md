@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 * slice recreate method
 
+### Changed
+
+* `breaking`: move tag from task to place level in pragmatic format
+
 
 ## [v1.11.0] - 2021-08-08
 

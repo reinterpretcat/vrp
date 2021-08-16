@@ -15,7 +15,7 @@ fn get_challenging_break_time() -> VehicleBreakTime {
 fn get_solution(
     relation_type: RelationType,
     job_duration: f64,
-    break_locations: Option<Vec<Location>>,
+    break_location: Option<Location>,
     break_time: VehicleBreakTime,
     jobs: Vec<String>,
     perform_check: bool,
@@ -38,9 +38,7 @@ fn get_solution(
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak {
                         time: break_time,
-                        duration: 2.0,
-                        locations: break_locations,
-                        tag: None,
+                        places: vec![VehicleBreakPlace { duration: 2.0, location: break_location, tag: None }],
                     }]),
                     ..create_default_vehicle_shift()
                 }],
@@ -70,7 +68,7 @@ can_use_break_between_two_jobs_in_relation! {
 
 fn can_use_break_between_two_jobs_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
     let solution =
-        get_solution(relation_type, 1., Some(vec![vec![3., 0.].to_loc()]), get_permissive_break_time(), jobs, true);
+        get_solution(relation_type, 1., Some(vec![3., 0.].to_loc()), get_permissive_break_time(), jobs, true);
 
     assert_eq!(
         solution,
@@ -150,7 +148,7 @@ can_use_break_last_in_relation! {
 
 fn can_use_break_last_in_relation_impl(relation_type: RelationType, jobs: Vec<String>) {
     let solution =
-        get_solution(relation_type, 1., Some(vec![vec![3., 0.].to_loc()]), get_permissive_break_time(), jobs, true);
+        get_solution(relation_type, 1., Some(vec![3., 0.].to_loc()), get_permissive_break_time(), jobs, true);
 
     assert_eq!(
         solution,

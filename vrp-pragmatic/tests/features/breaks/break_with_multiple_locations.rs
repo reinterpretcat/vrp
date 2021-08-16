@@ -4,7 +4,7 @@ use crate::format_time;
 use crate::helpers::*;
 
 #[test]
-fn can_assign_break_using_second_location() {
+fn can_assign_break_using_second_place() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![10., 0.]), create_delivery_job("job2", vec![20., 0.])],
@@ -21,9 +21,18 @@ fn can_assign_break_using_second_location() {
                     }),
                     breaks: Some(vec![VehicleBreak {
                         time: VehicleBreakTime::TimeWindow(vec![format_time(10.), format_time(30.)]),
-                        duration: 2.0,
-                        locations: Some(vec![vec![1., 0.].to_loc(), vec![11., 0.].to_loc()]),
-                        tag: None,
+                        places: vec![
+                            VehicleBreakPlace {
+                                duration: 2.0,
+                                location: Some(vec![1., 0.].to_loc()),
+                                tag: Some("first".to_string()),
+                            },
+                            VehicleBreakPlace {
+                                duration: 2.0,
+                                location: Some(vec![11., 0.].to_loc()),
+                                tag: Some("second".to_string()),
+                            },
+                        ],
                     }]),
                     ..create_default_vehicle_shift()
                 }],
@@ -67,13 +76,14 @@ fn can_assign_break_using_second_location() {
                         ("1970-01-01T00:00:10Z", "1970-01-01T00:00:11Z"),
                         10,
                     ),
-                    create_stop_with_activity(
+                    create_stop_with_activity_with_tag(
                         "break",
                         "break",
                         (11., 0.),
                         1,
                         ("1970-01-01T00:00:12Z", "1970-01-01T00:00:14Z"),
                         11,
+                        "second",
                     ),
                     create_stop_with_activity(
                         "job2",

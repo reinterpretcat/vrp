@@ -43,11 +43,11 @@ impl CoordIndex {
                 }
 
                 if let Some(breaks) = &shift.breaks {
-                    breaks.iter().for_each(|vehicle_break| {
-                        if let Some(locations) = &vehicle_break.locations {
-                            locations.iter().for_each(|location| index.add(location));
-                        }
-                    });
+                    breaks
+                        .iter()
+                        .flat_map(|vehicle_break| vehicle_break.places.iter())
+                        .filter_map(|place| place.location.as_ref())
+                        .for_each(|location| index.add(location));
                 }
 
                 if let Some(reloads) = &shift.reloads {

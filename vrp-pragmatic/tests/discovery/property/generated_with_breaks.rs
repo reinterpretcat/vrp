@@ -5,16 +5,31 @@ use crate::helpers::solve_with_metaheuristic_and_iterations;
 use proptest::prelude::*;
 
 fn get_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
-    prop::collection::vec(generate_break(get_break_locations(), generate_durations(10..100), get_break_times()), 1..2)
-        .prop_map(|reloads| Some(reloads))
+    let places_proto = get_break_places(get_break_locations(), generate_durations(10..100));
+    let break_proto = generate_break(prop::collection::vec(places_proto, 1..2), get_break_times());
+
+    prop::collection::vec(break_proto, 1..2).prop_map(|break_| Some(break_))
 }
 
-fn get_break_locations() -> impl Strategy<Value = Option<Vec<Location>>> {
-    prop_oneof![
-        Just(None),
-        generate_location(&DEFAULT_BOUNDING_BOX).prop_map(|location| Some(vec![location])),
-        prop::collection::vec(generate_location(&DEFAULT_BOUNDING_BOX), 1..5).prop_map(|locations| Some(locations))
-    ]
+fn get_break_locations() -> impl Strategy<Value = Option<Location>> {
+    prop_oneof![Just(None), generate_location(&DEFAULT_BOUNDING_BOX).prop_map(|location| Some(location)),]
+}
+
+prop_compose! {
+    pub fn get_break_places(
+       locations: impl Strategy<Value = Option<Location>>,
+       durations: impl Strategy<Value = f64>,
+    )
+    (
+     location in locations,
+     duration in durations
+    ) -> VehicleBreakPlace {
+        VehicleBreakPlace {
+            location,
+            duration,
+            tag: None
+        }
+    }
 }
 
 fn job_prototype() -> impl Strategy<Value = Job> {
@@ -24,9 +39,9 @@ fn job_prototype() -> impl Strategy<Value = Job> {
                 generate_location(&DEFAULT_BOUNDING_BOX),
                 generate_durations(1..10),
                 generate_no_time_windows(),
+                generate_no_tags(),
             ),
             generate_simple_demand(1..5),
-            generate_no_tags(),
             generate_no_order(),
         ),
         generate_no_jobs_skills(),

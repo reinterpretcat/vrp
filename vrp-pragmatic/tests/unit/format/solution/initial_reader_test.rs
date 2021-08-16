@@ -36,9 +36,7 @@ fn create_basic_problem(breaks: Option<Vec<VehicleBreak>>) -> Problem {
 fn create_default_breaks() -> Option<Vec<VehicleBreak>> {
     Some(vec![VehicleBreak {
         time: VehicleBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
-        duration: 2.0,
-        locations: None,
-        tag: None,
+        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
     }])
 }
 

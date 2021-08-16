@@ -56,10 +56,20 @@ prop_compose! {
        Job {
             id: Uuid::new_v4().to_string(),
             pickups: Some(vec![
-             JobTask { places: vec![pickup], demand: demand.clone(), tag: Some("p1".to_owned()), order }
+             JobTask { places: vec![
+                    JobPlace {
+                        tag: Some("p1".to_owned()),
+                        ..pickup
+                    }
+                ], demand: demand.clone(), order }
             ]),
             deliveries: Some(vec![
-             JobTask { places: vec![delivery], demand: demand.clone(), tag: Some("d1".to_owned()), order: None }
+             JobTask { places: vec![
+                    JobPlace {
+                        tag: Some("d1".to_owned()),
+                        ..delivery
+                    }
+                ], demand: demand.clone(), order: None }
             ]),
             replacements: None,
             services: None,
@@ -112,16 +122,14 @@ prop_compose! {
     pub fn job_task_prototype(
         places: impl Strategy<Value = JobPlace>,
         demand_proto: impl Strategy<Value = Option<Vec<i32>>>,
-        tags: impl Strategy<Value = Option<String>>,
         order_proto: impl Strategy<Value = Option<i32>>,
     )
     (
      place in places,
      demand in demand_proto,
-     tag in tags,
      order in order_proto,
     ) -> JobTask {
-       JobTask { places: vec![place], demand, tag, order }
+       JobTask { places: vec![place], demand, order }
     }
 }
 
@@ -130,13 +138,15 @@ prop_compose! {
         locations: impl Strategy<Value = Location>,
         durations: impl Strategy<Value = f64>,
         time_windows: impl Strategy<Value = Option<Vec<Vec<String>>>>,
+        tags: impl Strategy<Value = Option<String>>,
     )
     (
      location in locations,
      duration in durations,
-     times in time_windows
+     times in time_windows,
+     tag in tags
     ) -> JobPlace {
-      JobPlace { times, location, duration }
+      JobPlace { times, location, duration, tag }
     }
 }
 

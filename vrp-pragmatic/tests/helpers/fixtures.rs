@@ -37,13 +37,13 @@ pub const SIMPLE_PROBLEM: &str = r#"
                   "lat": 52.5622847,
                   "lng": 13.4023099
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "p1"
               }
             ],
             "demand": [
               1
-            ],
-            "tag": "p1"
+            ]
           },
           {
             "places": [
@@ -52,13 +52,13 @@ pub const SIMPLE_PROBLEM: &str = r#"
                   "lat": 52.5330881,
                   "lng": 13.3973059
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "p2"
               }
             ],
             "demand": [
               1
-            ],
-            "tag": "p2"
+            ]
           }
         ],
         "deliveries": [
@@ -69,13 +69,13 @@ pub const SIMPLE_PROBLEM: &str = r#"
                   "lat": 52.5252832,
                   "lng": 13.4188422
                 },
-                "duration": 240.0
+                "duration": 240.0,
+                "tag": "d1"
               }
             ],
             "demand": [
               2
-            ],
-            "tag": "d1"
+            ]
           }
         ]
       }
