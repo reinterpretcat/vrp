@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.11.1] - 2021-08-17
+
 ### Added
 
 * slice recreate method
@@ -11,6 +14,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * `breaking`: move tag from task to place level in pragmatic format
+* `breaking`: adjust break definition to be consistent with job
+* update dependencies
 
 
 ## [v1.11.0] - 2021-08-08
@@ -336,7 +341,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.11.1...HEAD
+[v1.11.1]: https://github.com/reinterpretcat/vrp/compare/v1.11.0...v1.11.1
 [v1.11.0]: https://github.com/reinterpretcat/vrp/compare/v1.10.8...v1.11.0
 [v1.10.8]: https://github.com/reinterpretcat/vrp/compare/v1.10.7...v1.10.8
 [v1.10.7]: https://github.com/reinterpretcat/vrp/compare/v1.10.6...v1.10.7
