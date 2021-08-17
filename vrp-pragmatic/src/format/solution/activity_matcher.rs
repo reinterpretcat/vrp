@@ -100,7 +100,8 @@ struct ActivityContext<'a> {
 
 fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'a ActivityContext) -> Option<Place> {
     let job_id = get_job_id(single);
-    let job_tag = get_job_tag(single, activity_ctx.location);
+    let job_tag =
+        get_job_tag(single, (activity_ctx.location, (activity_ctx.time.clone(), activity_ctx.route_start_time)));
 
     let is_same_ids = *activity_ctx.job_id == job_id;
     let is_same_tags = match (job_tag, activity_ctx.tag) {
@@ -142,14 +143,24 @@ fn match_place<'a>(single: &Arc<Single>, is_job_activity: bool, activity_ctx: &'
     }
 }
 
-pub(crate) fn get_job_tag(single: &Single, location: Location) -> Option<&String> {
+pub(crate) fn get_job_tag(single: &Single, place: (Location, (TimeWindow, Timestamp))) -> Option<&String> {
+    let (location, (time_window, start_time)) = place;
     single.dimens.get_value::<Vec<(usize, String)>>("tags").map(|tags| (tags, &single.places)).and_then(
         |(tags, places)| {
             tags.iter()
                 .find(|(place_idx, _)| {
                     let place = places.get(*place_idx).expect("invalid tag place index");
-                    // TODO use other place info
-                    place.location.map_or(true, |l| location == l)
+
+                    let is_correct_location = place.location.map_or(true, |l| location == l);
+                    let is_correct_time = place
+                        .times
+                        .iter()
+                        .map(|time| time.to_time_window(start_time))
+                        .any(|time| time.intersects(&time_window));
+
+                    // TODO check duration too?
+
+                    is_correct_location && is_correct_time
                 })
                 .map(|(_, tag)| tag)
         },
