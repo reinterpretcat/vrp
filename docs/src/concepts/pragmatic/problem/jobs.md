@@ -28,7 +28,6 @@ defined. Each task has the following properties:
 
 - **places** (required): list of possible places from which only one has to be visited
 - **demand** (optional/required): a task demand. It is required for all job types, except service
-- **tag** (optional): a job tag which will be returned within job's activity in result solution
 - **order** (optional): a job task assignment order which makes preferable to serve some jobs before others in the tour.
   The order property is represented as integer greater than 1, where the lower value means higher priority. By default
   its value is set to maximum.
@@ -40,6 +39,7 @@ Each `place` consists of the following properties:
 - **location** (required): a place location
 - **duration** (required): service (operational) time to serve task here
 - **times** (optional): time windows
+- **tag** (optional): a job place tag which will be returned within job's activity in result solution.
 
 Multiple places on single task can help model variable job location, e.g. visit customer at different location
 depending on time of the day.
@@ -129,7 +129,7 @@ This job models some work without demand (e.g. handyman visit).
 You can specify multiple tasks properties to get some mixed job:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.problem.json:55:121}}
+{{#include ../../../../../examples/data/pragmatic/basics/multi-job.mixed.problem.json:55:122}}
 ```
 
 Similar pickup and delivery job, all these tasks has to be executed or none of them. The order is not specified except
@@ -138,7 +138,7 @@ pickups must be scheduled before any delivery, replacement or service.
 
 Hint
 
-Use `tag` property on each job task if you want to use initial solution or checker features.
+Use `tag` property on each job place if you want to use initial solution or checker features.
 
 ## Related errors
 

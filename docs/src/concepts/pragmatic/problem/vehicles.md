@@ -52,7 +52,7 @@ A vehicle types are defined by `fleet.types` property and their schema has the f
 An example:
 
 ```json
-{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:99:131}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:99:133}}
 ``` 
 
 ## Shift
