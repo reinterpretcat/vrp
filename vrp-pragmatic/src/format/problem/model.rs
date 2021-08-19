@@ -114,6 +114,10 @@ pub struct Job {
     /// Job value, bigger value - more chances for assignment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<f64>,
+
+    /// Job group: jobs of the same group are assigned to the same tour or unassigned.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
 }
 
 /// A plan specifies work which has to be done.

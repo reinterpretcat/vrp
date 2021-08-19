@@ -1,9 +1,13 @@
 //! Contains implementation of extra constraints.
 
 use std::sync::Arc;
+use vrp_core::construction::heuristics::RouteContext;
 use vrp_core::models::common::{Dimensions, IdDimension, ValueDimension};
 use vrp_core::models::problem::Single;
 use vrp_core::models::solution::{Activity, Route};
+
+/// A key which tracks job group state.
+pub const JOB_GROUP_KEY: i32 = 1000;
 
 fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
 where
@@ -50,4 +54,3 @@ pub use self::reachable::ReachableModule;
 mod skills;
 pub use self::skills::JobSkills;
 pub use self::skills::SkillsModule;
-use vrp_core::construction::heuristics::RouteContext;

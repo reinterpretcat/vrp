@@ -37,6 +37,7 @@ pub fn default_delivery_prototype() -> impl Strategy<Value = Job> {
         job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_order()),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
+        generate_no_jobs_group(),
     )
 }
 
@@ -45,6 +46,7 @@ pub fn default_pickup_prototype() -> impl Strategy<Value = Job> {
         job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_order()),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
+        generate_no_jobs_group(),
     )
 }
 
@@ -56,6 +58,7 @@ pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = Job> {
         generate_no_order(),
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
+        generate_no_jobs_group(),
     )
 }
 

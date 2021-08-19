@@ -112,6 +112,7 @@ pub struct ProblemProperties {
     has_dispatch: bool,
     has_reloads: bool,
     has_order: bool,
+    has_group: bool,
     has_area_limits: bool,
     has_tour_size_limits: bool,
     max_job_value: Option<f64>,
@@ -254,6 +255,10 @@ fn create_constraint_pipeline(
         constraint.add_module(Arc::new(BreakModule::new(transport.clone(), BREAK_CONSTRAINT_CODE)));
     }
 
+    if props.has_group {
+        constraint.add_module(Arc::new(GroupModule::new(GROUP_CONSTRAINT_CODE, JOB_GROUP_KEY)));
+    }
+
     if props.has_skills {
         constraint.add_module(Arc::new(SkillsModule::new(SKILL_CONSTRAINT_CODE)));
     }
@@ -394,6 +399,8 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .filter_map(|job_task| job_task.order)
         .any(|order| order > 0);
 
+    let has_group = api_problem.plan.jobs.iter().any(|job| job.group.is_some());
+
     let has_area_limits = api_problem
         .fleet
         .vehicles
@@ -410,6 +417,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_dispatch,
         has_reloads,
         has_order,
+        has_group,
         has_area_limits,
         has_tour_size_limits,
         max_job_value,

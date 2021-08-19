@@ -9,6 +9,7 @@ pub fn delivery_job_prototype(
     task_proto: impl Strategy<Value = JobTask>,
     skills_proto: impl Strategy<Value = Option<JobSkills>>,
     value_proto: impl Strategy<Value = Option<f64>>,
+    group_proto: impl Strategy<Value = Option<String>>,
 ) -> impl Strategy<Value = Job> {
     job_prototype(
         generate_no_job_tasks(),
@@ -17,6 +18,7 @@ pub fn delivery_job_prototype(
         generate_no_job_tasks(),
         skills_proto,
         value_proto,
+        group_proto,
     )
 }
 
@@ -25,6 +27,7 @@ pub fn pickup_job_prototype(
     task_proto: impl Strategy<Value = JobTask>,
     skills_proto: impl Strategy<Value = Option<JobSkills>>,
     value_proto: impl Strategy<Value = Option<f64>>,
+    group_proto: impl Strategy<Value = Option<String>>,
 ) -> impl Strategy<Value = Job> {
     job_prototype(
         task_proto.prop_map(|p| Some(vec![p])),
@@ -33,6 +36,7 @@ pub fn pickup_job_prototype(
         generate_no_job_tasks(),
         skills_proto,
         value_proto,
+        group_proto,
     )
 }
 
@@ -43,7 +47,8 @@ prop_compose! {
         demand_proto: impl Strategy<Value = Option<Vec<i32>>>,
         order_proto: impl Strategy<Value = Option<i32>>,
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
-        value_proto: impl Strategy<Value = Option<f64>>
+        value_proto: impl Strategy<Value = Option<f64>>,
+        group_proto: impl Strategy<Value = Option<String>>,
     )
     (
      pickup in pickup_place,
@@ -52,6 +57,7 @@ prop_compose! {
      order in order_proto,
      skills in skills_proto,
      value in value_proto,
+     group in group_proto,
     ) -> Job {
        Job {
             id: Uuid::new_v4().to_string(),
@@ -74,7 +80,8 @@ prop_compose! {
             replacements: None,
             services: None,
             skills,
-            value
+            value,
+            group
         }
     }
 }
@@ -97,6 +104,7 @@ prop_compose! {
         services_proto: impl Strategy<Value = Option<Vec<JobTask>>>,
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
         value_proto: impl Strategy<Value = Option<f64>>,
+        group_proto: impl Strategy<Value = Option<String>>,
     )
     (
      pickups in pickups_proto,
@@ -104,7 +112,8 @@ prop_compose! {
      replacements in replacements_proto,
      services in services_proto,
      skills in skills_proto,
-     value in value_proto
+     value in value_proto,
+     group in group_proto
     ) -> Job {
         Job {
             id: Uuid::new_v4().to_string(),
@@ -114,6 +123,7 @@ prop_compose! {
             services,
             skills,
             value,
+            group,
         }
     }
 }
@@ -188,6 +198,13 @@ prop_compose! {
 prop_compose! {
     /// Generates no job value.
     pub fn generate_no_jobs_value()(_ in ".*") -> Option<f64> {
+        None
+    }
+}
+
+prop_compose! {
+    /// Generates no job group.
+    pub fn generate_no_jobs_group()(_ in ".*") -> Option<String> {
         None
     }
 }
