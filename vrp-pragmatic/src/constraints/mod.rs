@@ -38,6 +38,9 @@ pub use self::breaks::BreakModule;
 mod dispatch;
 pub use self::dispatch::DispatchModule;
 
+mod groups;
+pub use self::groups::GroupModule;
+
 mod reloads;
 pub use self::reloads::ReloadMultiTrip;
 
