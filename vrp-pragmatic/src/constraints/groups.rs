@@ -2,14 +2,13 @@
 #[path = "../../tests/unit/constraints/group_test.rs"]
 mod group_test;
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{RouteContext, SolutionContext};
 use vrp_core::models::common::ValueDimension;
-use vrp_core::models::problem::{Actor, Job};
-use vrp_core::utils::as_mut;
+use vrp_core::models::problem::Job;
 
 /// A group module provides the way to stick certain jobs to the same tour.
 pub struct GroupModule {
@@ -32,17 +31,27 @@ impl GroupModule {
 impl ConstraintModule for GroupModule {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         if let Some(group) = get_group(job) {
-            let actor = solution_ctx.routes[route_index].route.actor.clone();
-            if let Some(actor_groups) = get_actor_groups(solution_ctx, self.state_key) {
-                unsafe { as_mut(actor_groups) }.insert(group.clone(), actor);
-            } else {
-                let actor_groups = std::iter::once((group.clone(), actor)).collect::<HashMap<_, _>>();
-                solution_ctx.state.insert(self.state_key, Arc::new(actor_groups));
-            }
+            let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
+            let jobs_count = route_ctx.route.tour.job_count();
+            let mut groups = get_groups(route_ctx);
+            groups.insert(group.clone());
+            route_ctx.state_mut().put_route_state(self.state_key, (groups, jobs_count))
         }
     }
 
-    fn accept_route_state(&self, _ctx: &mut RouteContext) {}
+    fn accept_route_state(&self, ctx: &mut RouteContext) {
+        let current_jobs_count = ctx.route.tour.job_count();
+        let old_jobs_count = ctx
+            .state
+            .get_route_state::<(HashSet<String>, usize)>(self.state_key)
+            .map(|(_, jobs)| *jobs)
+            .unwrap_or(current_jobs_count);
+
+        if old_jobs_count != current_jobs_count {
+            let groups = get_groups(ctx);
+            ctx.state_mut().put_route_state(self.state_key, (groups, current_jobs_count))
+        }
+    }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         // NOTE we can filter here by stale flag, but then we need to keep non-changed route
@@ -50,24 +59,11 @@ impl ConstraintModule for GroupModule {
         // let's go through all routes and create evaluation cache from scratch. However, this
         // approach has performance implications for calling `accept_solution_state` method frequently.
 
-        let actor_groups: HashMap<_, _> = solution_ctx
-            .routes
-            .iter_mut()
-            .map(|route_ctx| {
-                let groups =
-                    route_ctx.route.tour.jobs().filter_map(|job| get_group(&job).cloned()).collect::<HashSet<_>>();
-                (route_ctx.route.actor.clone(), groups)
-            })
-            .fold(HashMap::default(), |mut acc, (actor, groups)| {
-                groups.into_iter().for_each(|group| {
-                    acc.insert(group, actor.clone());
-                });
-
-                acc
-            });
-
-        // update evaluation cache
-        solution_ctx.state.insert(self.state_key, Arc::new(actor_groups));
+        solution_ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
+            let current_jobs_count = route_ctx.route.tour.job_count();
+            let groups = get_groups(route_ctx);
+            route_ctx.state_mut().put_route_state(self.state_key, (groups, current_jobs_count));
+        });
     }
 
     fn state_keys(&self) -> Iter<i32> {
@@ -91,22 +87,20 @@ impl HardRouteConstraint for GroupHardRouteConstraint {
         route_ctx: &RouteContext,
         job: &Job,
     ) -> Option<RouteConstraintViolation> {
-        get_group(job)
-            .zip(
-                solution_ctx
-                    .state
-                    .get(&self.state_key)
-                    .and_then(|value| value.downcast_ref::<HashMap<String, Arc<Actor>>>()),
-            )
-            .and_then(|(group, groups)| {
-                groups.get(group).and_then(|actor| {
-                    if route_ctx.route.actor == *actor {
-                        None
-                    } else {
-                        Some(RouteConstraintViolation { code: self.code })
-                    }
-                })
-            })
+        get_group(job).and_then(|group| {
+            let other_route = solution_ctx
+                .routes
+                .iter()
+                .filter(|rc| rc.route.actor != route_ctx.route.actor)
+                .filter_map(|rc| rc.state.get_route_state::<(HashSet<String>, usize)>(self.state_key))
+                .any(|(groups, _)| groups.contains(group));
+
+            if other_route {
+                Some(RouteConstraintViolation { code: self.code })
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -114,6 +108,6 @@ fn get_group(job: &Job) -> Option<&String> {
     job.dimens().get_value::<String>("group")
 }
 
-fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> Option<&HashMap<String, Arc<Actor>>> {
-    solution_ctx.state.get_mut(&state_key).and_then(|cache| cache.downcast_ref::<HashMap<String, Arc<Actor>>>())
+fn get_groups(route_ctx: &RouteContext) -> HashSet<String> {
+    route_ctx.route.tour.jobs().filter_map(|job| get_group(&job).cloned()).collect()
 }
