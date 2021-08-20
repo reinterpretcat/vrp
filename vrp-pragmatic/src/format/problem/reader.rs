@@ -256,7 +256,7 @@ fn create_constraint_pipeline(
     }
 
     if props.has_group {
-        constraint.add_module(Arc::new(GroupModule::new(GROUP_CONSTRAINT_CODE, JOB_GROUP_KEY)));
+        constraint.add_module(Arc::new(GroupModule::new(GROUP_CONSTRAINT_CODE, GROUP_KEY)));
     }
 
     if props.has_skills {

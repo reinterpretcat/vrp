@@ -5,6 +5,7 @@ mod breaks;
 mod dispatch;
 mod fleet;
 mod format;
+mod group;
 mod limits;
 mod multjob;
 mod pickdev;

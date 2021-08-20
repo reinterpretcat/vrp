@@ -7,7 +7,7 @@ use vrp_core::models::problem::Single;
 use vrp_core::models::solution::{Activity, Route};
 
 /// A key which tracks job group state.
-pub const JOB_GROUP_KEY: i32 = 1000;
+pub const GROUP_KEY: i32 = 1000;
 
 fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
 where

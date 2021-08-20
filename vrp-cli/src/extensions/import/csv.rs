@@ -100,6 +100,7 @@ mod actual {
                 services: get_tasks(&tasks, Box::new(|j| j.demand == 0)),
                 skills: None,
                 value: None,
+                group: None,
             })
             .collect();
 

@@ -26,6 +26,7 @@ Each item in this list has job id, reason code and description.
 | AREA_CONSTRAINT         | `cannot be assigned due to area constraint`                    | make sure that jobs inside allowed areas                |
 | DISPATCH_CONSTRAINT     | `cannot be assigned due to vehicle dispatch`                   | make sure that vehicle dispatch definition is correct   |
 | TOUR_SIZE_CONSTRAINT    | `cannot be assigned due to tour size constraint of vehicle`    | make sure that there are enough vehicles to serve jobs  |
+| GROUP_CONSTRAINT_CODE   | `cannot be assigned due to group constraint`                   | try to reduce amount of jobs in the group?              |
 
 
 ## Example

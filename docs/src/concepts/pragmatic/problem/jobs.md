@@ -18,6 +18,7 @@ consists of the following properties:
   jobs with lower order in the beginning of the tour. In contrast, value related logic tries to maximize total solution value
   by prioritizing assignment value scored jobs in any position of a tour.
   See [job priorities](../../../examples/pragmatic/basics/job-priorities.md) example.
+- **group** (optional): a group name. Jobs with the same groups are scheduled in the same tour or left unassigned.
 
 A job should have at least one task property specified.
 

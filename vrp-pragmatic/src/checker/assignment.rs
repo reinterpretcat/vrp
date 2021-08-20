@@ -12,7 +12,13 @@ use vrp_core::utils::compare_floats;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<String>> {
-    combine_error_results(&[check_vehicles(ctx), check_jobs_presence(ctx), check_jobs_match(ctx), check_dispatch(ctx)])
+    combine_error_results(&[
+        check_vehicles(ctx),
+        check_jobs_presence(ctx),
+        check_jobs_match(ctx),
+        check_dispatch(ctx),
+        check_groups(ctx),
+    ])
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.
@@ -261,4 +267,37 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
 
         Ok(())
     })
+}
+
+fn check_groups(ctx: &CheckerContext) -> Result<(), String> {
+    let violations = ctx
+        .solution
+        .tours
+        .iter()
+        .fold(HashMap::<String, HashSet<_>>::default(), |mut acc, tour| {
+            tour.stops
+                .iter()
+                .flat_map(|stop| stop.activities.iter())
+                .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
+                .flat_map(|job| job.group.as_ref())
+                .for_each(|group| {
+                    acc.entry(group.clone()).or_insert_with(|| HashSet::default()).insert((
+                        tour.type_id.clone(),
+                        tour.vehicle_id.clone(),
+                        tour.shift_index,
+                    ));
+                });
+
+            acc
+        })
+        .into_iter()
+        .filter(|(_, usage)| usage.len() > 1)
+        .collect::<Vec<_>>();
+
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        let err_info = violations.into_iter().map(|(group, _)| group.clone()).collect::<Vec<_>>().join(",");
+        Err(format!("job groups are not respected: '{}'", err_info))
+    }
 }

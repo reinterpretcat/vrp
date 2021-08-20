@@ -162,9 +162,10 @@ fn read_required_jobs(
         assert!(!singles.is_empty());
 
         let problem_job = if singles.len() > 1 {
-            get_multi_job(&job.id, &job.skills, job.value, singles, job.pickups.as_ref().map_or(0, |p| p.len()), random)
+            let deliveries_start_index = job.pickups.as_ref().map_or(0, |p| p.len());
+            get_multi_job(&job.id, &job.skills, job.value, &job.group, singles, deliveries_start_index, random)
         } else {
-            get_single_job(&job.id, singles.into_iter().next().unwrap(), &job.skills, job.value)
+            get_single_job(&job.id, singles.into_iter().next().unwrap(), &job.skills, job.value, &job.group)
         };
 
         job_index.insert(job.id.clone(), problem_job.clone());
@@ -394,11 +395,18 @@ fn get_single_with_extras(
     single
 }
 
-fn get_single_job(id: &str, single: Single, skills: &Option<FormatJobSkills>, value: Option<f64>) -> Job {
+fn get_single_job(
+    id: &str,
+    single: Single,
+    skills: &Option<FormatJobSkills>,
+    value: Option<f64>,
+    group: &Option<String>,
+) -> Job {
     let mut single = single;
     single.dimens.set_id(id);
 
     add_value(&mut single.dimens, value);
+    add_group(&mut single.dimens, group);
     add_job_skills(&mut single.dimens, skills);
 
     Job::Single(Arc::new(single))
@@ -408,6 +416,7 @@ fn get_multi_job(
     id: &str,
     skills: &Option<FormatJobSkills>,
     value: Option<f64>,
+    group: &Option<String>,
     singles: Vec<Single>,
     deliveries_start_index: usize,
     random: &Arc<dyn Random + Send + Sync>,
@@ -415,6 +424,7 @@ fn get_multi_job(
     let mut dimens: Dimensions = Default::default();
     dimens.set_id(id);
     add_value(&mut dimens, value);
+    add_group(&mut dimens, group);
     add_job_skills(&mut dimens, skills);
 
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
@@ -460,6 +470,12 @@ fn add_order(dimens: &mut Dimensions, order: &Option<i32>) {
 fn add_value(dimens: &mut Dimensions, value: Option<f64>) {
     if let Some(value) = value {
         dimens.set_value("value", value);
+    }
+}
+
+fn add_group(dimens: &mut Dimensions, group: &Option<String>) {
+    if let Some(group) = group {
+        dimens.set_value("group", group.clone());
     }
 }
 

@@ -366,3 +366,62 @@ fn can_detect_dispatch_violations() {
 
     assert_eq!(result, Err("tour should have dispatch, but none is found: 'my_vehicle_1'".to_owned()));
 }
+
+#[test]
+fn can_detect_group_violations() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_group("job1", vec![1., 0.], "group1"),
+                create_delivery_job_with_group("job2", vec![1., 0.], "group1"),
+            ],
+            relations: None,
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["v1".to_string(), "v2".to_string()],
+                ..create_default_vehicle_type()
+            }],
+            profiles: create_default_matrix_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let create_tour = |vehicle_id: &str, job_id: &str| Tour {
+        vehicle_id: vehicle_id.to_string(),
+        type_id: "my_vehicle".to_string(),
+        stops: vec![
+            create_stop_with_activity(
+                "departure",
+                "departure",
+                (0., 0.),
+                1,
+                ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                0,
+            ),
+            create_stop_with_activity(
+                job_id,
+                "delivery",
+                (1., 0.),
+                0,
+                ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
+                1,
+            ),
+            create_stop_with_activity(
+                "arrival",
+                "arrival",
+                (0., 0.),
+                0,
+                ("1970-01-01T00:00:03Z", "1970-01-01T00:00:03Z"),
+                2,
+            ),
+        ],
+        ..create_empty_tour()
+    };
+    let solution =
+        Solution { tours: vec![create_tour("v1", "job1"), create_tour("v2", "job2")], ..create_empty_solution() };
+    let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+
+    let result = check_groups(&CheckerContext::new(core_problem, problem, None, solution));
+
+    assert_eq!(result, Err("job groups are not respected: 'group1'".to_owned()));
+}

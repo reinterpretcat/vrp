@@ -43,6 +43,18 @@ pub fn create_delivery_job_with_order(id: &str, location: Vec<f64>, order: i32) 
     }
 }
 
+pub fn create_delivery_job_with_group(id: &str, location: Vec<f64>, group: &str) -> Job {
+    Job {
+        deliveries: Some(vec![JobTask {
+            places: vec![create_job_place(location, None)],
+            demand: Some(vec![1]),
+            order: None,
+        }]),
+        group: Some(group.to_string()),
+        ..create_job(id)
+    }
+}
+
 pub fn create_delivery_job_with_skills(id: &str, location: Vec<f64>, skills: JobSkills) -> Job {
     Job { skills: Some(skills), ..create_delivery_job(id, location) }
 }
