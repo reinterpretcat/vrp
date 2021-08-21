@@ -28,7 +28,7 @@ fn job_prototype() -> impl Strategy<Value = Job> {
 prop_compose! {
     fn get_problem_with_groups()
     (
-     plan in generate_plan(generate_jobs(job_prototype(), 1..256)),
+     plan in generate_plan(generate_jobs(job_prototype(), 1..512)),
      fleet in generate_fleet(
         generate_vehicles(default_vehicle_type_prototype(), 1..4),
         default_matrix_profiles())
