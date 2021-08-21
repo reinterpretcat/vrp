@@ -226,6 +226,7 @@ fn map_to_problem(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn create_constraint_pipeline(
     coord_index: Arc<CoordIndex>,
     jobs: &Jobs,

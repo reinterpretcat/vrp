@@ -281,7 +281,7 @@ fn check_groups(ctx: &CheckerContext) -> Result<(), String> {
                 .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
                 .flat_map(|job| job.group.as_ref())
                 .for_each(|group| {
-                    acc.entry(group.clone()).or_insert_with(|| HashSet::default()).insert((
+                    acc.entry(group.clone()).or_insert_with(HashSet::default).insert((
                         tour.type_id.clone(),
                         tour.vehicle_id.clone(),
                         tour.shift_index,
@@ -297,7 +297,7 @@ fn check_groups(ctx: &CheckerContext) -> Result<(), String> {
     if violations.is_empty() {
         Ok(())
     } else {
-        let err_info = violations.into_iter().map(|(group, _)| group.clone()).collect::<Vec<_>>().join(",");
+        let err_info = violations.into_iter().map(|(group, _)| group).collect::<Vec<_>>().join(",");
         Err(format!("job groups are not respected: '{}'", err_info))
     }
 }
