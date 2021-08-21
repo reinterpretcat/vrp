@@ -50,8 +50,8 @@ pub fn default_pickup_prototype() -> impl Strategy<Value = Job> {
     )
 }
 
-pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = Job> {
-    pickup_delivery_prototype(
+pub fn default_pickup_delivery_job_prototype() -> impl Strategy<Value = Job> {
+    pickup_delivery_job_prototype(
         default_job_place_prototype(),
         default_job_place_prototype(),
         generate_simple_demand(1..4),
@@ -63,7 +63,7 @@ pub fn default_pickup_delivery_prototype() -> impl Strategy<Value = Job> {
 }
 
 pub fn default_job_prototype() -> impl Strategy<Value = Job> {
-    prop_oneof![default_delivery_prototype(), default_pickup_prototype(), default_pickup_delivery_prototype()]
+    prop_oneof![default_delivery_prototype(), default_pickup_prototype(), default_pickup_delivery_job_prototype()]
 }
 
 pub fn default_costs_prototype() -> impl Strategy<Value = VehicleCosts> {

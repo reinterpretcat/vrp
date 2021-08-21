@@ -41,7 +41,7 @@ pub fn pickup_job_prototype(
 }
 
 prop_compose! {
-    pub fn pickup_delivery_prototype(
+    pub fn pickup_delivery_job_prototype(
         pickup_place: impl Strategy<Value = JobPlace>,
         delivery_place: impl Strategy<Value = JobPlace>,
         demand_proto: impl Strategy<Value = Option<Vec<i32>>>,

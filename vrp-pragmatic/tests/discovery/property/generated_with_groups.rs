@@ -8,21 +8,32 @@ fn get_jobs_groups() -> impl Strategy<Value = Option<String>> {
 }
 
 fn job_prototype() -> impl Strategy<Value = Job> {
-    delivery_job_prototype(
-        job_task_prototype(
-            job_place_prototype(
-                generate_location(&DEFAULT_BOUNDING_BOX),
-                generate_durations(1..10),
-                generate_no_time_windows(),
-                generate_no_tags(),
+    prop_oneof![
+        delivery_job_prototype(
+            job_task_prototype(
+                job_place_prototype(
+                    generate_location(&DEFAULT_BOUNDING_BOX),
+                    generate_durations(1..10),
+                    generate_no_time_windows(),
+                    generate_no_tags(),
+                ),
+                generate_simple_demand(1..5),
+                generate_no_order(),
             ),
-            generate_simple_demand(1..5),
-            generate_no_order(),
+            generate_no_jobs_skills(),
+            generate_no_jobs_value(),
+            get_jobs_groups(),
         ),
-        generate_no_jobs_skills(),
-        generate_no_jobs_value(),
-        get_jobs_groups(),
-    )
+        pickup_delivery_job_prototype(
+            default_job_place_prototype(),
+            default_job_place_prototype(),
+            generate_simple_demand(1..4),
+            generate_no_order(),
+            generate_no_jobs_skills(),
+            generate_no_jobs_value(),
+            get_jobs_groups(),
+        )
+    ]
 }
 
 prop_compose! {
