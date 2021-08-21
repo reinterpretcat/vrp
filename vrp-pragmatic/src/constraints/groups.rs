@@ -59,6 +59,9 @@ impl ConstraintModule for GroupModule {
         // let's go through all routes and create evaluation cache from scratch. However, this
         // approach has performance implications for calling `accept_solution_state` method frequently.
 
+
+        // TODO didn't work with decompose search as it splits solution into multiple sub-solutions!
+
         solution_ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
             let current_jobs_count = route_ctx.route.tour.job_count();
             let groups = get_groups(route_ctx);
