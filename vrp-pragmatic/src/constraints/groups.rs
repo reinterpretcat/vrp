@@ -19,9 +19,13 @@ pub struct GroupModule {
 
 impl GroupModule {
     /// Creates a new instance of `GroupModule`.
-    pub fn new(code: i32, state_key: i32) -> Self {
+    pub fn new(total_jobs: usize, code: i32, state_key: i32) -> Self {
         Self {
-            constraints: vec![ConstraintVariant::HardRoute(Arc::new(GroupHardRouteConstraint { code, state_key }))],
+            constraints: vec![ConstraintVariant::HardRoute(Arc::new(GroupHardRouteConstraint {
+                total_jobs,
+                code,
+                state_key,
+            }))],
             state_key,
             keys: vec![state_key],
         }
@@ -59,9 +63,6 @@ impl ConstraintModule for GroupModule {
         // let's go through all routes and create evaluation cache from scratch. However, this
         // approach has performance implications for calling `accept_solution_state` method frequently.
 
-
-        // TODO didn't work with decompose search as it splits solution into multiple sub-solutions!
-
         solution_ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
             let current_jobs_count = route_ctx.route.tour.job_count();
             let groups = get_groups(route_ctx);
@@ -79,6 +80,7 @@ impl ConstraintModule for GroupModule {
 }
 
 struct GroupHardRouteConstraint {
+    total_jobs: usize,
     code: i32,
     state_key: i32,
 }
@@ -98,10 +100,23 @@ impl HardRouteConstraint for GroupHardRouteConstraint {
                 .filter_map(|rc| rc.state.get_route_state::<(HashSet<String>, usize)>(self.state_key))
                 .any(|(groups, _)| groups.contains(group));
 
-            if other_route {
-                Some(RouteConstraintViolation { code: self.code })
-            } else {
-                None
+            let current_route = route_ctx
+                .state
+                .get_route_state::<(HashSet<String>, usize)>(self.state_key)
+                .map_or(false, |(groups, _)| groups.contains(group));
+
+            match (other_route, current_route) {
+                (true, _) => Some(RouteConstraintViolation { code: self.code }),
+                // NOTE handle partial solution context use case (e.g. decompose search)
+                (false, false) => {
+                    let is_full_problem = amount_of_jobs(solution_ctx) == self.total_jobs;
+                    if is_full_problem {
+                        None
+                    } else {
+                        Some(RouteConstraintViolation { code: self.code })
+                    }
+                }
+                (false, true) => None,
             }
         })
     }
@@ -113,4 +128,12 @@ fn get_group(job: &Job) -> Option<&String> {
 
 fn get_groups(route_ctx: &RouteContext) -> HashSet<String> {
     route_ctx.route.tour.jobs().filter_map(|job| get_group(&job).cloned()).collect()
+}
+
+fn amount_of_jobs(solution_ctx: &SolutionContext) -> usize {
+    let assigned = solution_ctx.routes.iter().map(|route_ctx| route_ctx.route.tour.job_count()).sum::<usize>();
+
+    let required = solution_ctx.required.iter().filter(|job| !solution_ctx.unassigned.contains_key(job)).count();
+
+    solution_ctx.unassigned.len() + required + solution_ctx.ignored.len() + assigned
 }

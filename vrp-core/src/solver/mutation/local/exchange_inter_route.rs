@@ -120,6 +120,7 @@ fn find_best_insertion_pair(
 
                         // try to insert seed job into test route
                         let mut test_route = test_route.deep_copy();
+                        // NOTE would be nice to add job to list of required
                         test_route.route_mut().tour.remove(test_job);
                         new_insertion_ctx.problem.constraint.accept_route_state(&mut test_route);
 

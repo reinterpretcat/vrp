@@ -11,6 +11,10 @@ use vrp_core::models::problem::{Fleet, Single};
 const VIOLATION_CODE: i32 = 1;
 const STATE_KEY: i32 = 2;
 
+fn get_total_jobs(routes: &Vec<(&str, Vec<Option<&str>>)>) -> usize {
+    routes.iter().map(|(_, jobs)| jobs.len()).sum::<usize>() + 1
+}
+
 fn create_test_fleet() -> Fleet {
     Fleet::new(
         vec![Arc::new(test_driver())],
@@ -28,15 +32,23 @@ fn create_test_single(group: Option<&str>) -> Arc<Single> {
     Arc::new(single)
 }
 
-fn create_test_solution_context(fleet: &Fleet, routes: Vec<(&str, Vec<Option<&str>>)>) -> SolutionContext {
+fn create_test_solution_context(
+    total_jobs: usize,
+    fleet: &Fleet,
+    routes: Vec<(&str, Vec<Option<&str>>)>,
+) -> SolutionContext {
     SolutionContext {
+        required: (0..total_jobs).map(|_| Job::Single(create_test_single(None))).collect(),
         routes: routes
             .into_iter()
             .map(|(vehicle, groups)| {
                 let mut state = RouteState::default();
                 state.put_route_state(
                     STATE_KEY,
-                    groups.iter().filter_map(|g| g.clone()).map(|g| g.to_string()).collect::<HashSet<_>>(),
+                    (
+                        groups.iter().filter_map(|g| g.clone()).map(|g| g.to_string()).collect::<HashSet<_>>(),
+                        groups.len(),
+                    ),
                 );
 
                 RouteContext::new_with_state(
@@ -67,10 +79,10 @@ fn get_actor_groups(solution_ctx: &mut SolutionContext, state_key: i32) -> HashM
         .filter_map(|route_ctx| {
             route_ctx
                 .state
-                .get_route_state::<HashSet<String>>(state_key)
+                .get_route_state::<(HashSet<String>, usize)>(state_key)
                 .map(|groups| (route_ctx.route.actor.clone(), groups.clone()))
         })
-        .fold(HashMap::default(), |mut acc, (actor, groups)| {
+        .fold(HashMap::default(), |mut acc, (actor, (groups, _))| {
             groups.into_iter().for_each(|group| {
                 acc.insert(group, actor.clone());
             });
@@ -90,7 +102,8 @@ fn compare_actor_groups(fleet: &Fleet, original: HashMap<String, Arc<Actor>>, ex
 
 #[test]
 fn can_build_expected_module() {
-    let module = GroupModule::new(VIOLATION_CODE, STATE_KEY);
+    let total_jobs = 1;
+    let module = GroupModule::new(total_jobs, VIOLATION_CODE, STATE_KEY);
 
     assert_eq!(module.state_keys().cloned().collect::<Vec<_>>(), vec![STATE_KEY]);
     assert_eq!(module.get_constraints().count(), 1);
@@ -110,9 +123,10 @@ fn can_accept_insertion_impl(
     job_group: Option<&str>,
     expected: Vec<(&str, &str)>,
 ) {
+    let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
-    let module = GroupModule::new(VIOLATION_CODE, STATE_KEY);
-    let mut solution = create_test_solution_context(&fleet, routes);
+    let module = GroupModule::new(total_jobs, VIOLATION_CODE, STATE_KEY);
+    let mut solution = create_test_solution_context(total_jobs, &fleet, routes);
     let job = Job::Single(create_test_single(job_group));
 
     module.accept_insertion(&mut solution, 0, &job);
@@ -132,9 +146,10 @@ can_accept_solution_state! {
 }
 
 fn can_accept_solution_state_impl(routes: Vec<(&str, Vec<Option<&str>>)>, expected: Vec<(&str, &str)>) {
+    let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
-    let module = GroupModule::new(VIOLATION_CODE, STATE_KEY);
-    let mut solution = create_test_solution_context(&fleet, routes);
+    let module = GroupModule::new(total_jobs, VIOLATION_CODE, STATE_KEY);
+    let mut solution = create_test_solution_context(total_jobs, &fleet, routes);
 
     module.accept_solution_state(&mut solution);
 
@@ -156,12 +171,13 @@ fn can_evaluate_job_impl(
     job_group: Option<&str>,
     expected: Option<i32>,
 ) {
+    let total_jobs = get_total_jobs(&routes) + 1;
     let fleet = create_test_fleet();
-    let solution_ctx = create_test_solution_context(&fleet, routes);
+    let solution_ctx = create_test_solution_context(total_jobs, &fleet, routes);
     let route_ctx = solution_ctx.routes.get(route_idx).unwrap();
     let job = Job::Single(create_test_single(job_group));
 
-    let result = GroupHardRouteConstraint { code: VIOLATION_CODE, state_key: STATE_KEY }.evaluate_job(
+    let result = GroupHardRouteConstraint { total_jobs, code: VIOLATION_CODE, state_key: STATE_KEY }.evaluate_job(
         &solution_ctx,
         route_ctx,
         &job,

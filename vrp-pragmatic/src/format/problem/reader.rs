@@ -28,7 +28,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
-use vrp_core::models::problem::{ActivityCost, Fleet, TransportCost};
+use vrp_core::models::problem::{ActivityCost, Fleet, Jobs, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::utils::{compare_floats, DefaultRandom, Random};
 
@@ -201,6 +201,7 @@ fn map_to_problem(
     let limits = read_travel_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
     let mut constraint = create_constraint_pipeline(
         coord_index.clone(),
+        &jobs,
         &fleet,
         transport.clone(),
         activity.clone(),
@@ -227,6 +228,7 @@ fn map_to_problem(
 
 fn create_constraint_pipeline(
     coord_index: Arc<CoordIndex>,
+    jobs: &Jobs,
     fleet: &Fleet,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
@@ -256,7 +258,7 @@ fn create_constraint_pipeline(
     }
 
     if props.has_group {
-        constraint.add_module(Arc::new(GroupModule::new(GROUP_CONSTRAINT_CODE, GROUP_KEY)));
+        constraint.add_module(Arc::new(GroupModule::new(jobs.size(), GROUP_CONSTRAINT_CODE, GROUP_KEY)));
     }
 
     if props.has_skills {

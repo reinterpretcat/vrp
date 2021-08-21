@@ -36,6 +36,7 @@ impl LocalOperator for ExchangeIntraRouteRandom {
 
             if let Some(job) = get_shuffled_jobs(insertion_ctx, route_ctx).into_iter().next() {
                 assert!(route_ctx.route_mut().tour.remove(&job));
+                new_insertion_ctx.solution.required.push(job.clone());
                 new_insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
 
                 let insertion = evaluate_job_insertion_in_route(
