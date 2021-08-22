@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.11.2] - 2021-08-22
+
 ### Added
 
 * `group` constraint on job in pragmatic format
