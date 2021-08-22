@@ -15,7 +15,6 @@ description = "A command line interface for VRP solver"
 default = ["csv-format", "scientific-format"]
 
 csv-format = ["csv"]
-hre-format = []
 scientific-format = ["vrp-scientific"]
 
 [lib]
@@ -29,15 +28,15 @@ vrp-pragmatic = { path = "../vrp-pragmatic", version = "1.11.1" }
 
 csv = { version = "1.1.6", optional = true }
 serde_json = "1.0.66"
-serde = { version = "1.0.127", features = ["derive"] }
+serde = { version = "1.0.128", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 clap = "2.33.3"
 num_cpus = "1.13.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.75", features = ["serde-serialize"] }
-js-sys = "0.3.52"
+wasm-bindgen = { version = "0.2.76", features = ["serde-serialize"] }
+js-sys = "0.3.53"
 
 [dev-dependencies]
 tempfile = "3.2.0"
