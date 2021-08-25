@@ -177,15 +177,7 @@ pub struct Statistics {
     /// A progress till algorithm's termination.
     pub termination_estimate: f64,
 }
-/*
-impl Statistics {
 
-
-    pub fn is_slow_progress(&self) -> bool {
-        self.termination_estimate > 0.1 && self.generation < 200
-    }
-}
-*/
 impl RefinementContext {
     /// Creates a new instance of `RefinementContext`.
     pub fn new(
