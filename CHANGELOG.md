@@ -347,7 +347,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.11.1...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.11.2...HEAD
+[v1.11.2]: https://github.com/reinterpretcat/vrp/compare/v1.11.1...v1.11.2
 [v1.11.1]: https://github.com/reinterpretcat/vrp/compare/v1.11.0...v1.11.1
 [v1.11.0]: https://github.com/reinterpretcat/vrp/compare/v1.10.8...v1.11.0
 [v1.10.8]: https://github.com/reinterpretcat/vrp/compare/v1.10.7...v1.10.8
