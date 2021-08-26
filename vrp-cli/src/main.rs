@@ -16,6 +16,7 @@ fn main() {
 mod cli {
     use super::commands::import::{get_import_app, run_import};
     use super::commands::solve::{get_solve_app, run_solve};
+    use crate::commands::analyze::{get_analyze_app, run_analyze};
     use crate::commands::check::{get_check_app, run_check};
     use crate::commands::create_write_buffer;
     use crate::commands::generate::{get_generate_app, run_generate};
@@ -31,6 +32,7 @@ mod cli {
             .version(crate_version!())
             .author("Ilya Builuk <ilya.builuk@gmail.com>")
             .about("A command line interface to Vehicle Routing Problem solver")
+            .subcommand(get_analyze_app())
             .subcommand(get_solve_app())
             .subcommand(get_import_app())
             .subcommand(get_check_app())
@@ -39,6 +41,7 @@ mod cli {
 
     pub fn run_subcommand(arg_matches: ArgMatches) {
         if let Err(err) = match arg_matches.subcommand() {
+            ("analyze", Some(analyze_matches)) => run_analyze(analyze_matches, create_write_buffer),
             ("solve", Some(solve_matches)) => run_solve(solve_matches, create_write_buffer),
             ("import", Some(import_matches)) => run_import(import_matches),
             ("check", Some(check_matches)) => run_check(check_matches),
