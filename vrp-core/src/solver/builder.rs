@@ -8,7 +8,7 @@ use crate::solver::population::Population;
 use crate::solver::processing::post::PostProcessing;
 use crate::solver::processing::pre::PreProcessing;
 use crate::solver::termination::*;
-use crate::solver::{Solver, Telemetry};
+use crate::solver::{RefinementMethod, Solver, Telemetry};
 use crate::utils::{Environment, TimeQuota};
 use std::sync::Arc;
 
@@ -67,6 +67,12 @@ impl Builder {
 }
 
 impl Builder {
+    /// Sets refinement method. Default is unrestricted refinement.
+    pub fn with_method(mut self, method: RefinementMethod) -> Self {
+        self.config.method = method;
+        self
+    }
+
     /// Sets telemetry. Default telemetry is set to do nothing.
     pub fn with_telemetry(mut self, telemetry: Telemetry) -> Self {
         self.config.telemetry = telemetry;

@@ -160,6 +160,7 @@ pub(crate) fn apply_insertion_result(ctx: &mut InsertionContext, result: Inserti
                 ctx.solution.required.retain(|j| *j != job);
             } else {
                 // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
+                // TODO remove from required only jobs from selected list
                 finalize_unassigned(ctx, failure.constraint)
             }
         }

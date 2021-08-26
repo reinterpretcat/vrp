@@ -1,7 +1,3 @@
-#[cfg(test)]
-#[path = "../../../tests/unit/solver/evolution/evolution_test.rs"]
-mod evolution_test;
-
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::hyper::HyperHeuristic;
 use crate::solver::telemetry::Telemetry;
@@ -9,11 +5,16 @@ use crate::solver::termination::*;
 use crate::solver::{Metrics, Population, RefinementContext};
 use crate::utils::Timer;
 
-mod config;
 pub use self::config::*;
-
-mod run_simple;
 pub use self::run_simple::RunSimple;
+
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/evolution/evolution_test.rs"]
+mod evolution_test;
+
+mod config;
+mod methods;
+mod run_simple;
 
 /// Defines evolution result type.
 pub type EvolutionResult = Result<(Box<dyn Population + Send + Sync>, Option<Metrics>), String>;

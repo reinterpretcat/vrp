@@ -91,13 +91,17 @@
 //!
 
 extern crate rand;
+
 use crate::algorithms::nsga2::Objective;
 use crate::construction::Quota;
 use crate::models::common::Cost;
+use crate::models::problem::{Actor, Job};
 use crate::models::{Problem, Solution};
 use crate::solver::population::Population;
+use crate::utils::{Environment, Timer};
 use hashbrown::HashMap;
 use std::any::Any;
+use std::ops::Range;
 use std::sync::Arc;
 
 pub mod hyper;
@@ -115,7 +119,6 @@ use self::evolution::{EvolutionConfig, EvolutionSimulator};
 
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
-use crate::utils::{Environment, Timer};
 
 /// A key to store solution order information.
 const SOLUTION_ORDER_KEY: i32 = 1;
@@ -152,8 +155,26 @@ pub struct RefinementContext {
 pub enum RefinementSpeed {
     /// Slow speed.
     Slow,
+
     /// Moderate speed.
     Moderate,
+}
+
+/// Defines refinement strategy type.
+#[derive(Clone)]
+pub enum RefinementMethod {
+    /// Unrestricted method allows to construct/refine the whole solution simultaneously.
+    Unrestricted,
+
+    /// Partial method tries to avoid constructing/refinement of the whole solution simultaneously.
+    Partial {
+        /// Specifies jobs chunk size.
+        chunk_size: Range<usize>,
+        /// Filters jobs for given chunk size and index.
+        job_filter: Arc<dyn Fn(&Job, usize, usize) -> bool>,
+        /// Filters actors for given chunk size and index.
+        actor_filter: Arc<dyn Fn(&Actor, usize, usize) -> bool>,
+    },
 }
 
 /// A refinement statistics to track evolution progress.

@@ -18,7 +18,6 @@ use std::sync::Arc;
 /// A ruin strategy which removes job clusters using [`DBSCAN`] algorithm.
 ///
 /// [`DBSCAN`]: ../../algorithms/dbscan/index.html
-///
 pub struct ClusterRemoval {
     clusters: Vec<Vec<Job>>,
     limits: RuinLimits,
@@ -27,13 +26,7 @@ pub struct ClusterRemoval {
 impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval`.
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, min_items: usize, limits: RuinLimits) -> Self {
-        let min_items = min_items.max(3);
-        let epsilon = estimate_epsilon(&problem, min_items);
-
-        let mut clusters = create_job_clusters(&problem, environment.random.as_ref(), min_items, epsilon)
-            .into_iter()
-            .map(|cluster| cluster.into_iter().cloned().collect::<Vec<_>>())
-            .collect::<Vec<_>>();
+        let mut clusters = Self::create_clusters(problem, environment.clone(), min_items);
 
         clusters.shuffle(&mut environment.random.get_rng());
 
@@ -43,6 +36,17 @@ impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval` with default parameters.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
         Self::new(problem, environment, 4, RuinLimits::default())
+    }
+
+    /// Creates clusters using DBSCAN algorithm.
+    pub fn create_clusters(problem: Arc<Problem>, environment: Arc<Environment>, min_items: usize) -> Vec<Vec<Job>> {
+        let min_items = min_items.max(3);
+        let epsilon = estimate_epsilon(&problem, min_items);
+
+        create_job_clusters(&problem, environment.random.as_ref(), min_items, epsilon)
+            .into_iter()
+            .map(|cluster| cluster.into_iter().cloned().collect::<Vec<_>>())
+            .collect::<Vec<_>>()
     }
 }
 

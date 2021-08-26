@@ -10,7 +10,7 @@ use crate::solver::processing::post::{AdvanceDeparture, PostProcessing};
 use crate::solver::processing::pre::PreProcessing;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
-use crate::solver::TelemetryMode;
+use crate::solver::{RefinementMethod, TelemetryMode};
 use crate::utils::Environment;
 use std::sync::Arc;
 
@@ -24,6 +24,9 @@ pub struct EvolutionConfig {
 
     /// A population configuration.
     pub population: PopulationConfig,
+
+    /// A restriction method.
+    pub method: RefinementMethod,
 
     /// A hyper heuristic.
     pub hyper: Box<dyn HyperHeuristic + Send + Sync>,
@@ -101,6 +104,7 @@ impl EvolutionConfig {
                 },
                 variation: Some(get_default_population(problem.clone(), environment.clone())),
             },
+            method: RefinementMethod::Unrestricted,
             hyper: Box::new(MultiSelective::new_with_defaults(problem, environment.clone())),
             termination: Arc::new(CompositeTermination::new(vec![
                 Box::new(MaxTime::new(300.)),
