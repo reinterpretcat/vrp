@@ -1,5 +1,5 @@
 use super::*;
-use std::fs::{read, File};
+use std::fs::File;
 
 const PRAGMATIC_PROBLEM_PATH: &str = "../examples/data/pragmatic/simple.basic.problem.json";
 const PRAGMATIC_MATRIX_PATH: &str = "../examples/data/pragmatic/simple.basic.matrix.json";

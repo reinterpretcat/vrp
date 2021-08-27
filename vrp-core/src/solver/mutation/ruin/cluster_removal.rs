@@ -26,7 +26,7 @@ pub struct ClusterRemoval {
 impl ClusterRemoval {
     /// Creates a new instance of `ClusterRemoval`.
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, min_items: usize, limits: RuinLimits) -> Self {
-        let mut clusters = Self::create_clusters(problem, environment.clone(), min_items);
+        let mut clusters = Self::create_clusters(problem, environment.clone(), Some(min_items), None);
 
         clusters.shuffle(&mut environment.random.get_rng());
 
@@ -35,13 +35,18 @@ impl ClusterRemoval {
 
     /// Creates a new instance of `ClusterRemoval` with default parameters.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
-        Self::new(problem, environment, 4, RuinLimits::default())
+        Self::new(problem, environment, 3, RuinLimits::default())
     }
 
     /// Creates clusters using DBSCAN algorithm.
-    pub fn create_clusters(problem: Arc<Problem>, environment: Arc<Environment>, min_items: usize) -> Vec<Vec<Job>> {
-        let min_items = min_items.max(3);
-        let epsilon = estimate_epsilon(&problem, min_items);
+    pub fn create_clusters(
+        problem: Arc<Problem>,
+        environment: Arc<Environment>,
+        min_items: Option<usize>,
+        epsilon: Option<f64>,
+    ) -> Vec<Vec<Job>> {
+        let min_items = min_items.unwrap_or(3).max(3);
+        let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(&problem, min_items));
 
         create_job_clusters(&problem, environment.random.as_ref(), min_items, epsilon)
             .into_iter()

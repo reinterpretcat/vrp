@@ -19,6 +19,7 @@ pub fn get_clusters<F: Read>(
     problem_reader: BufReader<F>,
     matrices_readers: Option<Vec<BufReader<F>>>,
     min_points: Option<usize>,
+    epsilon: Option<f64>,
 ) -> Result<String, String> {
     let problem = Arc::new(
         get_core_problem(problem_reader, matrices_readers).map_err(|errs| FormatError::format_many(&errs, ","))?,
@@ -27,7 +28,7 @@ pub fn get_clusters<F: Read>(
     let coord_index = get_coord_index(&problem);
     let environment = Arc::new(Environment::default());
 
-    let clusters = ClusterRemoval::create_clusters(problem.clone(), environment, min_points.unwrap_or(3));
+    let clusters = ClusterRemoval::create_clusters(problem.clone(), environment, min_points, epsilon);
 
     let locations = clusters
         .iter()

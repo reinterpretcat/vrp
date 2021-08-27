@@ -8,7 +8,8 @@ use vrp_cli::extensions::analyze::get_clusters;
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
 const MATRIX_ARG_NAME: &str = "matrix";
-const MIN_POINTS_ARG_NAME: &str = "jobs-size";
+const MIN_POINTS_ARG_NAME: &str = "min-points";
+const EPSILON_ARG_NAME: &str = "epsilon";
 const OUT_RESULT_ARG_NAME: &str = "out-result";
 
 pub fn get_analyze_app<'a, 'b>() -> App<'a, 'b> {
@@ -29,6 +30,14 @@ pub fn get_analyze_app<'a, 'b>() -> App<'a, 'b> {
                     .short("c")
                     .default_value("3")
                     .long(MIN_POINTS_ARG_NAME)
+                    .required(false)
+                    .takes_value(true),
+            )
+            .arg(
+                Arg::with_name(EPSILON_ARG_NAME)
+                    .help("Epsilon parameter in DBSCAN")
+                    .short("e")
+                    .long(EPSILON_ARG_NAME)
                     .required(false)
                     .takes_value(true),
             )
@@ -72,7 +81,9 @@ pub fn run_analyze(
                 .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "routing matrix"))).collect());
 
             let min_points = parse_int_value::<usize>(clusters_matches, MIN_POINTS_ARG_NAME, "min points")?;
-            let clusters = get_clusters(problem_reader, matrices_readers, min_points)
+            let epsilon = parse_float_value::<f64>(clusters_matches, EPSILON_ARG_NAME, "epsilon")?;
+
+            let clusters = get_clusters(problem_reader, matrices_readers, min_points, epsilon)
                 .map_err(|err| format!("cannot get clusters: '{}'", err))?;
 
             let out_geojson =
@@ -82,7 +93,7 @@ pub fn run_analyze(
             geo_writer.write_all(clusters.as_bytes()).map_err(|err| format!("cannot write result: '{}'", err))
         }
         ("", None) => {
-            return Err(format!("no subcommand was used. Use -h to print help information."));
+            return Err(format!("no analyze subcommand was used. Use -h to print help information."));
         }
         _ => unreachable!(),
     }
