@@ -138,7 +138,7 @@ pub(crate) const UNASSIGNABLE_ROUTE_KEY: i32 = 100;
 pub type JobIndex = HashMap<String, CoreJob>;
 
 /// Gets job index from core problem definition.
-pub(crate) fn get_job_index(problem: &CoreProblem) -> &JobIndex {
+pub fn get_job_index(problem: &CoreProblem) -> &JobIndex {
     problem
         .extras
         .get("job_index")
@@ -147,10 +147,10 @@ pub(crate) fn get_job_index(problem: &CoreProblem) -> &JobIndex {
 }
 
 /// Gets coord index from core problem definition.
-pub(crate) fn get_coord_index(problem: &CoreProblem) -> &CoordIndex {
+pub fn get_coord_index(problem: &CoreProblem) -> &CoordIndex {
     problem
         .extras
         .get("coord_index")
         .and_then(|s| s.downcast_ref::<CoordIndex>())
-        .unwrap_or_else(|| panic!("Cannot get coord index!"))
+        .unwrap_or_else(|| panic!("cannot get coord index!"))
 }

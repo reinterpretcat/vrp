@@ -1,6 +1,5 @@
 use super::*;
 use vrp_cli::extensions::analyze::get_clusters;
-use vrp_cli::pragmatic::format::FormatError;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -69,13 +68,13 @@ pub fn run_analyze(
                 .map(|paths: Values| paths.map(|path| BufReader::new(open_file(path, "routing matrix"))).collect());
 
             let min_points = parse_int_value::<usize>(matches, MIN_POINTS_ARG_NAME, "min points")?;
-            let _clusters = get_clusters(problem_reader, matrices_readers, min_points)
-                .map_err(|errs| format!("cannot get clusters: '{}'", FormatError::format_many(&errs, ",")));
+            let clusters = get_clusters(problem_reader, matrices_readers, min_points)
+                .map_err(|err| format!("cannot get clusters: '{}'", err))?;
 
             let out_geojson = matches.value_of(OUT_RESULT_ARG_NAME).map(|path| create_file(path, "out geojson"));
-            let _geo_buffer = out_writer_func(out_geojson);
+            let mut geo_writer = out_writer_func(out_geojson);
 
-            unimplemented!()
+            geo_writer.write_all(clusters.as_bytes()).map_err(|err| format!("cannot write result: '{}'", err))
         }
         ("", None) => {
             return Err(format!("no subcommand was used. Use -h to print help information."));

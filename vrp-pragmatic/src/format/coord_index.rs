@@ -7,7 +7,7 @@ use std::cmp::Ordering::Less;
 use std::hash::{Hash, Hasher};
 
 /// A helper struct which keeps track of coordinate mapping.
-pub(crate) struct CoordIndex {
+pub struct CoordIndex {
     direct_index: HashMap<Location, usize>,
     reverse_index: HashMap<usize, Location>,
 }

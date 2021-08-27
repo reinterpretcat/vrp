@@ -6,7 +6,7 @@ pub use self::model::*;
 pub(crate) mod activity_matcher;
 
 mod geo_serializer;
-pub use self::geo_serializer::serialize_solution_as_geojson;
+pub use self::geo_serializer::*;
 
 mod initial_reader;
 pub use self::initial_reader::read_init_solution;

@@ -252,6 +252,14 @@ impl Hash for Job {
     }
 }
 
+/// Returns job locations.
+pub fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Location>> + 'a> {
+    match job {
+        Job::Single(single) => Box::new(single.places.iter().map(|p| p.location)),
+        Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|j| j.places.iter().map(|p| p.location))),
+    }
+}
+
 // TODO: we don't know actual departure and zero-cost when we create job index.
 const DEFAULT_DEPARTURE: Timestamp = 0.;
 const DEFAULT_COST: Cost = 0.;
@@ -358,14 +366,6 @@ fn get_cost_between_jobs(
         })
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
         .unwrap_or(DEFAULT_COST)
-}
-
-/// Returns job locations.
-fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Location>> + 'a> {
-    match job {
-        Job::Single(single) => Box::new(single.places.iter().map(|p| p.location)),
-        Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|j| j.places.iter().map(|p| p.location))),
-    }
 }
 
 fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {
