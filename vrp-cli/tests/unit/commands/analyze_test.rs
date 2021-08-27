@@ -29,3 +29,10 @@ fn can_run_analyze_clusters() {
 
     run_analyze(&matches, |_| BufWriter::new(Box::new(DummyWrite {}))).unwrap();
 }
+
+#[test]
+fn can_detect_wrong_argument() {
+    let args = vec!["analyze", "clusters", "solomon", PRAGMATIC_PROBLEM_PATH, "--out-result", "/some/path"];
+
+    assert!(get_analyze_app().get_matches_from_safe(args).is_err());
+}
