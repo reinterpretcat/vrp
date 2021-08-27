@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/extensions/analyze/clusters_test.rs"]
+mod clusters_test;
+
 use std::io::{BufReader, BufWriter, Read};
 use std::sync::Arc;
 use vrp_core::models::common::IdDimension;
@@ -23,7 +27,7 @@ pub fn get_clusters<F: Read>(
     let coord_index = get_coord_index(&problem);
     let environment = Arc::new(Environment::default());
 
-    let clusters = ClusterRemoval::create_clusters(problem.clone(), environment, min_points.unwrap_or(4));
+    let clusters = ClusterRemoval::create_clusters(problem.clone(), environment, min_points.unwrap_or(3));
 
     let locations = clusters
         .iter()

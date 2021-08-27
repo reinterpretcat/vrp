@@ -6,29 +6,70 @@ use super::Solution;
 use crate::format::solution::{Stop, Tour, UnassignedJob};
 use crate::format::{get_coord_index, get_job_index, CoordIndex, Location};
 use serde::Serialize;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{BufWriter, Error, ErrorKind, Write};
 use vrp_core::models::problem::{Job, Place};
 use vrp_core::models::Problem;
+use vrp_core::utils::compare_floats;
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type")]
 enum Geometry {
     Point { coordinates: (f64, f64) },
     LineString { coordinates: Vec<(f64, f64)> },
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type")]
 struct Feature {
     pub properties: HashMap<String, String>,
     pub geometry: Geometry,
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Debug, Serialize, Eq, PartialEq)]
 #[serde(tag = "type")]
 struct FeatureCollection {
     pub features: Vec<Feature>,
+}
+
+impl Eq for Geometry {}
+
+impl PartialEq for Geometry {
+    fn eq(&self, other: &Self) -> bool {
+        let compare_pair = |l_coord: &(f64, f64), r_coord: &(f64, f64)| {
+            compare_floats(l_coord.0, r_coord.0) == Ordering::Equal
+                && compare_floats(l_coord.1, r_coord.1) == Ordering::Equal
+        };
+
+        match (self, other) {
+            (Geometry::Point { coordinates: l_coord }, Geometry::Point { coordinates: r_coord }) => {
+                compare_pair(l_coord, r_coord)
+            }
+            (Geometry::LineString { coordinates: l_coords }, Geometry::LineString { coordinates: r_coords }) => {
+                l_coords.len() == r_coords.len()
+                    && l_coords.iter().zip(r_coords.iter()).all(|(l_coord, r_coord)| compare_pair(l_coord, r_coord))
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Feature {}
+
+impl PartialEq for Feature {
+    fn eq(&self, other: &Self) -> bool {
+        let same_properties = self.properties.len() == other.properties.len()
+            && self.properties.keys().all(|key| {
+                if let Some(value) = other.properties.get(key) {
+                    self.properties[key] == *value
+                } else {
+                    false
+                }
+            });
+
+        same_properties && self.geometry.eq(&other.geometry)
+    }
 }
 
 /// Serializes solution into geo json format.
@@ -47,9 +88,15 @@ pub fn serialize_named_locations_as_geojson<W: Write>(
     writer: BufWriter<W>,
     locations: &[(String, Location, usize)],
 ) -> Result<(), Error> {
+    let geo_json = create_geojson_named_locations(locations)?;
+
+    serde_json::to_writer_pretty(writer, &geo_json).map_err(Error::from)
+}
+
+fn create_geojson_named_locations(locations: &[(String, Location, usize)]) -> Result<FeatureCollection, Error> {
     let colors = get_more_colors();
 
-    let geo_json = FeatureCollection {
+    Ok(FeatureCollection {
         features: locations
             .iter()
             .map(|(name, location, index)| {
@@ -64,9 +111,7 @@ pub fn serialize_named_locations_as_geojson<W: Write>(
                 })
             })
             .collect::<Result<Vec<_>, Error>>()?,
-    };
-
-    serde_json::to_writer_pretty(writer, &geo_json).map_err(Error::from)
+    })
 }
 
 fn slice_to_map(vec: &[(&str, &str)]) -> HashMap<String, String> {
