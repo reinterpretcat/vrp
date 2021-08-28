@@ -3,7 +3,6 @@
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
-use std::iter::once;
 use std::sync::{Arc, RwLock};
 
 /// A trait which specifies logic to destroy parts of solution.

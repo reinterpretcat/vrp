@@ -37,15 +37,14 @@ can_estimate_epsilon! {
     case_00: ((8, 8), 1, |data: Vec<f64>| (data.clone(), data), 2.),
 
     case_01: ((8, 8), 3,  |data: Vec<f64>| (data.clone(), data), 2.),
-    case_02: ((8, 8), 6,  |data: Vec<f64>| (data.clone(), data), 2.828),
-    case_03: ((8, 8), 10, |data: Vec<f64>| (data.clone(), data), 4.472),
-    case_04: ((8, 8), 18, |data: Vec<f64>| (data.clone(), data), 6.325),
+    case_02: ((8, 8), 6,  |data: Vec<f64>| (data.clone(), data), 2.609),
+    case_03: ((8, 8), 18, |data: Vec<f64>| (data.clone(), data), 3.545),
 
-    case_05:  ((8, 1), 3, |data: Vec<f64>| (data.clone(), data), 4.),
-    case_06:  ((8, 1), 6, |data: Vec<f64>| (data.clone(), data), 6.),
+    case_04:  ((8, 1), 3, |data: Vec<f64>| (data.clone(), data), 2.667),
+    case_05:  ((8, 1), 6, |data: Vec<f64>| (data.clone(), data), 4.333),
 
-    case_07:  ((8, 1), 2, |_: Vec<f64>| (vec![0.; 64], create_test_distances()), 11.18),
-    case_08:  ((8, 1), 3, |_: Vec<f64>| (vec![0.; 64], create_test_distances()), 10.),
+    case_06:  ((8, 1), 2, |_: Vec<f64>| (vec![0.; 64], create_test_distances()), 9.126),
+    case_07:  ((8, 1), 3, |_: Vec<f64>| (vec![0.; 64], create_test_distances()), 10.961),
 }
 
 fn can_estimate_epsilon_impl(
@@ -109,15 +108,11 @@ parameterized_test! {can_create_job_clusters, (param, expected), {
 }}
 
 can_create_job_clusters! {
-    case_01: ((3, 10.00), &[vec![0, 1, 2, 3], vec![5, 6, 7]]),
-    case_02: ((3, 12.00), &[vec![0, 1, 2, 3], vec![5, 6, 7]]),
-    case_03: ((3, 14.14), &[vec![0, 1, 2, 3], vec![5, 6, 7]]),
-
-    case_04: ((3, 14.15), &[vec![0, 1, 2, 3], vec![4, 5, 6, 7]]),
-    case_05: ((3, 15.81), &[vec![0, 1, 2, 3], vec![4, 5, 6, 7]]),
-
-    case_06: ((3, 15.82), &[vec![0, 1, 2, 3, 4, 5, 6, 7]]),
-    case_07: ((3, 18.00), &[vec![0, 1, 2, 3, 4, 5, 6, 7]]),
+    case_01: ((2, 8.00), &[vec![0, 1, 2, 3], vec![5, 6, 7]]),
+    case_02: ((3, 12.00), &[vec![0, 1, 2, 3]]),
+    case_03: ((3, 15.00), &[vec![0, 1, 2, 3], vec![4, 5, 6, 7]]),
+    case_04: ((3, 18.00), &[vec![0, 1, 2, 3, 4], vec![5, 6, 7]]),
+    case_05: ((3, 22.00), &[vec![0, 1, 2, 3, 4, 5, 6, 7]]),
 }
 
 fn can_create_job_clusters_impl(param: (usize, f64), expected: &[Vec<Location>]) {
@@ -177,8 +172,8 @@ parameterized_test! {can_ruin_jobs, (limit, cluster_size, expected), {
 
 can_ruin_jobs! {
     case_01: (4, 3, 4),
-    case_02: (5, 3, 5),
-    case_03: (8, 3, 7),
+    case_02: (5, 3, 4),
+    case_03: (8, 3, 4),
 }
 
 fn can_ruin_jobs_impl(limit: usize, min_items: usize, expected: usize) {

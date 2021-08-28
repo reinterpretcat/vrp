@@ -42,13 +42,13 @@ impl ClusterRemoval {
     pub fn create_clusters(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
-        min_items: Option<usize>,
+        min_points: Option<usize>,
         epsilon: Option<f64>,
     ) -> Vec<Vec<Job>> {
-        let min_items = min_items.unwrap_or(3).max(3);
-        let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(&problem, min_items));
+        let min_points = min_points.unwrap_or(3).max(3);
+        let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(&problem, min_points));
 
-        create_job_clusters(&problem, environment.random.as_ref(), min_items, epsilon)
+        create_job_clusters(&problem, environment.random.as_ref(), min_points, epsilon)
             .into_iter()
             .map(|cluster| cluster.into_iter().cloned().collect::<Vec<_>>())
             .collect::<Vec<_>>()
@@ -97,19 +97,24 @@ impl Ruin for ClusterRemoval {
 fn create_job_clusters<'a>(
     problem: &'a Problem,
     random: &(dyn Random + Send + Sync),
-    min_items: usize,
+    min_points: usize,
     epsilon: f64,
 ) -> Vec<Cluster<'a, Job>> {
     // get main parameters with some randomization
     let profile = &problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32 - 1) as usize];
 
     let neighbor_fn: NeighborhoodFn<'a, Job> = Box::new(move |job, eps| {
-        Box::new(once(job).chain(
-            problem.jobs.neighbors(profile, job, 0.).take_while(move |(_, cost)| *cost < eps).map(|(job, _)| job),
-        ))
+        Box::new(
+            problem
+                .jobs
+                .neighbors(profile, job, 0.)
+                .filter(|(_, cost)| *cost > 0.)
+                .take_while(move |(_, cost)| *cost < eps)
+                .map(|(job, _)| job),
+        )
     });
 
-    create_clusters(problem.jobs.all_as_slice(), epsilon, min_items, &neighbor_fn)
+    create_clusters(problem.jobs.all_as_slice(), epsilon, min_points, &neighbor_fn)
 }
 
 /// Estimates DBSCAN epsilon parameter.
@@ -127,21 +132,26 @@ fn estimate_epsilon(problem: &Problem, min_points: usize) -> f64 {
 
 /// Gets average costs across all profiles.
 fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
-    let mut costs = problem.fleet.profiles.iter().fold(vec![0.; problem.jobs.size()], |mut acc, profile| {
-        problem.jobs.all().enumerate().for_each(|(idx, job)| {
-            acc[idx] += problem
-                .jobs
+    let jobs = problem.jobs.as_ref();
+    let mut costs = problem.fleet.profiles.iter().fold(vec![0.; jobs.size()], |mut acc, profile| {
+        jobs.all().enumerate().for_each(|(idx, job)| {
+            let (sum, count) = jobs
                 .neighbors(profile, &job, Timestamp::default())
                 .filter(|(_, cost)| *cost > 0.)
-                .nth(min_points - 1)
+                .take(min_points)
                 // TODO consider time window difference as extra cost?
                 .map(|(_, cost)| *cost)
-                .unwrap_or(0.);
+                .enumerate()
+                .fold((0., 1), |(sum, _), (idx, cost)| (sum + cost, idx + 1));
+
+            acc[idx] += sum / count as f64;
         });
         acc
     });
 
     costs.iter_mut().for_each(|cost| *cost /= problem.fleet.profiles.len() as f64);
+
+    costs.retain(|cost| *cost > 0.);
 
     costs
 }
