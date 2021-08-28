@@ -65,10 +65,14 @@ impl Ruin for ClusterRemoval {
 
         indices.into_iter().take_while(|_| tracker.is_not_limit(max_removed_activities)).for_each(|idx| {
             let cluster = self.clusters.get(idx).unwrap();
+            let mut indices = (0..cluster.len()).into_iter().collect::<Vec<usize>>();
+            indices.shuffle(&mut insertion_ctx.environment.random.get_rng());
+
             let left = max_removed_activities - tracker.get_removed_activities();
 
-            cluster
+            indices
                 .iter()
+                .map(|idx| cluster.get(*idx).expect("invalid cluster index"))
                 .filter(|job| !locked.contains(job))
                 .take_while(|_| tracker.is_not_limit(max_removed_activities))
                 .take(left)
