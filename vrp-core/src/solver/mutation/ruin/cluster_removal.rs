@@ -3,11 +3,11 @@
 mod cluster_removal_test;
 
 use super::*;
-use crate::algorithms::dbscan::{create_clusters, Cluster, NeighborhoodFn};
+use crate::algorithms::dbscan::{create_clusters, NeighborhoodFn};
 use crate::algorithms::geometry::Point;
 use crate::construction::heuristics::InsertionContext;
 use crate::models::common::Timestamp;
-use crate::models::problem::Job;
+use crate::models::problem::{Job, Single};
 use crate::models::Problem;
 use crate::solver::mutation::get_route_jobs;
 use crate::solver::RefinementContext;
@@ -49,9 +49,6 @@ impl ClusterRemoval {
         let epsilon = epsilon.unwrap_or_else(|| estimate_epsilon(&problem, min_points));
 
         create_job_clusters(&problem, environment.random.as_ref(), min_points, epsilon)
-            .into_iter()
-            .map(|cluster| cluster.into_iter().cloned().collect::<Vec<_>>())
-            .collect::<Vec<_>>()
     }
 }
 
@@ -94,27 +91,32 @@ impl Ruin for ClusterRemoval {
     }
 }
 
-fn create_job_clusters<'a>(
-    problem: &'a Problem,
+fn create_job_clusters(
+    problem: &Problem,
     random: &(dyn Random + Send + Sync),
     min_points: usize,
     epsilon: f64,
-) -> Vec<Cluster<'a, Job>> {
+) -> Vec<Vec<Job>> {
     // get main parameters with some randomization
     let profile = &problem.fleet.profiles[random.uniform_int(0, problem.fleet.profiles.len() as i32 - 1) as usize];
+    // exclude jobs without locations from clustering
+    let jobs = problem.jobs.all().filter(job_has_locations).collect::<Vec<_>>();
 
-    let neighbor_fn: NeighborhoodFn<'a, Job> = Box::new(move |job, eps| {
+    let neighbor_fn: NeighborhoodFn<Job> = Box::new(move |job, eps| {
         Box::new(
             problem
                 .jobs
                 .neighbors(profile, job, 0.)
-                .filter(|(_, cost)| *cost > 0.)
+                .filter(move |(job, _)| job_has_locations(job))
                 .take_while(move |(_, cost)| *cost < eps)
                 .map(|(job, _)| job),
         )
     });
 
-    create_clusters(problem.jobs.all_as_slice(), epsilon, min_points, &neighbor_fn)
+    create_clusters(jobs.as_slice(), epsilon, min_points, &neighbor_fn)
+        .into_iter()
+        .map(|cluster| cluster.into_iter().map(|job| job.clone()).collect::<Vec<_>>())
+        .collect::<Vec<_>>()
 }
 
 /// Estimates DBSCAN epsilon parameter.
@@ -178,4 +180,13 @@ fn get_max_curvature(values: &[Point]) -> f64 {
             }
         })
         .0
+}
+
+fn job_has_locations(job: &Job) -> bool {
+    let has_location = |single: &Arc<Single>| single.places.iter().any(|place| place.location.is_some());
+
+    match &job {
+        Job::Single(single) => has_location(single),
+        Job::Multi(multi) => multi.jobs.iter().any(has_location),
+    }
 }
