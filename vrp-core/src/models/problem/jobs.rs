@@ -263,7 +263,7 @@ pub fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Loc
 // TODO: we don't know actual departure and zero-cost when we create job index.
 const DEFAULT_DEPARTURE: Timestamp = 0.;
 const DEFAULT_COST: Cost = 0.;
-const UNREACHABLE_COST: Cost = std::f32::MAX as f64;
+const UNREACHABLE_COST: Cost = f64::MAX;
 
 /// Creates job index.
 fn create_index(
