@@ -92,9 +92,7 @@ pub fn run_analyze(
 
             geo_writer.write_all(clusters.as_bytes()).map_err(|err| format!("cannot write result: '{}'", err))
         }
-        ("", None) => {
-            return Err(format!("no analyze subcommand was used. Use -h to print help information."));
-        }
+        ("", None) => Err("no analyze subcommand was used. Use -h to print help information.".to_string()),
         _ => unreachable!(),
     }
 }

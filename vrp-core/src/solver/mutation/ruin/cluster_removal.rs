@@ -119,7 +119,7 @@ fn create_job_clusters(
 
     create_clusters(jobs.as_slice(), epsilon, min_points, &neighbor_fn)
         .into_iter()
-        .map(|cluster| cluster.into_iter().map(|job| job.clone()).collect::<Vec<_>>())
+        .map(|cluster| cluster.into_iter().cloned().collect::<Vec<_>>())
         .collect::<Vec<_>>()
 }
 

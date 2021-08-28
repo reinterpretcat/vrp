@@ -38,7 +38,7 @@ pub fn get_clusters<F: Read>(
                 .filter_map(move |job| {
                     job.dimens().get_id().cloned().map(|job_id| {
                         get_job_locations(job)
-                            .filter_map(|l_idx| l_idx)
+                            .flatten()
                             .filter_map(move |l_idx| coord_index.get_by_idx(l_idx))
                             .map(move |location| (job_id.clone(), location, cluster_idx))
                     })
@@ -68,5 +68,5 @@ fn get_core_problem<F: Read>(
 
     let matrices = if let Some(matrices) = matrices { Some(matrices?) } else { None };
 
-    (problem.clone(), matrices.clone()).read_pragmatic()
+    (problem, matrices).read_pragmatic()
 }
