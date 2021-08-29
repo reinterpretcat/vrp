@@ -53,6 +53,14 @@ impl Job {
             Job::Multi(multi) => &multi.dimens,
         }
     }
+
+    /// Get all places from the job.
+    pub fn places(&self) -> Box<dyn Iterator<Item = &Place> + '_> {
+        match &self {
+            Job::Single(single) => Box::new(single.places.iter()),
+            Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|single| single.places.iter())),
+        }
+    }
 }
 
 /// Represents a job place details where and/or when work has to be performed.

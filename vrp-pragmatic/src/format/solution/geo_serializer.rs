@@ -9,7 +9,7 @@ use serde::Serialize;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{BufWriter, Error, ErrorKind, Write};
-use vrp_core::models::problem::{Job, Place};
+use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;
 use vrp_core::utils::compare_floats;
 
@@ -154,12 +154,7 @@ fn get_unassigned_points(
     job: &Job,
     color: &str,
 ) -> Result<Vec<Feature>, Error> {
-    let places: Box<dyn Iterator<Item = &Place>> = match job {
-        Job::Single(single) => Box::new(single.places.iter()),
-        Job::Multi(multi) => Box::new(multi.jobs.iter().flat_map(|single| single.places.iter())),
-    };
-
-    places
+    job.places()
         .filter_map(|place| place.location.and_then(|l| coord_index.get_by_idx(l)))
         .map(|location| {
             let coordinates = get_lng_lat(&location)?;
