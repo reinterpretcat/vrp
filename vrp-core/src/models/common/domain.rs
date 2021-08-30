@@ -91,6 +91,21 @@ impl TimeWindow {
     pub fn contains(&self, time: Timestamp) -> bool {
         compare_floats(time, self.start) != Ordering::Less && compare_floats(time, self.end) != Ordering::Greater
     }
+
+    /// Returns distance between two time windows.
+    pub fn distance(&self, other: &Self) -> Timestamp {
+        if self.intersects(other) {
+            0.
+        } else {
+            // [other.s other.e] [self.s self.e]
+            if self.start > other.start {
+                self.start - other.end
+            } else {
+                // [self.s self.e] [other.s other.e]
+                other.start - self.end
+            }
+        }
+    }
 }
 
 impl PartialEq<TimeWindow> for TimeWindow {

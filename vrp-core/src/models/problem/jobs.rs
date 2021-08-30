@@ -4,6 +4,7 @@ mod jobs_test;
 
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
+use crate::utils::compare_floats;
 use hashbrown::HashMap;
 use std::cell::UnsafeCell;
 use std::cmp::Ordering::Less;
@@ -360,15 +361,37 @@ fn get_cost_between_jobs(
     let outer: Vec<Option<Location>> = get_job_locations(lhs).collect();
     let inner: Vec<Option<Location>> = get_job_locations(rhs).collect();
 
-    outer
+    let (location_cost, duration) = outer
         .iter()
         .flat_map(|o| inner.iter().map(move |i| (*o, *i)))
         .map(|pair| match pair {
-            (Some(from), Some(to)) => get_cost_between_locations(profile, costs, transport, from, to),
-            _ => DEFAULT_COST,
+            (Some(from), Some(to)) => {
+                let total = get_cost_between_locations(profile, costs, transport, from, to);
+                let duration = transport.duration(profile, from, to, DEFAULT_DEPARTURE);
+                (total, duration)
+            }
+            _ => (DEFAULT_COST, 0.),
         })
-        .min_by(|a, b| a.partial_cmp(b).unwrap_or(Less))
-        .unwrap_or(DEFAULT_COST)
+        .min_by(|(a, _), (b, _)| compare_floats(*a, *b))
+        .unwrap_or((DEFAULT_COST, 0.));
+
+    let time_cost = lhs
+        .places()
+        .flat_map(|place| place.times.iter())
+        .flat_map(|left| {
+            rhs.places().flat_map(|place| place.times.iter()).map(move |right| match (left, right) {
+                (TimeSpan::Window(left), TimeSpan::Window(right)) => {
+                    // NOTE exclude traveling duration between jobs
+                    (left.distance(right) - duration).max(0.)
+                }
+                _ => 0.,
+            })
+        })
+        .min_by(|a, b| compare_floats(*a, *b))
+        .unwrap_or(0.)
+        * costs.per_waiting_time;
+
+    location_cost + time_cost
 }
 
 fn get_avg_profile_costs(fleet: &Fleet) -> HashMap<usize, Costs> {

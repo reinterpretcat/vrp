@@ -13,6 +13,7 @@ use crate::solver::mutation::get_route_jobs;
 use crate::solver::RefinementContext;
 use crate::utils::{compare_floats, Environment, Random};
 use rand::prelude::*;
+use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// A ruin strategy which removes job clusters using [`DBSCAN`] algorithm.
@@ -125,11 +126,7 @@ fn create_job_clusters(
 
 /// Estimates DBSCAN epsilon parameter.
 fn estimate_epsilon(problem: &Problem, min_points: usize) -> f64 {
-    // for each job get distance to its nth neighbor
-    let mut costs = get_average_costs(problem, min_points);
-
-    // sort all distances in ascending order and form the curve
-    costs.sort_by(|&a, &b| compare_floats(a, b));
+    let costs = get_average_costs(problem, min_points);
     let curve = costs.into_iter().enumerate().map(|(idx, cost)| Point::new(idx as f64, cost)).collect::<Vec<_>>();
 
     // get max curvature approximation and return it as a guess for optimal epsilon value
@@ -143,12 +140,10 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
         jobs.all().enumerate().for_each(|(idx, job)| {
             let (sum, count) = jobs
                 .neighbors(profile, &job, Timestamp::default())
-                .filter(|(_, cost)| *cost > 0.)
+                .filter(|(j, _)| job_has_locations(j))
                 .take(min_points)
-                // TODO consider time window difference as extra cost?
                 .map(|(_, cost)| *cost)
-                .enumerate()
-                .fold((0., 1), |(sum, _), (idx, cost)| (sum + cost, idx + 1));
+                .fold((0., 1), |(sum, idx), cost| (sum + cost, idx + 1));
 
             acc[idx] += sum / count as f64;
         });
@@ -157,7 +152,9 @@ fn get_average_costs(problem: &Problem, min_points: usize) -> Vec<f64> {
 
     costs.iter_mut().for_each(|cost| *cost /= problem.fleet.profiles.len() as f64);
 
-    costs.retain(|cost| *cost > 0.);
+    // sort all distances in ascending order
+    costs.sort_by(|&a, &b| compare_floats(a, b));
+    costs.dedup_by(|a, b| compare_floats(*a, *b) == Ordering::Equal);
 
     costs
 }

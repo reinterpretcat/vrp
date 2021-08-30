@@ -2,6 +2,8 @@
 #[path = "../../../tests/unit/algorithms/geometry/point_test.rs"]
 mod point_test;
 
+use crate::utils::compare_floats;
+use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
 /// Represents a point in 2D space.
@@ -29,7 +31,13 @@ impl Point {
 
     /// Computes distance from line, drawn by points a and b, to the point.
     pub fn distance_to_line(&self, a: &Point, b: &Point) -> f64 {
-        (Self::cross_product(a, b, self) / a.distance_to_point(b)).abs()
+        let a_b_distance = a.distance_to_point(b);
+
+        if compare_floats(a_b_distance, 0.) == Ordering::Equal {
+            0.
+        } else {
+            (Self::cross_product(a, b, self) / a_b_distance).abs()
+        }
     }
 
     /// Computes distance from segment to the point.
