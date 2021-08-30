@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* `analyze clusters` command to cli
+
+### Changed
+
+* improve clustering removal heuristic
+
+
 ## [v1.11.2] - 2021-08-22
 
 ### Added

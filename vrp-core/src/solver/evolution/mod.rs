@@ -13,7 +13,6 @@ pub use self::run_simple::RunSimple;
 mod evolution_test;
 
 mod config;
-mod methods;
 mod run_simple;
 
 /// Defines evolution result type.
