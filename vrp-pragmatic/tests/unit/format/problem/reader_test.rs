@@ -162,6 +162,7 @@ fn can_read_complex_problem() {
                             location: Some(vec![52.48315, 13.4330].to_loc()),
                             tag: None,
                         }],
+                        policy: None,
                     }]),
                     reloads: None,
                 }],

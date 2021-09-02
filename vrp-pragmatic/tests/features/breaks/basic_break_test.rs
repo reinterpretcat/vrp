@@ -21,6 +21,7 @@ fn can_assign_break_between_jobs() {
                             location: Some(vec![6., 0.].to_loc()),
                             tag: Some("break_tag".to_string()),
                         }],
+                        policy: None,
                     }]),
                     ..create_default_vehicle_shift()
                 }],

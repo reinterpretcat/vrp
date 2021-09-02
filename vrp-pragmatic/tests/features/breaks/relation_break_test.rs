@@ -39,6 +39,7 @@ fn get_solution(
                     breaks: Some(vec![VehicleBreak {
                         time: break_time,
                         places: vec![VehicleBreakPlace { duration: 2.0, location: break_location, tag: None }],
+                        policy: None,
                     }]),
                     ..create_default_vehicle_shift()
                 }],

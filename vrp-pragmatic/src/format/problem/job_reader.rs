@@ -1,8 +1,6 @@
 use crate::format::coord_index::CoordIndex;
 use crate::format::problem::reader::{parse_time_window, ApiProblem, ProblemProperties};
-use crate::format::problem::{
-    JobTask, RelationType, VehicleBreak, VehicleBreakTime, VehicleDispatch, VehicleReload, VehicleType,
-};
+use crate::format::problem::*;
 use crate::format::{JobIndex, Location};
 use crate::utils::VariableJobPermutation;
 use std::sync::Arc;
@@ -11,7 +9,7 @@ use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, T
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
 use vrp_core::utils::{compare_floats, Random};
 
-use crate::constraints::JobSkills as ConstraintJobSkills;
+use crate::constraints::{BreakPolicy, JobSkills as ConstraintJobSkills};
 use crate::format::problem::JobSkills as FormatJobSkills;
 use crate::parse_time;
 use hashbrown::HashMap;
@@ -236,8 +234,17 @@ fn read_breaks(
                         .map(|place| (place.location.clone(), place.duration, times.clone(), place.tag.clone()))
                         .collect();
 
-                    let job =
+                    let mut job =
                         get_conditional_job(coord_index, vehicle_id.clone(), &job_id, "break", shift_index, places);
+
+                    if let Some(policy) = &vehicle_break.policy {
+                        let policy = match policy {
+                            VehicleBreakPolicy::SkipIfNoIntersection => BreakPolicy::SkipIfNoIntersection,
+                            VehicleBreakPolicy::SkipIfArrivalBeforeEnd => BreakPolicy::SkipIfArrivalBeforeEnd,
+                        };
+
+                        job.dimens.set_value("policy", policy);
+                    }
 
                     (job_id, job)
                 })

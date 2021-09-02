@@ -26,10 +26,12 @@ fn can_use_two_breaks() {
                                 location: Some(vec![6., 0.].to_loc()),
                                 tag: None,
                             }],
+                            policy: None,
                         },
                         VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
                             places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                            policy: None,
                         },
                     ]),
                     ..create_default_vehicle_shift()

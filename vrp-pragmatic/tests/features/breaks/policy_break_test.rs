@@ -3,8 +3,17 @@ use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
-#[test]
-fn can_skip_break_when_vehicle_not_used() {
+parameterized_test! {can_skip_break_when_vehicle_not_used, policy, {
+    can_skip_break_when_vehicle_not_used_impl(policy);
+}}
+
+can_skip_break_when_vehicle_not_used! {
+    case_01: None,
+    case_02: Some(VehicleBreakPolicy::SkipIfNoIntersection),
+    case_03: Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd),
+}
+
+fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleBreakPolicy>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
@@ -32,6 +41,7 @@ fn can_skip_break_when_vehicle_not_used() {
                                 location: Some(vec![6., 0.].to_loc()),
                                 tag: None,
                             }],
+                            policy,
                         }]),
                         reloads: None,
                     }],
@@ -106,8 +116,17 @@ fn can_skip_break_when_vehicle_not_used() {
     );
 }
 
-#[test]
-fn can_skip_break_when_jobs_completed() {
+parameterized_test! {can_skip_break_when_jobs_completed, policy, {
+    can_skip_break_when_jobs_completed_impl(policy);
+}}
+
+can_skip_break_when_jobs_completed! {
+    case_01: None,
+    case_02: Some(VehicleBreakPolicy::SkipIfNoIntersection),
+    case_03: Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd),
+}
+
+fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleBreakPolicy>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job_with_duration("job1", vec![1., 0.], 10.)],
@@ -123,6 +142,7 @@ fn can_skip_break_when_jobs_completed() {
                             location: Some(vec![6., 0.].to_loc()),
                             tag: None,
                         }],
+                        policy,
                     }]),
                     ..create_default_vehicle_shift()
                 }],
@@ -188,8 +208,16 @@ fn can_skip_break_when_jobs_completed() {
     );
 }
 
-#[test]
-fn can_skip_second_break_when_jobs_completed() {
+parameterized_test! {can_skip_second_break_when_jobs_completed, policy, {
+    can_skip_second_break_when_jobs_completed_impl(policy);
+}}
+
+can_skip_second_break_when_jobs_completed! {
+    case_01: None,
+    case_02: Some(VehicleBreakPolicy::SkipIfNoIntersection),
+}
+
+fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleBreakPolicy>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
@@ -206,10 +234,12 @@ fn can_skip_second_break_when_jobs_completed() {
                                 location: Some(vec![6., 0.].to_loc()),
                                 tag: None,
                             }],
+                            policy: policy.clone(),
                         },
                         VehicleBreak {
                             time: VehicleBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
                             places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                            policy,
                         },
                     ]),
                     ..create_default_vehicle_shift()
@@ -289,4 +319,48 @@ fn can_skip_second_break_when_jobs_completed() {
             ..create_empty_solution()
         }
     );
+}
+
+parameterized_test! {can_skip_break_depending_on_policy, (policy, location, time, expected), {
+    can_skip_break_depending_on_policy_impl(policy, location, time, expected);
+}}
+
+can_skip_break_depending_on_policy! {
+    //case_01: (Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 11.), 0),
+    case_02: (Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 8.), 2),
+}
+
+fn can_skip_break_depending_on_policy_impl(
+    policy: Option<VehicleBreakPolicy>,
+    location: f64,
+    time: (f64, f64),
+    expected: i64,
+) {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job_with_duration("job1", vec![location, 0.], 0.)],
+            relations: Option::None,
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![VehicleBreak {
+                        time: VehicleBreakTime::TimeWindow(vec![format_time(time.0), format_time(time.1)]),
+                        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                        policy,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            profiles: create_default_matrix_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_cheapest_insertion(problem, Some(vec![matrix]));
+
+    assert!(solution.violations.is_none());
+    assert_eq!(solution.statistic.times.break_time, expected);
 }

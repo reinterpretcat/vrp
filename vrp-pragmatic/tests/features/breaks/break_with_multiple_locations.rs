@@ -33,6 +33,7 @@ fn can_assign_break_using_second_place() {
                                 tag: Some("second".to_string()),
                             },
                         ],
+                        policy: None,
                     }]),
                     ..create_default_vehicle_shift()
                 }],

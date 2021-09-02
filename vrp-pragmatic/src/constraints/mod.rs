@@ -37,7 +37,7 @@ fn is_single_belongs_to_route(ctx: &RouteContext, single: &Arc<Single>) -> bool 
 }
 
 mod breaks;
-pub use self::breaks::BreakModule;
+pub use self::breaks::{BreakModule, BreakPolicy};
 
 mod dispatch;
 pub use self::dispatch::DispatchModule;

@@ -307,13 +307,28 @@ pub struct VehicleBreakPlace {
     pub tag: Option<String>,
 }
 
+/// Vehicle break policy.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub enum VehicleBreakPolicy {
+    /// Allows to skip break if actual tour schedule doesn't intersect with vehicle time window.
+    #[serde(rename(deserialize = "skip-if-no-intersection", serialize = "skip-if-no-intersection"))]
+    SkipIfNoIntersection,
+    /// Allows to skip break if vehicle arrives before break's time window end.
+    #[serde(rename(deserialize = "skip-if-arrival-before-end", serialize = "skip-if-arrival-before-end"))]
+    SkipIfArrivalBeforeEnd,
+}
+
 /// Vehicle break.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VehicleBreak {
     /// Break time.
     pub time: VehicleBreakTime,
-    /// Vehicle break place.
+
+    /// Vehicle break places.
     pub places: Vec<VehicleBreakPlace>,
+
+    /// Specifies vehicle break policy.
+    pub policy: Option<VehicleBreakPolicy>,
 }
 
 /// Specifies a vehicle type.

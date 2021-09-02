@@ -6,7 +6,7 @@ use proptest::prelude::*;
 
 fn get_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
     let places_proto = get_break_places(get_break_locations(), generate_durations(10..100));
-    let break_proto = generate_break(prop::collection::vec(places_proto, 1..2), get_break_times());
+    let break_proto = generate_break(prop::collection::vec(places_proto, 1..2), get_break_times(), Just(None));
 
     prop::collection::vec(break_proto, 1..2).prop_map(|break_| Some(break_))
 }

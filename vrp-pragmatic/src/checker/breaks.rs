@@ -67,8 +67,15 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
 
         let expected_break_count =
             vehicle_shift.breaks.iter().flat_map(|breaks| breaks.iter()).fold(0, |acc, vehicle_break| {
-                let break_tw = get_break_time_window(tour, vehicle_break).expect("Cannot get break time windows");
-                if break_tw.start < arrival {
+                let break_tw = get_break_time_window(tour, vehicle_break).expect("cannot get break time windows");
+                let policy = vehicle_break.policy.as_ref().cloned().unwrap_or(VehicleBreakPolicy::SkipIfNoIntersection);
+
+                let should_assign = match policy {
+                    VehicleBreakPolicy::SkipIfNoIntersection => break_tw.start < arrival,
+                    VehicleBreakPolicy::SkipIfArrivalBeforeEnd => arrival > break_tw.end,
+                };
+
+                if should_assign {
                     acc + 1
                 } else {
                     acc

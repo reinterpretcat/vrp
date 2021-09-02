@@ -63,14 +63,17 @@ prop_compose! {
     pub fn generate_break(
       places_proto: impl Strategy<Value = Vec<VehicleBreakPlace>>,
       time_proto: impl Strategy<Value = VehicleBreakTime>,
+      policy_proto: impl Strategy<Value = Option<VehicleBreakPolicy>>,
     )
     (
      places in places_proto,
-     time in time_proto
+     time in time_proto,
+     policy in policy_proto,
     ) -> VehicleBreak {
         VehicleBreak {
             time,
-            places
+            places,
+            policy
         }
     }
 }

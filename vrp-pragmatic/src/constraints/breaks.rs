@@ -20,6 +20,14 @@ pub struct BreakModule {
     transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
+/// Specifies break policy.
+pub enum BreakPolicy {
+    /// Allows to skip break if actual tour schedule doesn't intersect with vehicle time window.
+    SkipIfNoIntersection,
+    /// Allows to skip break if vehicle arrives before break's time window end.
+    SkipIfArrivalBeforeEnd,
+}
+
 impl BreakModule {
     pub fn new(transport: Arc<dyn TransportCost + Send + Sync>, code: i32) -> Self {
         Self {
@@ -228,16 +236,20 @@ fn get_break_time_windows(break_job: &'_ Arc<Single>, departure: f64) -> impl It
 fn is_time(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
     let departure = rc.route.tour.start().unwrap().schedule.departure;
     let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
-    let actual_shift_time = TimeWindow::new(departure, arrival);
 
-    get_break_time_windows(break_job, departure).any(|tw| tw.intersects(&actual_shift_time))
+    // NOTE that's correct: departure from start activity is earlier than arrival at end
+    is_on_proper_time(rc, break_job, &Schedule { arrival: departure, departure: arrival })
 }
 
 fn is_on_proper_time(rc: &RouteContext, break_job: &Arc<Single>, actual_schedule: &Schedule) -> bool {
     let departure = rc.route.tour.start().unwrap().schedule.departure;
-    let actual_tw = TimeWindow::new(actual_schedule.arrival, actual_schedule.departure);
+    let tour_tw = TimeWindow::new(actual_schedule.arrival, actual_schedule.departure);
+    let policy = break_job.dimens.get_value::<BreakPolicy>("policy").unwrap_or(&BreakPolicy::SkipIfNoIntersection);
 
-    get_break_time_windows(break_job, departure).any(|tw| tw.intersects(&actual_tw))
+    get_break_time_windows(break_job, departure).any(|break_tw| match policy {
+        BreakPolicy::SkipIfArrivalBeforeEnd => tour_tw.end > break_tw.end,
+        BreakPolicy::SkipIfNoIntersection => break_tw.intersects(&tour_tw),
+    })
 }
 
 //endregion
