@@ -326,8 +326,11 @@ parameterized_test! {can_skip_break_depending_on_policy, (policy, location, time
 }}
 
 can_skip_break_depending_on_policy! {
-    //case_01: (Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 11.), 0),
+    case_01: (Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 11.), 0),
     case_02: (Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 8.), 2),
+
+    case_03: (Some(VehicleBreakPolicy::SkipIfNoIntersection), 5., (5., 11.), 2),
+    case_04: (Some(VehicleBreakPolicy::SkipIfNoIntersection), 5., (5., 8.), 2),
 }
 
 fn can_skip_break_depending_on_policy_impl(

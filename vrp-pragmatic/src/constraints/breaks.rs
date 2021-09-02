@@ -140,13 +140,13 @@ fn is_required_job(routes: &[RouteContext], route_index: Option<usize>, job: &Jo
         Job::Single(job) => {
             if is_break_single(job) {
                 if let Some(route_index) = route_index {
-                    is_time(routes.get(route_index).unwrap(), job)
+                    can_be_scheduled(routes.get(route_index).unwrap(), job)
                 } else {
                     let vehicle_id = get_vehicle_id_from_job(job).unwrap();
                     let shift_index = get_shift_index(&job.dimens);
-                    routes
-                        .iter()
-                        .any(move |rc| is_correct_vehicle(&rc.route, vehicle_id, shift_index) && is_time(rc, job))
+                    routes.iter().any(move |rc| {
+                        is_correct_vehicle(&rc.route, vehicle_id, shift_index) && can_be_scheduled(rc, job)
+                    })
                 }
             } else {
                 default
@@ -233,23 +233,24 @@ fn get_break_time_windows(break_job: &'_ Arc<Single>, departure: f64) -> impl It
     break_job.places.first().unwrap().times.iter().map(move |span| span.to_time_window(departure))
 }
 
-fn is_time(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
+/// Checks whether break can be scheduled in route.
+fn can_be_scheduled(rc: &RouteContext, break_job: &Arc<Single>) -> bool {
     let departure = rc.route.tour.start().unwrap().schedule.departure;
     let arrival = rc.route.tour.end().map_or(0., |end| end.schedule.arrival);
-
-    // NOTE that's correct: departure from start activity is earlier than arrival at end
-    is_on_proper_time(rc, break_job, &Schedule { arrival: departure, departure: arrival })
-}
-
-fn is_on_proper_time(rc: &RouteContext, break_job: &Arc<Single>, actual_schedule: &Schedule) -> bool {
-    let departure = rc.route.tour.start().unwrap().schedule.departure;
-    let tour_tw = TimeWindow::new(actual_schedule.arrival, actual_schedule.departure);
+    let tour_tw = TimeWindow::new(departure, arrival);
     let policy = break_job.dimens.get_value::<BreakPolicy>("policy").unwrap_or(&BreakPolicy::SkipIfNoIntersection);
 
     get_break_time_windows(break_job, departure).any(|break_tw| match policy {
-        BreakPolicy::SkipIfArrivalBeforeEnd => tour_tw.end > break_tw.end,
         BreakPolicy::SkipIfNoIntersection => break_tw.intersects(&tour_tw),
+        BreakPolicy::SkipIfArrivalBeforeEnd => tour_tw.end > break_tw.end,
     })
 }
 
+/// Checks whether break is scheduled on time as its time can be invalid due to departure time optimizations.
+fn is_on_proper_time(rc: &RouteContext, break_job: &Arc<Single>, actual_schedule: &Schedule) -> bool {
+    let departure = rc.route.tour.start().unwrap().schedule.departure;
+    let actual_tw = TimeWindow::new(actual_schedule.arrival, actual_schedule.departure);
+
+    get_break_time_windows(break_job, departure).any(|tw| tw.intersects(&actual_tw))
+}
 //endregion
