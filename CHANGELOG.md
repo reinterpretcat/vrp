@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 * `analyze clusters` command to cli
+* break policy property
 
 ### Changed
 

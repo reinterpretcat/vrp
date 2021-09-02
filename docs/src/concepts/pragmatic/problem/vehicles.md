@@ -73,18 +73,21 @@ Each shift can have the following properties:
     When omitted, then vehicle ends on last job location
 - **dispatch** (optional) a list of dispatch places. When specified, shift start location is not considered as depot and
     vehicle has to navigate first to one of these places to load goods with dispatching constraints.
-    Check example [here](../../../examples/pragmatic/basics/dispatch.md)
+  Check example [here](../../../examples/pragmatic/basics/dispatch.md).
 - **breaks** (optional) a list of vehicle breaks. A break is specified by:
-     - time window or interval after which a break should happen (e.g. between 3 or 4 hours after start)
-     - duration of the break
-     - optional locations. When present, one of locations is used for break. If it is omitted then break is stick to
-       location of job served before break.
-    Please not that break is soft constraint and can be unassigned in some cases due to other hard constraints, such as
-    time windows.
-    See example [here](../../../examples/pragmatic/basics/break.md)
+     - `time` (required): time window or interval after which a break should happen (e.g. between 3 or 4 hours after start).
+     - `places`: list of alternative places defined by `location` (optional), `duration` (required) and `tag` (optional).
+       If location of a break is omitted then break is stick to location of job served before break.
+     - `policy` (optional): a break skip policy. Possible values:
+       * `skip-if-no-intersection`: allows to skip break if actual tour schedule doesn't intersect with vehicle time window (default)
+       * `skip-if-arrival-before-end`: allows to skip break if vehicle arrives before break's time window end.
+
+  Please note that break is a soft constraint and can be unassigned in some cases due to other hard constraints, such
+  as time windows. You can control its unassignment weight using specific property on `minimize-unassigned` objective.
+  See example [here](../../../examples/pragmatic/basics/break.md)
 - **reloads** (optional) a list of vehicle reloads. A reload is a place where vehicle can load new deliveries and unload
     pickups. It can be used to model multi trip routes.
-    See examples [here](../../../examples/pragmatic/basics/reload.md).
+  See examples [here](../../../examples/pragmatic/basics/reload.md).
 
 
 ## Related errors
