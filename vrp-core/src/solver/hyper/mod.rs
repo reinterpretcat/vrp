@@ -29,10 +29,11 @@ pub struct MultiSelective {
 impl HyperHeuristic for MultiSelective {
     fn search(&mut self, refinement_ctx: &RefinementContext, individuals: Vec<&Individual>) -> Vec<Individual> {
         self.is_slow_search = match (self.is_slow_search, &refinement_ctx.statistics.speed) {
-            (false, RefinementSpeed::Slow(_)) => {
-                refinement_ctx.environment.logger.deref()(
-                    "slow refinement speed, switch to static selective hyper-heuristic",
-                );
+            (false, RefinementSpeed::Slow(ratio)) => {
+                refinement_ctx.environment.logger.deref()(&format!(
+                    "slow refinement speed ({}), switch to static selective hyper-heuristic",
+                    *ratio
+                ));
                 self.inner = Box::new(StaticSelective::new_with_defaults(
                     refinement_ctx.problem.clone(),
                     refinement_ctx.environment.clone(),
