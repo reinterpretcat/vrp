@@ -411,10 +411,19 @@ impl SpeedTracker {
         if generation == 0 {
             self.initial = termination_estimate;
         } else {
-            let delta = (termination_estimate - self.initial).max(0.);
+            match &self.speed {
+                RefinementSpeed::Moderate => {
+                    let delta = (termination_estimate - self.initial).max(0.);
+                    let speed = match (generation, delta) {
+                        (generation, delta) if generation < 10 && delta > 0.1 => 0.1,
+                        (generation, delta) if generation < 100 && delta > 0.1 => 0.25,
+                        (generation, delta) if generation < 200 && delta > 0.1 => 0.5,
+                        _ => return,
+                    };
 
-            if generation < 200 && delta > 0.1 {
-                self.speed = RefinementSpeed::Slow;
+                    self.speed = RefinementSpeed::Slow(speed);
+                }
+                RefinementSpeed::Slow(_) => {}
             }
         }
     }

@@ -6,7 +6,7 @@ use super::*;
 use crate::algorithms::nsga2::{select_and_rank, Objective};
 use crate::models::problem::ObjectiveCost;
 use crate::models::Problem;
-use crate::solver::{Population, Statistics, SOLUTION_ORDER_KEY};
+use crate::solver::{Population, RefinementSpeed, Statistics, SOLUTION_ORDER_KEY};
 use crate::utils::Random;
 use std::cmp::Ordering;
 use std::fmt::{Formatter, Write};
@@ -29,6 +29,7 @@ pub struct Elitism {
     selection_size: usize,
     max_population_size: usize,
     individuals: Vec<Individual>,
+    speed: Option<RefinementSpeed>,
 }
 
 /// Contains ordering information about individual in population.
@@ -67,23 +68,29 @@ impl Population for Elitism {
         self.is_improved(was_empty)
     }
 
-    fn on_generation(&mut self, _: &Statistics) {}
+    fn on_generation(&mut self, statistics: &Statistics) {
+        self.speed = Some(statistics.speed.clone());
+    }
 
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
         self.objective.total_order(a, b)
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
+        let selection_size = match &self.speed {
+            Some(RefinementSpeed::Slow(ratio)) => (self.selection_size as f64 * ratio).max(1.).round() as usize,
+            _ => self.selection_size,
+        };
+
         if self.individuals.is_empty() {
             Box::new(empty())
         } else {
             Box::new(
                 once(0_usize)
                     .chain(
-                        (1..self.selection_size)
-                            .map(move |_| self.random.uniform_int(0, self.size() as i32 - 1) as usize),
+                        (1..selection_size).map(move |_| self.random.uniform_int(0, self.size() as i32 - 1) as usize),
                     )
-                    .take(self.selection_size)
+                    .take(selection_size)
                     .filter_map(move |idx| self.individuals.get(idx)),
             )
         }
@@ -115,7 +122,14 @@ impl Elitism {
     ) -> Self {
         assert!(max_population_size > 0);
 
-        Self { objective: problem.objective.clone(), random, selection_size, max_population_size, individuals: vec![] }
+        Self {
+            objective: problem.objective.clone(),
+            random,
+            selection_size,
+            max_population_size,
+            individuals: vec![],
+            speed: None,
+        }
     }
 
     /// Shuffles objective function.

@@ -151,8 +151,8 @@ pub struct RefinementContext {
 /// Defines instant refinement speed type.
 #[derive(Clone)]
 pub enum RefinementSpeed {
-    /// Slow speed.
-    Slow,
+    /// Slow speed with ratio estimation
+    Slow(f64),
 
     /// Moderate speed.
     Moderate,
