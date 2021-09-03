@@ -41,12 +41,13 @@ impl Ruin for NeighbourRemoval {
 
                 if let Some(rc) = route {
                     rc.route_mut().tour.remove(&job);
-                    insertion_ctx.solution.required.push(job.clone());
 
                     tracker.add_actor(rc.route.actor.clone());
                     tracker.add_job(job);
                 }
             });
+
+        tracker.iterate_removed_jobs(|job| insertion_ctx.solution.required.push(job.clone()));
 
         insertion_ctx
     }

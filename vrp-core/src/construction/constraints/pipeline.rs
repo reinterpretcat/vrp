@@ -139,8 +139,6 @@ impl ConstraintPipeline {
         let activities = solution_ctx.routes.get_mut(route_index).unwrap().route.tour.activity_count();
         self.modules.iter().for_each(|c| c.accept_insertion(solution_ctx, route_index, job));
         assert_eq!(activities, solution_ctx.routes.get_mut(route_index).unwrap().route.tour.activity_count());
-
-        solution_ctx.routes.get_mut(route_index).unwrap().mark_stale(false)
     }
 
     /// Accepts route state.
