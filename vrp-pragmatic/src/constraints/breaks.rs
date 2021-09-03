@@ -181,7 +181,8 @@ fn remove_invalid_breaks(ctx: &mut SolutionContext, transport: &(dyn TransportCo
 
                             let is_orphan =
                                 prev != current && break_single.places.first().and_then(|p| p.location).is_none();
-                            let is_not_on_time = !is_on_proper_time(rc, break_single, &activity.schedule);
+                            let is_not_on_time = !is_on_proper_time(rc, break_single, &activity.schedule)
+                                || !can_be_scheduled(rc, break_single);
                             let is_ovrp_last = rc.route.tour.end().map_or(false, |end| std::ptr::eq(activity, end));
 
                             if is_orphan || is_not_on_time || is_ovrp_last {
