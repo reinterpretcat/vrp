@@ -138,8 +138,8 @@ fn find_best_insertion_pair(
 
         if let Some(insertion_pair) = insertion_pair {
             let mut new_insertion_ctx = new_insertion_ctx;
-            apply_insertion_success(&mut new_insertion_ctx, insertion_pair.0);
-            apply_insertion_success(&mut new_insertion_ctx, insertion_pair.1);
+            apply_insertion(&mut new_insertion_ctx, insertion_pair.0);
+            apply_insertion(&mut new_insertion_ctx, insertion_pair.1);
             finalize_insertion_ctx(&mut new_insertion_ctx);
 
             return Some(new_insertion_ctx);
@@ -170,19 +170,15 @@ fn test_job_insertion(
     }
 }
 
-fn apply_insertion_success(insertion_ctx: &mut InsertionContext, insertion_success: InsertionSuccess) {
-    let route_index = insertion_ctx
-        .solution
-        .routes
-        .iter()
-        .position(|ctx| ctx.route.actor == insertion_success.context.route.actor)
-        .unwrap();
+fn apply_insertion(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
+    let route_index =
+        insertion_ctx.solution.routes.iter().position(|ctx| ctx.route.actor == success.context.route.actor).unwrap();
 
     // NOTE replace existing route context with the different
     insertion_ctx.solution.routes[route_index] =
-        RouteContext::new_with_state(insertion_success.context.route.clone(), insertion_success.context.state.clone());
+        RouteContext::new_with_state(success.context.route.clone(), success.context.state.clone());
 
-    apply_insertion_result(insertion_ctx, InsertionResult::Success(insertion_success))
+    apply_insertion_success(insertion_ctx, success)
 }
 
 fn reduce_pair_with_noise(

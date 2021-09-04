@@ -117,8 +117,8 @@ fn synchronize_jobs(
                     &result_selector,
                 );
 
-                if let InsertionResult::Success(_) = &insertion_result {
-                    apply_insertion_result(new_insertion_ctx, insertion_result);
+                if let InsertionResult::Success(success) = insertion_result {
+                    apply_insertion_success(new_insertion_ctx, success);
                     synchronized_jobs.entry(job).or_insert_with(Vec::default).push(single.clone());
                 }
             }

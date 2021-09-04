@@ -52,9 +52,9 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                     )),
                 );
 
-                return match &insertion {
-                    InsertionResult::Success(_) => {
-                        apply_insertion_result(&mut new_insertion_ctx, insertion);
+                return match insertion {
+                    InsertionResult::Success(success) => {
+                        apply_insertion_success(&mut new_insertion_ctx, success);
                         finalize_insertion_ctx(&mut new_insertion_ctx);
                         Some(new_insertion_ctx)
                     }

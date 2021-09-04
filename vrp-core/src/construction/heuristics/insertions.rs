@@ -80,7 +80,14 @@ impl InsertionHeuristic {
             let result =
                 self.insertion_evaluator.evaluate_all(&ctx, jobs.as_slice(), routes.as_slice(), result_selector);
 
-            apply_insertion_result(&mut ctx, result);
+            match result {
+                InsertionResult::Success(success) => {
+                    apply_insertion_success(&mut ctx, success);
+                }
+                InsertionResult::Failure(failure) => {
+                    apply_insertion_failure(&mut ctx, failure);
+                }
+            }
         }
 
         finalize_insertion_ctx(&mut ctx);
@@ -133,37 +140,34 @@ pub(crate) fn finalize_insertion_ctx(ctx: &mut InsertionContext) {
     ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
 }
 
-pub(crate) fn apply_insertion_result(ctx: &mut InsertionContext, result: InsertionResult) {
-    match result {
-        InsertionResult::Success(success) => {
-            let is_new_route = ctx.solution.registry.use_route(&success.context);
-            let route_index = ctx.solution.routes.iter().position(|ctx| ctx == &success.context).unwrap_or_else(|| {
-                assert!(is_new_route);
-                ctx.solution.routes.push(success.context.deep_copy());
-                ctx.solution.routes.len() - 1
-            });
+pub(crate) fn apply_insertion_success(ctx: &mut InsertionContext, success: InsertionSuccess) {
+    let is_new_route = ctx.solution.registry.use_route(&success.context);
+    let route_index = ctx.solution.routes.iter().position(|ctx| ctx == &success.context).unwrap_or_else(|| {
+        assert!(is_new_route);
+        ctx.solution.routes.push(success.context.deep_copy());
+        ctx.solution.routes.len() - 1
+    });
 
-            let route_ctx = ctx.solution.routes.get_mut(route_index).unwrap();
-            let route = route_ctx.route_mut();
-            success.activities.into_iter().for_each(|(a, index)| {
-                route.tour.insert_at(a, index + 1);
-            });
+    let route_ctx = ctx.solution.routes.get_mut(route_index).unwrap();
+    let route = route_ctx.route_mut();
+    success.activities.into_iter().for_each(|(a, index)| {
+        route.tour.insert_at(a, index + 1);
+    });
 
-            let job = success.job;
-            ctx.solution.required.retain(|j| *j != job);
-            ctx.solution.unassigned.remove(&job);
-            ctx.problem.constraint.accept_insertion(&mut ctx.solution, route_index, &job);
-        }
-        InsertionResult::Failure(failure) => {
-            if let Some(job) = failure.job {
-                ctx.solution.unassigned.insert(job.clone(), failure.constraint);
-                ctx.solution.required.retain(|j| *j != job);
-            } else {
-                // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
-                // TODO remove from required only jobs from selected list
-                finalize_unassigned(ctx, failure.constraint)
-            }
-        }
+    let job = success.job;
+    ctx.solution.required.retain(|j| *j != job);
+    ctx.solution.unassigned.remove(&job);
+    ctx.problem.constraint.accept_insertion(&mut ctx.solution, route_index, &job);
+}
+
+fn apply_insertion_failure(ctx: &mut InsertionContext, failure: InsertionFailure) {
+    if let Some(job) = failure.job {
+        ctx.solution.unassigned.insert(job.clone(), failure.constraint);
+        ctx.solution.required.retain(|j| *j != job);
+    } else {
+        // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
+        // TODO remove from required only jobs from selected list
+        finalize_unassigned(ctx, failure.constraint)
     }
 }
 
