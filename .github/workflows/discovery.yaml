@@ -11,7 +11,7 @@ on:
 jobs:
   discovery-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
