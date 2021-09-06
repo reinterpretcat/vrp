@@ -85,7 +85,7 @@ impl InsertionHeuristic {
                     apply_insertion_success(&mut ctx, success);
                 }
                 InsertionResult::Failure(failure) => {
-                    apply_insertion_failure(&mut ctx, failure);
+                    apply_insertion_failure(&mut ctx, jobs, routes, failure);
                 }
             }
         }
@@ -124,7 +124,13 @@ impl InsertionResult {
                     left
                 }
             }
-            _ => right,
+            (Self::Failure(_), Self::Failure(rhs)) => {
+                if rhs.constraint == -1 {
+                    left
+                } else {
+                    right
+                }
+            }
         }
     }
 }
@@ -160,14 +166,26 @@ pub(crate) fn apply_insertion_success(ctx: &mut InsertionContext, success: Inser
     ctx.problem.constraint.accept_insertion(&mut ctx.solution, route_index, &job);
 }
 
-fn apply_insertion_failure(ctx: &mut InsertionContext, failure: InsertionFailure) {
+fn apply_insertion_failure(
+    ctx: &mut InsertionContext,
+    jobs: Vec<Job>,
+    routes: Vec<RouteContext>,
+    failure: InsertionFailure,
+) {
+    // NOTE in most of the cases, it is not needed to reevaluate insertion for all other jobs
+    let all_unassignable = jobs.len() == ctx.solution.required.len() && routes.len() == ctx.solution.routes.len();
+
+    // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
+    // TODO remove from required only jobs from selected list
+    let no_routes_available = failure.job.is_none();
+
     if let Some(job) = failure.job {
         ctx.solution.unassigned.insert(job.clone(), failure.constraint);
         ctx.solution.required.retain(|j| *j != job);
-    } else {
-        // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
-        // TODO remove from required only jobs from selected list
-        finalize_unassigned(ctx, failure.constraint)
+    }
+
+    if all_unassignable || no_routes_available {
+        finalize_unassigned(ctx, if all_unassignable { -1 } else { failure.constraint });
     }
 }
 

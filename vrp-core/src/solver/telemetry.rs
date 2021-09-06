@@ -418,6 +418,7 @@ impl SpeedTracker {
                         (generation, delta) if generation < 10 && delta > 0.1 => 0.1,
                         (generation, delta) if generation < 100 && delta > 0.1 => 0.25,
                         (generation, delta) if generation < 200 && delta > 0.1 => 0.5,
+                        (generation, delta) if generation < 500 && delta > 0.2 => 0.5,
                         _ => return,
                     };
 

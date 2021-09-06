@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * improve clustering removal heuristic
+* enhance rules for slow search detection and reduce search radius in case of it
+* improve unassigned jobs handling logic
 
 
 ## [v1.11.2] - 2021-08-22

@@ -6,7 +6,7 @@ use crate::solver::evolution::{EvolutionStrategy, RunSimple};
 use crate::solver::hyper::{HyperHeuristic, MultiSelective};
 use crate::solver::mutation::*;
 use crate::solver::population::*;
-use crate::solver::processing::post::{AdvanceDeparture, PostProcessing};
+use crate::solver::processing::post::*;
 use crate::solver::processing::pre::PreProcessing;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
@@ -78,7 +78,13 @@ impl EvolutionConfig {
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
         Self {
             problem: problem.clone(),
-            processing: ProcessingConfig { pre: None, post: Some(Arc::new(AdvanceDeparture::default())) },
+            processing: ProcessingConfig {
+                pre: None,
+                post: Some(Arc::new(CompositePostProcessing::new(vec![
+                    Arc::new(AdvanceDeparture::default()),
+                    Arc::new(UnassignmentReason::default()),
+                ]))),
+            },
             population: PopulationConfig {
                 initial: InitialConfig {
                     max_size: 7,
