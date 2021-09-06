@@ -10,7 +10,7 @@ parameterized_test! {can_prefer_jobs_with_more_value, objectives, {
 can_prefer_jobs_with_more_value! {
     case01: Some(vec![
         vec![MinimizeUnassignedJobs { breaks: None }],
-        vec![MaximizeValue { reduction_factor: Some(0.1) }],
+        vec![MaximizeValue { reduction_factor: Some(0.1), breaks: None }],
         vec![MinimizeCost],
     ]),
     case02: None,

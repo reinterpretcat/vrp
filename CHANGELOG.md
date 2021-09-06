@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 * `analyze clusters` command to cli
 * break policy property
+* a penalty property for skipping break in `maximize-value` objective
 
 ### Changed
 

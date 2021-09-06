@@ -426,6 +426,10 @@ pub enum Objective {
     /// An objective to maximize value of served jobs.
     #[serde(rename(deserialize = "maximize-value", serialize = "maximize-value"))]
     MaximizeValue {
+        /// Specifies a weight of skipped breaks. Default value is 100.
+        #[serde(rename = "camelCase")]
+        breaks: Option<f64>,
+
         /// A factor to reduce value cost compared to max cost.
         /// Default value is 0.1.
         #[serde(rename = "camelCase")]
@@ -435,7 +439,7 @@ pub enum Objective {
     /// An objective to minimize amount of unassigned jobs.
     #[serde(rename(deserialize = "minimize-unassigned", serialize = "minimize-unassigned"))]
     MinimizeUnassignedJobs {
-        /// A multiplier to increase/decrease break is importance.
+        /// A skipped break weight to increase/decrease break is importance.
         /// Default is 1.
         #[serde(skip_serializing_if = "Option::is_none")]
         breaks: Option<f64>,

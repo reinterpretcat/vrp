@@ -9,6 +9,7 @@ use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{ObjectiveCost, Single, TargetConstraint, TargetObjective};
 use vrp_core::solver::objectives::*;
 
+use crate::core::models::problem::Job;
 use crate::format::problem::Objective::TourOrder as FormatTourOrder;
 use vrp_core::solver::objectives::TourOrder as CoreTourOrder;
 
@@ -35,27 +36,18 @@ pub fn create_objective(
                             constraint.add_module(Arc::new(FleetUsageConstraintModule::new_maximized()));
                             core_objectives.push(Arc::new(TotalRoutes::new_maximized()))
                         }
-                        MaximizeValue { reduction_factor } => {
-                            let (module, objective) = TotalValue::maximize(
-                                props
-                                    .max_job_value
-                                    .expect("expecting non-zero job value to be defined at least at on job"),
-                                reduction_factor.unwrap_or(0.1),
-                                Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)),
-                            );
+                        MaximizeValue { breaks, reduction_factor } => {
+                            let max_value = props
+                                .max_job_value
+                                .expect("expecting non-zero job value to be defined at least at on job");
+                            let (module, objective) = get_value(max_value, reduction_factor.clone(), breaks.clone());
                             constraint.add_module(module);
                             core_objectives.push(objective);
                         }
                         MinimizeUnassignedJobs { breaks } => {
                             if let Some(breaks) = *breaks {
                                 core_objectives.push(Arc::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
-                                    job.dimens().get_value::<String>("type").map_or(1., |job_type| {
-                                        if job_type == "break" {
-                                            breaks
-                                        } else {
-                                            1.
-                                        }
-                                    })
+                                    get_job_as_break_estimate(job, breaks, 1.)
                                 }))))
                             } else {
                                 core_objectives.push(Arc::new(TotalUnassignedJobs::default()))
@@ -97,7 +89,7 @@ pub fn create_objective(
                 .collect(),
         ),
         (None, Some(max_value), has_order) => {
-            let (value_module, value_objective) = get_value(max_value);
+            let (value_module, value_objective) = get_value(max_value, None, None);
 
             constraint.add_module(value_module);
             constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
@@ -147,8 +139,21 @@ fn unwrap_options(options: &Option<BalanceOptions>) -> (Option<f64>, Option<f64>
     (options.as_ref().and_then(|o| o.threshold), options.as_ref().and_then(|o| o.tolerance))
 }
 
-fn get_value(max_value: f64) -> (TargetConstraint, TargetObjective) {
-    TotalValue::maximize(max_value, 0.1, Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)))
+fn get_value(
+    max_value: f64,
+    reduction_factor: Option<f64>,
+    breaks: Option<f64>,
+) -> (TargetConstraint, TargetObjective) {
+    // NOTE make it negative
+    let break_value = -1. * breaks.unwrap_or(100.);
+    TotalValue::maximize(
+        max_value,
+        reduction_factor.unwrap_or(0.1),
+        Arc::new(move |solution| {
+            solution.unassigned.iter().map(|(job, _)| get_job_as_break_estimate(job, break_value, 0.)).sum()
+        }),
+        Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)),
+    )
 }
 
 fn get_order(is_constrained: bool) -> (TargetConstraint, Option<TargetObjective>) {
@@ -189,4 +194,14 @@ fn get_load_balance(
             Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
         )
     }
+}
+
+fn get_job_as_break_estimate(job: &Job, break_value: f64, default_value: f64) -> f64 {
+    job.dimens().get_value::<String>("type").map_or(default_value, |job_type| {
+        if job_type == "break" {
+            break_value
+        } else {
+            default_value
+        }
+    })
 }

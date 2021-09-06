@@ -17,12 +17,13 @@ impl TotalValue {
     pub fn maximize(
         max_value: f64,
         reduction_factor: f64,
-        value_func: Arc<dyn Fn(&Job) -> f64 + Send + Sync>,
+        solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
+        job_value_func: Arc<dyn Fn(&Job) -> f64 + Send + Sync>,
     ) -> (TargetConstraint, TargetObjective) {
         assert!(max_value > 0.);
 
         let get_route_value = {
-            let value_func = value_func.clone();
+            let value_func = job_value_func.clone();
             Arc::new(move |rc: &RouteContext| rc.route.tour.jobs().map(|job| -value_func.deref()(&job)).sum())
         };
 
@@ -30,9 +31,14 @@ impl TotalValue {
             None,
             None,
             get_route_value.clone(),
-            Arc::new(move |ctx: &SolutionContext| ctx.routes.iter().map(|rc| get_route_value(rc)).sum()),
+            Arc::new(move |ctx: &SolutionContext| {
+                let route_values: f64 = ctx.routes.iter().map(|rc| get_route_value(rc)).sum();
+                let solution_values: f64 = -solution_value_func.deref()(ctx);
+
+                route_values + solution_values
+            }),
             Arc::new(move |_, _, job, max_cost| {
-                let job_value = -value_func.deref()(job);
+                let job_value = -job_value_func.deref()(job);
 
                 if max_cost > 0. {
                     (job_value / max_value) * max_cost * reduction_factor

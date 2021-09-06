@@ -91,7 +91,7 @@ fn can_detect_missing_value_jobs() {
     let problem = Problem {
         objectives: Some(vec![
             vec![MinimizeUnassignedJobs { breaks: None }],
-            vec![MaximizeValue { reduction_factor: None }],
+            vec![MaximizeValue { reduction_factor: None, breaks: None }],
             vec![MinimizeCost],
         ]),
         ..create_empty_problem()
