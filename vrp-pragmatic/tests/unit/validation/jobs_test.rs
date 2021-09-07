@@ -26,7 +26,7 @@ fn can_detect_reserved_ids_impl(job_id: String, expected: Option<&str>) {
         ..create_empty_problem()
     };
 
-    let result = check_e1104_no_reserved_ids(&ValidationContext::new(&problem, None)).err();
+    let result = check_e1104_no_reserved_ids(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem))).err();
 
     if let Some(action) = expected {
         assert_result("E1104", action, result);
@@ -42,7 +42,7 @@ fn can_detect_empty_job() {
         ..create_empty_problem()
     };
 
-    let result = check_e1105_empty_jobs(&ValidationContext::new(&problem, None)).err();
+    let result = check_e1105_empty_jobs(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem))).err();
 
     assert_result("E1105", "job1", result);
 }
@@ -54,7 +54,8 @@ fn can_detect_negative_duration() {
         ..create_empty_problem()
     };
 
-    let result = check_e1106_negative_duration(&ValidationContext::new(&problem, None)).err();
+    let result =
+        check_e1106_negative_duration(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem))).err();
 
     assert_result("E1106", "job1", result);
 }
@@ -66,7 +67,7 @@ fn can_detect_negative_demand() {
         ..create_empty_problem()
     };
 
-    let result = check_e1107_negative_demand(&ValidationContext::new(&problem, None)).err();
+    let result = check_e1107_negative_demand(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem))).err();
 
     assert_result("E1107", "job1", result);
 }

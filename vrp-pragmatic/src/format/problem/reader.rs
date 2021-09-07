@@ -169,7 +169,7 @@ fn map_to_problem(
     matrices: Vec<Matrix>,
     coord_index: CoordIndex,
 ) -> Result<Problem, Vec<FormatError>> {
-    ValidationContext::new(&api_problem, Some(&matrices)).validate()?;
+    ValidationContext::new(&api_problem, Some(&matrices), &coord_index).validate()?;
 
     let problem_props = get_problem_properties(&api_problem, &matrices);
 

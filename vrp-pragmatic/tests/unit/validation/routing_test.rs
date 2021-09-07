@@ -14,7 +14,8 @@ fn can_detect_duplicates() {
         },
         ..create_empty_problem()
     };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
 
     let result = check_e1500_duplicated_profiles(&ctx);
 
@@ -24,7 +25,8 @@ fn can_detect_duplicates() {
 #[test]
 fn can_detect_empty_profiles() {
     let problem = Problem { fleet: Fleet { vehicles: vec![], profiles: vec![] }, ..create_empty_problem() };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
 
     let result = check_e1501_empty_profiles(&ctx);
 
@@ -40,7 +42,8 @@ fn can_detect_mixed_locations() {
         },
         ..create_empty_problem()
     };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
 
     let result = check_e1502_no_location_type_mix(&ctx, ctx.coord_index.get_used_types());
 
@@ -53,7 +56,8 @@ fn can_detect_missing_matrix_when_indices_used() {
         plan: Plan { jobs: vec![create_delivery_job_with_index("job1", 0)], relations: None },
         ..create_empty_problem()
     };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
 
     let result = check_e1503_no_matrix_when_indices_used(&ctx, ctx.coord_index.get_used_types());
 
@@ -86,7 +90,8 @@ fn can_detect_limit_areas_with_indices() {
         },
         ..create_empty_problem()
     };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
 
     let result = check_e1504_limit_areas_cannot_be_used_with_indices(&ctx, ctx.coord_index.get_used_types());
 
@@ -113,7 +118,8 @@ fn can_detect_index_mismatch() {
         distances: vec![1; 4],
         error_codes: None,
     }];
-    let ctx = ValidationContext::new(&problem, Some(&matrices));
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, Some(&matrices), &coord_index);
 
     let result = check_e1505_index_size_mismatch(&ctx);
 
@@ -132,7 +138,8 @@ fn can_detect_missing_profile() {
         },
         ..create_empty_problem()
     };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
 
     let result = check_e1506_profiles_exist(&ctx);
 

@@ -14,7 +14,8 @@ fn balance_dist() -> Objective {
 #[test]
 fn can_fallback_to_default() {
     let problem = Problem { objectives: None, ..create_empty_problem() };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
 
     let result = validate_objectives(&ctx);
 
@@ -34,7 +35,8 @@ can_detect_empty_objective! {
 
 fn can_detect_empty_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
     let problem = Problem { objectives, ..create_empty_problem() };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
     let objectives = get_objectives(&ctx).unwrap();
 
     let result = check_e1600_empty_objective(&objectives);
@@ -58,7 +60,8 @@ can_detect_duplicates! {
 
 fn can_detect_duplicates_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<String>) {
     let problem = Problem { objectives, ..create_empty_problem() };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
     let objectives = get_objectives(&ctx).unwrap();
 
     let result = check_e1601_duplicate_objectives(&objectives);
@@ -78,7 +81,8 @@ can_detect_missing_cost_objective! {
 
 fn can_detect_missing_cost_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<()>) {
     let problem = Problem { objectives, ..create_empty_problem() };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
     let objectives = get_objectives(&ctx).unwrap();
 
     let result = check_e1602_no_cost_objective(&objectives);
@@ -96,7 +100,8 @@ fn can_detect_missing_value_jobs() {
         ]),
         ..create_empty_problem()
     };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
     let objectives = get_objectives(&ctx).unwrap();
 
     let result = check_e1603_no_jobs_with_value_objective(&ctx, &objectives);
@@ -114,7 +119,8 @@ fn can_detect_missing_order_jobs() {
         ]),
         ..create_empty_problem()
     };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
     let objectives = get_objectives(&ctx).unwrap();
 
     let result = check_e1604_no_jobs_with_order_objective(&ctx, &objectives);
@@ -145,7 +151,8 @@ fn can_detect_invalid_value_or_order_impl(value: Option<f64>, order: Option<i32>
         },
         ..create_empty_problem()
     };
-    let ctx = ValidationContext::new(&problem, None);
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
 
     let result = check_e1605_check_positive_value_and_order(&ctx);
 

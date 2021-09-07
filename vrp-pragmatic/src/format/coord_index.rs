@@ -13,6 +13,7 @@ pub struct CoordIndex {
 }
 
 impl CoordIndex {
+    /// Creates a new instance of `CoordIndex`.
     pub fn new(problem: &Problem) -> Self {
         let mut index = Self { direct_index: Default::default(), reverse_index: Default::default() };
 
@@ -59,6 +60,7 @@ impl CoordIndex {
         index
     }
 
+    /// Adds location to indices.
     pub fn add(&mut self, location: &Location) {
         if self.direct_index.get(location).is_none() {
             let value = match location {
@@ -71,20 +73,24 @@ impl CoordIndex {
         }
     }
 
+    /// Gets index of location.
     pub fn get_by_loc(&self, location: &Location) -> Option<usize> {
         self.direct_index.get(location).cloned()
     }
 
+    /// Get location by index.
     pub fn get_by_idx(&self, index: usize) -> Option<Location> {
         self.reverse_index.get(&index).cloned()
     }
 
+    /// Gets unique locations.
     pub fn unique(&self) -> Vec<Location> {
         let mut sorted_pairs: Vec<_> = self.reverse_index.iter().collect();
         sorted_pairs.sort_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(Less));
         sorted_pairs.iter().map(|pair| pair.1.clone()).collect()
     }
 
+    /// Max location index.
     pub fn max_index(&self) -> Option<usize> {
         self.reverse_index.keys().max().cloned()
     }
@@ -104,7 +110,7 @@ impl PartialEq for Location {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Location::Coordinate { lat: l_lat, lng: l_lng }, Location::Coordinate { lat: r_lat, lng: r_lng }) => {
-                (l_lat - r_lat).abs() < std::f64::EPSILON && (l_lng - r_lng).abs() < std::f64::EPSILON
+                (l_lat - r_lat).abs() < f64::EPSILON && (l_lng - r_lng).abs() < f64::EPSILON
             }
             (Location::Reference { index: left }, Location::Reference { index: right }) => left == right,
             _ => false,

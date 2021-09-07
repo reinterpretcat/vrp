@@ -55,7 +55,7 @@ fn can_detect_relation_errors_impl(
         ..create_empty_problem()
     };
 
-    let result = validate_result(&ValidationContext::new(&problem, None));
+    let result = validate_result(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     if let Some((code, action)) = expected {
         assert_eq!(result.clone().map(|err| err.code), Some(code.to_string()));
@@ -100,7 +100,7 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
         ..create_empty_problem()
     };
 
-    let result = validate_result(&ValidationContext::new(&problem, None));
+    let result = validate_result(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     match (&result, &expected) {
         (Some(error), Some(_)) => {
@@ -146,7 +146,7 @@ fn can_detect_multi_vehicle_assignment_impl(relations: Vec<(&str, &str)>, expect
         ..create_empty_problem()
     };
 
-    let result = validate_result(&ValidationContext::new(&problem, None));
+    let result = validate_result(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     match (&result, &expected) {
         (Some(error), Some(jobs)) => {
@@ -190,7 +190,7 @@ fn can_detect_incomplete_multi_job_in_relation_impl(
         ..create_empty_problem()
     };
 
-    let result = validate_result(&ValidationContext::new(&problem, None));
+    let result = validate_result(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     assert_eq!(result.map(|err| err.code), expected);
 }

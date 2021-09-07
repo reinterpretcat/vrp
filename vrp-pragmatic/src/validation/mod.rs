@@ -10,7 +10,7 @@ pub struct ValidationContext<'a> {
     /// Routing matrices.
     pub matrices: Option<&'a Vec<Matrix>>,
 
-    coord_index: CoordIndex,
+    coord_index: &'a CoordIndex,
     job_index: HashMap<String, Job>,
 }
 
@@ -35,11 +35,11 @@ use hashbrown::HashMap;
 
 impl<'a> ValidationContext<'a> {
     /// Creates an instance of `ValidationContext`.
-    pub fn new(problem: &'a Problem, matrices: Option<&'a Vec<Matrix>>) -> Self {
+    pub fn new(problem: &'a Problem, matrices: Option<&'a Vec<Matrix>>, coord_index: &'a CoordIndex) -> Self {
         Self {
             problem,
             matrices,
-            coord_index: CoordIndex::new(problem),
+            coord_index,
             job_index: problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect(),
         }
     }

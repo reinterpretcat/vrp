@@ -6,7 +6,7 @@ use super::*;
 use std::io::BufReader;
 use vrp_cli::extensions::generate::generate_problem;
 use vrp_pragmatic::format::problem::{serialize_problem, Problem};
-use vrp_pragmatic::format::FormatError;
+use vrp_pragmatic::format::{CoordIndex, FormatError};
 use vrp_pragmatic::validation::ValidationContext;
 
 pub const FORMAT_ARG_NAME: &str = "FORMAT";
@@ -109,7 +109,8 @@ fn generate_problem_from_args(matches: &ArgMatches) -> Result<(Problem, String),
 
     generate_problem(input_format, input_files, locations_file, jobs_size, vehicles_size, area_size).and_then(
         |problem| {
-            ValidationContext::new(&problem, None)
+            let coord_index = CoordIndex::new(&problem);
+            ValidationContext::new(&problem, None, &coord_index)
                 .validate()
                 .map_err(|errors| {
                     format!(

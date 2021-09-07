@@ -53,6 +53,7 @@ mod interop {
     use std::panic::UnwindSafe;
     use std::slice;
     use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem};
+    use vrp_pragmatic::format::CoordIndex;
 
     type Callback = extern "C" fn(*const c_char);
 
@@ -151,7 +152,9 @@ mod interop {
             let result = match (problem, matrices) {
                 (Ok(problem), Ok(matrices)) => {
                     let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
-                    ValidationContext::new(&problem, matrices).validate()
+                    let coord_index = CoordIndex::new(&problem);
+
+                    ValidationContext::new(&problem, matrices, &coord_index).validate()
                 }
                 (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors.into_iter().collect()),
                 (Err(errors1), Err(errors2)) => Err(errors1.into_iter().chain(errors2.into_iter()).collect()),
@@ -327,10 +330,10 @@ mod wasm {
     extern crate serde_json;
     extern crate wasm_bindgen;
 
-    use wasm_bindgen::prelude::*;
-
     use super::*;
     use vrp_pragmatic::format::problem::Matrix;
+    use vrp_pragmatic::format::CoordIndex;
+    use wasm_bindgen::prelude::*;
 
     /// Returns a list of unique locations which can be used to request a routing matrix.
     /// A `problem` should be passed in `pragmatic` format.
@@ -348,9 +351,10 @@ mod wasm {
     pub fn validate_pragmatic(problem: &JsValue, matrices: &JsValue) -> Result<JsValue, JsValue> {
         let problem: Problem = problem.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
         let matrices: Vec<Matrix> = matrices.into_serde().map_err(|err| JsValue::from_str(err.to_string().as_str()))?;
+        let coord_index = CoordIndex::new(&problem);
 
         let matrices = if matrices.is_empty() { None } else { Some(&matrices) };
-        ValidationContext::new(&problem, matrices)
+        ValidationContext::new(&problem, matrices, &coord_index)
             .validate()
             .map_err(|err| JsValue::from_str(FormatError::format_many_to_json(&err).as_str()))
             .map(|_| JsValue::from_str("[]"))

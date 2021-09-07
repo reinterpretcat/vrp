@@ -42,7 +42,8 @@ fn can_detect_invalid_area_impl(allowed_shapes: Option<Vec<Vec<Location>>>, expe
         ..create_empty_problem()
     };
 
-    let result = check_e1305_vehicle_limit_area_is_correct(&ValidationContext::new(&problem, None));
+    let result =
+        check_e1305_vehicle_limit_area_is_correct(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     assert_eq!(result.err().map(|err| err.code), expected.map(|_| "E1305".to_string()));
 }
@@ -85,7 +86,8 @@ fn can_detect_invalid_dispatch_impl(dispatch: &[(f64, (f64, f64))], expected: Op
         ..create_empty_problem()
     };
 
-    let result = check_e1306_vehicle_dispatch_is_correct(&ValidationContext::new(&problem, None));
+    let result =
+        check_e1306_vehicle_dispatch_is_correct(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
@@ -114,7 +116,8 @@ fn can_detect_zero_costs_impl(costs: (f64, f64), expected: Option<String>) {
         ..create_empty_problem()
     };
 
-    let result = check_e1307_vehicle_has_no_zero_costs(&ValidationContext::new(&problem, None));
+    let result =
+        check_e1307_vehicle_has_no_zero_costs(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
