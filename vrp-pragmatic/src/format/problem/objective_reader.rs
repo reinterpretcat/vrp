@@ -40,7 +40,7 @@ pub fn create_objective(
                             let max_value = props
                                 .max_job_value
                                 .expect("expecting non-zero job value to be defined at least at on job");
-                            let (module, objective) = get_value(max_value, reduction_factor.clone(), breaks.clone());
+                            let (module, objective) = get_value(max_value, *reduction_factor, *breaks);
                             constraint.add_module(module);
                             core_objectives.push(objective);
                         }
