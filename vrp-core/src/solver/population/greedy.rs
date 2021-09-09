@@ -3,7 +3,7 @@
 mod greedy_test;
 
 use crate::algorithms::nsga2::Objective;
-use crate::models::Problem;
+use crate::models::problem::ObjectiveCost;
 use crate::solver::population::{Individual, SelectionPhase};
 use crate::solver::{Population, Statistics};
 use std::cmp::Ordering;
@@ -14,7 +14,7 @@ use std::sync::Arc;
 /// A population which keeps track of the best known individuals only.
 /// If solutions are equal, prefers to keep first discovered.
 pub struct Greedy {
-    problem: Arc<Problem>,
+    objective: Arc<ObjectiveCost>,
     selection_size: usize,
     best_known: Option<Individual>,
 }
@@ -27,7 +27,7 @@ impl Population for Greedy {
 
     fn add(&mut self, individual: Individual) -> bool {
         if let Some(best_known) = &self.best_known {
-            if self.problem.objective.total_order(best_known, &individual) != Ordering::Greater {
+            if self.objective.total_order(best_known, &individual) != Ordering::Greater {
                 return false;
             }
         }
@@ -40,7 +40,7 @@ impl Population for Greedy {
     fn on_generation(&mut self, _: &Statistics) {}
 
     fn cmp(&self, a: &Individual, b: &Individual) -> Ordering {
-        self.problem.objective.total_order(a, b)
+        self.objective.total_order(a, b)
     }
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
@@ -82,7 +82,7 @@ impl Display for Greedy {
 
 impl Greedy {
     /// Creates a new instance of `Greedy`.
-    pub fn new(problem: Arc<Problem>, selection_size: usize, best_known: Option<Individual>) -> Self {
-        Self { problem, selection_size, best_known }
+    pub fn new(objective: Arc<ObjectiveCost>, selection_size: usize, best_known: Option<Individual>) -> Self {
+        Self { objective, selection_size, best_known }
     }
 }

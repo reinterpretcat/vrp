@@ -16,7 +16,7 @@ pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext
     let environment = Arc::new(Environment::default());
     RefinementContext::new(
         problem.clone(),
-        create_elitism_population(problem.clone(), environment.clone()),
+        create_elitism_population(problem.objective.clone(), environment.clone()),
         environment,
         None,
     )

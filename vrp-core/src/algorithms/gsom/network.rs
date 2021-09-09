@@ -83,6 +83,11 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         self.compact(node_filter);
     }
 
+    /// Finds node by its coordinate.
+    pub fn find(&self, coordinate: &Coordinate) -> Option<&NodeLink<I, S>> {
+        self.nodes.get(coordinate)
+    }
+
     /// Returns node coordinates in arbitrary order.
     pub fn get_coordinates(&'_ self) -> impl Iterator<Item = Coordinate> + '_ {
         self.nodes.keys().cloned()
@@ -91,6 +96,11 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     /// Return nodes in arbitrary order.
     pub fn get_nodes<'a>(&'a self) -> impl Iterator<Item = &NodeLink<I, S>> + 'a {
         self.nodes.values()
+    }
+
+    /// Iterates over coordinates and their nodes.
+    pub fn iter(&self) -> impl Iterator<Item = (&Coordinate, &NodeLink<I, S>)> {
+        self.nodes.iter()
     }
 
     /// Returns a total amount of nodes.
@@ -251,15 +261,10 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
-        let mut remove = vec![];
+        let mut removed = vec![];
         let mut remove_node = |coordinate: &Coordinate, node: &mut NodeLink<I, S>| {
-            let topology = &mut node.write().unwrap().topology;
-            topology.left.iter_mut().for_each(|link| link.write().unwrap().topology.right = None);
-            topology.right.iter_mut().for_each(|link| link.write().unwrap().topology.left = None);
-            topology.up.iter_mut().for_each(|link| link.write().unwrap().topology.down = None);
-            topology.down.iter_mut().for_each(|link| link.write().unwrap().topology.up = None);
-
-            remove.push(coordinate.clone());
+            Self::disconnect_node(node);
+            removed.push(coordinate.clone());
         };
 
         // remove user defined nodes
@@ -267,6 +272,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             .iter_mut()
             .filter(|(_, node)| node_filter.deref()(node))
             .for_each(|(coordinate, node)| remove_node(coordinate, node));
+
         // remove empty nodes which are not at boundary
         self.nodes
             .iter_mut()
@@ -276,9 +282,18 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             })
             .for_each(|(coordinate, node)| remove_node(coordinate, node));
 
-        remove.iter().for_each(|coordinate| {
+        removed.iter().for_each(|coordinate| {
             self.nodes.remove(coordinate);
         });
+    }
+
+    /// Disconnects node from network.
+    fn disconnect_node(node: &mut NodeLink<I, S>) {
+        let topology = &mut node.write().unwrap().topology;
+        topology.left.iter_mut().for_each(|link| link.write().unwrap().topology.right = None);
+        topology.right.iter_mut().for_each(|link| link.write().unwrap().topology.left = None);
+        topology.up.iter_mut().for_each(|link| link.write().unwrap().topology.down = None);
+        topology.down.iter_mut().for_each(|link| link.write().unwrap().topology.up = None);
     }
 
     /// Creates nodes for initial topology.
@@ -318,5 +333,13 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             .iter()
             .cloned()
             .collect()
+    }
+}
+
+impl<I: Input, S: Storage<Item = I>> Drop for Network<I, S> {
+    fn drop(&mut self) {
+        self.nodes.drain().for_each(|(_, mut node)| {
+            Self::disconnect_node(&mut node);
+        })
     }
 }

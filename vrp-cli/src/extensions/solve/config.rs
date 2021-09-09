@@ -452,12 +452,12 @@ fn configure_from_evolution(
             let default_selection_size = get_default_selection_size(builder.config.environment.as_ref());
             let population = match &variation {
                 PopulationType::Greedy { selection_size } => Box::new(Greedy::new(
-                    builder.config.problem.clone(),
+                    builder.config.problem.objective.clone(),
                     selection_size.unwrap_or(default_selection_size),
                     None,
                 )),
                 PopulationType::Elitism { max_size, selection_size } => Box::new(Elitism::new(
-                    builder.config.problem.clone(),
+                    builder.config.problem.objective.clone(),
                     builder.config.environment.random.clone(),
                     max_size.unwrap_or(4),
                     selection_size.unwrap_or(default_selection_size),
@@ -507,7 +507,11 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    Box::new(Rosomaxa::new(builder.config.problem.clone(), builder.config.environment.clone(), config)?)
+                    Box::new(Rosomaxa::new(
+                        builder.config.problem.objective.clone(),
+                        builder.config.environment.clone(),
+                        config,
+                    )?)
                 }
             };
 

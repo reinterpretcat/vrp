@@ -4,10 +4,11 @@ use crate::helpers::models::domain::*;
 use crate::utils::Timer;
 
 fn create_rosomaxa(rebalance_memory: usize) -> Rosomaxa {
+    let problem = create_empty_problem();
     let mut config = RosomaxaConfig::new_with_defaults(4);
     config.rebalance_memory = rebalance_memory;
 
-    Rosomaxa::new(create_empty_problem(), Arc::new(Environment::default()), config).unwrap()
+    Rosomaxa::new(problem.objective.clone(), Arc::new(Environment::default()), config).unwrap()
 }
 
 fn create_statistics(termination_estimate: f64, generation: usize) -> Statistics {

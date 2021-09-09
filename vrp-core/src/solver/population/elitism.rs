@@ -5,7 +5,6 @@ mod elitism_test;
 use super::*;
 use crate::algorithms::nsga2::{select_and_rank, Objective};
 use crate::models::problem::ObjectiveCost;
-use crate::models::Problem;
 use crate::solver::{Population, RefinementSpeed, Statistics, SOLUTION_ORDER_KEY};
 use crate::utils::Random;
 use std::cmp::Ordering;
@@ -115,21 +114,14 @@ impl Elitism {
     /// * `problem` - a Vehicle Routing Problem definition.
     /// * `max_population_size` - a max size of population size.
     pub fn new(
-        problem: Arc<Problem>,
+        objective: Arc<ObjectiveCost>,
         random: Arc<dyn Random + Send + Sync>,
         max_population_size: usize,
         selection_size: usize,
     ) -> Self {
         assert!(max_population_size > 0);
 
-        Self {
-            objective: problem.objective.clone(),
-            random,
-            selection_size,
-            max_population_size,
-            individuals: vec![],
-            speed: None,
-        }
+        Self { objective, random, selection_size, max_population_size, individuals: vec![], speed: None }
     }
 
     /// Shuffles objective function.

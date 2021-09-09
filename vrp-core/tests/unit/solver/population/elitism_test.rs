@@ -20,7 +20,7 @@ fn get_all_fitness(population: &Elitism) -> Vec<f64> {
 #[test]
 fn can_maintain_best_order() {
     let problem = create_example_problem();
-    let mut population = Elitism::new(problem.clone(), create_random(), 3, 1);
+    let mut population = Elitism::new(problem.objective.clone(), create_random(), 3, 1);
 
     population.add(create_simple_insertion_ctx(100., 0));
     assert_eq!(population.size(), 1);
@@ -39,7 +39,7 @@ fn can_maintain_best_order() {
 #[test]
 fn can_maintain_diversity_with_one_objective() {
     let problem = create_example_problem();
-    let mut population = Elitism::new(problem.clone(), create_random(), 4, 1);
+    let mut population = Elitism::new(problem.objective.clone(), create_random(), 4, 1);
 
     population.add(create_simple_insertion_ctx(100., 0));
     assert_eq!(population.size(), 1);
@@ -66,7 +66,7 @@ fn can_maintain_diversity_with_one_objective() {
 #[test]
 fn can_maintain_diversity_with_two_objectives() {
     let problem = create_example_problem();
-    let mut population = Elitism::new(problem.clone(), create_random(), 4, 1);
+    let mut population = Elitism::new(problem.objective.clone(), create_random(), 4, 1);
 
     population.add_all(vec![
         create_simple_insertion_ctx(100., 0),
@@ -81,7 +81,7 @@ fn can_maintain_diversity_with_two_objectives() {
 #[test]
 fn can_check_improvement() {
     let problem = create_example_problem();
-    let mut population = Elitism::new(problem.clone(), create_random(), 4, 1);
+    let mut population = Elitism::new(problem.objective.clone(), create_random(), 4, 1);
 
     assert_eq!(true, population.add(create_simple_insertion_ctx(100., 0)));
     assert_eq!(false, population.add(create_simple_insertion_ctx(100., 0)));
@@ -116,7 +116,7 @@ fn can_check_improvement() {
 #[test]
 fn can_select_individuals() {
     let problem = create_example_problem();
-    let mut population = Elitism::new(problem.clone(), create_random(), 4, 3);
+    let mut population = Elitism::new(problem.objective.clone(), create_random(), 4, 3);
     population.add_all(vec![
         create_empty_insertion_context(),
         create_empty_insertion_context(),
@@ -132,7 +132,7 @@ fn can_select_individuals() {
 #[test]
 fn can_handle_empty() {
     let problem = create_example_problem();
-    let mut population = Elitism::new(problem.clone(), create_random(), 4, 3);
+    let mut population = Elitism::new(problem.objective.clone(), create_random(), 4, 3);
 
     population.add_all(vec![]);
     let parents = population.select().collect::<Vec<_>>();

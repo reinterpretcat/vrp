@@ -105,7 +105,7 @@ impl EvolutionConfig {
                     ],
                     individuals: vec![],
                 },
-                variation: Some(get_default_population(problem.clone(), environment.clone())),
+                variation: Some(get_default_population(problem.objective.clone(), environment.clone())),
             },
             hyper: Box::new(MultiSelective::new_with_defaults(problem, environment.clone())),
             termination: Arc::new(CompositeTermination::new(vec![

@@ -69,7 +69,7 @@ fn create_relaxed_refinement_ctx(
 ) -> RefinementContext {
     let problem = new_insertion_ctx.problem.clone();
     let environment = new_insertion_ctx.environment.clone();
-    let population = Box::new(Elitism::new(problem.clone(), environment.random.clone(), 4, 4));
+    let population = Box::new(Elitism::new(problem.objective.clone(), environment.random.clone(), 4, 4));
 
     RefinementContext {
         problem,

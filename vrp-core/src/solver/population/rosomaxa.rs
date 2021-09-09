@@ -2,18 +2,18 @@
 #[path = "../../../tests/unit/solver/population/rosomaxa_test.rs"]
 mod rosomaxa_test;
 
-use super::super::rand::prelude::SliceRandom;
 use super::*;
-use crate::algorithms::gsom::{get_network_state, Input, Network, NetworkConfig, NodeLink, Storage};
+use crate::algorithms::gsom::*;
 use crate::algorithms::nsga2::Objective;
 use crate::algorithms::statistics::relative_distance;
 use crate::construction::heuristics::*;
-use crate::models::Problem;
+use crate::models::problem::ObjectiveCost;
 use crate::solver::RefinementSpeed;
-use crate::utils::{as_mut, Environment, Random};
+use crate::utils::{Environment, Random};
+use rand::prelude::SliceRandom;
 use std::convert::TryInto;
 use std::fmt::Formatter;
-use std::ops::{Deref, RangeBounds};
+use std::ops::RangeBounds;
 use std::sync::Arc;
 
 /// Specifies rosomaxa configuration settings.
@@ -62,7 +62,7 @@ impl RosomaxaConfig {
 /// Implements custom algorithm, code name Routing Optimizations with Self Organizing
 /// MAps and eXtrAs (pronounced as "rosomaha", from russian "росомаха" - "wolverine").
 pub struct Rosomaxa {
-    problem: Arc<Problem>,
+    objective: Arc<ObjectiveCost>,
     environment: Arc<Environment>,
     config: RosomaxaConfig,
     elite: Elitism,
@@ -122,7 +122,7 @@ impl Population for Rosomaxa {
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Individual> + 'a> {
         match &self.phase {
-            RosomaxaPhases::Exploration { populations, selection_size, .. } => {
+            RosomaxaPhases::Exploration { network, coordinates, selection_size, .. } => {
                 let (elite_explore_size, node_explore_size) = match *selection_size {
                     value if value > 6 => {
                         let elite_size = self.environment.random.uniform_int(2, 4) as usize;
@@ -137,9 +137,22 @@ impl Population for Rosomaxa {
                     self.elite
                         .select()
                         .take(elite_explore_size)
-                        .chain(populations.iter().flat_map(move |population| {
+                        .chain(coordinates.iter().flat_map(move |(coordinate, _)| {
                             let explore_size = self.environment.random.uniform_int(1, node_explore_size) as usize;
-                            population.0.select().take(explore_size)
+
+                            network
+                                .find(coordinate)
+                                .map(|node| {
+                                    let node = node.read().unwrap();
+                                    // NOTE this is black magic to trick borrow checker, it should be safe to do
+                                    // TODO is there better way to achieve similar result?
+                                    unsafe { &*(&node.storage.population as *const Elitism) as &Elitism }
+                                        .select()
+                                        .take(explore_size)
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or_else(Vec::new)
+                                .into_iter()
                         }))
                         .take(*selection_size),
                 )
@@ -170,15 +183,19 @@ type IndividualNetwork = Network<IndividualInput, IndividualStorage>;
 
 impl Rosomaxa {
     /// Creates a new instance of `Rosomaxa`.
-    pub fn new(problem: Arc<Problem>, environment: Arc<Environment>, config: RosomaxaConfig) -> Result<Self, String> {
+    pub fn new(
+        objective: Arc<ObjectiveCost>,
+        environment: Arc<Environment>,
+        config: RosomaxaConfig,
+    ) -> Result<Self, String> {
         if config.elite_size < 1 || config.node_size < 1 || config.selection_size < 2 {
             return Err("Rosomaxa algorithm requires some parameters to be above thresholds".to_string());
         }
 
         Ok(Self {
-            problem: problem.clone(),
+            objective: objective.clone(),
             environment: environment.clone(),
-            elite: Elitism::new(problem, environment.random.clone(), config.elite_size, config.selection_size),
+            elite: Elitism::new(objective, environment.random.clone(), config.elite_size, config.selection_size),
             phase: RosomaxaPhases::Initial { individuals: vec![] },
             config,
         })
@@ -194,7 +211,7 @@ impl Rosomaxa {
             RosomaxaPhases::Initial { individuals, .. } => {
                 if individuals.len() >= 4 {
                     let mut network = Self::create_network(
-                        self.problem.clone(),
+                        self.objective.clone(),
                         self.environment.clone(),
                         &self.config,
                         individuals.drain(0..4).collect(),
@@ -203,7 +220,7 @@ impl Rosomaxa {
 
                     self.phase = RosomaxaPhases::Exploration {
                         network,
-                        populations: vec![],
+                        coordinates: vec![],
                         statistics: statistics.clone(),
                         selection_size,
                     };
@@ -211,7 +228,7 @@ impl Rosomaxa {
             }
             RosomaxaPhases::Exploration {
                 network,
-                populations,
+                coordinates,
                 statistics: old_statistics,
                 selection_size: old_selection_size,
             } => {
@@ -237,7 +254,7 @@ impl Rosomaxa {
 
                     Self::fill_populations(
                         network,
-                        populations,
+                        coordinates,
                         best_fitness.as_slice(),
                         statistics,
                         self.environment.random.as_ref(),
@@ -253,37 +270,30 @@ impl Rosomaxa {
     }
 
     fn is_comparable_with_best_known(&self, individual: &Individual, best_known: Option<&Individual>) -> bool {
-        best_known
-            .map_or(true, |best_known| self.problem.objective.total_order(individual, best_known) != Ordering::Greater)
+        best_known.map_or(true, |best_known| self.objective.total_order(individual, best_known) != Ordering::Greater)
     }
 
-    fn fill_populations(
-        network: &IndividualNetwork,
-        populations: &mut Vec<(Arc<Elitism>, f64)>,
+    fn fill_populations<'a>(
+        network: &'a IndividualNetwork,
+        coordinates: &mut Vec<(Coordinate, f64)>,
         best_fitness: &[f64],
         statistics: &Statistics,
         random: &(dyn Random + Send + Sync),
     ) {
-        populations.clear();
-        populations.extend(network.get_nodes().map(|node| node.read().unwrap().storage.population.clone()).filter_map(
-            |population| {
-                population.select().next().map(|individual| {
-                    (
-                        population.clone(),
-                        relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()),
-                    )
-                })
-            },
-        ));
+        coordinates.clear();
+        coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
+            node.read().unwrap().storage.population.select().next().map(|individual| {
+                (coordinate.clone(), relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
+            })
+        }));
 
-        let shuffle_amount = Self::get_shuffle_amount(statistics, populations.len());
-
-        if shuffle_amount != populations.len() {
+        let shuffle_amount = Self::get_shuffle_amount(statistics, coordinates.len());
+        if shuffle_amount != coordinates.len() {
             // partially randomize order
-            populations.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
-            populations.partial_shuffle(&mut random.get_rng(), shuffle_amount);
+            coordinates.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
+            coordinates.partial_shuffle(&mut random.get_rng(), shuffle_amount);
         } else {
-            populations.shuffle(&mut random.get_rng());
+            coordinates.shuffle(&mut random.get_rng());
         }
     }
 
@@ -353,7 +363,7 @@ impl Rosomaxa {
     }
 
     fn create_network(
-        problem: Arc<Problem>,
+        objective: Arc<ObjectiveCost>,
         environment: Arc<Environment>,
         config: &RosomaxaConfig,
         individuals: Vec<Individual>,
@@ -380,11 +390,11 @@ impl Rosomaxa {
                 let random = environment.random.clone();
 
                 move || {
-                    let mut elitism = Elitism::new(problem.clone(), random.clone(), node_size, node_size);
+                    let mut elitism = Elitism::new(objective.clone(), random.clone(), node_size, node_size);
                     if random.is_hit(reshuffling_probability) {
                         elitism.shuffle_objective();
                     }
-                    IndividualStorage { population: Arc::new(elitism) }
+                    IndividualStorage { population: elitism }
                 }
             }),
         )
@@ -409,7 +419,7 @@ enum RosomaxaPhases {
     },
     Exploration {
         network: IndividualNetwork,
-        populations: Vec<(Arc<Elitism>, f64)>,
+        coordinates: Vec<(Coordinate, f64)>,
         statistics: Statistics,
         selection_size: usize,
     },
@@ -449,28 +459,21 @@ impl Input for IndividualInput {
 }
 
 struct IndividualStorage {
-    population: Arc<Elitism>,
-}
-
-impl IndividualStorage {
-    fn get_population_mut(&mut self) -> &mut Elitism {
-        // NOTE use black magic here to avoid RefCell, should not break memory safety guarantee
-        unsafe { as_mut(self.population.deref()) }
-    }
+    population: Elitism,
 }
 
 impl Storage for IndividualStorage {
     type Item = IndividualInput;
 
     fn add(&mut self, input: Self::Item) {
-        self.get_population_mut().add(input.individual);
+        self.population.add(input.individual);
     }
 
     fn drain<R>(&mut self, range: R) -> Vec<Self::Item>
     where
         R: RangeBounds<usize>,
     {
-        self.get_population_mut().drain(range).into_iter().map(IndividualInput::new).collect()
+        self.population.drain(range).into_iter().map(IndividualInput::new).collect()
     }
 
     fn distance(&self, a: &[f64], b: &[f64]) -> f64 {
@@ -484,6 +487,6 @@ impl Storage for IndividualStorage {
 
 impl Display for IndividualStorage {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.population.as_ref())
+        write!(f, "{}", self.population)
     }
 }

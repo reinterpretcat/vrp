@@ -11,7 +11,8 @@ pub use self::rosomaxa::Rosomaxa;
 pub use self::rosomaxa::RosomaxaConfig;
 
 use crate::construction::heuristics::InsertionContext;
-use crate::models::Problem;
+use crate::models::problem::ObjectiveCost;
+
 use crate::solver::Statistics;
 use crate::utils::{compare_floats, Environment};
 use std::cmp::Ordering;
@@ -77,16 +78,16 @@ pub fn get_default_selection_size(environment: &Environment) -> usize {
 
 /// Gets default population algorithm.
 pub fn get_default_population(
-    problem: Arc<Problem>,
+    objective: Arc<ObjectiveCost>,
     environment: Arc<Environment>,
 ) -> Box<dyn Population + Send + Sync> {
     let selection_size = get_default_selection_size(environment.as_ref());
     if selection_size == 1 {
-        Box::new(Greedy::new(problem, 1, None))
+        Box::new(Greedy::new(objective, 1, None))
     } else {
         let config = RosomaxaConfig::new_with_defaults(selection_size);
         let population =
-            Rosomaxa::new(problem, environment, config).expect("cannot create rosomaxa with default configuration");
+            Rosomaxa::new(objective, environment, config).expect("cannot create rosomaxa with default configuration");
 
         Box::new(population)
     }
@@ -94,9 +95,9 @@ pub fn get_default_population(
 
 /// Creates elitism population algorithm.
 pub fn create_elitism_population(
-    problem: Arc<Problem>,
+    objective: Arc<ObjectiveCost>,
     environment: Arc<Environment>,
 ) -> Box<dyn Population + Sync + Send> {
     let selection_size = get_default_selection_size(environment.as_ref());
-    Box::new(Elitism::new(problem, environment.random.clone(), 4, selection_size))
+    Box::new(Elitism::new(objective.clone(), environment.random.clone(), 4, selection_size))
 }

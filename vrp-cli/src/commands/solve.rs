@@ -11,6 +11,7 @@ use std::sync::Arc;
 use vrp_cli::core::solver::population::{get_default_population, Population};
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
+use vrp_core::models::problem::ObjectiveCost;
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::hyper::*;
 use vrp_core::solver::population::{get_default_selection_size, Elitism};
@@ -355,7 +356,7 @@ pub fn run_solve(
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
                                 .with_min_cv(min_cv)
-                                .with_population(get_population(mode, problem.clone(), environment.clone()))
+                                .with_population(get_population(mode, problem.objective.clone(), environment.clone()))
                                 .with_hyper(get_heuristic(matches, problem.clone(), environment)?)
                         };
 
@@ -449,17 +450,17 @@ fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
 
 fn get_population(
     mode: Option<&str>,
-    problem: Arc<Problem>,
+    objective: Arc<ObjectiveCost>,
     environment: Arc<Environment>,
 ) -> Box<dyn Population + Send + Sync> {
     match mode {
         Some("deep") => Box::new(Elitism::new(
-            problem,
+            objective,
             environment.random.clone(),
             4,
             get_default_selection_size(environment.as_ref()),
         )),
-        _ => get_default_population(problem, environment),
+        _ => get_default_population(objective, environment),
     }
 }
 
