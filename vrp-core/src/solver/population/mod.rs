@@ -99,5 +99,5 @@ pub fn create_elitism_population(
     environment: Arc<Environment>,
 ) -> Box<dyn Population + Sync + Send> {
     let selection_size = get_default_selection_size(environment.as_ref());
-    Box::new(Elitism::new(objective.clone(), environment.random.clone(), 4, selection_size))
+    Box::new(Elitism::new(objective, environment.random.clone(), 4, selection_size))
 }

@@ -26,7 +26,7 @@
 
 <div id="map"></div>
 
-By default, the first objective for the solver is to minimize fleet usage, then amount of unassigned jobs, and the last
+By default, the first objective for the solver is to minimize amount of unassigned jobs, then fleet usage, and the last
 is total cost minimization:
 
 ```json
