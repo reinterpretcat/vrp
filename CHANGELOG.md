@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* fix a memory leak
+* update dependencies
+
+
 ## [v1.11.3] - 2021-09-07
 
 ### Added
