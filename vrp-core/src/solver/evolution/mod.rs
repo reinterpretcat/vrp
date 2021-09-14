@@ -79,13 +79,14 @@ impl EvolutionSimulator {
             .take(self.config.population.initial.max_size)
             .for_each(|(ctx, idx)| {
                 if should_add_solution(&refinement_ctx) {
-                    refinement_ctx.population.add(ctx);
                     self.config.telemetry.on_initial(
+                        &ctx,
                         idx,
                         self.config.population.initial.max_size,
                         Timer::start(),
                         self.config.termination.estimate(&refinement_ctx),
                     );
+                    refinement_ctx.population.add(ctx);
                 } else {
                     self.config.telemetry.log(format!("skipping provided initial solution {}", idx).as_str())
                 }
@@ -123,10 +124,12 @@ impl EvolutionSimulator {
             let insertion_ctx = self.config.population.initial.methods[method_idx].0.run(&refinement_ctx, empty_ctx.deep_copy());
 
             if should_add_solution(&refinement_ctx) {
-                refinement_ctx.population.add(insertion_ctx);
-                self.config.telemetry.on_initial(idx,
+                self.config.telemetry.on_initial(
+                    &insertion_ctx,
+                    idx,
                                                  self.config.population.initial.max_size, item_time,
                                                  self.config.termination.estimate(&refinement_ctx));
+                refinement_ctx.population.add(insertion_ctx);
             } else {
                 self.config.telemetry.log(format!("skipping built initial solution {}", idx).as_str())
             }

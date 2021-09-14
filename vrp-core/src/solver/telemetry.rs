@@ -126,19 +126,38 @@ impl Telemetry {
     }
 
     /// Reports initial solution statistics.
-    pub fn on_initial(&mut self, item_idx: usize, total_items: usize, item_time: Timer, termination_estimate: f64) {
+    pub fn on_initial(
+        &mut self,
+        insertion_ctx: &InsertionContext,
+        item_idx: usize,
+        total_items: usize,
+        item_time: Timer,
+        termination_estimate: f64,
+    ) {
         match &self.mode {
-            TelemetryMode::OnlyLogging { .. } | TelemetryMode::All { .. } => self.log(
-                format!(
-                    "[{}s] created {} of {} initial solutions in {}ms (ts: {})",
-                    self.time.elapsed_secs(),
-                    item_idx + 1,
-                    total_items,
-                    item_time.elapsed_millis(),
-                    termination_estimate,
-                )
-                .as_str(),
-            ),
+            TelemetryMode::OnlyLogging { .. } | TelemetryMode::All { .. } => {
+                self.log(
+                    format!(
+                        "[{}s] created {} of {} initial solutions in {}ms (ts: {})",
+                        self.time.elapsed_secs(),
+                        item_idx + 1,
+                        total_items,
+                        item_time.elapsed_millis(),
+                        termination_estimate,
+                    )
+                    .as_str(),
+                );
+                self.log(
+                    format!(
+                        "\tcost: {:.2}, tours: {}, unassigned: {}, fitness: ({})",
+                        insertion_ctx.problem.objective.fitness(insertion_ctx),
+                        insertion_ctx.solution.routes.len(),
+                        insertion_ctx.solution.unassigned.len(),
+                        Self::format_fitness(insertion_ctx.get_fitness_values())
+                    )
+                    .as_str(),
+                );
+            }
             _ => {}
         };
     }
@@ -322,7 +341,7 @@ impl Telemetry {
                 metrics.improvement,
                 metrics.tours,
                 metrics.unassigned,
-                metrics.fitness.iter().map(|v| format!("{:.3}", v)).collect::<Vec<_>>().join(", ")
+                Self::format_fitness(metrics.fitness.iter().cloned()),
             )
             .as_str(),
         );
@@ -355,6 +374,10 @@ impl Telemetry {
             SelectionPhase::Exploration => "exploration",
             SelectionPhase::Exploitation => "exploitation",
         }
+    }
+
+    fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {
+        fitness.map(|v| format!("{:.3}", v)).collect::<Vec<_>>().join(", ")
     }
 }
 
