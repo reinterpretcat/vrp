@@ -481,9 +481,10 @@ pub enum Objective {
     },
 
     /// An objective to control order of job activities in the tour.
-    #[serde(rename(deserialize = "balance-duration", serialize = "tour-order"))]
+    #[serde(rename(deserialize = "tour-order", serialize = "tour-order"))]
     TourOrder {
         /// If the proper is set to true, then order is enforced as hard constraint.
+        #[serde(rename = "isConstrained")]
         is_constrained: bool,
     },
 }
