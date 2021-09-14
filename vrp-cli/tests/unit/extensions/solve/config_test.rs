@@ -26,8 +26,8 @@ fn can_read_full_config() {
         RecreateMethod::Cheapest { weight: 1 } => {}
         _ => unreachable!(),
     }
-    assert_eq!(initial.alternatives.methods.len(), 6);
-    assert_eq!(initial.alternatives.max_size, 7);
+    assert_eq!(initial.alternatives.methods.len(), 7);
+    assert_eq!(initial.alternatives.max_size, 4);
     assert_eq!(initial.alternatives.quota, 0.05);
 
     match evolution_config.population.expect("no population config") {
@@ -135,10 +135,10 @@ fn can_create_builder_from_config() {
 
     assert!(builder.config.population.variation.is_some());
     assert_eq!(builder.config.problem.as_ref() as *const Problem, problem.as_ref() as *const Problem);
-    assert_eq!(builder.config.population.initial.max_size, 7);
+    assert_eq!(builder.config.population.initial.max_size, 4);
     assert_eq!(builder.config.population.initial.quota, 0.05);
     assert_eq!(builder.config.population.initial.individuals.len(), 0);
-    assert_eq!(builder.config.population.initial.methods.len(), 7);
+    assert_eq!(builder.config.population.initial.methods.len(), 8);
     assert_eq!(builder.max_time, Some(300));
     assert_eq!(builder.max_generations, Some(3000));
     assert_eq!(builder.config.environment.is_experimental, false);

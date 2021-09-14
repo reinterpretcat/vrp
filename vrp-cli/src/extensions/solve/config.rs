@@ -285,7 +285,7 @@ pub enum RecreateMethod {
     Blinks { weight: usize },
     /// Insertion with gaps method.
     #[serde(rename(deserialize = "gaps"))]
-    Gaps { weight: usize, min: usize },
+    Gaps { weight: usize, min: usize, max: usize },
     /// Nearest neighbour method.
     #[serde(rename(deserialize = "nearest"))]
     Nearest { weight: usize },
@@ -584,7 +584,7 @@ fn create_recreate_method(
             (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())), *weight)
         }
         RecreateMethod::SkipRandom { weight } => (Arc::new(RecreateWithSkipRandom::default()), *weight),
-        RecreateMethod::Gaps { weight, min } => (Arc::new(RecreateWithGaps::new(*min)), *weight),
+        RecreateMethod::Gaps { weight, min, max } => (Arc::new(RecreateWithGaps::new(*min, *max)), *weight),
         RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::default()), *weight),
         RecreateMethod::Regret { weight, start, end } => (Arc::new(RecreateWithRegret::new(*start, *end)), *weight),
         RecreateMethod::Perturbation { weight, probability, min, max } => {

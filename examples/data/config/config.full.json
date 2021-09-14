@@ -8,6 +8,20 @@
       "alternatives": {
         "methods": [
           {
+            "type": "farthest",
+            "weight": 1
+          },
+          {
+            "type": "nearest",
+            "weight": 1
+          },
+          {
+            "type": "gaps",
+            "min": 2,
+            "max": 20,
+            "weight": 1
+          },
+          {
             "type": "skip-best",
             "start": 1,
             "end": 2,
@@ -29,18 +43,9 @@
             "min": 0.8,
             "max": 1.2,
             "weight": 1
-          },
-          {
-            "type": "gaps",
-            "min": 2,
-            "weight": 1
-          },
-          {
-            "type": "farthest",
-            "weight": 1
           }
         ],
-        "maxSize": 7,
+        "maxSize": 4,
         "quota": 0.05
       }
     },
@@ -266,7 +271,8 @@
           {
             "weight": 5,
             "type": "gaps",
-            "min": 2
+            "min": 2,
+            "max": 20
           },
           {
             "weight": 5,

@@ -87,10 +87,13 @@ impl EvolutionConfig {
             },
             population: PopulationConfig {
                 initial: InitialConfig {
-                    max_size: 7,
+                    max_size: 4,
                     quota: 0.05,
                     methods: vec![
                         (Arc::new(RecreateWithCheapest::default()), 1),
+                        (Arc::new(RecreateWithFarthest::default()), 1),
+                        (Arc::new(RecreateWithNearestNeighbor::default()), 1),
+                        (Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1))), 1),
                         (Arc::new(RecreateWithSkipBest::new(1, 2)), 1),
                         (Arc::new(RecreateWithRegret::new(2, 3)), 1),
                         (
@@ -100,8 +103,6 @@ impl EvolutionConfig {
                             1,
                         ),
                         (Arc::new(RecreateWithPerturbation::new_with_defaults(environment.random.clone())), 1),
-                        (Arc::new(RecreateWithGaps::default()), 1),
-                        (Arc::new(RecreateWithFarthest::default()), 1),
                     ],
                     individuals: vec![],
                 },

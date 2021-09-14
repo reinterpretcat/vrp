@@ -9,6 +9,7 @@ use rand::prelude::*;
 /// Returns a sub set of randomly selected jobs.
 struct GapsJobSelector {
     min_jobs: usize,
+    max_jobs: usize,
 }
 
 impl JobSelector for GapsJobSelector {
@@ -17,7 +18,7 @@ impl JobSelector for GapsJobSelector {
         ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
 
         // TODO improve formula
-        let max_jobs = self.min_jobs.max(ctx.solution.required.len());
+        let max_jobs = self.min_jobs.max(ctx.solution.required.len().min(self.max_jobs));
         let take_jobs = ctx.environment.random.uniform_int(self.min_jobs as i32, max_jobs as i32) as usize;
 
         Box::new(ctx.solution.required.iter().take(take_jobs).cloned())
@@ -31,10 +32,10 @@ pub struct RecreateWithGaps {
 
 impl RecreateWithGaps {
     /// Creates a new instance of `RecreateWithGaps`.
-    pub fn new(min_jobs: usize) -> Self {
+    pub fn new(min_jobs: usize, max_jobs: usize) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
-                Box::new(GapsJobSelector { min_jobs }),
+                Box::new(GapsJobSelector { min_jobs, max_jobs }),
                 Box::new(AllRouteSelector::default()),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
@@ -45,7 +46,7 @@ impl RecreateWithGaps {
 
 impl Default for RecreateWithGaps {
     fn default() -> Self {
-        Self::new(2)
+        Self::new(2, 20)
     }
 }
 
