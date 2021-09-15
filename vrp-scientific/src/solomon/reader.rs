@@ -10,10 +10,6 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, Problem};
 
-pub fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
-    SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem()
-}
-
 /// A trait read write solomon problem.
 pub trait SolomonProblem {
     /// Reads solomon problem.
@@ -30,6 +26,10 @@ impl SolomonProblem for String {
     fn read_solomon(self) -> Result<Problem, String> {
         read_solomon_format(BufReader::new(self.as_bytes()))
     }
+}
+
+fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
+    SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem()
 }
 
 struct VehicleLine {
@@ -114,7 +114,7 @@ impl<R: Read> SolomonReader<R> {
             .split_whitespace()
             .map(|line| line.parse::<usize>().unwrap())
             .try_collect()
-            .ok_or_else(|| "Cannot parse vehicle number or/and capacity".to_string())?;
+            .ok_or_else(|| "cannot parse vehicle number or/and capacity".to_string())?;
 
         Ok(VehicleLine { number, capacity })
     }
@@ -126,7 +126,7 @@ impl<R: Read> SolomonReader<R> {
             .split_whitespace()
             .map(|line| line.parse::<i32>().unwrap())
             .try_collect()
-            .ok_or_else(|| "Cannot read customer line".to_string())?;
+            .ok_or_else(|| "cannot read customer line".to_string())?;
         Ok(JobLine {
             id: id as usize,
             location: (x, y),
@@ -137,10 +137,6 @@ impl<R: Read> SolomonReader<R> {
     }
 
     fn skip_lines(&mut self, count: usize) -> Result<(), String> {
-        for _ in 0..count {
-            read_line(&mut self.reader, &mut self.buffer).map_err(|_| "Cannot skip lines")?;
-        }
-
-        Ok(())
+        skip_lines(count, &mut self.reader, &mut self.buffer)
     }
 }

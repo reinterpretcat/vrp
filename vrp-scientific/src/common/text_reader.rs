@@ -113,3 +113,11 @@ pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, mut buffer: &mut Str
     buffer.clear();
     reader.read_line(&mut buffer).map_err(|err| err.to_string())
 }
+
+pub(crate) fn skip_lines<R: Read>(count: usize, reader: &mut BufReader<R>, buffer: &mut String) -> Result<(), String> {
+    for _ in 0..count {
+        read_line(reader, buffer).map_err(|_| "cannot skip lines")?;
+    }
+
+    Ok(())
+}
