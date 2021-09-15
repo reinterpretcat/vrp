@@ -442,11 +442,14 @@ impl IndividualInput {
     fn get_weights(individual: &InsertionContext) -> Vec<f64> {
         vec![
             get_max_load_variance(individual),
-            get_customers_deviation(individual),
             get_duration_mean(individual),
             get_distance_mean(individual),
             get_waiting_mean(individual),
+            get_longest_distance_between_customers_mean(individual),
+            get_average_distance_between_depot_customer_mean(individual),
             get_distance_gravity_mean(individual),
+            get_customers_deviation(individual),
+            get_longest_distance_between_depot_customer_mean(individual),
             individual.solution.routes.len() as f64,
             individual.solution.unassigned.len() as f64,
         ]

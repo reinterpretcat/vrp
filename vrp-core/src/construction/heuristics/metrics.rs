@@ -3,7 +3,7 @@
 mod metrics_test;
 
 use super::InsertionContext;
-use crate::algorithms::statistics::{get_mean, get_stdev, get_variance};
+use crate::algorithms::statistics::*;
 use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY, WAITING_KEY};
 use crate::construction::heuristics::RouteContext;
 use crate::models::problem::TransportCost;
@@ -25,17 +25,17 @@ pub fn get_customers_deviation(insertion_ctx: &InsertionContext) -> f64 {
 
 /// Gets mean of route durations.
 pub fn get_duration_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean(get_values_from_route_state(insertion_ctx, TOTAL_DURATION_KEY).as_slice())
+    get_mean_slice(get_values_from_route_state(insertion_ctx, TOTAL_DURATION_KEY).as_slice())
 }
 
 /// Gets mean of route distances.
 pub fn get_distance_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean(get_values_from_route_state(insertion_ctx, TOTAL_DISTANCE_KEY).as_slice())
+    get_mean_slice(get_values_from_route_state(insertion_ctx, TOTAL_DISTANCE_KEY).as_slice())
 }
 
 /// Gets mean of future waiting time.
 pub fn get_waiting_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean(
+    get_mean_iter(
         insertion_ctx
             .solution
             .routes
@@ -43,13 +43,72 @@ pub fn get_waiting_mean(insertion_ctx: &InsertionContext) -> f64 {
             .filter_map(|route_ctx| route_ctx.route.tour.get(1).map(|a| (route_ctx, a)))
             .map(|(route_ctx, activity)| {
                 route_ctx.state.get_activity_state::<f64>(WAITING_KEY, activity).cloned().unwrap_or(0.)
-            })
-            .collect::<Vec<_>>()
-            .as_slice(),
+            }),
     )
 }
+/// Gets longest distance between two connected customers (mean, S2).
+pub fn get_longest_distance_between_customers_mean(insertion_ctx: &InsertionContext) -> f64 {
+    let transport = insertion_ctx.problem.transport.as_ref();
+    get_mean_iter(insertion_ctx.solution.routes.iter().map(|route_ctx| {
+        route_ctx.route.tour.legs().fold(0., |acc, (activities, _)| match activities {
+            [_] => acc,
+            [prev, next] => transport
+                .distance(
+                    &route_ctx.route.actor.vehicle.profile,
+                    prev.place.location,
+                    next.place.location,
+                    prev.schedule.departure,
+                )
+                .max(acc),
+            _ => panic!("Unexpected route leg configuration."),
+        })
+    }))
+}
 
-/// Gets average distance between routes using medoids.
+/// Gets average distance between depot to directly-connected customers (mean, S3).
+pub fn get_average_distance_between_depot_customer_mean(insertion_ctx: &InsertionContext) -> f64 {
+    let transport = insertion_ctx.problem.transport.as_ref();
+
+    get_mean_iter(insertion_ctx.solution.routes.iter().map(|route_ctx| {
+        let depot = route_ctx.route.tour.start().expect("empty tour");
+
+        get_mean_iter(route_ctx.route.tour.all_activities().skip(1).map(|activity| {
+            transport.distance(
+                &route_ctx.route.actor.vehicle.profile,
+                depot.place.location,
+                activity.place.location,
+                depot.schedule.departure,
+            )
+        }))
+    }))
+}
+
+/// Gets the largest distance between a customer on the route and the depot (mean, S3).
+pub fn get_longest_distance_between_depot_customer_mean(insertion_ctx: &InsertionContext) -> f64 {
+    let transport = insertion_ctx.problem.transport.as_ref();
+
+    get_mean_iter(insertion_ctx.solution.routes.iter().map(|route_ctx| {
+        let depot = route_ctx.route.tour.start().expect("empty tour");
+
+        route_ctx
+            .route
+            .tour
+            .all_activities()
+            .skip(1)
+            .map(|activity| {
+                transport.distance(
+                    &route_ctx.route.actor.vehicle.profile,
+                    depot.place.location,
+                    activity.place.location,
+                    depot.schedule.departure,
+                )
+            })
+            .max_by(|a, b| compare_floats(*a, *b))
+            .unwrap_or(0.)
+    }))
+}
+
+/// Gets average distance between routes using medoids (S4).
 pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
     let transport = insertion_ctx.problem.transport.as_ref();
     let profile = insertion_ctx.solution.routes.first().map(|route_ctx| &route_ctx.route.actor.vehicle.profile);
@@ -72,7 +131,7 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
             }
         }
 
-        get_mean(distances.as_slice())
+        get_mean_slice(distances.as_slice())
     } else {
         0.
     }

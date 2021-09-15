@@ -13,10 +13,24 @@ pub fn get_cv(values: &[f64]) -> f64 {
     sdev / mean
 }
 
-/// Gets mean of values.
-pub fn get_mean(values: &[f64]) -> f64 {
+/// Gets mean of values using given slice.
+pub fn get_mean_slice(values: &[f64]) -> f64 {
     let sum: f64 = values.iter().sum();
     sum / values.len() as f64
+}
+
+/// Gets mean of values using given iterator.
+pub fn get_mean_iter<Iter>(values: Iter) -> f64
+where
+    Iter: Iterator<Item = f64>,
+{
+    let (sum, count) = values.fold((0., 0), |(sum, count), item| (sum + item, count + 1));
+
+    if count == 0 {
+        0.
+    } else {
+        sum / count as f64
+    }
 }
 
 /// Returns variance.
@@ -31,7 +45,7 @@ pub fn get_stdev(values: &[f64]) -> f64 {
 
 /// Returns variance and mean.
 fn get_variance_mean(values: &[f64]) -> (f64, f64) {
-    let mean = get_mean(values);
+    let mean = get_mean_slice(values);
 
     let (first, second) = values.iter().fold((0., 0.), |acc, v| {
         let dev = v - mean;
