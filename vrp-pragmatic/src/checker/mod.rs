@@ -51,7 +51,8 @@ impl CheckerContext {
 
     /// Performs solution check.
     pub fn check(&self) -> Result<(), Vec<String>> {
-        let errors = check_vehicle_load(self)
+        // avoid duplicates keeping original order
+        let (_, errors) = check_vehicle_load(self)
             .err()
             .into_iter()
             .chain(check_relations(self).err().into_iter())
@@ -60,17 +61,14 @@ impl CheckerContext {
             .chain(check_routing(self).err().into_iter())
             .chain(check_limits(self).err().into_iter())
             .flatten()
-            .collect::<Vec<_>>();
+            .fold((HashSet::new(), Vec::default()), |(mut used, mut errors), error| {
+                if !used.contains(&error) {
+                    errors.push(error.clone());
+                    used.insert(error);
+                }
 
-        // avoid duplicates keeping original order
-        let (_, errors) = errors.into_iter().fold((HashSet::new(), Vec::default()), |(mut used, mut errors), error| {
-            if !used.contains(&error) {
-                errors.push(error.clone());
-                used.insert(error);
-            }
-
-            (used, errors)
-        });
+                (used, errors)
+            });
 
         if errors.is_empty() {
             Ok(())
