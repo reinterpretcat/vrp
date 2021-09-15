@@ -12,7 +12,7 @@ use std::cmp::Ordering;
 
 /// Gets max load variance in tours.
 pub fn get_max_load_variance(insertion_ctx: &InsertionContext) -> f64 {
-    get_variance(get_values_from_route_state(insertion_ctx, MAX_LOAD_KEY).as_slice())
+    get_variance(get_values_from_route_state(insertion_ctx, MAX_LOAD_KEY).collect::<Vec<_>>().as_slice())
 }
 
 /// Gets standard deviation of the number of customer per tour.
@@ -25,12 +25,12 @@ pub fn get_customers_deviation(insertion_ctx: &InsertionContext) -> f64 {
 
 /// Gets mean of route durations.
 pub fn get_duration_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean_slice(get_values_from_route_state(insertion_ctx, TOTAL_DURATION_KEY).as_slice())
+    get_mean_iter(get_values_from_route_state(insertion_ctx, TOTAL_DURATION_KEY))
 }
 
 /// Gets mean of route distances.
 pub fn get_distance_mean(insertion_ctx: &InsertionContext) -> f64 {
-    get_mean_slice(get_values_from_route_state(insertion_ctx, TOTAL_DISTANCE_KEY).as_slice())
+    get_mean_iter(get_values_from_route_state(insertion_ctx, TOTAL_DISTANCE_KEY))
 }
 
 /// Gets mean of future waiting time.
@@ -212,11 +212,10 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
     )
 }
 
-fn get_values_from_route_state(insertion_ctx: &InsertionContext, state_key: i32) -> Vec<f64> {
+fn get_values_from_route_state(insertion_ctx: &InsertionContext, state_key: i32) -> impl Iterator<Item = f64> + '_ {
     insertion_ctx
         .solution
         .routes
         .iter()
-        .map(|route| route.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.))
-        .collect()
+        .map(move |route| route.state.get_route_state::<f64>(state_key).cloned().unwrap_or(0.))
 }
