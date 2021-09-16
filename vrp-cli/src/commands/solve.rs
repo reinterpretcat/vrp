@@ -10,6 +10,7 @@ use std::io::{BufReader, BufWriter, Write};
 use std::sync::Arc;
 use vrp_cli::core::solver::population::{get_default_population, Population};
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
+use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::problem::ObjectiveCost;
 use vrp_core::models::{Problem, Solution};
@@ -94,6 +95,18 @@ fn add_scientific(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
+        formats.insert(
+            "tsplib",
+            (
+                ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
+                    assert!(matrices.is_none());
+                    BufReader::new(problem).read_tsplib()
+                })),
+                InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
+                SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_tsplib(writer))),
+                LocationWriter(Box::new(|_, _| unimplemented!())),
+            ),
+        );
     }
 }
 
@@ -155,7 +168,7 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
             Arg::with_name(FORMAT_ARG_NAME)
                 .help("Specifies the problem type")
                 .required(true)
-                .possible_values(&["solomon", "lilim", "pragmatic"])
+                .possible_values(&["solomon", "lilim", "tsplib", "pragmatic"])
                 .index(1),
         )
         .arg(Arg::with_name(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))

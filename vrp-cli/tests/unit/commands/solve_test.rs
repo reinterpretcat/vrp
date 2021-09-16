@@ -49,7 +49,7 @@ fn can_solve_solomon_problem_with_generation_limit() {
 
 #[test]
 fn can_require_problem_path() {
-    for format in &["pragmatic", "solomon", "lilim"] {
+    for format in &["pragmatic", "solomon", "lilim", "tsplib"] {
         get_solve_app().get_matches_from_safe(vec!["solve", format]).unwrap_err();
     }
 }
