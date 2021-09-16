@@ -71,7 +71,7 @@ fn get_init_solution(problem: Problem, solution: &Solution) -> Result<Solution, 
 
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    core_solution.write_pragmatic_json(&core_problem, writer).expect("cannot serialize result solution");
+    (&core_solution, 0.).write_pragmatic_json(&core_problem, writer).expect("cannot serialize result solution");
 
     deserialize_solution(BufReader::new(buffer.as_bytes())).map_err(|err| format!("cannot read solution: {}", err))
 }

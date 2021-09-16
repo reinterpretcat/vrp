@@ -6,14 +6,12 @@ use std::io::{BufWriter, Error, ErrorKind, Write};
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::Solution;
 
-pub(crate) fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -> Result<(), Error> {
+pub(crate) fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Solution, cost: f64) -> Result<(), Error> {
     let mut writer = writer;
 
     if !solution.unassigned.is_empty() {
-        return Err(Error::new(ErrorKind::Other, "Cannot write text solution with unassigned jobs."));
+        return Err(Error::new(ErrorKind::Other, "cannot write text solution with unassigned jobs."));
     }
-
-    writer.write_all(b"Solution\n")?;
 
     solution.routes.iter().zip(1..).for_each(|(r, i)| {
         let customers = r
@@ -26,6 +24,8 @@ pub(crate) fn write_text_solution<W: Write>(writer: BufWriter<W>, solution: &Sol
             .join(" ");
         writer.write_all(format!("Route {}: {}\n", i, customers).as_bytes()).unwrap();
     });
+
+    writer.write_all(format!("Cost {:.2}", cost).as_bytes())?;
 
     Ok(())
 }

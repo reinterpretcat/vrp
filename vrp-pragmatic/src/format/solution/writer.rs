@@ -36,30 +36,41 @@ pub trait PragmaticSolution<W: Write> {
     fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String>;
 }
 
-impl<W: Write> PragmaticSolution<W> for Solution {
+impl<W: Write> PragmaticSolution<W> for (&Solution, f64) {
     fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        let solution = create_solution(problem, self, None);
-        serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
-        Ok(())
+        write_pragmatic_json(problem, &self.0, None, writer)
     }
 
     fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        let solution = create_solution(problem, self, None);
-        serialize_solution_as_geojson(writer, problem, &solution).map_err(|err| err.to_string())?;
-        Ok(())
+        write_geo_json(problem, &self.0, writer)
     }
 }
 
-impl<W: Write> PragmaticSolution<W> for (Solution, Metrics) {
+impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &Metrics) {
     fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        let solution = create_solution(problem, &self.0, Some(&self.1));
-        serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
-        Ok(())
+        write_pragmatic_json(problem, self.0, Some(self.2), writer)
     }
 
     fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        self.0.write_geo_json(problem, writer)
+        write_geo_json(problem, &self.0, writer)
     }
+}
+
+fn write_pragmatic_json<W: Write>(
+    problem: &Problem,
+    solution: &Solution,
+    metrics: Option<&Metrics>,
+    writer: BufWriter<W>,
+) -> Result<(), String> {
+    let solution = create_solution(problem, solution, metrics);
+    serialize_solution(writer, &solution).map_err(|err| err.to_string())?;
+    Ok(())
+}
+
+fn write_geo_json<W: Write>(problem: &Problem, solution: &Solution, writer: BufWriter<W>) -> Result<(), String> {
+    let solution = create_solution(problem, solution, None);
+    serialize_solution_as_geojson(writer, problem, &solution).map_err(|err| err.to_string())?;
+    Ok(())
 }
 
 struct Leg {

@@ -31,12 +31,11 @@ fn can_write_solomon_solution() {
 
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    RecreateWithCheapest::default()
+    let solution = RecreateWithCheapest::default()
         .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment))
         .solution
-        .to_solution(problem.extras.clone())
-        .write_solomon(writer)
-        .unwrap();
+        .to_solution(problem.extras.clone());
+    (&solution, 3.123456).write_solomon(writer).unwrap();
 
-    assert_eq!(buffer, "Solution\nRoute 1: 1\n");
+    assert_eq!(buffer, "Route 1: 1\nCost 3.12");
 }

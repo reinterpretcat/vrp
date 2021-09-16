@@ -8,9 +8,9 @@ pub trait TsplibSolution<W: Write> {
     fn write_tsplib(&self, writer: BufWriter<W>) -> Result<(), String>;
 }
 
-impl<W: Write> TsplibSolution<W> for Solution {
+impl<W: Write> TsplibSolution<W> for (&Solution, f64) {
     fn write_tsplib(&self, writer: BufWriter<W>) -> Result<(), String> {
-        write_text_solution(writer, self).map_err(|err| err.to_string())?;
+        write_text_solution(writer, self.0, self.1).map_err(|err| err.to_string())?;
         Ok(())
     }
 }

@@ -50,6 +50,7 @@ struct SolutionWriter(
         dyn Fn(
             &Problem,
             Solution,
+            f64,
             Option<Metrics>,
             BufWriter<Box<dyn Write>>,
             Option<BufWriter<Box<dyn Write>>>,
@@ -79,7 +80,7 @@ fn add_scientific(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>
                 InitSolutionReader(Box::new(move |file, problem| {
                     read_init_solomon(BufReader::new(file), problem, random.clone())
                 })),
-                SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_solomon(writer))),
+                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_solomon(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -91,7 +92,7 @@ fn add_scientific(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>
                     BufReader::new(problem).read_lilim()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
-                SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_lilim(writer))),
+                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_lilim(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -103,7 +104,7 @@ fn add_scientific(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>
                     BufReader::new(problem).read_tsplib()
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
-                SolutionWriter(Box::new(|_, solution, _, writer, _| solution.write_tsplib(writer))),
+                SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_tsplib(writer))),
                 LocationWriter(Box::new(|_, _| unimplemented!())),
             ),
         );
@@ -130,14 +131,14 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
             InitSolutionReader(Box::new(move |file, problem| {
                 read_init_pragmatic(BufReader::new(file), problem, random.clone())
             })),
-            SolutionWriter(Box::new(|problem, solution, metrics, default_writer, geojson_writer| {
+            SolutionWriter(Box::new(|problem, solution, cost, metrics, default_writer, geojson_writer| {
                 geojson_writer
-                    .map_or(Ok(()), |geojson_writer| solution.write_geo_json(problem, geojson_writer))
+                    .map_or(Ok(()), |geojson_writer| (&solution, cost).write_geo_json(problem, geojson_writer))
                     .and_then(|_| {
                         if let Some(metrics) = metrics {
-                            (solution, metrics).write_pragmatic_json(problem, default_writer)
+                            (&solution, cost, &metrics).write_pragmatic_json(problem, default_writer)
                         } else {
-                            solution.write_pragmatic_json(problem, default_writer)
+                            (&solution, cost).write_pragmatic_json(problem, default_writer)
                         }
                     })
             })),
@@ -373,13 +374,13 @@ pub fn run_solve(
                                 .with_hyper(get_heuristic(matches, problem.clone(), environment)?)
                         };
 
-                        let (solution, _, metrics) = builder
+                        let (solution, cost, metrics) = builder
                             .with_init_solutions(solutions, init_size)
                             .build()
                             .and_then(|solver| solver.solve())
                             .map_err(|err| format!("cannot find any solution: '{}'", err))?;
 
-                        solution_writer.0(&problem, solution, metrics, out_buffer, geo_buffer).unwrap();
+                        solution_writer.0(&problem, solution, cost, metrics, out_buffer, geo_buffer).unwrap();
 
                         if is_check_requested {
                             check_pragmatic_solution_with_args(matches)?;

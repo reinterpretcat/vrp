@@ -60,14 +60,14 @@ fn run_examples(base_path: &str) {
             panic!("cannot read pragmatic problem: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
         }));
 
-        let (solution, _, _) = Builder::new(core_problem.clone(), environment)
+        let (solution, cost, _) = Builder::new(core_problem.clone(), environment)
             .with_max_generations(Some(100))
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))
             .solve()
             .unwrap_or_else(|err| panic!("cannot solver problem: {}", err));
 
-        let solution = get_pragmatic_solution(&core_problem, &solution);
+        let solution = get_pragmatic_solution(&core_problem, &solution, cost);
 
         if let Err(err) = CheckerContext::new(core_problem, problem, matrices, solution).check() {
             panic!("unfeasible solution in '{}':\n'{}'", name, err.join("\n"));
@@ -84,11 +84,11 @@ fn get_pragmatic_problem(base_path: &str, name: &str) -> Problem {
     deserialize_problem(open_file(format!["{}/{}.problem.json", base_path, name].as_str())).unwrap()
 }
 
-fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution) -> Solution {
+fn get_pragmatic_solution(problem: &CoreProblem, solution: &CoreSolution, cost: f64) -> Solution {
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
 
-    solution.write_pragmatic_json(problem, writer).expect("cannot write pragmatic solution");
+    (solution, cost).write_pragmatic_json(problem, writer).expect("cannot write pragmatic solution");
 
     deserialize_solution(BufReader::new(buffer.as_bytes())).expect("cannot deserialize solution")
 }
