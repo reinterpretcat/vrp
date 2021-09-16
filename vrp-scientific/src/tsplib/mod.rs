@@ -2,3 +2,6 @@
 
 mod reader;
 pub use self::reader::TsplibProblem;
+
+mod writer;
+pub use self::writer::TsplibSolution;
