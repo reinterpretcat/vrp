@@ -23,4 +23,6 @@ pub use vrp_core as core;
 pub mod common;
 pub mod lilim;
 pub mod solomon;
+pub mod tsplib;
+
 mod utils;

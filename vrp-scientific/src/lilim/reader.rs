@@ -56,6 +56,23 @@ struct LilimReader<R: Read> {
 }
 
 impl<R: Read> TextReader for LilimReader<R> {
+    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String> {
+        let fleet = self.read_fleet()?;
+        let jobs = self.read_jobs()?;
+
+        Ok((jobs, fleet))
+    }
+
+    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+        self.matrix.create_transport()
+    }
+
+    fn create_extras(&self) -> Extras {
+        Extras::default()
+    }
+}
+
+impl<R: Read> LilimReader<R> {
     fn read_fleet(&mut self) -> Result<Fleet, String> {
         let vehicle = self.read_vehicle()?;
         let depot = self.read_customer()?;
@@ -96,25 +113,15 @@ impl<R: Read> TextReader for LilimReader<R> {
 
             jobs.push(Job::Multi(Multi::bind(Multi::new(
                 vec![self.create_single_job(pickup), self.create_single_job(delivery)],
-                create_dimens_with_id("mlt", index),
+                create_dimens_with_id("mlt", &index.to_string()),
             ))));
         });
 
         Ok(jobs)
     }
 
-    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
-        self.matrix.create_transport()
-    }
-
-    fn create_extras(&self) -> Extras {
-        Extras::default()
-    }
-}
-
-impl<R: Read> LilimReader<R> {
     fn create_single_job(&mut self, customer: &JobLine) -> Arc<Single> {
-        let mut dimens = create_dimens_with_id("c", customer.id);
+        let mut dimens = create_dimens_with_id("c", &customer.id.to_string());
         dimens.set_demand(if customer.demand > 0 {
             Demand::<SingleDimLoad> {
                 pickup: (SingleDimLoad::default(), SingleDimLoad::new(customer.demand as i32)),

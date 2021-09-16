@@ -52,6 +52,23 @@ struct SolomonReader<R: Read> {
 }
 
 impl<R: Read> TextReader for SolomonReader<R> {
+    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String> {
+        let fleet = self.read_fleet()?;
+        let jobs = self.read_jobs()?;
+
+        Ok((jobs, fleet))
+    }
+
+    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+        self.coord_index.create_transport()
+    }
+
+    fn create_extras(&self) -> Extras {
+        Extras::default()
+    }
+}
+
+impl<R: Read> SolomonReader<R> {
     fn read_fleet(&mut self) -> Result<Fleet, String> {
         self.skip_lines(4)?;
         let vehicle = self.read_vehicle()?;
@@ -70,7 +87,7 @@ impl<R: Read> TextReader for SolomonReader<R> {
         loop {
             match self.read_customer() {
                 Ok(customer) => {
-                    let mut dimens = create_dimens_with_id("", customer.id);
+                    let mut dimens = create_dimens_with_id("", &customer.id.to_string());
                     dimens.set_demand(Demand::<SingleDimLoad> {
                         pickup: (SingleDimLoad::default(), SingleDimLoad::default()),
                         delivery: (SingleDimLoad::new(customer.demand as i32), SingleDimLoad::default()),
@@ -97,16 +114,6 @@ impl<R: Read> TextReader for SolomonReader<R> {
         Ok(jobs)
     }
 
-    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
-        self.coord_index.create_transport()
-    }
-
-    fn create_extras(&self) -> Extras {
-        Extras::default()
-    }
-}
-
-impl<R: Read> SolomonReader<R> {
     fn read_vehicle(&mut self) -> Result<VehicleLine, String> {
         read_line(&mut self.reader, &mut self.buffer)?;
         let (number, capacity) = self

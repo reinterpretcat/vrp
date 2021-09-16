@@ -8,8 +8,7 @@ use vrp_core::models::{Extras, Problem};
 
 pub(crate) trait TextReader {
     fn read_problem(&mut self) -> Result<Problem, String> {
-        let fleet = self.read_fleet()?;
-        let jobs = self.read_jobs()?;
+        let (jobs, fleet) = self.read_definitions()?;
         let transport = self.create_transport()?;
         let activity = Arc::new(SimpleActivityCost::default());
         let jobs = Jobs::new(&fleet, jobs, &transport);
@@ -26,9 +25,7 @@ pub(crate) trait TextReader {
         })
     }
 
-    fn read_fleet(&mut self) -> Result<Fleet, String>;
-
-    fn read_jobs(&mut self) -> Result<Vec<Job>, String>;
+    fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String>;
 
     fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String>;
 
@@ -50,12 +47,12 @@ pub(crate) fn create_fleet_with_distance_costs(
                 per_waiting_time: 0.0,
                 per_service_time: 0.0,
             },
-            dimens: create_dimens_with_id("driver", 0),
+            dimens: create_dimens_with_id("driver", &0.to_string()),
             details: Default::default(),
         })],
         (0..number)
             .map(|i| {
-                let mut dimens = create_dimens_with_id("v", i);
+                let mut dimens = create_dimens_with_id("v", &i.to_string());
                 dimens.set_capacity(SingleDimLoad::new(capacity as i32));
                 Arc::new(Vehicle {
                     profile: Profile::default(),
@@ -84,7 +81,7 @@ pub(crate) fn create_fleet_with_distance_costs(
     )
 }
 
-pub(crate) fn create_dimens_with_id(prefix: &str, id: usize) -> Dimensions {
+pub(crate) fn create_dimens_with_id(prefix: &str, id: &str) -> Dimensions {
     let mut dimens = Dimensions::new();
     dimens.set_id([prefix.to_string(), id.to_string()].concat().as_str());
     dimens
