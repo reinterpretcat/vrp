@@ -38,11 +38,11 @@ pub trait PragmaticSolution<W: Write> {
 
 impl<W: Write> PragmaticSolution<W> for (&Solution, f64) {
     fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        write_pragmatic_json(problem, &self.0, None, writer)
+        write_pragmatic_json(problem, self.0, None, writer)
     }
 
     fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        write_geo_json(problem, &self.0, writer)
+        write_geo_json(problem, self.0, writer)
     }
 }
 
@@ -52,7 +52,7 @@ impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &Metrics) {
     }
 
     fn write_geo_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
-        write_geo_json(problem, &self.0, writer)
+        write_geo_json(problem, self.0, writer)
     }
 }
 
