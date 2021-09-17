@@ -17,7 +17,6 @@ fn can_search_individual() {
     assert_eq!(results.len(), 1);
     let individual = results.first().unwrap();
     assert!(!individual.solution.routes.is_empty());
-    assert!(individual.solution.unassigned.is_empty());
     assert!(!heuristic.initial_estimates.is_empty());
     for state in &[SearchState::Diverse, SearchState::BestKnown] {
         let actions = heuristic.initial_estimates.get(state).expect("cannot get state");
