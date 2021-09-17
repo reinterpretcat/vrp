@@ -130,7 +130,7 @@ impl<R: Read> TsplibReader<R> {
         let mut coordinates = HashMap::with_capacity(self.dimension.unwrap());
         for _ in 0..dimension {
             let line = self.read_line()?.trim();
-            let data = line.split(' ').collect::<Vec<_>>();
+            let data = line.split_whitespace().collect::<Vec<_>>();
 
             if data.len() != 3 {
                 return Err(format!("unexpected coord data: '{}'", line));
@@ -147,7 +147,7 @@ impl<R: Read> TsplibReader<R> {
         let mut demands = HashMap::with_capacity(self.dimension.unwrap());
         for _ in 0..dimension {
             let line = self.read_line()?.trim();
-            let data = line.split(' ').collect::<Vec<_>>();
+            let data = line.split_whitespace().collect::<Vec<_>>();
 
             if data.len() != 2 {
                 return Err(format!("unexpected demand data: '{}'", line));
@@ -219,5 +219,8 @@ impl<R: Read> TsplibReader<R> {
 }
 
 fn parse_int(data: &str, err_msg: &str) -> Result<i32, String> {
-    data.parse::<i32>().map_err(|err| format!("{}: '{}'", err_msg, err))
+    data.parse::<f64>()
+        // NOTE observed that some input files might have coordinates like 28.00000
+        .map(|value| value.round() as i32)
+        .map_err(|err| format!("{}: '{}'", err_msg, err))
 }
