@@ -23,9 +23,9 @@ fn get_example_problem_reader() -> BufReader<File> {
 fn can_read_meta_errors() {
     for (from, to, error) in &[
         ("CVRP", "ASD", "expecting 'CVRP' as TYPE, got 'ASD'"),
-        ("DIMENSION : 6", "DIMENSION : asd", "cannot parse DIMENSION: 'invalid digit found in string'"),
+        ("DIMENSION : 6", "DIMENSION : asd", "cannot parse DIMENSION: 'invalid float literal'"),
         ("EUC_2D", "ASD", "expecting 'EUC_2D' as EDGE_WEIGHT_TYPE, got 'ASD'"),
-        ("CAPACITY : 30", "CAPACITY : asd", "cannot parse CAPACITY: 'invalid digit found in string'"),
+        ("CAPACITY : 30", "CAPACITY : asd", "cannot parse CAPACITY: 'invalid float literal'"),
     ] {
         let content = get_example_problem_string().replace(from, to);
         let mut reader = TsplibReader::new(BufReader::new(content.as_bytes()));
