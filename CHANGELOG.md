@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* a basic support for TSPLIB95
+
 
 ## [v1.11.4] - 2021-09-10
 
