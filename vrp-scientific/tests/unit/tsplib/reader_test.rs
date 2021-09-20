@@ -63,7 +63,7 @@ fn can_read_depot_data() {
     reader.read_meta().expect("cannot read meta");
     reader.read_customer_data().expect("cannot read customer data");
 
-    assert_eq!(reader.read_depot_data(), Ok("1".to_string()));
+    assert_eq!(reader.read_depot_data(), Ok(1));
 }
 
 #[test]

@@ -53,7 +53,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
             |mut jobs, (id, (x, y))| {
                 let demand = demands.get(id).cloned().ok_or_else(|| format!("cannot find demand for id: '{}'", id))?;
 
-                jobs.push(self.create_job(id, (*x, *y), demand));
+                jobs.push(self.create_job(&(*id - 1).to_string(), (*x, *y), demand));
 
                 Ok(jobs)
             },
@@ -82,7 +82,7 @@ impl<R: Read> TextReader for TsplibReader<R> {
     }
 }
 
-type ProblemData = (HashMap<String, (i32, i32)>, HashMap<String, i32>);
+type ProblemData = (HashMap<i32, (i32, i32)>, HashMap<i32, i32>);
 
 impl<R: Read> TsplibReader<R> {
     fn new(reader: BufReader<R>) -> Self {
@@ -138,7 +138,7 @@ impl<R: Read> TsplibReader<R> {
 
             let coord = (parse_int(data[1], "cannot parse coord.0")?, parse_int(data[2], "cannot parse coord.1")?);
 
-            coordinates.insert(data[0].to_string(), coord);
+            coordinates.insert(parse_int(data[0], "cannot parse id")?, coord);
         }
 
         // read demand
@@ -153,15 +153,15 @@ impl<R: Read> TsplibReader<R> {
                 return Err(format!("unexpected demand data: '{}'", line));
             }
 
-            demands.insert(data[0].to_string(), parse_int(data[1], "cannot parse demand")?);
+            demands.insert(parse_int(data[0], "cannot parse id")?, parse_int(data[1], "cannot parse demand")?);
         }
 
         Ok((coordinates, demands))
     }
 
-    fn read_depot_data(&mut self) -> Result<String, String> {
+    fn read_depot_data(&mut self) -> Result<i32, String> {
         self.read_expected_line("DEPOT_SECTION")?;
-        let depot_id = self.read_line()?.trim().to_string();
+        let depot_id = parse_int(self.read_line()?.trim(), "cannot parse depot id")?;
         self.read_expected_line("-1")?;
 
         Ok(depot_id)
