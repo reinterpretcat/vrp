@@ -70,7 +70,7 @@ fn can_read_depot_data() {
 fn can_read_problem() {
     let reader = get_example_problem_reader();
 
-    let problem = reader.read_tsplib().expect("cannot read problem");
+    let problem = reader.read_tsplib(false).expect("cannot read problem");
 
     assert_eq!(problem.jobs.size(), 5);
     assert_eq!(problem.fleet.actors.len(), 6);

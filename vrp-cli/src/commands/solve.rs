@@ -38,6 +38,7 @@ const SEARCH_MODE_ARG_NAME: &str = "search-mode";
 const PARALELLISM_ARG_NAME: &str = "parallelism";
 const HEURISTIC_ARG_NAME: &str = "heuristic";
 const EXPERIMENTAL_ARG_NAME: &str = "experimental";
+const ROUNDED_ARG_NAME: &str = "round";
 
 #[allow(clippy::type_complexity)]
 struct ProblemReader(pub Box<dyn Fn(File, Option<Vec<File>>) -> Result<Problem, String>>);
@@ -64,18 +65,20 @@ struct LocationWriter(pub Box<dyn Fn(File, BufWriter<Box<dyn Write>>) -> Result<
 #[allow(clippy::type_complexity)]
 type FormatMap<'a> = HashMap<&'a str, (ProblemReader, InitSolutionReader, SolutionWriter, LocationWriter)>;
 
-fn add_scientific(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>) {
+fn add_scientific(formats: &mut FormatMap, matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) {
     if cfg!(feature = "scientific-format") {
         use vrp_scientific::lilim::{LilimProblem, LilimSolution};
         use vrp_scientific::solomon::read_init_solution as read_init_solomon;
         use vrp_scientific::solomon::{SolomonProblem, SolomonSolution};
 
+        let is_rounded = matches.is_present(ROUNDED_ARG_NAME);
+
         formats.insert(
             "solomon",
             (
-                ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
+                ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    BufReader::new(problem).read_solomon()
+                    BufReader::new(problem).read_solomon(is_rounded)
                 })),
                 InitSolutionReader(Box::new(move |file, problem| {
                     read_init_solomon(BufReader::new(file), problem, random.clone())
@@ -87,9 +90,9 @@ fn add_scientific(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>
         formats.insert(
             "lilim",
             (
-                ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
+                ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    BufReader::new(problem).read_lilim()
+                    BufReader::new(problem).read_lilim(is_rounded)
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
                 SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_lilim(writer))),
@@ -99,9 +102,9 @@ fn add_scientific(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>
         formats.insert(
             "tsplib",
             (
-                ProblemReader(Box::new(|problem: File, matrices: Option<Vec<File>>| {
+                ProblemReader(Box::new(move |problem: File, matrices: Option<Vec<File>>| {
                     assert!(matrices.is_none());
-                    BufReader::new(problem).read_tsplib()
+                    BufReader::new(problem).read_tsplib(is_rounded)
                 })),
                 InitSolutionReader(Box::new(|_file, _problem| unimplemented!())),
                 SolutionWriter(Box::new(|_, solution, cost, _, writer, _| (&solution, cost).write_tsplib(writer))),
@@ -153,10 +156,10 @@ fn add_pragmatic(formats: &mut FormatMap, random: Arc<dyn Random + Send + Sync>)
     );
 }
 
-fn get_formats<'a>(random: Arc<dyn Random + Send + Sync>) -> FormatMap<'a> {
+fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) -> FormatMap<'a> {
     let mut formats = FormatMap::default();
 
-    add_scientific(&mut formats, random.clone());
+    add_scientific(&mut formats, matches, random.clone());
     add_pragmatic(&mut formats, random);
 
     formats
@@ -301,6 +304,13 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
                 .required(false)
                 .takes_value(false),
         )
+        .arg(
+            Arg::with_name(ROUNDED_ARG_NAME)
+                .help("Specifies whether costs are rounded. Applicable only for scientific formats.")
+                .long(ROUNDED_ARG_NAME)
+                .required(false)
+                .takes_value(false),
+        )
 }
 
 /// Runs solver commands.
@@ -310,7 +320,7 @@ pub fn run_solve(
 ) -> Result<(), String> {
     let environment = get_environment(matches)?;
 
-    let formats = get_formats(environment.random.clone());
+    let formats = get_formats(matches, environment.random.clone());
 
     // required
     let problem_path = matches.value_of(PROBLEM_ARG_NAME).unwrap();

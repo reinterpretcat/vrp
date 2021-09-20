@@ -6,7 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-* a basic support for TSPLIB95
+* a limited support for TSPLIB95 format
+
+### Changed
+
+* change defaults for initial solution building logic
 
 
 ## [v1.11.4] - 2021-09-10

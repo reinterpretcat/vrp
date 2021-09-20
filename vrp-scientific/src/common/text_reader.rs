@@ -7,9 +7,9 @@ use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, Problem};
 
 pub(crate) trait TextReader {
-    fn read_problem(&mut self) -> Result<Problem, String> {
+    fn read_problem(&mut self, is_rounded: bool) -> Result<Problem, String> {
         let (jobs, fleet) = self.read_definitions()?;
-        let transport = self.create_transport()?;
+        let transport = self.create_transport(is_rounded)?;
         let activity = Arc::new(SimpleActivityCost::default());
         let jobs = Jobs::new(&fleet, jobs, &transport);
 
@@ -27,7 +27,7 @@ pub(crate) trait TextReader {
 
     fn read_definitions(&mut self) -> Result<(Vec<Job>, Fleet), String>;
 
-    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String>;
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String>;
 
     fn create_extras(&self) -> Extras;
 }

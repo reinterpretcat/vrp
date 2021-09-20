@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/utils/routing_test.rs"]
+mod routing_test;
+
 use std::sync::Arc;
 use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
@@ -24,7 +28,7 @@ impl CoordIndex {
         }
     }
 
-    pub fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+    pub fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
         let matrix_values = self
             .locations
             .iter()
@@ -32,7 +36,13 @@ impl CoordIndex {
                 self.locations.iter().map(move |&(x2, y2)| {
                     let x = x1 as f64 - x2 as f64;
                     let y = y1 as f64 - y2 as f64;
-                    (x * x + y * y).sqrt()
+                    let value = (x * x + y * y).sqrt();
+
+                    if is_rounded {
+                        value.round()
+                    } else {
+                        value
+                    }
                 })
             })
             .collect::<Vec<f64>>();

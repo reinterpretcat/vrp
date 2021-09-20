@@ -15,18 +15,18 @@ use vrp_core::models::{Extras, Problem};
 /// A trait to read tsplib95 problem. Please note that it is very basic implementation of the format specification.
 pub trait TsplibProblem {
     /// Reads tsplib95 problem.
-    fn read_tsplib(self) -> Result<Problem, String>;
+    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, String>;
 }
 
 impl<R: Read> TsplibProblem for BufReader<R> {
-    fn read_tsplib(self) -> Result<Problem, String> {
-        TsplibReader::new(self).read_problem()
+    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, String> {
+        TsplibReader::new(self).read_problem(is_rounded)
     }
 }
 
 impl TsplibProblem for String {
-    fn read_tsplib(self) -> Result<Problem, String> {
-        TsplibReader::new(BufReader::new(self.as_bytes())).read_problem()
+    fn read_tsplib(self, is_rounded: bool) -> Result<Problem, String> {
+        TsplibReader::new(BufReader::new(self.as_bytes())).read_problem(is_rounded)
     }
 }
 
@@ -73,8 +73,8 @@ impl<R: Read> TextReader for TsplibReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
-        self.coord_index.create_transport()
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+        self.coord_index.create_transport(is_rounded)
     }
 
     fn create_extras(&self) -> Extras {

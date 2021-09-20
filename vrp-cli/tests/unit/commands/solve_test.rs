@@ -69,6 +69,12 @@ fn can_specify_experimental_setting() {
 }
 
 #[test]
+fn can_specify_round_setting() {
+    let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--round"];
+    get_solve_app().get_matches_from_safe(args).unwrap();
+}
+
+#[test]
 fn can_specify_heuristic_setting() {
     for (mode, result) in
         vec![("default", Some(())), ("dynamic", Some(())), ("static", Some(())), ("ggg", None), ("multi", None)]

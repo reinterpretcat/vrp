@@ -13,23 +13,23 @@ use vrp_core::models::{Extras, Problem};
 /// A trait read write solomon problem.
 pub trait SolomonProblem {
     /// Reads solomon problem.
-    fn read_solomon(self) -> Result<Problem, String>;
+    fn read_solomon(self, is_rounded: bool) -> Result<Problem, String>;
 }
 
 impl<R: Read> SolomonProblem for BufReader<R> {
-    fn read_solomon(self) -> Result<Problem, String> {
-        read_solomon_format(self)
+    fn read_solomon(self, is_rounded: bool) -> Result<Problem, String> {
+        read_solomon_format(self, is_rounded)
     }
 }
 
 impl SolomonProblem for String {
-    fn read_solomon(self) -> Result<Problem, String> {
-        read_solomon_format(BufReader::new(self.as_bytes()))
+    fn read_solomon(self, is_rounded: bool) -> Result<Problem, String> {
+        read_solomon_format(BufReader::new(self.as_bytes()), is_rounded)
     }
 }
 
-fn read_solomon_format<R: Read>(reader: BufReader<R>) -> Result<Problem, String> {
-    SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem()
+fn read_solomon_format<R: Read>(reader: BufReader<R>, is_rounded: bool) -> Result<Problem, String> {
+    SolomonReader { buffer: String::new(), reader, coord_index: CoordIndex::default() }.read_problem(is_rounded)
 }
 
 struct VehicleLine {
@@ -59,8 +59,8 @@ impl<R: Read> TextReader for SolomonReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
-        self.coord_index.create_transport()
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+        self.coord_index.create_transport(is_rounded)
     }
 
     fn create_extras(&self) -> Extras {

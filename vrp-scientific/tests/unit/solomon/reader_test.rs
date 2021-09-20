@@ -11,7 +11,7 @@ fn can_read_solomon_built_from_builder() {
         .add_customer((2, 3, 0, 2, 0, 1002, 11))
         .add_customer((3, 7, 0, 1, 0, 1000, 12))
         .build()
-        .read_solomon()
+        .read_solomon(false)
         .unwrap();
 
     assert_eq!(get_job_ids(&problem), vec!["1", "2", "3"]);

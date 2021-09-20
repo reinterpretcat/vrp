@@ -28,16 +28,18 @@ pub fn get_test_resource(resource_path: &str) -> std::io::Result<File> {
 
 pub fn create_c101_25_problem() -> Problem {
     BufReader::new(get_test_resource("../../examples/data/scientific/solomon/C101.25.txt").unwrap())
-        .read_solomon()
+        .read_solomon(false)
         .unwrap()
 }
 
 pub fn create_c101_100_problem() -> Problem {
     BufReader::new(get_test_resource("../../examples/data/scientific/solomon/C101.100.txt").unwrap())
-        .read_solomon()
+        .read_solomon(false)
         .unwrap()
 }
 
 pub fn create_lc101_problem() -> Problem {
-    BufReader::new(get_test_resource("../../examples/data/scientific/lilim/LC101.txt").unwrap()).read_lilim().unwrap()
+    BufReader::new(get_test_resource("../../examples/data/scientific/lilim/LC101.txt").unwrap())
+        .read_lilim(false)
+        .unwrap()
 }

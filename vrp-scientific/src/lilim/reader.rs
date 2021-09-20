@@ -14,18 +14,18 @@ use vrp_core::models::{Extras, Problem};
 /// A trait to read lilim problem.
 pub trait LilimProblem {
     /// Reads lilim problem.
-    fn read_lilim(self) -> Result<Problem, String>;
+    fn read_lilim(self, is_rounded: bool) -> Result<Problem, String>;
 }
 
 impl<R: Read> LilimProblem for BufReader<R> {
-    fn read_lilim(self) -> Result<Problem, String> {
-        LilimReader { buffer: String::new(), reader: self, matrix: CoordIndex::default() }.read_problem()
+    fn read_lilim(self, is_rounded: bool) -> Result<Problem, String> {
+        LilimReader { buffer: String::new(), reader: self, matrix: CoordIndex::default() }.read_problem(is_rounded)
     }
 }
 
 impl LilimProblem for String {
-    fn read_lilim(self) -> Result<Problem, String> {
-        BufReader::new(self.as_bytes()).read_lilim()
+    fn read_lilim(self, is_rounded: bool) -> Result<Problem, String> {
+        BufReader::new(self.as_bytes()).read_lilim(is_rounded)
     }
 }
 
@@ -63,8 +63,8 @@ impl<R: Read> TextReader for LilimReader<R> {
         Ok((jobs, fleet))
     }
 
-    fn create_transport(&self) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
-        self.matrix.create_transport()
+    fn create_transport(&self, is_rounded: bool) -> Result<Arc<dyn TransportCost + Send + Sync>, String> {
+        self.matrix.create_transport(is_rounded)
     }
 
     fn create_extras(&self) -> Extras {

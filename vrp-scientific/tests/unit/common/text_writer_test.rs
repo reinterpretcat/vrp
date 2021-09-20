@@ -18,7 +18,7 @@ fn can_write_solomon_solution() {
             .add_customer((0, 0, 0, 0, 0, 1000, 1))
             .add_customer((1, 1, 0, 1, 5, 1000, 5))
             .build()
-            .read_solomon()
+            .read_solomon(false)
             .unwrap(),
     );
 
