@@ -12,7 +12,7 @@ else:
 
 with tempfile.TemporaryDirectory() as root_temp_dir:
     solver_config_root, experiment_config, solver_versions = prepare_environment(root_temp_dir, experiment_config_url)
-    experiment_output_path = "{}/experiments-results.csv".format(os.path.dirname(os.path.realpath(__file__)))
+    experiment_output_path = "{}/collect-metrics-results.csv".format(os.path.dirname(os.path.realpath(__file__)))
 
     with open(experiment_output_path, mode='w') as best_known_file:
         best_known_writer = csv.writer(best_known_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

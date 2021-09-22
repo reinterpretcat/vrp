@@ -25,5 +25,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: experiments-results.csv
-          path: examples/experiments/experiments-results.csv
+          path: examples/experiments/collect-metrics-results.csv
 
