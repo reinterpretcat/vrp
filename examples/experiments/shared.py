@@ -23,10 +23,10 @@ class SolverClient:
     def __init__(self, cli_path):
         self.cli_path = cli_path
 
-    def solve_pragmatic(self, problem_path, matrices, config_path, solution_path):
+    def solve_pragmatic(self, problem_path, matrices, config_path, solution_path, extra_args):
         matrices_args = sum(list(map(lambda m: ['-m', m], matrices)), [])
         command = sum([[self.cli_path], ['solve'], ['pragmatic'], [problem_path], matrices_args,
-                       ['-c'], [config_path], ['-o'], [solution_path]], [])
+                       ['-c'], [config_path], ['-o'], [solution_path], [extra_args]], [])
 
         p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -38,9 +38,10 @@ class SolverClient:
             raise ValueError("cannot solve problem: {}".format(p.stderr))
             pass
 
-    def solve_scientific(self, scientific_format, problem_path, config_path, solution_path):
+    def solve_scientific(self, scientific_format, problem_path, config_path, solution_path, extra_args):
         p = subprocess.run(
-            [self.cli_path, 'solve', scientific_format, problem_path, '-c', config_path, '-o', solution_path],
+            [self.cli_path, 'solve', scientific_format, problem_path, '-c', config_path, '-o', solution_path,
+             extra_args],
             capture_output=True, text=True)
 
         if p.returncode == 0:
@@ -67,8 +68,9 @@ class SolverClient:
                 raise ValueError('cannot get best statistic')
 
             with open(solution_path, 'r') as f:
-                return f.read(), statistic.group('duration'), statistic.group('generations'), statistic.group('speed'), \
-                       best.group('cost'), best.group('tours'), best.group('unassigned')
+                return f.read(), float(statistic.group('duration')), int(statistic.group('generations')), \
+                       float(statistic.group('speed')), float(best.group('cost')), int(best.group('tours')), \
+                       int(best.group('unassigned'))
         else:
             raise ValueError("cannot solve problem: {}".format(p.stderr))
             pass

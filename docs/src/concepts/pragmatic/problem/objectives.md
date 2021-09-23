@@ -49,8 +49,9 @@ There are four work balance objectives available:
 * `balance-duration`: balances tour durations
 
 Each objective has optional parameters defined by `option` property:
-* `threshold`: a target coefficient of variation value which specifies desired minimum balancing level. All values below
-threshold are considered equal which helps the search algorithm to optimize conflicting objectives.
+* `threshold`: a target coefficient of variation (scale invariant statistical measure of dispersion) value which specifies
+desired minimum balancing level. All values below threshold are considered equal which helps the search algorithm to
+optimize conflicting objectives.
 
 It is recommended to set both option values to guide the search towards optimum for conflicting objectives, e.g. cost
 minimization and any of work balance.

@@ -13,7 +13,7 @@ else:
 
 
 def get_best_known_cost(problem_path):
-    best_known_solution_path = "{}.vrp".format(os.path.splitext(problem_path)[0])
+    best_known_solution_path = "{}.sol".format(os.path.splitext(problem_path)[0])
 
     file = open(best_known_solution_path, 'r')
     lines = file.readlines()
@@ -44,12 +44,9 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
         results_writer = csv.writer(best_known_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         results_writer.writerow(["Problem", "Best known", "Solver result", "Comparison"])
 
-        worse_cost = 0
-        better_cost = 0
-        same_cost = 0
-
         for problem_data in experiment_config.data.problems:
             instance_format = problem_data.format
+            extra_args = problem_data.extraArgs
             print("processing {} files in '{}'..".format(instance_format, problem_data.name))
 
             problem_root = "{}/{}/{}".format(root_temp_dir, problem_data.name, instance_format)
@@ -61,22 +58,25 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
                 print("processing {}".format(instance_name))
 
                 print("solver version name: {}".format(solver_cli.name))
-                solution_path = "{}/{}_{}_solution_{}.json".format(solver_cli.path, instance_format, instance_name,
-                                                                   solver_config.name)
+                solution_path = "{}/{}_{}_solution_{}.txt".format(solver_cli.path, instance_format, instance_name,
+                                                                  solver_config.name)
 
                 if instance_format == 'pragmatic':
                     print("skip '{}' in pragmatic format".format(problem_data.name))
                     continue
 
                 _, _, _, _, cost, _, _ = solver_cli.client.solve_scientific(instance_format, instance_path,
-                                                                            solver_config_path, solution_path)
+                                                                            solver_config_path, solution_path,
+                                                                            extra_args)
 
                 best_known_cost = get_best_known_cost(instance_path)
 
-                if best_known_cost > cost:
-                    print("{}: WORSE solution: {} vs {}".format(instance_name, cost, best_known_cost))
+                if best_known_cost < cost:
+                    percentage = 100 * (cost - best_known_cost) / best_known_cost
+                    print("{}: WORSE solution: {} vs {} ({:.2f}%)".format(instance_name, cost, best_known_cost,
+                                                                          percentage))
                     comparison = "worse"
-                elif best_known_cost < cost:
+                elif best_known_cost > cost:
                     print("{}: BETTER solution: {} vs {}".format(instance_name, cost, best_known_cost))
                     comparison = "better"
                 else:

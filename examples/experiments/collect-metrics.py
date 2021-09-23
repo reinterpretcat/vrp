@@ -26,6 +26,7 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
 
             for problem_data in experiment_config.data.problems:
                 instance_format = problem_data.format
+                extra_args = problem_data.extraArgs
                 print("processing {} files in '{}'..".format(instance_format, problem_data.name))
 
                 problem_root = "{}/{}/{}".format(root_temp_dir, problem_data.name, instance_format)
@@ -47,7 +48,7 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
                             if instance_format == 'pragmatic':
                                 instance_matrices = problem_instance.matrices
                                 solution = solver_cli.client.solve_pragmatic(
-                                    instance_path, instance_matrices, solver_config_path, solution_path)
+                                    instance_path, instance_matrices, solver_config_path, solution_path, extra_args)
 
                                 best_known_writer.writerow([
                                     solver_cli.name, solver_config.name, instance_name, 'pragmatic', iteration_number,
@@ -60,7 +61,7 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
                             else:
                                 _, duration, generations, speed, cost, tours, unassigned = \
                                     solver_cli.client.solve_scientific(instance_format, instance_path,
-                                                                       solver_config_path, solution_path)
+                                                                       solver_config_path, solution_path, extra_args)
 
                                 best_known_writer.writerow([
                                     solver_cli.name, solver_config.name, instance_name, instance_format,
