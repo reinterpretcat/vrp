@@ -3,7 +3,7 @@ name: Experiment with configs
 on:
   workflow_dispatch:
     inputs:
-      name:
+      job:
         description: 'An experiment job name (collect-metrics or bench-scientific)'
         required: true
 
