@@ -57,7 +57,6 @@ with tempfile.TemporaryDirectory() as root_temp_dir:
                 instance_path = "{}/{}".format(problem_root, problem_instance.path)
                 print("processing {}".format(instance_name))
 
-                print("solver version name: {}".format(solver_cli.name))
                 solution_path = "{}/{}_{}_solution_{}.txt".format(solver_cli.path, instance_format, instance_name,
                                                                   solver_config.name)
 
