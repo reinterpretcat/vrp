@@ -15,8 +15,12 @@ pub fn get_cv(values: &[f64]) -> f64 {
 
 /// Gets mean of values using given slice.
 pub fn get_mean_slice(values: &[f64]) -> f64 {
-    let sum: f64 = values.iter().sum();
-    sum / values.len() as f64
+    if values.is_empty() {
+        0.
+    } else {
+        let sum: f64 = values.iter().sum();
+        sum / values.len() as f64
+    }
 }
 
 /// Gets mean of values using given iterator.

@@ -270,7 +270,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         // remove user defined nodes
         self.nodes
             .iter_mut()
-            .filter(|(_, node)| node_filter.deref()(node))
+            .filter(|(_, node)| !node_filter.deref()(node))
             .for_each(|(coordinate, node)| remove_node(coordinate, node));
 
         // remove empty nodes which are not at boundary

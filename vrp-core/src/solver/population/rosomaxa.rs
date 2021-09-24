@@ -350,7 +350,8 @@ impl Rosomaxa {
         let percentile_idx = if distances.len() > keep_size {
             distances.len() - keep_size
         } else {
-            const PERCENTILE_THRESHOLD: f64 = 0.1;
+            // NOTE remove 75% of nodes
+            const PERCENTILE_THRESHOLD: f64 = 0.75;
 
             (distances.len() as f64 * PERCENTILE_THRESHOLD) as usize
         };

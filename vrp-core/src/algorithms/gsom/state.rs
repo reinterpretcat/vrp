@@ -5,7 +5,6 @@ mod state_test;
 use super::{Input, Network, Storage};
 use crate::algorithms::gsom::Coordinate;
 use std::fmt::{Display, Formatter, Result, Write};
-use std::i32::{MAX, MIN};
 use std::ops::Range;
 
 /// Represents state of the network.
@@ -35,7 +34,7 @@ pub struct NodeState {
 /// Gets network state.
 pub fn get_network_state<I: Input, S: Storage<Item = I>>(network: &Network<I, S>) -> NetworkState {
     let ((x_min, x_max), (y_min, y_max)) = network.get_coordinates().fold(
-        ((MAX, MIN), (MAX, MIN)),
+        ((i32::MAX, i32::MIN), (i32::MAX, i32::MIN)),
         |((x_min, x_max), (y_min, y_max)), Coordinate(x, y)| {
             ((x_min.min(x), x_max.max(x)), (y_min.min(y), y_max.max(y)))
         },
