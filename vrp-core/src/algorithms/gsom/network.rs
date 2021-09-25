@@ -261,26 +261,34 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     }
 
     fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
+        let original = self.nodes.len();
         let mut removed = vec![];
         let mut remove_node = |coordinate: &Coordinate, node: &mut NodeLink<I, S>| {
-            Self::disconnect_node(node);
-            removed.push(coordinate.clone());
+            if (original - removed.len()) > 4 {
+                Self::disconnect_node(node);
+                removed.push(coordinate.clone());
+                Ok(())
+            } else {
+                Err(())
+            }
         };
 
         // remove user defined nodes
-        self.nodes
+        let _ = self
+            .nodes
             .iter_mut()
             .filter(|(_, node)| !node_filter.deref()(node))
-            .for_each(|(coordinate, node)| remove_node(coordinate, node));
+            .try_for_each(|(coordinate, node)| remove_node(coordinate, node));
 
         // remove empty nodes which are not at boundary
-        self.nodes
+        let _ = self
+            .nodes
             .iter_mut()
             .filter(|(_, node)| {
                 let node = node.read().unwrap();
                 node.storage.size() == 0 && node.topology.is_boundary()
             })
-            .for_each(|(coordinate, node)| remove_node(coordinate, node));
+            .try_for_each(|(coordinate, node)| remove_node(coordinate, node));
 
         removed.iter().for_each(|coordinate| {
             self.nodes.remove(coordinate);

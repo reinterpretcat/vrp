@@ -76,7 +76,7 @@ fn can_optimize_network() {
     rosomaxa.add(create_empty_insertion_context());
     rosomaxa.update_phase(&create_statistics(termination_estimate, 10));
 
-    assert_eq!(get_network(&rosomaxa).get_nodes().count(), 1);
+    assert_eq!(get_network(&rosomaxa).get_nodes().count(), 4);
 }
 
 #[test]
