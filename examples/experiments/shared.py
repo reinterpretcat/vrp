@@ -26,7 +26,10 @@ class SolverClient:
     def solve_pragmatic(self, problem_path, matrices, config_path, solution_path, extra_args):
         matrices_args = sum(list(map(lambda m: ['-m', m], matrices)), [])
         command = sum([[self.cli_path], ['solve'], ['pragmatic'], [problem_path], matrices_args,
-                       ['-c'], [config_path], ['-o'], [solution_path], [extra_args]], [])
+                       ['-c'], [config_path], ['-o'], [solution_path]], [])
+
+        if extra_args != '':
+            command = sum([command], [extra_args])
 
         p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
