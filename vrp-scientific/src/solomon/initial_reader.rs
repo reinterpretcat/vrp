@@ -32,7 +32,10 @@ pub fn read_init_solution<R: Read>(
         match read_line(&mut reader, &mut buffer) {
             Ok(read) if read > 0 => {
                 let route: Vec<_> = buffer.split(':').collect();
-                assert_eq!(route.len(), 2);
+                if route.len() != 2 {
+                    continue;
+                }
+
                 let id_map = problem.jobs.all().fold(HashMap::<String, Arc<Single>>::new(), |mut acc, job| {
                     let single = job.to_single().clone();
                     acc.insert(single.dimens.get_id().unwrap().to_string(), single);
