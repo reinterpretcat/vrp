@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 * a limited support for TSPLIB95 format
+* more validation rules for objective usage
 
 ### Changed
 

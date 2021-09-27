@@ -122,6 +122,8 @@ If order on job task is specified, then it is also added to the list of objectiv
 * [E1603 redundant value objective](../errors/index.md#e1603)
 * [E1604 redundant tour order objective](../errors/index.md#e1604)
 * [E1605 value or order of a job should be greater than zero](../errors/index.md#e1605)
+* [E1606 missing tour order objective](../errors/index.md#e1606)
+* [E1607 missing value objective](../errors/index.md#e1607)
 
 
 ## Examples

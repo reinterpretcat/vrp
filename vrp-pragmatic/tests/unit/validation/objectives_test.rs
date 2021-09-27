@@ -158,3 +158,80 @@ fn can_detect_invalid_value_or_order_impl(value: Option<f64>, order: Option<i32>
 
     assert_eq!(result.err().map(|e| e.code), expected);
 }
+
+parameterized_test! {can_detect_missing_order_objective, (objectives, expected), {
+    can_detect_missing_order_objective_impl(objectives, expected);
+}}
+
+can_detect_missing_order_objective! {
+    case01: (Some(vec![
+                vec![MinimizeUnassignedJobs { breaks: None }],
+                vec![MinimizeCost],
+            ]), Some("E1606".to_string())),
+    case02: (Some(vec![
+                vec![MinimizeUnassignedJobs { breaks: None }],
+                vec![TourOrder { is_constrained: true }],
+                vec![MinimizeCost],
+            ]), None),
+    case03: (None, None),
+}
+
+fn can_detect_missing_order_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<String>) {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![Job {
+                deliveries: Some(vec![JobTask { order: Some(1), ..create_task(vec![1., 0.], None) }]),
+                ..create_job("job1")
+            }],
+            relations: None,
+        },
+        objectives,
+        ..create_empty_problem()
+    };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let objectives = get_objectives(&ctx).unwrap_or_else(Vec::new);
+
+    let result = check_e1606_jobs_with_order_but_no_objective(&ctx, objectives.as_slice());
+
+    assert_eq!(result.err().map(|e| e.code), expected);
+}
+
+parameterized_test! {can_detect_missing_value_objective, (objectives, expected), {
+    can_detect_missing_value_objective_impl(objectives, expected);
+}}
+
+can_detect_missing_value_objective! {
+    case01: (Some(vec![
+                vec![MinimizeUnassignedJobs { breaks: None }],
+                vec![MinimizeCost],
+            ]), Some("E1607".to_string())),
+    case02: (Some(vec![
+                vec![MinimizeUnassignedJobs { breaks: None }],
+                vec![MaximizeValue { breaks: None, reduction_factor: None }],
+                vec![MinimizeCost],
+            ]), None),
+    case03: (None, None),
+}
+
+fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Vec<Objective>>>, expected: Option<String>) {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![Job {
+                deliveries: Some(vec![create_task(vec![1., 0.], None)]),
+                value: Some(1.),
+                ..create_job("job1")
+            }],
+            relations: None,
+        },
+        objectives,
+        ..create_empty_problem()
+    };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let objectives = get_objectives(&ctx).unwrap_or_else(Vec::new);
+
+    let result = check_e1607_jobs_with_value_but_no_objective(&ctx, objectives.as_slice());
+
+    assert_eq!(result.err().map(|e| e.code), expected);
+}

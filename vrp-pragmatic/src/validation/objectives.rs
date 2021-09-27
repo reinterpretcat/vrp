@@ -140,6 +140,54 @@ fn check_e1605_check_positive_value_and_order(ctx: &ValidationContext) -> Result
     }
 }
 
+/// Checks that order objective is specified when some jobs have order property set.
+fn check_e1606_jobs_with_order_but_no_objective(
+    ctx: &ValidationContext,
+    objectives: &[&Objective],
+) -> Result<(), FormatError> {
+    if objectives.is_empty() {
+        return Ok(());
+    }
+
+    let has_no_order_objective = !objectives.iter().any(|objective| matches!(objective, TourOrder { .. }));
+    let has_jobs_with_order =
+        ctx.problem.plan.jobs.iter().flat_map(get_job_tasks).filter_map(|job| job.order).any(|value| value > 0);
+
+    if has_no_order_objective && has_jobs_with_order {
+        Err(FormatError::new(
+            "E1606".to_string(),
+            "missing tour order objective".to_string(),
+            "specify 'tour-order' objective, remove objectives property or remove order property from jobs".to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+/// Checks that value objective is specified when some jobs have value property set.
+fn check_e1607_jobs_with_value_but_no_objective(
+    ctx: &ValidationContext,
+    objectives: &[&Objective],
+) -> Result<(), FormatError> {
+    if objectives.is_empty() {
+        return Ok(());
+    }
+
+    let has_no_value_objective = !objectives.iter().any(|objective| matches!(objective, MaximizeValue { .. }));
+    let has_jobs_with_vlue = ctx.problem.plan.jobs.iter().filter_map(|job| job.value).any(|value| value > 0.);
+
+    if has_no_value_objective && has_jobs_with_vlue {
+        Err(FormatError::new(
+            "E1607".to_string(),
+            "missing value objective".to_string(),
+            "specify 'maximize-value' objective, remove objectives property or remove value property from jobs"
+                .to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
     ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().flatten().collect())
 }
@@ -153,6 +201,8 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatErro
             check_e1603_no_jobs_with_value_objective(ctx, &objectives),
             check_e1604_no_jobs_with_order_objective(ctx, &objectives),
             check_e1605_check_positive_value_and_order(ctx),
+            check_e1606_jobs_with_order_but_no_objective(ctx, &objectives),
+            check_e1607_jobs_with_value_but_no_objective(ctx, &objectives),
         ])
     } else {
         Ok(())
