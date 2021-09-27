@@ -427,12 +427,13 @@ pub enum Objective {
     #[serde(rename(deserialize = "maximize-value", serialize = "maximize-value"))]
     MaximizeValue {
         /// Specifies a weight of skipped breaks. Default value is 100.
-        #[serde(rename = "camelCase")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         breaks: Option<f64>,
 
         /// A factor to reduce value cost compared to max cost.
         /// Default value is 0.1.
-        #[serde(rename = "camelCase")]
+        #[serde(rename = "reductionFactor")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         reduction_factor: Option<f64>,
     },
 
