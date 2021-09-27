@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.11.5] - 2021-09-27
+
 ### Added
 
 * a limited support for TSPLIB95 format
@@ -384,7 +387,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.11.4...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.11.5...HEAD
+[v1.11.5]: https://github.com/reinterpretcat/vrp/compare/v1.11.4...v1.11.5
 [v1.11.4]: https://github.com/reinterpretcat/vrp/compare/v1.11.3...v1.11.4
 [v1.11.3]: https://github.com/reinterpretcat/vrp/compare/v1.11.2...v1.11.3
 [v1.11.2]: https://github.com/reinterpretcat/vrp/compare/v1.11.1...v1.11.2
