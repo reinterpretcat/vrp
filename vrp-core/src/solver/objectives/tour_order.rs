@@ -22,19 +22,7 @@ impl TourOrder {
     pub fn new_unconstrained(
         order_func: Arc<dyn Fn(&Single) -> Option<f64> + Send + Sync>,
     ) -> (TargetConstraint, TargetObjective) {
-        let state_key = TOUR_ORDER_KEY;
-
-        let constraint = TourOrderConstraint {
-            constraints: vec![ConstraintVariant::SoftActivity(Arc::new(TourOrderSoftActivityConstraint {
-                order_func: order_func.clone(),
-            }))],
-            keys: vec![state_key],
-            order_func: order_func.clone(),
-        };
-
-        let objective = OrderActivityObjective { order_func, state_key };
-
-        (Arc::new(constraint), Arc::new(objective))
+        Self::new_objective(order_func, None)
     }
 
     /// Creates instances of constrained tour order logic: more prioritized jobs are not allowed to
@@ -42,9 +30,16 @@ impl TourOrder {
     pub fn new_constrained(
         order_func: Arc<dyn Fn(&Single) -> Option<f64> + Send + Sync>,
         constraint_code: i32,
-    ) -> TargetConstraint {
-        Arc::new(TourOrderConstraint {
-            constraints: vec![
+    ) -> (TargetConstraint, TargetObjective) {
+        Self::new_objective(order_func, Some(constraint_code))
+    }
+
+    fn new_objective(
+        order_func: Arc<dyn Fn(&Single) -> Option<f64> + Send + Sync>,
+        constraint_code: Option<i32>,
+    ) -> (TargetConstraint, TargetObjective) {
+        let constraints = if let Some(constraint_code) = constraint_code {
+            vec![
                 ConstraintVariant::SoftActivity(Arc::new(TourOrderSoftActivityConstraint {
                     order_func: order_func.clone(),
                 })),
@@ -52,10 +47,19 @@ impl TourOrder {
                     order_func: order_func.clone(),
                     constraint_code,
                 })),
-            ],
-            keys: vec![],
-            order_func,
-        })
+            ]
+        } else {
+            vec![ConstraintVariant::SoftActivity(Arc::new(TourOrderSoftActivityConstraint {
+                order_func: order_func.clone(),
+            }))]
+        };
+
+        let constraint =
+            TourOrderConstraint { constraints, keys: vec![TOUR_ORDER_KEY], order_func: order_func.clone() };
+
+        let objective = OrderActivityObjective { order_func, state_key: TOUR_ORDER_KEY };
+
+        (Arc::new(constraint), Arc::new(objective))
     }
 }
 

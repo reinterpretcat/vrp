@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * change defaults for initial solution building logic
+* improve tour order objective logic
 
 
 ## [v1.11.4] - 2021-09-10

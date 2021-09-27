@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/format/problem/objective_reader_test.rs"]
+mod objective_reader_test;
+
 use crate::core::models::common::ValueDimension;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
@@ -79,9 +83,7 @@ pub fn create_objective(
                         FormatTourOrder { is_constrained } => {
                             let (module, objective) = get_order(*is_constrained);
                             constraint.add_module(module);
-                            if let Some(objective) = objective {
-                                core_objectives.push(objective);
-                            }
+                            core_objectives.push(objective);
                         }
                     });
                     core_objectives
@@ -104,10 +106,7 @@ pub fn create_objective(
             if has_order {
                 let (order_module, order_objective) = get_order(false);
                 constraint.add_module(order_module);
-
-                if let Some(order_objective) = order_objective {
-                    objectives.insert(2, vec![order_objective]);
-                }
+                objectives.insert(2, vec![order_objective]);
             }
 
             ObjectiveCost::new(objectives)
@@ -121,10 +120,7 @@ pub fn create_objective(
                 vec![Arc::new(TotalRoutes::default())],
                 vec![TotalCost::minimize()],
             ];
-
-            if let Some(order_objective) = order_objective {
-                objectives.insert(2, vec![order_objective]);
-            }
+            objectives.insert(1, vec![order_objective]);
 
             ObjectiveCost::new(objectives)
         }
@@ -156,14 +152,13 @@ fn get_value(
     )
 }
 
-fn get_order(is_constrained: bool) -> (TargetConstraint, Option<TargetObjective>) {
+fn get_order(is_constrained: bool) -> (TargetConstraint, TargetObjective) {
     let order_func = Arc::new(|single: &Single| single.dimens.get_value::<i32>("order").map(|order| *order as f64));
 
     if is_constrained {
-        (CoreTourOrder::new_constrained(order_func, TOUR_ORDER_CONSTRAINT_CODE), None)
+        CoreTourOrder::new_constrained(order_func, TOUR_ORDER_CONSTRAINT_CODE)
     } else {
-        let (constraint, objective) = CoreTourOrder::new_unconstrained(order_func);
-        (constraint, Some(objective))
+        CoreTourOrder::new_unconstrained(order_func)
     }
 }
 

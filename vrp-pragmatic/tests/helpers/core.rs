@@ -1,9 +1,11 @@
+use crate::core::construction::heuristics::InsertionContext;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
+use vrp_core::models::examples::create_example_problem;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::*;
-use vrp_core::utils::DefaultRandom;
+use vrp_core::utils::{DefaultRandom, Environment};
 
 const DEFAULT_VEHICLE_COSTS: Costs =
     Costs { fixed: 100.0, per_distance: 1.0, per_driving_time: 1.0, per_waiting_time: 1.0, per_service_time: 1.0 };
@@ -89,5 +91,14 @@ pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
         state: Default::default(),
         routes: Default::default(),
         registry: RegistryContext::new(Registry::new(&fleet, Arc::new(DefaultRandom::default()))),
+    }
+}
+
+pub fn create_empty_insertion_context() -> InsertionContext {
+    let problem = create_example_problem();
+    InsertionContext {
+        problem: problem.clone(),
+        solution: create_solution_context_for_fleet(problem.fleet.as_ref()),
+        environment: Arc::new(Environment::default()),
     }
 }
