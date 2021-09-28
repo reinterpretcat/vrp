@@ -40,6 +40,8 @@ pub struct NetworkConfig {
     pub learning_rate: f64,
     /// A rebalance memory.
     pub rebalance_memory: usize,
+    /// If set to true, initial nodes have error set to the value equal to growing threshold.
+    pub has_initial_error: bool,
 }
 
 impl<I: Input, S: Storage<Item = I>> Network<I, S> {
@@ -50,14 +52,18 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         assert!(roots.iter().all(|r| r.weights().len() == dimension));
         assert!(config.distribution_factor > 0. && config.distribution_factor < 1.);
 
+        let time = 0;
+        let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
+        let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
+
         Self {
             dimension,
-            growing_threshold: -1. * dimension as f64 * config.spread_factor.log2(),
+            growing_threshold,
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
-            nodes: Self::create_initial_nodes(roots, 0, config.rebalance_memory, &storage_factory),
+            nodes: Self::create_initial_nodes(roots, time, initial_error, config.rebalance_memory, &storage_factory),
             storage_factory,
-            time: 0,
+            time,
             rebalance_memory: config.rebalance_memory,
         }
     }
@@ -213,6 +219,7 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         let new_node = Arc::new(RwLock::new(Node::new(
             coordinate.clone(),
             weights,
+            0.,
             self.time,
             self.rebalance_memory,
             self.storage_factory.deref()(),
@@ -308,12 +315,19 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     fn create_initial_nodes(
         roots: [I; 4],
         time: usize,
+        initial_error: f64,
         rebalance_memory: usize,
         storage_factory: &(dyn Fn() -> S + Send + Sync),
     ) -> HashMap<Coordinate, NodeLink<I, S>> {
         let create_node_link = |coordinate: Coordinate, input: I| {
-            let mut node =
-                Node::<I, S>::new(coordinate, input.weights(), time, rebalance_memory, storage_factory.deref()());
+            let mut node = Node::<I, S>::new(
+                coordinate,
+                input.weights(),
+                initial_error,
+                time,
+                rebalance_memory,
+                storage_factory.deref()(),
+            );
             node.storage.add(input);
             Arc::new(RwLock::new(node))
         };

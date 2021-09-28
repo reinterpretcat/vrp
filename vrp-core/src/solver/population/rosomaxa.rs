@@ -384,6 +384,7 @@ impl Rosomaxa {
                 distribution_factor: config.distribution_factor,
                 learning_rate: config.learning_rate,
                 rebalance_memory: config.rebalance_memory,
+                has_initial_error: true,
             },
             Box::new({
                 let node_size = config.node_size;

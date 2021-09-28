@@ -3,7 +3,7 @@ use crate::helpers::algorithms::gsom::create_test_network;
 
 #[test]
 fn can_get_state() {
-    let network = create_test_network();
+    let network = create_test_network(false);
 
     let state = get_network_state(&network);
 
@@ -13,7 +13,7 @@ fn can_get_state() {
 
 #[test]
 fn can_format_state() {
-    let network = create_test_network();
+    let network = create_test_network(false);
     let state = get_network_state(&network);
 
     let result = format!("{}", state);

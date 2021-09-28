@@ -3,7 +3,7 @@ use crate::utils::{DefaultRandom, Random};
 
 #[test]
 fn can_train_network() {
-    let mut network = create_test_network();
+    let mut network = create_test_network(false);
     let samples = vec![Data::new(1.0, 0.0, 0.0), Data::new(0.0, 1.0, 0.0), Data::new(0.0, 0.0, 1.0)];
 
     // train
@@ -26,4 +26,21 @@ fn can_train_network() {
         assert_eq!(node.storage.data.first().unwrap().values, sample.values);
         assert_eq!(node.weights.iter().map(|v| v.round()).collect::<Vec<_>>(), sample.values);
     });
+}
+
+parameterized_test! {can_use_initial_error_parameter, (has_initial_error, size), {
+    can_use_initial_error_parameter_impl(has_initial_error, size);
+}}
+
+can_use_initial_error_parameter! {
+    case01: (false, 4),
+    case02: (true, 6),
+}
+
+fn can_use_initial_error_parameter_impl(has_initial_error: bool, size: usize) {
+    let mut network = create_test_network(has_initial_error);
+
+    network.train(Data::new(1.0, 0.0, 0.0), true);
+
+    assert_eq!(network.size(), size);
 }
