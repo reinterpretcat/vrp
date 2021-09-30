@@ -52,7 +52,6 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
         assert!(roots.iter().all(|r| r.weights().len() == dimension));
         assert!(config.distribution_factor > 0. && config.distribution_factor < 1.);
 
-        let time = 0;
         let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
 
@@ -61,9 +60,9 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             growing_threshold,
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
-            nodes: Self::create_initial_nodes(roots, time, initial_error, config.rebalance_memory, &storage_factory),
+            nodes: Self::create_initial_nodes(roots, initial_error, config.rebalance_memory, &storage_factory),
             storage_factory,
-            time,
+            time: 0,
             rebalance_memory: config.rebalance_memory,
         }
     }
@@ -112,6 +111,11 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     /// Returns a total amount of nodes.
     pub fn size(&self) -> usize {
         self.nodes.len()
+    }
+
+    /// Returns current time.
+    pub fn get_current_time(&self) -> usize {
+        self.time
     }
 
     /// Trains network on an input.
@@ -220,7 +224,6 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
             coordinate.clone(),
             weights,
             0.,
-            self.time,
             self.rebalance_memory,
             self.storage_factory.deref()(),
         )));
@@ -314,7 +317,6 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
     /// Creates nodes for initial topology.
     fn create_initial_nodes(
         roots: [I; 4],
-        time: usize,
         initial_error: f64,
         rebalance_memory: usize,
         storage_factory: &(dyn Fn() -> S + Send + Sync),
@@ -324,7 +326,6 @@ impl<I: Input, S: Storage<Item = I>> Network<I, S> {
                 coordinate,
                 input.weights(),
                 initial_error,
-                time,
                 rebalance_memory,
                 storage_factory.deref()(),
             );

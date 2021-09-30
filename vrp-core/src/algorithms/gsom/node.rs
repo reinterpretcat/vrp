@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/algorithms/gsom/node_test.rs"]
+mod node_test;
+
 use super::*;
 use std::collections::VecDeque;
 use std::sync::{Arc, RwLock};
@@ -18,8 +22,6 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
     pub topology: Topology<I, S>,
     /// Remembers passed data.
     pub storage: S,
-    /// A node creating time.
-    pub creation_time: usize,
     /// How many last hits should be remembered.
     hit_memory_size: usize,
 }
@@ -47,14 +49,7 @@ pub struct Coordinate(pub i32, pub i32);
 
 impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Creates a new instance of `Node`.
-    pub fn new(
-        coordinate: Coordinate,
-        weights: &[f64],
-        error: f64,
-        time: usize,
-        hit_memory_size: usize,
-        storage: S,
-    ) -> Self {
+    pub fn new(coordinate: Coordinate, weights: &[f64], error: f64, hit_memory_size: usize, storage: S) -> Self {
         Self {
             weights: weights.to_vec(),
             error,
@@ -63,7 +58,6 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             coordinate,
             topology: Topology::empty(weights.len()),
             storage,
-            creation_time: time,
             hit_memory_size,
         }
     }
@@ -91,9 +85,18 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
         }
     }
 
-    /// Checks whether time is considered old.
-    pub fn is_old(&self, time: usize) -> bool {
-        (time as i32 - self.hit_memory_size as i32) > self.creation_time as i32
+    /// Returns amount of last hits.
+    pub fn get_last_hits(&self, current_time: usize) -> usize {
+        self.last_hits
+            .iter()
+            .filter(|&hit| {
+                if current_time > self.hit_memory_size {
+                    (current_time - self.hit_memory_size) < *hit
+                } else {
+                    true
+                }
+            })
+            .count()
     }
 }
 
