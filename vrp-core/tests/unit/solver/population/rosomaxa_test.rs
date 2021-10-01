@@ -113,14 +113,14 @@ fn can_get_population_shuffle_amount() {
         improvement_1000_ratio: 0.99,
         termination_estimate,
     };
-    assert_eq!(Rosomaxa::get_shuffle_amount(&high_improvement(0.), 100), 50);
-    assert_eq!(Rosomaxa::get_shuffle_amount(&high_improvement(0.20), 100), 48);
-    assert_eq!(Rosomaxa::get_shuffle_amount(&high_improvement(0.25), 100), 46);
-    assert_eq!(Rosomaxa::get_shuffle_amount(&high_improvement(0.5), 100), 25);
-    assert_eq!(Rosomaxa::get_shuffle_amount(&high_improvement(0.55), 100), 19);
-    assert_eq!(Rosomaxa::get_shuffle_amount(&high_improvement(0.65), 100), 10);
-    assert_eq!(Rosomaxa::get_shuffle_amount(&high_improvement(0.75), 100), 10);
-    assert_eq!(Rosomaxa::get_shuffle_amount(&high_improvement(1.), 100), 10);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&high_improvement(0.), 100), 50);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&high_improvement(0.20), 100), 48);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&high_improvement(0.25), 100), 46);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&high_improvement(0.5), 100), 25);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&high_improvement(0.55), 100), 19);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&high_improvement(0.65), 100), 10);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&high_improvement(0.75), 100), 10);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&high_improvement(1.), 100), 10);
 
     let some_improvement = |ratio: f64, termination_estimate: f64| Statistics {
         generation: 1,
@@ -130,6 +130,6 @@ fn can_get_population_shuffle_amount() {
         improvement_1000_ratio: ratio,
         termination_estimate,
     };
-    assert_eq!(Rosomaxa::get_shuffle_amount(&some_improvement(0.3, 0.55), 100), 50);
-    assert_eq!(Rosomaxa::get_shuffle_amount(&some_improvement(0.1, 0.55), 100), 100);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&some_improvement(0.3, 0.55), 100), 50);
+    assert_eq!(Rosomaxa::calculate_shuffle_amount(&some_improvement(0.1, 0.55), 100), 100);
 }

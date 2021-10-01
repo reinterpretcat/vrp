@@ -137,7 +137,7 @@ impl Population for Rosomaxa {
                     self.elite
                         .select()
                         .take(elite_explore_size)
-                        .chain(coordinates.iter().flat_map(move |(coordinate, _)| {
+                        .chain(coordinates.iter().flat_map(move |(coordinate, _, _)| {
                             let explore_size = self.environment.random.uniform_int(1, node_explore_size) as usize;
 
                             network
@@ -275,29 +275,41 @@ impl Rosomaxa {
 
     fn fill_populations<'a>(
         network: &'a IndividualNetwork,
-        coordinates: &mut Vec<(Coordinate, f64)>,
+        coordinates: &mut Vec<(Coordinate, f64, usize)>,
         best_fitness: &[f64],
         statistics: &Statistics,
         random: &(dyn Random + Send + Sync),
     ) {
         coordinates.clear();
         coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
-            node.read().unwrap().storage.population.select().next().map(|individual| {
-                (coordinate.clone(), relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()))
-            })
+            let node = node.read().unwrap();
+            let coordinate = node.storage.population.select().next().map(|individual| {
+                (
+                    coordinate.clone(),
+                    relative_distance(best_fitness.iter().cloned(), individual.get_fitness_values()),
+                    node.get_last_hits(network.get_current_time()),
+                )
+            });
+
+            coordinate
         }));
 
-        let shuffle_amount = Self::get_shuffle_amount(statistics, coordinates.len());
+        let shuffle_amount = Self::calculate_shuffle_amount(statistics, coordinates.len());
         if shuffle_amount != coordinates.len() {
             // partially randomize order
-            coordinates.sort_by(|(_, a), (_, b)| compare_floats(*a, *b));
+            if random.is_head_not_tails() {
+                coordinates.sort_by(|(_, distance_a, _), (_, distance_b, _)| compare_floats(*distance_a, *distance_b));
+            } else {
+                coordinates.sort_by(|(_, _, last_hit_a), (_, _, last_hit_b)| last_hit_a.cmp(last_hit_b));
+            }
+
             coordinates.partial_shuffle(&mut random.get_rng(), shuffle_amount);
         } else {
             coordinates.shuffle(&mut random.get_rng());
         }
     }
 
-    fn get_shuffle_amount(statistics: &Statistics, length: usize) -> usize {
+    fn calculate_shuffle_amount(statistics: &Statistics, length: usize) -> usize {
         let ratio = match statistics.improvement_1000_ratio {
             v if v > 0.5 => {
                 // https://www.wolframalpha.com/input/?i=plot+0.66+*+%281-+1%2F%281%2Be%5E%28-10+*%28x+-+0.5%29%29%29%29%2C+x%3D0+to+1
@@ -421,7 +433,7 @@ enum RosomaxaPhases {
     },
     Exploration {
         network: IndividualNetwork,
-        coordinates: Vec<(Coordinate, f64)>,
+        coordinates: Vec<(Coordinate, f64, usize)>,
         statistics: Statistics,
         selection_size: usize,
     },
