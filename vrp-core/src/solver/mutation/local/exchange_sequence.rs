@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/solver/mutation/local/exchange_sequence_test.rs"]
+mod exchange_sequence_test;
+
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::LocalOperator;
@@ -12,6 +16,15 @@ pub struct ExchangeSequence {
     max_sequence_size: usize,
 }
 
+impl ExchangeSequence {
+    /// Creates a new instance of `ExchangeSequence`.
+    pub fn new(max_sequence_size: usize) -> Self {
+        assert!(max_sequence_size >= MIN_JOBS);
+
+        Self { max_sequence_size }
+    }
+}
+
 impl LocalOperator for ExchangeSequence {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
         let route_indices = insertion_ctx
@@ -20,14 +33,14 @@ impl LocalOperator for ExchangeSequence {
             .iter()
             .enumerate()
             .filter_map(|(idx, route_ctx)| {
-                let has_locked_jobs =
-                    route_ctx.route.tour.jobs().any(|job| insertion_ctx.solution.locked.contains(&job));
-                let has_enough_jobs = route_ctx.route.tour.job_count() >= MIN_JOBS;
+                let locked_jobs =
+                    route_ctx.route.tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(&job)).count();
+                let has_enough_jobs = (route_ctx.route.tour.job_count() - locked_jobs) >= MIN_JOBS;
 
-                if has_locked_jobs || has_enough_jobs {
-                    None
-                } else {
+                if has_enough_jobs {
                     Some(idx)
+                } else {
+                    None
                 }
             })
             .collect::<Vec<_>>();
@@ -71,6 +84,7 @@ fn exchange_jobs(insertion_ctx: &mut InsertionContext, route_indices: &[usize], 
 }
 
 fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence_size: usize) -> Vec<Job> {
+    let locked = &insertion_ctx.solution.locked;
     let route_ctx = insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
     let job_count = route_ctx.route.tour.job_count();
 
@@ -80,7 +94,7 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
     let (_, jobs) = route_ctx.route.tour.all_activities().filter_map(|activity| activity.retrieve_job()).fold(
         (HashSet::<Job>::default(), Vec::with_capacity(job_count)),
         |(mut set, mut vec), job| {
-            if !set.contains(&job) {
+            if !set.contains(&job) && !locked.contains(&job) {
                 vec.push(job)
             } else {
                 set.insert(job);
@@ -90,19 +104,23 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
         },
     );
 
-    assert_eq!(jobs.len(), job_count);
+    assert_eq!(jobs.len(), job_count - locked.len());
 
     let last_index = job_count - sequence_size;
     let start_index = insertion_ctx.environment.random.uniform_int(1, last_index as i32) as usize;
 
-    (start_index..(start_index + sequence_size)).for_each(|index| {
-        let job = jobs.get(index).unwrap();
-        assert!(route_ctx.route_mut().tour.remove(job));
-    });
+    let removed =
+        (start_index..(start_index + sequence_size)).fold(Vec::with_capacity(sequence_size), |mut acc, index| {
+            let job = jobs.get(index).unwrap();
+            assert!(route_ctx.route_mut().tour.remove(job));
+            acc.push(job.clone());
+
+            acc
+        });
 
     insertion_ctx.problem.constraint.accept_route_state(route_ctx);
 
-    jobs
+    removed
 }
 
 fn insert_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, jobs: Vec<Job>) {

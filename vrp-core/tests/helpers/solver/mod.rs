@@ -1,4 +1,5 @@
 use crate::algorithms::geometry::Point;
+use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
@@ -11,6 +12,9 @@ use crate::solver::population::create_elitism_population;
 use crate::solver::RefinementContext;
 use crate::utils::Environment;
 use std::sync::Arc;
+
+mod mutation;
+pub use self::mutation::*;
 
 pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext {
     let environment = Arc::new(Environment::default());
