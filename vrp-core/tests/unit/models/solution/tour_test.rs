@@ -36,7 +36,7 @@ fn can_set_and_get_start() {
     let pointer = get_memory_address(&tour.activities[0]);
 
     assert_eq!(pointer, get_memory_address(tour.start().unwrap()));
-    assert_eq!(tour.activity_count(), 0);
+    assert_eq!(tour.job_activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 }
 
@@ -50,7 +50,7 @@ fn can_set_and_get_end() {
     let pointer = get_memory_address(&tour.activities[1]);
 
     assert_eq!(pointer, get_memory_address(tour.end().unwrap()));
-    assert_eq!(tour.activity_count(), 0);
+    assert_eq!(tour.job_activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 }
 
@@ -166,15 +166,15 @@ fn can_get_activity_and_job_count() {
     let mut tour = Tour::default();
 
     tour.set_start(test_activity_without_job());
-    assert_eq!(tour.activity_count(), 0);
+    assert_eq!(tour.job_activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 
     tour.set_end(test_activity_without_job());
-    assert_eq!(tour.activity_count(), 0);
+    assert_eq!(tour.job_activity_count(), 0);
     assert_eq!(tour.job_count(), 0);
 
     tour.insert_last(test_activity());
-    assert_eq!(tour.activity_count(), 1);
+    assert_eq!(tour.job_activity_count(), 1);
     assert_eq!(tour.job_count(), 1);
 }
 

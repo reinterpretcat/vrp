@@ -64,10 +64,14 @@ impl WorkBalance {
         GenericValue::new_constrained_objective(
             threshold,
             tolerance,
-            Arc::new(|rc: &RouteContext| rc.route.tour.activity_count() as f64),
+            Arc::new(|rc: &RouteContext| rc.route.tour.job_activity_count() as f64),
             Arc::new(|ctx: &SolutionContext| {
                 get_cv_safe(
-                    ctx.routes.iter().map(|rc| rc.route.tour.activity_count() as f64).collect::<Vec<_>>().as_slice(),
+                    ctx.routes
+                        .iter()
+                        .map(|rc| rc.route.tour.job_activity_count() as f64)
+                        .collect::<Vec<_>>()
+                        .as_slice(),
                 )
             }),
             Arc::new(|solution_ctx, _, _, value| value * solution_ctx.get_max_cost()),

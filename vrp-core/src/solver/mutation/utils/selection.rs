@@ -69,7 +69,7 @@ pub(crate) fn select_seed_job(
 }
 
 pub(crate) fn select_random_job(rc: &RouteContext, random: &Arc<dyn Random + Send + Sync>) -> Option<Job> {
-    let size = rc.route.tour.activity_count();
+    let size = rc.route.tour.job_activity_count();
     if size == 0 {
         return None;
     }

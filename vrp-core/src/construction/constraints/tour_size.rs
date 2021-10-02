@@ -52,7 +52,7 @@ struct TourSizeHardRouteConstraint {
 impl HardRouteConstraint for TourSizeHardRouteConstraint {
     fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if let Some(limit) = self.limit_func.deref()(ctx.route.actor.as_ref()) {
-            let tour_activities = ctx.route.tour.activity_count();
+            let tour_activities = ctx.route.tour.job_activity_count();
 
             let job_activities = match job {
                 Job::Single(_) => 1,

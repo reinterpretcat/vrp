@@ -136,17 +136,17 @@ impl Default for ConstraintPipeline {
 impl ConstraintPipeline {
     /// Accepts job insertion.
     pub fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
-        let activities = solution_ctx.routes.get_mut(route_index).unwrap().route.tour.activity_count();
+        let activities = solution_ctx.routes.get_mut(route_index).unwrap().route.tour.job_activity_count();
         self.modules.iter().for_each(|c| c.accept_insertion(solution_ctx, route_index, job));
-        assert_eq!(activities, solution_ctx.routes.get_mut(route_index).unwrap().route.tour.activity_count());
+        assert_eq!(activities, solution_ctx.routes.get_mut(route_index).unwrap().route.tour.job_activity_count());
     }
 
     /// Accepts route state.
     pub fn accept_route_state(&self, route_ctx: &mut RouteContext) {
         if route_ctx.is_stale() {
-            let activities = route_ctx.route.tour.activity_count();
+            let activities = route_ctx.route.tour.job_activity_count();
             self.modules.iter().for_each(|c| c.accept_route_state(route_ctx));
-            assert_eq!(activities, route_ctx.route.tour.activity_count());
+            assert_eq!(activities, route_ctx.route.tour.job_activity_count());
 
             route_ctx.mark_stale(false);
         }

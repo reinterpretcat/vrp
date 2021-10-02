@@ -59,7 +59,7 @@ impl Tour {
 
     /// Inserts activity within its job to the end of tour.
     pub fn insert_last(&mut self, activity: Activity) -> &mut Tour {
-        self.insert_at(activity, self.activity_count() + 1);
+        self.insert_at(activity, self.job_activity_count() + 1);
         self
     }
 
@@ -167,8 +167,8 @@ impl Tour {
         !self.jobs.is_empty()
     }
 
-    /// Returns amount of job activities.
-    pub fn activity_count(&self) -> usize {
+    /// Returns total amount of job activities.
+    pub fn job_activity_count(&self) -> usize {
         if self.activities.is_empty() {
             0
         } else {

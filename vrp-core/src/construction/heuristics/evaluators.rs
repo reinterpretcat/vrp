@@ -168,7 +168,7 @@ fn evaluate_multi(
         |acc_res, services| {
             let mut shadow = ShadowContext::new(constraint, route_ctx);
             let perm_res = unwrap_from_result(repeat(0).try_fold(MultiContext::new(None, insertion_idx), |out, _| {
-                if out.is_failure(route_ctx.route.tour.activity_count()) {
+                if out.is_failure(route_ctx.route.tour.job_activity_count()) {
                     return Result::Err(out);
                 }
                 shadow.restore(route_ctx);

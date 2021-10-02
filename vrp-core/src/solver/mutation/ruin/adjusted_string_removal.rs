@@ -78,7 +78,7 @@ impl Ruin for AdjustedStringRemoval {
                     .iter_mut()
                     .for_each(|rc| {
                         // Equations 8, 9: calculate cardinality of the string removed from the tour
-                        let ltmax = rc.route.tour.activity_count().min(lsmax);
+                        let ltmax = rc.route.tour.job_activity_count().min(lsmax);
                         let lt = random.uniform_real(1.0, ltmax as f64 + 1.).floor() as usize;
 
                         if let Some(index) = rc.route.tour.index(&job) {
@@ -105,7 +105,7 @@ type JobIter<'a> = Box<dyn Iterator<Item = Job> + 'a>;
 
 /// Calculates average tour cardinality rounded to nearest integral value.
 fn calculate_average_tour_cardinality(routes: &[RouteContext]) -> f64 {
-    (routes.iter().map(|rc| rc.route.tour.activity_count() as f64).sum::<f64>() / (routes.len() as f64)).round()
+    (routes.iter().map(|rc| rc.route.tour.job_activity_count() as f64).sum::<f64>() / (routes.len() as f64)).round()
 }
 
 /// Selects string for selected job.
@@ -128,7 +128,7 @@ fn sequential_string<'a>(
     cardinality: usize,
     random: &Arc<dyn Random + Send + Sync>,
 ) -> JobIter<'a> {
-    let (begin, end) = lower_bounds(cardinality, seed_tour.0.activity_count(), seed_tour.1);
+    let (begin, end) = lower_bounds(cardinality, seed_tour.0.job_activity_count(), seed_tour.1);
     let start = random.uniform_int(begin as i32, end as i32) as usize;
 
     Box::new((start..(start + cardinality)).filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job())))
@@ -141,7 +141,7 @@ fn preserved_string<'a>(
     alpha: f64,
     random: &Arc<dyn Random + Send + Sync>,
 ) -> JobIter<'a> {
-    let size = seed_tour.0.activity_count();
+    let size = seed_tour.0.job_activity_count();
     let index = seed_tour.1;
 
     let split_size = preserved_cardinality(cardinality, size, alpha, random);
