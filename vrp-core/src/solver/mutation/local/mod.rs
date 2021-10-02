@@ -12,6 +12,9 @@ pub use self::exchange_inter_route::*;
 mod exchange_intra_route;
 pub use self::exchange_intra_route::*;
 
+mod exchange_sequence;
+pub use self::exchange_sequence::*;
+
 mod reschedule_departure;
 pub use self::reschedule_departure::*;
 
