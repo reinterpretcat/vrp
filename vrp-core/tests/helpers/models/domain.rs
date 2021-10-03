@@ -101,9 +101,13 @@ pub fn get_customer_ids_from_routes_sorted(insertion_ctx: &InsertionContext) -> 
 }
 
 pub fn get_sorted_customer_ids_from_jobs(jobs: &[Job]) -> Vec<String> {
-    let mut ids = jobs.iter().map(|job| get_customer_id(&job)).collect::<Vec<String>>();
+    let mut ids = get_customer_ids_from_jobs(jobs);
     ids.sort();
     ids
+}
+
+pub fn get_customer_ids_from_jobs(jobs: &[Job]) -> Vec<String> {
+    jobs.iter().map(|job| get_customer_id(&job)).collect()
 }
 
 pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec<String>> {
@@ -121,6 +125,14 @@ pub fn get_customer_ids_from_routes(insertion_ctx: &InsertionContext) -> Vec<Vec
                 .collect::<Vec<String>>()
         })
         .collect()
+}
+
+pub fn get_customer_ids_from_unassigned(insertion_ctx: &InsertionContext) -> Vec<String> {
+    let mut job_ids = insertion_ctx.solution.unassigned.iter().map(|(job, _)| get_customer_id(job)).collect::<Vec<_>>();
+
+    job_ids.sort();
+
+    job_ids
 }
 
 pub fn get_customer_id(job: &Job) -> String {
