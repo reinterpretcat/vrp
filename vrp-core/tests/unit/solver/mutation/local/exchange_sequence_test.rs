@@ -7,26 +7,26 @@ use std::sync::Arc;
 
 //let expected_ids = &[vec!["c0", "c1", "c2", "c3", "c4"], vec!["c5", "c6", "c7", "c8", "c9"]];
 
-parameterized_test! { can_extract_jobs, (route_idx, start_idx, sequence_size, is_open_vrp, locked_ids, expected_route_ids, expected_extracted_ids), {
-    can_extract_jobs_impl(route_idx, start_idx, sequence_size, is_open_vrp, locked_ids, expected_route_ids, expected_extracted_ids);
+parameterized_test! { can_extract_jobs, (route_idx, start_idx, sequence_size, locked_ids, expected_route_ids, expected_extracted_ids), {
+    can_extract_jobs_impl(route_idx, start_idx, sequence_size, locked_ids, expected_route_ids, expected_extracted_ids);
 }}
 
 can_extract_jobs! {
-    case_01: (1, 1, 3, false, &[], &[vec!["c0", "c1", "c2", "c3", "c4"], vec!["c5", "c9"]], &[vec!["c6", "c7", "c8"]]),
-    case_02: (1, 0, 2, false, &[], &[vec!["c0", "c1", "c2", "c3", "c4"], vec!["c7", "c8", "c9"]], &[vec!["c5", "c6"]]),
-
+    case_01: (1, 1, 3, &[], &[vec!["c0", "c1", "c2", "c3", "c4"], vec!["c5", "c9"]], &[vec!["c6", "c7", "c8"]]),
+    case_02: (1, 0, 2, &[], &[vec!["c0", "c1", "c2", "c3", "c4"], vec!["c7", "c8", "c9"]], &[vec!["c5", "c6"]]),
+    case_03: (1, 0, 2, &["c6", "c7"], &[vec!["c0", "c1", "c2", "c3", "c4"], vec!["c6", "c7", "c9"]], &[vec!["c5", "c8"]]),
 }
 
 fn can_extract_jobs_impl(
     route_idx: usize,
     start_idx: i32,
     sequence_size: usize,
-    is_open_vrp: bool,
     locked_ids: &[&str],
     expected_route_ids: &[Vec<&str>],
     expected_extracted_ids: &[Vec<&str>],
 ) {
     let matrix = (5, 2);
+    let is_open_vrp = false;
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, is_open_vrp);
     let mut insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(
