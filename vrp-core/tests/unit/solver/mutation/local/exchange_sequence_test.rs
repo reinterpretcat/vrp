@@ -116,7 +116,7 @@ fn can_insert_jobs_impl(
     expected_unassigned_ids: &[Vec<&str>],
 ) {
     let route_idx = 0;
-    let reverse_probability_threshold = 0.05;
+    let reverse_probability_threshold = 0.01;
 
     let (mut problem, solution) = generate_matrix_routes_with_defaults(5, 2, false);
     add_leg_constraint(&mut problem, disallowed_pairs);
@@ -125,12 +125,12 @@ fn can_insert_jobs_impl(
         (solution, None),
         create_test_environment_with_random(Arc::new(FakeRandom::new(
             vec![start_idx],
-            vec![reverse_probability, reverse_probability],
+            vec![reverse_probability, 1., reverse_probability, 1.],
         ))),
     );
     let jobs = get_jobs_by_ids(&insertion_ctx, insert_job_ids);
 
-    insert_jobs(&mut insertion_ctx, route_idx, jobs, reverse_probability_threshold);
+    insert_jobs(&mut insertion_ctx, route_idx, jobs, reverse_probability_threshold, 0.);
 
     compare_with_ignore(
         vec![get_customer_ids_from_routes(&insertion_ctx).get(0).cloned().unwrap()].as_slice(),
@@ -171,10 +171,10 @@ fn can_exchange_jobs_impl(
     let mut insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![1., 1.]))),
+        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![1., 1., 1., 1.]))),
     );
 
-    exchange_jobs(&mut insertion_ctx, &[0, 1], 4, 0.05);
+    exchange_jobs(&mut insertion_ctx, &[0, 1], 4, 0.01, 0.01);
 
     compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), expected_route_ids, "");
 }
