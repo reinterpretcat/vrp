@@ -166,6 +166,7 @@ impl DynamicSelective {
                 Arc::new(LocalSearch::new(Arc::new(ExchangeIntraRouteRandom::default()))),
                 "local_exch_intra_route_random".to_string(),
             ),
+            (Arc::new(LocalSearch::new(Arc::new(ExchangeSequence::default()))), "local_exch_sequence".to_string()),
             (
                 Arc::new(LocalSearch::new(Arc::new(RescheduleDeparture::default()))),
                 "local_reschedule_departure".to_string(),

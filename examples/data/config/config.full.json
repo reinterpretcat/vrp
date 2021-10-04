@@ -338,6 +338,10 @@
               "min": 0.9,
               "max": 1.1
             }
+          },
+          {
+            "weight": 100,
+            "type": "sequence"
           }
         ]
       }

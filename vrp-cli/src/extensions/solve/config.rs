@@ -318,6 +318,9 @@ pub enum LocalOperatorType {
 
     #[serde(rename(deserialize = "intra-route-random"))]
     IntraRouteRandom { weight: usize, noise: NoiseConfig },
+
+    #[serde(rename(deserialize = "sequence"))]
+    Sequence { weight: usize },
 }
 
 #[derive(Clone, Deserialize, Debug)]
@@ -707,6 +710,7 @@ fn create_local_search(times: &MinMaxConfig, inners: &[LocalOperatorType]) -> Ar
             LocalOperatorType::IntraRouteRandom { weight, noise } => {
                 (Arc::new(ExchangeIntraRouteRandom::new(noise.probability, noise.min, noise.max)), *weight)
             }
+            LocalOperatorType::Sequence { weight } => (Arc::new(ExchangeSequence::default()), *weight),
         })
         .collect::<Vec<_>>();
 
