@@ -92,38 +92,45 @@ fn can_extract_jobs_impl(
     compare_with_ignore(&[get_customer_ids_from_jobs(jobs.as_slice())], expected_extracted_ids, "")
 }
 
-parameterized_test! { can_insert_jobs, (start_idx, insert_job_ids, disallowed_pairs, expected_route_ids, expected_unassigned_ids), {
-    can_insert_jobs_impl(start_idx, insert_job_ids, disallowed_pairs, expected_route_ids, &[expected_unassigned_ids]);
+parameterized_test! { can_insert_jobs, (start_idx, insert_job_ids, disallowed_pairs, reverse_probability, expected_route_ids, expected_unassigned_ids), {
+    can_insert_jobs_impl(start_idx, insert_job_ids, disallowed_pairs, reverse_probability, expected_route_ids, &[expected_unassigned_ids]);
 }}
 
 can_insert_jobs! {
-    case_01: (0, &["c5", "c6"], vec![], &[vec!["c5", "c6", "c0", "c1", "c2", "c3", "c4"]], vec![]),
-    case_02: (1, &["c5", "c6"], vec![], &[vec!["c0", "c5", "c6", "c1", "c2", "c3", "c4"]], vec![]),
-    case_03: (5, &["c5", "c6"], vec![], &[vec!["c0", "c1", "c2", "c3", "c4", "c5", "c6"]], vec![]),
+    case_01: (0, &["c5", "c6"], vec![], 1., &[vec!["c5", "c6", "c0", "c1", "c2", "c3", "c4"]], vec![]),
+    case_02: (1, &["c5", "c6"], vec![], 1., &[vec!["c0", "c5", "c6", "c1", "c2", "c3", "c4"]], vec![]),
+    case_03: (5, &["c5", "c6"], vec![], 1., &[vec!["c0", "c1", "c2", "c3", "c4", "c5", "c6"]], vec![]),
+    case_04: (0, &["c5", "c6"], vec![], 0., &[vec!["c6", "c5", "c0", "c1", "c2", "c3", "c4"]], vec![]),
 
-    case_04: (2, &["c5", "c6"], vec![("c1", "c2")], &[vec!["c0", "c1", "c2", "c5", "c6", "c3", "c4"]], vec![]),
-    case_05: (1, &["c5", "c6"], vec![("c5", "c1")], &[vec!["c0", "c5", "c1", "c6", "c2", "c3", "c4"]], vec![]),
-    case_06: (5, &["c5", "c6"], vec![("c5", "cX")], &[vec!["c0", "c1", "c2", "c3", "c4", "c5"]], vec!["c6"]),
+    case_05: (2, &["c5", "c6"], vec![("c1", "c2")], 1., &[vec!["c0", "c1", "c2", "c5", "c6", "c3", "c4"]], vec![]),
+    case_06: (1, &["c5", "c6"], vec![("c5", "c1")], 1., &[vec!["c0", "c5", "c1", "c6", "c2", "c3", "c4"]], vec![]),
+    case_07: (5, &["c5", "c6"], vec![("c5", "cX")], 1., &[vec!["c0", "c1", "c2", "c3", "c4", "c5"]], vec!["c6"]),
 }
 
 fn can_insert_jobs_impl(
     start_idx: i32,
     insert_job_ids: &[&str],
     disallowed_pairs: Vec<(&str, &str)>,
+    reverse_probability: f64,
     expected_route_ids: &[Vec<&str>],
     expected_unassigned_ids: &[Vec<&str>],
 ) {
     let route_idx = 0;
+    let reverse_probability_threshold = 0.05;
+
     let (mut problem, solution) = generate_matrix_routes_with_defaults(5, 2, false);
     add_leg_constraint(&mut problem, disallowed_pairs);
     let mut insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(vec![start_idx], vec![]))),
+        create_test_environment_with_random(Arc::new(FakeRandom::new(
+            vec![start_idx],
+            vec![reverse_probability, reverse_probability],
+        ))),
     );
     let jobs = get_jobs_by_ids(&insertion_ctx, insert_job_ids);
 
-    insert_jobs(&mut insertion_ctx, route_idx, jobs);
+    insert_jobs(&mut insertion_ctx, route_idx, jobs, reverse_probability_threshold);
 
     compare_with_ignore(
         vec![get_customer_ids_from_routes(&insertion_ctx).get(0).cloned().unwrap()].as_slice(),
@@ -164,10 +171,10 @@ fn can_exchange_jobs_impl(
     let mut insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![]))),
+        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![1., 1.]))),
     );
 
-    exchange_jobs(&mut insertion_ctx, &[0, 1], 4);
+    exchange_jobs(&mut insertion_ctx, &[0, 1], 4, 0.05);
 
     compare_with_ignore(get_customer_ids_from_routes(&insertion_ctx).as_slice(), expected_route_ids, "");
 }

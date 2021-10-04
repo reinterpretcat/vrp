@@ -14,20 +14,21 @@ const MIN_JOBS: usize = 2;
 /// A local search operator which tries to exchange sequence of jobs between routes.
 pub struct ExchangeSequence {
     max_sequence_size: usize,
+    reverse_probability: f64,
 }
 
 impl ExchangeSequence {
     /// Creates a new instance of `ExchangeSequence`.
-    pub fn new(max_sequence_size: usize) -> Self {
+    pub fn new(max_sequence_size: usize, reverse_probability: f64) -> Self {
         assert!(max_sequence_size >= MIN_JOBS);
 
-        Self { max_sequence_size }
+        Self { max_sequence_size, reverse_probability }
     }
 }
 
 impl Default for ExchangeSequence {
     fn default() -> Self {
-        Self::new(5)
+        Self::new(5, 0.05)
     }
 }
 
@@ -41,7 +42,7 @@ impl LocalOperator for ExchangeSequence {
 
         let mut insertion_ctx = insertion_ctx.deep_copy();
 
-        exchange_jobs(&mut insertion_ctx, route_indices.as_slice(), self.max_sequence_size);
+        exchange_jobs(&mut insertion_ctx, route_indices.as_slice(), self.max_sequence_size, self.reverse_probability);
 
         Some(insertion_ctx)
     }
@@ -67,7 +68,12 @@ fn get_route_indices(insertion_ctx: &InsertionContext) -> Vec<usize> {
         .collect()
 }
 
-fn exchange_jobs(insertion_ctx: &mut InsertionContext, route_indices: &[usize], max_sequence_size: usize) {
+fn exchange_jobs(
+    insertion_ctx: &mut InsertionContext,
+    route_indices: &[usize],
+    max_sequence_size: usize,
+    reverse_probability: f64,
+) {
     let get_route_idx = |insertion_ctx: &InsertionContext| {
         let idx = insertion_ctx.environment.random.uniform_int(0, route_indices.len() as i32 - 1) as usize;
         route_indices.get(idx).cloned().unwrap()
@@ -88,10 +94,10 @@ fn exchange_jobs(insertion_ctx: &mut InsertionContext, route_indices: &[usize], 
         let second_sequence_size = get_sequence_size(insertion_ctx, second_route_idx);
         let second_jobs = extract_jobs(insertion_ctx, second_route_idx, second_sequence_size);
 
-        insert_jobs(insertion_ctx, first_route_idx, second_jobs);
-        insert_jobs(insertion_ctx, second_route_idx, first_jobs);
+        insert_jobs(insertion_ctx, first_route_idx, second_jobs, reverse_probability);
+        insert_jobs(insertion_ctx, second_route_idx, first_jobs, reverse_probability);
     } else {
-        insert_jobs(insertion_ctx, first_route_idx, first_jobs);
+        insert_jobs(insertion_ctx, first_route_idx, first_jobs, reverse_probability);
     }
 
     finalize_insertion_ctx(insertion_ctx);
@@ -135,9 +141,17 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
     removed
 }
 
-fn insert_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, jobs: Vec<Job>) {
+fn insert_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, jobs: Vec<Job>, reverse_probability: f64) {
     let random = &insertion_ctx.environment.random;
     let result_selector = BestResultSelector::default();
+
+    let jobs = if random.is_hit(reverse_probability) {
+        let mut jobs = jobs;
+        jobs.reverse();
+        jobs
+    } else {
+        jobs
+    };
 
     let start_index =
         random.uniform_int(0, get_route_ctx(insertion_ctx, route_idx).route.tour.job_activity_count() as i32) as usize;
