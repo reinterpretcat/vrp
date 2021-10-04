@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* a new local search operator: exchange sequence
+
 
 ## [v1.11.5] - 2021-09-27
 
