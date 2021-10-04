@@ -109,8 +109,7 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
         (HashSet::<Job>::default(), Vec::with_capacity(job_count)),
         |(mut set, mut vec), job| {
             if !set.contains(&job) && !locked.contains(&job) {
-                vec.push(job)
-            } else {
+                vec.push(job.clone());
                 set.insert(job);
             }
 
@@ -118,9 +117,8 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
         },
     );
 
-    assert_eq!(jobs.len(), job_count - locked.len());
-
-    let last_index = job_count - sequence_size;
+    let sequence_size = sequence_size.min(jobs.len());
+    let last_index = jobs.len() - sequence_size;
     let start_index = insertion_ctx.environment.random.uniform_int(0, last_index as i32) as usize;
 
     let removed =
@@ -172,16 +170,17 @@ fn insert_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, jobs: Vec
             InsertionResult::Success(success) => {
                 apply_insertion_success(insertion_ctx, success);
             }
-            InsertionResult::Failure(failure) => unassigned.push(failure),
+            InsertionResult::Failure(failure) => unassigned.push((job, failure)),
         }
 
         (unassigned, start_index + 1)
     });
 
-    insertion_ctx
-        .solution
-        .unassigned
-        .extend(failures.into_iter().map(|failure| (failure.job.unwrap(), failure.constraint)));
+    insertion_ctx.solution.unassigned.extend(failures.into_iter().map(|(job, failure)| {
+        let constraint = failure.constraint;
+        let job = failure.job.unwrap_or(job);
+        (job, constraint)
+    }));
 }
 
 fn get_route_ctx(insertion_ctx: &InsertionContext, route_idx: usize) -> &RouteContext {
