@@ -25,25 +25,15 @@ impl ExchangeSequence {
     }
 }
 
+impl Default for ExchangeSequence {
+    fn default() -> Self {
+        Self::new(5)
+    }
+}
+
 impl LocalOperator for ExchangeSequence {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
-        let route_indices = insertion_ctx
-            .solution
-            .routes
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, route_ctx)| {
-                let locked_jobs =
-                    route_ctx.route.tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(&job)).count();
-                let has_enough_jobs = (route_ctx.route.tour.job_count() - locked_jobs) >= MIN_JOBS;
-
-                if has_enough_jobs {
-                    Some(idx)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
+        let route_indices = get_route_indices(insertion_ctx);
 
         if route_indices.is_empty() {
             return None;
@@ -57,9 +47,29 @@ impl LocalOperator for ExchangeSequence {
     }
 }
 
+fn get_route_indices(insertion_ctx: &InsertionContext) -> Vec<usize> {
+    insertion_ctx
+        .solution
+        .routes
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, route_ctx)| {
+            let locked_jobs =
+                route_ctx.route.tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(&job)).count();
+            let has_enough_jobs = (route_ctx.route.tour.job_count() - locked_jobs) >= MIN_JOBS;
+
+            if has_enough_jobs {
+                Some(idx)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 fn exchange_jobs(insertion_ctx: &mut InsertionContext, route_indices: &[usize], max_sequence_size: usize) {
-    let get_route_idx = || {
-        let idx = insertion_ctx.environment.random.uniform_int(0, route_indices.len() as i32) as usize;
+    let get_route_idx = |insertion_ctx: &InsertionContext| {
+        let idx = insertion_ctx.environment.random.uniform_int(0, route_indices.len() as i32 - 1) as usize;
         route_indices.get(idx).cloned().unwrap()
     };
 
@@ -68,17 +78,21 @@ fn exchange_jobs(insertion_ctx: &mut InsertionContext, route_indices: &[usize], 
         insertion_ctx.environment.random.uniform_int(MIN_JOBS as i32, job_count as i32) as usize
     };
 
-    let first_route_idx = get_route_idx();
+    let first_route_idx = get_route_idx(insertion_ctx);
     let first_sequence_size = get_sequence_size(insertion_ctx, first_route_idx);
-
-    let second_route_idx = get_route_idx();
-    let second_sequence_size = get_sequence_size(insertion_ctx, second_route_idx);
-
     let first_jobs = extract_jobs(insertion_ctx, first_route_idx, first_sequence_size);
-    let second_jobs = extract_jobs(insertion_ctx, second_route_idx, second_sequence_size);
 
-    insert_jobs(insertion_ctx, first_route_idx, second_jobs);
-    insert_jobs(insertion_ctx, second_route_idx, first_jobs);
+    let second_route_idx = get_route_idx(insertion_ctx);
+
+    if first_route_idx != second_route_idx {
+        let second_sequence_size = get_sequence_size(insertion_ctx, second_route_idx);
+        let second_jobs = extract_jobs(insertion_ctx, second_route_idx, second_sequence_size);
+
+        insert_jobs(insertion_ctx, first_route_idx, second_jobs);
+        insert_jobs(insertion_ctx, second_route_idx, first_jobs);
+    } else {
+        insert_jobs(insertion_ctx, first_route_idx, first_jobs);
+    }
 
     finalize_insertion_ctx(insertion_ctx);
 }
@@ -88,7 +102,7 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
     let route_ctx = insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
     let job_count = route_ctx.route.tour.job_count();
 
-    assert!(job_count > sequence_size);
+    assert!(job_count >= sequence_size);
 
     // get jobs in the exact order as they appear first time in the tour
     let (_, jobs) = route_ctx.route.tour.all_activities().filter_map(|activity| activity.retrieve_job()).fold(
@@ -107,7 +121,7 @@ fn extract_jobs(insertion_ctx: &mut InsertionContext, route_idx: usize, sequence
     assert_eq!(jobs.len(), job_count - locked.len());
 
     let last_index = job_count - sequence_size;
-    let start_index = insertion_ctx.environment.random.uniform_int(1, last_index as i32) as usize;
+    let start_index = insertion_ctx.environment.random.uniform_int(0, last_index as i32) as usize;
 
     let removed =
         (start_index..(start_index + sequence_size)).fold(Vec::with_capacity(sequence_size), |mut acc, index| {
