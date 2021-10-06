@@ -16,6 +16,7 @@ pub trait Quota {
     fn is_reached(&self) -> bool;
 }
 
+pub mod clustering;
 pub mod constraints;
 pub mod heuristics;
 pub mod probing;

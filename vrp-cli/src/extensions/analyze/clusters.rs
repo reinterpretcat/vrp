@@ -4,10 +4,10 @@ mod clusters_test;
 
 use std::io::{BufReader, BufWriter, Read};
 use std::sync::Arc;
+use vrp_core::construction::clustering::dbscan::create_job_clusters;
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::problem::get_job_locations;
 use vrp_core::models::Problem;
-use vrp_core::solver::mutation::ClusterRemoval;
 use vrp_core::utils::Environment;
 use vrp_pragmatic::format::get_coord_index;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, PragmaticProblem};
@@ -28,7 +28,7 @@ pub fn get_clusters<F: Read>(
     let coord_index = get_coord_index(&problem);
     let environment = Arc::new(Environment::default());
 
-    let clusters = ClusterRemoval::create_clusters(problem.clone(), environment, min_points, epsilon);
+    let clusters = create_job_clusters(problem.as_ref(), environment.random.as_ref(), min_points, epsilon);
 
     let locations = clusters
         .iter()
