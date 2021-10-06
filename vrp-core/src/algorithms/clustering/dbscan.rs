@@ -2,7 +2,7 @@
 //! Noise (DBSCAN)
 
 #[cfg(test)]
-#[path = "../../../tests/unit/algorithms/dbscan/dbscan_test.rs"]
+#[path = "../../../tests/unit/algorithms/clustering/dbscan_test.rs"]
 mod dbscan_test;
 
 use hashbrown::{HashMap, HashSet};

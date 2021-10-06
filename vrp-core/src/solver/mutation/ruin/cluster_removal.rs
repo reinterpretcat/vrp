@@ -3,7 +3,7 @@
 mod cluster_removal_test;
 
 use super::*;
-use crate::algorithms::dbscan::{create_clusters, NeighborhoodFn};
+use crate::algorithms::clustering::dbscan::{create_clusters, NeighborhoodFn};
 use crate::algorithms::geometry::Point;
 use crate::construction::heuristics::InsertionContext;
 use crate::models::common::Timestamp;
@@ -16,9 +16,7 @@ use rand::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-/// A ruin strategy which removes job clusters using [`DBSCAN`] algorithm.
-///
-/// [`DBSCAN`]: ../../algorithms/dbscan/index.html
+/// A ruin strategy which removes job clusters using DBSCAN algorithm.
 pub struct ClusterRemoval {
     clusters: Vec<Vec<Job>>,
     limits: RuinLimits,
