@@ -1,4 +1,8 @@
-use crate::models::common::Timestamp;
+#[cfg(test)]
+#[path = "../../../tests/unit/models/common/domain_test.rs"]
+mod domain_test;
+
+use crate::models::common::{Duration, Timestamp};
 use crate::utils::compare_floats;
 use hashbrown::HashMap;
 use std::any::Any;
@@ -105,6 +109,23 @@ impl TimeWindow {
                 other.start - self.end
             }
         }
+    }
+
+    /// Returns a new overlapping time window.
+    pub fn overlapping(&self, other: &Self) -> Option<TimeWindow> {
+        if self.intersects(other) {
+            let start = self.start.max(other.start);
+            let end = self.end.min(other.end);
+
+            Some(TimeWindow::new(start, end))
+        } else {
+            None
+        }
+    }
+
+    /// Returns duration of time window.
+    pub fn duration(&self) -> Duration {
+        self.end - self.start
     }
 }
 

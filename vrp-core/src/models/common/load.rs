@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/models/domain/load_test.rs"]
+#[path = "../../../tests/unit/models/common/load_test.rs"]
 mod load_test;
 
 use crate::models::common::{Dimensions, ValueDimension};
