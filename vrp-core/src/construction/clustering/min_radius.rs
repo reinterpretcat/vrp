@@ -3,10 +3,31 @@ use crate::models::common::*;
 use crate::models::problem::{Actor, Job, Place, Single, TransportCost};
 use crate::models::Problem;
 use crate::utils::{compare_floats, unwrap_from_result, Environment};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
+
+const CLUSTER_DIMENSION_KEY: &str = "cls";
+
+/// A trait to get or set cluster info.
+pub trait ClusterDimension {
+    /// Sets cluster.
+    fn set_cluster(&mut self, jobs: Vec<Job>) -> &mut Self;
+    /// Gets cluster.
+    fn get_cluster(&self) -> Option<&Vec<Job>>;
+}
+
+impl ClusterDimension for Dimensions {
+    fn set_cluster(&mut self, jobs: Vec<Job>) -> &mut Self {
+        self.set_value(CLUSTER_DIMENSION_KEY, jobs);
+        self
+    }
+
+    fn get_cluster(&self) -> Option<&Vec<Job>> {
+        self.get_value(CLUSTER_DIMENSION_KEY)
+    }
+}
 
 /// Specifies clustering algorithm configuration.
 pub struct ClusterConfig {
@@ -67,7 +88,7 @@ pub struct BuilderPolicy {
     /// Checks whether given cluster can get more.
     size_filter: Arc<dyn Fn(&[Job]) -> bool + Send + Sync>,
     /// Allows to select first clusters with desired properties.
-    ordering: Arc<dyn Fn(&(Job, Vec<Job>), &(Job, Vec<Job>)) -> Ordering + Send + Sync>,
+    ordering: Arc<dyn Fn(&Job, &Job) -> Ordering + Send + Sync>,
 }
 
 /// Creates clusters of jobs trying to minimize their radius.
@@ -205,20 +226,60 @@ fn get_clusters(
 ) -> Vec<(Job, Vec<Job>)> {
     // TODO allow user to specify maximization criteria for cluster selection?
 
-    let mut estimates = estimates;
+    let mut estimates = estimates
+        .into_iter()
+        .map(|(job, estimate)| (job, (None, estimate)))
+        .collect::<Vec<(_, (Option<Job>, HashMap<_, _>))>>();
+    let mut used_jobs = HashSet::new();
+    let mut clusters = Vec::new();
 
     loop {
         // TODO rebuild only affected clusters
-        estimates.iter().map(|(job, candidates)| {});
 
-        // get non-unique job clusters
-        /*let clusters = estimates
-           .into_iter()
-           .filter_map(|estimate| build_job_cluster(estimate, config, &check_job))
-           .collect::<Vec<_>>();
-        clusters.sort_by(|(_, a_jobs), (_, b_jobs)| b_jobs.len().cmp(&a_jobs.len()));
-           */
+        // calculate clusters
+        estimates.iter_mut().filter(|(_, (cluster, _))| cluster.is_none()).for_each(|(job, (cluster, candidates))| {
+            // TODO
+        });
+
+        estimates.sort_by(|(_, (a, _)), (_, (b, _))| match (a, b) {
+            (Some(a), Some(b)) => config.building.ordering.deref()(a, b),
+            (None, Some(_)) => Ordering::Greater,
+            (Some(_), None) => Ordering::Less,
+            (None, None) => Ordering::Equal,
+        });
+
+        let new_cluster = estimates.first().and_then(|(_, (cluster, _))| cluster.as_ref()).cloned();
+
+        if let Some(new_cluster) = new_cluster {
+            let new_cluster_jobs = new_cluster.dimens().get_cluster().expect("expected to have jobs in a cluster");
+
+            clusters.push((new_cluster.clone(), new_cluster_jobs.clone()));
+            used_jobs.extend(new_cluster_jobs.iter().cloned());
+
+            let new_cluster_jobs = new_cluster_jobs.iter().collect::<HashSet<_>>();
+
+            // remove used jobs from analysis
+            estimates.retain(|(center, _)| !new_cluster_jobs.contains(center));
+            estimates.iter_mut().for_each(|(_, (cluster, candidates))| {
+                candidates.retain(|job, _| !new_cluster_jobs.contains(job));
+
+                let is_cluster_affected = cluster
+                    .as_ref()
+                    .and_then(|cluster| cluster.dimens().get_cluster())
+                    .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|job| new_cluster_jobs.contains(job)));
+
+                if is_cluster_affected {
+                    // NOTE force to rebuild cluster above or remove it from analysis below
+                    *cluster = None;
+                }
+            });
+            estimates.retain(|(_, (_, candidates))| !candidates.is_empty());
+        } else {
+            break;
+        }
     }
+
+    clusters
 }
 
 fn map_place(place: &Place) -> Option<(Location, Vec<TimeWindow>)> {
