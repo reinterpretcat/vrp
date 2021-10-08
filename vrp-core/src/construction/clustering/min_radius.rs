@@ -1,7 +1,10 @@
+use crate::construction::heuristics::*;
 use crate::models::common::*;
-use crate::models::problem::{Actor, Job, Place, TransportCost};
+use crate::models::problem::{Actor, Job, Place, Single, TransportCost};
 use crate::models::Problem;
-use crate::utils::compare_floats;
+use crate::utils::{compare_floats, unwrap_from_result, Environment};
+use hashbrown::HashMap;
+use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -15,6 +18,8 @@ pub struct ClusterConfig {
     service_time: ServiceTimePolicy,
     /// Specifies filtering policy.
     filtering: FilterPolicy,
+    /// Specifies building policy.
+    building: BuilderPolicy,
 }
 
 /// Defines a various thresholds to control cluster size.
@@ -57,8 +62,34 @@ pub enum ServiceTimePolicy {
     Fixed,
 }
 
+/// Allows to control how clusters are built.
+pub struct BuilderPolicy {
+    /// Checks whether given cluster can get more.
+    size_filter: Arc<dyn Fn(&[Job]) -> bool + Send + Sync>,
+    /// Allows to select first clusters with desired properties.
+    ordering: Arc<dyn Fn(&(Job, Vec<Job>), &(Job, Vec<Job>)) -> Ordering + Send + Sync>,
+}
+
 /// Creates clusters of jobs trying to minimize their radius.
-pub fn create_job_clusters(problem: &Problem, profile: &Profile, config: &ClusterConfig) -> Vec<Vec<Job>> {
+pub fn create_job_clusters(
+    problem: Arc<Problem>,
+    environment: Arc<Environment>,
+    profile: &Profile,
+    config: &ClusterConfig,
+) -> Vec<(Job, Vec<Job>)> {
+    let insertion_ctx = InsertionContext::new_empty(problem.clone(), environment);
+    let check_job = get_check_job(&insertion_ctx, config.filtering.actor_filter.as_ref());
+    let estimates = get_estimates(problem.as_ref(), profile, config);
+
+    get_clusters(&insertion_ctx, config, estimates, &check_job)
+}
+
+/// Estimates ability of each job to build a cluster.
+fn get_estimates(
+    problem: &Problem,
+    profile: &Profile,
+    config: &ClusterConfig,
+) -> HashMap<Job, HashMap<Job, (f64, f64)>> {
     let transport = problem.transport.as_ref();
     let jobs = problem
         .jobs
@@ -67,30 +98,20 @@ pub fn create_job_clusters(problem: &Problem, profile: &Profile, config: &Cluste
         // NOTE multi-job is not supported
         .filter(|job| job.as_single().is_some())
         .collect::<Vec<_>>();
-    let actors = problem
-        .fleet
-        .actors
-        .iter()
-        .filter(|actor| config.filtering.actor_filter.deref()(actor))
-        .cloned()
-        .collect::<Vec<_>>();
 
-    let distances = jobs
-        .iter()
+    jobs.iter()
         .map(|outer| {
             let dissimilarities = jobs
                 .iter()
                 .filter(|inner| outer != *inner)
                 .filter_map(|inner| {
                     estimate_job_dissimilarities(&outer, inner, profile, &config.threshold, transport)
-                        .map(|estimate| (inner.clone(), estimate.0, estimate.1))
+                        .map(|estimate| (inner.clone(), (estimate.0, estimate.1)))
                 })
-                .collect::<Vec<_>>();
+                .collect::<HashMap<_, _>>();
             (outer.clone(), dissimilarities)
         })
-        .collect::<Vec<_>>();
-
-    unimplemented!()
+        .collect::<HashMap<_, _>>()
 }
 
 fn estimate_job_dissimilarities(
@@ -135,16 +156,82 @@ fn estimate_job_dissimilarities(
         .map(|(_, distance, duration)| (distance, duration))
 }
 
+fn get_check_job<'a>(
+    insertion_ctx: &'a InsertionContext,
+    actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
+) -> impl Fn(&Job) -> bool + 'a {
+    let result_selector = BestResultSelector::default();
+    let routes = insertion_ctx
+        .solution
+        .registry
+        .next()
+        .filter(|route_ctx| actor_filter.deref()(&route_ctx.route.actor))
+        .collect::<Vec<_>>();
+
+    move |job: &Job| -> bool {
+        unwrap_from_result(routes.iter().try_fold(false, |_, route_ctx| {
+            let result = evaluate_job_insertion_in_route(
+                &insertion_ctx,
+                route_ctx,
+                job,
+                InsertionPosition::Any,
+                InsertionResult::make_failure(),
+                &result_selector,
+            );
+
+            match result {
+                InsertionResult::Success(_) => Err(true),
+                InsertionResult::Failure(_) => Ok(false),
+            }
+        }))
+    }
+}
+
 fn build_job_cluster(
-    cluster_estimate: &(Job, Vec<(Job, Distance, Duration)>),
-    actors: &[Arc<Actor>],
     config: &ClusterConfig,
+    check_job: &(dyn Fn(&Job) -> bool),
+    estimate: (Job, Vec<(Job, Distance, Duration)>),
 ) -> Option<(Job, Vec<Job>)> {
-    todo!()
+    let (job, candidates) = estimate;
+
+    unimplemented!()
+}
+
+fn get_clusters(
+    insertion_ctx: &InsertionContext,
+    config: &ClusterConfig,
+    estimates: HashMap<Job, HashMap<Job, (Distance, Duration)>>,
+    check_job: &(dyn Fn(&Job) -> bool),
+) -> Vec<(Job, Vec<Job>)> {
+    // TODO allow user to specify maximization criteria for cluster selection?
+
+    let mut estimates = estimates;
+
+    loop {
+        // TODO rebuild only affected clusters
+        estimates.iter().map(|(job, candidates)| {});
+
+        // get non-unique job clusters
+        /*let clusters = estimates
+           .into_iter()
+           .filter_map(|estimate| build_job_cluster(estimate, config, &check_job))
+           .collect::<Vec<_>>();
+        clusters.sort_by(|(_, a_jobs), (_, b_jobs)| b_jobs.len().cmp(&a_jobs.len()));
+           */
+    }
 }
 
 fn map_place(place: &Place) -> Option<(Location, Vec<TimeWindow>)> {
     place
         .location
         .map(|location| (location, place.times.iter().filter_map(|time| time.as_time_window()).collect::<Vec<_>>()))
+}
+
+fn deep_copy(job: &Job) -> Job {
+    match job {
+        Job::Single(single) => {
+            Job::Single(Arc::new(Single { places: single.places.clone(), dimens: single.dimens.clone() }))
+        }
+        Job::Multi(_) => unimplemented!(),
+    }
 }
