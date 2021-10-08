@@ -102,7 +102,7 @@ pub fn create_job_clusters(
     let check_job = get_check_job(&insertion_ctx, config.filtering.actor_filter.as_ref());
     let estimates = get_estimates(problem.as_ref(), profile, config);
 
-    get_clusters(&insertion_ctx, config, estimates, &check_job)
+    get_clusters(&insertion_ctx, estimates, config, &check_job)
 }
 
 /// Estimates ability of each job to build a cluster.
@@ -208,24 +208,12 @@ fn get_check_job<'a>(
     }
 }
 
-fn build_job_cluster(
-    config: &ClusterConfig,
-    check_job: &(dyn Fn(&Job) -> bool),
-    estimate: (Job, Vec<(Job, Distance, Duration)>),
-) -> Option<(Job, Vec<Job>)> {
-    let (job, candidates) = estimate;
-
-    unimplemented!()
-}
-
 fn get_clusters(
     insertion_ctx: &InsertionContext,
-    config: &ClusterConfig,
     estimates: HashMap<Job, HashMap<Job, (Distance, Duration)>>,
+    config: &ClusterConfig,
     check_job: &(dyn Fn(&Job) -> bool),
 ) -> Vec<(Job, Vec<Job>)> {
-    // TODO allow user to specify maximization criteria for cluster selection?
-
     let mut estimates = estimates
         .into_iter()
         .map(|(job, estimate)| (job, (None, estimate)))
@@ -234,12 +222,10 @@ fn get_clusters(
     let mut clusters = Vec::new();
 
     loop {
-        // TODO rebuild only affected clusters
-
-        // calculate clusters
-        estimates.iter_mut().filter(|(_, (cluster, _))| cluster.is_none()).for_each(|(job, (cluster, candidates))| {
-            // TODO
-        });
+        // build clusters
+        estimates.iter_mut().filter(|(_, (cluster, _))| cluster.is_none()).for_each(
+            |(center, (cluster, candidates))| *cluster = build_job_cluster((center, candidates), config, check_job),
+        );
 
         estimates.sort_by(|(_, (a, _)), (_, (b, _))| match (a, b) {
             (Some(a), Some(b)) => config.building.ordering.deref()(a, b),
@@ -269,7 +255,7 @@ fn get_clusters(
                     .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|job| new_cluster_jobs.contains(job)));
 
                 if is_cluster_affected {
-                    // NOTE force to rebuild cluster above or remove it from analysis below
+                    // NOTE force to rebuild cluster on next iteration
                     *cluster = None;
                 }
             });
@@ -280,6 +266,16 @@ fn get_clusters(
     }
 
     clusters
+}
+
+fn build_job_cluster(
+    estimate: (&Job, &HashMap<Job, (Distance, Duration)>),
+    config: &ClusterConfig,
+    check_job: &(dyn Fn(&Job) -> bool),
+) -> Option<Job> {
+    let (center, candidates) = estimate;
+
+    unimplemented!()
 }
 
 fn map_place(place: &Place) -> Option<(Location, Vec<TimeWindow>)> {
