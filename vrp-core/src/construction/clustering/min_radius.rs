@@ -77,10 +77,10 @@ pub struct FilterPolicy {
 pub enum ServiceTimePolicy {
     /// Keep original service time.
     Original,
-    /// Reduce service time by some multiplier.
-    Reduced { multiplier: f64 },
+    /// Correct service time by some multiplier.
+    Multiplier(f64),
     /// Use fixed value for all clustered jobs.
-    Fixed,
+    Fixed(f64),
 }
 
 /// Allows to control how clusters are built.
@@ -126,7 +126,7 @@ fn get_estimates(problem: &Problem, profile: &Profile, config: &ClusterConfig) -
                 .iter()
                 .filter(|inner| outer != *inner)
                 .filter_map(|inner| {
-                    let dissimilarities = get_dissimilarities(&outer, inner, profile, &config.threshold, transport);
+                    let dissimilarities = get_dissimilarities(&outer, inner, profile, config, transport);
                     if dissimilarities.is_empty() {
                         None
                     } else {
@@ -143,7 +143,7 @@ fn get_dissimilarities(
     outer: &Job,
     inner: &Job,
     profile: &Profile,
-    threshold: &ThresholdPolicy,
+    config: &ClusterConfig,
     transport: &(dyn TransportCost + Send + Sync),
 ) -> Vec<DissimilarityInfo> {
     let departure = Default::default();
@@ -153,9 +153,9 @@ fn get_dissimilarities(
         .iter()
         .enumerate()
         .filter_map(map_place)
-        .flat_map(|(outer_place_idx, outer_loc, outer_times)| {
+        .flat_map(|(outer_place_idx, outer_loc, _, outer_times)| {
             inner.to_single().places.iter().enumerate().filter_map(map_place).filter_map(
-                move |(inner_place_idx, inner_loc, inner_times)| {
+                move |(inner_place_idx, inner_loc, inner_duration, inner_times)| {
                     let shared_time = outer_times
                         .iter()
                         .flat_map(|outer_time| {
@@ -166,13 +166,23 @@ fn get_dissimilarities(
                         .max_by(|a, b| compare_floats(*a, *b))
                         .unwrap_or(0.);
 
-                    if shared_time > threshold.min_shared_time.unwrap_or(0.) {
+                    if shared_time > config.threshold.min_shared_time.unwrap_or(0.) {
                         let distance = transport.distance(profile, outer_loc, inner_loc, departure);
                         let duration = transport.duration(profile, outer_loc, inner_loc, departure);
 
-                        match ((duration - threshold.moving_duration < 0.), (distance - threshold.moving_distance < 0.))
-                        {
-                            (true, true) => Some((outer_place_idx, inner_place_idx, shared_time, distance, duration)),
+                        match (
+                            (duration - config.threshold.moving_duration < 0.),
+                            (distance - config.threshold.moving_distance < 0.),
+                        ) {
+                            (true, true) => {
+                                let service_time = match &config.service_time {
+                                    ServiceTimePolicy::Original => inner_duration,
+                                    ServiceTimePolicy::Multiplier(multiplier) => inner_duration * *multiplier,
+                                    ServiceTimePolicy::Fixed(service_time) => *service_time,
+                                };
+
+                                Some((outer_place_idx, inner_place_idx, shared_time, distance, duration + service_time))
+                            }
                             _ => None,
                         }
                     } else {
@@ -286,22 +296,37 @@ fn build_job_cluster(
     check_job: &(dyn Fn(&Job) -> bool + Send + Sync),
 ) -> Option<Job> {
     let (center, candidates) = estimate;
+    let center = center.to_single();
+
+    let deep_copy = |single: &Single| -> Job {
+        Job::Single(Arc::new(Single { places: single.places.clone(), dimens: single.dimens.clone() }))
+    };
+
+    /*    center.places.iter().enumerate().fold(None, |acc, (center_place_idx, place)| {
+        let cluster = deep_copy(center);
+
+        candidates.iter().fold(cluster, |cluster, (job, dissimilarities)| {
+            let job = job.to_single();
+
+            let mut dissimilarities = dissimilarities
+                .iter()
+                .filter(|(outer_place_idx, ..)| *outer_place_idx == center_place_idx)
+                .collect::<Vec<_>>();
+
+            // TODO sort by lowest first?
+
+            unimplemented!()
+        });
+
+        unimplemented!()
+    });*/
 
     unimplemented!()
 }
 
-fn map_place(place_info: (PlaceIndex, &Place)) -> Option<(PlaceIndex, Location, Vec<TimeWindow>)> {
+fn map_place(place_info: (PlaceIndex, &Place)) -> Option<(PlaceIndex, Location, Duration, Vec<TimeWindow>)> {
     let (idx, place) = place_info;
     place.location.map(|location| {
-        (idx, location, place.times.iter().filter_map(|time| time.as_time_window()).collect::<Vec<_>>())
+        (idx, location, place.duration, place.times.iter().filter_map(|time| time.as_time_window()).collect::<Vec<_>>())
     })
-}
-
-fn deep_copy(job: &Job) -> Job {
-    match job {
-        Job::Single(single) => {
-            Job::Single(Arc::new(Single { places: single.places.clone(), dimens: single.dimens.clone() }))
-        }
-        Job::Multi(_) => unimplemented!(),
-    }
 }
