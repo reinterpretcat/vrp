@@ -105,12 +105,12 @@ pub fn create_job_clusters(
     get_clusters(&insertion_ctx, estimates, config, &check_job)
 }
 
+type PlaceIndex = usize;
+type DissimilarityInfo = (PlaceIndex, PlaceIndex, Distance, Duration);
+type DissimilarityIndex = HashMap<Job, Vec<DissimilarityInfo>>;
+
 /// Estimates ability of each job to build a cluster.
-fn get_estimates(
-    problem: &Problem,
-    profile: &Profile,
-    config: &ClusterConfig,
-) -> HashMap<Job, HashMap<Job, (f64, f64)>> {
+fn get_estimates(problem: &Problem, profile: &Profile, config: &ClusterConfig) -> HashMap<Job, DissimilarityIndex> {
     let transport = problem.transport.as_ref();
     let jobs = problem
         .jobs
@@ -126,8 +126,12 @@ fn get_estimates(
                 .iter()
                 .filter(|inner| outer != *inner)
                 .filter_map(|inner| {
-                    estimate_job_dissimilarities(&outer, inner, profile, &config.threshold, transport)
-                        .map(|estimate| (inner.clone(), (estimate.0, estimate.1)))
+                    let dissimilarities = get_dissimilarities(&outer, inner, profile, &config.threshold, transport);
+                    if dissimilarities.is_empty() {
+                        None
+                    } else {
+                        Some((inner.clone(), dissimilarities))
+                    }
                 })
                 .collect::<HashMap<_, _>>();
             (outer.clone(), dissimilarities)
@@ -135,46 +139,53 @@ fn get_estimates(
         .collect::<HashMap<_, _>>()
 }
 
-fn estimate_job_dissimilarities(
+fn get_dissimilarities(
     outer: &Job,
     inner: &Job,
     profile: &Profile,
     threshold: &ThresholdPolicy,
     transport: &(dyn TransportCost + Send + Sync),
-) -> Option<(Distance, Duration)> {
+) -> Vec<DissimilarityInfo> {
     let departure = Default::default();
     outer
         .to_single()
         .places
         .iter()
+        .enumerate()
         .filter_map(map_place)
-        .flat_map(|(outer_loc, outer_times)| {
-            inner.to_single().places.iter().filter_map(map_place).filter_map(move |(inner_loc, inner_times)| {
-                let shared_time = outer_times
-                    .iter()
-                    .flat_map(|outer_time| {
-                        inner_times
-                            .iter()
-                            .filter_map(move |inner_time| outer_time.overlapping(inner_time).map(|tw| tw.duration()))
-                    })
-                    .max_by(|a, b| compare_floats(*a, *b))
-                    .unwrap_or(0.);
+        .flat_map(|(outer_place_idx, outer_loc, outer_times)| {
+            inner.to_single().places.iter().enumerate().filter_map(map_place).filter_map(
+                move |(inner_place_idx, inner_loc, inner_times)| {
+                    let shared_time = outer_times
+                        .iter()
+                        .flat_map(|outer_time| {
+                            inner_times.iter().filter_map(move |inner_time| {
+                                outer_time.overlapping(inner_time).map(|tw| tw.duration())
+                            })
+                        })
+                        .max_by(|a, b| compare_floats(*a, *b))
+                        .unwrap_or(0.);
 
-                if shared_time > threshold.min_shared_time.unwrap_or(0.) {
-                    let distance = transport.distance(profile, outer_loc, inner_loc, departure);
-                    let duration = transport.duration(profile, outer_loc, inner_loc, departure);
+                    if shared_time > threshold.min_shared_time.unwrap_or(0.) {
+                        let distance = transport.distance(profile, outer_loc, inner_loc, departure);
+                        let duration = transport.duration(profile, outer_loc, inner_loc, departure);
 
-                    match ((duration - threshold.moving_duration < 0.), (distance - threshold.moving_distance < 0.)) {
-                        (true, true) => Some((shared_time, distance, duration)),
-                        _ => None,
+                        match ((duration - threshold.moving_duration < 0.), (distance - threshold.moving_distance < 0.))
+                        {
+                            (true, true) => Some((outer_place_idx, inner_place_idx, shared_time, distance, duration)),
+                            _ => None,
+                        }
+                    } else {
+                        None
                     }
-                } else {
-                    None
-                }
-            })
+                },
+            )
         })
-        .max_by(|(left, _, _), (right, _, _)| compare_floats(*left, *right))
-        .map(|(_, distance, duration)| (distance, duration))
+        //.max_by(|(_, _, left, _, _), (_, _, right, _, _)| compare_floats(*left, *right))
+        .map(|(outer_place_idx, inner_place_idx, _, distance, duration)| {
+            (outer_place_idx, inner_place_idx, distance, duration)
+        })
+        .collect()
 }
 
 fn get_check_job<'a>(
@@ -210,7 +221,7 @@ fn get_check_job<'a>(
 
 fn get_clusters(
     insertion_ctx: &InsertionContext,
-    estimates: HashMap<Job, HashMap<Job, (Distance, Duration)>>,
+    estimates: HashMap<Job, DissimilarityIndex>,
     config: &ClusterConfig,
     check_job: &(dyn Fn(&Job) -> bool),
 ) -> Vec<(Job, Vec<Job>)> {
@@ -269,7 +280,7 @@ fn get_clusters(
 }
 
 fn build_job_cluster(
-    estimate: (&Job, &HashMap<Job, (Distance, Duration)>),
+    estimate: (&Job, &DissimilarityIndex),
     config: &ClusterConfig,
     check_job: &(dyn Fn(&Job) -> bool),
 ) -> Option<Job> {
@@ -278,10 +289,11 @@ fn build_job_cluster(
     unimplemented!()
 }
 
-fn map_place(place: &Place) -> Option<(Location, Vec<TimeWindow>)> {
-    place
-        .location
-        .map(|location| (location, place.times.iter().filter_map(|time| time.as_time_window()).collect::<Vec<_>>()))
+fn map_place(place_info: (PlaceIndex, &Place)) -> Option<(PlaceIndex, Location, Vec<TimeWindow>)> {
+    let (idx, place) = place_info;
+    place.location.map(|location| {
+        (idx, location, place.times.iter().filter_map(|time| time.as_time_window()).collect::<Vec<_>>())
+    })
 }
 
 fn deep_copy(job: &Job) -> Job {
