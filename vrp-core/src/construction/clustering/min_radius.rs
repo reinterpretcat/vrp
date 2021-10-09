@@ -2,7 +2,7 @@ use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::problem::{Actor, Job, Place, Single, TransportCost};
 use crate::models::Problem;
-use crate::utils::{compare_floats, unwrap_from_result, Environment};
+use crate::utils::{compare_floats, parallel_foreach_mut, unwrap_from_result, Environment};
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::ops::Deref;
@@ -181,7 +181,6 @@ fn get_dissimilarities(
                 },
             )
         })
-        //.max_by(|(_, _, left, _, _), (_, _, right, _, _)| compare_floats(*left, *right))
         .map(|(outer_place_idx, inner_place_idx, _, distance, duration)| {
             (outer_place_idx, inner_place_idx, distance, duration)
         })
@@ -223,7 +222,7 @@ fn get_clusters(
     insertion_ctx: &InsertionContext,
     estimates: HashMap<Job, DissimilarityIndex>,
     config: &ClusterConfig,
-    check_job: &(dyn Fn(&Job) -> bool),
+    check_job: &(dyn Fn(&Job) -> bool + Send + Sync),
 ) -> Vec<(Job, Vec<Job>)> {
     let mut estimates = estimates
         .into_iter()
@@ -234,9 +233,11 @@ fn get_clusters(
 
     loop {
         // build clusters
-        estimates.iter_mut().filter(|(_, (cluster, _))| cluster.is_none()).for_each(
-            |(center, (cluster, candidates))| *cluster = build_job_cluster((center, candidates), config, check_job),
-        );
+        parallel_foreach_mut(estimates.as_mut_slice(), |(center, (cluster, candidates))| {
+            if cluster.is_none() {
+                *cluster = build_job_cluster((center, candidates), config, check_job)
+            }
+        });
 
         estimates.sort_by(|(_, (a, _)), (_, (b, _))| match (a, b) {
             (Some(a), Some(b)) => config.building.ordering.deref()(a, b),
@@ -282,7 +283,7 @@ fn get_clusters(
 fn build_job_cluster(
     estimate: (&Job, &DissimilarityIndex),
     config: &ClusterConfig,
-    check_job: &(dyn Fn(&Job) -> bool),
+    check_job: &(dyn Fn(&Job) -> bool + Send + Sync),
 ) -> Option<Job> {
     let (center, candidates) = estimate;
 

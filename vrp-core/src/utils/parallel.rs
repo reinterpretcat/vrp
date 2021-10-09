@@ -1,5 +1,6 @@
 pub use self::actual::map_reduce;
 pub use self::actual::parallel_collect;
+pub use self::actual::parallel_foreach_mut;
 pub use self::actual::parallel_into_collect;
 pub use self::actual::ThreadPool;
 
@@ -63,6 +64,15 @@ mod actual {
     {
         source.par_iter().map(map_op).reduce(default_op, reduce_op)
     }
+
+    /// Performs mutable foreach in parallel.
+    pub fn parallel_foreach_mut<T, F>(source: &mut [T], action: F)
+    where
+        T: Send + Sync,
+        F: Fn(&mut T) -> () + Send + Sync,
+    {
+        source.par_iter_mut().for_each(action)
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -116,5 +126,14 @@ mod actual {
         R: Send,
     {
         source.iter().map(map_op).fold(default_op(), reduce_op)
+    }
+
+    /// Performs mutable foreach in parallel.
+    pub fn parallel_foreach_mut<T, F>(source: &mut [T], action: F)
+    where
+        T: Send + Sync,
+        F: Fn(&mut T) -> () + Send + Sync,
+    {
+        source.iter_mut().for_each(action)
     }
 }
