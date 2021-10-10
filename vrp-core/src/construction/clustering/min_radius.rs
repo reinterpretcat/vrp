@@ -105,8 +105,14 @@ pub fn create_job_clusters(
     get_clusters(&insertion_ctx, estimates, config, &check_job)
 }
 
+struct ActivityInfo {
+    service_time: Duration,
+    forward: (Distance, Duration),
+    backward: (Distance, Duration),
+}
+
 type PlaceIndex = usize;
-type DissimilarityInfo = (PlaceIndex, PlaceIndex, Distance, Duration);
+type DissimilarityInfo = (PlaceIndex, PlaceIndex, ActivityInfo);
 type DissimilarityIndex = HashMap<Job, Vec<DissimilarityInfo>>;
 
 /// Estimates ability of each job to build a cluster.
@@ -167,21 +173,32 @@ fn get_dissimilarities(
                         .unwrap_or(0.);
 
                     if shared_time > config.threshold.min_shared_time.unwrap_or(0.) {
-                        let distance = transport.distance(profile, outer_loc, inner_loc, departure);
-                        let duration = transport.duration(profile, outer_loc, inner_loc, departure);
+                        let fwd_distance = transport.distance(profile, outer_loc, inner_loc, departure);
+                        let fwd_duration = transport.duration(profile, outer_loc, inner_loc, departure);
+
+                        let bck_distance = transport.distance(profile, inner_loc, outer_loc, departure);
+                        let bck_duration = transport.duration(profile, inner_loc, outer_loc, departure);
 
                         match (
-                            (duration - config.threshold.moving_duration < 0.),
-                            (distance - config.threshold.moving_distance < 0.),
+                            (fwd_duration - config.threshold.moving_duration < 0.),
+                            (fwd_distance - config.threshold.moving_distance < 0.),
+                            (bck_duration - config.threshold.moving_duration < 0.),
+                            (bck_distance - config.threshold.moving_distance < 0.),
                         ) {
-                            (true, true) => {
+                            (true, true, true, true) => {
                                 let service_time = match &config.service_time {
                                     ServiceTimePolicy::Original => inner_duration,
                                     ServiceTimePolicy::Multiplier(multiplier) => inner_duration * *multiplier,
                                     ServiceTimePolicy::Fixed(service_time) => *service_time,
                                 };
 
-                                Some((outer_place_idx, inner_place_idx, shared_time, distance, duration + service_time))
+                                let info = ActivityInfo {
+                                    service_time,
+                                    forward: (fwd_distance, fwd_duration),
+                                    backward: (bck_distance, bck_duration),
+                                };
+
+                                Some((outer_place_idx, inner_place_idx, shared_time, info))
                             }
                             _ => None,
                         }
@@ -191,9 +208,7 @@ fn get_dissimilarities(
                 },
             )
         })
-        .map(|(outer_place_idx, inner_place_idx, _, distance, duration)| {
-            (outer_place_idx, inner_place_idx, distance, duration)
-        })
+        .map(|(outer_place_idx, inner_place_idx, _, info)| (outer_place_idx, inner_place_idx, info))
         .collect()
 }
 
