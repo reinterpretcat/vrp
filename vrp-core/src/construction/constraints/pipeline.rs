@@ -99,7 +99,7 @@ pub trait ConstraintModule {
     /// Tries to merge two jobs taking into account common constraints.
     /// Returns a new job, if it is possible to merge them together having theoretically assignable
     /// job. Otherwise returns violation error code.
-    fn merge_constrained(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+    fn merge_constrained(&self, _source: Job, _candidate: Job) -> Result<Job, i32> {
         unimplemented!()
     }
 

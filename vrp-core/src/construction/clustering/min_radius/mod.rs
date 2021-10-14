@@ -89,8 +89,8 @@ pub enum ServiceTimePolicy {
 pub struct BuilderPolicy {
     /// The smallest time window of the cluster.
     smallest_time_window: Option<f64>,
-    /// Checks whether given cluster can get more.
-    size_filter: Arc<dyn Fn(&[Job]) -> bool + Send + Sync>,
+    /// Checks whether given cluster is already good to go, so clustering more jobs is not needed.
+    threshold: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
     /// Orders visiting jobs based on their visit info.
     ordering: Arc<dyn Fn(&VisitInfo, &VisitInfo) -> Ordering + Send + Sync>,
 }

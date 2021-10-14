@@ -2,10 +2,9 @@ use super::*;
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::*;
 use crate::models::common::*;
-use crate::models::problem::{Actor, Job, Place, Single, TransportCost};
+use crate::models::problem::{Place, Single, TransportCost};
 use crate::utils::*;
 use hashbrown::{HashMap, HashSet};
-use std::cmp::Ordering;
 use std::ops::Deref;
 
 type PlaceInfo = (PlaceIndex, Location, Duration, Vec<TimeWindow>);
@@ -48,6 +47,7 @@ pub(crate) fn get_estimates(
         .collect::<HashMap<_, _>>()
 }
 
+/// Gets function which checks possibility of cluster insertion.
 pub(crate) fn get_check_insertion_fn(
     insertion_ctx: InsertionContext,
     actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
@@ -79,6 +79,7 @@ pub(crate) fn get_check_insertion_fn(
     }
 }
 
+/// Gets job clusters.
 pub(crate) fn get_clusters(
     constraint: &ConstraintPipeline,
     estimates: HashMap<Job, DissimilarityIndex>,
@@ -227,7 +228,7 @@ fn build_job_cluster(
     let center_estimates = estimates.get(center_job).expect("missing job in estimates");
 
     // iterate through all places and choose the one with most jobs clustered
-    center.places.iter().enumerate().filter_map(map_place).fold(
+    unwrap_from_result(center.places.iter().enumerate().filter_map(map_place).try_fold(
         Option::<(Job, usize)>::None,
         |best_cluster, center_place_info| {
             let (center_place_idx, center_location, center_duration, center_times) = center_place_info;
@@ -294,15 +295,19 @@ fn build_job_cluster(
                 }
             }
 
-            match &best_cluster {
+            let best_cluster = match &best_cluster {
                 Some((_, best_count)) if *best_count > count => Some((cluster, count)),
                 None => Some((cluster, count)),
                 _ => best_cluster,
+            };
+
+            match &best_cluster {
+                Some((job, _)) if !config.building.threshold.deref()(job) => Err(best_cluster),
+                _ => Ok(best_cluster),
             }
         },
-    );
-
-    unimplemented!()
+    ))
+    .map(|(cluster, _)| cluster)
 }
 
 fn try_add_job(
