@@ -34,7 +34,7 @@ pub(crate) fn get_estimates(
                 .iter()
                 .filter(|inner| outer != *inner)
                 .filter_map(|inner| {
-                    let dissimilarities = get_dissimilarities(&outer, inner, profile, config, transport);
+                    let dissimilarities = get_dissimilarities(outer, inner, profile, config, transport);
                     if dissimilarities.is_empty() {
                         None
                     } else {
@@ -367,12 +367,8 @@ fn try_add_job(
 
         let new_cluster_duration = cluster_place.duration + movement + info.service_time;
 
-        let updated_cluster = create_single_job(
-            cluster_place.location.clone(),
-            new_cluster_duration,
-            &new_cluster_times,
-            &cluster.dimens,
-        );
+        let updated_cluster =
+            create_single_job(cluster_place.location, new_cluster_duration, &new_cluster_times, &cluster.dimens);
         let updated_candidate =
             create_single_job(place.location, new_cluster_duration, &new_cluster_times, &job.dimens);
 
@@ -380,7 +376,7 @@ fn try_add_job(
         constraint
             .merge_constrained(updated_cluster, updated_candidate)
             .map(|job| if check_insertion.deref()(&job) { Some((job, place_idx, info)) } else { None })
-            .map_or_else(|_| Ok(None), |data| Err(data))
+            .map_or_else(|_| Ok(None), Err)
     }))
 }
 
@@ -416,7 +412,7 @@ fn with_cluster_dimension(cluster: Job, added_job: &Job, visit_info: VisitInfo) 
 
     let mut cluster = Single { places: cluster.places.clone(), dimens: cluster.dimens.clone() };
 
-    let mut jobs = cluster.dimens.get_cluster().cloned().unwrap_or_else(|| Vec::new());
+    let mut jobs = cluster.dimens.get_cluster().cloned().unwrap_or_else(Vec::new);
     jobs.push((added_job.clone(), visit_info));
 
     cluster.dimens.set_cluster(jobs);
@@ -449,7 +445,7 @@ fn create_single_job(location: Option<Location>, duration: Duration, times: &[Ti
         places: vec![Place {
             location,
             duration,
-            times: times.into_iter().map(|time| TimeSpan::Window(time.clone())).collect(),
+            times: times.iter().map(|time| TimeSpan::Window(time.clone())).collect(),
         }],
         dimens: dimens.clone(),
     }))

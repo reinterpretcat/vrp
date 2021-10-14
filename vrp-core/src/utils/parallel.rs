@@ -69,7 +69,7 @@ mod actual {
     pub fn parallel_foreach_mut<T, F>(source: &mut [T], action: F)
     where
         T: Send + Sync,
-        F: Fn(&mut T) -> () + Send + Sync,
+        F: Fn(&mut T) + Send + Sync,
     {
         source.par_iter_mut().for_each(action)
     }
@@ -132,7 +132,7 @@ mod actual {
     pub fn parallel_foreach_mut<T, F>(source: &mut [T], action: F)
     where
         T: Send + Sync,
-        F: Fn(&mut T) -> () + Send + Sync,
+        F: Fn(&mut T) + Send + Sync,
     {
         source.iter_mut().for_each(action)
     }

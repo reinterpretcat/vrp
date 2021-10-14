@@ -1,3 +1,5 @@
+//! Provides functionality to group jobs in some vicinity radius.
+
 use crate::construction::heuristics::InsertionContext;
 use crate::models::common::*;
 use crate::models::common::{Dimensions, ValueDimension};
@@ -106,7 +108,7 @@ pub struct VisitInfo {
     backward: (Distance, Duration),
 }
 
-/// Creates clusters of jobs trying to minimize their radius.
+/// Creates clusters of jobs grouping them together best on vicinity properties.
 /// Limitations:
 /// - only single jobs are clustered
 /// - time offset is not supported
