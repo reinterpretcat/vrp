@@ -96,6 +96,13 @@ pub trait ConstraintModule {
     /// updating non changed route states.
     fn accept_solution_state(&self, ctx: &mut SolutionContext);
 
+    /// Tries to merge two jobs taking into account common constraints.
+    /// Returns a new job, if it is possible to merge them together having theoretically assignable
+    /// job. Otherwise returns violation error code.
+    fn merge_constrained(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        unimplemented!()
+    }
+
     /// Returns unique constraint state keys.
     /// Used to avoid state key interference.
     fn state_keys(&self) -> Iter<i32>;
@@ -191,7 +198,7 @@ impl ConstraintPipeline {
     /// Returns a new job, if it is possible to merge them together having theoretically assignable
     /// job. Otherwise returns violation error code.
     pub fn merge_constrained(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        todo!()
+        self.modules.iter().try_fold(source, |acc, module| module.merge_constrained(acc, candidate.clone()))
     }
 
     /// Adds constraint module.
