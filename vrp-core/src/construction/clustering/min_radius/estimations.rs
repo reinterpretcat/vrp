@@ -1,127 +1,12 @@
+use super::*;
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::problem::{Actor, Job, Place, Single, TransportCost};
-use crate::models::Problem;
 use crate::utils::*;
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::ops::Deref;
-use std::sync::Arc;
-
-const CLUSTER_DIMENSION_KEY: &str = "cls";
-
-/// A trait to get or set cluster info.
-pub trait ClusterDimension {
-    /// Sets cluster.
-    fn set_cluster(&mut self, jobs: Vec<(Job, VisitInfo)>) -> &mut Self;
-    /// Gets cluster.
-    fn get_cluster(&self) -> Option<&Vec<(Job, VisitInfo)>>;
-}
-
-impl ClusterDimension for Dimensions {
-    fn set_cluster(&mut self, jobs: Vec<(Job, VisitInfo)>) -> &mut Self {
-        self.set_value(CLUSTER_DIMENSION_KEY, jobs);
-        self
-    }
-
-    fn get_cluster(&self) -> Option<&Vec<(Job, VisitInfo)>> {
-        self.get_value(CLUSTER_DIMENSION_KEY)
-    }
-}
-
-/// Specifies clustering algorithm configuration.
-pub struct ClusterConfig {
-    /// A thresholds for job clustering.
-    threshold: ThresholdPolicy,
-    /// Job visiting policy
-    visiting: VisitPolicy,
-    /// Job service time policy.
-    service_time: ServiceTimePolicy,
-    /// Specifies filtering policy.
-    filtering: FilterPolicy,
-    /// Specifies building policy.
-    building: BuilderPolicy,
-}
-
-/// Defines a various thresholds to control cluster size.
-pub struct ThresholdPolicy {
-    /// Moving duration limit.
-    moving_duration: Duration,
-    /// Moving distance limit.
-    moving_distance: Distance,
-    /// Minimum shared time for jobs.
-    min_shared_time: Option<Duration>,
-}
-
-/// Specifies cluster visiting policy.
-pub enum VisitPolicy {
-    /// It is required to return to the first job's location (cluster center) before visiting a next job.
-    Repetition,
-    /// Clustered jobs are visited one by one from the cluster center finishing in the end at the
-    /// first job's location.
-    ClosedContinuation,
-    /// Clustered jobs are visited one by one starting from the cluster center and finishing in the
-    /// end at the last job's location.
-    OpenContinuation,
-}
-
-/// Specifies filtering policy.
-pub struct FilterPolicy {
-    /// Job filter.
-    job_filter: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
-    /// Actor filter.
-    actor_filter: Arc<dyn Fn(&Actor) -> bool + Send + Sync>,
-}
-
-/// Specifies service time policy.
-pub enum ServiceTimePolicy {
-    /// Keep original service time.
-    Original,
-    /// Correct service time by some multiplier.
-    Multiplier(f64),
-    /// Use fixed value for all clustered jobs.
-    Fixed(f64),
-}
-
-/// Allows to control how clusters are built.
-pub struct BuilderPolicy {
-    /// The smallest time window of the cluster.
-    smallest_time_window: Option<f64>,
-    /// Checks whether given cluster can get more.
-    size_filter: Arc<dyn Fn(&[Job]) -> bool + Send + Sync>,
-    /// Orders visiting jobs based on their visit info.
-    ordering: Arc<dyn Fn(&VisitInfo, &VisitInfo) -> Ordering + Send + Sync>,
-}
-
-/// Keeps track of information specific for job visiting.
-#[derive(Clone)]
-pub struct VisitInfo {
-    /// An activity's service time.
-    service_time: Duration,
-    /// Movement info in forward direction.
-    forward: (Distance, Duration),
-    /// Movement info in backward direction.
-    backward: (Distance, Duration),
-}
-
-/// Creates clusters of jobs trying to minimize their radius.
-/// Limitations:
-/// - only single jobs are clustered
-/// - time offset is not supported
-pub fn create_job_clusters(
-    problem: Arc<Problem>,
-    environment: Arc<Environment>,
-    profile: &Profile,
-    config: &ClusterConfig,
-) -> Vec<(Job, Vec<Job>)> {
-    let insertion_ctx = InsertionContext::new_empty(problem.clone(), environment);
-    let constraint = insertion_ctx.problem.constraint.clone();
-    let check_job = get_check_insertion_fn(insertion_ctx, config.filtering.actor_filter.as_ref());
-    let estimates = get_estimates(problem.as_ref(), profile, config);
-
-    get_clusters(&constraint, estimates, config, &check_job)
-}
 
 type PlaceInfo = (PlaceIndex, Location, Duration, Vec<TimeWindow>);
 type PlaceIndex = usize;
@@ -130,7 +15,11 @@ type DissimilarityIndex = HashMap<Job, Vec<DissimilarityInfo>>;
 type CheckInsertionFn = (dyn Fn(&Job) -> bool + Send + Sync);
 
 /// Estimates ability of each job to build a cluster.
-fn get_estimates(problem: &Problem, profile: &Profile, config: &ClusterConfig) -> HashMap<Job, DissimilarityIndex> {
+pub(crate) fn get_estimates(
+    problem: &Problem,
+    profile: &Profile,
+    config: &ClusterConfig,
+) -> HashMap<Job, DissimilarityIndex> {
     let transport = problem.transport.as_ref();
     let jobs = problem
         .jobs
@@ -157,6 +46,106 @@ fn get_estimates(problem: &Problem, profile: &Profile, config: &ClusterConfig) -
             (outer.clone(), dissimilarities)
         })
         .collect::<HashMap<_, _>>()
+}
+
+pub(crate) fn get_check_insertion_fn(
+    insertion_ctx: InsertionContext,
+    actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
+) -> impl Fn(&Job) -> bool {
+    let result_selector = BestResultSelector::default();
+    let routes = insertion_ctx
+        .solution
+        .registry
+        .next()
+        .filter(|route_ctx| actor_filter.deref()(&route_ctx.route.actor))
+        .collect::<Vec<_>>();
+
+    move |job: &Job| -> bool {
+        unwrap_from_result(routes.iter().try_fold(false, |_, route_ctx| {
+            let result = evaluate_job_insertion_in_route(
+                &insertion_ctx,
+                route_ctx,
+                job,
+                InsertionPosition::Any,
+                InsertionResult::make_failure(),
+                &result_selector,
+            );
+
+            match result {
+                InsertionResult::Success(_) => Err(true),
+                InsertionResult::Failure(_) => Ok(false),
+            }
+        }))
+    }
+}
+
+pub(crate) fn get_clusters(
+    constraint: &ConstraintPipeline,
+    estimates: HashMap<Job, DissimilarityIndex>,
+    config: &ClusterConfig,
+    check_insertion: &CheckInsertionFn,
+) -> Vec<(Job, Vec<Job>)> {
+    let mut used_jobs = HashSet::new();
+    let mut clusters = Vec::new();
+    let mut cluster_estimates = estimates
+        .iter()
+        .map(|(job, estimate)| (job.clone(), (None, estimate.clone())))
+        .collect::<Vec<(_, (Option<Job>, HashMap<_, _>))>>();
+
+    loop {
+        // build clusters
+        parallel_foreach_mut(cluster_estimates.as_mut_slice(), |(center, (cluster, _))| {
+            if cluster.is_none() {
+                *cluster = build_job_cluster(constraint, &estimates, center, config, check_insertion)
+            }
+        });
+
+        // sort trying to prioritize clusters with more jobs
+        cluster_estimates.sort_by(|(_, (a_job, a_dis)), (_, (b_job, b_dis))| match (a_job, b_job) {
+            (Some(_), Some(_)) => b_dis.len().cmp(&a_dis.len()),
+            (None, Some(_)) => Ordering::Greater,
+            (Some(_), None) => Ordering::Less,
+            (None, None) => Ordering::Equal,
+        });
+
+        let new_cluster = cluster_estimates.first().and_then(|(_, (cluster, _))| cluster.as_ref()).cloned();
+
+        if let Some(new_cluster) = new_cluster {
+            let new_cluster_jobs = new_cluster
+                .dimens()
+                .get_cluster()
+                .expect("expected to have jobs in a cluster")
+                .iter()
+                .map(|(job, _)| job.clone())
+                .collect::<Vec<_>>();
+
+            clusters.push((new_cluster.clone(), new_cluster_jobs.clone()));
+            used_jobs.extend(new_cluster_jobs.iter().cloned());
+
+            let new_cluster_jobs = new_cluster_jobs.iter().collect::<HashSet<_>>();
+
+            // remove used jobs from analysis
+            cluster_estimates.retain(|(center, _)| !new_cluster_jobs.contains(center));
+            cluster_estimates.iter_mut().for_each(|(_, (cluster, candidates))| {
+                candidates.retain(|job, _| !new_cluster_jobs.contains(job));
+
+                let is_cluster_affected = cluster
+                    .as_ref()
+                    .and_then(|cluster| cluster.dimens().get_cluster())
+                    .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|(job, _)| new_cluster_jobs.contains(job)));
+
+                if is_cluster_affected {
+                    // NOTE force to rebuild cluster on next iteration
+                    *cluster = None;
+                }
+            });
+            cluster_estimates.retain(|(_, (_, candidates))| !candidates.is_empty());
+        } else {
+            break;
+        }
+    }
+
+    clusters
 }
 
 fn get_dissimilarities(
@@ -224,106 +213,6 @@ fn get_dissimilarities(
         })
         .map(|(outer_place_idx, inner_place_idx, _, info)| (outer_place_idx, inner_place_idx, info))
         .collect()
-}
-
-fn get_check_insertion_fn(
-    insertion_ctx: InsertionContext,
-    actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
-) -> impl Fn(&Job) -> bool {
-    let result_selector = BestResultSelector::default();
-    let routes = insertion_ctx
-        .solution
-        .registry
-        .next()
-        .filter(|route_ctx| actor_filter.deref()(&route_ctx.route.actor))
-        .collect::<Vec<_>>();
-
-    move |job: &Job| -> bool {
-        unwrap_from_result(routes.iter().try_fold(false, |_, route_ctx| {
-            let result = evaluate_job_insertion_in_route(
-                &insertion_ctx,
-                route_ctx,
-                job,
-                InsertionPosition::Any,
-                InsertionResult::make_failure(),
-                &result_selector,
-            );
-
-            match result {
-                InsertionResult::Success(_) => Err(true),
-                InsertionResult::Failure(_) => Ok(false),
-            }
-        }))
-    }
-}
-
-fn get_clusters(
-    constraint: &ConstraintPipeline,
-    estimates: HashMap<Job, DissimilarityIndex>,
-    config: &ClusterConfig,
-    check_insertion: &CheckInsertionFn,
-) -> Vec<(Job, Vec<Job>)> {
-    let mut used_jobs = HashSet::new();
-    let mut clusters = Vec::new();
-    let mut cluster_estimates = estimates
-        .iter()
-        .map(|(job, estimate)| (job.clone(), (None, estimate.clone())))
-        .collect::<Vec<(_, (Option<Job>, HashMap<_, _>))>>();
-
-    loop {
-        // build clusters
-        parallel_foreach_mut(cluster_estimates.as_mut_slice(), |(center, (cluster, _))| {
-            if cluster.is_none() {
-                *cluster = build_job_cluster(constraint, &estimates, center, config, check_insertion)
-            }
-        });
-
-        // sort trying to prioritize clusters with more jobs
-        cluster_estimates.sort_by(|(_, (a_job, a_dis)), (_, (b_job, b_dis))| match (a_job, b_job) {
-            (Some(_), Some(_)) => b_dis.len().cmp(&a_dis.len()),
-            (None, Some(_)) => Ordering::Greater,
-            (Some(_), None) => Ordering::Less,
-            (None, None) => Ordering::Equal,
-        });
-
-        let new_cluster = cluster_estimates.first().and_then(|(_, (cluster, _))| cluster.as_ref()).cloned();
-
-        if let Some(new_cluster) = new_cluster {
-            let new_cluster_jobs = new_cluster
-                .dimens()
-                .get_cluster()
-                .expect("expected to have jobs in a cluster")
-                .iter()
-                .map(|(job, _)| job.clone())
-                .collect::<Vec<_>>();
-
-            clusters.push((new_cluster.clone(), new_cluster_jobs.clone()));
-            used_jobs.extend(new_cluster_jobs.iter().cloned());
-
-            let new_cluster_jobs = new_cluster_jobs.iter().collect::<HashSet<_>>();
-
-            // remove used jobs from analysis
-            cluster_estimates.retain(|(center, _)| !new_cluster_jobs.contains(center));
-            cluster_estimates.iter_mut().for_each(|(_, (cluster, candidates))| {
-                candidates.retain(|job, _| !new_cluster_jobs.contains(job));
-
-                let is_cluster_affected = cluster
-                    .as_ref()
-                    .and_then(|cluster| cluster.dimens().get_cluster())
-                    .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|(job, _)| new_cluster_jobs.contains(job)));
-
-                if is_cluster_affected {
-                    // NOTE force to rebuild cluster on next iteration
-                    *cluster = None;
-                }
-            });
-            cluster_estimates.retain(|(_, (_, candidates))| !candidates.is_empty());
-        } else {
-            break;
-        }
-    }
-
-    clusters
 }
 
 fn build_job_cluster(

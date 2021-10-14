@@ -1,7 +1,7 @@
 //! This module provides functionality which clusters jobs using DBSCAN algorithm.
 
 #[cfg(test)]
-#[path = "../../../tests/unit/construction/clustering/dbscan_test.rs"]
+#[path = "../../../../tests/unit/construction/clustering/dbscan_test.rs"]
 mod dbscan_test;
 
 use crate::algorithms::clustering::dbscan::{create_clusters, NeighborhoodFn};
