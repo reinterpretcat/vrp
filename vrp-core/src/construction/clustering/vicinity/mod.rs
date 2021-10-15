@@ -89,7 +89,7 @@ pub enum ServiceTimePolicy {
 
 /// Allows to control how clusters are built.
 pub struct BuilderPolicy {
-    /// The smallest time window of the cluster.
+    /// The smallest time window of the cluster after service time shrinking.
     smallest_time_window: Option<f64>,
     /// Checks whether given cluster is already good to go, so clustering more jobs is not needed.
     threshold: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
