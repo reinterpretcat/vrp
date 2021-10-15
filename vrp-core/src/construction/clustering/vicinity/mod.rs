@@ -53,7 +53,7 @@ pub struct ThresholdPolicy {
     moving_duration: Duration,
     /// Moving distance limit.
     moving_distance: Distance,
-    /// Minimum shared time for jobs.
+    /// Minimum shared time for jobs (non-inclusive).
     min_shared_time: Option<Duration>,
 }
 

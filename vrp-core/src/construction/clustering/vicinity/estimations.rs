@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/construction/clustering/vicinity/estimations_test.rs"]
+mod estimations_test;
+
 use super::*;
 use crate::construction::constraints::ConstraintPipeline;
 use crate::construction::heuristics::*;
