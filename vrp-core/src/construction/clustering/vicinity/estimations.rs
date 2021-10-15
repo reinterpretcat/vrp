@@ -38,7 +38,7 @@ pub(crate) fn get_estimates(
                 .iter()
                 .filter(|inner| outer != *inner)
                 .filter_map(|inner| {
-                    let dissimilarities = get_dissimilarities(outer, inner, profile, config, transport);
+                    let dissimilarities = get_dissimilarities(outer, inner, profile, transport, config);
                     if dissimilarities.is_empty() {
                         None
                     } else {
@@ -157,8 +157,8 @@ fn get_dissimilarities(
     outer: &Job,
     inner: &Job,
     profile: &Profile,
-    config: &ClusterConfig,
     transport: &(dyn TransportCost + Send + Sync),
+    config: &ClusterConfig,
 ) -> Vec<DissimilarityInfo> {
     let departure = Default::default();
     outer
