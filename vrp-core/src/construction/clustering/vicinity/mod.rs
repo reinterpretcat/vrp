@@ -98,10 +98,13 @@ pub struct BuilderPolicy {
 }
 
 /// Keeps track of information specific for job visiting.
+// TODO move job definition inside and refactor cluster dimension
 #[derive(Clone)]
 pub struct VisitInfo {
     /// An activity's service time.
     service_time: Duration,
+    /// An used place index.
+    place_idx: usize,
     /// Movement info in forward direction.
     forward: (Distance, Duration),
     /// Movement info in backward direction.
@@ -111,7 +114,7 @@ pub struct VisitInfo {
 /// Creates clusters of jobs grouping them together best on vicinity properties.
 /// Limitations:
 /// - only single jobs are clustered
-/// - time offset is not supported
+/// - time offset in job times is not supported
 pub fn create_job_clusters(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
@@ -121,7 +124,16 @@ pub fn create_job_clusters(
     let insertion_ctx = InsertionContext::new_empty(problem.clone(), environment);
     let constraint = insertion_ctx.problem.constraint.clone();
     let check_job = get_check_insertion_fn(insertion_ctx, config.filtering.actor_filter.as_ref());
-    let estimates = get_estimates(problem.as_ref(), profile, config);
+    let transport = problem.transport.as_ref();
+    let jobs = problem
+        .jobs
+        .all()
+        .filter(&*config.filtering.job_filter)
+        // NOTE multi-job is not supported
+        .filter(|job| job.as_single().is_some())
+        .collect::<Vec<_>>();
+
+    let estimates = get_jobs_dissimilarities(jobs.as_slice(), profile, transport, config);
 
     get_clusters(&constraint, estimates, config, &check_job)
 }

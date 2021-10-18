@@ -71,6 +71,11 @@ impl SingleBuilder {
         self
     }
 
+    pub fn dimens(&mut self, dimens: Dimensions) -> &mut Self {
+        self.single.dimens = dimens;
+        self
+    }
+
     pub fn location(&mut self, loc: Option<Location>) -> &mut Self {
         self.single.places.first_mut().unwrap().location = loc;
         self

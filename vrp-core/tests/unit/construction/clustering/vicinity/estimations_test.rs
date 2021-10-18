@@ -35,7 +35,6 @@ impl ConstraintModule for VicinityTestModule {
             let source = source.to_single();
             assert_eq!(source.places.len(), 1);
 
-            let id = source.dimens.get_id().unwrap();
             let place = source.places.first().unwrap();
             let place = (
                 place.location,
@@ -50,7 +49,7 @@ impl ConstraintModule for VicinityTestModule {
                     .collect::<Vec<_>>(),
             );
 
-            Ok(SingleBuilder::default().id(id).places(vec![place]).build_as_job_ref())
+            Ok(SingleBuilder::default().dimens(source.dimens.clone()).places(vec![place]).build_as_job_ref())
         }
     }
 
@@ -63,24 +62,29 @@ impl ConstraintModule for VicinityTestModule {
     }
 }
 
-fn create_constraint_pipeline(disallow_merge_list: HashSet<String>) -> ConstraintPipeline {
+fn create_constraint_pipeline(disallow_merge_list: Vec<String>) -> ConstraintPipeline {
     let mut pipeline = ConstraintPipeline::default();
+
+    let disallow_merge_list = disallow_merge_list.into_iter().collect();
 
     pipeline.add_module(Arc::new(VicinityTestModule::new(disallow_merge_list)));
 
     pipeline
 }
 
-fn get_check_insertion_fn(disallow_insertion_list: HashSet<String>) -> Arc<dyn Fn(&Job) -> bool + Send + Sync> {
+fn get_check_insertion_fn(disallow_insertion_list: Vec<String>) -> Arc<dyn Fn(&Job) -> bool + Send + Sync> {
+    let disallow_insertion_list = disallow_insertion_list.into_iter().collect::<HashSet<_>>();
+
     Arc::new(move |job| !disallow_insertion_list.contains(job.dimens().get_id().unwrap()))
 }
 
 fn create_visit_info(
     service_time: Duration,
+    place_idx: usize,
     forward: (Distance, Duration),
     backward: (Distance, Duration),
 ) -> VisitInfo {
-    VisitInfo { service_time, forward, backward }
+    VisitInfo { service_time, place_idx, forward, backward }
 }
 
 fn create_single_job(job_id: &str, places: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>) -> Job {
@@ -111,7 +115,7 @@ fn compare_visit_info(result: &VisitInfo, expected: &VisitInfo) {
 parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, threshold, service_time, expected), {
     let threshold = ThresholdPolicy { moving_duration: threshold.0, moving_distance: threshold.1, min_shared_time: threshold.2 };
     let expected = expected.into_iter()
-      .map(|e: (usize, usize, Duration, (Duration, Distance), (Duration, Distance))| (e.0, e.1, create_visit_info(e.2, e.3, e.4)))
+      .map(|e: (usize, usize, Duration, (Duration, Distance), (Duration, Distance))| (e.0, e.1, create_visit_info(e.2, 0, e.3, e.4)))
       .collect();
 
     can_get_dissimilarities_impl(places_outer, places_inner, threshold, service_time, expected);
@@ -233,7 +237,7 @@ fn can_get_dissimilarities_impl(
 }
 
 parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, smallest_time_window, expected), {
-    let expected = expected.map(|e: (usize, Duration, (Duration, Distance), (Duration, Distance))| (e.0, create_visit_info(e.1, e.2, e.3)));
+    let expected = expected.map(|e: (usize, Duration, (Duration, Distance), (Duration, Distance))| (e.0, create_visit_info(e.1, 0, e.2, e.3)));
     let building = create_default_config().building;
     let building = BuilderPolicy { smallest_time_window, ..building };
 
@@ -270,7 +274,7 @@ can_add_job! {
     ),
     case_07_time_window_threshold_below: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, Some(98.), Some((0, 4., (4., 4.), (4., 4.))),
+        false, false, VisitPolicy::ClosedContinuation, Some(94.), Some((0, 4., (4., 4.), (4., 4.))),
     ),
 }
 
@@ -286,13 +290,13 @@ fn can_add_job_impl(
     let config = ClusterConfig { visiting, building, ..create_default_config() };
     let cluster = create_single_job("cluster", center_places);
     let candidate = create_single_job("job1", candidate_places);
-    let disallowed_merge = vec!["job1".to_string()].into_iter().collect::<HashSet<_>>();
-    let disallowed_insert = vec!["cluster".to_string()].into_iter().collect::<HashSet<_>>();
+    let disallowed_merge = vec!["job1".to_string()];
+    let disallowed_insert = vec!["cluster".to_string()];
     let (disallow_merge_list, disallow_insertion_list) = match (is_disallowed_to_merge, is_disallowed_to_insert) {
         (true, true) => (disallowed_merge.clone(), disallowed_insert),
-        (true, false) => (disallowed_merge, HashSet::default()),
-        (false, true) => (HashSet::default(), disallowed_insert),
-        (false, false) => (HashSet::default(), HashSet::default()),
+        (true, false) => (disallowed_merge, Vec::default()),
+        (false, true) => (Vec::default(), disallowed_insert),
+        (false, false) => (Vec::default(), Vec::default()),
     };
     let constraint = create_constraint_pipeline(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
@@ -307,6 +311,62 @@ fn can_add_job_impl(
         (Some((_, result_place_idx, result_visit_info)), Some((expected_place_idx, expected_visit_info))) => {
             assert_eq!(result_place_idx, expected_place_idx);
             compare_visit_info(&result_visit_info, &expected_visit_info);
+        }
+        (Some(_), None) => unreachable!("unexpected some result"),
+        (None, Some(_)) => unreachable!("unexpected none result"),
+        (None, None) => {}
+    }
+}
+
+#[test]
+fn can_build_job_cluster() {
+    let visiting = VisitPolicy::ClosedContinuation;
+    let disallow_merge_list = vec![];
+    let disallow_insertion_list = vec![];
+    let jobs_places: Vec<Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>> = vec![
+        vec![(Some(1), 2., vec![(0., 100.)])],
+        vec![(Some(2), 2., vec![(0., 100.)])],
+        vec![(Some(3), 2., vec![(0., 100.)])],
+        vec![(Some(4), 2., vec![(0., 100.)])],
+    ];
+    let expected = Some((vec![0, 1, 2, 3], 14., (0., 91.)));
+
+    let transport = TestTransportCost::default();
+    let profile = Profile::new(0, None);
+    let config = ClusterConfig { visiting, ..create_default_config() };
+    let constraint = create_constraint_pipeline(disallow_merge_list);
+    let check_insertion = get_check_insertion_fn(disallow_insertion_list);
+    let jobs = jobs_places
+        .into_iter()
+        .enumerate()
+        .map(|(idx, places)| create_single_job(format!("job{}", idx).as_str(), places))
+        .collect::<Vec<_>>();
+    let estimates = get_jobs_dissimilarities(jobs.as_slice(), &profile, &transport, &config);
+
+    let result = build_job_cluster(&constraint, jobs.first().unwrap(), &estimates, &config, check_insertion.as_ref());
+
+    match (result, expected) {
+        (Some(result), Some((expected_indices, expected_duration, expected_time))) => {
+            let result_job = result.to_single();
+            assert_eq!(result_job.places.len(), 1);
+            let result_place = result_job.places.first().unwrap();
+
+            assert_eq!(result_place.times.len(), 1);
+            let times = filter_times(result_place.times.as_slice());
+            assert_eq!(times.len(), 1);
+            let time = times.first().unwrap();
+            assert_eq!(time.start, expected_time.0);
+            assert_eq!(time.end, expected_time.1);
+
+            assert_eq!(result_place.duration, expected_duration);
+
+            let result_clustered_jobs =
+                result_job.dimens.get_cluster().unwrap().into_iter().map(|(job, _)| job).collect::<Vec<_>>();
+            let expected_jobs = expected_indices.into_iter().map(|idx| jobs.get(idx).unwrap()).collect::<Vec<_>>();
+            assert_eq!(result_clustered_jobs.len(), expected_jobs.len());
+            result_clustered_jobs.iter().zip(expected_jobs.iter()).for_each(|(a, b)| {
+                assert!(a == b);
+            });
         }
         (Some(_), None) => unreachable!("unexpected some result"),
         (None, Some(_)) => unreachable!("unexpected none result"),
