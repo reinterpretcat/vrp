@@ -17,18 +17,18 @@ const CLUSTER_DIMENSION_KEY: &str = "cls";
 /// A trait to get or set cluster info.
 pub trait ClusterDimension {
     /// Sets cluster.
-    fn set_cluster(&mut self, jobs: Vec<(Job, VisitInfo)>) -> &mut Self;
+    fn set_cluster(&mut self, jobs: Vec<ClusterInfo>) -> &mut Self;
     /// Gets cluster.
-    fn get_cluster(&self) -> Option<&Vec<(Job, VisitInfo)>>;
+    fn get_cluster(&self) -> Option<&Vec<ClusterInfo>>;
 }
 
 impl ClusterDimension for Dimensions {
-    fn set_cluster(&mut self, jobs: Vec<(Job, VisitInfo)>) -> &mut Self {
+    fn set_cluster(&mut self, jobs: Vec<ClusterInfo>) -> &mut Self {
         self.set_value(CLUSTER_DIMENSION_KEY, jobs);
         self
     }
 
-    fn get_cluster(&self) -> Option<&Vec<(Job, VisitInfo)>> {
+    fn get_cluster(&self) -> Option<&Vec<ClusterInfo>> {
         self.get_value(CLUSTER_DIMENSION_KEY)
     }
 }
@@ -94,13 +94,14 @@ pub struct BuilderPolicy {
     /// Checks whether given cluster is already good to go, so clustering more jobs is not needed.
     threshold: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
     /// Orders visiting jobs based on their visit info.
-    ordering: Arc<dyn Fn(&VisitInfo, &VisitInfo) -> Ordering + Send + Sync>,
+    ordering: Arc<dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync>,
 }
 
-/// Keeps track of information specific for job visiting.
-// TODO move job definition inside and refactor cluster dimension
+/// Keeps track of information specific for job in the cluster.
 #[derive(Clone)]
-pub struct VisitInfo {
+pub struct ClusterInfo {
+    /// An original job.
+    job: Job,
     /// An activity's service time.
     service_time: Duration,
     /// An used place index.

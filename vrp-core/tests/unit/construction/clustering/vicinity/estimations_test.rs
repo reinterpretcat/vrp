@@ -79,12 +79,13 @@ fn get_check_insertion_fn(disallow_insertion_list: Vec<String>) -> Arc<dyn Fn(&J
 }
 
 fn create_visit_info(
+    job: Job,
     service_time: Duration,
     place_idx: usize,
     forward: (Distance, Duration),
     backward: (Distance, Duration),
-) -> VisitInfo {
-    VisitInfo { service_time, place_idx, forward, backward }
+) -> ClusterInfo {
+    ClusterInfo { job, service_time, place_idx, forward, backward }
 }
 
 fn create_single_job(job_id: &str, places: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>) -> Job {
@@ -105,7 +106,8 @@ fn create_default_config() -> ClusterConfig {
     }
 }
 
-fn compare_visit_info(result: &VisitInfo, expected: &VisitInfo) {
+fn compare_visit_info(result: &ClusterInfo, expected: &ClusterInfo) {
+    assert_eq!(result.place_idx, expected.place_idx);
     assert_eq!(result.forward.0, expected.forward.0);
     assert_eq!(result.forward.1, expected.forward.1);
     assert_eq!(result.backward.0, expected.backward.0);
@@ -115,7 +117,10 @@ fn compare_visit_info(result: &VisitInfo, expected: &VisitInfo) {
 parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, threshold, service_time, expected), {
     let threshold = ThresholdPolicy { moving_duration: threshold.0, moving_distance: threshold.1, min_shared_time: threshold.2 };
     let expected = expected.into_iter()
-      .map(|e: (usize, usize, Duration, (Duration, Distance), (Duration, Distance))| (e.0, e.1, create_visit_info(e.2, 0, e.3, e.4)))
+      .map(|e: (usize, usize, Duration, (Duration, Distance), (Duration, Distance))| {
+        let dummy_job = SingleBuilder::default().build_as_job_ref();
+        (e.0, create_visit_info(dummy_job, e.2, e.1, e.3, e.4))
+      })
       .collect();
 
     can_get_dissimilarities_impl(places_outer, places_inner, threshold, service_time, expected);
@@ -218,7 +223,7 @@ fn can_get_dissimilarities_impl(
     places_inner: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>,
     threshold: ThresholdPolicy,
     service_time: ServiceTimePolicy,
-    expected: Vec<(usize, usize, VisitInfo)>,
+    expected: Vec<(usize, ClusterInfo)>,
 ) {
     let outer = create_single_job("job1", places_outer);
     let inner = create_single_job("job2", places_inner);
@@ -231,13 +236,15 @@ fn can_get_dissimilarities_impl(
     assert_eq!(dissimilarities.len(), expected.len());
     dissimilarities.into_iter().zip(expected.into_iter()).for_each(|(result, expected)| {
         assert_eq!(result.0, expected.0);
-        assert_eq!(result.1, expected.1);
-        compare_visit_info(&result.2, &expected.2);
+        compare_visit_info(&result.1, &expected.1);
     });
 }
 
 parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, smallest_time_window, expected), {
-    let expected = expected.map(|e: (usize, Duration, (Duration, Distance), (Duration, Distance))| (e.0, create_visit_info(e.1, 0, e.2, e.3)));
+    let expected = expected.map(|e: (usize, Duration, (Duration, Distance), (Duration, Distance))| {
+        let dummy_job = SingleBuilder::default().build_as_job_ref();
+        create_visit_info(dummy_job, e.1, e.0, e.2, e.3)
+    });
     let building = create_default_config().building;
     let building = BuilderPolicy { smallest_time_window, ..building };
 
@@ -285,7 +292,7 @@ fn can_add_job_impl(
     is_disallowed_to_insert: bool,
     visiting: VisitPolicy,
     building: BuilderPolicy,
-    expected: Option<(usize, VisitInfo)>,
+    expected: Option<ClusterInfo>,
 ) {
     let config = ClusterConfig { visiting, building, ..create_default_config() };
     let cluster = create_single_job("cluster", center_places);
@@ -308,8 +315,8 @@ fn can_add_job_impl(
     let result = try_add_job(&constraint, 0, &cluster, candidate, &config, check_insertion.as_ref());
 
     match (result, expected) {
-        (Some((_, result_place_idx, result_visit_info)), Some((expected_place_idx, expected_visit_info))) => {
-            assert_eq!(result_place_idx, expected_place_idx);
+        (Some((_, result_visit_info)), Some(expected_visit_info)) => {
+            assert_eq!(result_visit_info.place_idx, expected_visit_info.place_idx);
             compare_visit_info(&result_visit_info, &expected_visit_info);
         }
         (Some(_), None) => unreachable!("unexpected some result"),
@@ -361,10 +368,10 @@ fn can_build_job_cluster() {
             assert_eq!(result_place.duration, expected_duration);
 
             let result_clustered_jobs =
-                result_job.dimens.get_cluster().unwrap().into_iter().map(|(job, _)| job).collect::<Vec<_>>();
+                result_job.dimens.get_cluster().unwrap().into_iter().map(|info| info.job.clone()).collect::<Vec<_>>();
             let expected_jobs = expected_indices.into_iter().map(|idx| jobs.get(idx).unwrap()).collect::<Vec<_>>();
             assert_eq!(result_clustered_jobs.len(), expected_jobs.len());
-            result_clustered_jobs.iter().zip(expected_jobs.iter()).for_each(|(a, b)| {
+            result_clustered_jobs.iter().zip(expected_jobs.iter()).for_each(|(a, &b)| {
                 assert!(a == b);
             });
         }

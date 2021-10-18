@@ -13,7 +13,7 @@ use std::ops::Deref;
 
 type PlaceInfo = (PlaceIndex, Location, Duration, Vec<TimeWindow>);
 type PlaceIndex = usize;
-type DissimilarityInfo = (PlaceIndex, PlaceIndex, VisitInfo);
+type DissimilarityInfo = (PlaceIndex, ClusterInfo);
 type DissimilarityIndex = HashMap<Job, Vec<DissimilarityInfo>>;
 type CheckInsertionFn = (dyn Fn(&Job) -> bool + Send + Sync);
 
@@ -87,7 +87,7 @@ pub(crate) fn get_clusters(
                 .get_cluster()
                 .expect("expected to have jobs in a cluster")
                 .iter()
-                .map(|(job, _)| job.clone())
+                .map(|info| info.job.clone())
                 .collect::<Vec<_>>();
 
             clusters.push((new_cluster.clone(), new_cluster_jobs.clone()));
@@ -103,7 +103,7 @@ pub(crate) fn get_clusters(
                 let is_cluster_affected = cluster
                     .as_ref()
                     .and_then(|cluster| cluster.dimens().get_cluster())
-                    .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|(job, _)| new_cluster_jobs.contains(job)));
+                    .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|info| new_cluster_jobs.contains(&info.job)));
 
                 if is_cluster_affected {
                     // NOTE force to rebuild cluster on next iteration
@@ -192,14 +192,15 @@ fn get_dissimilarities(
                                     ServiceTimePolicy::Fixed(service_time) => *service_time,
                                 };
 
-                                let info = VisitInfo {
+                                let info = ClusterInfo {
+                                    job: inner.clone(),
                                     service_time,
                                     place_idx: inner_place_idx,
                                     forward: (fwd_distance, fwd_duration),
                                     backward: (bck_distance, bck_duration),
                                 };
 
-                                Some((outer_place_idx, inner_place_idx, shared_time, info))
+                                Some((outer_place_idx, shared_time, info))
                             }
                             _ => None,
                         }
@@ -209,7 +210,7 @@ fn get_dissimilarities(
                 },
             )
         })
-        .map(|(outer_place_idx, inner_place_idx, _, info)| (outer_place_idx, inner_place_idx, info))
+        .map(|(outer_place_idx, _, info)| (outer_place_idx, info))
         .collect()
 }
 
@@ -231,7 +232,8 @@ fn build_job_cluster(
             let (center_place_idx, center_location, center_duration, center_times) = center_place_info;
             let new_center_job =
                 create_single_job(Some(center_location), center_duration, &center_times, &center.dimens);
-            let new_visit_info = VisitInfo {
+            let new_visit_info = ClusterInfo {
+                job: center_job.clone(),
                 service_time: center_duration,
                 place_idx: center_place_idx,
                 forward: (0., 0.),
@@ -242,7 +244,7 @@ fn build_job_cluster(
             let mut cluster_candidates =
                 center_estimates.iter().map(|(candidate, _)| candidate.clone()).collect::<HashSet<_>>();
 
-            let mut cluster = with_cluster_dimension(new_center_job.clone(), &center_job, new_visit_info);
+            let mut cluster = with_cluster_dimension(new_center_job.clone(), new_visit_info);
             let mut last_job = center_job.clone();
             let mut last_place_idx = center_place_idx;
             let mut count = 1_usize;
@@ -259,40 +261,35 @@ fn build_job_cluster(
                     .flat_map(|index| index.iter().filter(|(job, _)| cluster_candidates.contains(job)))
                     .flat_map(|estimate| {
                         // embed the first visit info to sort estimates of all candidate jobs later
-                        get_sorted_dissimilarities(last_place_idx, estimate, ordering)
+                        get_cluster_info_sorted(last_place_idx, estimate, ordering)
                             .into_iter()
                             .next()
-                            .map(|(_, _, visit_info)| (estimate.0, estimate.1, visit_info))
+                            .map(|visit_info| (estimate.0, estimate.1, visit_info))
                     })
                     .collect::<Vec<_>>();
                 job_estimates.sort_by(|(_, _, a_info), (_, _, b_info)| ordering.deref()(a_info, b_info));
 
                 // try to find the first successful addition to the cluster from job estimates
                 let addition_result = unwrap_from_result(job_estimates.iter().try_fold(None, |_, candidate| {
-                    if let Some((new_cluster, used_place_idx, used_info)) = try_add_job(
+                    try_add_job(
                         constraint,
                         last_place_idx,
                         &cluster,
                         (candidate.0, candidate.1),
                         config,
                         check_insertion,
-                    ) {
-                        Err(Some((new_cluster, candidate.0, used_place_idx, used_info)))
-                    } else {
-                        Ok(None)
-                    }
+                    )
+                    .map_or(Ok(None), |data| Err(Some(data)))
                 }));
 
                 match addition_result {
-                    Some((new_cluster, added_job, place_idx, visit_info)) => {
-                        cluster = with_cluster_dimension(new_cluster, added_job, visit_info);
-                        last_job = added_job.clone();
-                        last_place_idx = place_idx;
-                        cluster_candidates.remove(added_job);
+                    Some((new_cluster, visit_info)) => {
+                        last_job = visit_info.job.clone();
+                        last_place_idx = visit_info.place_idx;
                         count += 1;
 
-                        let jobs = cluster.dimens().get_cluster().cloned().unwrap();
-                        assert_eq!(jobs.len(), count);
+                        cluster_candidates.remove(&visit_info.job);
+                        cluster = with_cluster_dimension(new_cluster, visit_info);
                     }
                     None => cluster_candidates.clear(),
                 }
@@ -322,9 +319,9 @@ fn try_add_job(
     candidate: (&Job, &Vec<DissimilarityInfo>),
     config: &ClusterConfig,
     check_insertion: &CheckInsertionFn,
-) -> Option<(Job, usize, VisitInfo)> {
+) -> Option<(Job, ClusterInfo)> {
     let time_window_threshold = config.building.smallest_time_window.unwrap_or(0.);
-    let get_movement = |info: &VisitInfo| match config.visiting {
+    let get_movement = |info: &ClusterInfo| match config.visiting {
         VisitPolicy::Repetition => info.forward.1 + info.backward.1,
         VisitPolicy::ClosedContinuation | VisitPolicy::OpenContinuation => info.forward.1,
     };
@@ -336,15 +333,15 @@ fn try_add_job(
         .dimens
         .get_cluster()
         .and_then(|jobs| jobs.last())
-        .and_then(|(job, _)| job.as_single())
+        .and_then(|info| info.job.as_single())
         .and_then(|job| job.places.first())
         .map_or(cluster_place.duration, |place| place.duration);
 
     let job = candidate.0.to_single();
-    let dissimilarities = get_sorted_dissimilarities(center_place_idx, candidate, config.building.ordering.as_ref());
+    let dissimilarities = get_cluster_info_sorted(center_place_idx, candidate, config.building.ordering.as_ref());
 
-    unwrap_from_result(dissimilarities.into_iter().try_fold(None, |_, (_, place_idx, info)| {
-        let place = job.places.get(place_idx).expect("wrong place index");
+    unwrap_from_result(dissimilarities.into_iter().try_fold(None, |_, info| {
+        let place = job.places.get(info.place_idx).expect("wrong place index");
         let place_times = filter_times(place.times.as_slice());
 
         let new_cluster_times = cluster_times
@@ -379,25 +376,25 @@ fn try_add_job(
         // stop on first successful cluster
         constraint
             .merge_constrained(updated_cluster, updated_candidate)
-            .map(|job| if check_insertion.deref()(&job) { Some((job, place_idx, info)) } else { None })
+            .map(|job| if check_insertion.deref()(&job) { Some((job, info)) } else { None })
             .map_or_else(|_| Ok(None), Err)
     }))
 }
 
-fn get_sorted_dissimilarities(
+fn get_cluster_info_sorted(
     center_place_idx: usize,
     estimate: (&Job, &Vec<DissimilarityInfo>),
-    ordering: &(dyn Fn(&VisitInfo, &VisitInfo) -> Ordering + Send + Sync),
-) -> Vec<(Job, usize, VisitInfo)> {
-    let (job, dissimilarities) = estimate;
+    ordering: &(dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync),
+) -> Vec<ClusterInfo> {
+    let (_, dissimilarities) = estimate;
     let mut dissimilarities = dissimilarities
         .iter()
         .filter(|(outer_place_idx, ..)| *outer_place_idx == center_place_idx)
-        .map(|(_, place_idx, info)| (job.clone(), *place_idx, info.clone()))
+        .map(|(_, info)| info.clone())
         .collect::<Vec<_>>();
 
     // sort dissimilarities based on user provided ordering function
-    dissimilarities.sort_by(|(_, _, a_info), (_, _, b_info)| ordering.deref()(a_info, b_info));
+    dissimilarities.sort_by(|a, b| ordering.deref()(a, b));
 
     dissimilarities
 }
@@ -411,13 +408,13 @@ fn filter_times(times: &[TimeSpan]) -> Vec<TimeWindow> {
     times.iter().filter_map(|time| time.as_time_window()).collect::<Vec<_>>()
 }
 
-fn with_cluster_dimension(cluster: Job, added_job: &Job, visit_info: VisitInfo) -> Job {
+fn with_cluster_dimension(cluster: Job, visit_info: ClusterInfo) -> Job {
     let cluster = cluster.to_single();
 
     let mut cluster = Single { places: cluster.places.clone(), dimens: cluster.dimens.clone() };
 
     let mut jobs = cluster.dimens.get_cluster().cloned().unwrap_or_else(Vec::new);
-    jobs.push((added_job.clone(), visit_info));
+    jobs.push(visit_info);
 
     cluster.dimens.set_cluster(jobs);
 
@@ -434,17 +431,17 @@ fn finish_cluster(cluster: Job, estimates: &HashMap<Job, DissimilarityIndex>, co
             assert_eq!(cluster.places.len(), 1);
 
             // NOTE find a return duration back to the cluster center
-            let (first_job, first_info) = clustered.first().expect("empty cluster");
-            let (last_job, last_info) = clustered.last().expect("empty cluster");
+            let first_info = clustered.first().expect("empty cluster");
+            let last_info = clustered.last().expect("empty cluster");
             let return_duration = estimates
-                .get(first_job)
-                .and_then(|index| index.get(last_job))
+                .get(&first_info.job)
+                .and_then(|index| index.get(&last_info.job))
                 .and_then(|infos| {
-                    infos.iter().find(|(first_idx, last_idx, _)| {
-                        *first_idx == first_info.place_idx && *last_idx == last_info.place_idx
+                    infos.iter().find(|(outer_place_idx, info)| {
+                        *outer_place_idx == first_info.place_idx && info.place_idx == last_info.place_idx
                     })
                 })
-                .map(|(_, _, info)| info.backward.1)
+                .map(|(_, info)| info.backward.1)
                 .expect("cannot find backward duration");
 
             let mut place = cluster.places.first().unwrap().clone();
