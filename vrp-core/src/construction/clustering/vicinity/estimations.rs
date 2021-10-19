@@ -373,16 +373,24 @@ where
         let new_cluster_times = cluster_times
             .iter()
             .flat_map(|cluster_time| {
-                place_times.iter().filter_map(move |place_time| place_time.overlapping(cluster_time))
+                place_times.iter().filter_map(move |place_time| {
+                    let overlap_time = place_time.overlapping(cluster_time);
+
+                    let duration =
+                        if place_time.end < cluster_time.end { cluster_place.duration } else { cluster_last_duration };
+
+                    overlap_time.map(|time| (time, duration))
+                })
             })
-            .filter_map(|time| {
-                // adapt service time from last cluster job to avoid time window violation of
-                // a next job in case of last time arrival
-                let end = time.end - cluster_last_duration - info.forward.1;
-                if end - time.start < time_window_threshold {
+            .filter_map(|(overlap_time, duration)| {
+                // TODO adapt service time from last cluster job to avoid time window violation of
+                //      a next job in case of last time arrival. However, this can be too restrictive
+                //      in some cases and can be improved to keep time window a bit wider.
+                let end = overlap_time.end - duration - info.forward.1;
+                if end - overlap_time.start < time_window_threshold {
                     None
                 } else {
-                    Some(TimeWindow::new(time.start, end))
+                    Some(TimeWindow::new(overlap_time.start, end))
                 }
             })
             .collect::<Vec<_>>();

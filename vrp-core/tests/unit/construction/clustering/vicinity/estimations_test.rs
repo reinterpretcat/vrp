@@ -343,6 +343,35 @@ can_build_job_cluster_with_policy! {
     case_03_return: (VisitPolicy::Return, Some((vec![0, 1, 2, 3], 20., (0., 85.)))),
 }
 
+parameterized_test! {can_build_job_cluster_with_time_windows, (times, expected), {
+    let job_places = vec![
+        vec![(Some(1), 2., times.get(0).unwrap().clone())],
+        vec![(Some(2), 2., times.get(1).unwrap().clone())],
+        vec![(Some(3), 2., times.get(2).unwrap().clone())],
+        vec![(Some(4), 2., times.get(3).unwrap().clone())],
+    ];
+    can_build_job_cluster_impl(VisitPolicy::ClosedContinuation, vec![], vec![], job_places, expected);
+}}
+
+can_build_job_cluster_with_time_windows! {
+    case_01_same:   (vec![vec![(0., 100.)], vec![(0., 100.)], vec![(0., 100.)], vec![(0., 100.)]],
+                     Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
+    case_02_diff:   (vec![vec![(0., 100.)], vec![(0., 50.)], vec![(0., 120.)], vec![(0., 100.)]],
+                     Some((vec![0, 1, 2, 3], 14., (0., 41.)))),
+    case_03_diff:   (vec![vec![(50., 100.)], vec![(20., 80.)], vec![(30., 60.)], vec![(0., 100.)]],
+                     // NOTE ideally it can be: 54 +2s +1f 57 +2s +1f 60 ..
+                     Some((vec![0, 1, 2, 3], 14., (50., 51.)))),
+    case_04_skip:   (vec![vec![(20., 50.)], vec![(80., 100.)], vec![(0., 40.)], vec![(10., 30.)]],
+                     // 23 +2s +2f 27 +1f +2s 30 ..
+                     Some((vec![0, 2, 3], 12., (20., 23.)))),
+    case_05_skip:   (vec![vec![(20., 50.)], vec![(80., 100.)], vec![(10., 30.)], vec![(0., 40.)]],
+                     Some((vec![0, 2, 3], 12., (20., 23.)))),
+    case_06_skip:   (vec![vec![(10., 30.)], vec![(80., 100.)], vec![(20., 50.)], vec![(0., 40.)]],
+                     Some((vec![0, 2, 3], 12., (20., 23.)))),
+    case_07_multi:   (vec![vec![(0., 40.)], vec![(100., 200.), (10., 30.)], vec![(20., 50.), (60., 80.)], vec![(0., 100.)]],
+                     Some((vec![0, 1, 2, 3], 14., (20., 21.)))),
+}
+
 fn can_build_job_cluster_impl(
     visiting: VisitPolicy,
     disallow_merge_list: Vec<String>,
