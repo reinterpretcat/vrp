@@ -239,6 +239,18 @@ fn build_job_cluster(
                 forward: (0., 0.),
                 backward: (0., 0.),
             };
+            let return_movement = |original_info: &ClusterInfo| {
+                estimates
+                    .get(center_job)
+                    .and_then(|index| index.get(&original_info.job))
+                    .and_then(|infos| {
+                        infos.iter().find(|(outer_place_idx, info)| {
+                            *outer_place_idx == center_place_idx && info.place_idx == original_info.place_idx
+                        })
+                    })
+                    .map(|(_, info)| (info.forward.clone(), info.backward.clone()))
+                    .expect("cannot find movement info")
+            };
 
             // allow jobs only from candidates
             let mut cluster_candidates =
@@ -277,6 +289,7 @@ fn build_job_cluster(
                         &cluster,
                         (candidate.0, candidate.1),
                         config,
+                        &return_movement,
                         check_insertion,
                     )
                     .map_or(Ok(None), |data| Err(Some(data)))
@@ -295,7 +308,7 @@ fn build_job_cluster(
                 }
             }
 
-            cluster = finish_cluster(cluster, estimates, config);
+            cluster = finish_cluster(cluster, config, &return_movement);
 
             let best_cluster = match &best_cluster {
                 Some((_, best_count)) if *best_count > count => Some((cluster, count)),
@@ -312,20 +325,19 @@ fn build_job_cluster(
     .map(|(cluster, _)| cluster)
 }
 
-fn try_add_job(
+fn try_add_job<F>(
     constraint: &ConstraintPipeline,
     center_place_idx: usize,
     cluster: &Job,
     candidate: (&Job, &Vec<DissimilarityInfo>),
     config: &ClusterConfig,
+    return_movement: F,
     check_insertion: &CheckInsertionFn,
-) -> Option<(Job, ClusterInfo)> {
+) -> Option<(Job, ClusterInfo)>
+where
+    F: Fn(&ClusterInfo) -> ((f64, f64), (f64, f64)),
+{
     let time_window_threshold = config.building.smallest_time_window.unwrap_or(0.);
-    let get_movement = |info: &ClusterInfo| match config.visiting {
-        VisitPolicy::Repetition => info.forward.1 + info.backward.1,
-        VisitPolicy::ClosedContinuation | VisitPolicy::OpenContinuation => info.forward.1,
-    };
-
     let cluster = cluster.to_single();
     let cluster_place = cluster.places.first().expect("expect one place in cluster");
     let cluster_times = filter_times(cluster_place.times.as_slice());
@@ -333,9 +345,15 @@ fn try_add_job(
         .dimens
         .get_cluster()
         .and_then(|jobs| jobs.last())
-        .and_then(|info| info.job.as_single())
-        .and_then(|job| job.places.first())
-        .map_or(cluster_place.duration, |place| place.duration);
+        .and_then(|info| {
+            info.job
+                .as_single()
+                .map(|job| (job, info))
+                .and_then(|(job, info)| job.places.first().map(|place| (place, info)))
+        })
+        .map_or(cluster_place.duration, |(place, info)| {
+            place.duration + if matches!(config.visiting, VisitPolicy::Return) { info.backward.1 } else { 0. }
+        });
 
     let job = candidate.0.to_single();
     let dissimilarities = get_cluster_info_sorted(center_place_idx, candidate, config.building.ordering.as_ref());
@@ -343,6 +361,14 @@ fn try_add_job(
     unwrap_from_result(dissimilarities.into_iter().try_fold(None, |_, info| {
         let place = job.places.get(info.place_idx).expect("wrong place index");
         let place_times = filter_times(place.times.as_slice());
+
+        // override backward movement costs in case of return
+        let info = if matches!(config.visiting, VisitPolicy::Return) {
+            let (forward, backward) = return_movement(&info);
+            ClusterInfo { forward, backward, ..info }
+        } else {
+            info
+        };
 
         let new_cluster_times = cluster_times
             .iter()
@@ -366,7 +392,12 @@ fn try_add_job(
             return Ok(None);
         }
 
-        let new_cluster_duration = cluster_place.duration + get_movement(&info) + info.service_time;
+        let movement = match config.visiting {
+            VisitPolicy::Return => info.forward.1 + info.backward.1,
+            VisitPolicy::ClosedContinuation | VisitPolicy::OpenContinuation => info.forward.1,
+        };
+
+        let new_cluster_duration = cluster_place.duration + movement + info.service_time;
 
         let updated_cluster =
             create_single_job(cluster_place.location, new_cluster_duration, &new_cluster_times, &cluster.dimens);
@@ -421,7 +452,10 @@ fn with_cluster_dimension(cluster: Job, visit_info: ClusterInfo) -> Job {
     Job::Single(Arc::new(cluster))
 }
 
-fn finish_cluster(cluster: Job, estimates: &HashMap<Job, DissimilarityIndex>, config: &ClusterConfig) -> Job {
+fn finish_cluster<F>(cluster: Job, config: &ClusterConfig, return_movement: F) -> Job
+where
+    F: Fn(&ClusterInfo) -> ((f64, f64), (f64, f64)),
+{
     let clustered_jobs = cluster.dimens().get_cluster();
 
     match (&config.visiting, clustered_jobs) {
@@ -430,22 +464,11 @@ fn finish_cluster(cluster: Job, estimates: &HashMap<Job, DissimilarityIndex>, co
             let cluster = cluster.to_single();
             assert_eq!(cluster.places.len(), 1);
 
-            // NOTE find a return duration back to the cluster center
-            let first_info = clustered.first().expect("empty cluster");
+            // NOTE add a return duration back to the cluster center
             let last_info = clustered.last().expect("empty cluster");
-            let return_duration = estimates
-                .get(&first_info.job)
-                .and_then(|index| index.get(&last_info.job))
-                .and_then(|infos| {
-                    infos.iter().find(|(outer_place_idx, info)| {
-                        *outer_place_idx == first_info.place_idx && info.place_idx == last_info.place_idx
-                    })
-                })
-                .map(|(_, info)| info.backward.1)
-                .expect("cannot find backward duration");
-
             let mut place = cluster.places.first().unwrap().clone();
-            place.duration += return_duration;
+            let (_, backward) = return_movement(last_info);
+            place.duration += backward.1;
 
             Job::Single(Arc::new(Single { places: vec![place], dimens: cluster.dimens.clone() }))
         }

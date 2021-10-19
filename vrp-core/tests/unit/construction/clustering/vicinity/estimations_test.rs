@@ -95,7 +95,7 @@ fn create_single_job(job_id: &str, places: Vec<(Option<Location>, Duration, Vec<
 fn create_default_config() -> ClusterConfig {
     ClusterConfig {
         threshold: ThresholdPolicy { moving_duration: 10.0, moving_distance: 10.0, min_shared_time: None },
-        visiting: VisitPolicy::Repetition,
+        visiting: VisitPolicy::Return,
         service_time: ServiceTimePolicy::Original,
         filtering: FilterPolicy { job_filter: Arc::new(|_| true), actor_filter: Arc::new(|_| true) },
         building: BuilderPolicy {
@@ -272,7 +272,7 @@ can_add_job! {
 
     case_05_visit_repetition: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::Repetition, None, Some((0, 8., (4., 4.), (4., 4.))),
+        false, false, VisitPolicy::Return, None, Some((0, 8., (4., 4.), (4., 4.))),
     ),
 
     case_06_time_window_threshold_above: (
@@ -307,12 +307,13 @@ fn can_add_job_impl(
     };
     let constraint = create_constraint_pipeline(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
+    let return_movement = |info: &ClusterInfo| (info.forward.clone(), info.backward.clone());
     let transport = TestTransportCost::default();
     let profile = Profile::new(0, None);
     let dissimilarity_info = get_dissimilarities(&cluster, &candidate, &profile, &transport, &config);
     let candidate = (&candidate, &dissimilarity_info);
 
-    let result = try_add_job(&constraint, 0, &cluster, candidate, &config, check_insertion.as_ref());
+    let result = try_add_job(&constraint, 0, &cluster, candidate, &config, &return_movement, check_insertion.as_ref());
 
     match (result, expected) {
         (Some((_, result_visit_info)), Some(expected_visit_info)) => {
@@ -325,19 +326,30 @@ fn can_add_job_impl(
     }
 }
 
-#[test]
-fn can_build_job_cluster() {
-    let visiting = VisitPolicy::ClosedContinuation;
-    let disallow_merge_list = vec![];
-    let disallow_insertion_list = vec![];
-    let jobs_places: Vec<Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>> = vec![
+parameterized_test! {can_build_job_cluster_with_policy, (visiting, expected), {
+    let job_places = vec![
         vec![(Some(1), 2., vec![(0., 100.)])],
         vec![(Some(2), 2., vec![(0., 100.)])],
         vec![(Some(3), 2., vec![(0., 100.)])],
         vec![(Some(4), 2., vec![(0., 100.)])],
     ];
-    let expected = Some((vec![0, 1, 2, 3], 14., (0., 91.)));
+    can_build_job_cluster_impl(visiting, vec![], vec![], job_places, expected);
+}}
 
+can_build_job_cluster_with_policy! {
+    case_01_closed: (VisitPolicy::ClosedContinuation, Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
+    case_02_open: (VisitPolicy::OpenContinuation, Some((vec![0, 1, 2, 3], 11., (0., 91.)))),
+    // 100 -2s -1f 97 -2s -1b -2f 92 -2s -2b -3f 85 -2s -3b
+    case_03_return: (VisitPolicy::Return, Some((vec![0, 1, 2, 3], 20., (0., 85.)))),
+}
+
+fn can_build_job_cluster_impl(
+    visiting: VisitPolicy,
+    disallow_merge_list: Vec<String>,
+    disallow_insertion_list: Vec<String>,
+    jobs_places: Vec<Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>>,
+    expected: Option<(Vec<usize>, f64, (f64, f64))>,
+) {
     let transport = TestTransportCost::default();
     let profile = Profile::new(0, None);
     let config = ClusterConfig { visiting, ..create_default_config() };

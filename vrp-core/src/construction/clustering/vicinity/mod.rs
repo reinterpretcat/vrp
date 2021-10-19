@@ -60,7 +60,7 @@ pub struct ThresholdPolicy {
 /// Specifies cluster visiting policy.
 pub enum VisitPolicy {
     /// It is required to return to the first job's location (cluster center) before visiting a next job.
-    Repetition,
+    Return,
     /// Clustered jobs are visited one by one from the cluster center finishing in the end at the
     /// first job's location.
     ClosedContinuation,
