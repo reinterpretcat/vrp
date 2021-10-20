@@ -15,13 +15,13 @@ type PlaceInfo = (PlaceIndex, Location, Duration, Vec<TimeWindow>);
 type PlaceIndex = usize;
 type DissimilarityInfo = (PlaceIndex, ClusterInfo);
 type DissimilarityIndex = HashMap<Job, Vec<DissimilarityInfo>>;
-type CheckInsertionFn = (dyn Fn(&Job) -> bool + Send + Sync);
+type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), i32> + Send + Sync);
 
 /// Gets function which checks possibility of cluster insertion.
 pub(crate) fn get_check_insertion_fn(
     insertion_ctx: InsertionContext,
     actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
-) -> impl Fn(&Job) -> bool {
+) -> impl Fn(&Job) -> Result<(), i32> {
     let result_selector = BestResultSelector::default();
     let routes = insertion_ctx
         .solution
@@ -30,8 +30,8 @@ pub(crate) fn get_check_insertion_fn(
         .filter(|route_ctx| actor_filter.deref()(&route_ctx.route.actor))
         .collect::<Vec<_>>();
 
-    move |job: &Job| -> bool {
-        unwrap_from_result(routes.iter().try_fold(false, |_, route_ctx| {
+    move |job: &Job| -> Result<(), i32> {
+        unwrap_from_result(routes.iter().try_fold(Err(-1), |_, route_ctx| {
             let result = evaluate_job_insertion_in_route(
                 &insertion_ctx,
                 route_ctx,
@@ -42,8 +42,8 @@ pub(crate) fn get_check_insertion_fn(
             );
 
             match result {
-                InsertionResult::Success(_) => Err(true),
-                InsertionResult::Failure(_) => Ok(false),
+                InsertionResult::Success(_) => Err(Ok(())),
+                InsertionResult::Failure(failure) => Ok(Err(failure.constraint)),
             }
         }))
     }
@@ -292,7 +292,13 @@ fn build_job_cluster(
                         &return_movement,
                         check_insertion,
                     )
-                    .map_or(Ok(None), |data| Err(Some(data)))
+                    .map_or_else(
+                        || {
+                            cluster_candidates.remove(&candidate.0);
+                            Ok(None)
+                        },
+                        |data| Err(Some(data)),
+                    )
                 }));
 
                 match addition_result {
@@ -412,10 +418,10 @@ where
         let updated_candidate =
             create_single_job(place.location, new_cluster_duration, &new_cluster_times, &job.dimens);
 
-        // stop on first successful cluster
         constraint
             .merge_constrained(updated_cluster, updated_candidate)
-            .map(|job| if check_insertion.deref()(&job) { Some((job, info)) } else { None })
+            .and_then(|merged_cluster| check_insertion.deref()(&merged_cluster).map(|_| (merged_cluster, info)))
+            .map(|data| Some(data))
             .map_or_else(|_| Ok(None), Err)
     }))
 }

@@ -3,6 +3,8 @@ use crate::construction::constraints::{ConstraintModule, ConstraintVariant};
 use crate::helpers::models::problem::{SingleBuilder, TestTransportCost};
 use std::slice::Iter;
 
+const MERGED_KEY: &str = "merged";
+
 struct VicinityTestModule {
     disallow_merge_list: HashSet<String>,
     constraints: Vec<ConstraintVariant>,
@@ -49,7 +51,12 @@ impl ConstraintModule for VicinityTestModule {
                     .collect::<Vec<_>>(),
             );
 
-            Ok(SingleBuilder::default().dimens(source.dimens.clone()).places(vec![place]).build_as_job_ref())
+            let mut dimens = source.dimens.clone();
+            let mut merged = dimens.get_value::<Vec<Job>>(MERGED_KEY).cloned().unwrap_or_else(Vec::new);
+            merged.push(candidate);
+            dimens.set_value(MERGED_KEY, merged);
+
+            Ok(SingleBuilder::default().dimens(dimens).places(vec![place]).build_as_job_ref())
         }
     }
 
@@ -62,23 +69,37 @@ impl ConstraintModule for VicinityTestModule {
     }
 }
 
-fn create_constraint_pipeline(disallow_merge_list: Vec<String>) -> ConstraintPipeline {
+fn create_constraint_pipeline(disallow_merge_list: Vec<&str>) -> ConstraintPipeline {
     let mut pipeline = ConstraintPipeline::default();
 
-    let disallow_merge_list = disallow_merge_list.into_iter().collect();
+    let disallow_merge_list = disallow_merge_list.into_iter().map(|id| id.to_string()).collect();
 
     pipeline.add_module(Arc::new(VicinityTestModule::new(disallow_merge_list)));
 
     pipeline
 }
 
-fn get_check_insertion_fn(disallow_insertion_list: Vec<String>) -> Arc<dyn Fn(&Job) -> bool + Send + Sync> {
-    let disallow_insertion_list = disallow_insertion_list.into_iter().collect::<HashSet<_>>();
+fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>) -> Arc<CheckInsertionFn> {
+    let disallow_insertion_list = disallow_insertion_list.into_iter().map(|id| id.to_string()).collect::<HashSet<_>>();
 
-    Arc::new(move |job| !disallow_insertion_list.contains(job.dimens().get_id().unwrap()))
+    Arc::new(move |job| {
+        let job_to_check = job
+            .dimens()
+            .get_value::<Vec<Job>>(MERGED_KEY)
+            .and_then(|merged| merged.last())
+            .map(|last| last)
+            .unwrap_or(job);
+        let id = job_to_check.dimens().get_id();
+
+        if id.map_or(false, |id| disallow_insertion_list.contains(id)) {
+            Err(-1)
+        } else {
+            Ok(())
+        }
+    })
 }
 
-fn create_visit_info(
+fn create_cluster_info(
     job: Job,
     service_time: Duration,
     place_idx: usize,
@@ -119,7 +140,7 @@ parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, thres
     let expected = expected.into_iter()
       .map(|e: (usize, usize, Duration, (Duration, Distance), (Duration, Distance))| {
         let dummy_job = SingleBuilder::default().build_as_job_ref();
-        (e.0, create_visit_info(dummy_job, e.2, e.1, e.3, e.4))
+        (e.0, create_cluster_info(dummy_job, e.2, e.1, e.3, e.4))
       })
       .collect();
 
@@ -243,7 +264,7 @@ fn can_get_dissimilarities_impl(
 parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, smallest_time_window, expected), {
     let expected = expected.map(|e: (usize, Duration, (Duration, Distance), (Duration, Distance))| {
         let dummy_job = SingleBuilder::default().build_as_job_ref();
-        create_visit_info(dummy_job, e.1, e.0, e.2, e.3)
+        create_cluster_info(dummy_job, e.1, e.0, e.2, e.3)
     });
     let building = create_default_config().building;
     let building = BuilderPolicy { smallest_time_window, ..building };
@@ -265,7 +286,7 @@ can_add_job! {
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
         false, true, VisitPolicy::ClosedContinuation, None, None,
     ),
-    case_04_disallowed_merge: (
+   case_04_disallowed_merge: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
         true, false, VisitPolicy::ClosedContinuation, None, None,
     ),
@@ -297,8 +318,8 @@ fn can_add_job_impl(
     let config = ClusterConfig { visiting, building, ..create_default_config() };
     let cluster = create_single_job("cluster", center_places);
     let candidate = create_single_job("job1", candidate_places);
-    let disallowed_merge = vec!["job1".to_string()];
-    let disallowed_insert = vec!["cluster".to_string()];
+    let disallowed_merge = vec!["job1"];
+    let disallowed_insert = vec!["job1"];
     let (disallow_merge_list, disallow_insertion_list) = match (is_disallowed_to_merge, is_disallowed_to_insert) {
         (true, true) => (disallowed_merge.clone(), disallowed_insert),
         (true, false) => (disallowed_merge, Vec::default()),
@@ -381,10 +402,26 @@ can_build_job_cluster_with_time_windows! {
                      Some((vec![0, 1, 2, 3], 14., (30., 61.)))),
 }
 
+parameterized_test! {can_build_job_cluster_with_disallow_list, (merge, insertion, expected), {
+    let job_places = vec![
+        vec![(Some(1), 2., vec![(0., 100.)])],
+        vec![(Some(2), 2., vec![(0., 100.)])],
+        vec![(Some(3), 2., vec![(0., 100.)])],
+        vec![(Some(4), 2., vec![(0., 100.)])],
+    ];
+    can_build_job_cluster_impl(VisitPolicy::ClosedContinuation, merge, insertion, job_places, expected);
+}}
+
+can_build_job_cluster_with_disallow_list! {
+    case_01_empty:     (vec![], vec![], Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
+    case_02_merge:     (vec!["job2", "job4"], vec![], Some((vec![0, 2], 8., (0., 96.)))),
+    case_03_insertion: (vec![], vec!["job2", "job4"], Some((vec![0, 2], 8., (0., 96.)))),
+}
+
 fn can_build_job_cluster_impl(
     visiting: VisitPolicy,
-    disallow_merge_list: Vec<String>,
-    disallow_insertion_list: Vec<String>,
+    disallow_merge_list: Vec<&str>,
+    disallow_insertion_list: Vec<&str>,
     jobs_places: Vec<Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>>,
     expected: Option<(Vec<usize>, f64, (f64, f64))>,
 ) {
@@ -396,7 +433,7 @@ fn can_build_job_cluster_impl(
     let jobs = jobs_places
         .into_iter()
         .enumerate()
-        .map(|(idx, places)| create_single_job(format!("job{}", idx).as_str(), places))
+        .map(|(idx, places)| create_single_job(format!("job{}", idx + 1).as_str(), places))
         .collect::<Vec<_>>();
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), &profile, &transport, &config);
 
