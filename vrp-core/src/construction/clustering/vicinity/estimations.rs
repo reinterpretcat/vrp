@@ -248,7 +248,7 @@ fn build_job_cluster(
                             *outer_place_idx == center_place_idx && info.place_idx == original_info.place_idx
                         })
                     })
-                    .map(|(_, info)| (info.forward.clone(), info.backward.clone()))
+                    .map(|(_, info)| (info.forward, info.backward))
                     .expect("cannot find movement info")
             };
 
@@ -256,7 +256,7 @@ fn build_job_cluster(
             let mut cluster_candidates =
                 center_estimates.iter().map(|(candidate, _)| candidate.clone()).collect::<HashSet<_>>();
 
-            let mut cluster = with_cluster_dimension(new_center_job.clone(), new_visit_info);
+            let mut cluster = with_cluster_dimension(new_center_job, new_visit_info);
             let mut last_job = center_job.clone();
             let mut last_place_idx = center_place_idx;
             let mut count = 1_usize;
@@ -294,7 +294,7 @@ fn build_job_cluster(
                     )
                     .map_or_else(
                         || {
-                            cluster_candidates.remove(&candidate.0);
+                            cluster_candidates.remove(candidate.0);
                             Ok(None)
                         },
                         |data| Err(Some(data)),
@@ -421,7 +421,7 @@ where
         constraint
             .merge_constrained(updated_cluster, updated_candidate)
             .and_then(|merged_cluster| check_insertion.deref()(&merged_cluster).map(|_| (merged_cluster, info)))
-            .map(|data| Some(data))
+            .map(Some)
             .map_or_else(|_| Ok(None), Err)
     }))
 }
