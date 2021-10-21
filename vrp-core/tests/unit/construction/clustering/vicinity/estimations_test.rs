@@ -389,17 +389,17 @@ can_build_job_cluster_with_time_windows! {
     case_05_skip:   (vec![vec![(20., 50.)], vec![(80., 100.)], vec![(10., 30.)], vec![(0., 40.)]],
                      Some((vec![0, 2, 3], 12., (20., 23.)))),
     case_06_skip:   (vec![vec![(10., 30.)], vec![(80., 100.)], vec![(20., 50.)], vec![(0., 40.)]],
-                     Some((vec![0, 2, 3], 12., (20., 23.)))),
+                     Some((vec![0, 2, 3], 12., (18., 23.)))),
     case_07_skip:   (vec![vec![(55., 100.)], vec![(20., 80.)], vec![(30., 60.)], vec![(0., 100.)]],
                      Some((vec![0, 1, 3], 12., (55., 73.)))),
 
     case_08_multi:  (vec![vec![(0., 40.)], vec![(100., 200.), (10., 30.)], vec![(20., 50.), (60., 80.)], vec![(0., 100.)]],
-                     Some((vec![0, 1, 2, 3], 14., (20., 21.)))),
+                     Some((vec![0, 1, 2, 3], 14., (19., 21.)))),
 
     case_09_shrink: (vec![vec![(0., 100.)], vec![(10., 90.)], vec![(20., 80.)], vec![(30., 70.)]],
-                     Some((vec![0, 1, 2, 3], 14., (30., 61.)))),
+                     Some((vec![0, 1, 2, 3], 14., (29., 61.)))),
     case_10_shrink: (vec![vec![(10., 90.)], vec![(20., 80.)], vec![(0., 100.)], vec![(30., 70.)]],
-                     Some((vec![0, 1, 2, 3], 14., (30., 61.)))),
+                     Some((vec![0, 1, 2, 3], 14., (29., 61.)))),
 }
 
 parameterized_test! {can_build_job_cluster_with_disallow_list, (merge, insertion, expected), {
@@ -413,9 +413,10 @@ parameterized_test! {can_build_job_cluster_with_disallow_list, (merge, insertion
 }}
 
 can_build_job_cluster_with_disallow_list! {
-    case_01_empty:     (vec![], vec![], Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
+    case_01_empty:   (vec![], vec![], Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
     case_02_merge:     (vec!["job2", "job4"], vec![], Some((vec![0, 2], 8., (0., 96.)))),
     case_03_insertion: (vec![], vec!["job2", "job4"], Some((vec![0, 2], 8., (0., 96.)))),
+    case_04_trivial:   (vec!["job2", "job3", "job4"], vec![], None),
 }
 
 fn can_build_job_cluster_impl(

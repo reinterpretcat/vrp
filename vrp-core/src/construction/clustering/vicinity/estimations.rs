@@ -314,11 +314,13 @@ fn build_job_cluster(
                 }
             }
 
-            cluster = finish_cluster(cluster, config, &return_movement);
+            if count > 1 {
+                cluster = finish_cluster(cluster, config, &return_movement);
+            }
 
             let best_cluster = match &best_cluster {
-                Some((_, best_count)) if *best_count > count => Some((cluster, count)),
-                None => Some((cluster, count)),
+                Some((_, best_count)) if *best_count < count => Some((cluster, count)),
+                None if count > 1 => Some((cluster, count)),
                 _ => best_cluster,
             };
 
@@ -379,13 +381,21 @@ where
         let new_cluster_times = cluster_times
             .iter()
             .flat_map(|cluster_time| {
-                place_times.iter().filter_map(move |place_time| {
-                    let overlap_time = place_time.overlapping(cluster_time);
+                place_times.iter().filter_map({
+                    let info = info.clone();
+                    move |place_time| {
+                        // NOTE travel duration to the place can be deducted from its time window requirement
+                        let place_time = TimeWindow::new(place_time.start - info.forward.1, place_time.end);
+                        let overlap_time = place_time.overlapping(cluster_time);
 
-                    let duration =
-                        if place_time.end < cluster_time.end { cluster_place.duration } else { cluster_last_duration };
+                        let duration = if place_time.end < cluster_time.end {
+                            cluster_place.duration
+                        } else {
+                            cluster_last_duration
+                        };
 
-                    overlap_time.map(|time| (time, duration))
+                        overlap_time.map(|time| (time, duration))
+                    }
                 })
             })
             .filter_map(|(overlap_time, duration)| {
