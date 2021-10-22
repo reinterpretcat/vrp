@@ -5,6 +5,8 @@ use std::slice::Iter;
 
 const MERGED_KEY: &str = "merged";
 
+type JobPlaces = Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>;
+
 struct VicinityTestModule {
     disallow_merge_list: HashSet<String>,
     constraints: Vec<ConstraintVariant>,
@@ -135,6 +137,14 @@ fn compare_visit_info(result: &ClusterInfo, expected: &ClusterInfo) {
     assert_eq!(result.backward.1, expected.backward.1);
 }
 
+fn create_jobs(jobs_places: Vec<JobPlaces>) -> Vec<Job> {
+    jobs_places
+        .into_iter()
+        .enumerate()
+        .map(|(idx, places)| create_single_job(format!("job{}", idx + 1).as_str(), places))
+        .collect()
+}
+
 parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, threshold, service_time, expected), {
     let threshold = ThresholdPolicy { moving_duration: threshold.0, moving_distance: threshold.1, min_shared_time: threshold.2 };
     let expected = expected.into_iter()
@@ -252,12 +262,15 @@ fn can_get_dissimilarities_impl(
     let profile = Profile::new(0, None);
     let config = ClusterConfig { threshold, service_time, ..create_default_config() };
 
-    let dissimilarities = get_dissimilarities(&outer, &inner, &profile, &transport, &config);
+    let dissimilarities = get_dissimilarities(&outer, &inner, &profile, &transport, &config)
+        .into_iter()
+        .filter(|(reachable, ..)| *reachable)
+        .collect::<Vec<_>>();
 
     assert_eq!(dissimilarities.len(), expected.len());
     dissimilarities.into_iter().zip(expected.into_iter()).for_each(|(result, expected)| {
-        assert_eq!(result.0, expected.0);
-        compare_visit_info(&result.1, &expected.1);
+        assert_eq!(result.1, expected.0);
+        compare_visit_info(&result.2, &expected.1);
     });
 }
 
@@ -307,8 +320,8 @@ can_add_job! {
 }
 
 fn can_add_job_impl(
-    center_places: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>,
-    candidate_places: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>,
+    center_places: JobPlaces,
+    candidate_places: JobPlaces,
     is_disallowed_to_merge: bool,
     is_disallowed_to_insert: bool,
     visiting: VisitPolicy,
@@ -354,7 +367,7 @@ parameterized_test! {can_build_job_cluster_with_policy, (visiting, expected), {
         vec![(Some(3), 2., vec![(0., 100.)])],
         vec![(Some(4), 2., vec![(0., 100.)])],
     ];
-    can_build_job_cluster_impl(visiting, vec![], vec![], job_places, expected);
+    can_build_job_cluster_impl(visiting, vec![], vec![], vec![], job_places, expected);
 }}
 
 can_build_job_cluster_with_policy! {
@@ -371,7 +384,7 @@ parameterized_test! {can_build_job_cluster_with_time_windows, (times, expected),
         vec![(Some(3), 2., times.get(2).unwrap().clone())],
         vec![(Some(4), 2., times.get(3).unwrap().clone())],
     ];
-    can_build_job_cluster_impl(VisitPolicy::ClosedContinuation, vec![], vec![], job_places, expected);
+    can_build_job_cluster_impl(VisitPolicy::ClosedContinuation, vec![], vec![], vec![], job_places, expected);
 }}
 
 can_build_job_cluster_with_time_windows! {
@@ -402,28 +415,30 @@ can_build_job_cluster_with_time_windows! {
                      Some((vec![0, 1, 2, 3], 14., (29., 61.)))),
 }
 
-parameterized_test! {can_build_job_cluster_with_disallow_list, (merge, insertion, expected), {
+parameterized_test! {can_build_job_cluster_skipping_jobs, (merge, insertion, used_jobs, expected), {
     let job_places = vec![
         vec![(Some(1), 2., vec![(0., 100.)])],
         vec![(Some(2), 2., vec![(0., 100.)])],
         vec![(Some(3), 2., vec![(0., 100.)])],
         vec![(Some(4), 2., vec![(0., 100.)])],
     ];
-    can_build_job_cluster_impl(VisitPolicy::ClosedContinuation, merge, insertion, job_places, expected);
+    can_build_job_cluster_impl(VisitPolicy::ClosedContinuation, merge, insertion, used_jobs, job_places, expected);
 }}
 
-can_build_job_cluster_with_disallow_list! {
-    case_01_empty:   (vec![], vec![], Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
-    case_02_merge:     (vec!["job2", "job4"], vec![], Some((vec![0, 2], 8., (0., 96.)))),
-    case_03_insertion: (vec![], vec!["job2", "job4"], Some((vec![0, 2], 8., (0., 96.)))),
-    case_04_trivial:   (vec!["job2", "job3", "job4"], vec![], None),
+can_build_job_cluster_skipping_jobs! {
+    case_01_empty:     (vec![], vec![], vec![], Some((vec![0, 1, 2, 3], 14., (0., 91.)))),
+    case_02_merge:     (vec!["job2", "job4"], vec![], vec![], Some((vec![0, 2], 8., (0., 96.)))),
+    case_03_insertion: (vec![], vec!["job2", "job4"], vec![], Some((vec![0, 2], 8., (0., 96.)))),
+    case_04_all:       (vec!["job2", "job3", "job4"], vec![], vec![], None),
+    case_05_used:      (vec![], vec![], vec![1, 3], Some((vec![0, 2], 8., (0., 96.)))),
 }
 
 fn can_build_job_cluster_impl(
     visiting: VisitPolicy,
     disallow_merge_list: Vec<&str>,
     disallow_insertion_list: Vec<&str>,
-    jobs_places: Vec<Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>>,
+    used_jobs: Vec<usize>,
+    jobs_places: Vec<JobPlaces>,
     expected: Option<(Vec<usize>, f64, (f64, f64))>,
 ) {
     let transport = TestTransportCost::default();
@@ -431,14 +446,18 @@ fn can_build_job_cluster_impl(
     let config = ClusterConfig { visiting, ..create_default_config() };
     let constraint = create_constraint_pipeline(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
-    let jobs = jobs_places
-        .into_iter()
-        .enumerate()
-        .map(|(idx, places)| create_single_job(format!("job{}", idx + 1).as_str(), places))
-        .collect::<Vec<_>>();
+    let jobs = create_jobs(jobs_places);
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), &profile, &transport, &config);
+    let used_jobs = used_jobs.iter().map(|idx| jobs.get(*idx).unwrap().clone()).collect();
 
-    let result = build_job_cluster(&constraint, jobs.first().unwrap(), &estimates, &config, check_insertion.as_ref());
+    let result = build_job_cluster(
+        &constraint,
+        jobs.first().unwrap(),
+        &estimates,
+        &used_jobs,
+        &config,
+        check_insertion.as_ref(),
+    );
 
     match (result, expected) {
         (Some(result), Some((expected_indices, expected_duration, expected_time))) => {
@@ -467,4 +486,50 @@ fn can_build_job_cluster_impl(
         (None, Some(_)) => unreachable!("unexpected none result"),
         (None, None) => {}
     }
+}
+
+#[test]
+pub fn can_get_clusters() {
+    let jobs_amount = 8;
+    let moving_duration = 2.5;
+    let threshold = ThresholdPolicy { moving_duration, moving_distance: 10.0, min_shared_time: None };
+    let disallow_merge_list = vec![];
+    let disallow_insertion_list = vec![];
+    let jobs_places = (1..=jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();
+    let expected: Vec<(usize, Vec<usize>)> = vec![];
+
+    let transport = TestTransportCost::default();
+    let profile = Profile::new(0, None);
+    let config = ClusterConfig { threshold, ..create_default_config() };
+    let constraint = create_constraint_pipeline(disallow_merge_list);
+    let check_insertion = get_check_insertion_fn(disallow_insertion_list);
+    let jobs = create_jobs(jobs_places);
+    let estimates = get_jobs_dissimilarities(jobs.as_slice(), &profile, &transport, &config);
+
+    let result = get_clusters(&constraint, estimates, &config, check_insertion.as_ref());
+
+    result.iter().for_each(|(job, jobs)| {
+        let center = job.to_single().places.first().unwrap().location.unwrap();
+        let clustered =
+            jobs.iter().map(|job| job.to_single().places.first().unwrap().location.unwrap()).collect::<Vec<_>>();
+
+        println!("({}, {:?})", center, clustered);
+    });
+
+    assert_eq!(result.len(), expected.len());
+    let expected = expected
+        .into_iter()
+        .map(|(center, clustered)| {
+            (jobs.get(center).unwrap(), clustered.into_iter().map(|idx| jobs.get(idx).unwrap()).collect::<Vec<_>>())
+        })
+        .collect::<Vec<_>>();
+    result.into_iter().zip(expected).for_each(
+        |((result_center, result_clustered), (expected_center, expected_clustered))| {
+            assert!(result_center == *expected_center);
+            assert_eq!(result_clustered.len(), expected_clustered.len());
+            result_clustered.iter().zip(expected_clustered.iter()).for_each(|(a, &b)| {
+                assert!(a == b);
+            });
+        },
+    );
 }

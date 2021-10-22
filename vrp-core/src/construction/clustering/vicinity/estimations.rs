@@ -13,7 +13,8 @@ use std::ops::Deref;
 
 type PlaceInfo = (PlaceIndex, Location, Duration, Vec<TimeWindow>);
 type PlaceIndex = usize;
-type DissimilarityInfo = (PlaceIndex, ClusterInfo);
+type Reachable = bool;
+type DissimilarityInfo = (Reachable, PlaceIndex, ClusterInfo);
 type DissimilarityIndex = HashMap<Job, Vec<DissimilarityInfo>>;
 type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), i32> + Send + Sync);
 
@@ -60,24 +61,33 @@ pub(crate) fn get_clusters(
     let mut clusters = Vec::new();
     let mut cluster_estimates = estimates
         .iter()
-        .map(|(job, estimate)| (job.clone(), (None, estimate.clone())))
-        .collect::<Vec<(_, (Option<Job>, HashMap<_, _>))>>();
+        .map(|(job, estimate)| {
+            let candidates = estimate
+                .iter()
+                .filter_map(|(job, infos)| {
+                    // get only reachable estimates
+                    let infos = infos.iter().filter(|(reachable, ..)| *reachable).collect::<Vec<_>>();
+                    if infos.is_empty() {
+                        None
+                    } else {
+                        Some(job.clone())
+                    }
+                })
+                .collect::<HashSet<_>>();
+
+            (job.clone(), (None, candidates))
+        })
+        .collect::<Vec<(_, (Option<Job>, HashSet<_>))>>();
 
     loop {
         // build clusters
         parallel_foreach_mut(cluster_estimates.as_mut_slice(), |(center_job, (cluster, _))| {
             if cluster.is_none() {
-                *cluster = build_job_cluster(constraint, center_job, &estimates, config, check_insertion)
+                *cluster = build_job_cluster(constraint, center_job, &estimates, &used_jobs, config, check_insertion)
             }
         });
 
-        // sort trying to prioritize clusters with more jobs
-        cluster_estimates.sort_by(|(_, (a_job, a_dis)), (_, (b_job, b_dis))| match (a_job, b_job) {
-            (Some(_), Some(_)) => b_dis.len().cmp(&a_dis.len()),
-            (None, Some(_)) => Ordering::Greater,
-            (Some(_), None) => Ordering::Less,
-            (None, None) => Ordering::Equal,
-        });
+        cluster_estimates.sort_by(|(_, (_, a_dis)), (_, (_, b_dis))| b_dis.len().cmp(&a_dis.len()));
 
         let new_cluster = cluster_estimates.first().and_then(|(_, (cluster, _))| cluster.as_ref()).cloned();
 
@@ -91,19 +101,17 @@ pub(crate) fn get_clusters(
                 .collect::<Vec<_>>();
 
             clusters.push((new_cluster.clone(), new_cluster_jobs.clone()));
-            used_jobs.extend(new_cluster_jobs.iter().cloned());
-
-            let new_cluster_jobs = new_cluster_jobs.iter().collect::<HashSet<_>>();
+            used_jobs.extend(new_cluster_jobs.into_iter());
 
             // remove used jobs from analysis
-            cluster_estimates.retain(|(center, _)| !new_cluster_jobs.contains(center));
+            cluster_estimates.retain(|(center, _)| !used_jobs.contains(center));
             cluster_estimates.iter_mut().for_each(|(_, (cluster, candidates))| {
-                candidates.retain(|job, _| !new_cluster_jobs.contains(job));
+                candidates.retain(|job| !used_jobs.contains(job));
 
                 let is_cluster_affected = cluster
                     .as_ref()
                     .and_then(|cluster| cluster.dimens().get_cluster())
-                    .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|info| new_cluster_jobs.contains(&info.job)));
+                    .map_or(false, |cluster_jobs| cluster_jobs.iter().any(|info| used_jobs.contains(&info.job)));
 
                 if is_cluster_affected {
                     // NOTE force to rebuild cluster on next iteration
@@ -152,7 +160,6 @@ fn get_dissimilarities(
     transport: &(dyn TransportCost + Send + Sync),
     config: &ClusterConfig,
 ) -> Vec<DissimilarityInfo> {
-    let departure = Default::default();
     outer
         .to_single()
         .places
@@ -173,44 +180,40 @@ fn get_dissimilarities(
                         .unwrap_or(0.);
 
                     if shared_time > config.threshold.min_shared_time.unwrap_or(0.) {
+                        let departure = Default::default();
+
                         let fwd_distance = transport.distance(profile, outer_loc, inner_loc, departure);
                         let fwd_duration = transport.duration(profile, outer_loc, inner_loc, departure);
 
                         let bck_distance = transport.distance(profile, inner_loc, outer_loc, departure);
                         let bck_duration = transport.duration(profile, inner_loc, outer_loc, departure);
 
-                        match (
-                            (fwd_duration - config.threshold.moving_duration < 0.),
-                            (fwd_distance - config.threshold.moving_distance < 0.),
-                            (bck_duration - config.threshold.moving_duration < 0.),
-                            (bck_distance - config.threshold.moving_distance < 0.),
-                        ) {
-                            (true, true, true, true) => {
-                                let service_time = match &config.service_time {
-                                    ServiceTimePolicy::Original => inner_duration,
-                                    ServiceTimePolicy::Multiplier(multiplier) => inner_duration * *multiplier,
-                                    ServiceTimePolicy::Fixed(service_time) => *service_time,
-                                };
+                        let reachable = (fwd_duration - config.threshold.moving_duration < 0.)
+                            && (fwd_distance - config.threshold.moving_distance < 0.)
+                            && (bck_duration - config.threshold.moving_duration < 0.)
+                            && (bck_distance - config.threshold.moving_distance < 0.);
 
-                                let info = ClusterInfo {
-                                    job: inner.clone(),
-                                    service_time,
-                                    place_idx: inner_place_idx,
-                                    forward: (fwd_distance, fwd_duration),
-                                    backward: (bck_distance, bck_duration),
-                                };
+                        let service_time = match &config.service_time {
+                            ServiceTimePolicy::Original => inner_duration,
+                            ServiceTimePolicy::Multiplier(multiplier) => inner_duration * *multiplier,
+                            ServiceTimePolicy::Fixed(service_time) => *service_time,
+                        };
 
-                                Some((outer_place_idx, shared_time, info))
-                            }
-                            _ => None,
-                        }
+                        let info = ClusterInfo {
+                            job: inner.clone(),
+                            service_time,
+                            place_idx: inner_place_idx,
+                            forward: (fwd_distance, fwd_duration),
+                            backward: (bck_distance, bck_duration),
+                        };
+
+                        Some((reachable, outer_place_idx, info))
                     } else {
                         None
                     }
                 },
             )
         })
-        .map(|(outer_place_idx, _, info)| (outer_place_idx, info))
         .collect()
 }
 
@@ -218,6 +221,7 @@ fn build_job_cluster(
     constraint: &ConstraintPipeline,
     center_job: &Job,
     estimates: &HashMap<Job, DissimilarityIndex>,
+    used_jobs: &HashSet<Job>,
     config: &ClusterConfig,
     check_insertion: &CheckInsertionFn,
 ) -> Option<Job> {
@@ -244,17 +248,21 @@ fn build_job_cluster(
                     .get(center_job)
                     .and_then(|index| index.get(&original_info.job))
                     .and_then(|infos| {
-                        infos.iter().find(|(outer_place_idx, info)| {
+                        infos.iter().find(|(_, outer_place_idx, info)| {
                             *outer_place_idx == center_place_idx && info.place_idx == original_info.place_idx
                         })
                     })
-                    .map(|(_, info)| (info.forward, info.backward))
+                    .map(|(_, _, info)| (info.forward, info.backward))
                     .expect("cannot find movement info")
             };
 
-            // allow jobs only from candidates
-            let mut cluster_candidates =
-                center_estimates.iter().map(|(candidate, _)| candidate.clone()).collect::<HashSet<_>>();
+            // allow jobs only from reachable candidates
+            let mut cluster_candidates = center_estimates
+                .iter()
+                .filter(|(job, ..)| !used_jobs.contains(job))
+                .filter(|(_, infos)| infos.iter().any(|(reachable, ..)| *reachable))
+                .map(|(candidate, _)| candidate.clone())
+                .collect::<HashSet<_>>();
 
             let mut cluster = with_cluster_dimension(new_center_job, new_visit_info);
             let mut last_job = center_job.clone();
@@ -266,6 +274,7 @@ fn build_job_cluster(
                     break;
                 }
 
+                // TODO check that last_job is correct for VisitingPolicy::Return
                 // get job estimates specific for the last visited place
                 let mut job_estimates = estimates
                     .get(&last_job)
@@ -273,7 +282,9 @@ fn build_job_cluster(
                     .flat_map(|index| index.iter().filter(|(job, _)| cluster_candidates.contains(job)))
                     .flat_map(|estimate| {
                         // embed the first visit info to sort estimates of all candidate jobs later
-                        get_cluster_info_sorted(last_place_idx, estimate, ordering)
+                        // we allow unreachable from the last job candidates as they must be reachable from the center
+                        let include_unreachable = true;
+                        get_cluster_info_sorted(last_place_idx, estimate, include_unreachable, ordering)
                             .into_iter()
                             .next()
                             .map(|visit_info| (estimate.0, estimate.1, visit_info))
@@ -364,7 +375,9 @@ where
         });
 
     let job = candidate.0.to_single();
-    let dissimilarities = get_cluster_info_sorted(center_place_idx, candidate, config.building.ordering.as_ref());
+    let ordering = config.building.ordering.as_ref();
+    let include_unreachable = true;
+    let dissimilarities = get_cluster_info_sorted(center_place_idx, candidate, include_unreachable, ordering);
 
     unwrap_from_result(dissimilarities.into_iter().try_fold(None, |_, info| {
         let place = job.places.get(info.place_idx).expect("wrong place index");
@@ -439,13 +452,15 @@ where
 fn get_cluster_info_sorted(
     center_place_idx: usize,
     estimate: (&Job, &Vec<DissimilarityInfo>),
+    include_unreachable: bool,
     ordering: &(dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync),
 ) -> Vec<ClusterInfo> {
     let (_, dissimilarities) = estimate;
     let mut dissimilarities = dissimilarities
         .iter()
-        .filter(|(outer_place_idx, ..)| *outer_place_idx == center_place_idx)
-        .map(|(_, info)| info.clone())
+        .filter(|(_, outer_place_idx, ..)| *outer_place_idx == center_place_idx)
+        .filter(|(reachable, ..)| include_unreachable || *reachable)
+        .map(|(_, _, info)| info.clone())
         .collect::<Vec<_>>();
 
     // sort dissimilarities based on user provided ordering function
