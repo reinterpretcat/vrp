@@ -164,6 +164,11 @@ fn get_location(job: &Job) -> Location {
     job.to_single().places.first().unwrap().location.unwrap()
 }
 
+#[test]
+fn can_get_check_insertion() {
+    todo!()
+}
+
 parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, threshold, service_time, expected), {
     let threshold = ThresholdPolicy { moving_duration: threshold.0, moving_distance: threshold.1, min_shared_time: threshold.2 };
     let expected = expected.into_iter()

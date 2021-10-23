@@ -1,13 +1,14 @@
 //! Provides functionality to group jobs in some vicinity radius.
 
-use crate::construction::heuristics::InsertionContext;
+use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::problem::{Actor, Job};
 use crate::models::Problem;
-use crate::utils::Environment;
+use crate::utils::{unwrap_from_result, Environment};
 use hashbrown::HashSet;
 use std::cmp::Ordering;
+use std::ops::Deref;
 use std::sync::Arc;
 
 mod estimations;
@@ -36,6 +37,8 @@ impl ClusterDimension for Dimensions {
 
 /// Holds center job and its neighbor jobs.
 pub type ClusterCandidate<'a> = (&'a Job, &'a HashSet<Job>);
+
+type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), i32> + Send + Sync);
 
 /// Specifies clustering algorithm configuration.
 pub struct ClusterConfig {
@@ -143,4 +146,36 @@ pub fn create_job_clusters(
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), profile, transport, config);
 
     get_clusters(&constraint, estimates, config, &check_job)
+}
+
+/// Gets function which checks possibility of cluster insertion.
+fn get_check_insertion_fn(
+    insertion_ctx: InsertionContext,
+    actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
+) -> impl Fn(&Job) -> Result<(), i32> {
+    let result_selector = BestResultSelector::default();
+    let routes = insertion_ctx
+        .solution
+        .registry
+        .next()
+        .filter(|route_ctx| actor_filter.deref()(&route_ctx.route.actor))
+        .collect::<Vec<_>>();
+
+    move |job: &Job| -> Result<(), i32> {
+        unwrap_from_result(routes.iter().try_fold(Err(-1), |_, route_ctx| {
+            let result = evaluate_job_insertion_in_route(
+                &insertion_ctx,
+                route_ctx,
+                job,
+                InsertionPosition::Any,
+                InsertionResult::make_failure(),
+                &result_selector,
+            );
+
+            match result {
+                InsertionResult::Success(_) => Err(Ok(())),
+                InsertionResult::Failure(failure) => Ok(Err(failure.constraint)),
+            }
+        }))
+    }
 }

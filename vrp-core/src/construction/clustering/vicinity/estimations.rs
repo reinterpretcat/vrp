@@ -16,39 +16,6 @@ type PlaceIndex = usize;
 type Reachable = bool;
 type DissimilarityInfo = (Reachable, PlaceIndex, ClusterInfo);
 type DissimilarityIndex = HashMap<Job, Vec<DissimilarityInfo>>;
-type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), i32> + Send + Sync);
-
-/// Gets function which checks possibility of cluster insertion.
-pub(crate) fn get_check_insertion_fn(
-    insertion_ctx: InsertionContext,
-    actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
-) -> impl Fn(&Job) -> Result<(), i32> {
-    let result_selector = BestResultSelector::default();
-    let routes = insertion_ctx
-        .solution
-        .registry
-        .next()
-        .filter(|route_ctx| actor_filter.deref()(&route_ctx.route.actor))
-        .collect::<Vec<_>>();
-
-    move |job: &Job| -> Result<(), i32> {
-        unwrap_from_result(routes.iter().try_fold(Err(-1), |_, route_ctx| {
-            let result = evaluate_job_insertion_in_route(
-                &insertion_ctx,
-                route_ctx,
-                job,
-                InsertionPosition::Any,
-                InsertionResult::make_failure(),
-                &result_selector,
-            );
-
-            match result {
-                InsertionResult::Success(_) => Err(Ok(())),
-                InsertionResult::Failure(failure) => Ok(Err(failure.constraint)),
-            }
-        }))
-    }
-}
 
 /// Gets job clusters.
 pub(crate) fn get_clusters(
