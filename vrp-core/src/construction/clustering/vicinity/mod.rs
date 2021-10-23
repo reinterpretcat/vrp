@@ -1,5 +1,9 @@
 //! Provides functionality to group jobs in some vicinity radius.
 
+#[cfg(test)]
+#[path = "../../../../tests/unit/construction/clustering/vicinity/vicinity_test.rs"]
+mod vicinity_test;
+
 use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::common::{Dimensions, ValueDimension};

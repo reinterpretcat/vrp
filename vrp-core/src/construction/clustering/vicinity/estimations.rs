@@ -4,7 +4,6 @@ mod estimations_test;
 
 use super::*;
 use crate::construction::constraints::ConstraintPipeline;
-use crate::construction::heuristics::*;
 use crate::models::common::*;
 use crate::models::problem::{Place, Single, TransportCost};
 use crate::utils::*;

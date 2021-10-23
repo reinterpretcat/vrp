@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::construction::clustering::create_test_distances;
+use crate::helpers::construction::clustering::dbscan::create_test_distances;
 use crate::helpers::models::domain::create_empty_problem;
 use crate::helpers::models::problem::test_single_with_id_and_location;
 use crate::helpers::solver::*;
