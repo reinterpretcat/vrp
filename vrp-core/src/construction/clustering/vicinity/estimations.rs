@@ -275,7 +275,6 @@ fn build_job_cluster(
                     break;
                 }
 
-                // TODO check that last_job is correct for VisitingPolicy::Return
                 // get job estimates specific for the last visited place
                 let mut job_estimates = estimates
                     .get(&last_job)
@@ -315,8 +314,11 @@ fn build_job_cluster(
 
                 match addition_result {
                     Some((new_cluster, visit_info)) => {
-                        last_job = visit_info.job.clone();
-                        last_place_idx = visit_info.place_idx;
+                        if !matches!(config.visiting, VisitPolicy::Return) {
+                            last_job = visit_info.job.clone();
+                            last_place_idx = visit_info.place_idx;
+                        }
+
                         count += 1;
 
                         cluster_candidates.remove(&visit_info.job);
