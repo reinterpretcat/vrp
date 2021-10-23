@@ -34,6 +34,9 @@ impl ClusterDimension for Dimensions {
     }
 }
 
+/// Holds center job and its neighbor jobs.
+pub type ClusterCandidate<'a> = (&'a Job, &'a HashSet<Job>);
+
 /// Specifies clustering algorithm configuration.
 pub struct ClusterConfig {
     /// A thresholds for job clustering.
@@ -95,7 +98,7 @@ pub struct BuilderPolicy {
     /// Checks whether given cluster is already good to go, so clustering more jobs is not needed.
     threshold: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
     /// Orders visiting clusters based on their estimated size.
-    ordering_global: Arc<dyn Fn((&Job, &HashSet<Job>), (&Job, &HashSet<Job>)) -> Ordering + Send + Sync>,
+    ordering_global: Arc<dyn Fn(ClusterCandidate, ClusterCandidate) -> Ordering + Send + Sync>,
     /// Orders visiting jobs in a cluster based on their visit info.
     ordering_local: Arc<dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync>,
 }
