@@ -1,4 +1,6 @@
-use crate::construction::constraints::{ConstraintModule, ConstraintPipeline, ConstraintVariant};
+use crate::construction::constraints::{
+    ConstraintModule, ConstraintPipeline, ConstraintVariant, HardRouteConstraint, RouteConstraintViolation,
+};
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::SingleBuilder;
 use crate::models::common::{Duration, IdDimension, Location, ValueDimension};
@@ -19,7 +21,10 @@ struct VicinityTestModule {
 
 impl VicinityTestModule {
     pub fn new(disallow_merge_list: HashSet<String>) -> Self {
-        Self { disallow_merge_list, constraints: Vec::default(), keys: Vec::default() }
+        let constraints = vec![ConstraintVariant::HardRoute(Arc::new(VicinityHardRouteConstraint {
+            disallow_merge_list: disallow_merge_list.clone(),
+        }))];
+        Self { disallow_merge_list, constraints, keys: Vec::default() }
     }
 }
 
@@ -72,6 +77,20 @@ impl ConstraintModule for VicinityTestModule {
 
     fn get_constraints(&self) -> Iter<ConstraintVariant> {
         self.constraints.iter()
+    }
+}
+
+struct VicinityHardRouteConstraint {
+    disallow_merge_list: HashSet<String>,
+}
+
+impl HardRouteConstraint for VicinityHardRouteConstraint {
+    fn evaluate_job(&self, _: &SolutionContext, _: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
+        if self.disallow_merge_list.contains(job.dimens().get_id().unwrap()) {
+            Some(RouteConstraintViolation { code: 1 })
+        } else {
+            None
+        }
     }
 }
 
