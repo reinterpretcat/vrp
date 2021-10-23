@@ -6,6 +6,7 @@ use crate::models::common::{Dimensions, ValueDimension};
 use crate::models::problem::{Actor, Job};
 use crate::models::Problem;
 use crate::utils::Environment;
+use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
@@ -93,8 +94,10 @@ pub struct BuilderPolicy {
     smallest_time_window: Option<f64>,
     /// Checks whether given cluster is already good to go, so clustering more jobs is not needed.
     threshold: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
-    /// Orders visiting jobs based on their visit info.
-    ordering: Arc<dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync>,
+    /// Orders visiting clusters based on their estimated size.
+    ordering_global: Arc<dyn Fn((&Job, &HashSet<Job>), (&Job, &HashSet<Job>)) -> Ordering + Send + Sync>,
+    /// Orders visiting jobs in a cluster based on their visit info.
+    ordering_local: Arc<dyn Fn(&ClusterInfo, &ClusterInfo) -> Ordering + Send + Sync>,
 }
 
 /// Keeps track of information specific for job in the cluster.

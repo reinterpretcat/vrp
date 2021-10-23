@@ -116,6 +116,12 @@ fn create_single_job(job_id: &str, places: Vec<(Option<Location>, Duration, Vec<
 }
 
 fn create_default_config() -> ClusterConfig {
+    let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
+        Ordering::Equal => get_job_id(left_job).cmp(get_job_id(right_job)),
+        Ordering::Less => Ordering::Less,
+        Ordering::Greater => Ordering::Greater,
+    };
+
     ClusterConfig {
         threshold: ThresholdPolicy { moving_duration: 10.0, moving_distance: 10.0, min_shared_time: None },
         visiting: VisitPolicy::Return,
@@ -124,7 +130,12 @@ fn create_default_config() -> ClusterConfig {
         building: BuilderPolicy {
             smallest_time_window: None,
             threshold: Arc::new(|_| true),
-            ordering: Arc::new(|left, right| compare_floats(left.forward.1, right.forward.1)),
+            ordering_global: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {
+                ordering_rule(left_candidates.len().cmp(&right_candidates.len()), left_job, right_job)
+            }),
+            ordering_local: Arc::new(move |left, right| {
+                ordering_rule(compare_floats(left.forward.1, right.forward.1), &left.job, &right.job)
+            }),
         },
     }
 }
@@ -143,6 +154,14 @@ fn create_jobs(jobs_places: Vec<JobPlaces>) -> Vec<Job> {
         .enumerate()
         .map(|(idx, places)| create_single_job(format!("job{}", idx + 1).as_str(), places))
         .collect()
+}
+
+fn get_job_id(job: &Job) -> &String {
+    job.to_single().dimens.get_id().unwrap()
+}
+
+fn get_location(job: &Job) -> Location {
+    job.to_single().places.first().unwrap().location.unwrap()
 }
 
 parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, threshold, service_time, expected), {
@@ -488,16 +507,24 @@ fn can_build_job_cluster_impl(
     }
 }
 
-#[test]
-pub fn can_get_clusters() {
-    let jobs_amount = 8;
-    let moving_duration = 2.5;
+parameterized_test! {can_get_clusters, (jobs_amount, moving_duration, expected), {
+    can_get_clusters_impl(jobs_amount, moving_duration, expected);
+}}
+
+can_get_clusters! {
+    case_01: (13, 2.5, vec![(8, vec![8, 9, 10, 7, 6]), (3, vec![3, 2, 1, 4, 5]), (12, vec![12, 11])]),
+    case_02: (8, 2.5, vec![(5, vec![5, 4, 3, 6, 7]), (2, vec![2, 1, 0])]),
+    case_03: (7, 2.5, vec![(4, vec![4, 3, 2, 5, 6]), (1, vec![1, 0])]),
+    case_04: (6, 2.5, vec![(3, vec![3, 2, 1, 4, 5])]),
+    case_05: (6, 3.5, vec![(3, vec![3, 2, 1, 0, 4, 5])]),
+    case_06: (6, 0.5, vec![]),
+}
+
+pub fn can_get_clusters_impl(jobs_amount: usize, moving_duration: f64, expected: Vec<(usize, Vec<usize>)>) {
     let threshold = ThresholdPolicy { moving_duration, moving_distance: 10.0, min_shared_time: None };
     let disallow_merge_list = vec![];
     let disallow_insertion_list = vec![];
-    let jobs_places = (1..=jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();
-    let expected: Vec<(usize, Vec<usize>)> = vec![];
-
+    let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();
     let transport = TestTransportCost::default();
     let profile = Profile::new(0, None);
     let config = ClusterConfig { threshold, ..create_default_config() };
@@ -508,14 +535,6 @@ pub fn can_get_clusters() {
 
     let result = get_clusters(&constraint, estimates, &config, check_insertion.as_ref());
 
-    result.iter().for_each(|(job, jobs)| {
-        let center = job.to_single().places.first().unwrap().location.unwrap();
-        let clustered =
-            jobs.iter().map(|job| job.to_single().places.first().unwrap().location.unwrap()).collect::<Vec<_>>();
-
-        println!("({}, {:?})", center, clustered);
-    });
-
     assert_eq!(result.len(), expected.len());
     let expected = expected
         .into_iter()
@@ -524,9 +543,13 @@ pub fn can_get_clusters() {
         })
         .collect::<Vec<_>>();
     result.into_iter().zip(expected).for_each(
-        |((result_center, result_clustered), (expected_center, expected_clustered))| {
-            assert!(result_center == *expected_center);
+        |((result_center, mut result_clustered), (expected_center, mut expected_clustered))| {
+            assert_eq!(get_location(&result_center), get_location(expected_center));
             assert_eq!(result_clustered.len(), expected_clustered.len());
+
+            assert_eq!(get_location(&result_center), get_location(expected_clustered.first().unwrap()));
+            result_clustered.sort_by(|a, b| get_job_id(a).cmp(get_job_id(b)));
+            expected_clustered.sort_by(|a, b| get_job_id(a).cmp(get_job_id(b)));
             result_clustered.iter().zip(expected_clustered.iter()).for_each(|(a, &b)| {
                 assert!(a == b);
             });

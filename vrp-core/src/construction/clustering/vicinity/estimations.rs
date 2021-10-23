@@ -80,14 +80,15 @@ pub(crate) fn get_clusters(
         .collect::<Vec<(_, (Option<Job>, HashSet<_>))>>();
 
     loop {
-        // build clusters
         parallel_foreach_mut(cluster_estimates.as_mut_slice(), |(center_job, (cluster, _))| {
             if cluster.is_none() {
                 *cluster = build_job_cluster(constraint, center_job, &estimates, &used_jobs, config, check_insertion)
             }
         });
 
-        cluster_estimates.sort_by(|(_, (_, a_dis)), (_, (_, b_dis))| b_dis.len().cmp(&a_dis.len()));
+        cluster_estimates.sort_by(|(a_job, (_, a_can)), (b_job, (_, b_can))| {
+            config.building.ordering_global.deref()((b_job, b_can), (a_job, a_can))
+        });
 
         let new_cluster = cluster_estimates.first().and_then(|(_, (cluster, _))| cluster.as_ref()).cloned();
 
@@ -225,7 +226,7 @@ fn build_job_cluster(
     config: &ClusterConfig,
     check_insertion: &CheckInsertionFn,
 ) -> Option<Job> {
-    let ordering = config.building.ordering.as_ref();
+    let ordering = config.building.ordering_local.as_ref();
     let center = center_job.to_single();
     let center_estimates = estimates.get(center_job).expect("missing job in estimates");
 
@@ -375,7 +376,7 @@ where
         });
 
     let job = candidate.0.to_single();
-    let ordering = config.building.ordering.as_ref();
+    let ordering = config.building.ordering_local.as_ref();
     let include_unreachable = true;
     let dissimilarities = get_cluster_info_sorted(center_place_idx, candidate, include_unreachable, ordering);
 
