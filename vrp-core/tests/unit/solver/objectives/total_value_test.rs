@@ -18,7 +18,8 @@ can_estimate_job_value! {
 }
 
 fn can_estimate_job_value_impl(value: f64, max_cost: f64, expected: f64) {
-    let (constraint, _) = TotalValue::maximize(1000., 0.1, Arc::new(|_| 0.), Arc::new(move |_| value));
+    let (constraint, _) =
+        TotalValue::maximize(1000., 0.1, Arc::new(|_| 0.), Arc::new(move |_| value), Arc::new(|job, _| job));
     let constraint = create_constraint_pipeline_with_module(constraint);
     let mut route_ctx = create_empty_route_ctx();
     route_ctx.state_mut().put_route_state(TOTAL_VALUE_KEY, max_cost);
@@ -36,6 +37,7 @@ fn can_estimate_solution_value() {
         0.1,
         Arc::new(|solution_ctx| solution_ctx.unassigned.len() as f64 * -100.),
         Arc::new(move |_| 0.),
+        Arc::new(|job, _| job),
     );
     let mut solution = create_empty_solution_context();
     solution.unassigned.insert(Job::Single(test_single_with_id("job1")), 0);
