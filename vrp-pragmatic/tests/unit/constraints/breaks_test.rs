@@ -1,4 +1,6 @@
 use crate::constraints::BreakModule;
+use crate::core::construction::constraints::ConstraintModule;
+use crate::core::models::problem::Job;
 use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
 use std::sync::Arc;
@@ -76,4 +78,23 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
         solution_ctx.routes.first().unwrap().route.tour.all_activities().len(),
         (if break_removed { 4 } else { 5 })
     );
+}
+
+parameterized_test! {can_skip_merging_breaks, (source, candidate, expected), {
+    can_skip_merging_breaks_impl(Job::Single(source), Job::Single(candidate), expected);
+}}
+
+can_skip_merging_breaks! {
+    case_01: (create_single("source"), create_break("v1", None), Err(0)),
+    case_02: (create_break("v1", None), create_single("candidate"), Err(0)),
+    case_03: (create_single("source"), create_single("candidate"), Ok(())),
+}
+
+fn can_skip_merging_breaks_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
+    let (transport, _) = get_costs();
+    let constraint = BreakModule::new(transport, 0);
+
+    let result = constraint.merge(source, candidate).map(|_| ());
+
+    assert_eq!(result, expected);
 }
