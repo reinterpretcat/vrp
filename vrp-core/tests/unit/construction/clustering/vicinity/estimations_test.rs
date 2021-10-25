@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::construction::clustering::vicinity::*;
-use crate::helpers::models::problem::{SingleBuilder, TestTransportCost};
+use crate::helpers::models::problem::{get_job_id, SingleBuilder, TestTransportCost};
 
 fn get_check_insertion_fn(disallow_insertion_list: Vec<&str>) -> Arc<CheckInsertionFn> {
     let disallow_insertion_list = disallow_insertion_list.into_iter().map(|id| id.to_string()).collect::<HashSet<_>>();
@@ -36,31 +36,6 @@ fn create_single_job(job_id: &str, places: Vec<(Option<Location>, Duration, Vec<
     SingleBuilder::default().id(job_id).places(places).build_as_job_ref()
 }
 
-fn create_default_config() -> ClusterConfig {
-    let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
-        Ordering::Equal => get_job_id(left_job).cmp(get_job_id(right_job)),
-        Ordering::Less => Ordering::Less,
-        Ordering::Greater => Ordering::Greater,
-    };
-
-    ClusterConfig {
-        threshold: ThresholdPolicy { moving_duration: 10.0, moving_distance: 10.0, min_shared_time: None },
-        visiting: VisitPolicy::Return,
-        service_time: ServiceTimePolicy::Original,
-        filtering: FilterPolicy { job_filter: Arc::new(|_| true), actor_filter: Arc::new(|_| true) },
-        building: BuilderPolicy {
-            smallest_time_window: None,
-            threshold: Arc::new(|_| true),
-            ordering_global: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {
-                ordering_rule(left_candidates.len().cmp(&right_candidates.len()), left_job, right_job)
-            }),
-            ordering_local: Arc::new(move |left, right| {
-                ordering_rule(compare_floats(left.forward.1, right.forward.1), &left.job, &right.job)
-            }),
-        },
-    }
-}
-
 fn compare_visit_info(result: &ClusterInfo, expected: &ClusterInfo) {
     assert_eq!(result.place_idx, expected.place_idx);
     assert_eq!(result.forward.0, expected.forward.0);
@@ -75,10 +50,6 @@ fn create_jobs(jobs_places: Vec<JobPlaces>) -> Vec<Job> {
         .enumerate()
         .map(|(idx, places)| create_single_job(format!("job{}", idx + 1).as_str(), places))
         .collect()
-}
-
-fn get_job_id(job: &Job) -> &String {
-    job.to_single().dimens.get_id().unwrap()
 }
 
 fn get_location(job: &Job) -> Location {

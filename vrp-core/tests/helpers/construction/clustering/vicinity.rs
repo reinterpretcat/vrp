@@ -1,11 +1,12 @@
-use crate::construction::constraints::{
-    ConstraintModule, ConstraintPipeline, ConstraintVariant, HardRouteConstraint, RouteConstraintViolation,
-};
+use crate::construction::clustering::vicinity::*;
+use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
-use crate::helpers::models::problem::SingleBuilder;
+use crate::helpers::models::problem::{get_job_id, SingleBuilder};
 use crate::models::common::{Duration, IdDimension, Location, ValueDimension};
 use crate::models::problem::Job;
+use crate::utils::compare_floats;
 use hashbrown::HashSet;
+use std::cmp::Ordering;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -102,4 +103,29 @@ pub fn create_constraint_pipeline(disallow_merge_list: Vec<&str>) -> ConstraintP
     pipeline.add_module(Arc::new(VicinityTestModule::new(disallow_merge_list)));
 
     pipeline
+}
+
+pub fn create_default_config() -> ClusterConfig {
+    let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
+        Ordering::Equal => get_job_id(left_job).cmp(get_job_id(right_job)),
+        Ordering::Less => Ordering::Less,
+        Ordering::Greater => Ordering::Greater,
+    };
+
+    ClusterConfig {
+        threshold: ThresholdPolicy { moving_duration: 10.0, moving_distance: 10.0, min_shared_time: None },
+        visiting: VisitPolicy::Return,
+        service_time: ServiceTimePolicy::Original,
+        filtering: FilterPolicy { job_filter: Arc::new(|_| true), actor_filter: Arc::new(|_| true) },
+        building: BuilderPolicy {
+            smallest_time_window: None,
+            threshold: Arc::new(|_| true),
+            ordering_global: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {
+                ordering_rule(left_candidates.len().cmp(&right_candidates.len()), left_job, right_job)
+            }),
+            ordering_local: Arc::new(move |left, right| {
+                ordering_rule(compare_floats(left.forward.1, right.forward.1), &left.job, &right.job)
+            }),
+        },
+    }
 }
