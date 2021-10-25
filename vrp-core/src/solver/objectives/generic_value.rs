@@ -16,6 +16,7 @@ impl GenericValue {
     pub fn new_constrained_objective(
         threshold: Option<f64>,
         tolerance: Option<f64>,
+        job_merge_func: Arc<dyn Fn(Job, Job) -> Result<Job, i32> + Send + Sync>,
         route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
         solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
         estimate_value_func: Arc<dyn Fn(&SolutionContext, &RouteContext, &Job, f64) -> f64 + Send + Sync>,
@@ -32,6 +33,7 @@ impl GenericValue {
 
         let constraint = GenericValueConstraint {
             constraints: vec![ConstraintVariant::SoftRoute(Arc::new(objective.clone()))],
+            job_merge_func,
             route_value_func,
             state_key,
             keys: vec![state_key],
@@ -44,6 +46,7 @@ impl GenericValue {
 
 struct GenericValueConstraint {
     constraints: Vec<ConstraintVariant>,
+    job_merge_func: Arc<dyn Fn(Job, Job) -> Result<Job, i32> + Send + Sync>,
     route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
     state_key: i32,
@@ -65,6 +68,10 @@ impl ConstraintModule for GenericValueConstraint {
         let value = self.solution_value_func.deref()(ctx);
 
         ctx.state.insert(self.state_key, Arc::new(value));
+    }
+
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        self.job_merge_func.deref()(source, candidate)
     }
 
     fn state_keys(&self) -> Iter<i32> {

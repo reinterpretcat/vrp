@@ -42,7 +42,7 @@ impl ConstraintModule for VicinityTestModule {
         unimplemented!()
     }
 
-    fn merge_constrained(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
         if self.disallow_merge_list.contains(candidate.dimens().get_id().unwrap()) {
             Err(1)
         } else {

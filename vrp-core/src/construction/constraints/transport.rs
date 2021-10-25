@@ -61,6 +61,11 @@ impl ConstraintModule for TransportConstraintModule {
         })
     }
 
+    fn merge(&self, source: Job, _candidate: Job) -> Result<Job, i32> {
+        // NOTE we don't change temporal parameters here, it is responsibility of the caller
+        Ok(source)
+    }
+
     fn state_keys(&self) -> Iter<i32> {
         self.state_keys.iter()
     }

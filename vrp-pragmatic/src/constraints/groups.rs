@@ -12,6 +12,7 @@ use vrp_core::models::problem::Job;
 
 /// A group module provides the way to stick certain jobs to the same tour.
 pub struct GroupModule {
+    code: i32,
     constraints: Vec<ConstraintVariant>,
     state_key: i32,
     keys: Vec<i32>,
@@ -21,6 +22,7 @@ impl GroupModule {
     /// Creates a new instance of `GroupModule`.
     pub fn new(total_jobs: usize, code: i32, state_key: i32) -> Self {
         Self {
+            code,
             constraints: vec![ConstraintVariant::HardRoute(Arc::new(GroupHardRouteConstraint {
                 total_jobs,
                 code,
@@ -68,6 +70,14 @@ impl ConstraintModule for GroupModule {
             let groups = get_groups(route_ctx);
             route_ctx.state_mut().put_route_state(self.state_key, (groups, current_jobs_count));
         });
+    }
+
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        match (get_group(&source), get_group(&candidate)) {
+            (None, None) => Ok(source),
+            (Some(s_group), Some(c_group)) if s_group == c_group => Ok(source),
+            _ => Err(self.code),
+        }
     }
 
     fn state_keys(&self) -> Iter<i32> {

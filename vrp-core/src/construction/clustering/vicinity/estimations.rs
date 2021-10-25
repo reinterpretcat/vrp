@@ -155,7 +155,11 @@ fn get_dissimilarities(
                         let bck_distance = transport.distance(profile, inner_loc, outer_loc, departure);
                         let bck_duration = transport.duration(profile, inner_loc, outer_loc, departure);
 
-                        let reachable = (fwd_duration - config.threshold.moving_duration < 0.)
+                        let reachable = compare_floats(fwd_distance, 0.) != Ordering::Less
+                            && compare_floats(bck_distance, 0.) != Ordering::Less;
+
+                        let reachable = reachable
+                            && (fwd_duration - config.threshold.moving_duration < 0.)
                             && (fwd_distance - config.threshold.moving_distance < 0.)
                             && (bck_duration - config.threshold.moving_duration < 0.)
                             && (bck_distance - config.threshold.moving_distance < 0.);

@@ -93,6 +93,10 @@ impl ConstraintModule for ConditionalJobModule {
         analyze_and_perform_transitions(solution_ctx, None, self.context_transition.as_ref());
     }
 
+    fn merge(&self, source: Job, _candidate: Job) -> Result<Job, i32> {
+        Ok(source)
+    }
+
     fn state_keys(&self) -> Iter<i32> {
         self.state_keys.iter()
     }

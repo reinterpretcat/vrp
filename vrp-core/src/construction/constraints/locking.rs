@@ -12,6 +12,8 @@ use std::sync::Arc;
 
 /// A module which allows to lock specific actors within specific jobs using different rules.
 pub struct StrictLockingModule {
+    code: i32,
+    conditions: HashMap<Job, Arc<dyn Fn(&Actor) -> bool + Sync + Send>>,
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
 }
@@ -22,6 +24,14 @@ impl ConstraintModule for StrictLockingModule {
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
+
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        if self.conditions.contains_key(&candidate) {
+            Err(self.code)
+        } else {
+            Ok(source)
+        }
+    }
 
     fn state_keys(&self) -> Iter<i32> {
         self.state_keys.iter()
@@ -66,6 +76,8 @@ impl StrictLockingModule {
         });
 
         Self {
+            code,
+            conditions: conditions.clone(),
             state_keys: vec![],
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(StrictLockingHardRouteConstraint { code, conditions })),

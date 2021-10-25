@@ -63,6 +63,12 @@ impl ConstraintModule for AreaModule {
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
 
+    fn merge(&self, source: Job, _: Job) -> Result<Job, i32> {
+        // NOTE if candidate has a location which doesn't share same areas as source, then
+        // constraint might be violated. We accept this behavior here.
+        Ok(source)
+    }
+
     fn state_keys(&self) -> Iter<i32> {
         self.keys.iter()
     }

@@ -54,8 +54,12 @@ impl TourOrder {
             }))]
         };
 
-        let constraint =
-            TourOrderConstraint { constraints, keys: vec![TOUR_ORDER_KEY], order_func: order_func.clone() };
+        let constraint = TourOrderConstraint {
+            code: constraint_code.unwrap_or(-1),
+            constraints,
+            keys: vec![TOUR_ORDER_KEY],
+            order_func: order_func.clone(),
+        };
 
         let objective = OrderActivityObjective { order_func, state_key: TOUR_ORDER_KEY };
 
@@ -64,6 +68,7 @@ impl TourOrder {
 }
 
 struct TourOrderConstraint {
+    code: i32,
     constraints: Vec<ConstraintVariant>,
     keys: Vec<i32>,
     order_func: Arc<dyn Fn(&Single) -> Option<f64> + Send + Sync>,
@@ -78,6 +83,16 @@ impl ConstraintModule for TourOrderConstraint {
         if let Some(state_key) = self.keys.first() {
             let violations = get_violations(ctx.routes.as_slice(), self.order_func.as_ref());
             ctx.state.insert(*state_key, Arc::new(violations));
+        }
+    }
+
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        let order_func = self.order_func.deref();
+        let order_func_cmp = |source: &Single, candidate: &Single| order_func(source) == order_func(candidate);
+
+        match (&source, &candidate) {
+            (Job::Single(s_source), Job::Single(s_candidate)) if order_func_cmp(s_source, s_candidate) => Ok(source),
+            _ => Err(self.code),
         }
     }
 

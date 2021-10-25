@@ -28,6 +28,11 @@ impl ConstraintModule for ReachableModule {
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
 
+    fn merge(&self, source: Job, _candidate: Job) -> Result<Job, i32> {
+        // NOTE it is responsibility of the caller to check whether jobs are reachable
+        Ok(source)
+    }
+
     fn state_keys(&self) -> Iter<i32> {
         self.keys.iter()
     }

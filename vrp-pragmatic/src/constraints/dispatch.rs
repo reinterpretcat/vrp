@@ -1,11 +1,13 @@
 use crate::constraints::*;
 use crate::format::UNASSIGNABLE_ROUTE_KEY;
+use std::iter::once;
 use std::slice::Iter;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use vrp_core::models::problem::Job;
 
 pub struct DispatchModule {
+    code: i32,
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
     keys: Vec<i32>,
@@ -14,6 +16,7 @@ pub struct DispatchModule {
 impl DispatchModule {
     pub fn new(code: i32) -> Self {
         Self {
+            code,
             conditional: ConditionalJobModule::new(create_job_transition()),
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(DispatchHardRouteConstraint { code })),
@@ -54,6 +57,16 @@ impl ConstraintModule for DispatchModule {
 
             true
         });
+    }
+
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        let any_is_dispatch = once(&source).chain(once(&candidate)).any(|job| is_dispatch_job(job));
+
+        if any_is_dispatch {
+            Err(self.code)
+        } else {
+            Ok(source)
+        }
     }
 
     fn state_keys(&self) -> Iter<i32> {

@@ -18,6 +18,10 @@ impl ConstraintModule for FleetUsageConstraintModule {
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
 
+    fn merge(&self, source: Job, _candidate: Job) -> Result<Job, i32> {
+        Ok(source)
+    }
+
     fn state_keys(&self) -> Iter<i32> {
         self.state_keys.iter()
     }

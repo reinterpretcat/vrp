@@ -4,6 +4,7 @@ mod breaks_test;
 
 use crate::constraints::*;
 use hashbrown::HashSet;
+use std::iter::once;
 use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
@@ -15,6 +16,7 @@ use vrp_core::models::solution::Activity;
 /// Implements break functionality with variable location and time.
 /// NOTE known issue: rescheduling departure might affect break with time offset.
 pub struct BreakModule {
+    code: i32,
     conditional: ConditionalJobModule,
     constraints: Vec<ConstraintVariant>,
     transport: Arc<dyn TransportCost + Send + Sync>,
@@ -31,6 +33,7 @@ pub enum BreakPolicy {
 impl BreakModule {
     pub fn new(transport: Arc<dyn TransportCost + Send + Sync>, code: i32) -> Self {
         Self {
+            code,
             conditional: ConditionalJobModule::new(create_job_transition()),
             constraints: vec![
                 ConstraintVariant::HardRoute(Arc::new(BreakHardRouteConstraint { code })),
@@ -52,6 +55,17 @@ impl ConstraintModule for BreakModule {
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         self.conditional.accept_solution_state(ctx);
         remove_invalid_breaks(ctx, self.transport.as_ref());
+    }
+
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        let any_is_break =
+            once(&source).chain(once(&candidate)).flat_map(|job| job.as_single()).any(|single| is_break_single(single));
+
+        if any_is_break {
+            Err(self.code)
+        } else {
+            Ok(source)
+        }
     }
 
     fn state_keys(&self) -> Iter<i32> {

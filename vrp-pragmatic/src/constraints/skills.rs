@@ -22,6 +22,7 @@ pub struct JobSkills {
 
 /// A skills module provides way to control jobs/vehicle assignment.
 pub struct SkillsModule {
+    code: i32,
     constraints: Vec<ConstraintVariant>,
     keys: Vec<i32>,
 }
@@ -29,6 +30,7 @@ pub struct SkillsModule {
 impl SkillsModule {
     pub fn new(code: i32) -> Self {
         Self {
+            code,
             constraints: vec![ConstraintVariant::HardRoute(Arc::new(SkillsHardRouteConstraint { code }))],
             keys: vec![],
         }
@@ -41,6 +43,36 @@ impl ConstraintModule for SkillsModule {
     fn accept_route_state(&self, _ctx: &mut RouteContext) {}
 
     fn accept_solution_state(&self, _ctx: &mut SolutionContext) {}
+
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        let source_skills = get_skills(&source);
+        let candidate_skills = get_skills(&candidate);
+
+        let check_skill_sets = |source_set: Option<&HashSet<String>>, candidate_set: Option<&HashSet<String>>| match (
+            source_set,
+            candidate_set,
+        ) {
+            (Some(_), None) | (None, None) => true,
+            (None, Some(_)) => false,
+            (Some(source_skills), Some(candidate_skills)) => candidate_skills.is_subset(source_skills),
+        };
+
+        let has_comparable_skills = match (source_skills, candidate_skills) {
+            (Some(_), None) | (None, None) => true,
+            (None, Some(_)) => false,
+            (Some(source_skills), Some(candidate_skills)) => {
+                check_skill_sets(source_skills.all_of.as_ref(), candidate_skills.all_of.as_ref())
+                    && check_skill_sets(source_skills.one_of.as_ref(), candidate_skills.one_of.as_ref())
+                    && check_skill_sets(source_skills.none_of.as_ref(), candidate_skills.none_of.as_ref())
+            }
+        };
+
+        if has_comparable_skills {
+            Ok(source)
+        } else {
+            Err(self.code)
+        }
+    }
 
     fn state_keys(&self) -> Iter<i32> {
         self.keys.iter()
@@ -57,10 +89,8 @@ struct SkillsHardRouteConstraint {
 
 impl HardRouteConstraint for SkillsHardRouteConstraint {
     fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
-        let job_skills = job.dimens().get_value::<JobSkills>("skills");
-        let vehicle_skills = ctx.route.actor.vehicle.dimens.get_value::<HashSet<String>>("skills");
-
-        if let Some(job_skills) = job_skills {
+        if let Some(job_skills) = get_skills(job) {
+            let vehicle_skills = ctx.route.actor.vehicle.dimens.get_value::<HashSet<String>>("skills");
             let is_ok = check_all_of(job_skills, &vehicle_skills)
                 && check_one_of(job_skills, &vehicle_skills)
                 && check_none_of(job_skills, &vehicle_skills);
@@ -96,4 +126,8 @@ fn check_none_of(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String
         (Some(job_skills), Some(vehicle_skills)) => job_skills.is_disjoint(vehicle_skills),
         _ => true,
     }
+}
+
+fn get_skills(job: &Job) -> Option<&JobSkills> {
+    job.dimens().get_value::<JobSkills>("skills")
 }

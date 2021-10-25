@@ -99,9 +99,7 @@ pub trait ConstraintModule {
     /// Tries to merge two jobs taking into account common constraints.
     /// Returns a new job, if it is possible to merge them together having theoretically assignable
     /// job. Otherwise returns violation error code.
-    fn merge_constrained(&self, _source: Job, _candidate: Job) -> Result<Job, i32> {
-        unimplemented!()
-    }
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32>;
 
     /// Returns unique constraint state keys.
     /// Used to avoid state key interference.
@@ -198,7 +196,7 @@ impl ConstraintPipeline {
     /// Returns a new job, if it is possible to merge them together having theoretically assignable
     /// job. Otherwise returns violation error code.
     pub fn merge_constrained(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        self.modules.iter().try_fold(source, |acc, module| module.merge_constrained(acc, candidate.clone()))
+        self.modules.iter().try_fold(source, |acc, module| module.merge(acc, candidate.clone()))
     }
 
     /// Adds constraint module.

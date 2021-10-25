@@ -30,6 +30,10 @@ impl TotalValue {
         GenericValue::new_constrained_objective(
             None,
             None,
+            Arc::new(|source, candidate| {
+                // TODO
+                todo!()
+            }),
             get_route_value.clone(),
             Arc::new(move |ctx: &SolutionContext| {
                 let route_values: f64 = ctx.routes.iter().map(|rc| get_route_value(rc)).sum();

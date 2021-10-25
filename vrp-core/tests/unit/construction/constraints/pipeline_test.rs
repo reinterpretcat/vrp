@@ -24,6 +24,10 @@ impl ConstraintModule for TestConstraintModule {
         unimplemented!()
     }
 
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        unimplemented!()
+    }
+
     fn state_keys(&self) -> Iter<i32> {
         self.state_keys.iter()
     }

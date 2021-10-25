@@ -41,6 +41,7 @@ impl WorkBalance {
         GenericValue::new_constrained_objective(
             threshold,
             tolerance,
+            Arc::new(|source, _| Ok(source)),
             Arc::new({
                 let get_load_ratio = get_load_ratio.clone();
                 move |rc: &RouteContext| get_load_ratio(rc)
@@ -64,6 +65,7 @@ impl WorkBalance {
         GenericValue::new_constrained_objective(
             threshold,
             tolerance,
+            Arc::new(|source, _| Ok(source)),
             Arc::new(|rc: &RouteContext| rc.route.tour.job_activity_count() as f64),
             Arc::new(|ctx: &SolutionContext| {
                 get_cv_safe(
@@ -104,6 +106,7 @@ impl WorkBalance {
         GenericValue::new_constrained_objective(
             threshold,
             tolerance,
+            Arc::new(|source, _| Ok(source)),
             Arc::new(move |rc: &RouteContext| {
                 debug_assert!(transport_state_key == TOTAL_DISTANCE_KEY || transport_state_key == TOTAL_DURATION_KEY);
                 rc.state.get_route_state::<f64>(transport_state_key).cloned().unwrap_or(0.)

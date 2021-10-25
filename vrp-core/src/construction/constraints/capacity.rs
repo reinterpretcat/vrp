@@ -339,6 +339,10 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
         })
     }
 
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+        todo!()
+    }
+
     fn state_keys(&self) -> Iter<i32> {
         self.state_keys.iter()
     }
