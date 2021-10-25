@@ -2,8 +2,10 @@ use super::*;
 use crate::construction::heuristics::InsertionContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
 use crate::helpers::models::domain::{create_empty_insertion_context, create_empty_solution_context};
-use crate::helpers::models::problem::test_single_with_id;
+use crate::helpers::models::problem::{get_job_id, test_single_with_id};
 use crate::helpers::models::solution::*;
+use crate::models::common::ValueDimension;
+use crate::models::problem::Single;
 
 parameterized_test! {can_estimate_job_value, (value, max_cost, expected), {
     can_estimate_job_value_impl(value, max_cost, expected);
@@ -47,4 +49,31 @@ fn can_estimate_solution_value() {
     let fitness = objective.fitness(&insertion_ctx);
 
     assert_eq!(fitness, 200.);
+}
+
+#[test]
+fn can_merge_value() {
+    let (constraint, _) = TotalValue::maximize(
+        1000.,
+        0.1,
+        Arc::new(|solution_ctx| solution_ctx.unassigned.len() as f64 * -100.),
+        Arc::new(move |job| match get_job_id(job).as_str() {
+            "source" => 10.,
+            "candidate" => 2.,
+            _ => unreachable!(),
+        }),
+        Arc::new(|job, value| {
+            let single = job.to_single();
+            let mut dimens = single.dimens.clone();
+            dimens.set_value("value", value);
+
+            Job::Single(Arc::new(Single { places: single.places.clone(), dimens }))
+        }),
+    );
+    let source = Job::Single(test_single_with_id("source"));
+    let candidate = Job::Single(test_single_with_id("candidate"));
+
+    let merged = constraint.merge(source, candidate).unwrap();
+
+    assert_eq!(merged.dimens().get_value::<f64>("value").cloned(), Some(12.))
 }

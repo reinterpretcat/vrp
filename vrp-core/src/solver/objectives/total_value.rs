@@ -34,12 +34,11 @@ impl TotalValue {
             Arc::new({
                 let job_read_value_func = job_read_value_func.clone();
                 move |source, candidate| {
-                    let mut source = source;
-
                     let source_value = job_read_value_func.deref()(&source);
                     let candidate_value = job_read_value_func.deref()(&candidate);
+                    let new_value = source_value + candidate_value;
 
-                    Ok(job_write_value_func.deref()(source, source_value + candidate_value))
+                    Ok(if new_value != source_value { job_write_value_func.deref()(source, new_value) } else { source })
                 }
             }),
             get_route_value.clone(),
