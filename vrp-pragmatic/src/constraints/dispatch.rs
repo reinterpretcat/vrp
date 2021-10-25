@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/constraints/dispatch_test.rs"]
+mod dispatch_test;
+
 use crate::constraints::*;
 use crate::format::UNASSIGNABLE_ROUTE_KEY;
 use std::iter::once;

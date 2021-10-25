@@ -80,17 +80,17 @@ fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_
     );
 }
 
-parameterized_test! {can_skip_merging_breaks, (source, candidate, expected), {
-    can_skip_merging_breaks_impl(Job::Single(source), Job::Single(candidate), expected);
+parameterized_test! {can_skip_merge_breaks, (source, candidate, expected), {
+    can_skip_merge_breaks_impl(Job::Single(source), Job::Single(candidate), expected);
 }}
 
-can_skip_merging_breaks! {
+can_skip_merge_breaks! {
     case_01: (create_single("source"), create_break("v1", None), Err(0)),
     case_02: (create_break("v1", None), create_single("candidate"), Err(0)),
     case_03: (create_single("source"), create_single("candidate"), Ok(())),
 }
 
-fn can_skip_merging_breaks_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
+fn can_skip_merge_breaks_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
     let (transport, _) = get_costs();
     let constraint = BreakModule::new(transport, 0);
 
