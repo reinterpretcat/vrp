@@ -149,6 +149,15 @@ fn get_value(
             solution.unassigned.iter().map(|(job, _)| get_job_as_break_estimate(job, break_value, 0.)).sum()
         }),
         Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)),
+        Arc::new(|job, value| match job {
+            Job::Single(single) => {
+                let mut dimens = single.dimens.clone();
+                dimens.set_value("value", value);
+
+                Job::Single(Arc::new(Single { places: single.places.clone(), dimens }))
+            }
+            _ => job.clone(),
+        }),
     )
 }
 

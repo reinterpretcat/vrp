@@ -18,21 +18,29 @@ impl TotalValue {
         max_value: f64,
         reduction_factor: f64,
         solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
-        job_value_func: Arc<dyn Fn(&Job) -> f64 + Send + Sync>,
+        job_read_value_func: Arc<dyn Fn(&Job) -> f64 + Send + Sync>,
+        job_write_value_func: Arc<dyn Fn(Job, f64) -> Job + Send + Sync>,
     ) -> (TargetConstraint, TargetObjective) {
         assert!(max_value > 0.);
 
         let get_route_value = {
-            let value_func = job_value_func.clone();
+            let value_func = job_read_value_func.clone();
             Arc::new(move |rc: &RouteContext| rc.route.tour.jobs().map(|job| -value_func.deref()(&job)).sum())
         };
 
         GenericValue::new_constrained_objective(
             None,
             None,
-            Arc::new(|source, candidate| {
-                // TODO
-                todo!()
+            Arc::new({
+                let job_read_value_func = job_read_value_func.clone();
+                move |source, candidate| {
+                    let mut source = source;
+
+                    let source_value = job_read_value_func.deref()(&source);
+                    let candidate_value = job_read_value_func.deref()(&candidate);
+
+                    Ok(job_write_value_func.deref()(source, source_value + candidate_value))
+                }
             }),
             get_route_value.clone(),
             Arc::new(move |ctx: &SolutionContext| {
@@ -42,7 +50,7 @@ impl TotalValue {
                 route_values + solution_values
             }),
             Arc::new(move |_, _, job, max_cost| {
-                let job_value = -job_value_func.deref()(job);
+                let job_value = -job_read_value_func.deref()(job);
 
                 if max_cost > 0. {
                     (job_value / max_value) * max_cost * reduction_factor
