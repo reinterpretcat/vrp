@@ -46,6 +46,8 @@ type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), i32> + Send + Sync);
 
 /// Specifies clustering algorithm configuration.
 pub struct ClusterConfig {
+    /// A matrix profile used to calculate traveling durations and distances.
+    pub profile: Profile,
     /// A thresholds for job clustering.
     pub threshold: ThresholdPolicy,
     /// Job visiting policy
@@ -132,7 +134,6 @@ pub struct ClusterInfo {
 pub fn create_job_clusters(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-    profile: &Profile,
     config: &ClusterConfig,
 ) -> Vec<(Job, Vec<Job>)> {
     let insertion_ctx = InsertionContext::new_empty(problem.clone(), environment);
@@ -147,7 +148,7 @@ pub fn create_job_clusters(
         .filter(|job| job.as_single().is_some())
         .collect::<Vec<_>>();
 
-    let estimates = get_jobs_dissimilarities(jobs.as_slice(), profile, transport, config);
+    let estimates = get_jobs_dissimilarities(jobs.as_slice(), transport, config);
 
     get_clusters(&constraint, estimates, config, &check_job)
 }

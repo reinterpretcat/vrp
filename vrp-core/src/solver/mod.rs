@@ -246,7 +246,7 @@ impl Solver {
         let mut config = self.config;
 
         config.problem = if let Some(pre_processing) = config.processing.pre.as_ref() {
-            pre_processing.process(config.problem.clone())
+            pre_processing.process(config.problem.clone(), config.environment.clone())
         } else {
             config.problem.clone()
         };

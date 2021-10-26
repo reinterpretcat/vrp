@@ -2,7 +2,7 @@ use crate::construction::clustering::vicinity::*;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::problem::{get_job_id, SingleBuilder};
-use crate::models::common::{Duration, IdDimension, Location, ValueDimension};
+use crate::models::common::{Duration, IdDimension, Location, Profile, ValueDimension};
 use crate::models::problem::Job;
 use crate::utils::compare_floats;
 use hashbrown::HashSet;
@@ -113,6 +113,7 @@ pub fn create_default_config() -> ClusterConfig {
     };
 
     ClusterConfig {
+        profile: Profile::new(0, None),
         threshold: ThresholdPolicy { moving_duration: 10.0, moving_distance: 10.0, min_shared_time: None },
         visiting: VisitPolicy::Return,
         service_time: ServiceTimePolicy::Original,

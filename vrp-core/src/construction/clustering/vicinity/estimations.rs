@@ -97,7 +97,6 @@ pub(crate) fn get_clusters(
 /// Gets jobs dissimilarities.
 pub(crate) fn get_jobs_dissimilarities(
     jobs: &[Job],
-    profile: &Profile,
     transport: &(dyn TransportCost + Send + Sync),
     config: &ClusterConfig,
 ) -> HashMap<Job, DissimilarityIndex> {
@@ -107,7 +106,7 @@ pub(crate) fn get_jobs_dissimilarities(
                 .iter()
                 .filter(|inner| outer != *inner)
                 .filter_map(|inner| {
-                    let dissimilarities = get_dissimilarities(outer, inner, profile, transport, config);
+                    let dissimilarities = get_dissimilarities(outer, inner, transport, config);
                     if dissimilarities.is_empty() {
                         None
                     } else {
@@ -123,7 +122,6 @@ pub(crate) fn get_jobs_dissimilarities(
 fn get_dissimilarities(
     outer: &Job,
     inner: &Job,
-    profile: &Profile,
     transport: &(dyn TransportCost + Send + Sync),
     config: &ClusterConfig,
 ) -> Vec<DissimilarityInfo> {
@@ -149,11 +147,11 @@ fn get_dissimilarities(
                     if shared_time > config.threshold.min_shared_time.unwrap_or(0.) {
                         let departure = Default::default();
 
-                        let fwd_distance = transport.distance(profile, outer_loc, inner_loc, departure);
-                        let fwd_duration = transport.duration(profile, outer_loc, inner_loc, departure);
+                        let fwd_distance = transport.distance(&config.profile, outer_loc, inner_loc, departure);
+                        let fwd_duration = transport.duration(&config.profile, outer_loc, inner_loc, departure);
 
-                        let bck_distance = transport.distance(profile, inner_loc, outer_loc, departure);
-                        let bck_duration = transport.duration(profile, inner_loc, outer_loc, departure);
+                        let bck_distance = transport.distance(&config.profile, inner_loc, outer_loc, departure);
+                        let bck_duration = transport.duration(&config.profile, inner_loc, outer_loc, departure);
 
                         let reachable = compare_floats(fwd_distance, 0.) != Ordering::Less
                             && compare_floats(bck_distance, 0.) != Ordering::Less;

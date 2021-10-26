@@ -170,10 +170,9 @@ fn can_get_dissimilarities_impl(
     let outer = create_single_job("job1", places_outer);
     let inner = create_single_job("job2", places_inner);
     let transport = TestTransportCost::default();
-    let profile = Profile::new(0, None);
     let config = ClusterConfig { threshold, service_time, ..create_default_config() };
 
-    let dissimilarities = get_dissimilarities(&outer, &inner, &profile, &transport, &config)
+    let dissimilarities = get_dissimilarities(&outer, &inner, &transport, &config)
         .into_iter()
         .filter(|(reachable, ..)| *reachable)
         .collect::<Vec<_>>();
@@ -254,8 +253,7 @@ fn can_add_job_impl(
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
     let return_movement = |info: &ClusterInfo| (info.forward.clone(), info.backward.clone());
     let transport = TestTransportCost::default();
-    let profile = Profile::new(0, None);
-    let dissimilarity_info = get_dissimilarities(&cluster, &candidate, &profile, &transport, &config);
+    let dissimilarity_info = get_dissimilarities(&cluster, &candidate, &transport, &config);
     let candidate = (&candidate, &dissimilarity_info);
 
     let result = try_add_job(&constraint, 0, &cluster, candidate, &config, &return_movement, check_insertion.as_ref());
@@ -353,12 +351,11 @@ fn can_build_job_cluster_impl(
     expected: Option<(Vec<usize>, f64, (f64, f64))>,
 ) {
     let transport = TestTransportCost::default();
-    let profile = Profile::new(0, None);
     let config = ClusterConfig { visiting, ..create_default_config() };
     let constraint = create_constraint_pipeline(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
     let jobs = create_jobs(jobs_places);
-    let estimates = get_jobs_dissimilarities(jobs.as_slice(), &profile, &transport, &config);
+    let estimates = get_jobs_dissimilarities(jobs.as_slice(), &transport, &config);
     let used_jobs = used_jobs.iter().map(|idx| jobs.get(*idx).unwrap().clone()).collect();
 
     let result = build_job_cluster(
@@ -418,12 +415,11 @@ pub fn can_get_clusters_impl(jobs_amount: usize, moving_duration: f64, expected:
     let disallow_insertion_list = vec![];
     let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();
     let transport = TestTransportCost::default();
-    let profile = Profile::new(0, None);
     let config = ClusterConfig { threshold, ..create_default_config() };
     let constraint = create_constraint_pipeline(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
     let jobs = create_jobs(jobs_places);
-    let estimates = get_jobs_dissimilarities(jobs.as_slice(), &profile, &transport, &config);
+    let estimates = get_jobs_dissimilarities(jobs.as_slice(), &transport, &config);
 
     let result = get_clusters(&constraint, estimates, &config, check_insertion.as_ref());
 
