@@ -1,4 +1,5 @@
 use crate::constraints::{JobSkills, SkillsModule};
+use crate::core::construction::constraints::ConstraintModule;
 use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
 use hashbrown::HashSet;
@@ -98,4 +99,33 @@ fn can_check_skills_impl(
     );
 
     assert_eq!(actual, expected)
+}
+
+parameterized_test! {can_merge_skills, (source, candidate, expected), {
+    can_merge_skills_impl(source, candidate, expected);
+}}
+
+can_merge_skills! {
+    case_01: (create_job_with_skills(None, None, None), create_job_with_skills(None, None, None), Ok(())),
+
+    case_02: (create_job_with_skills(Some(vec!["skill"]), None, None), create_job_with_skills(None, None, None), Ok(())),
+    case_03: (create_job_with_skills(None, Some(vec!["skill"]), None), create_job_with_skills(None, None, None), Ok(())),
+    case_04: (create_job_with_skills(None, None, Some(vec!["skill"])), create_job_with_skills(None, None, None), Ok(())),
+
+    case_05: (create_job_with_skills(None, None, None), create_job_with_skills(Some(vec!["skill"]), None, None), Err(1)),
+    case_06: (create_job_with_skills(None, None, None), create_job_with_skills(None, Some(vec!["skill"]), None), Err(1)),
+    case_07: (create_job_with_skills(None, None, None), create_job_with_skills(None, None, Some(vec!["skill"])), Err(1)),
+
+    case_08: (create_job_with_skills(Some(vec!["skill"]), None, None), create_job_with_skills(Some(vec!["skill"]), None, None), Ok(())),
+    case_09: (create_job_with_skills(Some(vec!["skill"]), None, None), create_job_with_skills(None, Some(vec!["skill"]), None), Err(1)),
+    case_10: (create_job_with_skills(Some(vec!["skill1", "skill2"]), None, None), create_job_with_skills(Some(vec!["skill1"]), None, None), Ok(())),
+    case_11: (create_job_with_skills(Some(vec!["skill1"]), None, None), create_job_with_skills(Some(vec!["skill1", "skill2"]), None, None), Err(1)),
+}
+
+fn can_merge_skills_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
+    let constraint = SkillsModule::new(1);
+
+    let result = constraint.merge(source, candidate).map(|_| ());
+
+    assert_eq!(result, expected);
 }

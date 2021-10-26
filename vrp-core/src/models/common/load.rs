@@ -69,6 +69,17 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Clone for Demand<T> 
     }
 }
 
+impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Add for Demand<T> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            pickup: (self.pickup.0 + rhs.pickup.0, self.pickup.1 + rhs.pickup.1),
+            delivery: (self.delivery.0 + rhs.delivery.0, self.delivery.1 + rhs.delivery.1),
+        }
+    }
+}
+
 impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> CapacityDimension<T> for Dimensions {
     fn set_capacity(&mut self, demand: T) -> &mut Self {
         self.set_value(CAPACITY_DIMENSION_KEY, demand);

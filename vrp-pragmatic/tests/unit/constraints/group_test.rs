@@ -185,3 +185,23 @@ fn can_evaluate_job_impl(
 
     assert_eq!(result, expected.map(|code| RouteConstraintViolation { code }));
 }
+
+parameterized_test! {can_merge_groups, (source, candidate, expected), {
+    can_merge_groups_impl(Job::Single(source), Job::Single(candidate), expected);
+}}
+
+can_merge_groups! {
+    case_01: (create_test_single(Some("group1")), create_test_single(Some("group2")), Err(0)),
+    case_02: (create_test_single(Some("group1")), create_test_single(Some("group1")), Ok(())),
+    case_03: (create_test_single(None), create_test_single(Some("group1")), Err(0)),
+    case_04: (create_test_single(Some("group1")), create_test_single(None), Err(0)),
+    case_05: (create_test_single(None), create_test_single(None), Ok(())),
+}
+
+fn can_merge_groups_impl(source: Job, candidate: Job, expected: Result<(), i32>) {
+    let constraint = GroupModule::new(2, 0, 0);
+
+    let result = constraint.merge(source, candidate).map(|_| ());
+
+    assert_eq!(result, expected);
+}

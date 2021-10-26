@@ -24,7 +24,7 @@ impl ConstraintModule for TestConstraintModule {
         unimplemented!()
     }
 
-    fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
+    fn merge(&self, _source: Job, _candidate: Job) -> Result<Job, i32> {
         unimplemented!()
     }
 

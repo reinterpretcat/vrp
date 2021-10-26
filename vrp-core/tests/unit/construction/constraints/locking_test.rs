@@ -1,5 +1,5 @@
 use crate::construction::constraints::locking::StrictLockingModule;
-use crate::construction::constraints::{ActivityConstraintViolation, RouteConstraintViolation};
+use crate::construction::constraints::{ActivityConstraintViolation, ConstraintModule, RouteConstraintViolation};
 use crate::construction::heuristics::ActivityContext;
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
 use crate::helpers::models::domain::create_empty_solution_context;
@@ -158,7 +158,7 @@ fn can_lock_jobs_to_position_in_tour_impl(
     expected: Option<ActivityConstraintViolation>,
 ) {
     let (prev, next) = activities;
-    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
+    let fleet = test_fleet();
     let locks = vec![Arc::new(Lock::new(
         Arc::new(|_| true),
         vec![LockDetail::new(LockOrder::Strict, lock_position, jobs)],
@@ -177,4 +177,21 @@ fn can_lock_jobs_to_position_in_tour_impl(
     );
 
     assert_eq!(result, expected);
+}
+
+#[test]
+fn can_handle_merge_locked_jobs() {
+    let source = Job::Single(test_single_with_id("source"));
+    let candidate1 = Job::Single(test_single_with_id("candidate1"));
+    let candidate2 = Job::Single(test_single_with_id("candidate2"));
+    let locks = vec![Arc::new(Lock::new(
+        Arc::new(|_| true),
+        vec![LockDetail::new(LockOrder::Strict, LockPosition::Any, vec![candidate1.clone()])],
+        false,
+    ))];
+
+    let constraint = StrictLockingModule::new(&test_fleet(), &locks, 1);
+
+    assert!(constraint.merge(source.clone(), candidate1).is_err());
+    assert!(constraint.merge(source, candidate2).is_ok());
 }

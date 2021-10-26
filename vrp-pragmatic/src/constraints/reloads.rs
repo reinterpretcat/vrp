@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/constraints/reload_test.rs"]
+mod reload_test;
+
 use crate::constraints::*;
 use std::ops::{Add, Deref, Sub};
 use std::sync::Arc;

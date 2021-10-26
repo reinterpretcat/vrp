@@ -8,7 +8,7 @@ use crate::models::common::*;
 use crate::models::problem::{Job, Single};
 use crate::models::solution::{Activity, Route};
 use hashbrown::HashSet;
-use std::iter::empty;
+use std::iter::{empty, once};
 use std::marker::PhantomData;
 use std::ops::{Add, Deref, Sub};
 use std::slice::Iter;
@@ -340,7 +340,31 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        todo!()
+        if once(&source).chain(once(&candidate)).any(|job| self.multi_trip.is_reload_job(job)) {
+            return Err(self.code);
+        }
+
+        match (&source, &candidate) {
+            (Job::Single(s_source), Job::Single(s_candidate)) => {
+                let source_demand: Option<&Demand<T>> = s_source.dimens.get_demand();
+                let candidate_demand: Option<&Demand<T>> = s_candidate.dimens.get_demand();
+
+                match (source_demand, candidate_demand) {
+                    (None, None) | (Some(_), None) => Ok(source),
+                    _ => {
+                        let source_demand = source_demand.cloned().unwrap_or_else(Default::default);
+                        let candidate_demand = candidate_demand.cloned().unwrap_or_else(Default::default);
+                        let new_demand = source_demand + candidate_demand;
+
+                        let mut dimens = s_source.dimens.clone();
+                        dimens.set_demand(new_demand);
+
+                        Ok(Job::Single(Arc::new(Single { places: s_source.places.clone(), dimens })))
+                    }
+                }
+            }
+            _ => Err(self.code),
+        }
     }
 
     fn state_keys(&self) -> Iter<i32> {

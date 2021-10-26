@@ -4,9 +4,10 @@ use crate::helpers::construction::constraints::*;
 use crate::helpers::models::domain::create_empty_solution_context;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
-use crate::models::common::SingleDimLoad;
+use crate::models::common::{Demand, DemandDimension, SingleDimLoad};
 use crate::models::problem::{Job, Vehicle};
 use crate::models::solution::Activity;
+use std::sync::Arc;
 
 fn create_test_vehicle(capacity: i32) -> Vehicle {
     VehicleBuilder::default().id("v1").capacity(capacity).build()
@@ -129,4 +130,54 @@ fn can_evaluate_demand_on_activity_impl(
     let result = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx);
 
     assert_eq!(result, expected);
+}
+
+parameterized_test! {can_merge_jobs_with_demand, (cluster, candidate, expected), {
+    can_merge_jobs_with_demand_impl(cluster, candidate, expected);
+}}
+
+can_merge_jobs_with_demand! {
+    case01: (Some((1, 0, 0, 0)), Some((1, 0, 0, 0)), Ok((2, 0, 0, 0))),
+    case02: (Some((1, 0, 1, 0)), Some((1, 0, 0, 0)), Ok((2, 0, 1, 0))),
+    case03: (Some((0, 0, 1, 0)), Some((1, 0, 0, 0)), Ok((1, 0, 1, 0))),
+    case04: (None, Some((1, 0, 0, 0)), Ok((1, 0, 0, 0))),
+    case05: (Some((1, 0, 0, 0)), None, Ok((1, 0, 0, 0))),
+    case06: (None, None, Err(-1)),
+}
+
+fn can_merge_jobs_with_demand_impl(
+    cluster: Option<(i32, i32, i32, i32)>,
+    candidate: Option<(i32, i32, i32, i32)>,
+    expected: Result<(i32, i32, i32, i32), i32>,
+) {
+    let create_demand = |demand: (i32, i32, i32, i32)| Demand::<SingleDimLoad> {
+        pickup: (SingleDimLoad::new(demand.0), SingleDimLoad::new(demand.1)),
+        delivery: (SingleDimLoad::new(demand.2), SingleDimLoad::new(demand.3)),
+    };
+    let cluster = Job::Single(if let Some(cluster) = cluster {
+        test_single_with_simple_demand(create_demand(cluster))
+    } else {
+        Arc::new(test_single())
+    });
+    let candidate = Job::Single(if let Some(candidate) = candidate {
+        test_single_with_simple_demand(create_demand(candidate))
+    } else {
+        Arc::new(test_single())
+    });
+    let constraint = CapacityConstraintModule::<SingleDimLoad>::new(TestTransportCost::new_shared(), 2);
+
+    let result: Result<Demand<SingleDimLoad>, i32> =
+        constraint.merge(cluster, candidate).and_then(|job| job.dimens().get_demand().cloned().ok_or(-1));
+
+    match (result, expected) {
+        (Ok(result), Ok((pickup0, pickup1, delivery0, delivery1))) => {
+            assert_eq!(result.pickup.0, SingleDimLoad::new(pickup0));
+            assert_eq!(result.pickup.1, SingleDimLoad::new(pickup1));
+            assert_eq!(result.delivery.0, SingleDimLoad::new(delivery0));
+            assert_eq!(result.delivery.1, SingleDimLoad::new(delivery1));
+        }
+        (Ok(_), Err(err)) => unreachable!(format!("unexpected ok, when err '{}' expected", err)),
+        (Err(err), Ok(_)) => unreachable!(format!("unexpected err: '{}'", err)),
+        (Err(result), Err(expected)) => assert_eq!(result, expected),
+    }
 }
