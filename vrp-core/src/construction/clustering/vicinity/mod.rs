@@ -138,7 +138,7 @@ pub fn create_job_clusters(
 ) -> Vec<(Job, Vec<Job>)> {
     let insertion_ctx = InsertionContext::new_empty(problem.clone(), environment);
     let constraint = insertion_ctx.problem.constraint.clone();
-    let check_job = get_check_insertion_fn(insertion_ctx, config.filtering.actor_filter.as_ref());
+    let check_insertion = get_check_insertion_fn(insertion_ctx, config.filtering.actor_filter.as_ref());
     let transport = problem.transport.as_ref();
     let jobs = problem
         .jobs
@@ -150,7 +150,7 @@ pub fn create_job_clusters(
 
     let estimates = get_jobs_dissimilarities(jobs.as_slice(), transport, config);
 
-    get_clusters(&constraint, estimates, config, &check_job)
+    get_clusters(&constraint, estimates, config, &check_insertion)
 }
 
 /// Gets function which checks possibility of cluster insertion.
