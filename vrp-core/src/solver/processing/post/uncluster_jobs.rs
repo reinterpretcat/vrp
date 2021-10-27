@@ -2,6 +2,8 @@ use super::*;
 use crate::construction::clustering::vicinity::{ClusterConfig, ClusterDimension, VisitPolicy};
 use crate::models::common::Schedule;
 use crate::models::solution::{Activity, Place};
+use crate::models::Problem;
+use crate::solver::processing::ORIG_PROBLEM_KEY;
 
 /// Unclusters previously clustered jobs in the solution.
 pub struct UnclusterJobs {
@@ -25,8 +27,6 @@ impl PostProcessing for UnclusterJobs {
                         .map(|cluster| (idx, cluster))
                 })
                 .collect::<Vec<_>>();
-
-            // TODO store info about clusters in context so that it can be used to group jobs into stops?
 
             clusters.into_iter().rev().for_each(|(cluster_idx, cluster)| {
                 let cluster_activity = route_ctx.route.tour.get(cluster_idx).unwrap();
@@ -69,6 +69,16 @@ impl PostProcessing for UnclusterJobs {
                 });
             });
         });
+
+        // TODO process unassigned jobs too
+
+        insertion_ctx.problem = insertion_ctx
+            .problem
+            .extras
+            .get(ORIG_PROBLEM_KEY)
+            .cloned()
+            .and_then(|any| any.downcast::<Problem>().ok())
+            .expect("no original problem ");
 
         insertion_ctx
     }

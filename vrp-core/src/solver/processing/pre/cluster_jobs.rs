@@ -1,11 +1,12 @@
 use super::*;
 use crate::construction::clustering::vicinity::{create_job_clusters, ClusterConfig};
 use crate::models::problem::Jobs;
-use crate::models::Problem;
-use hashbrown::HashSet;
+use crate::models::{Extras, Problem};
+use crate::solver::processing::ORIG_PROBLEM_KEY;
+use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 
-/// Provides way to change problem definition by reducing total job count using clustering,
+/// Provides way to change problem definition by reducing total job count using clustering.
 pub struct ClusterJobs {
     config: ClusterConfig,
 }
@@ -37,7 +38,9 @@ impl PreProcessing for ClusterJobs {
             let jobs =
                 problem.jobs.all().filter(|job| clustered_jobs.contains(job)).chain(clusters.into_iter()).collect();
 
-            // TODO store info about clusters in extras?
+            let mut extras: Extras =
+                problem.extras.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<_, _>>();
+            extras.insert(ORIG_PROBLEM_KEY.to_string(), problem.clone());
 
             Arc::new(Problem {
                 fleet: problem.fleet.clone(),
@@ -47,7 +50,7 @@ impl PreProcessing for ClusterJobs {
                 activity: problem.activity.clone(),
                 transport: problem.transport.clone(),
                 objective: problem.objective.clone(),
-                extras: problem.extras.clone(),
+                extras: Arc::new(extras),
             })
         }
     }
