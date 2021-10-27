@@ -45,6 +45,7 @@ pub type ClusterCandidate<'a> = (&'a Job, &'a HashSet<Job>);
 type CheckInsertionFn = (dyn Fn(&Job) -> Result<(), i32> + Send + Sync);
 
 /// Specifies clustering algorithm configuration.
+#[derive(Clone)]
 pub struct ClusterConfig {
     /// A matrix profile used to calculate traveling durations and distances.
     pub profile: Profile,
@@ -61,6 +62,7 @@ pub struct ClusterConfig {
 }
 
 /// Defines a various thresholds to control cluster size.
+#[derive(Clone)]
 pub struct ThresholdPolicy {
     /// Moving duration limit.
     pub moving_duration: Duration,
@@ -71,6 +73,7 @@ pub struct ThresholdPolicy {
 }
 
 /// Specifies cluster visiting policy.
+#[derive(Clone)]
 pub enum VisitPolicy {
     /// It is required to return to the first job's location (cluster center) before visiting a next job.
     Return,
@@ -83,6 +86,7 @@ pub enum VisitPolicy {
 }
 
 /// Specifies filtering policy.
+#[derive(Clone)]
 pub struct FilterPolicy {
     /// Job filter.
     pub job_filter: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
@@ -91,6 +95,7 @@ pub struct FilterPolicy {
 }
 
 /// Specifies service time policy.
+#[derive(Clone)]
 pub enum ServiceTimePolicy {
     /// Keep original service time.
     Original,
@@ -101,6 +106,7 @@ pub enum ServiceTimePolicy {
 }
 
 /// Allows to control how clusters are built.
+#[derive(Clone)]
 pub struct BuilderPolicy {
     /// The smallest time window of the cluster after service time shrinking.
     pub smallest_time_window: Option<f64>,

@@ -9,6 +9,9 @@ pub use self::advance_departure::AdvanceDeparture;
 mod unassignment_reason;
 pub use self::unassignment_reason::UnassignmentReason;
 
+mod uncluster_jobs;
+pub use self::uncluster_jobs::UnclusterJobs;
+
 /// A trait which specifies the logic to apply post processing to solution.
 pub trait PostProcessing {
     /// Applies post processing to given solution.
