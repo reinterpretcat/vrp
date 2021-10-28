@@ -105,7 +105,7 @@ pub fn create_constraint_pipeline(disallow_merge_list: Vec<&str>) -> ConstraintP
     pipeline
 }
 
-pub fn create_default_config() -> ClusterConfig {
+pub fn create_cluster_config() -> ClusterConfig {
     let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
         Ordering::Equal => get_job_id(left_job).cmp(get_job_id(right_job)),
         Ordering::Less => Ordering::Less,

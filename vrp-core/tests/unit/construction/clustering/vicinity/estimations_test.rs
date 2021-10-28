@@ -170,7 +170,7 @@ fn can_get_dissimilarities_impl(
     let outer = create_single_job("job1", places_outer);
     let inner = create_single_job("job2", places_inner);
     let transport = TestTransportCost::default();
-    let config = ClusterConfig { threshold, service_time, ..create_default_config() };
+    let config = ClusterConfig { threshold, service_time, ..create_cluster_config() };
 
     let dissimilarities = get_dissimilarities(&outer, &inner, &transport, &config)
         .into_iter()
@@ -189,7 +189,7 @@ parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowe
         let dummy_job = SingleBuilder::default().build_as_job_ref();
         create_cluster_info(dummy_job, e.1, e.0, e.2, e.3)
     });
-    let building = create_default_config().building;
+    let building = create_cluster_config().building;
     let building = BuilderPolicy { smallest_time_window, ..building };
 
     can_add_job_impl(center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, building, expected);
@@ -238,7 +238,7 @@ fn can_add_job_impl(
     building: BuilderPolicy,
     expected: Option<ClusterInfo>,
 ) {
-    let config = ClusterConfig { visiting, building, ..create_default_config() };
+    let config = ClusterConfig { visiting, building, ..create_cluster_config() };
     let cluster = create_single_job("cluster", center_places);
     let candidate = create_single_job("job1", candidate_places);
     let disallowed_merge = vec!["job1"];
@@ -351,7 +351,7 @@ fn can_build_job_cluster_impl(
     expected: Option<(Vec<usize>, f64, (f64, f64))>,
 ) {
     let transport = TestTransportCost::default();
-    let config = ClusterConfig { visiting, ..create_default_config() };
+    let config = ClusterConfig { visiting, ..create_cluster_config() };
     let constraint = create_constraint_pipeline(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
     let jobs = create_jobs(jobs_places);
@@ -415,7 +415,7 @@ pub fn can_get_clusters_impl(jobs_amount: usize, moving_duration: f64, expected:
     let disallow_insertion_list = vec![];
     let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();
     let transport = TestTransportCost::default();
-    let config = ClusterConfig { threshold, ..create_default_config() };
+    let config = ClusterConfig { threshold, ..create_cluster_config() };
     let constraint = create_constraint_pipeline(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
     let jobs = create_jobs(jobs_places);

@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/processing/vicinity_clustering_test.rs"]
+mod vicinity_clustering_test;
+
 use super::*;
 use crate::construction::clustering::vicinity::*;
 use crate::models::common::Schedule;
@@ -39,7 +43,7 @@ impl Processing for VicinityClustering {
             );
 
             let jobs =
-                problem.jobs.all().filter(|job| clustered_jobs.contains(job)).chain(clusters.into_iter()).collect();
+                problem.jobs.all().filter(|job| !clustered_jobs.contains(job)).chain(clusters.into_iter()).collect();
 
             let mut extras: Extras =
                 problem.extras.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<_, _>>();
