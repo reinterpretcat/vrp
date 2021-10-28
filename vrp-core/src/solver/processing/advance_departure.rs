@@ -1,6 +1,6 @@
+use super::*;
 use crate::construction::constraints::TransportConstraintModule;
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::processing::post::PostProcessing;
 
 /// Provides way to reduce waiting time by advancing departure time.
 pub struct AdvanceDeparture {}
@@ -11,8 +11,12 @@ impl Default for AdvanceDeparture {
     }
 }
 
-impl PostProcessing for AdvanceDeparture {
-    fn process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+impl Processing for AdvanceDeparture {
+    fn pre_process(&self, problem: Arc<Problem>, _environment: Arc<Environment>) -> Arc<Problem> {
+        problem
+    }
+
+    fn post_process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx.deep_copy();
 
         let problem = insertion_ctx.problem.clone();

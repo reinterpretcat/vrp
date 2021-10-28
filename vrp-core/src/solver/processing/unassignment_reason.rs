@@ -1,5 +1,5 @@
+use super::*;
 use crate::construction::heuristics::*;
-use crate::solver::processing::post::PostProcessing;
 use crate::utils::{parallel_into_collect, CollectGroupBy};
 
 /// Tries to improve job unassignment reason.
@@ -11,8 +11,12 @@ impl Default for UnassignmentReason {
     }
 }
 
-impl PostProcessing for UnassignmentReason {
-    fn process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+impl Processing for UnassignmentReason {
+    fn pre_process(&self, problem: Arc<Problem>, _environment: Arc<Environment>) -> Arc<Problem> {
+        problem
+    }
+
+    fn post_process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
 
         let unassigned = insertion_ctx.solution.unassigned.drain().collect::<Vec<_>>();

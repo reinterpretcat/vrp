@@ -5,8 +5,7 @@ use crate::solver::evolution::EvolutionConfig;
 use crate::solver::hyper::HyperHeuristic;
 use crate::solver::mutation::*;
 use crate::solver::population::Population;
-use crate::solver::processing::post::PostProcessing;
-use crate::solver::processing::pre::PreProcessing;
+use crate::solver::processing::Processing;
 use crate::solver::termination::*;
 use crate::solver::{Solver, Telemetry};
 use crate::utils::{Environment, TimeQuota};
@@ -153,15 +152,9 @@ impl Builder {
         self
     }
 
-    /// Sets problem pre processing logic.
-    pub fn with_pre_processing(mut self, pre_processing: Option<Arc<dyn PreProcessing + Send + Sync>>) -> Self {
-        self.config.processing.pre = pre_processing;
-        self
-    }
-
-    /// Sets solution post processing logic.
-    pub fn with_post_processing(mut self, post_processing: Option<Arc<dyn PostProcessing + Send + Sync>>) -> Self {
-        self.config.processing.post = post_processing;
+    /// Sets problem processing logic.
+    pub fn with_processing(mut self, processing: Option<Arc<dyn Processing + Send + Sync>>) -> Self {
+        self.config.processing = processing;
         self
     }
 

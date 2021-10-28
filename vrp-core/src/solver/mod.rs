@@ -244,22 +244,21 @@ impl Solver {
     /// ```
     pub fn solve(self) -> Result<(Solution, Cost, Option<Metrics>), String> {
         let mut config = self.config;
+        let processing = config.processing.clone();
 
-        config.problem = if let Some(pre_processing) = config.processing.pre.as_ref() {
-            pre_processing.process(config.problem.clone(), config.environment.clone())
+        config.problem = if let Some(processing) = &processing {
+            processing.pre_process(config.problem.clone(), config.environment.clone())
         } else {
             config.problem.clone()
         };
-
-        let post_processing = config.processing.post.clone();
 
         let (population, metrics) = EvolutionSimulator::new(config)?.run()?;
 
         // NOTE select the first best individual from population
         let (insertion_ctx, _) = population.ranked().next().ok_or_else(|| "cannot find any solution".to_string())?;
 
-        let insertion_ctx = if let Some(post_processing) = post_processing {
-            post_processing.process(insertion_ctx.deep_copy())
+        let insertion_ctx = if let Some(processing) = processing {
+            processing.post_process(insertion_ctx.deep_copy())
         } else {
             insertion_ctx.deep_copy()
         };

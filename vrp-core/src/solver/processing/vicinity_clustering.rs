@@ -1,17 +1,64 @@
 use super::*;
-use crate::construction::clustering::vicinity::{ClusterConfig, ClusterDimension, VisitPolicy};
+use crate::construction::clustering::vicinity::*;
 use crate::models::common::Schedule;
+use crate::models::problem::Jobs;
 use crate::models::solution::{Activity, Place};
-use crate::models::Problem;
-use crate::solver::processing::ORIG_PROBLEM_KEY;
+use crate::models::{Extras, Problem};
+use hashbrown::{HashMap, HashSet};
+use std::sync::Arc;
 
-/// Unclusters previously clustered jobs in the solution.
-pub struct UnclusterJobs {
+const ORIG_PROBLEM_KEY: &str = "orig_problem";
+
+/// Provides way to change problem definition by reducing total job count using clustering.
+pub struct VicinityClustering {
     config: ClusterConfig,
 }
 
-impl PostProcessing for UnclusterJobs {
-    fn process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
+impl VicinityClustering {
+    /// Creates a new instance of `VicinityClustering`.
+    pub fn new(config: ClusterConfig) -> Self {
+        Self { config }
+    }
+}
+
+impl Processing for VicinityClustering {
+    fn pre_process(&self, problem: Arc<Problem>, environment: Arc<Environment>) -> Arc<Problem> {
+        let clusters = create_job_clusters(problem.clone(), environment, &self.config);
+
+        if clusters.is_empty() {
+            problem
+        } else {
+            let (clusters, clustered_jobs) = clusters.into_iter().fold(
+                (Vec::new(), HashSet::new()),
+                |(mut clusters, mut clustered_jobs), (cluster, cluster_jobs)| {
+                    clusters.push(cluster);
+                    clustered_jobs.extend(cluster_jobs.into_iter());
+
+                    (clusters, clustered_jobs)
+                },
+            );
+
+            let jobs =
+                problem.jobs.all().filter(|job| clustered_jobs.contains(job)).chain(clusters.into_iter()).collect();
+
+            let mut extras: Extras =
+                problem.extras.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<_, _>>();
+            extras.insert(ORIG_PROBLEM_KEY.to_string(), problem.clone());
+
+            Arc::new(Problem {
+                fleet: problem.fleet.clone(),
+                jobs: Arc::new(Jobs::new(problem.fleet.as_ref(), jobs, &problem.transport)),
+                locks: problem.locks.clone(),
+                constraint: problem.constraint.clone(),
+                activity: problem.activity.clone(),
+                transport: problem.transport.clone(),
+                objective: problem.objective.clone(),
+                extras: Arc::new(extras),
+            })
+        }
+    }
+
+    fn post_process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
 
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
@@ -70,7 +117,18 @@ impl PostProcessing for UnclusterJobs {
             });
         });
 
-        // TODO process unassigned jobs too
+        insertion_ctx.solution.unassigned = insertion_ctx
+            .solution
+            .unassigned
+            .iter()
+            .flat_map(|(job, code)| {
+                job.dimens()
+                    .get_cluster()
+                    .map(|clusters| clusters.iter().map(|info| (info.job.clone(), *code)).collect::<Vec<_>>())
+                    .unwrap_or_else(|| vec![(job.clone(), *code)])
+                    .into_iter()
+            })
+            .collect();
 
         insertion_ctx.problem = insertion_ctx
             .problem

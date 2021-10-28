@@ -6,8 +6,7 @@ use crate::solver::evolution::{EvolutionStrategy, RunSimple};
 use crate::solver::hyper::{HyperHeuristic, MultiSelective};
 use crate::solver::mutation::*;
 use crate::solver::population::*;
-use crate::solver::processing::post::*;
-use crate::solver::processing::pre::PreProcessing;
+use crate::solver::processing::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::TelemetryMode;
@@ -19,8 +18,8 @@ pub struct EvolutionConfig {
     /// An original problem.
     pub problem: Arc<Problem>,
 
-    /// A pre/post processing configuration.
-    pub processing: ProcessingConfig,
+    /// A processing configuration.
+    pub processing: Option<Arc<dyn Processing + Send + Sync>>,
 
     /// A population configuration.
     pub population: PopulationConfig,
@@ -53,14 +52,6 @@ pub struct PopulationConfig {
     pub variation: Option<Box<dyn Population + Send + Sync>>,
 }
 
-/// A configuration which keeps track of pre/post processing settings.
-pub struct ProcessingConfig {
-    /// Preprocessing settings.
-    pub pre: Option<Arc<dyn PreProcessing + Send + Sync>>,
-    /// Postprocessing settings.
-    pub post: Option<Arc<dyn PostProcessing + Send + Sync>>,
-}
-
 /// An initial solutions configuration.
 pub struct InitialConfig {
     /// Create methods to produce initial individuals.
@@ -78,13 +69,10 @@ impl EvolutionConfig {
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
         Self {
             problem: problem.clone(),
-            processing: ProcessingConfig {
-                pre: None,
-                post: Some(Arc::new(CompositePostProcessing::new(vec![
-                    Arc::new(AdvanceDeparture::default()),
-                    Arc::new(UnassignmentReason::default()),
-                ]))),
-            },
+            processing: Some(Arc::new(CompositeProcessing::new(vec![
+                Arc::new(AdvanceDeparture::default()),
+                Arc::new(UnassignmentReason::default()),
+            ]))),
             population: PopulationConfig {
                 initial: InitialConfig {
                     max_size: 4,
