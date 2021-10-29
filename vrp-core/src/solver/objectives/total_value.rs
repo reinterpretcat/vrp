@@ -6,6 +6,8 @@ use crate::construction::constraints::*;
 use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
 use crate::solver::objectives::GenericValue;
+use crate::utils::compare_floats;
+use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -38,7 +40,11 @@ impl TotalValue {
                     let candidate_value = job_read_value_func.deref()(&candidate);
                     let new_value = source_value + candidate_value;
 
-                    Ok(if new_value != source_value { job_write_value_func.deref()(source, new_value) } else { source })
+                    Ok(if compare_floats(new_value, source_value) != Ordering::Equal {
+                        job_write_value_func.deref()(source, new_value)
+                    } else {
+                        source
+                    })
                 }
             }),
             get_route_value.clone(),

@@ -66,6 +66,7 @@ impl Processing for VicinityClustering {
         let mut insertion_ctx = insertion_ctx;
 
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
+            #[allow(clippy::needless_collect)]
             let clusters = route_ctx
                 .route
                 .tour
