@@ -44,24 +44,27 @@ fn can_create_problem_with_clusters_on_pre_process() {
     assert_eq!(jobs, vec!["job3".to_string(), "job2".to_string(), "job1".to_string()]);
 }
 
-parameterized_test! {can_unwrap_clusters_on_post_process, (visiting, duration, expected), {
-    can_unwrap_clusters_on_post_process_impl(visiting, duration, expected);
+parameterized_test! {can_unwrap_clusters_in_route_on_post_process, (visiting, duration, expected), {
+    can_unwrap_clusters_in_route_on_post_process_impl(visiting, duration, expected);
 }}
 
-can_unwrap_clusters_on_post_process! {
+can_unwrap_clusters_in_route_on_post_process! {
     case_01: (VisitPolicy::ClosedContinuation, 10., vec![("job3", (3., 5.)), ("job2", (5., 8.)), ("job1", (8., 13.))]),
     case_02: (VisitPolicy::OpenContinuation, 8., vec![("job3", (3., 5.)), ("job2", (5., 8.)), ("job1", (8., 11.))]),
     case_03: (VisitPolicy::Return, 12., vec![("job3", (3., 5.)), ("job2", (5., 9.)), ("job1", (9., 15.))]),
 }
 
-fn can_unwrap_clusters_on_post_process_impl(visiting: VisitPolicy, duration: f64, expected: Vec<(&str, (f64, f64))>) {
+fn can_unwrap_clusters_in_route_on_post_process_impl(
+    visiting: VisitPolicy,
+    duration: f64,
+    expected: Vec<(&str, (f64, f64))>,
+) {
     let config = ClusterConfig { visiting, ..create_cluster_config() };
     let vicinity = VicinityClustering::new(config);
     let problem_jobs = create_test_jobs();
     let (_, new_problem) = create_problems(&vicinity, problem_jobs);
     let clustered_single = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap().to_single().clone();
     let clustered_time = clustered_single.places.first().unwrap().clone().times.first().unwrap().to_time_window(0.);
-    let environment = Arc::new(Environment::default());
     let insertion_ctx = InsertionContext {
         problem: new_problem.clone(),
         solution: SolutionContext {
@@ -81,11 +84,12 @@ fn can_unwrap_clusters_on_post_process_impl(visiting: VisitPolicy, duration: f64
             )],
             ..create_empty_solution_context()
         },
-        environment,
+        ..create_empty_insertion_context()
     };
 
     let insertion_ctx = vicinity.post_process(insertion_ctx);
 
+    assert_eq!(insertion_ctx.problem.jobs.size(), 4);
     assert_eq!(insertion_ctx.solution.routes.len(), 1);
     let route_ctx = insertion_ctx.solution.routes.first().unwrap();
     assert_eq!(route_ctx.route.tour.job_activity_count(), 3);
@@ -97,4 +101,24 @@ fn can_unwrap_clusters_on_post_process_impl(visiting: VisitPolicy, duration: f64
         assert_eq!(activity.schedule.arrival, arrival);
         assert_eq!(activity.schedule.departure, departure);
     });
+}
+
+#[test]
+fn can_unwrap_clusters_in_unassigned_on_post_process() {
+    let vicinity = VicinityClustering::new(create_cluster_config());
+    let (_, new_problem) = create_problems(&vicinity, create_test_jobs());
+    let clustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap().clone();
+    let unclustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job4_outlier").unwrap().clone();
+    let insertion_ctx = InsertionContext {
+        problem: new_problem.clone(),
+        solution: SolutionContext {
+            unassigned: vec![(clustered_job, 1), (unclustered_job, 2)].into_iter().collect(),
+            ..create_empty_solution_context()
+        },
+        ..create_empty_insertion_context()
+    };
+
+    let insertion_ctx = vicinity.post_process(insertion_ctx);
+
+    assert_eq!(insertion_ctx.solution.unassigned.len(), 4);
 }
