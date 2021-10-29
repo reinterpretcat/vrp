@@ -474,13 +474,20 @@ where
             let cluster = cluster.to_single();
             assert_eq!(cluster.places.len(), 1);
 
-            // NOTE add a return duration back to the cluster center
-            let last_info = clustered.last().expect("empty cluster");
+            let mut clustered = clustered.clone();
+
+            // NOTE add a return duration back to the cluster duration and modify backward info
+            let last_info = clustered.last_mut().expect("empty cluster");
             let mut place = cluster.places.first().unwrap().clone();
             let (_, backward) = return_movement(last_info);
-            place.duration += backward.1;
 
-            Job::Single(Arc::new(Single { places: vec![place], dimens: cluster.dimens.clone() }))
+            place.duration += backward.1;
+            last_info.backward = backward;
+
+            let mut dimens = cluster.dimens.clone();
+            dimens.set_cluster(clustered);
+
+            Job::Single(Arc::new(Single { places: vec![place], dimens }))
         }
         _ => cluster,
     }
