@@ -56,6 +56,7 @@ pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location
         },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
         job: Some(job),
+        commute: None,
     }
 }
 

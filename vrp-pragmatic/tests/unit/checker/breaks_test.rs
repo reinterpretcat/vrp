@@ -106,6 +106,7 @@ fn can_check_breaks_impl(
         location: None,
         time: Some(Interval { start: "1970-01-01T00:00:03Z".to_string(), end: "1970-01-01T00:00:04Z".to_string() }),
         job_tag: None,
+        commute: None,
     }];
     if has_break {
         activities.push(Activity {
@@ -114,6 +115,7 @@ fn can_check_breaks_impl(
             location: None,
             time: Some(Interval { start: "1970-01-01T00:00:04Z".to_string(), end: "1970-01-01T00:00:06Z".to_string() }),
             job_tag: None,
+            commute: None,
         });
     }
 

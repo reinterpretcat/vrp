@@ -69,6 +69,7 @@ fn can_use_init_solution_with_dispatch() {
                                     end: "1970-01-01T00:00:02Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None,
                             },
                             Activity {
                                 job_id: "dispatch".to_string(),
@@ -79,6 +80,7 @@ fn can_use_init_solution_with_dispatch() {
                                     end: "1970-01-01T00:00:04Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None,
                             },
                         ],
                     },
@@ -129,6 +131,7 @@ fn can_use_init_solution_with_dispatch() {
                                     end: "1970-01-01T00:00:04Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None,
                             },
                             Activity {
                                 job_id: "dispatch".to_string(),
@@ -139,6 +142,7 @@ fn can_use_init_solution_with_dispatch() {
                                     end: "1970-01-01T00:00:06Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None,
                             },
                         ],
                     },

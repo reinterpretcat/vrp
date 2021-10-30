@@ -102,6 +102,7 @@ fn can_use_two_breaks() {
                                     end: "1970-01-01T00:01:43Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None
                             },
                             Activity {
                                 job_id: "break".to_string(),
@@ -112,6 +113,7 @@ fn can_use_two_breaks() {
                                     end: "1970-01-01T00:01:45Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None
                             }
                         ],
                     },

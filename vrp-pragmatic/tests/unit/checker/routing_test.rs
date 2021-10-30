@@ -51,6 +51,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                         location: None,
                         time: None,
                         job_tag: None,
+                        commute: None,
                     }],
                 },
                 Stop {
@@ -64,6 +65,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                         location: Some(vec![2., 0.].to_loc()),
                         time: None,
                         job_tag: None,
+                        commute: None,
                     }],
                 },
                 create_stop_with_activity(

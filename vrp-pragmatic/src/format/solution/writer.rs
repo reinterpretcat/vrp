@@ -8,6 +8,7 @@ use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
 use crate::format_time;
+use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::route_intervals;
 use vrp_core::models::common::*;
@@ -15,6 +16,7 @@ use vrp_core::models::problem::Multi;
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::Metrics;
+use vrp_core::utils::compare_floats;
 
 type ApiActivity = crate::format::solution::model::Activity;
 type ApiSolution = crate::format::solution::model::Solution;
@@ -165,6 +167,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                         None
                     },
                     job_tag: None,
+                    commute: None,
                 }],
             });
             (start_idx + 1, start)
@@ -217,9 +220,13 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     + problem.transport.distance(&vehicle.profile, prev_location, act.place.location, prev_departure)
                         as i64;
 
-                let is_new_location = prev_location != act.place.location;
+                let is_new_stop = prev_location != act.place.location
+                    || act.commute.as_ref().map_or(false, |commute| {
+                        compare_floats(commute.forward.1, 0.) == Ordering::Equal
+                            && compare_floats(commute.backward.1, 0.) == Ordering::Equal
+                    });
 
-                if is_new_location {
+                if is_new_stop {
                     tour.stops.push(Stop {
                         location: coord_index.get_by_idx(act.place.location).unwrap(),
                         time: format_as_schedule(&(arrival, departure)),
@@ -239,13 +246,19 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 last.activities.push(ApiActivity {
                     job_id,
                     activity_type: activity_type.clone(),
-                    location: if !is_new_location && activity_type == "dispatch" {
+                    location: if !is_new_stop && activity_type == "dispatch" {
                         None
                     } else {
                         Some(coord_index.get_by_idx(act.place.location).unwrap())
                     },
                     time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
                     job_tag,
+                    commute: act.commute.as_ref().map(|commute| Commute {
+                        forward_distance: commute.forward.0,
+                        forward_duration: commute.forward.1,
+                        backward_distance: commute.backward.0,
+                        backward_duration: commute.backward.1,
+                    }),
                 });
 
                 Leg {

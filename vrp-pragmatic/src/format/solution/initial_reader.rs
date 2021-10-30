@@ -10,10 +10,11 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Job, Single};
-use vrp_core::models::solution::{Activity, Place, Registry, Route};
+use vrp_core::models::solution::{Activity, Commute, Place, Registry, Route};
 use vrp_core::models::{Problem, Solution};
 
 use crate::format::solution::Activity as FormatActivity;
+use crate::format::solution::Commute as FormatCommute;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
 use hashbrown::{HashMap, HashSet};
@@ -94,7 +95,7 @@ fn try_insert_activity(
 ) -> Result<(), String> {
     if let Some(JobInfo(job, single, place, time)) = try_match_job(tour, stop, activity, job_index, coord_index)? {
         added_jobs.insert(job);
-        insert_new_activity(route, single, place, time);
+        insert_new_activity(route, single, place, time, activity.commute.as_ref());
     } else if activity.activity_type != "departure" && activity.activity_type != "arrival" {
         return Err(format!("cannot match activity with job id '{}' in tour: '{}'", activity.job_id, tour.vehicle_id));
     }
@@ -149,12 +150,21 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
     Ok(Route { actor, tour: core_tour })
 }
 
-fn insert_new_activity(route: &mut Route, single: Arc<Single>, place: Place, time: TimeWindow) {
+fn insert_new_activity(
+    route: &mut Route,
+    single: Arc<Single>,
+    place: Place,
+    time: TimeWindow,
+    commute: Option<&FormatCommute>,
+) {
     let activity = Activity {
         place,
         schedule: Schedule { arrival: time.start, departure: time.end },
         job: Some(single),
-        commute: None,
+        commute: commute.map(|commute| Commute {
+            forward: (commute.forward_distance, commute.forward_duration),
+            backward: (commute.backward_distance, commute.backward_duration),
+        }),
     };
     route.tour.insert_last(activity);
 }

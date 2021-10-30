@@ -76,6 +76,7 @@ fn can_assign_interval_break_between_jobs() {
                                     end: "1970-01-01T00:00:06Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None
                             },
                             Activity {
                                 job_id: "break".to_string(),
@@ -86,6 +87,7 @@ fn can_assign_interval_break_between_jobs() {
                                     end: "1970-01-01T00:00:08Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None
                             }
                         ],
                     },
@@ -208,6 +210,7 @@ fn can_assign_interval_break_with_reload() {
                                     end: "1970-01-01T00:00:11Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None
                             },
                             Activity {
                                 job_id: "break".to_string(),
@@ -218,6 +221,7 @@ fn can_assign_interval_break_with_reload() {
                                     end: "1970-01-01T00:00:13Z".to_string(),
                                 }),
                                 job_tag: None,
+                                commute: None
                             }
                         ],
                     },

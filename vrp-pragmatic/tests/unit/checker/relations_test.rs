@@ -157,6 +157,7 @@ mod single {
                                     location: None,
                                     time: None,
                                     job_tag: None,
+                                    commute: None,
                                 },
                                 Activity {
                                     job_id: "break".to_string(),
@@ -164,6 +165,7 @@ mod single {
                                     location: None,
                                     time: None,
                                     job_tag: None,
+                                    commute: None,
                                 },
                             ],
                         },

@@ -134,6 +134,12 @@ fn can_read_basic_init_solution() {
                                 end: "1970-01-01T00:00:06Z".to_string(),
                             }),
                             job_tag: Some("p2".to_owned()),
+                            commute: Some(Commute {
+                                forward_distance: 1.,
+                                forward_duration: 2.,
+                                backward_distance: 3.,
+                                backward_duration: 4.,
+                            }),
                         },
                         Activity {
                             job_id: "break".to_string(),
@@ -144,6 +150,7 @@ fn can_read_basic_init_solution() {
                                 end: "1970-01-01T00:00:08Z".to_string(),
                             }),
                             job_tag: None,
+                            commute: None,
                         },
                     ],
                 },

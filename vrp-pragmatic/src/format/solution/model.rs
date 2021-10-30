@@ -47,6 +47,19 @@ pub struct Interval {
     pub end: String,
 }
 
+/// Stores information about commuting to perform activity.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+pub struct Commute {
+    /// Commuting to place distance.
+    pub forward_distance: f64,
+    /// Commuting to place duration.
+    pub forward_duration: f64,
+    /// Commuting from place distance.
+    pub backward_distance: f64,
+    /// Commuting from place duration.
+    pub backward_duration: f64,
+}
+
 /// An activity is unit of work performed at some place.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -59,12 +72,15 @@ pub struct Activity {
     /// Location.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<Location>,
-    /// Active time.
+    /// Activity time.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub time: Option<Interval>,
     /// Job tag.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub job_tag: Option<String>,
+    /// Commute information.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commute: Option<Commute>,
 }
 
 /// A stop is a place where vehicle is supposed to be parked.

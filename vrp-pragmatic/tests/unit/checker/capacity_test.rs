@@ -93,6 +93,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                             location: None,
                             time: None,
                             job_tag: None,
+                            commute: None,
                         },
                         Activity {
                             job_id: "job5".to_string(),
@@ -100,6 +101,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                             location: None,
                             time: None,
                             job_tag: Some("p1".to_string()),
+                            commute: None,
                         },
                     ],
                 },
@@ -117,6 +119,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                         location: None,
                         time: None,
                         job_tag: None,
+                        commute: None,
                     }],
                 },
                 Stop {
@@ -137,6 +140,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                                 end: "1970-01-01T00:00:09Z".to_string(),
                             }),
                             job_tag: None,
+                            commute: None,
                         },
                         Activity {
                             job_id: "job3".to_string(),
@@ -147,6 +151,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                                 end: "1970-01-01T00:00:10Z".to_string(),
                             }),
                             job_tag: None,
+                            commute: None,
                         },
                     ],
                 },
@@ -229,6 +234,7 @@ fn can_check_load_when_departure_has_other_activity() {
                             location: None,
                             time: None,
                             job_tag: None,
+                            commute: None,
                         },
                         Activity {
                             job_id: "job1".to_string(),
@@ -236,6 +242,7 @@ fn can_check_load_when_departure_has_other_activity() {
                             location: None,
                             time: None,
                             job_tag: Some("p1".to_string()),
+                            commute: None,
                         },
                     ],
                 },
