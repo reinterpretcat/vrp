@@ -6,7 +6,7 @@ use super::*;
 use crate::construction::clustering::vicinity::*;
 use crate::models::common::Schedule;
 use crate::models::problem::Jobs;
-use crate::models::solution::{Activity, Place};
+use crate::models::solution::{Activity, Commute, Place};
 use crate::models::{Extras, Problem};
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
@@ -110,6 +110,7 @@ impl Processing for VicinityClustering {
                             },
                             schedule: Schedule::new(arrival, departure),
                             job: Some(job),
+                            commute: Some(Commute { forward: info.forward, backward: info.backward }),
                         });
 
                         (departure, activities)

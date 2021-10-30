@@ -116,6 +116,7 @@ fn add_new_route(insertion_ctx: &mut InsertionContext, vehicle_id: &str, activit
             place: Place { location, duration, time: TimeWindow::new(tw_start, tw_end) },
             schedule: Schedule::new(0., 0.),
             job: Some(single),
+            commute: None,
         });
     });
 

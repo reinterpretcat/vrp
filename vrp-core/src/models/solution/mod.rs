@@ -1,9 +1,7 @@
 //! Solution domain models.
 
 mod route;
-pub use self::route::Activity;
-pub use self::route::Place;
-pub use self::route::Route;
+pub use self::route::{Activity, Commute, Place, Route};
 
 mod registry;
 pub use self::registry::Registry;

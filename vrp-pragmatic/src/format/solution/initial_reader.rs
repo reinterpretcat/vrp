@@ -150,7 +150,11 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
 }
 
 fn insert_new_activity(route: &mut Route, single: Arc<Single>, place: Place, time: TimeWindow) {
-    let activity =
-        Activity { place, schedule: Schedule { arrival: time.start, departure: time.end }, job: Some(single) };
+    let activity = Activity {
+        place,
+        schedule: Schedule { arrival: time.start, departure: time.end },
+        job: Some(single),
+        commute: None,
+    };
     route.tour.insert_last(activity);
 }

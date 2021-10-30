@@ -172,6 +172,7 @@ fn get_job_id(single: &Arc<Single>) -> String {
         place: Place { location: 0, duration: 0.0, time: TimeWindow::new(0., 0.) },
         schedule: Schedule { arrival: 0.0, departure: 0.0 },
         job: Some(single.clone()),
+        commute: None,
     }
     .retrieve_job()
     .unwrap()

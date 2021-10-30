@@ -205,6 +205,7 @@ fn create_start_activity(actor: &Actor) -> Activity {
         schedule: Schedule { arrival: time.start, departure: time.start },
         place: Place { location: start.location, duration: 0.0, time },
         job: None,
+        commute: None,
     }
 }
 
@@ -216,6 +217,7 @@ fn create_end_activity(actor: &Actor) -> Option<Activity> {
             schedule: Schedule { arrival: time.start, departure: time.start },
             place: Place { location: place.location, duration: 0.0, time },
             job: None,
+            commute: None,
         }
     })
 }

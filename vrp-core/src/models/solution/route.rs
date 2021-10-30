@@ -1,8 +1,18 @@
-use crate::models::common::{Duration, Location, Schedule, TimeWindow};
+use crate::models::common::{Distance, Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
 use crate::utils::compare_shared;
 use std::sync::Arc;
+
+/// Specifies an extra commute information to reach the actual place.
+#[derive(Clone)]
+pub struct Commute {
+    /// An commute information to reach place.
+    pub forward: (Distance, Duration),
+
+    /// An commute information to get out from the place.
+    pub backward: (Distance, Duration),
+}
 
 /// Specifies activity place.
 #[derive(Clone, Debug)]
@@ -25,9 +35,12 @@ pub struct Activity {
     /// Specifies activity's schedule: actual arrival and departure time.
     pub schedule: Schedule,
 
-    /// Specifies job relation. Empty if it has no relation to single job (e.g. tour start or end).
-    /// If single job is part of multi job, then original job can be received via its dimens.
+    /// Specifies associated job. Empty if it has no association with a single job (e.g. tour start or end).
+    /// If single job is part of multi job, then original job can be received via `retrieve_job` method.
     pub job: Option<Arc<Single>>,
+
+    /// An extra commute time to the place.
+    pub commute: Option<Commute>,
 }
 
 /// Represents a tour performing jobs.
@@ -53,6 +66,7 @@ impl Activity {
             place: Place { location: 0, duration: 0.0, time: TimeWindow { start: 0.0, end: f64::MAX } },
             schedule: Schedule { arrival: 0.0, departure: 0.0 },
             job: Some(job),
+            commute: None,
         }
     }
 
@@ -66,6 +80,7 @@ impl Activity {
             },
             schedule: self.schedule.clone(),
             job: self.job.clone(),
+            commute: self.commute.clone(),
         }
     }
 

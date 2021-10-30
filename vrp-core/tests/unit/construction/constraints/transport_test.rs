@@ -164,6 +164,7 @@ mod timing {
             place: Place { location: 5, duration: 1.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
             job: None,
+            commute: None,
         });
         let activity_ctx = ActivityContext {
             index: 0,
@@ -200,6 +201,7 @@ mod timing {
             place: Place { location: 30, duration: 10.0, time: DEFAULT_ACTIVITY_TIME_WINDOW },
             schedule: DEFAULT_ACTIVITY_SCHEDULE,
             job: None,
+            commute: None,
         });
         let activity_ctx = ActivityContext {
             index: 0,

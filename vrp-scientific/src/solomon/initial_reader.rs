@@ -56,6 +56,7 @@ pub fn read_init_solution<R: Read>(
                         },
                         schedule: Schedule::new(0.0, 0.0),
                         job: Some(single.clone()),
+                        commute: None,
                     });
                 });
 

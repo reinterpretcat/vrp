@@ -49,6 +49,7 @@ pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environm
                         },
                         schedule: Schedule { arrival: 0.0, departure: 0.0 },
                         job: Some(single),
+                        commute: None,
                     }
                 };
 
