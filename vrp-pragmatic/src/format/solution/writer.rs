@@ -28,6 +28,7 @@ type ApiIndividual = crate::format::solution::model::Individual;
 type DomainSchedule = vrp_core::models::common::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
+type DomainCommute = vrp_core::models::solution::Commute;
 
 /// A trait to serialize solution in pragmatic format.
 pub trait PragmaticSolution<W: Write> {
@@ -220,11 +221,11 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     + problem.transport.distance(&vehicle.profile, prev_location, act.place.location, prev_departure)
                         as i64;
 
-                let is_new_stop = prev_location != act.place.location
-                    || act.commute.as_ref().map_or(false, |commute| {
-                        compare_floats(commute.forward.1, 0.) == Ordering::Equal
-                            && compare_floats(commute.backward.1, 0.) == Ordering::Equal
-                    });
+                let is_new_stop = match (act.commute.as_ref(), prev_location == act.place.location) {
+                    (Some(commute), false) if is_zero_commute(commute) => true,
+                    (Some(_), _) => false,
+                    (None, is_same_location) => !is_same_location,
+                };
 
                 if is_new_stop {
                     tour.stops.push(Stop {
@@ -424,4 +425,9 @@ fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extr
                 .collect(),
         }),
     })
+}
+
+fn is_zero_commute(commute: &DomainCommute) -> bool {
+    compare_floats(commute.forward.1, 0.) == Ordering::Equal
+        && compare_floats(commute.backward.1, 0.) == Ordering::Equal
 }

@@ -134,12 +134,7 @@ fn can_read_basic_init_solution() {
                                 end: "1970-01-01T00:00:06Z".to_string(),
                             }),
                             job_tag: Some("p2".to_owned()),
-                            commute: Some(Commute {
-                                forward_distance: 1.,
-                                forward_duration: 2.,
-                                backward_distance: 3.,
-                                backward_duration: 4.,
-                            }),
+                            commute: None,
                         },
                         Activity {
                             job_id: "break".to_string(),
@@ -190,23 +185,70 @@ fn can_read_basic_init_solution() {
 }
 
 #[test]
-fn can_handle_error_in_init_solution() {
+fn can_handle_empty_tour_error_in_init_solution() {
     let problem = create_basic_problem(create_default_breaks());
     let solution = Solution {
-        statistic: Default::default(),
         tours: vec![Tour {
             vehicle_id: "my_vehicle_1".to_string(),
             type_id: "my_vehicle".to_string(),
-            shift_index: 0,
-            stops: vec![],
-            statistic: Default::default(),
+            ..create_empty_tour()
         }],
-        unassigned: None,
-        violations: None,
-        extras: None,
+        ..create_empty_solution()
     };
 
     let result_solution = get_init_solution(problem, &solution);
 
     assert_eq!(result_solution, Err("empty tour in init solution".to_owned()));
+}
+
+#[test]
+fn can_handle_commute_error_in_init_solution() {
+    let problem = create_basic_problem(None);
+    let solution = Solution {
+        tours: vec![Tour {
+            vehicle_id: "my_vehicle_1".to_string(),
+            type_id: "my_vehicle".to_string(),
+            stops: vec![
+                create_stop_with_activity(
+                    "departure",
+                    "departure",
+                    (0., 0.),
+                    1,
+                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                    0,
+                ),
+                Stop {
+                    location: vec![1., 0.].to_loc(),
+                    time: Schedule {
+                        arrival: "1970-01-01T00:00:01Z".to_string(),
+                        departure: "1970-01-01T00:00:02Z".to_string(),
+                    },
+                    distance: 1,
+                    load: vec![0],
+                    activities: vec![Activity {
+                        job_id: "job1".to_string(),
+                        activity_type: "delivery".to_string(),
+                        location: Some(vec![1., 0.].to_loc()),
+                        time: Some(Interval {
+                            start: "1970-01-01T00:00:01Z".to_string(),
+                            end: "1970-01-01T00:00:02Z".to_string(),
+                        }),
+                        job_tag: None,
+                        commute: Some(Commute {
+                            forward_distance: 0.,
+                            forward_duration: 0.,
+                            backward_distance: 0.,
+                            backward_duration: 0.,
+                        }),
+                    }],
+                },
+            ],
+            ..create_empty_tour()
+        }],
+        ..create_empty_solution()
+    };
+
+    let result_solution = get_init_solution(problem, &solution);
+
+    assert_eq!(result_solution, Err("commute property in initial solution is not supported".to_owned()));
 }
