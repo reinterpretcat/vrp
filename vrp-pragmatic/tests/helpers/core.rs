@@ -1,4 +1,5 @@
 use crate::core::construction::heuristics::InsertionContext;
+use crate::extensions::create_typed_actor_groups;
 use std::sync::Arc;
 use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
@@ -36,6 +37,14 @@ pub fn test_vehicle(id: &str) -> Vehicle {
     }
 }
 
+pub fn test_fleet() -> Fleet {
+    Fleet::new(
+        vec![Arc::new(test_driver())],
+        vec![Arc::new(test_vehicle("v1"))],
+        Box::new(|actors| create_typed_actor_groups(actors)),
+    )
+}
+
 pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Vec<Activity>) -> Route {
     let actor = fleet.actors.iter().filter(|a| a.vehicle.dimens.get_id().unwrap() == vehicle).next().unwrap().clone();
     let mut tour = Tour::new(&actor);
@@ -47,7 +56,7 @@ pub fn create_route_with_activities(fleet: &Fleet, vehicle: &str, activities: Ve
     Route { actor, tour }
 }
 
-pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location) -> Activity {
+pub fn create_activity_at_location(location: Location) -> Activity {
     Activity {
         place: vrp_core::models::solution::Place {
             location,
@@ -55,9 +64,21 @@ pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location
             time: DEFAULT_ACTIVITY_TIME_WINDOW,
         },
         schedule: DEFAULT_ACTIVITY_SCHEDULE,
-        job: Some(job),
+        job: None,
         commute: None,
     }
+}
+
+pub fn create_activity_with_job_at_location(job: Arc<Single>, location: Location) -> Activity {
+    Activity { job: Some(job), ..create_activity_at_location(location) }
+}
+
+pub fn create_single(id: &str) -> Arc<Single> {
+    let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
+    single.dimens.set_id(id);
+    single.dimens.set_value("type", "delivery".to_string());
+
+    Arc::new(single)
 }
 
 pub fn create_single_with_location(location: Option<Location>) -> Single {

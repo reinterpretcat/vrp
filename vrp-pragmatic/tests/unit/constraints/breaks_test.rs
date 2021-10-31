@@ -1,13 +1,12 @@
 use crate::constraints::BreakModule;
 use crate::core::construction::constraints::ConstraintModule;
 use crate::core::models::problem::Job;
-use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::{RouteContext, RouteState, SolutionContext};
 use vrp_core::models::common::{IdDimension, Location, ValueDimension};
-use vrp_core::models::problem::{Fleet, Single};
+use vrp_core::models::problem::Single;
 
 fn create_single(id: &str) -> Arc<Single> {
     let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
@@ -38,11 +37,7 @@ can_remove_orphan_break! {
 
 fn can_remove_orphan_break_impl(break_job_loc: Option<Location>, break_activity_loc: Location, break_removed: bool) {
     let (transport, _) = get_costs();
-    let fleet = Fleet::new(
-        vec![Arc::new(test_driver())],
-        vec![Arc::new(test_vehicle("v1"))],
-        Box::new(|actors| create_typed_actor_groups(actors)),
-    );
+    let fleet = test_fleet();
     let mut solution_ctx = SolutionContext {
         routes: vec![RouteContext::new_with_state(
             Arc::new(create_route_with_activities(

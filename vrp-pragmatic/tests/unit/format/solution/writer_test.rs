@@ -1,6 +1,14 @@
 use crate::format::problem::*;
+use crate::format::solution::writer::create_tour;
 use crate::format::solution::*;
 use crate::helpers::*;
+use std::sync::Arc;
+use vrp_core::models::examples::create_example_problem;
+use vrp_core::utils::as_mut;
+
+type DomainActivity = vrp_core::models::solution::Activity;
+type DomainCommute = vrp_core::models::solution::Commute;
+type DomainSchedule = vrp_core::models::common::Schedule;
 
 #[test]
 fn can_create_solution() {
@@ -79,7 +87,7 @@ fn can_create_solution() {
 }
 
 #[test]
-fn can_merge_activities_in_one_stop() {
+fn can_merge_activities_with_same_location_in_one_stop() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![5., 0.])],
@@ -107,4 +115,74 @@ fn can_merge_activities_in_one_stop() {
     assert_eq!(solution.tours.len(), 1);
     assert_eq!(solution.tours.first().unwrap().stops.len(), 3);
     assert_eq!(solution.tours.first().unwrap().stops.get(1).unwrap().activities.len(), 2);
+}
+
+parameterized_test! {can_merge_activities_with_commute_in_one_stop, (jobs_data, expected), {
+    can_merge_activities_with_commute_in_one_stop_impl(jobs_data, expected);
+}}
+
+can_merge_activities_with_commute_in_one_stop! {
+    case_01: (
+        vec![(1, Some((0., 0.))), (2, Some((1., 1.))), (3, Some((1., 2.)))],
+        vec![(1, vec![(Some(1), Some((0., 0.))), (Some(2), Some((1., 1.))), (Some(3), Some((1., 2.)))])]
+    ),
+    case_02: (
+        vec![(1, None), (1, None), (2, None)],
+        vec![(1, vec![(Some(1), None), (Some(1), None)]), (2, vec![(None, None)])]
+    ),
+}
+
+fn can_merge_activities_with_commute_in_one_stop_impl(
+    jobs_data: Vec<(usize, Option<(f64, f64)>)>,
+    expected: Vec<(usize, Vec<(Option<usize>, Option<(f64, f64)>)>)>,
+) {
+    let problem = {
+        let mut problem = Arc::try_unwrap(create_example_problem()).unwrap_or_else(|_| unreachable!());
+        problem.fleet = Arc::new(test_fleet());
+        unsafe {
+            as_mut(problem.extras.as_ref()).insert("capacity_type".to_string(), Arc::new("single".to_string()));
+        }
+
+        problem
+    };
+    let mut coord_index = CoordIndex::new(&create_empty_problem());
+    coord_index.add(&Location::Reference { index: 0 });
+    let activities = jobs_data
+        .into_iter()
+        .map(|(index, commute)| {
+            coord_index.add(&Location::Reference { index });
+            let arrival = index as f64;
+            let commute = commute.map(|(f, b)| DomainCommute { forward: (0., f), backward: (0., b) });
+            DomainActivity {
+                schedule: DomainSchedule {
+                    arrival,
+                    departure: commute.as_ref().map(|c| c.forward.1 + c.backward.1).unwrap_or(0.),
+                },
+                commute,
+                ..create_activity_with_job_at_location(create_single(&format!("job{}", index)), index)
+            }
+        })
+        .collect();
+    let route = create_route_with_activities(&problem.fleet, "v1", activities);
+
+    let tour = create_tour(&problem, &route, &coord_index);
+    assert_eq!(expected.len(), tour.stops.len() - 2);
+    expected.iter().zip(tour.stops.iter().skip(1)).for_each(|((expected_stop_idx, expected_acts), actual_stop)| {
+        assert_eq!(Some(*expected_stop_idx), coord_index.get_by_loc(&actual_stop.location));
+
+        assert_eq!(expected_acts.len(), actual_stop.activities.len());
+        expected_acts.iter().zip(actual_stop.activities.iter()).for_each(|((location, commute), actual)| {
+            assert_eq!(*location, actual.location.as_ref().and_then(|l| coord_index.get_by_loc(l)));
+
+            match (commute, &actual.commute) {
+                (Some(expected), Some(actual)) => {
+                    assert_eq!(expected.0, actual.forward_duration);
+                    assert_eq!(expected.1, actual.backward_duration);
+                }
+                (Some(_), None) => unreachable!("expected to have commute"),
+                (None, Some(_)) => unreachable!("unexpected commute"),
+                (None, None) => {}
+            }
+        });
+    });
 }
