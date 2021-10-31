@@ -123,12 +123,23 @@ parameterized_test! {can_merge_activities_with_commute_in_one_stop, (jobs_data, 
 
 can_merge_activities_with_commute_in_one_stop! {
     case_01: (
+        vec![(1, None), (1, None), (2, None)],
+        vec![(1, vec![(Some(1), None), (Some(1), None)]), (2, vec![(None, None)])]
+    ),
+    case_02: (
         vec![(1, Some((0., 0.))), (2, Some((1., 1.))), (3, Some((1., 2.)))],
         vec![(1, vec![(Some(1), Some((0., 0.))), (Some(2), Some((1., 1.))), (Some(3), Some((1., 2.)))])]
     ),
-    case_02: (
-        vec![(1, None), (1, None), (2, None)],
-        vec![(1, vec![(Some(1), None), (Some(1), None)]), (2, vec![(None, None)])]
+    case_03: (
+        vec![(1, Some((0., 0.))), (1, Some((0., 0.))), (2, Some((1., 1.)))],
+        vec![(1, vec![(Some(1), Some((0., 0.))), (Some(1), Some((0., 0.))), (Some(2), Some((1., 1.)))])]
+    ),
+    case_04: (
+        vec![(1, Some((0., 0.))), (2, Some((1., 1.))), (3, Some((0., 0.))), (4, Some((1., 1.)))],
+        vec![
+            (1, vec![(Some(1), Some((0., 0.))), (Some(2), Some((1., 1.)))]),
+            (3, vec![(Some(3), Some((0., 0.))), (Some(4), Some((1., 1.)))]),
+        ]
     ),
 }
 
