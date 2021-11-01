@@ -11,6 +11,9 @@ mod fleet_reader;
 #[path = "./objective_reader.rs"]
 mod objective_reader;
 
+#[path = "./clustering_reader.rs"]
+mod clustering_reader;
+
 use self::fleet_reader::{create_transport_costs, read_fleet, read_travel_limits};
 use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;

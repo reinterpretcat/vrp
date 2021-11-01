@@ -138,7 +138,7 @@ pub enum Clustering {
         /// Specifies service time policy.
         serving: VicinityServingPolicy,
         /// Specifies filtering policy.
-        filtering: VicinityFilteringPolicy,
+        filtering: Option<VicinityFilteringPolicy>,
     },
 }
 
@@ -192,9 +192,10 @@ pub enum VicinityServingPolicy {
 
 /// Specifies filtering policy for vicinity clustering.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VicinityFilteringPolicy {
     /// Ids of the jobs which cannot be used within clustering.
-    exclude_job_ids: Vec<String>,
+    pub exclude_job_ids: Vec<String>,
 }
 
 // endregion

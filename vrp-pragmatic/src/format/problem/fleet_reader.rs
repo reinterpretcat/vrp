@@ -13,6 +13,15 @@ use vrp_core::construction::constraints::{Area, TravelLimitFunc};
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
+pub(crate) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
+    api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
+        if acc.get(&profile.name).is_none() {
+            acc.insert(profile.name.clone(), acc.len());
+        }
+        acc
+    })
+}
+
 pub(crate) fn create_transport_costs(
     api_problem: &ApiProblem,
     matrices: &[Matrix],
@@ -194,15 +203,6 @@ pub fn read_travel_limits(api_problem: &ApiProblem) -> Option<TravelLimitFunc> {
             }
         }))
     }
-}
-
-fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
-    api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
-        if acc.get(&profile.name).is_none() {
-            acc.insert(profile.name.clone(), acc.len());
-        }
-        acc
-    })
 }
 
 fn add_vehicle_skills(dimens: &mut Dimensions, skills: &Option<Vec<String>>) {

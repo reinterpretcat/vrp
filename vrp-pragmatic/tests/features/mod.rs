@@ -2,6 +2,7 @@
 //! and their combination.
 
 mod breaks;
+mod clustering;
 mod dispatch;
 mod fleet;
 mod format;

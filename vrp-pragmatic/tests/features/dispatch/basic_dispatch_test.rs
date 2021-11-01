@@ -11,7 +11,7 @@ fn create_problem_with_dispatch(dispatch: Option<Vec<VehicleDispatch>>) -> Probl
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                shifts: vec![VehicleShift { dispatch: dispatch, ..create_default_vehicle_shift() }],
+                shifts: vec![VehicleShift { dispatch, ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
             profiles: create_default_matrix_profiles(),
