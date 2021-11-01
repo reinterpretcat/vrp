@@ -7,7 +7,7 @@ fn create_problem_with_dispatch(dispatch: Option<Vec<VehicleDispatch>>) -> Probl
     Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![3., 0.]), create_delivery_job("job2", vec![5., 0.])],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -191,7 +191,7 @@ fn create_problem_with_dispatch_5jobs(vehicle_ids: Vec<&str>, dispatch: Option<V
                 create_delivery_job("job4", vec![2., 0.]),
                 create_delivery_job("job5", vec![2., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

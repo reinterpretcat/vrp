@@ -12,7 +12,7 @@ fn can_balance_duration() {
                 create_delivery_job_with_duration("job3", vec![3., 0.], 10.),
                 create_delivery_job_with_duration("job4", vec![4., 0.], 10.),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

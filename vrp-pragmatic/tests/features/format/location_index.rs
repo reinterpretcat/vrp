@@ -8,7 +8,7 @@ fn create_test_problem() -> Problem {
     Problem {
         plan: Plan {
             jobs: vec![create_delivery_job_with_index("job1", 0), create_delivery_job_with_index("job2", 1)],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

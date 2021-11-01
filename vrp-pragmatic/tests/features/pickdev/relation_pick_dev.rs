@@ -16,6 +16,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                 vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: None,
             }]),
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

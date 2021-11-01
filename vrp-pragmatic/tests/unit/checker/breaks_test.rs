@@ -73,7 +73,7 @@ fn can_check_breaks_impl(
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

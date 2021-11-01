@@ -12,7 +12,7 @@ fn can_create_geo_json_from_solution() {
                 create_delivery_job_with_demand("job2", vec![2., 0.], vec![10]),
                 create_delivery_job("job3", vec![3., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("my_vehicle")],

@@ -23,7 +23,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
                     vec![((6., 0.), 1., vec![2])],
                 ),
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

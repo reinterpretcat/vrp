@@ -56,8 +56,13 @@ fn get_location(job: &Job) -> Location {
     job.to_single().places.first().unwrap().location.unwrap()
 }
 
-parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, threshold, service_time, expected), {
-    let threshold = ThresholdPolicy { moving_duration: threshold.0, moving_distance: threshold.1, min_shared_time: threshold.2 };
+parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, threshold, serving, expected), {
+    let threshold = ThresholdPolicy {
+        moving_duration: threshold.0,
+        moving_distance: threshold.1,
+        min_shared_time: threshold.2,
+        smallest_time_window: None,
+    };
     let expected = expected.into_iter()
       .map(|e: (usize, usize, Duration, (Duration, Distance), (Duration, Distance))| {
         let dummy_job = SingleBuilder::default().build_as_job_ref();
@@ -65,97 +70,97 @@ parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, thres
       })
       .collect();
 
-    can_get_dissimilarities_impl(places_outer, places_inner, threshold, service_time, expected);
+    can_get_dissimilarities_impl(places_outer, places_inner, threshold, serving, expected);
 }}
 
 can_get_dissimilarities! {
     case_01_one_place: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServiceTimePolicy::Original,
+        (5., 5., None), ServingPolicy::Original,
         vec![(0, 0, 3., (1., 1.), (1., 1.))]
     ),
     case_02_two_places: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(1), 3., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(2), 2., vec![(20., 40.)])],
-        (5., 5., None), ServiceTimePolicy::Original,
+        (5., 5., None), ServingPolicy::Original,
         vec![(0, 0, 3., (1., 1.), (1., 1.)), (1, 1, 2., (1., 1.), (1., 1.))]
     ),
     case_03_two_places: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(1), 3., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(2), 2., vec![(50., 60.)])],
-        (5., 5., None), ServiceTimePolicy::Original,
+        (5., 5., None), ServingPolicy::Original,
         vec![(0, 0, 3., (1., 1.), (1., 1.))]
     ),
 
-    case_04_service_time_policy: (
+    case_04_serving_policy: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServiceTimePolicy::Multiplier(0.5),
+        (5., 5., None), ServingPolicy::Multiplier(0.5),
         vec![(0, 0, 1.5, (1., 1.), (1., 1.))]
     ),
-    case_05_service_time_policy: (
+    case_05_serving_policy: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServiceTimePolicy::Fixed(20.),
+        (5., 5., None), ServingPolicy::Fixed(20.),
         vec![(0, 0, 20., (1., 1.), (1., 1.))]
     ),
 
     case_06_threshold: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(5), 3., vec![(5., 15.)])],
-        (2., 5., None), ServiceTimePolicy::Original,
+        (2., 5., None), ServingPolicy::Original,
         Vec::default(),
     ),
     case_07_threshold: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(5), 3., vec![(5., 15.)])],
-        (5., 2., None), ServiceTimePolicy::Original,
+        (5., 2., None), ServingPolicy::Original,
         Vec::default(),
     ),
 
     case_08_shared_time: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(4.9)), ServiceTimePolicy::Original,
+        (5., 5., Some(4.9)), ServingPolicy::Original,
         vec![(0, 0, 3., (1., 1.), (1., 1.))]
     ),
     case_09_shared_time: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(5.)), ServiceTimePolicy::Original,
+        (5., 5., Some(5.)), ServingPolicy::Original,
         Vec::default(),
     ),
     case_10_shared_time: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(6.)), ServiceTimePolicy::Original,
+        (5., 5., Some(6.)), ServingPolicy::Original,
         Vec::default(),
     ),
 
     case_11_wide_time_windows: (
         vec![(Some(1), 2., vec![(0., 100.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(5), 3., vec![(20., 40.)])],
-        (5., 5., None), ServiceTimePolicy::Original,
+        (5., 5., None), ServingPolicy::Original,
         vec![(0, 0, 3., (1., 1.), (1., 1.)), (0, 1, 3., (4., 4.), (4., 4.))]
     ),
     case_12_wide_time_windows: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(4), 2., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(0., 100.)])],
-        (5., 5., None), ServiceTimePolicy::Original,
+        (5., 5., None), ServingPolicy::Original,
         vec![(0, 0, 3., (1., 1.), (1., 1.)), (1, 0, 3., (2., 2.), (2., 2.))]
     ),
 
     case_13_sorting_shared_time: (
         vec![(Some(1), 2., vec![(0., 100.)])],
         vec![(Some(2), 3., vec![(5., 15.), (20., 40.)])],
-        (5., 5., Some(10.)), ServiceTimePolicy::Original,
+        (5., 5., Some(10.)), ServingPolicy::Original,
         vec![(0, 0, 3., (1., 1.), (1., 1.))]
     ),
     case_14_sorting_shared_time: (
         vec![(Some(1), 2., vec![(0., 30.)])],
         vec![(Some(2), 3., vec![(5., 15.), (20., 40.)])],
-        (5., 5., Some(10.)), ServiceTimePolicy::Original,
+        (5., 5., Some(10.)), ServingPolicy::Original,
         Vec::default(),
     ),
 }
@@ -164,13 +169,13 @@ fn can_get_dissimilarities_impl(
     places_outer: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>,
     places_inner: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>,
     threshold: ThresholdPolicy,
-    service_time: ServiceTimePolicy,
+    serving: ServingPolicy,
     expected: Vec<(usize, ClusterInfo)>,
 ) {
     let outer = create_single_job("job1", places_outer);
     let inner = create_single_job("job2", places_inner);
     let transport = TestTransportCost::default();
-    let config = ClusterConfig { threshold, service_time, ..create_cluster_config() };
+    let config = ClusterConfig { threshold, serving, ..create_cluster_config() };
 
     let dissimilarities = get_dissimilarities(&outer, &inner, &transport, &config)
         .into_iter()
@@ -189,10 +194,10 @@ parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowe
         let dummy_job = SingleBuilder::default().build_as_job_ref();
         create_cluster_info(dummy_job, e.1, e.0, e.2, e.3)
     });
-    let building = create_cluster_config().building;
-    let building = BuilderPolicy { smallest_time_window, ..building };
+    let threshold = create_cluster_config().threshold;
+    let threshold = ThresholdPolicy { smallest_time_window, ..threshold };
 
-    can_add_job_impl(center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, building, expected);
+    can_add_job_impl(center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, threshold, expected);
 }}
 
 can_add_job! {
@@ -235,10 +240,10 @@ fn can_add_job_impl(
     is_disallowed_to_merge: bool,
     is_disallowed_to_insert: bool,
     visiting: VisitPolicy,
-    building: BuilderPolicy,
+    threshold: ThresholdPolicy,
     expected: Option<ClusterInfo>,
 ) {
-    let config = ClusterConfig { visiting, building, ..create_cluster_config() };
+    let config = ClusterConfig { visiting, threshold, ..create_cluster_config() };
     let cluster = create_single_job("cluster", center_places);
     let candidate = create_single_job("job1", candidate_places);
     let disallowed_merge = vec!["job1"];
@@ -410,7 +415,8 @@ can_get_clusters! {
 }
 
 pub fn can_get_clusters_impl(jobs_amount: usize, moving_duration: f64, expected: Vec<(usize, Vec<usize>)>) {
-    let threshold = ThresholdPolicy { moving_duration, moving_distance: 10.0, min_shared_time: None };
+    let threshold =
+        ThresholdPolicy { moving_duration, moving_distance: 10.0, min_shared_time: None, smallest_time_window: None };
     let disallow_merge_list = vec![];
     let disallow_insertion_list = vec![];
     let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();

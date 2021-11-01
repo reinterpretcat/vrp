@@ -14,7 +14,7 @@ fn can_balance_max_load() {
                 create_delivery_job("job5", vec![5., 0.]),
                 create_delivery_job("job6", vec![6., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

@@ -6,7 +6,7 @@ use crate::helpers::*;
 #[test]
 fn can_limit_by_area() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job("job1", vec![10., 0.])], relations: Option::None },
+        plan: Plan { jobs: vec![create_delivery_job("job1", vec![10., 0.])], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 limits: Some(VehicleLimits {

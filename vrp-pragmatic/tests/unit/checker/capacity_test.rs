@@ -31,7 +31,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                 create_pickup_job("job4", vec![4., 0.]),
                 create_pickup_delivery_job("job5", vec![1., 0.], vec![5., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -200,7 +200,10 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
 #[ignore]
 fn can_check_load_when_departure_has_other_activity() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_pickup_delivery_job("job1", vec![0., 0.], vec![1., 0.])], relations: None },
+        plan: Plan {
+            jobs: vec![create_pickup_delivery_job("job1", vec![0., 0.], vec![1., 0.])],
+            ..create_empty_plan()
+        },
         fleet: Fleet {
             vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
             profiles: create_default_matrix_profiles(),

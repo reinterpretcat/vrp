@@ -18,7 +18,7 @@ fn can_handle_limited_capacity() {
                     vec![((11., 0.), 1., vec![2])],
                 ),
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],

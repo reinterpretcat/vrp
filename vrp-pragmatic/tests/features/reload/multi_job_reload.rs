@@ -18,7 +18,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                     vec![((9., 0.), 1., vec![2])],
                 ),
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -164,7 +164,7 @@ fn can_properly_handle_load_without_capacity_violation() {
                 ),
                 create_pickup_job_with_demand("job2", vec![67., 0.], vec![2]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

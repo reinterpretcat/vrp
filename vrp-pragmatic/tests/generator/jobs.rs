@@ -1,6 +1,7 @@
 use super::*;
 use crate::format::problem::*;
 use crate::format::Location;
+use crate::helpers::create_empty_plan;
 use std::ops::Range;
 use uuid::Uuid;
 
@@ -93,7 +94,7 @@ pub fn generate_jobs(job_proto: impl Strategy<Value = Job>, range: Range<usize>)
 
 /// Generates job plan.
 pub fn generate_plan(jobs_proto: impl Strategy<Value = Vec<Job>>) -> impl Strategy<Value = Plan> {
-    jobs_proto.prop_map(|jobs| Plan { jobs, relations: None })
+    jobs_proto.prop_map(|jobs| Plan { jobs, ..create_empty_plan() })
 }
 
 prop_compose! {

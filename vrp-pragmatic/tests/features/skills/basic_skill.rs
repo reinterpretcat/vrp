@@ -11,7 +11,7 @@ fn can_wait_for_job_start() {
                 vec![1., 0.],
                 all_of_skills(vec!["unique_skill".to_string()]),
             )],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![

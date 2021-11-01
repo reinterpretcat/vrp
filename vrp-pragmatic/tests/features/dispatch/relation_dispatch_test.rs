@@ -17,6 +17,7 @@ fn can_use_dispatch_in_relation() {
                 vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: None,
             }]),
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

@@ -12,7 +12,7 @@ fn can_generate_jobs_with_time_windows() {
                 create_test_job(3., 1.),
                 create_test_job(1., 2.),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_test_vehicle_type()], profiles: vec![create_test_vehicle_profile()] },
         objectives: None,

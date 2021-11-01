@@ -16,6 +16,7 @@ fn create_and_solve_problem_with_three_jobs(any_relation_jobs: Vec<String>) -> S
                 vehicle_id: "my_vehicle_1".to_string(),
                 shift_index: None,
             }]),
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

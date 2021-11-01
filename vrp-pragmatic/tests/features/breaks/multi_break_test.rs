@@ -8,7 +8,7 @@ fn can_use_two_breaks() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![99., 0.])],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

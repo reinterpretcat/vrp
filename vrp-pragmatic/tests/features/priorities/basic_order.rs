@@ -9,7 +9,7 @@ fn create_test_plan_with_three_jobs() -> Plan {
             create_delivery_job_with_order("job2", vec![5., 0.], 1),
             create_delivery_job("job3", vec![7., 0.]),
         ],
-        relations: Option::None,
+        ..create_empty_plan()
     }
 }
 

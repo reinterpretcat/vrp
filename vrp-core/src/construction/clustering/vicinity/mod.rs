@@ -54,7 +54,7 @@ pub struct ClusterConfig {
     /// Job visiting policy
     pub visiting: VisitPolicy,
     /// Job service time policy.
-    pub service_time: ServiceTimePolicy,
+    pub serving: ServingPolicy,
     /// Specifies filtering policy.
     pub filtering: FilterPolicy,
     /// Specifies building policy.
@@ -70,6 +70,8 @@ pub struct ThresholdPolicy {
     pub moving_distance: Distance,
     /// Minimum shared time for jobs (non-inclusive).
     pub min_shared_time: Option<Duration>,
+    /// The smallest time window of the cluster after service time shrinking.
+    pub smallest_time_window: Option<f64>,
 }
 
 /// Specifies cluster visiting policy.
@@ -96,7 +98,7 @@ pub struct FilterPolicy {
 
 /// Specifies service time policy.
 #[derive(Clone)]
-pub enum ServiceTimePolicy {
+pub enum ServingPolicy {
     /// Keep original service time.
     Original,
     /// Correct service time by some multiplier.
@@ -108,8 +110,6 @@ pub enum ServiceTimePolicy {
 /// Allows to control how clusters are built.
 #[derive(Clone)]
 pub struct BuilderPolicy {
-    /// The smallest time window of the cluster after service time shrinking.
-    pub smallest_time_window: Option<f64>,
     /// Checks whether given cluster is already good to go, so clustering more jobs is not needed.
     pub threshold: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
     /// Orders visiting clusters based on their estimated size.

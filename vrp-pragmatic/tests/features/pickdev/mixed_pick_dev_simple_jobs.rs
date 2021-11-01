@@ -11,7 +11,7 @@ fn can_use_one_pickup_delivery_and_two_deliveries_with_one_vehicle() {
                 create_pickup_delivery_job("job2", vec![2., 0.], vec![3., 0.]),
                 create_delivery_job("job3", vec![4., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("my_vehicle")],

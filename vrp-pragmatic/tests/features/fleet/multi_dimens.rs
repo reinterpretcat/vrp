@@ -10,7 +10,7 @@ fn can_use_two_dimensions() {
                 create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, 1]),
                 create_delivery_job_with_demand("job2", vec![2., 0.], vec![1, 0]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -80,7 +80,10 @@ fn can_use_two_dimensions() {
 #[test]
 fn can_unassign_due_to_dimension_mismatch() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, 1])], relations: None },
+        plan: Plan {
+            jobs: vec![create_delivery_job_with_demand("job1", vec![1., 0.], vec![0, 1])],
+            ..create_empty_plan()
+        },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![create_default_open_vehicle_shift()],

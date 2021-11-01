@@ -14,7 +14,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                 create_pickup_job("p1", vec![2., 0.]),
                 create_pickup_job("p2", vec![5., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

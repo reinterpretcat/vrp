@@ -30,6 +30,7 @@ fn can_use_two_strict_relations_with_two_vehicles_without_new_jobs() {
                     shift_index: None,
                 },
             ]),
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

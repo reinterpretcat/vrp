@@ -15,7 +15,7 @@ fn can_use_init_solution_with_dispatch() {
                 create_delivery_job("job1", vec![1., 0.]),
                 create_delivery_job_with_times("job2", vec![1., 0.], vec![(7, 100)], 1.),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

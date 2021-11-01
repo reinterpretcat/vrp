@@ -12,7 +12,7 @@ fn can_split_into_two_tours_because_of_strict_times() {
                 create_delivery_job_with_times("job4", vec![40., 0.], vec![(0, 40)], 10.),
                 create_delivery_job_with_times("job5", vec![50., 0.], vec![(50, 60)], 10.),
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

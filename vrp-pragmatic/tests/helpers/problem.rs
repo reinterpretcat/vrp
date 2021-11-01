@@ -252,12 +252,12 @@ pub fn create_min_jobs_cost_objective() -> Option<Vec<Vec<Objective>>> {
     Some(vec![vec![MinimizeUnassignedJobs { breaks: None }], vec![MinimizeCost]])
 }
 
+pub fn create_empty_plan() -> Plan {
+    Plan { jobs: vec![], relations: None, clustering: None }
+}
+
 pub fn create_empty_problem() -> Problem {
-    Problem {
-        plan: Plan { jobs: vec![], relations: None },
-        fleet: Fleet { vehicles: vec![], profiles: vec![] },
-        objectives: None,
-    }
+    Problem { plan: create_empty_plan(), fleet: Fleet { vehicles: vec![], profiles: vec![] }, objectives: None }
 }
 
 pub fn get_costs() -> (Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>) {

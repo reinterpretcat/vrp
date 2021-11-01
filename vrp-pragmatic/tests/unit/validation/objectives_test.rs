@@ -147,7 +147,7 @@ fn can_detect_invalid_value_or_order_impl(value: Option<f64>, order: Option<i32>
                 value,
                 ..create_job("job1")
             }],
-            relations: None,
+            ..create_empty_plan()
         },
         ..create_empty_problem()
     };
@@ -183,7 +183,7 @@ fn can_detect_missing_order_objective_impl(objectives: Option<Vec<Vec<Objective>
                 deliveries: Some(vec![JobTask { order: Some(1), ..create_task(vec![1., 0.], None) }]),
                 ..create_job("job1")
             }],
-            relations: None,
+            ..create_empty_plan()
         },
         objectives,
         ..create_empty_problem()
@@ -222,7 +222,7 @@ fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Vec<Objective>
                 value: Some(1.),
                 ..create_job("job1")
             }],
-            relations: None,
+            ..create_empty_plan()
         },
         objectives,
         ..create_empty_problem()

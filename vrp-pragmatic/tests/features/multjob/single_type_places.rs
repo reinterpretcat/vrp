@@ -8,7 +8,7 @@ fn can_use_only_deliveries_as_static_demand() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_multi_job("job1", vec![], vec![((8., 0.), 2., vec![1]), ((2., 0.), 1., vec![1])])],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -81,7 +81,7 @@ fn can_use_only_pickups_as_static_demand() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_multi_job("job1", vec![((8., 0.), 2., vec![1]), ((2., 0.), 1., vec![1])], vec![])],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

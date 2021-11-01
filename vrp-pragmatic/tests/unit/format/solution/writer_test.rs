@@ -15,7 +15,7 @@ fn can_create_solution() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("my_vehicle")],
@@ -91,7 +91,7 @@ fn can_merge_activities_with_same_location_in_one_stop() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![5., 0.])],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("my_vehicle")],

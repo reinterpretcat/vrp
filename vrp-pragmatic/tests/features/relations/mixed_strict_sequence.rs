@@ -29,6 +29,7 @@ fn can_use_strict_and_sequence_relation_for_one_vehicle() {
                     shift_index: None,
                 },
             ]),
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
@@ -176,6 +177,7 @@ fn can_use_strict_and_sequence_relation_for_two_vehicles() {
                     shift_index: None,
                 },
             ]),
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

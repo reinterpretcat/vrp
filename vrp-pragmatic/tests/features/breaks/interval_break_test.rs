@@ -13,7 +13,7 @@ fn can_assign_interval_break_between_jobs() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![15., 0.])],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -130,7 +130,7 @@ fn can_assign_interval_break_with_reload() {
                 create_delivery_job("job3", vec![20., 0.]),
                 create_delivery_job("job4", vec![25., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -286,7 +286,7 @@ fn can_consider_departure_rescheduling() {
                 create_delivery_job_with_times("job1", vec![5., 0.], vec![(10, 10)], 1.),
                 create_delivery_job_with_times("job2", vec![10., 0.], vec![(10, 30)], 1.),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

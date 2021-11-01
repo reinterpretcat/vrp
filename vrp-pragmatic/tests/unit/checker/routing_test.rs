@@ -7,7 +7,7 @@ fn create_test_problem() -> Problem {
     Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()

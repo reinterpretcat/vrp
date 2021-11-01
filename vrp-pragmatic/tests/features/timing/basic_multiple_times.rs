@@ -13,7 +13,7 @@ fn can_use_multiple_times() {
                 create_delivery_job_with_times("job4", vec![40., 0.], vec![(30, 40)], 0.),
                 create_delivery_job_with_times("job5", vec![50., 0.], vec![(40, 50)], 0.),
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("my_vehicle")],

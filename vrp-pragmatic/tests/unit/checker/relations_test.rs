@@ -78,6 +78,7 @@ mod single {
                     create_pickup_job("job5", vec![5., 0.]),
                 ],
                 relations,
+                ..create_empty_plan()
             },
             fleet: Fleet {
                 vehicles: vec![VehicleType {

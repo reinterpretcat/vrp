@@ -120,14 +120,98 @@ pub struct Job {
     pub group: Option<String>,
 }
 
+// region Clustering
+
+/// Specifies clustering algorithm.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub enum Clustering {
+    /// Vicinity clustering.
+    #[serde(rename(deserialize = "vicinity", serialize = "vicinity"))]
+    Vicinity {
+        /// Specifies a vehicle profile used to calculate commute duration and distance between
+        /// activities in the single stop.
+        profile: VehicleProfile,
+        /// Specifies threshold information.
+        threshold: VicinityThresholdPolicy,
+        /// Specifies visiting policy.
+        visiting: VicinityVisitPolicy,
+        /// Specifies service time policy.
+        serving: VicinityServingPolicy,
+        /// Specifies filtering policy.
+        filtering: VicinityFilteringPolicy,
+    },
+}
+
+/// Defines a various thresholds to control cluster size.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VicinityThresholdPolicy {
+    /// Moving duration limit.
+    pub moving_duration: f64,
+    /// Moving distance limit.
+    pub moving_distance: f64,
+    /// Minimum shared time for jobs (non-inclusive).
+    pub min_shared_time: Option<f64>,
+    /// The smallest time window of the cluster after service time shrinking.
+    pub smallest_time_window: Option<f64>,
+    /// The maximum amount of jobs per cluster.
+    pub max_jobs_per_cluster: Option<usize>,
+}
+
+/// Specifies cluster visiting policy.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum VicinityVisitPolicy {
+    /// It is required to return to the first job's location (cluster center) before visiting a next job.
+    Return,
+    /// Clustered jobs are visited one by one from the cluster center finishing in the end at the
+    /// first job's location.
+    ClosedContinuation,
+    /// Clustered jobs are visited one by one starting from the cluster center and finishing in the
+    /// end at the last job's location.
+    OpenContinuation,
+}
+
+/// Specifies service time policy.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(untagged)]
+pub enum VicinityServingPolicy {
+    /// Keep original service time.
+    Original,
+    /// Correct service time by some multiplier.
+    Multiplier {
+        /// A multiplier to job's service time.
+        multiplier: f64,
+    },
+    /// Use fixed value for all clustered jobs.
+    Fixed {
+        /// All clustered job will have this servic time.
+        value: f64,
+    },
+}
+
+/// Specifies filtering policy for vicinity clustering.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct VicinityFilteringPolicy {
+    /// Ids of the jobs which cannot be used within clustering.
+    exclude_job_ids: Vec<String>,
+}
+
+// endregion
+
 /// A plan specifies work which has to be done.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Plan {
     /// List of jobs.
     pub jobs: Vec<Job>,
+
     /// List of relations between jobs and vehicles.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relations: Option<Vec<Relation>>,
+
+    /// Specifies clustering parameters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub clustering: Option<Clustering>,
 }
 
 // endregion

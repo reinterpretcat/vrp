@@ -50,6 +50,7 @@ fn can_detect_relation_errors_impl(
                 vehicle_id,
                 shift_index,
             }]),
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle("vehicle")], profiles: vec![] },
         ..create_empty_problem()
@@ -95,6 +96,7 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
                 vehicle_id: "vehicle_1".to_string(),
                 shift_index: None,
             }]),
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle("vehicle")], profiles: vec![] },
         ..create_empty_problem()
@@ -138,6 +140,7 @@ fn can_detect_multi_vehicle_assignment_impl(relations: Vec<(&str, &str)>, expect
                     })
                     .collect(),
             ),
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("car"), create_default_vehicle("truck")],
@@ -185,6 +188,7 @@ fn can_detect_incomplete_multi_job_in_relation_impl(
                 vehicle_id: "car_1".to_string(),
                 shift_index: None,
             }]),
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle("car")], profiles: vec![] },
         ..create_empty_problem()

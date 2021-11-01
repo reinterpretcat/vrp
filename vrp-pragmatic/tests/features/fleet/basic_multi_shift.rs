@@ -11,7 +11,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 create_delivery_job_with_times("job1", vec![10., 0.], vec![(0, 100)], 1.),
                 create_delivery_job_with_times("job2", vec![10., 0.], vec![(100, 200)], 1.),
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

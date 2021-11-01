@@ -12,7 +12,7 @@ fn can_assign_replacement_job() {
                 create_replacement_job("job2", vec![2., 0.]),
                 create_pickup_job("job3", vec![3., 0.]),
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

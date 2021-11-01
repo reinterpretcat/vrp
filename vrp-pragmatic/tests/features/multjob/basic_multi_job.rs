@@ -14,7 +14,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                     vec![((6., 0.), 1., vec![2])],
                 ),
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],
@@ -113,7 +113,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                 vec![((4., 0.), 1., vec![1]), ((2., 0.), 1., vec![1])],
                 vec![((6., 0.), 1., vec![2])],
             )],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],

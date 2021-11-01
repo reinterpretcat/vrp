@@ -17,7 +17,7 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleBreakPolicy>)
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![
@@ -128,10 +128,7 @@ can_skip_break_when_jobs_completed! {
 
 fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleBreakPolicy>) {
     let problem = Problem {
-        plan: Plan {
-            jobs: vec![create_delivery_job_with_duration("job1", vec![1., 0.], 10.)],
-            relations: Option::None,
-        },
+        plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", vec![1., 0.], 10.)], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
@@ -221,7 +218,7 @@ fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleBreakPol
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -342,7 +339,7 @@ fn can_skip_break_depending_on_policy_impl(
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job_with_duration("job1", vec![location, 0.], 0.)],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

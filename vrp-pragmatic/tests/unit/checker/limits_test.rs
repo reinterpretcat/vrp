@@ -139,7 +139,7 @@ fn can_check_shift_time() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(5, 10)], 1.)],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

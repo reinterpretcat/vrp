@@ -30,7 +30,7 @@ can_use_vehicle_with_two_tours_and_two_jobs! {
 
 fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: Option<Vec<UnassignedJob>>) {
     let problem = Problem {
-        plan: Plan { jobs, relations: Option::None },
+        plan: Plan { jobs, ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {

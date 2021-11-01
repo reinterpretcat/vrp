@@ -13,7 +13,7 @@ fn can_use_reloads_with_different_locations() {
                 create_delivery_job("job4", vec![21., 0.]),
                 create_delivery_job("job5", vec![30., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

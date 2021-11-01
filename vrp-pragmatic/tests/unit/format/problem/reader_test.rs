@@ -132,7 +132,7 @@ fn can_read_complex_problem() {
                     ..create_job("pickup_job")
                 },
             ],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
@@ -293,7 +293,7 @@ fn can_create_approximation_matrices() {
                 create_delivery_job("job1", vec![52.52599, 13.45413]),
                 create_delivery_job("job2", vec![52.5165, 13.3808]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![],

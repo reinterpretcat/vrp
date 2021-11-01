@@ -29,6 +29,7 @@ fn can_use_strict_and_any_relation_for_one_vehicle() {
                     shift_index: None,
                 },
             ]),
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()

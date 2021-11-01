@@ -152,7 +152,7 @@ fn check_jobs_impl(
                     ..create_job(id)
                 })
                 .collect(),
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
@@ -185,7 +185,7 @@ fn can_detect_time_window_violation() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(1, 2)], 1.)],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
@@ -248,7 +248,7 @@ fn can_detect_job_duration_violation() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job_with_times("job1", vec![1., 0.], vec![(5, 10)], 1.)],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet { vehicles: vec![create_default_vehicle_type()], profiles: create_default_matrix_profiles() },
         ..create_empty_problem()
@@ -309,7 +309,7 @@ fn can_detect_job_duration_violation() {
 #[test]
 fn can_detect_dispatch_violations() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job("job1", vec![2., 0.])], relations: None },
+        plan: Plan { jobs: vec![create_delivery_job("job1", vec![2., 0.])], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
@@ -375,7 +375,7 @@ fn can_detect_group_violations() {
                 create_delivery_job_with_group("job1", vec![1., 0.], "group1"),
                 create_delivery_job_with_group("job2", vec![1., 0.], "group1"),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

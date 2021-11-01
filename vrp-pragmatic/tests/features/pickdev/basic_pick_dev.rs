@@ -5,7 +5,10 @@ use crate::helpers::*;
 #[test]
 fn can_use_one_pickup_delivery_job_with_one_vehicle() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_pickup_delivery_job("job1", vec![1., 0.], vec![2., 0.])], relations: None },
+        plan: Plan {
+            jobs: vec![create_pickup_delivery_job("job1", vec![1., 0.], vec![2., 0.])],
+            ..create_empty_plan()
+        },
         fleet: Fleet {
             vehicles: vec![create_default_vehicle("my_vehicle")],
             profiles: create_default_matrix_profiles(),

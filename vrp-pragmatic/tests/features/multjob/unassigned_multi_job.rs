@@ -11,7 +11,7 @@ fn can_unassign_multi_job_due_to_capacity() {
                 vec![((2., 0.), 1., vec![2]), ((8., 0.), 1., vec![1])],
                 vec![((6., 0.), 1., vec![3])],
             )],
-            relations: Option::None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![create_vehicle_with_capacity("my_vehicle", vec![2])],

@@ -31,7 +31,7 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_l
                 create_delivery_job("job2.0", vec![2., 0.]),
                 create_delivery_job("job2.1", vec![2., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![

@@ -162,10 +162,10 @@ fn get_dissimilarities(
                             && (bck_duration - config.threshold.moving_duration < 0.)
                             && (bck_distance - config.threshold.moving_distance < 0.);
 
-                        let service_time = match &config.service_time {
-                            ServiceTimePolicy::Original => inner_duration,
-                            ServiceTimePolicy::Multiplier(multiplier) => inner_duration * *multiplier,
-                            ServiceTimePolicy::Fixed(service_time) => *service_time,
+                        let service_time = match &config.serving {
+                            ServingPolicy::Original => inner_duration,
+                            ServingPolicy::Multiplier(multiplier) => inner_duration * *multiplier,
+                            ServingPolicy::Fixed(service_time) => *service_time,
                         };
 
                         let info = ClusterInfo {
@@ -327,7 +327,7 @@ fn try_add_job<F>(
 where
     F: Fn(&ClusterInfo) -> ((f64, f64), (f64, f64)),
 {
-    let time_window_threshold = config.building.smallest_time_window.unwrap_or(0.);
+    let time_window_threshold = config.threshold.smallest_time_window.unwrap_or(0.);
     let cluster = cluster.to_single();
     let cluster_place = cluster.places.first().expect("expect one place in cluster");
     let cluster_times = filter_times(cluster_place.times.as_slice());

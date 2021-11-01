@@ -19,7 +19,7 @@ fn create_basic_problem(breaks: Option<Vec<VehicleBreak>>) -> Problem {
                 ),
                 create_pickup_job("job3", vec![5., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

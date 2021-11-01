@@ -39,6 +39,7 @@ fn can_detect_mixed_locations() {
         plan: Plan {
             jobs: vec![create_delivery_job_with_index("job1", 0), create_delivery_job("job2", vec![1.0, 0.])],
             relations: None,
+            ..create_empty_plan()
         },
         ..create_empty_problem()
     };
@@ -53,7 +54,7 @@ fn can_detect_mixed_locations() {
 #[test]
 fn can_detect_missing_matrix_when_indices_used() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_index("job1", 0)], relations: None },
+        plan: Plan { jobs: vec![create_delivery_job_with_index("job1", 0)], ..create_empty_plan() },
         ..create_empty_problem()
     };
     let coord_index = CoordIndex::new(&problem);
@@ -67,7 +68,7 @@ fn can_detect_missing_matrix_when_indices_used() {
 #[test]
 fn can_detect_limit_areas_with_indices() {
     let problem = Problem {
-        plan: Plan { jobs: vec![create_delivery_job_with_index("job1", 0)], relations: None },
+        plan: Plan { jobs: vec![create_delivery_job_with_index("job1", 0)], ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 limits: Some(VehicleLimits {
@@ -107,7 +108,7 @@ fn can_detect_index_mismatch() {
                 create_delivery_job_with_index("job2", 1),
                 create_delivery_job_with_index("job3", 2),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         ..create_empty_problem()
     };

@@ -12,7 +12,7 @@ fn can_group_jobs() {
                 create_delivery_job_with_group("job3", vec![9., 0.], "one"),
                 create_delivery_job("job4", vec![8., 0.]),
             ],
-            relations: None,
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![
