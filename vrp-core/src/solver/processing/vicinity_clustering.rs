@@ -4,7 +4,7 @@ mod vicinity_clustering_test;
 
 use super::*;
 use crate::construction::clustering::vicinity::*;
-use crate::models::common::Schedule;
+use crate::models::common::{Schedule, ValueDimension};
 use crate::models::problem::Jobs;
 use crate::models::solution::{Activity, Commute, Place};
 use crate::models::{Extras, Problem};
@@ -13,21 +13,39 @@ use std::sync::Arc;
 
 const ORIG_PROBLEM_KEY: &str = "orig_problem";
 
-/// Provides way to change problem definition by reducing total job count using clustering.
-pub struct VicinityClustering {
-    config: ClusterConfig,
+/// A trait to get or set vicinity config.
+pub trait VicinityDimension {
+    /// Sets cluster config.
+    fn set_cluster_config(&mut self, config: ClusterConfig) -> &mut Self;
+    /// Gets cluster config.
+    fn get_cluster_config(&self) -> Option<&ClusterConfig>;
 }
 
-impl VicinityClustering {
-    /// Creates a new instance of `VicinityClustering`.
-    pub fn new(config: ClusterConfig) -> Self {
-        Self { config }
+impl VicinityDimension for Extras {
+    fn set_cluster_config(&mut self, config: ClusterConfig) -> &mut Self {
+        self.set_value("vicinity", config);
+        self
+    }
+
+    fn get_cluster_config(&self) -> Option<&ClusterConfig> {
+        self.get_value("vicinity")
+    }
+}
+
+/// Provides way to change problem definition by reducing total job count using clustering.
+pub struct VicinityClustering {}
+
+impl Default for VicinityClustering {
+    fn default() -> Self {
+        Self {}
     }
 }
 
 impl Processing for VicinityClustering {
     fn pre_process(&self, problem: Arc<Problem>, environment: Arc<Environment>) -> Arc<Problem> {
-        let clusters = create_job_clusters(problem.clone(), environment, &self.config);
+        let config = if let Some(config) = problem.extras.get_cluster_config() { config } else { return problem };
+
+        let clusters = create_job_clusters(problem.clone(), environment, &config);
 
         if clusters.is_empty() {
             problem
@@ -65,6 +83,16 @@ impl Processing for VicinityClustering {
     fn post_process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
 
+        let config = insertion_ctx.problem.extras.get_cluster_config();
+        let orig_problem =
+            insertion_ctx.problem.extras.get(ORIG_PROBLEM_KEY).cloned().and_then(|any| any.downcast::<Problem>().ok());
+
+        let (config, orig_problem) = if let Some((config, orig_problem)) = config.zip(orig_problem) {
+            (config, orig_problem)
+        } else {
+            return insertion_ctx;
+        };
+
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
             #[allow(clippy::needless_collect)]
             let clusters = route_ctx
@@ -93,7 +121,7 @@ impl Processing for VicinityClustering {
                         let job = info.job.to_single().clone();
                         let place = job.places.first().unwrap();
 
-                        let movement = match self.config.visiting {
+                        let movement = match config.visiting {
                             VisitPolicy::Return => info.forward.1 + info.backward.1,
                             VisitPolicy::OpenContinuation => info.forward.1,
                             VisitPolicy::ClosedContinuation => {
@@ -136,13 +164,7 @@ impl Processing for VicinityClustering {
             })
             .collect();
 
-        insertion_ctx.problem = insertion_ctx
-            .problem
-            .extras
-            .get(ORIG_PROBLEM_KEY)
-            .cloned()
-            .and_then(|any| any.downcast::<Problem>().ok())
-            .expect("no original problem ");
+        insertion_ctx.problem = orig_problem;
 
         insertion_ctx
     }

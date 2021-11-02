@@ -3,7 +3,6 @@ use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
-#[ignore]
 fn can_cluster_simple_jobs() {
     let problem = Problem {
         plan: Plan {
@@ -16,8 +15,8 @@ fn can_cluster_simple_jobs() {
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                 threshold: VicinityThresholdPolicy {
-                    moving_duration: 3.0,
-                    moving_distance: 0.0,
+                    moving_duration: 3.,
+                    moving_distance: 3.,
                     min_shared_time: None,
                     smallest_time_window: None,
                     max_jobs_per_cluster: None,

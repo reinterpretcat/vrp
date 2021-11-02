@@ -173,10 +173,15 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
 
                         match result {
                             Err(_) => true,
-                            Ok(Some(JobInfo(_, _, place, time))) => {
-                                let expected_departure = time.start.max(place.time.start) + place.duration;
-                                compare_floats(time.end, expected_departure) != Ordering::Equal
-                            }
+                            Ok(Some(JobInfo(_, _, place, time))) => match (&ctx.clustering, &activity.commute) {
+                                (Some(clustering), Some(commute)) => {
+                                    unimplemented!()
+                                }
+                                _ => {
+                                    let expected_departure = time.start.max(place.time.start) + place.duration;
+                                    compare_floats(time.end, expected_departure) != Ordering::Equal
+                                }
+                            },
                             _ => false,
                         }
                     })

@@ -14,6 +14,7 @@ mod objective_reader;
 #[path = "./clustering_reader.rs"]
 mod clustering_reader;
 
+use self::clustering_reader::create_cluster_config;
 use self::fleet_reader::{create_transport_costs, read_fleet, read_travel_limits};
 use self::job_reader::{read_jobs_with_extra_locks, read_locks};
 use self::objective_reader::create_objective;
@@ -33,6 +34,7 @@ use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Jobs, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
+use vrp_core::solver::processing::VicinityDimension;
 use vrp_core::utils::{compare_floats, DefaultRandom, Random};
 
 pub type ApiProblem = crate::format::problem::Problem;
@@ -181,7 +183,7 @@ fn map_to_problem(
         vec![FormatError::new(
             "E0002".to_string(),
             "cannot create transport costs".to_string(),
-            format!("Check matrix routing data: '{}'", err),
+            format!("check matrix routing data: '{}'", err),
         )]
     })?;
     let activity = Arc::new(OnlyVehicleActivityCost::default());
@@ -215,7 +217,16 @@ fn map_to_problem(
 
     let objective = create_objective(&api_problem, &mut constraint, &problem_props);
     let constraint = Arc::new(constraint);
-    let extras = Arc::new(create_extras(constraint.clone(), &problem_props, job_index, coord_index));
+    let extras = Arc::new(
+        create_extras(&api_problem, constraint.clone(), &problem_props, job_index, coord_index).map_err(|err| {
+            // TODO make sure that error matches actual reason
+            vec![FormatError::new(
+                "E0002".to_string(),
+                "cannot create transport costs".to_string(),
+                format!("check clustering config: '{}'", err),
+            )]
+        })?,
+    );
 
     Ok(Problem {
         fleet: Arc::new(fleet),
@@ -335,11 +346,12 @@ fn add_tour_size_module(constraint: &mut ConstraintPipeline) {
 }
 
 fn create_extras(
+    api_problem: &ApiProblem,
     constraint: Arc<ConstraintPipeline>,
     props: &ProblemProperties,
     job_index: JobIndex,
     coord_index: Arc<CoordIndex>,
-) -> Extras {
+) -> Result<Extras, String> {
     let mut extras = Extras::default();
     extras.insert(
         "capacity_type".to_string(),
@@ -352,7 +364,11 @@ fn create_extras(
         extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(constraint, job_index)));
     }
 
-    extras
+    if let Some(config) = create_cluster_config(api_problem)? {
+        extras.set_cluster_config(config);
+    }
+
+    Ok(extras)
 }
 
 fn parse_time_window(tw: &[String]) -> TimeWindow {

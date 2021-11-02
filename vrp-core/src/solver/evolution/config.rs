@@ -70,6 +70,7 @@ impl EvolutionConfig {
         Self {
             problem: problem.clone(),
             processing: Some(Arc::new(CompositeProcessing::new(vec![
+                Arc::new(VicinityClustering::default()),
                 Arc::new(AdvanceDeparture::default()),
                 Arc::new(UnassignmentReason::default()),
             ]))),

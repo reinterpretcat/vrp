@@ -25,6 +25,7 @@ pub struct CheckerContext {
 
     job_map: HashMap<String, Job>,
     core_problem: Arc<CoreProblem>,
+    clustering: Option<ClusterConfig>,
 }
 
 /// Represents all possible activity types.
@@ -45,8 +46,9 @@ impl CheckerContext {
         solution: Solution,
     ) -> Self {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
+        let clustering = core_problem.extras.get_cluster_config().cloned();
 
-        Self { problem, matrices, solution, job_map, core_problem }
+        Self { problem, matrices, solution, job_map, core_problem, clustering }
     }
 
     /// Performs solution check.
@@ -274,3 +276,5 @@ use crate::checker::relations::check_relations;
 
 mod routing;
 use crate::checker::routing::check_routing;
+use crate::core::solver::processing::VicinityDimension;
+use vrp_core::construction::clustering::vicinity::ClusterConfig;

@@ -357,6 +357,11 @@
       "isGlobal": true
     }
   },
+  "processing": [
+    { "type":  "vicinity-clustering" },
+    { "type":  "advance-departure" },
+    { "type":  "unassignment-reason" }
+  ],
   "telemetry": {
     "progress": {
       "enabled": true,

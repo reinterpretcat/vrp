@@ -6,6 +6,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::IdDimension;
 use crate::models::problem::Job;
+use crate::utils::as_mut;
 
 fn create_test_jobs() -> Vec<Job> {
     vec![
@@ -16,19 +17,23 @@ fn create_test_jobs() -> Vec<Job> {
     ]
 }
 
-fn create_problems(vicinity: &VicinityClustering, jobs: Vec<Job>) -> (Arc<Problem>, Arc<Problem>) {
+fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<Problem>) {
     let constraint = create_constraint_pipeline(vec![]);
     let environment = Arc::new(Environment::default());
-    let orig_problem = create_problem_with_constraint_jobs_and_fleet(constraint, jobs, test_fleet());
-    let new_problem = vicinity.pre_process(orig_problem.clone(), environment);
+
+    let orig_problem = Arc::try_unwrap(create_problem_with_constraint_jobs_and_fleet(constraint, jobs, test_fleet()))
+        .unwrap_or_else(|_| unreachable!());
+    unsafe { as_mut(orig_problem.extras.as_ref()).set_cluster_config(config) };
+    let orig_problem = Arc::new(orig_problem);
+
+    let new_problem = VicinityClustering::default().pre_process(orig_problem.clone(), environment);
 
     (orig_problem, new_problem)
 }
 
 #[test]
 fn can_create_problem_with_clusters_on_pre_process() {
-    let vicinity = VicinityClustering::new(create_cluster_config());
-    let (_, problem) = create_problems(&vicinity, create_test_jobs());
+    let (_, problem) = create_problems(create_cluster_config(), create_test_jobs());
 
     let jobs = problem.jobs.all().collect::<Vec<_>>();
     assert_eq!(jobs.len(), 2);
@@ -59,10 +64,8 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
     duration: f64,
     expected: Vec<(&str, (f64, f64))>,
 ) {
-    let config = ClusterConfig { visiting, ..create_cluster_config() };
-    let vicinity = VicinityClustering::new(config);
     let problem_jobs = create_test_jobs();
-    let (_, new_problem) = create_problems(&vicinity, problem_jobs);
+    let (_, new_problem) = create_problems(ClusterConfig { visiting, ..create_cluster_config() }, problem_jobs);
     let clustered_single = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap().to_single().clone();
     let clustered_time = clustered_single.places.first().unwrap().clone().times.first().unwrap().to_time_window(0.);
     let insertion_ctx = InsertionContext {
@@ -88,7 +91,7 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
         ..create_empty_insertion_context()
     };
 
-    let insertion_ctx = vicinity.post_process(insertion_ctx);
+    let insertion_ctx = VicinityClustering::default().post_process(insertion_ctx);
 
     assert_eq!(insertion_ctx.problem.jobs.size(), 4);
     assert_eq!(insertion_ctx.solution.routes.len(), 1);
@@ -106,8 +109,7 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
 
 #[test]
 fn can_unwrap_clusters_in_unassigned_on_post_process() {
-    let vicinity = VicinityClustering::new(create_cluster_config());
-    let (_, new_problem) = create_problems(&vicinity, create_test_jobs());
+    let (_, new_problem) = create_problems(create_cluster_config(), create_test_jobs());
     let clustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job3").unwrap().clone();
     let unclustered_job = new_problem.jobs.all().find(|job| get_job_id(job) == "job4_outlier").unwrap().clone();
     let insertion_ctx = InsertionContext {
@@ -119,7 +121,7 @@ fn can_unwrap_clusters_in_unassigned_on_post_process() {
         ..create_empty_insertion_context()
     };
 
-    let insertion_ctx = vicinity.post_process(insertion_ctx);
+    let insertion_ctx = VicinityClustering::default().post_process(insertion_ctx);
 
     assert_eq!(insertion_ctx.solution.unassigned.len(), 4);
 }

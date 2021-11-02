@@ -16,6 +16,7 @@ use vrp_core::models::Problem;
 use vrp_core::solver::hyper::*;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::population::*;
+use vrp_core::solver::processing::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
 use vrp_core::utils::{Environment, Parallelism, Random};
 
@@ -28,6 +29,8 @@ pub struct Config {
     pub hyper: Option<HyperType>,
     /// Specifies algorithm termination configuration.
     pub termination: Option<TerminationConfig>,
+    /// Specifies processing pipeline.
+    pub processing: Option<Vec<ProcessingType>>,
     /// Specifies environment configuration.
     pub environment: Option<EnvironmentConfig>,
     /// Specifies telemetry configuration.
@@ -323,6 +326,18 @@ pub enum LocalOperatorType {
     Sequence { weight: usize },
 }
 
+/// A processing configuration type.
+#[derive(Clone, Deserialize, Debug)]
+#[serde(tag = "type")]
+pub enum ProcessingType {
+    #[serde(rename(deserialize = "vicinity-clustering"))]
+    VicinityClustering,
+    #[serde(rename(deserialize = "advance-departure"))]
+    AdvanceDeparture,
+    #[serde(rename(deserialize = "unassignment-reason"))]
+    UnassignmentReason,
+}
+
 #[derive(Clone, Deserialize, Debug)]
 pub struct NoiseConfig {
     probability: f64,
@@ -424,7 +439,7 @@ pub struct NameWeight {
 
 impl Default for Config {
     fn default() -> Self {
-        Self { evolution: None, hyper: None, termination: None, environment: None, telemetry: None }
+        Self { evolution: None, hyper: None, termination: None, processing: None, environment: None, telemetry: None }
     }
 }
 
@@ -565,10 +580,29 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
 
 fn configure_from_termination(mut builder: Builder, termination_config: &Option<TerminationConfig>) -> Builder {
     if let Some(config) = termination_config {
-        builder = builder.with_max_time(config.max_time);
-        builder = builder.with_max_generations(config.max_generations);
         builder = builder
+            .with_max_time(config.max_time)
+            .with_max_generations(config.max_generations)
             .with_min_cv(config.variation.as_ref().map(|v| (v.interval_type.clone(), v.value, v.cv, v.is_global)));
+    }
+
+    builder
+}
+
+fn configure_from_processing(mut builder: Builder, processing_config: &Option<Vec<ProcessingType>>) -> Builder {
+    if let Some(config) = processing_config {
+        let processors = config
+            .iter()
+            .map::<Arc<dyn Processing + Send + Sync>, _>(|p_type| match p_type {
+                ProcessingType::VicinityClustering => Arc::new(VicinityClustering::default()),
+                ProcessingType::AdvanceDeparture => Arc::new(AdvanceDeparture::default()),
+                ProcessingType::UnassignmentReason => Arc::new(UnassignmentReason::default()),
+            })
+            .collect::<Vec<_>>();
+
+        if !processors.is_empty() {
+            builder = builder.with_processing(Some(Arc::new(CompositeProcessing::new(processors))));
+        }
     }
 
     builder
@@ -806,6 +840,7 @@ pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Res
     builder = configure_from_evolution(builder, &config.evolution)?;
     builder = configure_from_hyper(builder, &config.hyper)?;
     builder = configure_from_termination(builder, &config.termination);
+    builder = configure_from_processing(builder, &config.processing);
 
     Ok(builder)
 }

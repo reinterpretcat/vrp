@@ -3,7 +3,7 @@ use crate::core::models::common::IdDimension;
 use crate::core::models::problem::Job;
 use crate::format::problem::reader::fleet_reader::get_profile_index_map;
 use crate::format::problem::reader::ApiProblem;
-use crate::format::problem::{Clustering, VehicleProfile, VicinityFilteringPolicy};
+use crate::format::problem::*;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -11,6 +11,7 @@ use vrp_core::construction::clustering::vicinity::ClusterConfig;
 use vrp_core::models::common::Profile;
 use vrp_core::utils::compare_floats;
 
+/// Creates cluster config if it is defined on the api problem.
 pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<ClusterConfig>, String> {
     if let Some(clustering) = api_problem.plan.clustering.as_ref() {
         match clustering {
@@ -22,8 +23,16 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                     min_shared_time: threshold.min_shared_time.clone(),
                     smallest_time_window: threshold.smallest_time_window.clone(),
                 },
-                visiting: VisitPolicy::Return,
-                serving: ServingPolicy::Original,
+                visiting: match visiting {
+                    VicinityVisitPolicy::OpenContinuation => VisitPolicy::OpenContinuation,
+                    VicinityVisitPolicy::ClosedContinuation => VisitPolicy::ClosedContinuation,
+                    VicinityVisitPolicy::Return => VisitPolicy::Return,
+                },
+                serving: match serving {
+                    VicinityServingPolicy::Original => ServingPolicy::Original,
+                    VicinityServingPolicy::Multiplier { multiplier } => ServingPolicy::Multiplier(*multiplier),
+                    VicinityServingPolicy::Fixed { value } => ServingPolicy::Multiplier(*value),
+                },
                 filtering: get_filter_policy(filtering.as_ref()),
                 building: get_builder_policy(threshold.max_jobs_per_cluster.clone()),
             })),

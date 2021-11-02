@@ -12,7 +12,7 @@ mod unassignment_reason;
 pub use self::unassignment_reason::UnassignmentReason;
 
 mod vicinity_clustering;
-pub use self::vicinity_clustering::VicinityClustering;
+pub use self::vicinity_clustering::{VicinityClustering, VicinityDimension};
 
 /// A trait which specifies the logic to apply pre/post processing to problem/solution.
 pub trait Processing {

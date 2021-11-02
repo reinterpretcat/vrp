@@ -113,6 +113,9 @@ fn can_read_full_config() {
     assert_eq!(termination.max_time, Some(300));
     assert_eq!(termination.max_generations, Some(3000));
 
+    let processing = config.processing.expect("no processing config");
+    assert_eq!(processing.len(), 3);
+
     let environment = config.environment.expect("no environment config");
     assert_eq!(environment.is_experimental, Some(false));
 

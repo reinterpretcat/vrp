@@ -3,19 +3,19 @@
 mod objective_reader_test;
 
 use crate::core::models::common::ValueDimension;
+use crate::core::models::problem::Job;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
+use crate::format::problem::Objective::TourOrder as FormatTourOrder;
 use crate::format::problem::Objective::*;
 use crate::format::TOUR_ORDER_CONSTRAINT_CODE;
 use std::sync::Arc;
+use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{ObjectiveCost, Single, TargetConstraint, TargetObjective};
-use vrp_core::solver::objectives::*;
-
-use crate::core::models::problem::Job;
-use crate::format::problem::Objective::TourOrder as FormatTourOrder;
 use vrp_core::solver::objectives::TourOrder as CoreTourOrder;
+use vrp_core::solver::objectives::*;
 
 pub fn create_objective(
     api_problem: &ApiProblem,
@@ -51,7 +51,7 @@ pub fn create_objective(
                         MinimizeUnassignedJobs { breaks } => {
                             if let Some(breaks) = *breaks {
                                 core_objectives.push(Arc::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
-                                    get_job_as_break_estimate(job, breaks, 1.)
+                                    get_unassigned_job_estimate(job, breaks, 1.)
                                 }))))
                             } else {
                                 core_objectives.push(Arc::new(TotalUnassignedJobs::default()))
@@ -146,7 +146,7 @@ fn get_value(
         max_value,
         reduction_factor.unwrap_or(0.1),
         Arc::new(move |solution| {
-            solution.unassigned.iter().map(|(job, _)| get_job_as_break_estimate(job, break_value, 0.)).sum()
+            solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimate(job, break_value, 0.)).sum()
         }),
         Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)),
         Arc::new(|job, value| match job {
@@ -200,12 +200,16 @@ fn get_load_balance(
     }
 }
 
-fn get_job_as_break_estimate(job: &Job, break_value: f64, default_value: f64) -> f64 {
-    job.dimens().get_value::<String>("type").map_or(default_value, |job_type| {
-        if job_type == "break" {
-            break_value
-        } else {
-            default_value
-        }
-    })
+fn get_unassigned_job_estimate(job: &Job, break_value: f64, default_value: f64) -> f64 {
+    if let Some(clusters) = job.dimens().get_cluster() {
+        clusters.len() as f64 * default_value
+    } else {
+        job.dimens().get_value::<String>("type").map_or(default_value, |job_type| {
+            if job_type == "break" {
+                break_value
+            } else {
+                default_value
+            }
+        })
+    }
 }
