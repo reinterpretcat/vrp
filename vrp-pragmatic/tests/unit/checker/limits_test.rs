@@ -65,8 +65,9 @@ pub fn can_check_shift_and_distance_limit_impl(
         create_test_problem(Some(VehicleLimits { max_distance, shift_time, tour_size: None, allowed_areas: None }));
     let solution =
         create_test_solution(Statistic { distance: actual, duration: actual, ..Statistic::default() }, vec![]);
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
-    let result = check_shift_limits(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_shift_limits(&ctx);
 
     assert_eq!(result, expected);
 }
@@ -124,8 +125,9 @@ pub fn can_check_tour_size_limit() {
             ),
         ],
     );
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
-    let result = check_shift_limits(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_shift_limits(&ctx);
 
     assert_eq!(
         result,
@@ -205,8 +207,9 @@ fn can_check_shift_time() {
         ..create_empty_solution()
     };
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+    let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 
-    let result = check_shift_time(&CheckerContext::new(core_problem, problem, None, solution));
+    let result = check_shift_time(&ctx);
 
     assert_eq!(result, Err("tour time is outside shift time, vehicle id 'my_vehicle_1', shift index: 0".to_owned()));
 }

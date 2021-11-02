@@ -39,8 +39,9 @@ fn check_vehicles_impl(known_ids: Vec<&str>, tours: Vec<(&str, usize)>, expected
             .collect(),
         ..create_empty_solution()
     };
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
-    let result = check_vehicles(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_vehicles(&ctx);
 
     assert_eq!(result.map_err(|_| ()), expected_result);
 }
@@ -174,8 +175,9 @@ fn check_jobs_impl(
         ),
         ..create_empty_solution()
     };
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
-    let result = check_jobs_presence(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_jobs_presence(&ctx);
 
     assert_eq!(result, expected_result);
 }
@@ -237,8 +239,9 @@ fn can_detect_time_window_violation() {
         ..create_empty_solution()
     };
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+    let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 
-    let result = check_assignment(&CheckerContext::new(core_problem, problem, None, solution));
+    let result = check_assignment(&ctx);
 
     assert_eq!(result, Err(vec!["cannot match activities to jobs: job1:<no tag>".to_owned()]));
 }
@@ -300,8 +303,9 @@ fn can_detect_job_duration_violation() {
         ..create_empty_solution()
     };
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+    let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 
-    let result = check_assignment(&CheckerContext::new(core_problem, problem, None, solution));
+    let result = check_assignment(&ctx);
 
     assert_eq!(result, Err(vec!["cannot match activities to jobs: job1:<no tag>".to_owned()]));
 }
@@ -361,8 +365,9 @@ fn can_detect_dispatch_violations() {
         ..create_empty_solution()
     };
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+    let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 
-    let result = check_dispatch(&CheckerContext::new(core_problem, problem, None, solution));
+    let result = check_dispatch(&ctx);
 
     assert_eq!(result, Err("tour should have dispatch, but none is found: 'my_vehicle_1'".to_owned()));
 }
@@ -420,8 +425,9 @@ fn can_detect_group_violations() {
     let solution =
         Solution { tours: vec![create_tour("v1", "job1"), create_tour("v2", "job2")], ..create_empty_solution() };
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+    let ctx = CheckerContext::new(core_problem, problem, None, solution).unwrap();
 
-    let result = check_groups(&CheckerContext::new(core_problem, problem, None, solution));
+    let result = check_groups(&ctx);
 
     assert_eq!(result, Err("job groups are not respected: 'group1'".to_owned()));
 }

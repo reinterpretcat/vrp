@@ -16,18 +16,11 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
     if context.matrices.as_ref().map_or(true, |m| m.is_empty()) {
         return Ok(());
     }
-    let matrices = get_matrices(context)?;
-    let matrix_size = get_matrix_size(matrices);
-    let profile_index = get_profile_index(context, matrices)?;
     let coord_index = CoordIndex::new(&context.problem);
     let skip_distance_check = skip_distance_check(&context.solution);
 
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
-        let profile = &context.get_vehicle(&tour.vehicle_id)?.profile;
-        let matrix = profile_index
-            .get(profile.matrix.as_str())
-            .and_then(|idx| matrices.get(*idx))
-            .ok_or(format!("cannot get matrix for '{}' profile", profile.matrix))?;
+        let profile = context.get_vehicle_profile(&tour.vehicle_id)?;
         let time_offset =
             parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.time.departure) as i64;
 
@@ -41,11 +34,7 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
 
                 let from_idx = get_location_index(&from.location, &coord_index)?;
                 let to_idx = get_location_index(&to.location, &coord_index)?;
-                let matrix_idx = from_idx * matrix_size + to_idx;
-
-                let distance = get_matrix_value(matrix_idx, &matrix.distances)?;
-                let duration = get_matrix_value(matrix_idx, &matrix.travel_times)?;
-                let duration = (duration as f64 * profile.scale.unwrap_or(1.)) as i64;
+                let (distance, duration) = context.get_matrix_data(&profile, from_idx, to_idx)?;
 
                 let time = time + duration;
                 let total_distance = total_distance + distance;
@@ -141,47 +130,6 @@ fn check_solution_statistic(solution: &Solution) -> Result<(), String> {
     } else {
         Ok(())
     }
-}
-
-fn get_matrices(context: &CheckerContext) -> Result<&Vec<Matrix>, String> {
-    let matrices = context.matrices.as_ref().unwrap();
-
-    if matrices.iter().any(|matrix| matrix.timestamp.is_some()) {
-        return Err("not implemented: time aware routing check".to_string());
-    }
-
-    Ok(matrices)
-}
-
-fn get_matrix_size(matrices: &[Matrix]) -> usize {
-    (matrices.first().unwrap().travel_times.len() as f64).sqrt().round() as usize
-}
-
-fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> Result<i64, String> {
-    matrix_values
-        .get(idx)
-        .cloned()
-        .ok_or_else(|| format!("attempt to get value out of bounds: {} vs {}", idx, matrix_values.len()))
-}
-
-fn get_profile_index<'a>(context: &'a CheckerContext, matrices: &[Matrix]) -> Result<HashMap<&'a str, usize>, String> {
-    let profiles = context.problem.fleet.profiles.len();
-    if profiles != matrices.len() {
-        return Err(format!(
-            "precondition failed: amount of matrices supplied ({}) does not match profile specified ({})",
-            matrices.len(),
-            profiles,
-        ));
-    }
-
-    Ok(context
-        .problem
-        .fleet
-        .profiles
-        .iter()
-        .enumerate()
-        .map(|(idx, profile)| (profile.name.as_str(), idx))
-        .collect::<HashMap<_, _>>())
 }
 
 fn get_location_index(location: &Location, coord_index: &CoordIndex) -> Result<usize, String> {

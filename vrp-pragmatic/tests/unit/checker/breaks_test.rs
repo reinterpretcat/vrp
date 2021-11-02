@@ -176,8 +176,9 @@ fn can_check_breaks_impl(
         violations,
         ..create_empty_solution()
     };
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
-    let result = check_breaks(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_breaks(&ctx);
 
     assert_eq!(result, expected_result);
 }

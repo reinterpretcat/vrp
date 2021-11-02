@@ -228,9 +228,9 @@ mod single {
             ],
             ..create_empty_solution()
         };
+        let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
-        let result =
-            check_relations(&CheckerContext::new(create_example_problem(), problem, None, solution)).map_err(|_| ());
+        let result = check_relations(&ctx).map_err(|_| ());
 
         assert_eq!(result, expected_result);
     }

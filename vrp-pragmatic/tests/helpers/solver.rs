@@ -88,7 +88,7 @@ fn get_core_solution<F: Fn(Arc<CoreProblem>) -> CoreSolution>(
     if perform_check {
         if let Some(err) =
             CheckerContext::new(core_problem, format_problem.clone(), format_matrices, format_solution.clone())
-                .check()
+                .and_then(|ctx| ctx.check())
                 .err()
         {
             panic!(

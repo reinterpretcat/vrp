@@ -190,8 +190,9 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
         }],
         ..create_empty_solution()
     };
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
-    let result = check_vehicle_load(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_vehicle_load(&ctx);
 
     assert_eq!(result, expected_result);
 }
@@ -276,8 +277,9 @@ fn can_check_load_when_departure_has_other_activity() {
         }],
         ..create_empty_solution()
     };
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
 
-    let result = check_vehicle_load(&CheckerContext::new(create_example_problem(), problem, None, solution));
+    let result = check_vehicle_load(&ctx);
 
     assert_eq!(result, Ok(()));
 }

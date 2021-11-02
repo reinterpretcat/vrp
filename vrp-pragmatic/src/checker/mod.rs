@@ -11,8 +11,11 @@ use crate::format::Location;
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
+use vrp_core::construction::clustering::vicinity::ClusterConfig;
+use vrp_core::models::common::Profile;
 use vrp_core::models::common::TimeWindow;
 use vrp_core::models::Problem as CoreProblem;
+use vrp_core::solver::processing::VicinityDimension;
 
 /// Stores problem and solution together and provides some helper methods.
 pub struct CheckerContext {
@@ -24,6 +27,7 @@ pub struct CheckerContext {
     pub solution: Solution,
 
     job_map: HashMap<String, Job>,
+    profile_index: HashMap<String, usize>,
     core_problem: Arc<CoreProblem>,
     clustering: Option<ClusterConfig>,
 }
@@ -44,11 +48,15 @@ impl CheckerContext {
         problem: Problem,
         matrices: Option<Vec<Matrix>>,
         solution: Solution,
-    ) -> Self {
+    ) -> Result<Self, Vec<String>> {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
         let clustering = core_problem.extras.get_cluster_config().cloned();
 
-        Self { problem, matrices, solution, job_map, core_problem, clustering }
+        let profile_index = get_matrices(&matrices)
+            .and_then(|matrices| get_profile_index(&problem, matrices.as_slice()))
+            .map_err(|err| vec![err])?;
+
+        Ok(Self { problem, matrices, solution, job_map, profile_index, core_problem, clustering })
     }
 
     /// Performs solution check.
@@ -87,6 +95,17 @@ impl CheckerContext {
             .iter()
             .find(|v| v.vehicle_ids.contains(&vehicle_id.to_string()))
             .ok_or_else(|| format!("cannot find vehicle with id '{}'", vehicle_id))
+    }
+
+    fn get_vehicle_profile(&self, vehicle_id: &str) -> Result<Profile, String> {
+        let profile = &self.get_vehicle(&vehicle_id)?.profile;
+        let index = self
+            .profile_index
+            .get(profile.matrix.as_str())
+            .cloned()
+            .ok_or(format!("cannot get matrix for '{}' profile", profile.matrix))?;
+
+        Ok(Profile { index, scale: profile.scale.unwrap_or(1.) })
     }
 
     /// Gets activity operation time range in seconds since Unix epoch.
@@ -220,6 +239,21 @@ impl CheckerContext {
             _ => Ok(other_visitor()),
         }
     }
+
+    fn get_matrix_data(&self, profile: &Profile, from_idx: usize, to_idx: usize) -> Result<(i64, i64), String> {
+        let matrices = get_matrices(&self.matrices)?;
+        let matrix =
+            matrices.get(profile.index).ok_or_else(|| format!("cannot find matrix with index {}", profile.index))?;
+
+        let matrix_size = get_matrix_size(matrices.as_slice());
+        let matrix_idx = from_idx * matrix_size + to_idx;
+
+        let distance = get_matrix_value(matrix_idx, &matrix.distances)?;
+        let duration = get_matrix_value(matrix_idx, &matrix.travel_times)?;
+        let duration = (duration as f64 * profile.scale) as i64;
+
+        Ok((distance, duration))
+    }
 }
 
 fn job_task_size(tasks: &Option<Vec<JobTask>>) -> usize {
@@ -255,6 +289,46 @@ fn get_time_window(stop: &Stop, activity: &Activity) -> TimeWindow {
     TimeWindow::new(parse_time(start), parse_time(end))
 }
 
+fn get_matrix_size(matrices: &[Matrix]) -> usize {
+    (matrices.first().unwrap().travel_times.len() as f64).sqrt().round() as usize
+}
+
+fn get_matrix_value(idx: usize, matrix_values: &[i64]) -> Result<i64, String> {
+    matrix_values
+        .get(idx)
+        .cloned()
+        .ok_or_else(|| format!("attempt to get value out of bounds: {} vs {}", idx, matrix_values.len()))
+}
+
+fn get_matrices(matrices: &Option<Vec<Matrix>>) -> Result<&Vec<Matrix>, String> {
+    let matrices = matrices.as_ref().unwrap();
+
+    if matrices.iter().any(|matrix| matrix.timestamp.is_some()) {
+        return Err("not implemented: time aware routing check".to_string());
+    }
+
+    Ok(matrices)
+}
+
+fn get_profile_index(problem: &Problem, matrices: &[Matrix]) -> Result<HashMap<String, usize>, String> {
+    let profiles = problem.fleet.profiles.len();
+    if profiles != matrices.len() {
+        return Err(format!(
+            "precondition failed: amount of matrices supplied ({}) does not match profile specified ({})",
+            matrices.len(),
+            profiles,
+        ));
+    }
+
+    Ok(problem
+        .fleet
+        .profiles
+        .iter()
+        .enumerate()
+        .map(|(idx, profile)| (profile.name.to_string(), idx))
+        .collect::<HashMap<_, _>>())
+}
+
 fn get_location(stop: &Stop, activity: &Activity) -> Location {
     activity.location.as_ref().unwrap_or(&stop.location).clone()
 }
@@ -276,5 +350,3 @@ use crate::checker::relations::check_relations;
 
 mod routing;
 use crate::checker::routing::check_routing;
-use crate::core::solver::processing::VicinityDimension;
-use vrp_core::construction::clustering::vicinity::ClusterConfig;

@@ -44,7 +44,7 @@ fn can_remove_duplicates_in_error_list() {
     };
     let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
 
-    let result = CheckerContext::new(core_problem, problem, None, solution).check();
+    let result = CheckerContext::new(core_problem, problem, None, solution).and_then(|ctx| ctx.check());
 
     assert_eq!(
         result,
