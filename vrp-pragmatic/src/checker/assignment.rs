@@ -159,30 +159,36 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
         .tours
         .iter()
         .flat_map(move |tour| {
+            let profile = ctx.get_vehicle_profile(&tour.vehicle_id).ok();
             tour.stops.iter().flat_map(move |stop| {
                 stop.activities
                     .iter()
-                    .filter(move |activity| {
-                        let result = try_match_job(
-                            tour,
-                            stop,
-                            activity,
-                            get_job_index(&ctx.core_problem),
-                            get_coord_index(&ctx.core_problem),
-                        );
+                    .filter({
+                        let profile = profile.clone();
+                        move |activity| {
+                            let result = try_match_job(
+                                tour,
+                                stop,
+                                activity,
+                                get_job_index(&ctx.core_problem),
+                                get_coord_index(&ctx.core_problem),
+                            );
 
-                        match result {
-                            Err(_) => true,
-                            Ok(Some(JobInfo(_, _, place, time))) => match (&ctx.clustering, &activity.commute) {
-                                (Some(clustering), Some(commute)) => {
-                                    unimplemented!()
+                            match result {
+                                Err(_) => true,
+                                Ok(Some(JobInfo(_, _, place, time))) => {
+                                    match (&ctx.clustering, &profile, &activity.commute) {
+                                        (Some(clustering), Some(profile), Some(commute)) => {
+                                            unimplemented!()
+                                        }
+                                        _ => {
+                                            let expected_departure = time.start.max(place.time.start) + place.duration;
+                                            compare_floats(time.end, expected_departure) != Ordering::Equal
+                                        }
+                                    }
                                 }
-                                _ => {
-                                    let expected_departure = time.start.max(place.time.start) + place.duration;
-                                    compare_floats(time.end, expected_departure) != Ordering::Equal
-                                }
-                            },
-                            _ => false,
+                                _ => false,
+                            }
                         }
                     })
                     .map(|activity| {

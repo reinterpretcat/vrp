@@ -52,9 +52,13 @@ impl CheckerContext {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
         let clustering = core_problem.extras.get_cluster_config().cloned();
 
-        let profile_index = get_matrices(&matrices)
-            .and_then(|matrices| get_profile_index(&problem, matrices.as_slice()))
-            .map_err(|err| vec![err])?;
+        let profile_index = if matrices.is_none() {
+            HashMap::new()
+        } else {
+            get_matrices(&matrices)
+                .and_then(|matrices| get_profile_index(&problem, matrices.as_slice()))
+                .map_err(|err| vec![err])?
+        };
 
         Ok(Self { problem, matrices, solution, job_map, profile_index, core_problem, clustering })
     }

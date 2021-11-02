@@ -44,5 +44,5 @@ pub fn check_pragmatic_solution<F: Read>(
             .map_err(|err| vec![format!("cannot read pragmatic problem: {}", FormatError::format_many(&err, ","))])?,
     );
 
-    CheckerContext::new(core_problem, problem, matrices, solution).check()
+    CheckerContext::new(core_problem, problem, matrices, solution).and_then(|ctx| ctx.check())
 }
