@@ -45,7 +45,7 @@ fn can_use_strict_and_sequence_relation_for_one_vehicle() {
                 cost: 61.,
                 distance: 22,
                 duration: 29,
-                times: Timing { driving: 22, serving: 7, waiting: 0, break_time: 0 },
+                times: Timing { driving: 22, serving: 7, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -129,7 +129,7 @@ fn can_use_strict_and_sequence_relation_for_one_vehicle() {
                     cost: 61.,
                     distance: 22,
                     duration: 29,
-                    times: Timing { driving: 22, serving: 7, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 22, serving: 7, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -201,7 +201,7 @@ fn can_use_strict_and_sequence_relation_for_two_vehicles() {
                 cost: 80.,
                 distance: 26,
                 duration: 34,
-                times: Timing { driving: 26, serving: 8, waiting: 0, break_time: 0 },
+                times: Timing { driving: 26, serving: 8, ..Timing::default() },
             },
             tours: vec![
                 Tour {
@@ -254,7 +254,7 @@ fn can_use_strict_and_sequence_relation_for_two_vehicles() {
                         cost: 40.,
                         distance: 13,
                         duration: 17,
-                        times: Timing { driving: 13, serving: 4, waiting: 0, break_time: 0 },
+                        times: Timing { driving: 13, serving: 4, ..Timing::default() },
                     },
                 },
                 Tour {
@@ -307,7 +307,7 @@ fn can_use_strict_and_sequence_relation_for_two_vehicles() {
                         cost: 40.,
                         distance: 13,
                         duration: 17,
-                        times: Timing { driving: 13, serving: 4, waiting: 0, break_time: 0 },
+                        times: Timing { driving: 13, serving: 4, ..Timing::default() },
                     },
                 }
             ],

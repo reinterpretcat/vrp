@@ -26,7 +26,7 @@ fn can_use_vehicle_with_open_end() {
                 cost: 13.,
                 distance: 1,
                 duration: 2,
-                times: Timing { driving: 1, serving: 1, waiting: 0, break_time: 0 },
+                times: Timing { driving: 1, serving: 1, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -54,7 +54,7 @@ fn can_use_vehicle_with_open_end() {
                     cost: 13.,
                     distance: 1,
                     duration: 2,
-                    times: Timing { driving: 1, serving: 1, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 1, serving: 1, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

@@ -36,7 +36,7 @@ fn can_handle_limited_capacity() {
             cost: 88.,
             distance: 36,
             duration: 42,
-            times: Timing { driving: 36, serving: 6, waiting: 0, break_time: 0 },
+            times: Timing { driving: 36, serving: 6, ..Timing::default() },
         }
     );
     assert!(solution.unassigned.is_none());

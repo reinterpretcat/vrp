@@ -52,7 +52,7 @@ fn can_use_location_index() {
                 cost: 18.,
                 distance: 3,
                 duration: 5,
-                times: Timing { driving: 3, serving: 2, waiting: 0, break_time: 0 }
+                times: Timing { driving: 3, serving: 2, ..Timing::default() }
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -97,7 +97,7 @@ fn can_use_location_index() {
                     cost: 18.,
                     distance: 3,
                     duration: 5,
-                    times: Timing { driving: 3, serving: 2, waiting: 0, break_time: 0 }
+                    times: Timing { driving: 3, serving: 2, ..Timing::default() }
                 }
             }],
             unassigned: None,

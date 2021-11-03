@@ -119,7 +119,7 @@ mod single {
                 cost: 51.,
                 distance: 16,
                 duration: 25,
-                times: Timing { driving: 16, serving: 9, waiting: 0, break_time: 2 },
+                times: Timing { driving: 16, serving: 9, break_time: 2, ..Timing::default() },
             },
             tours: vec![
                 VehicleTour {
@@ -215,7 +215,7 @@ mod single {
                         cost: 51.,
                         distance: 16,
                         duration: 25,
-                        times: Timing { driving: 16, serving: 9, waiting: 0, break_time: 2 },
+                        times: Timing { driving: 16, serving: 9, break_time: 2, ..Timing::default() },
                     },
                 },
                 VehicleTour {

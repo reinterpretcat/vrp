@@ -32,7 +32,7 @@ fn can_use_multiple_times() {
                 cost: 240.,
                 distance: 100,
                 duration: 130,
-                times: Timing { driving: 100, serving: 0, waiting: 30, break_time: 0 },
+                times: Timing { driving: 100, serving: 0, waiting: 30, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -100,7 +100,7 @@ fn can_use_multiple_times() {
                     cost: 240.,
                     distance: 100,
                     duration: 130,
-                    times: Timing { driving: 100, serving: 0, waiting: 30, break_time: 0 },
+                    times: Timing { driving: 100, serving: 0, waiting: 30, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

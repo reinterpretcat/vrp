@@ -49,7 +49,7 @@ fn can_use_multi_dim_capacity() {
                 cost: 26.,
                 distance: 6,
                 duration: 10,
-                times: Timing { driving: 6, serving: 4, waiting: 0, break_time: 0 },
+                times: Timing { driving: 6, serving: 4, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -101,7 +101,7 @@ fn can_use_multi_dim_capacity() {
                     cost: 26.,
                     distance: 6,
                     duration: 10,
-                    times: Timing { driving: 6, serving: 4, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 6, serving: 4, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

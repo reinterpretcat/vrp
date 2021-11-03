@@ -113,7 +113,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                 cost: 28.,
                 distance: 6,
                 duration: 12,
-                times: Timing { driving: 6, serving: 6, waiting: 0, break_time: 0 },
+                times: Timing { driving: 6, serving: 6, ..Timing::default() },
             },
         }]
     );
@@ -123,7 +123,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
             cost: 28.,
             distance: 6,
             duration: 12,
-            times: Timing { driving: 6, serving: 6, waiting: 0, break_time: 0 },
+            times: Timing { driving: 6, serving: 6, ..Timing::default() },
         }
     );
     assert!(solution.violations.is_none());

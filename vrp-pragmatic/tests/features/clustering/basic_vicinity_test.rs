@@ -47,7 +47,7 @@ fn can_cluster_simple_jobs() {
                 cost: 38.,
                 distance: 10,
                 duration: 18,
-                times: Timing { driving: 10, serving: 4, waiting: 0, break_time: 0 },
+                times: Timing { driving: 10, serving: 4, commuting: 4, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -143,7 +143,7 @@ fn can_cluster_simple_jobs() {
                     cost: 38.,
                     distance: 10,
                     duration: 18,
-                    times: Timing { driving: 10, serving: 4, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 10, serving: 4, commuting: 4, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

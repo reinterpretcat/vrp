@@ -54,7 +54,7 @@ fn can_assign_break_using_second_place() {
                 cost: 74.,
                 distance: 30,
                 duration: 34,
-                times: Timing { driving: 30, serving: 2, waiting: 0, break_time: 2 },
+                times: Timing { driving: 30, serving: 2, break_time: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -107,7 +107,7 @@ fn can_assign_break_using_second_place() {
                     cost: 74.,
                     distance: 30,
                     duration: 34,
-                    times: Timing { driving: 30, serving: 2, waiting: 0, break_time: 2 },
+                    times: Timing { driving: 30, serving: 2, break_time: 2, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

@@ -44,7 +44,7 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
                 cost: 19.,
                 distance: 3,
                 duration: 6,
-                times: Timing { driving: 3, serving: 3, waiting: 0, break_time: 0 },
+                times: Timing { driving: 3, serving: 3, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -88,7 +88,7 @@ fn can_use_any_relation_with_new_job_for_one_vehicle_with_open_end() {
                     cost: 19.,
                     distance: 3,
                     duration: 6,
-                    times: Timing { driving: 3, serving: 3, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 3, serving: 3, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

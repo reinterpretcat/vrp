@@ -124,7 +124,7 @@ fn can_check_breaks_impl(
             cost: 22.,
             distance: 4,
             duration: 8,
-            times: Timing { driving: 4, serving: 2, waiting: 0, break_time: 2 },
+            times: Timing { driving: 4, serving: 2, break_time: 2, ..Timing::default() },
         },
         tours: vec![Tour {
             vehicle_id: "my_vehicle_1".to_string(),
@@ -170,7 +170,7 @@ fn can_check_breaks_impl(
                 cost: 22.,
                 distance: 4,
                 duration: 8,
-                times: Timing { driving: 4, serving: 2, waiting: 0, break_time: 2 },
+                times: Timing { driving: 4, serving: 2, break_time: 2, ..Timing::default() },
             },
         }],
         violations,

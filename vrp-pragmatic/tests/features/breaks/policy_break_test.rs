@@ -64,7 +64,7 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleBreakPolicy>)
                 cost: 52.,
                 distance: 20,
                 duration: 22,
-                times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 0 },
+                times: Timing { driving: 20, serving: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "vehicle_without_break_1".to_string(),
@@ -108,7 +108,7 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleBreakPolicy>)
                     cost: 52.,
                     distance: 20,
                     duration: 22,
-                    times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 20, serving: 2, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -160,7 +160,7 @@ fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleBreakPolicy>) {
                 cost: 24.,
                 distance: 2,
                 duration: 12,
-                times: Timing { driving: 2, serving: 10, waiting: 0, break_time: 0 },
+                times: Timing { driving: 2, serving: 10, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -196,7 +196,7 @@ fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleBreakPolicy>) {
                     cost: 24.,
                     distance: 2,
                     duration: 12,
-                    times: Timing { driving: 2, serving: 10, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 2, serving: 10, ..Timing::default() },
                 },
             }],
             violations: Some(vec![Violation::Break { vehicle_id: "my_vehicle_1".to_string(), shift_index: 0 }]),
@@ -258,7 +258,7 @@ fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleBreakPol
                 cost: 54.,
                 distance: 20,
                 duration: 24,
-                times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 2 },
+                times: Timing { driving: 20, serving: 2, break_time: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -310,7 +310,7 @@ fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleBreakPol
                     cost: 54.,
                     distance: 20,
                     duration: 24,
-                    times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 2 },
+                    times: Timing { driving: 20, serving: 2, break_time: 2, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

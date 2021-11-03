@@ -53,7 +53,7 @@ fn can_use_two_strict_relations_with_two_vehicles_without_new_jobs() {
                 cost: 96.,
                 distance: 34,
                 duration: 42,
-                times: Timing { driving: 34, serving: 8, waiting: 0, break_time: 0 },
+                times: Timing { driving: 34, serving: 8, ..Timing::default() },
             },
             tours: vec![
                 Tour {
@@ -114,7 +114,7 @@ fn can_use_two_strict_relations_with_two_vehicles_without_new_jobs() {
                         cost: 54.,
                         distance: 20,
                         duration: 24,
-                        times: Timing { driving: 20, serving: 4, waiting: 0, break_time: 0 },
+                        times: Timing { driving: 20, serving: 4, ..Timing::default() },
                     },
                 },
                 Tour {
@@ -175,7 +175,7 @@ fn can_use_two_strict_relations_with_two_vehicles_without_new_jobs() {
                         cost: 42.,
                         distance: 14,
                         duration: 18,
-                        times: Timing { driving: 14, serving: 4, waiting: 0, break_time: 0 },
+                        times: Timing { driving: 14, serving: 4, ..Timing::default() },
                     },
                 }
             ],

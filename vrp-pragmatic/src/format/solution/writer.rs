@@ -286,6 +286,9 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                             serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i64 }),
                             waiting: leg.statistic.times.waiting + waiting as i64,
                             break_time: leg.statistic.times.break_time + (if is_break { serving as i64 } else { 0 }),
+                            commuting: leg.statistic.times.commuting
+                                + commute.forward.1 as i64
+                                + commute.backward.1 as i64,
                         },
                     },
                     load: Some(load),

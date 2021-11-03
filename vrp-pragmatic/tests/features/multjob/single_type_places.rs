@@ -30,7 +30,7 @@ fn can_use_only_deliveries_as_static_demand() {
                 cost: 29.,
                 distance: 8,
                 duration: 11,
-                times: Timing { driving: 8, serving: 3, waiting: 0, break_time: 0 },
+                times: Timing { driving: 8, serving: 3, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -68,7 +68,7 @@ fn can_use_only_deliveries_as_static_demand() {
                     cost: 29.,
                     distance: 8,
                     duration: 11,
-                    times: Timing { driving: 8, serving: 3, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 8, serving: 3, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -110,7 +110,7 @@ fn can_use_only_pickups_as_static_demand() {
                 cost: 33.,
                 distance: 10,
                 duration: 13,
-                times: Timing { driving: 10, serving: 3, waiting: 0, break_time: 0 },
+                times: Timing { driving: 10, serving: 3, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -156,7 +156,7 @@ fn can_use_only_pickups_as_static_demand() {
                     cost: 33.,
                     distance: 10,
                     duration: 13,
-                    times: Timing { driving: 10, serving: 3, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 10, serving: 3, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

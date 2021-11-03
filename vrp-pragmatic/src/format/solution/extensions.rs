@@ -3,12 +3,7 @@ use std::ops::Add;
 
 impl Default for Statistic {
     fn default() -> Self {
-        Statistic {
-            cost: 0.0,
-            distance: 0,
-            duration: 0,
-            times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
-        }
+        Statistic { cost: 0.0, distance: 0, duration: 0, times: Timing::default() }
     }
 }
 
@@ -25,6 +20,7 @@ impl Add for Statistic {
                 serving: self.times.serving + rhs.times.serving,
                 waiting: self.times.waiting + rhs.times.waiting,
                 break_time: self.times.break_time + rhs.times.break_time,
+                commuting: self.times.commuting + rhs.times.commuting,
             },
         }
     }

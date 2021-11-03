@@ -41,7 +41,7 @@ fn can_limit_one_job_by_shift_time() {
                 cost: 0.,
                 distance: 0,
                 duration: 0,
-                times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
+                times: Timing { driving: 0, serving: 0, ..Timing::default() },
             },
             tours: vec![],
             unassigned: Some(vec![UnassignedJob {
@@ -86,7 +86,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                 cost: 52.,
                 distance: 6,
                 duration: 36,
-                times: Timing { driving: 6, serving: 30, waiting: 0, break_time: 0 },
+                times: Timing { driving: 6, serving: 30, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -138,7 +138,7 @@ fn can_skip_job_from_multiple_because_of_shift_time() {
                     cost: 52.,
                     distance: 6,
                     duration: 36,
-                    times: Timing { driving: 6, serving: 30, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 6, serving: 30, ..Timing::default() },
                 },
             }],
             unassigned: Some(vec![

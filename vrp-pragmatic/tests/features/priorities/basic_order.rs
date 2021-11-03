@@ -35,7 +35,7 @@ fn can_follow_orders() {
                 cost: 53.,
                 distance: 20,
                 duration: 23,
-                times: Timing { driving: 20, serving: 3, waiting: 0, break_time: 0 },
+                times: Timing { driving: 20, serving: 3, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -87,7 +87,7 @@ fn can_follow_orders() {
                     cost: 53.,
                     distance: 20,
                     duration: 23,
-                    times: Timing { driving: 20, serving: 3, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 20, serving: 3, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

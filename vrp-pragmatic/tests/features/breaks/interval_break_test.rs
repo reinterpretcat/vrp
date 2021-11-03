@@ -43,7 +43,7 @@ fn can_assign_interval_break_between_jobs() {
                 cost: 74.,
                 distance: 30,
                 duration: 34,
-                times: Timing { driving: 30, serving: 2, waiting: 0, break_time: 2 },
+                times: Timing { driving: 30, serving: 2, break_time: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -112,7 +112,7 @@ fn can_assign_interval_break_between_jobs() {
                     cost: 74.,
                     distance: 30,
                     duration: 34,
-                    times: Timing { driving: 30, serving: 2, waiting: 0, break_time: 2 },
+                    times: Timing { driving: 30, serving: 2, break_time: 2, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -177,7 +177,7 @@ fn can_assign_interval_break_with_reload() {
                 cost: 139.,
                 distance: 60,
                 duration: 69,
-                times: Timing { driving: 60, serving: 7, waiting: 0, break_time: 2 },
+                times: Timing { driving: 60, serving: 7, break_time: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -270,7 +270,7 @@ fn can_assign_interval_break_with_reload() {
                     cost: 139.,
                     distance: 60,
                     duration: 69,
-                    times: Timing { driving: 60, serving: 7, waiting: 0, break_time: 2 },
+                    times: Timing { driving: 60, serving: 7, break_time: 2, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

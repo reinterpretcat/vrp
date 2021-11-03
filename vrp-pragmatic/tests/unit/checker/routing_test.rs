@@ -15,12 +15,7 @@ fn create_test_problem() -> Problem {
 }
 
 fn create_test_statistic() -> Statistic {
-    Statistic {
-        cost: 10.,
-        distance: 4,
-        duration: 6,
-        times: Timing { driving: 4, serving: 2, waiting: 0, break_time: 0 },
-    }
+    Statistic { cost: 10., distance: 4, duration: 6, times: Timing { driving: 4, serving: 2, ..Timing::default() } }
 }
 
 fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> Solution {

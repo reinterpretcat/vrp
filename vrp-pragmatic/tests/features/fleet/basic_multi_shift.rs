@@ -57,7 +57,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                 cost: 102.,
                 distance: 40,
                 duration: 42,
-                times: Timing { driving: 40, serving: 2, waiting: 0, break_time: 0 },
+                times: Timing { driving: 40, serving: 2, ..Timing::default() },
             },
             tours: vec![
                 Tour {
@@ -94,7 +94,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                         cost: 51.,
                         distance: 20,
                         duration: 21,
-                        times: Timing { driving: 20, serving: 1, waiting: 0, break_time: 0 },
+                        times: Timing { driving: 20, serving: 1, ..Timing::default() },
                     },
                 },
                 Tour {
@@ -131,7 +131,7 @@ fn can_use_multiple_times_from_vehicle_and_job() {
                         cost: 51.,
                         distance: 20,
                         duration: 21,
-                        times: Timing { driving: 20, serving: 1, waiting: 0, break_time: 0 },
+                        times: Timing { driving: 20, serving: 1, ..Timing::default() },
                     },
                 },
             ],

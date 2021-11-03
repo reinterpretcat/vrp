@@ -33,7 +33,7 @@ fn can_use_two_dimensions() {
                 cost: 16.,
                 distance: 2,
                 duration: 4,
-                times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
+                times: Timing { driving: 2, serving: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -69,7 +69,7 @@ fn can_use_two_dimensions() {
                     cost: 16.,
                     distance: 2,
                     duration: 4,
-                    times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 2, serving: 2, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -105,7 +105,7 @@ fn can_unassign_due_to_dimension_mismatch() {
                 cost: 0.,
                 distance: 0,
                 duration: 0,
-                times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
+                times: Timing { driving: 0, serving: 0, ..Timing::default() },
             },
             tours: vec![],
             unassigned: Some(vec![UnassignedJob {

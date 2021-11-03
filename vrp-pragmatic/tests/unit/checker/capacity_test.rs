@@ -63,7 +63,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
             cost: 13.,
             distance: 1,
             duration: 2,
-            times: Timing { driving: 1, serving: 1, waiting: 0, break_time: 0 },
+            times: Timing { driving: 1, serving: 1, ..Timing::default() },
         },
         tours: vec![Tour {
             vehicle_id: "my_vehicle_1".to_string(),
@@ -185,7 +185,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                 cost: 13.,
                 distance: 1,
                 duration: 2,
-                times: Timing { driving: 1, serving: 1, waiting: 0, break_time: 0 },
+                times: Timing { driving: 1, serving: 1, ..Timing::default() },
             },
         }],
         ..create_empty_solution()
@@ -216,7 +216,7 @@ fn can_check_load_when_departure_has_other_activity() {
             cost: 6.,
             distance: 2,
             duration: 4,
-            times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
+            times: Timing { driving: 2, serving: 2, ..Timing::default() },
         },
         tours: vec![Tour {
             vehicle_id: "my_vehicle_1".to_string(),
@@ -272,7 +272,7 @@ fn can_check_load_when_departure_has_other_activity() {
                 cost: 6.,
                 distance: 2,
                 duration: 4,
-                times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
+                times: Timing { driving: 2, serving: 2, ..Timing::default() },
             },
         }],
         ..create_empty_solution()

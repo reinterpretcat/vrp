@@ -42,7 +42,7 @@ fn can_assign_break_between_jobs() {
                 cost: 54.,
                 distance: 20,
                 duration: 24,
-                times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 2 },
+                times: Timing { driving: 20, serving: 2, break_time: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -95,7 +95,7 @@ fn can_assign_break_between_jobs() {
                     cost: 54.,
                     distance: 20,
                     duration: 24,
-                    times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 2 },
+                    times: Timing { driving: 20, serving: 2, break_time: 2, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

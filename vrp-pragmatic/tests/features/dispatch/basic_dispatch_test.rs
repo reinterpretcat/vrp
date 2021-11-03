@@ -38,7 +38,7 @@ fn can_assign_single_dispatch() {
                 cost: 42.,
                 distance: 14,
                 duration: 18,
-                times: Timing { driving: 14, serving: 4, waiting: 0, break_time: 0 },
+                times: Timing { driving: 14, serving: 4, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -90,7 +90,7 @@ fn can_assign_single_dispatch() {
                     cost: 42.,
                     distance: 14,
                     duration: 18,
-                    times: Timing { driving: 14, serving: 4, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 14, serving: 4, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

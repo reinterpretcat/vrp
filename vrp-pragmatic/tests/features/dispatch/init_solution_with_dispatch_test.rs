@@ -43,7 +43,7 @@ fn can_use_init_solution_with_dispatch() {
             cost: 34.,
             distance: 4,
             duration: 10,
-            times: Timing { driving: 4, serving: 6, waiting: 0, break_time: 0 },
+            times: Timing { driving: 4, serving: 6, ..Timing::default() },
         },
         tours: vec![
             Tour {
@@ -105,7 +105,7 @@ fn can_use_init_solution_with_dispatch() {
                     cost: 17.,
                     distance: 2,
                     duration: 5,
-                    times: Timing { driving: 2, serving: 3, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 2, serving: 3, ..Timing::default() },
                 },
             },
             Tour {
@@ -167,7 +167,7 @@ fn can_use_init_solution_with_dispatch() {
                     cost: 17.,
                     distance: 2,
                     duration: 5,
-                    times: Timing { driving: 2, serving: 3, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 2, serving: 3, ..Timing::default() },
                 },
             },
         ],

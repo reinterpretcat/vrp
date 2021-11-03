@@ -53,7 +53,7 @@ fn can_use_two_breaks() {
                 cost: 412.,
                 distance: 198,
                 duration: 204,
-                times: Timing { driving: 198, serving: 2, waiting: 0, break_time: 4 },
+                times: Timing { driving: 198, serving: 2, break_time: 4, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -130,7 +130,7 @@ fn can_use_two_breaks() {
                     cost: 412.,
                     distance: 198,
                     duration: 204,
-                    times: Timing { driving: 198, serving: 2, waiting: 0, break_time: 4 },
+                    times: Timing { driving: 198, serving: 2, break_time: 4, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

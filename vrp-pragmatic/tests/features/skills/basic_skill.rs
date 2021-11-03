@@ -39,7 +39,7 @@ fn can_wait_for_job_start() {
                 cost: 47.,
                 distance: 18,
                 duration: 19,
-                times: Timing { driving: 18, serving: 1, waiting: 0, break_time: 0 },
+                times: Timing { driving: 18, serving: 1, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "vehicle_with_skill_1".to_string(),
@@ -75,7 +75,7 @@ fn can_wait_for_job_start() {
                     cost: 47.,
                     distance: 18,
                     duration: 19,
-                    times: Timing { driving: 18, serving: 1, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 18, serving: 1, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

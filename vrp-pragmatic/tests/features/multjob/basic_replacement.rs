@@ -41,7 +41,7 @@ fn can_assign_replacement_job() {
                 cost: 21.,
                 distance: 4,
                 duration: 7,
-                times: Timing { driving: 4, serving: 3, waiting: 0, break_time: 0 },
+                times: Timing { driving: 4, serving: 3, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -93,7 +93,7 @@ fn can_assign_replacement_job() {
                     cost: 21.,
                     distance: 4,
                     duration: 7,
-                    times: Timing { driving: 4, serving: 3, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 4, serving: 3, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

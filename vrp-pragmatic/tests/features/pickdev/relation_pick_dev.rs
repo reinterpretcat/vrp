@@ -38,7 +38,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                 cost: 114.,
                 distance: 50,
                 duration: 54,
-                times: Timing { driving: 50, serving: 4, waiting: 0, break_time: 0 },
+                times: Timing { driving: 50, serving: 4, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -102,7 +102,7 @@ fn can_use_two_pickup_delivery_jobs_and_relation_with_one_vehicle() {
                     cost: 114.,
                     distance: 50,
                     duration: 54,
-                    times: Timing { driving: 50, serving: 4, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 50, serving: 4, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

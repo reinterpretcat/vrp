@@ -33,7 +33,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                 cost: 46.,
                 distance: 16,
                 duration: 20,
-                times: Timing { driving: 16, serving: 4, waiting: 0, break_time: 0 },
+                times: Timing { driving: 16, serving: 4, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -96,7 +96,7 @@ fn can_assign_multi_and_single_job_as_pickups_specified() {
                     cost: 46.,
                     distance: 16,
                     duration: 20,
-                    times: Timing { driving: 16, serving: 4, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 16, serving: 4, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -132,7 +132,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                 cost: 37.,
                 distance: 12,
                 duration: 15,
-                times: Timing { driving: 12, serving: 3, waiting: 0, break_time: 0 },
+                times: Timing { driving: 12, serving: 3, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -187,7 +187,7 @@ fn can_assign_multi_job_in_pickup_effective_way() {
                     cost: 37.,
                     distance: 12,
                     duration: 15,
-                    times: Timing { driving: 12, serving: 3, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 12, serving: 3, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

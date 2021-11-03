@@ -61,7 +61,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
                 cost: 46.,
                 distance: 16,
                 duration: 20,
-                times: Timing { driving: 16, serving: 4, waiting: 0, break_time: 0 },
+                times: Timing { driving: 16, serving: 4, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -124,7 +124,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
                     cost: 46.,
                     distance: 16,
                     duration: 20,
-                    times: Timing { driving: 16, serving: 4, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 16, serving: 4, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

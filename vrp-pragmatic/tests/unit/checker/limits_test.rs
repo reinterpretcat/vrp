@@ -165,7 +165,7 @@ fn can_check_shift_time() {
             cost: 17.,
             distance: 2,
             duration: 5,
-            times: Timing { driving: 2, serving: 1, waiting: 2, break_time: 0 },
+            times: Timing { driving: 2, serving: 1, waiting: 2, ..Timing::default() },
         },
         tours: vec![Tour {
             vehicle_id: "my_vehicle_1".to_string(),
@@ -201,7 +201,7 @@ fn can_check_shift_time() {
                 cost: 17.,
                 distance: 2,
                 duration: 5,
-                times: Timing { driving: 2, serving: 1, waiting: 2, break_time: 0 },
+                times: Timing { driving: 2, serving: 1, waiting: 2, ..Timing::default() },
             },
         }],
         ..create_empty_solution()

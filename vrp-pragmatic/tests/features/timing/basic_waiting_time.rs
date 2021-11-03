@@ -30,7 +30,7 @@ fn can_wait_for_job_start() {
                 cost: 26.,
                 distance: 4,
                 duration: 12,
-                times: Timing { driving: 4, serving: 0, waiting: 8, break_time: 0 },
+                times: Timing { driving: 4, serving: 0, waiting: 8, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -74,7 +74,7 @@ fn can_wait_for_job_start() {
                     cost: 26.,
                     distance: 4,
                     duration: 12,
-                    times: Timing { driving: 4, serving: 0, waiting: 8, break_time: 0 },
+                    times: Timing { driving: 4, serving: 0, waiting: 8, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -106,7 +106,7 @@ fn can_skip_initial_waiting() {
                 cost: 24.,
                 distance: 2,
                 duration: 12,
-                times: Timing { driving: 2, serving: 10, waiting: 0, break_time: 0 },
+                times: Timing { driving: 2, serving: 10, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -142,7 +142,7 @@ fn can_skip_initial_waiting() {
                     cost: 24.,
                     distance: 2,
                     duration: 12,
-                    times: Timing { driving: 2, serving: 10, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 2, serving: 10, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -184,7 +184,7 @@ fn can_consider_latest_departure_time() {
                 cost: 28.,
                 distance: 2,
                 duration: 16,
-                times: Timing { driving: 2, serving: 10, waiting: 4, break_time: 0 },
+                times: Timing { driving: 2, serving: 10, waiting: 4, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -220,7 +220,7 @@ fn can_consider_latest_departure_time() {
                     cost: 28.,
                     distance: 2,
                     duration: 16,
-                    times: Timing { driving: 2, serving: 10, waiting: 4, break_time: 0 },
+                    times: Timing { driving: 2, serving: 10, waiting: 4, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

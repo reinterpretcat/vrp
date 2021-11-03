@@ -84,7 +84,7 @@ fn can_read_basic_init_solution() {
             cost: 32.,
             distance: 8,
             duration: 14,
-            times: Timing { driving: 8, serving: 4, waiting: 0, break_time: 2 },
+            times: Timing { driving: 8, serving: 4, break_time: 2, ..Timing::default() },
         },
         tours: vec![Tour {
             vehicle_id: "my_vehicle_1".to_string(),
@@ -171,7 +171,7 @@ fn can_read_basic_init_solution() {
                 cost: 32.,
                 distance: 8,
                 duration: 14,
-                times: Timing { driving: 8, serving: 4, waiting: 0, break_time: 2 },
+                times: Timing { driving: 8, serving: 4, break_time: 2, ..Timing::default() },
             },
         }],
         unassigned: create_unassigned_jobs(&["job3"]),

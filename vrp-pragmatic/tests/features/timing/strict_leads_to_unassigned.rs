@@ -32,7 +32,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                 cost: 170.,
                 distance: 80,
                 duration: 80,
-                times: Timing { driving: 80, serving: 0, waiting: 0, break_time: 0 },
+                times: Timing { driving: 80, serving: 0, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -92,7 +92,7 @@ fn can_have_unassigned_jobs_because_of_strict_times() {
                     cost: 170.,
                     distance: 80,
                     duration: 80,
-                    times: Timing { driving: 80, serving: 0, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 80, serving: 0, ..Timing::default() },
                 },
             }],
             unassigned: Some(vec![UnassignedJob {

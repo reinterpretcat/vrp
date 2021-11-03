@@ -42,7 +42,7 @@ fn can_use_sequence_relation_with_strict_time_windows() {
                 cost: 270.,
                 distance: 100,
                 duration: 160,
-                times: Timing { driving: 100, serving: 50, waiting: 10, break_time: 0 },
+                times: Timing { driving: 100, serving: 50, waiting: 10, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -110,7 +110,7 @@ fn can_use_sequence_relation_with_strict_time_windows() {
                     cost: 270.,
                     distance: 100,
                     duration: 160,
-                    times: Timing { driving: 100, serving: 50, waiting: 10, break_time: 0 },
+                    times: Timing { driving: 100, serving: 50, waiting: 10, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()

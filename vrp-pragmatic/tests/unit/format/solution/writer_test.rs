@@ -35,7 +35,7 @@ fn can_create_solution() {
                 cost: 52.,
                 distance: 20,
                 duration: 22,
-                times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 0 },
+                times: Timing { driving: 20, serving: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -79,7 +79,7 @@ fn can_create_solution() {
                     cost: 52.,
                     distance: 20,
                     duration: 22,
-                    times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 20, serving: 2, ..Timing::default() },
                 },
             }],
             ..create_empty_solution()
@@ -110,7 +110,7 @@ fn can_merge_activities_with_same_location_in_one_stop() {
             cost: 32.,
             distance: 10,
             duration: 12,
-            times: Timing { driving: 10, serving: 2, waiting: 0, break_time: 0 },
+            times: Timing { driving: 10, serving: 2, ..Timing::default() },
         }
     );
     assert_eq!(solution.tours.len(), 1);

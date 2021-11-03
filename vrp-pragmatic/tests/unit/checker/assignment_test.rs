@@ -197,7 +197,7 @@ fn can_detect_time_window_violation() {
             cost: 15.,
             distance: 2,
             duration: 3,
-            times: Timing { driving: 2, serving: 1, waiting: 0, break_time: 0 },
+            times: Timing { driving: 2, serving: 1, ..Timing::default() },
         },
         tours: vec![Tour {
             vehicle_id: "my_vehicle_1".to_string(),
@@ -233,7 +233,7 @@ fn can_detect_time_window_violation() {
                 cost: 15.,
                 distance: 2,
                 duration: 3,
-                times: Timing { driving: 2, serving: 1, waiting: 0, break_time: 0 },
+                times: Timing { driving: 2, serving: 1, ..Timing::default() },
             },
         }],
         ..create_empty_solution()
@@ -261,7 +261,7 @@ fn can_detect_job_duration_violation() {
             cost: 18.,
             distance: 2,
             duration: 6,
-            times: Timing { driving: 2, serving: 2, waiting: 2, break_time: 0 },
+            times: Timing { driving: 2, serving: 2, waiting: 2, ..Timing::default() },
         },
         tours: vec![Tour {
             vehicle_id: "my_vehicle_1".to_string(),
@@ -297,7 +297,7 @@ fn can_detect_job_duration_violation() {
                 cost: 18.,
                 distance: 2,
                 duration: 6,
-                times: Timing { driving: 2, serving: 2, waiting: 2, break_time: 0 },
+                times: Timing { driving: 2, serving: 2, waiting: 2, ..Timing::default() },
             },
         }],
         ..create_empty_solution()

@@ -30,7 +30,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
                 cost: 0.,
                 distance: 0,
                 duration: 0,
-                times: Timing { driving: 0, serving: 0, waiting: 0, break_time: 0 },
+                times: Timing { driving: 0, serving: 0, ..Timing::default() },
             },
             tours: vec![],
             unassigned: Some(vec![UnassignedJob {

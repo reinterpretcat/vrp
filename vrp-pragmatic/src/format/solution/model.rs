@@ -19,6 +19,8 @@ pub struct Timing {
     /// Break time.
     #[serde(rename(serialize = "break", deserialize = "break"))]
     pub break_time: i64,
+    /// Commuting time.
+    pub commuting: i64,
 }
 
 /// Represents statistic.
@@ -260,6 +262,12 @@ impl Interval {
     /// Returns interval's duration.
     pub fn duration(&self) -> Duration {
         parse_time(&self.end) - parse_time(&self.start)
+    }
+}
+
+impl Default for Timing {
+    fn default() -> Self {
+        Self { driving: 0, serving: 0, waiting: 0, break_time: 0, commuting: 0 }
     }
 }
 

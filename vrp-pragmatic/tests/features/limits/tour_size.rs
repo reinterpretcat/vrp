@@ -39,7 +39,7 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
                 cost: 16.,
                 distance: 2,
                 duration: 4,
-                times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
+                times: Timing { driving: 2, serving: 2, ..Timing::default() },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -75,7 +75,7 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
                     cost: 16.,
                     distance: 2,
                     duration: 4,
-                    times: Timing { driving: 2, serving: 2, waiting: 0, break_time: 0 },
+                    times: Timing { driving: 2, serving: 2, ..Timing::default() },
                 },
             }],
             unassigned: Some(vec![UnassignedJob {
