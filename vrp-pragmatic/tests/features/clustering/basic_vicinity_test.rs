@@ -44,10 +44,10 @@ fn can_cluster_simple_jobs() {
         solution,
         Solution {
             statistic: Statistic {
-                cost: 54.,
-                distance: 20,
-                duration: 24,
-                times: Timing { driving: 20, serving: 2, waiting: 0, break_time: 2 },
+                cost: 38.,
+                distance: 10,
+                duration: 18,
+                times: Timing { driving: 10, serving: 4, waiting: 0, break_time: 0 },
             },
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
@@ -58,7 +58,7 @@ fn can_cluster_simple_jobs() {
                         "departure",
                         "departure",
                         (0., 0.),
-                        2,
+                        4,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0,
                     ),
@@ -68,7 +68,7 @@ fn can_cluster_simple_jobs() {
                             arrival: "1970-01-01T00:00:03Z".to_string(),
                             departure: "1970-01-01T00:00:10Z".to_string(),
                         },
-                        distance: 0,
+                        distance: 3,
                         load: vec![1],
                         activities: vec![
                             Activity {
@@ -122,16 +122,16 @@ fn can_cluster_simple_jobs() {
                         ],
                     },
                     create_stop_with_activity(
-                        "job1",
+                        "job4",
                         "delivery",
                         (10., 0.),
-                        1,
+                        0,
                         ("1970-01-01T00:00:17Z", "1970-01-01T00:00:18Z"),
-                        5,
+                        10,
                     ),
                 ],
                 statistic: Statistic {
-                    cost: 54.,
+                    cost: 38.,
                     distance: 10,
                     duration: 18,
                     times: Timing { driving: 10, serving: 4, waiting: 0, break_time: 0 },

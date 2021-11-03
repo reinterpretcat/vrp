@@ -3,7 +3,6 @@
 mod routing_test;
 
 use super::*;
-use crate::format::CoordIndex;
 use crate::format_time;
 use crate::utils::combine_error_results;
 
@@ -16,7 +15,6 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
     if context.matrices.as_ref().map_or(true, |m| m.is_empty()) {
         return Ok(());
     }
-    let coord_index = CoordIndex::new(&context.problem);
     let skip_distance_check = skip_distance_check(&context.solution);
 
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
@@ -32,8 +30,8 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
                     _ => unreachable!(),
                 };
 
-                let from_idx = get_location_index(&from.location, &coord_index)?;
-                let to_idx = get_location_index(&to.location, &coord_index)?;
+                let from_idx = context.get_location_index(&from.location)?;
+                let to_idx = context.get_location_index(&to.location)?;
                 let (distance, duration) = context.get_matrix_data(&profile, from_idx, to_idx)?;
 
                 let time = time + duration;
@@ -130,10 +128,6 @@ fn check_solution_statistic(solution: &Solution) -> Result<(), String> {
     } else {
         Ok(())
     }
-}
-
-fn get_location_index(location: &Location, coord_index: &CoordIndex) -> Result<usize, String> {
-    coord_index.get_by_loc(location).ok_or_else(|| format!("cannot find coordinate in coord index: {:?}", location))
 }
 
 /// A workaround method for hre format output where distance is not defined.

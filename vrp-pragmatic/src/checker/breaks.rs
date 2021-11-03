@@ -35,7 +35,7 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
                     }
 
                     // check location
-                    let actual_location = get_location(stop, to);
+                    let actual_location = context.get_activity_location(stop, to);
                     // TODO check tag and duration
                     let has_match = vehicle_break.places.iter().any(|place| match &place.location {
                         Some(location) => actual_location == *location,

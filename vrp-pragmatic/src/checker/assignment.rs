@@ -8,6 +8,7 @@ use crate::format::{get_coord_index, get_job_index};
 use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
+use vrp_core::construction::clustering::vicinity::ServingPolicy;
 use vrp_core::utils::compare_floats;
 
 /// Checks assignment of jobs and vehicles.
@@ -159,13 +160,12 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
         .tours
         .iter()
         .flat_map(move |tour| {
-            let profile = ctx.get_vehicle_profile(&tour.vehicle_id).ok();
             tour.stops.iter().flat_map(move |stop| {
                 stop.activities
                     .iter()
+                    .enumerate()
                     .filter({
-                        let profile = profile.clone();
-                        move |activity| {
+                        move |(idx, activity)| {
                             let result = try_match_job(
                                 tour,
                                 stop,
@@ -173,17 +173,34 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                 get_job_index(&ctx.core_problem),
                                 get_coord_index(&ctx.core_problem),
                             );
+                            let are_not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
 
                             match result {
                                 Err(_) => true,
                                 Ok(Some(JobInfo(_, _, place, time))) => {
-                                    match (&ctx.clustering, &profile, &activity.commute) {
-                                        (Some(clustering), Some(profile), Some(commute)) => {
-                                            unimplemented!()
-                                        }
-                                        _ => {
+                                    let domain_commute = ctx.get_commute_info(&tour.vehicle_id, stop, *idx);
+                                    match (&ctx.clustering, &activity.commute, domain_commute) {
+                                        (_, _, Err(_))
+                                        | (_, None, Ok(Some(_)))
+                                        | (_, Some(_), Ok(None))
+                                        | (&None, &Some(_), Ok(Some(_))) => true,
+                                        (_, None, Ok(None)) => {
                                             let expected_departure = time.start.max(place.time.start) + place.duration;
-                                            compare_floats(time.end, expected_departure) != Ordering::Equal
+                                            are_not_equal(time.end, expected_departure)
+                                        }
+                                        (Some(config), Some(commute), Ok(Some(d_commute))) => {
+                                            let service_time = match config.serving {
+                                                ServingPolicy::Original => place.duration,
+                                                ServingPolicy::Multiplier(multiplier) => place.duration * multiplier,
+                                                ServingPolicy::Fixed(value) => value,
+                                            };
+                                            let expected_departure = time.start.max(place.time.start) + service_time;
+
+                                            are_not_equal(time.end, expected_departure)
+                                                || are_not_equal(commute.forward_distance, d_commute.forward.0)
+                                                || are_not_equal(commute.forward_duration, d_commute.forward.1)
+                                                || are_not_equal(commute.backward_distance, d_commute.backward.0)
+                                                || are_not_equal(commute.backward_duration, d_commute.backward.1)
                                         }
                                     }
                                 }
@@ -191,7 +208,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                             }
                         }
                     })
-                    .map(|activity| {
+                    .map(|(_, activity)| {
                         format!(
                             "{}:{}",
                             activity.job_id.clone(),

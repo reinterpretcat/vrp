@@ -359,7 +359,7 @@ where
             let (forward, backward) = return_movement(&info);
             ClusterInfo { forward, backward, ..info }
         } else {
-            info
+            ClusterInfo { backward: (0., 0.), ..info }
         };
 
         let new_cluster_times = cluster_times

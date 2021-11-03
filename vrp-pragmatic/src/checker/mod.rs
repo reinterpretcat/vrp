@@ -7,13 +7,15 @@ mod checker_test;
 
 use crate::format::problem::*;
 use crate::format::solution::*;
-use crate::format::Location;
+use crate::format::{CoordIndex, Location};
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterConfig;
+use vrp_core::construction::clustering::vicinity::VisitPolicy;
 use vrp_core::models::common::Profile;
 use vrp_core::models::common::TimeWindow;
+use vrp_core::models::solution::Commute as DomainCommute;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::solver::processing::VicinityDimension;
 
@@ -27,6 +29,7 @@ pub struct CheckerContext {
     pub solution: Solution,
 
     job_map: HashMap<String, Job>,
+    coord_index: CoordIndex,
     profile_index: HashMap<String, usize>,
     core_problem: Arc<CoreProblem>,
     clustering: Option<ClusterConfig>,
@@ -51,7 +54,7 @@ impl CheckerContext {
     ) -> Result<Self, Vec<String>> {
         let job_map = problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect();
         let clustering = core_problem.extras.get_cluster_config().cloned();
-
+        let coord_index = CoordIndex::new(&problem);
         let profile_index = if matrices.is_none() {
             HashMap::new()
         } else {
@@ -60,7 +63,7 @@ impl CheckerContext {
                 .map_err(|err| vec![err])?
         };
 
-        Ok(Self { problem, matrices, solution, job_map, profile_index, core_problem, clustering })
+        Ok(Self { problem, matrices, solution, job_map, coord_index, profile_index, core_problem, clustering })
     }
 
     /// Performs solution check.
@@ -209,6 +212,71 @@ impl CheckerContext {
         self.problem.plan.jobs.iter().find(|job| job.id == job_id)
     }
 
+    fn get_commute_info(
+        &self,
+        vehicle_id: &str,
+        stop: &Stop,
+        activity_idx: usize,
+    ) -> Result<Option<DomainCommute>, String> {
+        let profile = self.get_vehicle_profile(&vehicle_id).ok();
+
+        let get_activity_location_by_idx = |idx: usize| {
+            stop.activities
+                .get(idx)
+                .and_then(|activity| activity.location.as_ref())
+                .and_then(|location| self.get_location_index(location).ok())
+        };
+
+        let get_activity_commute_by_idx = |idx: usize| {
+            stop.activities.get(idx).and_then(|activity| activity.commute.as_ref()).map(|commute| DomainCommute {
+                forward: (commute.forward_distance, commute.forward_duration),
+                backward: (commute.backward_distance, commute.backward_duration),
+            })
+        };
+
+        match (&self.clustering, &profile, get_activity_commute_by_idx(activity_idx)) {
+            (Some(config), Some(profile), Some(commute)) => {
+                // NOTE we don't check whether zero time commute is correct here
+                match (commute.is_zero_time(), activity_idx) {
+                    (true, _) => Ok(Some(commute)),
+                    // NOTE that's unreachable
+                    (false, idx) if idx == 0 => Err(format!("cannot have commute at first activity in the stop")),
+                    (false, idx) => {
+                        let prev_location = get_activity_location_by_idx(idx - 1);
+                        let curr_location = get_activity_location_by_idx(idx);
+
+                        match (curr_location, prev_location) {
+                            (Some(curr_location), Some(prev_location)) => {
+                                let (f_distance, f_duration) =
+                                    self.get_matrix_data(profile, prev_location, curr_location)?;
+
+                                let has_next_commute = get_activity_location_by_idx(idx + 1)
+                                    .zip(get_activity_commute_by_idx(idx + 1))
+                                    .is_some();
+                                let (b_distance, b_duration) = match (&config.visiting, has_next_commute) {
+                                    (VisitPolicy::Return, _) | (VisitPolicy::ClosedContinuation, false) => {
+                                        let stop_location = self.get_location_index(&stop.location)?;
+                                        self.get_matrix_data(profile, curr_location, stop_location)?
+                                    }
+                                    (VisitPolicy::OpenContinuation, _) | (VisitPolicy::ClosedContinuation, true) => {
+                                        (0_i64, 0_i64)
+                                    }
+                                };
+
+                                Ok(Some(DomainCommute {
+                                    forward: (f_distance as f64, f_duration as f64),
+                                    backward: (b_distance as f64, b_duration as f64),
+                                }))
+                            }
+                            _ => Err("cannot find next commute info".to_string()),
+                        }
+                    }
+                }
+            }
+            _ => Ok(None),
+        }
+    }
+
     fn visit_job<F1, F2, R>(
         &self,
         activity: &Activity,
@@ -242,6 +310,12 @@ impl CheckerContext {
             .ok_or_else(|| "cannot match activity to job place".to_string()),
             _ => Ok(other_visitor()),
         }
+    }
+
+    fn get_location_index(&self, location: &Location) -> Result<usize, String> {
+        self.coord_index
+            .get_by_loc(location)
+            .ok_or_else(|| format!("cannot find coordinate in coord index: {:?}", location))
     }
 
     fn get_matrix_data(&self, profile: &Profile, from_idx: usize, to_idx: usize) -> Result<(i64, i64), String> {
@@ -331,10 +405,6 @@ fn get_profile_index(problem: &Problem, matrices: &[Matrix]) -> Result<HashMap<S
         .enumerate()
         .map(|(idx, profile)| (profile.name.to_string(), idx))
         .collect::<HashMap<_, _>>())
-}
-
-fn get_location(stop: &Stop, activity: &Activity) -> Location {
-    activity.location.as_ref().unwrap_or(&stop.location).clone()
 }
 
 mod assignment;

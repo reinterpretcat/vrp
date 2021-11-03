@@ -1,7 +1,8 @@
 use crate::models::common::{Distance, Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
-use crate::utils::compare_shared;
+use crate::utils::{compare_floats, compare_shared};
+use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// Specifies an extra commute information to reach the actual place.
@@ -102,5 +103,12 @@ impl Activity {
             Some(single) => Multi::roots(single).map(Job::Multi).or_else(|| Some(Job::Single(single.clone()))),
             _ => None,
         }
+    }
+}
+
+impl Commute {
+    /// Checks whether zero is no time costs for commute.
+    pub fn is_zero_time(&self) -> bool {
+        compare_floats(self.forward.1, 0.) == Ordering::Equal && compare_floats(self.backward.1, 0.) == Ordering::Equal
     }
 }

@@ -8,7 +8,6 @@ use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
 use crate::format_time;
-use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::route_intervals;
 use vrp_core::models::common::*;
@@ -16,7 +15,6 @@ use vrp_core::models::problem::Multi;
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::Metrics;
-use vrp_core::utils::compare_floats;
 
 type ApiActivity = crate::format::solution::model::Activity;
 type ApiSolution = crate::format::solution::model::Solution;
@@ -113,6 +111,8 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
     let actor = route.actor.as_ref();
     let vehicle = actor.vehicle.as_ref();
+    let profile = &vehicle.profile;
+    let transport = problem.transport.as_ref();
 
     let mut tour = Tour {
         vehicle_id: vehicle.dimens.get_id().unwrap().clone(),
@@ -205,24 +205,31 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     _ => activity_type.clone(),
                 };
 
+                let commute =
+                    act.commute.clone().unwrap_or_else(|| DomainCommute { forward: (0., 0.), backward: (0., 0.) });
                 let driving =
-                    problem.transport.duration(&vehicle.profile, prev_location, act.place.location, prev_departure);
-                let arrival = prev_departure + driving;
-                let start = act.schedule.arrival.max(act.place.time.start);
-                let waiting = start - act.schedule.arrival;
-                let serving = act.place.duration;
-                let departure = start + serving;
+                    transport.duration(profile, prev_location, act.place.location, prev_departure) - commute.forward.0;
 
-                // total cost and distance
+                let service_start = act.schedule.arrival.max(act.place.time.start);
+                let waiting = service_start - act.schedule.arrival;
+                let serving = act.place.duration;
+                let service_end = service_start + serving;
+
+                let arrival = act.schedule.arrival;
+                let departure = service_end + commute.backward.1;
+
                 let cost = leg.statistic.cost
                     + problem.activity.cost(actor, act, act.schedule.arrival)
-                    + problem.transport.cost(actor, prev_location, act.place.location, prev_departure);
-                let distance = leg.statistic.distance
-                    + problem.transport.distance(&vehicle.profile, prev_location, act.place.location, prev_departure)
-                        as i64;
+                    + transport.cost(actor, prev_location, act.place.location, prev_departure);
+
+                // NOTE we count only forward distance
+                let commute_distance = commute.forward.0 as i64;
+                let location_distance =
+                    transport.distance(profile, prev_location, act.place.location, prev_departure) as i64;
+                let distance = leg.statistic.distance + location_distance - commute_distance;
 
                 let is_new_stop = match (act.commute.as_ref(), prev_location == act.place.location) {
-                    (Some(commute), false) if is_zero_commute(commute) => true,
+                    (Some(commute), false) if commute.is_zero_time() => true,
                     (Some(_), _) => false,
                     (None, is_same_location) => !is_same_location,
                 };
@@ -252,7 +259,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     } else {
                         Some(coord_index.get_by_idx(act.place.location).unwrap())
                     },
-                    time: Some(Interval { start: format_time(arrival), end: format_time(departure) }),
+                    time: Some(Interval { start: format_time(service_start), end: format_time(service_end) }),
                     job_tag,
                     commute: act.commute.as_ref().map(|commute| Commute {
                         forward_distance: commute.forward.0,
@@ -262,8 +269,18 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     }),
                 });
 
+                // NOTE detect when vehicle returns after activity to stop point
+                let end_location = if commute.backward.1 > 0. {
+                    tour.stops
+                        .last()
+                        .and_then(|stop| coord_index.get_by_loc(&stop.location))
+                        .expect("expect to have at least one stop")
+                } else {
+                    act.place.location
+                };
+
                 Leg {
-                    last_detail: Some((act.place.location, act.schedule.departure)),
+                    last_detail: Some((end_location, departure)),
                     statistic: Statistic {
                         cost,
                         distance,
@@ -425,9 +442,4 @@ fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extr
                 .collect(),
         }),
     })
-}
-
-fn is_zero_commute(commute: &DomainCommute) -> bool {
-    compare_floats(commute.forward.1, 0.) == Ordering::Equal
-        && compare_floats(commute.backward.1, 0.) == Ordering::Equal
 }

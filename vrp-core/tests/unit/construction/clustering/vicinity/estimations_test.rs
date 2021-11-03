@@ -203,11 +203,11 @@ parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowe
 can_add_job! {
     case_01_trivial: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, None, Some((0, 4., (4., 4.), (4., 4.))),
+        false, false, VisitPolicy::ClosedContinuation, None, Some((0, 4., (4., 4.), (0., 0.))),
     ),
     case_02_two_places: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)]), (Some(3), 3., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, None,Some((1, 5., (2., 2.), (2., 2.))),
+        false, false, VisitPolicy::ClosedContinuation, None,Some((1, 5., (2., 2.), (0., 0.))),
     ),
 
     case_03_disallowed_insertion: (
@@ -230,7 +230,7 @@ can_add_job! {
     ),
     case_07_time_window_threshold_below: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, Some(94.), Some((0, 4., (4., 4.), (4., 4.))),
+        false, false, VisitPolicy::ClosedContinuation, Some(94.), Some((0, 4., (4., 4.), (0., 0.))),
     ),
 }
 
