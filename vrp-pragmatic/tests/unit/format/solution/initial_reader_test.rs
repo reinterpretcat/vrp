@@ -234,12 +234,7 @@ fn can_handle_commute_error_in_init_solution() {
                             end: "1970-01-01T00:00:02Z".to_string(),
                         }),
                         job_tag: None,
-                        commute: Some(Commute {
-                            forward_distance: 0.,
-                            forward_duration: 0.,
-                            backward_distance: 0.,
-                            backward_duration: 0.,
-                        }),
+                        commute: Some(Commute { forward: None, backward: None }),
                     }],
                 },
             ],

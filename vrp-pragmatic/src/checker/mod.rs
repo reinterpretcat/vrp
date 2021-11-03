@@ -227,11 +227,8 @@ impl CheckerContext {
                 .and_then(|location| self.get_location_index(location).ok())
         };
 
-        let get_activity_commute_by_idx = |idx: usize| {
-            stop.activities.get(idx).and_then(|activity| activity.commute.as_ref()).map(|commute| DomainCommute {
-                forward: (commute.forward_distance, commute.forward_duration),
-                backward: (commute.backward_distance, commute.backward_duration),
-            })
+        let get_activity_commute_by_idx = |idx: usize| -> Option<DomainCommute> {
+            stop.activities.get(idx).and_then(|activity| activity.commute.as_ref()).map(|commute| commute.into())
         };
 
         match (&self.clustering, &profile, get_activity_commute_by_idx(activity_idx)) {

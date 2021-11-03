@@ -1,6 +1,11 @@
 use crate::format::Location;
+use crate::{format_time, parse_time};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::io::{BufReader, BufWriter, Error, Read, Write};
+use vrp_core::models::common::{Distance, Duration, Timestamp};
+use vrp_core::models::solution::Commute as DomainCommute;
+use vrp_core::utils::compare_floats;
 
 /// Timing statistic.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
@@ -50,14 +55,19 @@ pub struct Interval {
 /// Stores information about commuting to perform activity.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Commute {
-    /// Commuting to place distance.
-    pub forward_distance: f64,
-    /// Commuting to place duration.
-    pub forward_duration: f64,
-    /// Commuting from place distance.
-    pub backward_distance: f64,
-    /// Commuting from place duration.
-    pub backward_duration: f64,
+    /// Commuting to the activity place.
+    pub forward: Option<CommuteInfo>,
+    /// Commuting from the activity place.
+    pub backward: Option<CommuteInfo>,
+}
+
+/// Stores information about commuting information in one direction.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+pub struct CommuteInfo {
+    /// Travelled distance.
+    pub distance: f64,
+    /// Travel time.
+    pub time: Interval,
 }
 
 /// An activity is unit of work performed at some place.
@@ -244,4 +254,44 @@ pub fn serialize_solution<W: Write>(writer: BufWriter<W>, solution: &Solution) -
 /// Deserializes solution from json format.
 pub fn deserialize_solution<R: Read>(reader: BufReader<R>) -> Result<Solution, Error> {
     serde_json::from_reader(reader).map_err(Error::from)
+}
+
+impl Interval {
+    /// Returns interval's duration.
+    pub fn duration(&self) -> Duration {
+        parse_time(&self.end) - parse_time(&self.start)
+    }
+}
+
+impl Commute {
+    /// Creates a new instance of `Commute`.
+    pub fn new(commute: &DomainCommute, start: Timestamp, end: Timestamp) -> Commute {
+        let parse_info = |info: (Distance, Duration), time: Timestamp| {
+            let (distance, duration) = info;
+            if compare_floats(distance, 0.) == Ordering::Equal && compare_floats(duration, 0.) == Ordering::Equal {
+                None
+            } else {
+                Some(CommuteInfo {
+                    distance,
+                    time: Interval { start: format_time(time), end: format_time(time + duration) },
+                })
+            }
+        };
+
+        Commute { forward: parse_info(commute.forward, start), backward: parse_info(commute.backward, end) }
+    }
+}
+
+impl From<&Commute> for DomainCommute {
+    fn from(commute: &Commute) -> Self {
+        let parse_info = |info: &Option<CommuteInfo>| {
+            info.as_ref().map_or((0., 0.), |info| {
+                let start = parse_time(&info.time.start);
+                let end = parse_time(&info.time.end);
+                (info.distance, end - start)
+            })
+        };
+
+        DomainCommute { forward: parse_info(&commute.forward), backward: parse_info(&commute.backward) }
+    }
 }

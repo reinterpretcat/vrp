@@ -222,11 +222,9 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     + problem.activity.cost(actor, act, act.schedule.arrival)
                     + transport.cost(actor, prev_location, act.place.location, prev_departure);
 
-                // NOTE we count only forward distance
-                let commute_distance = commute.forward.0 as i64;
                 let location_distance =
                     transport.distance(profile, prev_location, act.place.location, prev_departure) as i64;
-                let distance = leg.statistic.distance + location_distance - commute_distance;
+                let distance = leg.statistic.distance + location_distance - commute.forward.0 as i64;
 
                 let is_new_stop = match (act.commute.as_ref(), prev_location == act.place.location) {
                     (Some(commute), false) if commute.is_zero_time() => true,
@@ -261,11 +259,10 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     },
                     time: Some(Interval { start: format_time(service_start), end: format_time(service_end) }),
                     job_tag,
-                    commute: act.commute.as_ref().map(|commute| Commute {
-                        forward_distance: commute.forward.0,
-                        forward_duration: commute.forward.1,
-                        backward_distance: commute.backward.0,
-                        backward_duration: commute.backward.1,
+                    commute: act.commute.as_ref().map(|commute| {
+                        let start = act.schedule.arrival - commute.forward.1;
+                        let end = act.schedule.departure;
+                        Commute::new(commute, start, end)
                     }),
                 });
 

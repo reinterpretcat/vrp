@@ -80,12 +80,7 @@ fn can_cluster_simple_jobs() {
                                     end: "1970-01-01T00:00:04Z".to_string(),
                                 }),
                                 job_tag: None,
-                                commute: Some(Commute {
-                                    forward_distance: 0.,
-                                    forward_duration: 0.,
-                                    backward_distance: 0.,
-                                    backward_duration: 0.
-                                }),
+                                commute: Some(Commute { forward: None, backward: None }),
                             },
                             Activity {
                                 job_id: "job2".to_string(),
@@ -97,10 +92,14 @@ fn can_cluster_simple_jobs() {
                                 }),
                                 job_tag: None,
                                 commute: Some(Commute {
-                                    forward_distance: 1.,
-                                    forward_duration: 1.,
-                                    backward_distance: 0.,
-                                    backward_duration: 0.
+                                    forward: Some(CommuteInfo {
+                                        distance: 1.,
+                                        time: Interval {
+                                            start: "1970-01-01T00:00:04Z".to_string(),
+                                            end: "1970-01-01T00:00:05Z".to_string()
+                                        }
+                                    }),
+                                    backward: None,
                                 }),
                             },
                             Activity {
@@ -113,10 +112,20 @@ fn can_cluster_simple_jobs() {
                                 }),
                                 job_tag: None,
                                 commute: Some(Commute {
-                                    forward_distance: 1.,
-                                    forward_duration: 1.,
-                                    backward_distance: 2.,
-                                    backward_duration: 2.
+                                    forward: Some(CommuteInfo {
+                                        distance: 1.,
+                                        time: Interval {
+                                            start: "1970-01-01T00:00:06Z".to_string(),
+                                            end: "1970-01-01T00:00:07Z".to_string()
+                                        }
+                                    }),
+                                    backward: Some(CommuteInfo {
+                                        distance: 2.,
+                                        time: Interval {
+                                            start: "1970-01-01T00:00:08Z".to_string(),
+                                            end: "1970-01-01T00:00:10Z".to_string()
+                                        }
+                                    })
                                 }),
                             },
                         ],

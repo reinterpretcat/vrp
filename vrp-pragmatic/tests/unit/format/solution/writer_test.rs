@@ -2,9 +2,10 @@ use crate::format::problem::*;
 use crate::format::solution::writer::create_tour;
 use crate::format::solution::*;
 use crate::helpers::*;
+use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::models::examples::create_example_problem;
-use vrp_core::utils::as_mut;
+use vrp_core::utils::{as_mut, compare_floats};
 
 type DomainActivity = vrp_core::models::solution::Activity;
 type DomainCommute = vrp_core::models::solution::Commute;
@@ -187,8 +188,16 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
 
             match (commute, &actual.commute) {
                 (Some(expected), Some(actual)) => {
-                    assert_eq!(expected.0, actual.forward_duration);
-                    assert_eq!(expected.1, actual.backward_duration);
+                    let check_commute = |expected: f64, info: Option<&CommuteInfo>| {
+                        if compare_floats(expected, 0.) == Ordering::Equal {
+                            assert!(info.is_none())
+                        } else {
+                            assert_eq!(expected, info.unwrap().time.duration());
+                        }
+                    };
+
+                    check_commute(expected.0, actual.forward.as_ref());
+                    check_commute(expected.1, actual.backward.as_ref());
                 }
                 (Some(_), None) => unreachable!("expected to have commute"),
                 (None, Some(_)) => unreachable!("unexpected commute"),
