@@ -45,7 +45,7 @@ impl Processing for VicinityClustering {
     fn pre_process(&self, problem: Arc<Problem>, environment: Arc<Environment>) -> Arc<Problem> {
         let config = if let Some(config) = problem.extras.get_cluster_config() { config } else { return problem };
 
-        let clusters = create_job_clusters(problem.clone(), environment, &config);
+        let clusters = create_job_clusters(problem.clone(), environment, config);
 
         if clusters.is_empty() {
             problem

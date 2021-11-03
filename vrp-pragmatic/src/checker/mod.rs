@@ -105,7 +105,7 @@ impl CheckerContext {
     }
 
     fn get_vehicle_profile(&self, vehicle_id: &str) -> Result<Profile, String> {
-        let profile = &self.get_vehicle(&vehicle_id)?.profile;
+        let profile = &self.get_vehicle(vehicle_id)?.profile;
         let index = self
             .profile_index
             .get(profile.matrix.as_str())
@@ -218,7 +218,7 @@ impl CheckerContext {
         stop: &Stop,
         activity_idx: usize,
     ) -> Result<Option<DomainCommute>, String> {
-        let profile = self.get_vehicle_profile(&vehicle_id).ok();
+        let profile = self.get_vehicle_profile(vehicle_id).ok();
 
         let get_activity_location_by_idx = |idx: usize| {
             stop.activities
@@ -237,7 +237,7 @@ impl CheckerContext {
                 match (commute.is_zero_time(), activity_idx) {
                     (true, _) => Ok(Some(commute)),
                     // NOTE that's unreachable
-                    (false, idx) if idx == 0 => Err(format!("cannot have commute at first activity in the stop")),
+                    (false, idx) if idx == 0 => Err("cannot have commute at first activity in the stop".to_string()),
                     (false, idx) => {
                         let prev_location = get_activity_location_by_idx(idx - 1);
                         let curr_location = get_activity_location_by_idx(idx);

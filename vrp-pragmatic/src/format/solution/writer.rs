@@ -205,8 +205,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     _ => activity_type.clone(),
                 };
 
-                let commute =
-                    act.commute.clone().unwrap_or_else(|| DomainCommute { forward: (0., 0.), backward: (0., 0.) });
+                let commute = act.commute.clone().unwrap_or(DomainCommute { forward: (0., 0.), backward: (0., 0.) });
                 let driving =
                     transport.duration(profile, prev_location, act.place.location, prev_departure) - commute.forward.0;
 

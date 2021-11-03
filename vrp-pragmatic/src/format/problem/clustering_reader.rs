@@ -20,8 +20,8 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                 threshold: ThresholdPolicy {
                     moving_duration: threshold.moving_distance,
                     moving_distance: threshold.moving_duration,
-                    min_shared_time: threshold.min_shared_time.clone(),
-                    smallest_time_window: threshold.smallest_time_window.clone(),
+                    min_shared_time: threshold.min_shared_time,
+                    smallest_time_window: threshold.smallest_time_window,
                 },
                 visiting: match visiting {
                     VicinityVisitPolicy::OpenContinuation => VisitPolicy::OpenContinuation,
@@ -34,7 +34,7 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                     VicinityServingPolicy::Fixed { value } => ServingPolicy::Multiplier(*value),
                 },
                 filtering: get_filter_policy(filtering.as_ref()),
-                building: get_builder_policy(threshold.max_jobs_per_cluster.clone()),
+                building: get_builder_policy(threshold.max_jobs_per_cluster),
             })),
         }
     } else {
