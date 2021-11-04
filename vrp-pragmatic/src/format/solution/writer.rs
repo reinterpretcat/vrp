@@ -206,19 +206,24 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 };
 
                 let commute = act.commute.clone().unwrap_or(DomainCommute { forward: (0., 0.), backward: (0., 0.) });
-                let driving =
-                    transport.duration(profile, prev_location, act.place.location, prev_departure) - commute.forward.0;
+                let driving = if commute.is_zero_time() {
+                    transport.duration(profile, prev_location, act.place.location, prev_departure)
+                } else {
+                    // NOTE: no need to drive in case of non-zero commute, this goes to commuting time
+                    0.
+                };
 
-                let service_start = act.schedule.arrival.max(act.place.time.start);
-                let waiting = service_start - act.schedule.arrival;
+                let activity_arrival = act.schedule.arrival + commute.forward.1;
+                let service_start = activity_arrival.max(act.place.time.start);
+                let waiting = service_start - activity_arrival;
                 let serving = act.place.duration;
                 let service_end = service_start + serving;
+                let activity_departure = act.schedule.departure - commute.backward.1;
 
-                let arrival = act.schedule.arrival;
-                let departure = service_end + commute.backward.1;
+                debug_assert_eq!(service_end, activity_departure);
 
                 let cost = leg.statistic.cost
-                    + problem.activity.cost(actor, act, act.schedule.arrival)
+                    + problem.activity.cost(actor, act, service_start)
                     + transport.cost(actor, prev_location, act.place.location, prev_departure);
 
                 let location_distance =
@@ -234,7 +239,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 if is_new_stop {
                     tour.stops.push(Stop {
                         location: coord_index.get_by_idx(act.place.location).unwrap(),
-                        time: format_as_schedule(&(arrival, departure)),
+                        time: format_schedule(&act.schedule),
                         load: prev_load.as_vec(),
                         distance,
                         activities: vec![],
@@ -246,7 +251,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let last = tour.stops.len() - 1;
                 let mut last = tour.stops.get_mut(last).unwrap();
 
-                last.time.departure = format_time(departure);
+                last.time.departure = format_time(act.schedule.departure);
                 last.load = load.as_vec();
                 last.activities.push(ApiActivity {
                     job_id,
@@ -256,13 +261,12 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     } else {
                         Some(coord_index.get_by_idx(act.place.location).unwrap())
                     },
-                    time: Some(Interval { start: format_time(service_start), end: format_time(service_end) }),
+                    time: Some(Interval { start: format_time(activity_arrival), end: format_time(activity_departure) }),
                     job_tag,
-                    commute: act.commute.as_ref().map(|commute| {
-                        let start = act.schedule.arrival - commute.forward.1;
-                        let end = act.schedule.departure;
-                        Commute::new(commute, start, end)
-                    }),
+                    commute: act
+                        .commute
+                        .as_ref()
+                        .map(|commute| Commute::new(commute, act.schedule.arrival, activity_departure)),
                 });
 
                 // NOTE detect when vehicle returns after activity to stop point
@@ -276,11 +280,11 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 };
 
                 Leg {
-                    last_detail: Some((end_location, departure)),
+                    last_detail: Some((end_location, act.schedule.departure)),
                     statistic: Statistic {
                         cost,
                         distance,
-                        duration: leg.statistic.duration + departure as i64 - prev_departure as i64,
+                        duration: leg.statistic.duration + act.schedule.departure as i64 - prev_departure as i64,
                         times: Timing {
                             driving: leg.statistic.times.driving + driving as i64,
                             serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i64 }),
@@ -322,10 +326,6 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
 fn format_schedule(schedule: &DomainSchedule) -> ApiSchedule {
     ApiSchedule { arrival: format_time(schedule.arrival), departure: format_time(schedule.departure) }
-}
-
-fn format_as_schedule(schedule: &(f64, f64)) -> ApiSchedule {
-    format_schedule(&DomainSchedule::new(schedule.0, schedule.1))
 }
 
 fn calculate_load(current: MultiDimLoad, act: &Activity, is_multi_dimen: bool) -> MultiDimLoad {

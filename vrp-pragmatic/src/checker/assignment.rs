@@ -194,11 +194,12 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                                 ServingPolicy::Multiplier(multiplier) => place.duration * multiplier,
                                                 ServingPolicy::Fixed(value) => value,
                                             };
-                                            let expected_departure = time.start.max(place.time.start) + service_time;
+                                            let expected_departure =
+                                                time.start.max(place.time.start) + service_time + d_commute.backward.1;
 
                                             let a_commute: DomainCommute = commute.into();
 
-                                            are_not_equal(time.end, expected_departure)
+                                            are_not_equal(time.end + d_commute.backward.1, expected_departure)
                                                 || are_not_equal(a_commute.forward.0, d_commute.forward.0)
                                                 || are_not_equal(a_commute.forward.1, d_commute.forward.1)
                                                 || are_not_equal(a_commute.backward.0, d_commute.backward.0)

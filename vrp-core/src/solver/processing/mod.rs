@@ -41,6 +41,9 @@ impl Processing for CompositeProcessing {
     }
 
     fn post_process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
-        self.processors.iter().fold(insertion_ctx, |insertion_ctx, processor| processor.post_process(insertion_ctx))
+        self.processors
+            .iter()
+            .rev()
+            .fold(insertion_ctx, |insertion_ctx, processor| processor.post_process(insertion_ctx))
     }
 }

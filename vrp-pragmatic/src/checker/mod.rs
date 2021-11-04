@@ -239,7 +239,11 @@ impl CheckerContext {
                     // NOTE that's unreachable
                     (false, idx) if idx == 0 => Err("cannot have commute at first activity in the stop".to_string()),
                     (false, idx) => {
-                        let prev_location = get_activity_location_by_idx(idx - 1);
+                        let prev_location = if matches!(config.visiting, VisitPolicy::Return) {
+                            self.get_location_index(&stop.location).ok()
+                        } else {
+                            get_activity_location_by_idx(idx - 1)
+                        };
                         let curr_location = get_activity_location_by_idx(idx);
 
                         match (curr_location, prev_location) {

@@ -24,8 +24,7 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                     smallest_time_window: threshold.smallest_time_window,
                 },
                 visiting: match visiting {
-                    VicinityVisitPolicy::OpenContinuation => VisitPolicy::OpenContinuation,
-                    VicinityVisitPolicy::ClosedContinuation => VisitPolicy::ClosedContinuation,
+                    VicinityVisitPolicy::Continue => VisitPolicy::ClosedContinuation,
                     VicinityVisitPolicy::Return => VisitPolicy::Return,
                 },
                 serving: match serving {

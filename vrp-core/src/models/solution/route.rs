@@ -33,7 +33,7 @@ pub struct Activity {
     /// Specifies activity details.
     pub place: Place,
 
-    /// Specifies activity's schedule: actual arrival and departure time.
+    /// Specifies activity's schedule including commute time.
     pub schedule: Schedule,
 
     /// Specifies associated job. Empty if it has no association with a single job (e.g. tour start or end).

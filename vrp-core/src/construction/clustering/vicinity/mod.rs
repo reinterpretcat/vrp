@@ -84,6 +84,8 @@ pub enum VisitPolicy {
     ClosedContinuation,
     /// Clustered jobs are visited one by one starting from the cluster center and finishing in the
     /// end at the last job's location.
+    /// NOTE: this might be useful for use clustering algorithm to split problem into sub-problems.
+    /// TODO: make sure that it can be used with other non-clustered activities in the same stop.
     OpenContinuation,
 }
 

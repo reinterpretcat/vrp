@@ -117,18 +117,17 @@ impl Processing for VicinityClustering {
                 let (_, activities) =
                     cluster.into_iter().fold((cluster_arrival, Vec::new()), |(arrival, mut activities), info| {
                         // NOTE assumption: no waiting time possible in between of clustered jobs
-
                         let job = info.job.to_single().clone();
                         let place = job.places.first().unwrap();
 
-                        let movement = match config.visiting {
-                            VisitPolicy::Return => info.forward.1 + info.backward.1,
-                            VisitPolicy::OpenContinuation => info.forward.1,
-                            VisitPolicy::ClosedContinuation => {
-                                info.forward.1 + if info.job == last_job { info.backward.1 } else { 0. }
-                            }
+                        let backward = match config.visiting {
+                            VisitPolicy::Return => info.backward.1,
+                            VisitPolicy::ClosedContinuation if info.job == last_job => info.backward.1,
+                            _ => 0.,
                         };
-                        let departure = arrival.max(cluster_time.start) + movement + info.service_time;
+
+                        let service_start = (arrival + info.forward.1).max(cluster_time.start);
+                        let departure = service_start + info.service_time + backward;
 
                         activities.push(Activity {
                             place: Place {

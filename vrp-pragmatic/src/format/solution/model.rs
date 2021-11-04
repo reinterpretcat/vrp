@@ -20,6 +20,7 @@ pub struct Timing {
     #[serde(rename(serialize = "break", deserialize = "break"))]
     pub break_time: i64,
     /// Commuting time.
+    #[serde(default = "i64::default")]
     pub commuting: i64,
 }
 

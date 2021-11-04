@@ -1,9 +1,71 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
+use crate::format_time;
 use crate::helpers::*;
 
-#[test]
-fn can_cluster_simple_jobs() {
+// TODO
+//  check visiting policies
+//  check serving policies
+//  check different matrix/scale?
+//  check with constraints (e.g. skills)
+//  check two adjusted clusters
+//    - different stop location
+//    - same stop location (use limit by cluster size)
+
+type ExpectedActivity = ((f64, f64), Option<(f64, f64, f64)>, Option<(f64, f64, f64)>);
+
+parameterized_test! {can_cluster_simple_jobs, (visiting, serving, stop2_schedule, stop2_activity1, stop2_activity2, stop2_activity3, stop3_schedule, statistic), {
+    can_cluster_simple_jobs_impl(visiting, serving, stop2_schedule, stop2_activity1, stop2_activity2, stop2_activity3, stop3_schedule, statistic);
+}}
+
+can_cluster_simple_jobs! {
+    case_01_continue: (
+        VicinityVisitPolicy::Continue, VicinityServingPolicy::Original,
+        (3., 10.),
+        ((3., 4.), None, None),
+        ((5., 6.), Some((1., 4., 5.)), None),
+        ((7., 8.), Some((1., 6., 7.)), Some((2., 8., 10.))),
+        (17., 18.),
+        (38., 10, 18, (10, 4, 4))
+    ),
+    case_02_return: (
+        VicinityVisitPolicy::Return, VicinityServingPolicy::Original,
+        (3., 12.),
+        ((3., 4.), None, None),
+        ((5., 6.), Some((1., 4., 5.)), Some((1., 6., 7.))),
+        ((9., 10.), Some((2., 7., 9.)), Some((2., 10., 12.))),
+        (19., 20.),
+        (40., 10, 20, (10, 4, 6))
+    ),
+}
+
+fn can_cluster_simple_jobs_impl(
+    visiting: VicinityVisitPolicy,
+    serving: VicinityServingPolicy,
+    stop2_schedule: (f64, f64),
+    stop2_activity1: ExpectedActivity,
+    stop2_activity2: ExpectedActivity,
+    stop2_activity3: ExpectedActivity,
+    stop3_schedule: (f64, f64),
+    statistic: (f64, i64, i64, (i64, i64, i64)),
+) {
+    let convert_expected_commute_info = |commute: Option<(f64, f64, f64)>| {
+        commute.map(|commute| CommuteInfo {
+            distance: commute.0,
+            time: Interval { start: format_time(commute.1), end: format_time(commute.2) },
+        })
+    };
+    let statistic = Statistic {
+        cost: statistic.0,
+        distance: statistic.1,
+        duration: statistic.2,
+        times: Timing {
+            driving: statistic.3 .0,
+            serving: statistic.3 .1,
+            commuting: statistic.3 .2,
+            ..Timing::default()
+        },
+    };
     let problem = Problem {
         plan: Plan {
             jobs: vec![
@@ -21,8 +83,8 @@ fn can_cluster_simple_jobs() {
                     smallest_time_window: None,
                     max_jobs_per_cluster: None,
                 },
-                visiting: VicinityVisitPolicy::ClosedContinuation,
-                serving: VicinityServingPolicy::Original,
+                visiting,
+                serving,
                 filtering: None,
             }),
             ..create_empty_plan()
@@ -43,12 +105,7 @@ fn can_cluster_simple_jobs() {
     assert_eq!(
         solution,
         Solution {
-            statistic: Statistic {
-                cost: 38.,
-                distance: 10,
-                duration: 18,
-                times: Timing { driving: 10, serving: 4, commuting: 4, ..Timing::default() },
-            },
+            statistic: statistic.clone(),
             tours: vec![Tour {
                 vehicle_id: "my_vehicle_1".to_string(),
                 type_id: "my_vehicle".to_string(),
@@ -65,8 +122,8 @@ fn can_cluster_simple_jobs() {
                     Stop {
                         location: vec![3., 0.].to_loc(),
                         time: Schedule {
-                            arrival: "1970-01-01T00:00:03Z".to_string(),
-                            departure: "1970-01-01T00:00:10Z".to_string(),
+                            arrival: format_time(stop2_schedule.0),
+                            departure: format_time(stop2_schedule.1),
                         },
                         distance: 3,
                         load: vec![1],
@@ -76,30 +133,27 @@ fn can_cluster_simple_jobs() {
                                 activity_type: "delivery".to_string(),
                                 location: Some(vec![3., 0.].to_loc()),
                                 time: Some(Interval {
-                                    start: "1970-01-01T00:00:03Z".to_string(),
-                                    end: "1970-01-01T00:00:04Z".to_string(),
+                                    start: format_time(stop2_activity1.0 .0),
+                                    end: format_time(stop2_activity1.0 .1),
                                 }),
                                 job_tag: None,
-                                commute: Some(Commute { forward: None, backward: None }),
+                                commute: Some(Commute {
+                                    forward: convert_expected_commute_info(stop2_activity1.1),
+                                    backward: convert_expected_commute_info(stop2_activity1.2)
+                                }),
                             },
                             Activity {
                                 job_id: "job2".to_string(),
                                 activity_type: "delivery".to_string(),
                                 location: Some(vec![2., 0.].to_loc()),
                                 time: Some(Interval {
-                                    start: "1970-01-01T00:00:05Z".to_string(),
-                                    end: "1970-01-01T00:00:06Z".to_string(),
+                                    start: format_time(stop2_activity2.0 .0),
+                                    end: format_time(stop2_activity2.0 .1),
                                 }),
                                 job_tag: None,
                                 commute: Some(Commute {
-                                    forward: Some(CommuteInfo {
-                                        distance: 1.,
-                                        time: Interval {
-                                            start: "1970-01-01T00:00:04Z".to_string(),
-                                            end: "1970-01-01T00:00:05Z".to_string()
-                                        }
-                                    }),
-                                    backward: None,
+                                    forward: convert_expected_commute_info(stop2_activity2.1),
+                                    backward: convert_expected_commute_info(stop2_activity2.2)
                                 }),
                             },
                             Activity {
@@ -107,25 +161,13 @@ fn can_cluster_simple_jobs() {
                                 activity_type: "delivery".to_string(),
                                 location: Some(vec![1., 0.].to_loc()),
                                 time: Some(Interval {
-                                    start: "1970-01-01T00:00:07Z".to_string(),
-                                    end: "1970-01-01T00:00:08Z".to_string(),
+                                    start: format_time(stop2_activity3.0 .0),
+                                    end: format_time(stop2_activity3.0 .1),
                                 }),
                                 job_tag: None,
                                 commute: Some(Commute {
-                                    forward: Some(CommuteInfo {
-                                        distance: 1.,
-                                        time: Interval {
-                                            start: "1970-01-01T00:00:06Z".to_string(),
-                                            end: "1970-01-01T00:00:07Z".to_string()
-                                        }
-                                    }),
-                                    backward: Some(CommuteInfo {
-                                        distance: 2.,
-                                        time: Interval {
-                                            start: "1970-01-01T00:00:08Z".to_string(),
-                                            end: "1970-01-01T00:00:10Z".to_string()
-                                        }
-                                    })
+                                    forward: convert_expected_commute_info(stop2_activity3.1),
+                                    backward: convert_expected_commute_info(stop2_activity3.2)
                                 }),
                             },
                         ],
@@ -135,16 +177,11 @@ fn can_cluster_simple_jobs() {
                         "delivery",
                         (10., 0.),
                         0,
-                        ("1970-01-01T00:00:17Z", "1970-01-01T00:00:18Z"),
+                        (&format_time(stop3_schedule.0), &format_time(stop3_schedule.1)),
                         10,
                     ),
                 ],
-                statistic: Statistic {
-                    cost: 38.,
-                    distance: 10,
-                    duration: 18,
-                    times: Timing { driving: 10, serving: 4, commuting: 4, ..Timing::default() },
-                },
+                statistic,
             }],
             ..create_empty_solution()
         }

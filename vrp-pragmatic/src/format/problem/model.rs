@@ -166,10 +166,7 @@ pub enum VicinityVisitPolicy {
     Return,
     /// Clustered jobs are visited one by one from the cluster center finishing in the end at the
     /// first job's location.
-    ClosedContinuation,
-    /// Clustered jobs are visited one by one starting from the cluster center and finishing in the
-    /// end at the last job's location.
-    OpenContinuation,
+    Continue,
 }
 
 /// Specifies service time policy.
