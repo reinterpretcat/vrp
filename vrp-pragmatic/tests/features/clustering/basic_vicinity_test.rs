@@ -1,5 +1,6 @@
 use super::*;
 use crate::format::problem::*;
+use std::iter::once;
 
 // TODO
 //  check two adjusted clusters
@@ -82,19 +83,9 @@ fn can_cluster_simple_jobs_impl(
     serving: VicinityServingPolicy,
     stop2: StopData,
     stop3_schedule: (f64, f64),
-    statistic: (f64, i64, i64, (i64, i64, i64)),
+    statistic_data: (f64, i64, i64, (i64, i64, i64)),
 ) {
-    let statistic = Statistic {
-        cost: statistic.0,
-        distance: statistic.1,
-        duration: statistic.2,
-        times: Timing {
-            driving: statistic.3 .0,
-            serving: statistic.3 .1,
-            commuting: statistic.3 .2,
-            ..Timing::default()
-        },
-    };
+    let statistic = create_statistic(statistic_data);
     let problem = create_test_problem(
         &[1., 2., 3., 10.],
         Clustering::Vicinity {
@@ -149,11 +140,36 @@ fn can_cluster_simple_jobs_impl(
     );
 }
 
-#[test]
-#[ignore]
-fn can_handle_two_clusters() {
-    let problem = create_test_problem(
+parameterized_test! {can_handle_two_clusters, (job_locations, stops, statistic), {
+    let stops = stops.into_iter().map(StopData::new).collect();
+    can_handle_two_clusters_impl(job_locations, stops, statistic);
+}}
+
+can_handle_two_clusters! {
+    case_01_diff_stops: (
         &[1., 2., 3., 4.],
+        vec![
+          (2., 2, 2, (2., 6.), vec![
+            ActivityData::new(("job2", Some(2.), "delivery", Some((2., 3.)), Some((None, None)))),
+            ActivityData::new(("job1", Some(1.), "delivery", Some((4., 5.)), Some((Some((1., 3., 4.)), Some((1., 5., 6.)))))),
+          ]),
+          (4., 4, 0, (8., 12.), vec![
+            ActivityData::new(("job4", Some(4.), "delivery", Some((8., 9.)), Some((None, None)))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((10., 11.)), Some((Some((1., 9., 10.)), Some((1., 11., 12.)))))),
+          ])
+        ],
+        (26., 4, 12, (4, 4, 4)),
+    ),
+}
+
+fn can_handle_two_clusters_impl(
+    job_locations: &[f64],
+    stops: Vec<StopData>,
+    statistic_data: (f64, i64, i64, (i64, i64, i64)),
+) {
+    let statistic = create_statistic(statistic_data);
+    let problem = create_test_problem(
+        job_locations,
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
@@ -172,5 +188,27 @@ fn can_handle_two_clusters() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(solution, create_empty_solution());
+    assert_eq!(
+        solution,
+        Solution {
+            statistic: statistic.clone(),
+            tours: vec![Tour {
+                vehicle_id: "my_vehicle_1".to_string(),
+                type_id: "my_vehicle".to_string(),
+                shift_index: 0,
+                stops: once(create_stop_with_activity(
+                    "departure",
+                    "departure",
+                    (0., 0.),
+                    4,
+                    ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
+                    0,
+                ))
+                .chain(stops.into_iter().map(StopData::into))
+                .collect(),
+                statistic,
+            }],
+            ..create_empty_solution()
+        }
+    );
 }

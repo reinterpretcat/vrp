@@ -71,4 +71,13 @@ impl From<StopData> for Stop {
     }
 }
 
+fn create_statistic(data: (f64, i64, i64, (i64, i64, i64))) -> Statistic {
+    Statistic {
+        cost: data.0,
+        distance: data.1,
+        duration: data.2,
+        times: Timing { driving: data.3 .0, serving: data.3 .1, commuting: data.3 .2, ..Timing::default() },
+    }
+}
+
 mod basic_vicinity_test;
