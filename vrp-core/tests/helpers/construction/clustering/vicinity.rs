@@ -119,12 +119,12 @@ pub fn create_cluster_config() -> ClusterConfig {
             moving_distance: 10.0,
             min_shared_time: None,
             smallest_time_window: None,
+            max_jobs_per_cluster: None,
         },
         visiting: VisitPolicy::Return,
         serving: ServingPolicy::Original,
         filtering: FilterPolicy { job_filter: Arc::new(|_| true), actor_filter: Arc::new(|_| true) },
         building: BuilderPolicy {
-            threshold: Arc::new(|_| true),
             ordering_global: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {
                 ordering_rule(left_candidates.len().cmp(&right_candidates.len()), left_job, right_job)
             }),

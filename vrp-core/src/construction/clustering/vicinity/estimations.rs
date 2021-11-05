@@ -162,11 +162,7 @@ fn get_dissimilarities(
                             && (bck_duration - config.threshold.moving_duration < 0.)
                             && (bck_distance - config.threshold.moving_distance < 0.);
 
-                        let service_time = match &config.serving {
-                            ServingPolicy::Original => inner_duration,
-                            ServingPolicy::Multiplier(multiplier) => inner_duration * *multiplier,
-                            ServingPolicy::Fixed(service_time) => *service_time,
-                        };
+                        let service_time = get_service_time(inner_duration, &config.serving);
 
                         let info = ClusterInfo {
                             job: inner.clone(),
@@ -203,11 +199,11 @@ fn build_job_cluster(
         Option::<(Job, usize)>::None,
         |best_cluster, center_place_info| {
             let (center_place_idx, center_location, center_duration, center_times) = center_place_info;
-            let new_center_job =
-                create_single_job(Some(center_location), center_duration, &center_times, &center.dimens);
+            let new_duration = get_service_time(center_duration, &config.serving);
+            let new_center_job = create_single_job(Some(center_location), new_duration, &center_times, &center.dimens);
             let new_visit_info = ClusterInfo {
                 job: center_job.clone(),
-                service_time: center_duration,
+                service_time: new_duration,
                 place_idx: center_place_idx,
                 forward: (0., 0.),
                 backward: (0., 0.),
@@ -225,6 +221,8 @@ fn build_job_cluster(
                     .expect("cannot find movement info")
             };
 
+            let is_max_jobs = |count| config.threshold.max_jobs_per_cluster.map_or(false, |max| max <= count);
+
             // allow jobs only from reachable candidates
             let mut cluster_candidates = center_estimates
                 .iter()
@@ -239,7 +237,7 @@ fn build_job_cluster(
             let mut count = 1_usize;
 
             loop {
-                if cluster_candidates.is_empty() {
+                if cluster_candidates.is_empty() || is_max_jobs(count) {
                     break;
                 }
 
@@ -300,14 +298,10 @@ fn build_job_cluster(
                 cluster = finish_cluster(cluster, config, &return_movement);
             }
 
-            let best_cluster = match &best_cluster {
-                Some((_, best_count)) if *best_count < count => Some((cluster, count)),
-                None if count > 1 => Some((cluster, count)),
-                _ => best_cluster,
-            };
-
-            match &best_cluster {
-                Some((job, _)) if !config.building.threshold.deref()(job) => Err(best_cluster),
+            match (&best_cluster, count) {
+                (_, count) if is_max_jobs(count) => Err(Some((cluster, count))),
+                (Some((_, best_count)), _) if *best_count < count => Ok(Some((cluster, count))),
+                (None, _) if count > 1 => Ok(Some((cluster, count))),
                 _ => Ok(best_cluster),
             }
         },
@@ -502,4 +496,12 @@ fn create_single_job(location: Option<Location>, duration: Duration, times: &[Ti
         }],
         dimens: dimens.clone(),
     }))
+}
+
+fn get_service_time(original: Duration, policy: &ServingPolicy) -> Duration {
+    match policy {
+        ServingPolicy::Original => original,
+        ServingPolicy::Multiplier(multiplier) => original * *multiplier,
+        ServingPolicy::Fixed(service_time) => *service_time,
+    }
 }

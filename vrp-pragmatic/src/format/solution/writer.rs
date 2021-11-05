@@ -218,13 +218,21 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let waiting = service_start - activity_arrival;
                 let serving = act.place.duration;
                 let service_end = service_start + serving;
+                let commuting = commute.forward.1 + commute.backward.1;
                 let activity_departure = act.schedule.departure - commute.backward.1;
 
                 debug_assert_eq!(service_end, activity_departure);
 
-                let cost = leg.statistic.cost
-                    + problem.activity.cost(actor, act, service_start)
-                    + transport.cost(actor, prev_location, act.place.location, prev_departure);
+                // NOTE: use original cost traits to adapt time-based costs (except waiting/commuting)
+                // TODO: add better support of time based activity costs
+                let serving_cost = problem.activity.cost(actor, act, service_start);
+                let transport_cost = if commute.is_zero_time() {
+                    transport.cost(actor, prev_location, act.place.location, prev_departure)
+                } else {
+                    // no real driving costs in case of commute
+                    commuting * vehicle.costs.per_service_time
+                };
+                let cost = serving_cost + transport_cost + waiting * vehicle.costs.per_waiting_time;
 
                 let location_distance =
                     transport.distance(profile, prev_location, act.place.location, prev_departure) as i64;
@@ -282,7 +290,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 Leg {
                     last_detail: Some((end_location, act.schedule.departure)),
                     statistic: Statistic {
-                        cost,
+                        cost: leg.statistic.cost + cost,
                         distance,
                         duration: leg.statistic.duration + act.schedule.departure as i64 - prev_departure as i64,
                         times: Timing {
@@ -290,9 +298,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                             serving: leg.statistic.times.serving + (if is_break { 0 } else { serving as i64 }),
                             waiting: leg.statistic.times.waiting + waiting as i64,
                             break_time: leg.statistic.times.break_time + (if is_break { serving as i64 } else { 0 }),
-                            commuting: leg.statistic.times.commuting
-                                + commute.forward.1 as i64
-                                + commute.backward.1 as i64,
+                            commuting: leg.statistic.times.commuting + commuting as i64,
                         },
                     },
                     load: Some(load),

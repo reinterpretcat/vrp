@@ -62,6 +62,7 @@ parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, thres
         moving_distance: threshold.1,
         min_shared_time: threshold.2,
         smallest_time_window: None,
+        max_jobs_per_cluster: None,
     };
     let expected = expected.into_iter()
       .map(|e: (usize, usize, Duration, (Duration, Distance), (Duration, Distance))| {
@@ -401,22 +402,34 @@ fn can_build_job_cluster_impl(
     }
 }
 
-parameterized_test! {can_get_clusters, (jobs_amount, moving_duration, expected), {
-    can_get_clusters_impl(jobs_amount, moving_duration, expected);
+parameterized_test! {can_get_clusters, (jobs_amount, moving_duration, max_jobs_per_cluster, expected), {
+    can_get_clusters_impl(jobs_amount, moving_duration, max_jobs_per_cluster, expected);
 }}
 
 can_get_clusters! {
-    case_01: (13, 2.5, vec![(8, vec![8, 9, 10, 7, 6]), (3, vec![3, 2, 1, 4, 5]), (12, vec![12, 11])]),
-    case_02: (8, 2.5, vec![(5, vec![5, 4, 3, 6, 7]), (2, vec![2, 1, 0])]),
-    case_03: (7, 2.5, vec![(4, vec![4, 3, 2, 5, 6]), (1, vec![1, 0])]),
-    case_04: (6, 2.5, vec![(3, vec![3, 2, 1, 4, 5])]),
-    case_05: (6, 3.5, vec![(3, vec![3, 2, 1, 0, 4, 5])]),
-    case_06: (6, 0.5, vec![]),
+    case_01: (13, 2.5, None, vec![(8, vec![8, 9, 10, 7, 6]), (3, vec![3, 2, 1, 4, 5]), (12, vec![12, 11])]),
+    case_02: (8, 2.5, None, vec![(5, vec![5, 4, 3, 6, 7]), (2, vec![2, 1, 0])]),
+    case_03: (7, 2.5, None, vec![(4, vec![4, 3, 2, 5, 6]), (1, vec![1, 0])]),
+    case_04: (6, 2.5, None, vec![(3, vec![3, 2, 1, 4, 5])]),
+    case_05: (6, 3.5, None, vec![(3, vec![3, 2, 1, 0, 4, 5])]),
+    case_06: (6, 0.5, None, vec![]),
+    // TODO improve such use cases
+    case_07: (6, 3.5, Some(3), vec![(3, vec![3, 2, 4]), (1, vec![1, 0])]),
 }
 
-pub fn can_get_clusters_impl(jobs_amount: usize, moving_duration: f64, expected: Vec<(usize, Vec<usize>)>) {
-    let threshold =
-        ThresholdPolicy { moving_duration, moving_distance: 10.0, min_shared_time: None, smallest_time_window: None };
+pub fn can_get_clusters_impl(
+    jobs_amount: usize,
+    moving_duration: f64,
+    max_jobs_per_cluster: Option<usize>,
+    expected: Vec<(usize, Vec<usize>)>,
+) {
+    let threshold = ThresholdPolicy {
+        moving_duration,
+        moving_distance: 10.0,
+        min_shared_time: None,
+        smallest_time_window: None,
+        max_jobs_per_cluster,
+    };
     let disallow_merge_list = vec![];
     let disallow_insertion_list = vec![];
     let jobs_places = (0..jobs_amount).map(|idx| vec![(Some(idx), 2., vec![(0., 100.)])]).collect();

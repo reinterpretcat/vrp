@@ -22,6 +22,7 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                     moving_distance: threshold.moving_duration,
                     min_shared_time: threshold.min_shared_time,
                     smallest_time_window: threshold.smallest_time_window,
+                    max_jobs_per_cluster: threshold.max_jobs_per_cluster,
                 },
                 visiting: match visiting {
                     VicinityVisitPolicy::Continue => VisitPolicy::ClosedContinuation,
@@ -33,7 +34,7 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                     VicinityServingPolicy::Fixed { value } => ServingPolicy::Multiplier(*value),
                 },
                 filtering: get_filter_policy(filtering.as_ref()),
-                building: get_builder_policy(threshold.max_jobs_per_cluster),
+                building: get_builder_policy(),
             })),
         }
     } else {
@@ -51,7 +52,7 @@ fn get_profile(api_problem: &ApiProblem, profile: &VehicleProfile) -> Result<Pro
     Ok(Profile { index: profile_index, scale: profile.scale.unwrap_or(1.) })
 }
 
-fn get_builder_policy(max_jobs_per_cluster: Option<usize>) -> BuilderPolicy {
+fn get_builder_policy() -> BuilderPolicy {
     // NOTE use ordering rule which is based on job id to make clusters stable
     let ordering_rule = |result: Ordering, left_job: &Job, right_job: &Job| match result {
         Ordering::Equal => match (left_job.dimens().get_id(), right_job.dimens().get_id()) {
@@ -65,13 +66,6 @@ fn get_builder_policy(max_jobs_per_cluster: Option<usize>) -> BuilderPolicy {
     };
 
     BuilderPolicy {
-        threshold: if let Some(max_jobs_per_cluster) = max_jobs_per_cluster {
-            Arc::new(move |job| {
-                job.dimens().get_cluster().map_or(true, |clustered| clustered.len() < max_jobs_per_cluster)
-            })
-        } else {
-            Arc::new(|_| true)
-        },
         ordering_global: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {
             ordering_rule(left_candidates.len().cmp(&right_candidates.len()), left_job, right_job)
         }),

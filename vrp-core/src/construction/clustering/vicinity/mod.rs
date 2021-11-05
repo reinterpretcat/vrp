@@ -72,6 +72,8 @@ pub struct ThresholdPolicy {
     pub min_shared_time: Option<Duration>,
     /// The smallest time window of the cluster after service time shrinking.
     pub smallest_time_window: Option<f64>,
+    /// The maximum amount of jobs per cluster.
+    pub max_jobs_per_cluster: Option<usize>,
 }
 
 /// Specifies cluster visiting policy.
@@ -112,8 +114,6 @@ pub enum ServingPolicy {
 /// Allows to control how clusters are built.
 #[derive(Clone)]
 pub struct BuilderPolicy {
-    /// Checks whether given cluster is already good to go, so clustering more jobs is not needed.
-    pub threshold: Arc<dyn Fn(&Job) -> bool + Send + Sync>,
     /// Orders visiting clusters based on their estimated size.
     pub ordering_global: Arc<dyn Fn(ClusterCandidate, ClusterCandidate) -> Ordering + Send + Sync>,
     /// Orders visiting jobs in a cluster based on their visit info.

@@ -165,11 +165,9 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
             coord_index.add(&Location::Reference { index });
             let arrival = index as f64;
             let commute = commute.map(|(f, b)| DomainCommute { forward: (0., f), backward: (0., b) });
+            let departure = arrival + commute.as_ref().map(|c| c.forward.1 + c.backward.1).unwrap_or(0.);
             DomainActivity {
-                schedule: DomainSchedule {
-                    arrival,
-                    departure: commute.as_ref().map(|c| c.forward.1 + c.backward.1).unwrap_or(0.),
-                },
+                schedule: DomainSchedule { arrival, departure },
                 commute,
                 ..create_activity_with_job_at_location(create_single(&format!("job{}", index)), index)
             }
