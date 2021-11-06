@@ -3,9 +3,6 @@ use crate::format::problem::*;
 use std::iter::once;
 
 // TODO
-//  check two adjusted clusters
-//    - different stop location
-//    - same stop location (use limit by cluster size)
 //  check different matrix/scale?
 //  check with constraints (e.g. skills)
 
@@ -140,14 +137,14 @@ fn can_cluster_simple_jobs_impl(
     );
 }
 
-parameterized_test! {can_handle_two_clusters, (job_locations, stops, statistic), {
+parameterized_test! {can_handle_two_clusters, (job_locations, serving, ignore_job_ids, stops, statistic), {
     let stops = stops.into_iter().map(StopData::new).collect();
-    can_handle_two_clusters_impl(job_locations, stops, statistic);
+    can_handle_two_clusters_impl(job_locations, serving, ignore_job_ids, stops, statistic);
 }}
 
 can_handle_two_clusters! {
     case_01_diff_stops: (
-        &[1., 2., 3., 4.],
+        &[1., 2., 3., 4.], VicinityServingPolicy::Original, false,
         vec![
           (2., 2, 2, (2., 6.), vec![
             ActivityData::new(("job2", Some(2.), "delivery", Some((2., 3.)), Some((None, None)))),
@@ -160,10 +157,24 @@ can_handle_two_clusters! {
         ],
         (26., 4, 12, (4, 4, 4)),
     ),
+    case_02_same_stops: (
+        &[1., 1., 1., 1.], VicinityServingPolicy::Fixed { value: 2. }, true,
+        vec![
+          (1., 1, 0, (1., 9.), vec![
+            ActivityData::new(("x", Some(1.), "delivery", Some((1., 3.)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((3., 5.)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((5., 7.)), Some((None, None)))),
+            ActivityData::new(("x", Some(1.), "delivery", Some((7., 9.)), Some((None, None)))),
+          ])
+        ],
+        (20., 1, 9, (1, 8, 0)),
+    ),
 }
 
 fn can_handle_two_clusters_impl(
     job_locations: &[f64],
+    serving: VicinityServingPolicy,
+    ignore_job_ids: bool,
     stops: Vec<StopData>,
     statistic_data: (f64, i64, i64, (i64, i64, i64)),
 ) {
@@ -180,14 +191,26 @@ fn can_handle_two_clusters_impl(
                 max_jobs_per_cluster: Some(2),
             },
             visiting: VicinityVisitPolicy::Continue,
-            serving: VicinityServingPolicy::Original,
+            serving,
             filtering: None,
         },
     );
     let matrix = create_matrix_from_problem(&problem);
 
-    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+    let mut solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
+    if ignore_job_ids {
+        // NOTE ignore job id comparison
+        solution
+            .tours
+            .iter_mut()
+            .flat_map(|tour| tour.stops.iter_mut().flat_map(|stop| stop.activities.iter_mut()))
+            .for_each(|a| {
+                if a.activity_type == "delivery" {
+                    a.job_id = "x".to_string()
+                }
+            });
+    }
     assert_eq!(
         solution,
         Solution {
