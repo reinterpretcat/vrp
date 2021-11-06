@@ -1,3 +1,4 @@
+use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format::Location;
 use crate::format_time;
@@ -80,4 +81,31 @@ fn create_statistic(data: (f64, i64, i64, (i64, i64, i64))) -> Statistic {
     }
 }
 
+fn create_test_problem(jobs_data: &[(f64, &str)], capacity: i32, clustering: Clustering) -> Problem {
+    Problem {
+        plan: Plan {
+            jobs: jobs_data
+                .iter()
+                .enumerate()
+                .map(|(idx, &(loc, j_type))| match j_type {
+                    "delivery" => create_delivery_job(&format!("job{}", idx + 1), vec![loc, 0.]),
+                    "pickup" => create_pickup_job(&format!("job{}", idx + 1), vec![loc, 0.]),
+                    _ => unreachable!(),
+                })
+                .collect(),
+            clustering: Some(clustering),
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![create_default_open_vehicle_shift()],
+                ..create_vehicle_with_capacity("my_vehicle", vec![capacity])
+            }],
+            profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
+        },
+        ..create_empty_problem()
+    }
+}
+
 mod basic_vicinity_test;
+mod capacity_vicinity_test;

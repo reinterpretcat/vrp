@@ -1,32 +1,5 @@
 use super::*;
-use crate::format::problem::*;
 use std::iter::once;
-
-// TODO
-//  check different matrix/scale?
-//  check with constraints (e.g. skills)
-
-fn create_test_problem(job_locations: &[f64], clustering: Clustering) -> Problem {
-    Problem {
-        plan: Plan {
-            jobs: job_locations
-                .iter()
-                .enumerate()
-                .map(|(idx, &loc)| create_delivery_job(&format!("job{}", idx + 1), vec![loc, 0.]))
-                .collect(),
-            clustering: Some(clustering),
-            ..create_empty_plan()
-        },
-        fleet: Fleet {
-            vehicles: vec![VehicleType {
-                shifts: vec![create_default_open_vehicle_shift()],
-                ..create_default_vehicle_type()
-            }],
-            profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
-        },
-        ..create_empty_problem()
-    }
-}
 
 parameterized_test! {can_cluster_simple_jobs, (visiting, serving, stop2, stop3_schedule, statistic), {
     can_cluster_simple_jobs_impl(visiting, serving, StopData::new(stop2), stop3_schedule, statistic);
@@ -84,7 +57,8 @@ fn can_cluster_simple_jobs_impl(
 ) {
     let statistic = create_statistic(statistic_data);
     let problem = create_test_problem(
-        &[1., 2., 3., 10.],
+        &[(1., "delivery"), (2., "delivery"), (3., "delivery"), (10., "delivery")],
+        10,
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
@@ -180,7 +154,8 @@ fn can_handle_two_clusters_impl(
 ) {
     let statistic = create_statistic(statistic_data);
     let problem = create_test_problem(
-        job_locations,
+        job_locations.iter().map(|loc| (*loc, "delivery")).collect::<Vec<_>>().as_slice(),
+        10,
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
