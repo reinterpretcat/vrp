@@ -50,11 +50,9 @@ pub fn create_objective(
                         }
                         MinimizeUnassignedJobs { breaks } => {
                             if let Some(breaks) = *breaks {
-                                core_objectives.push(Arc::new(TotalUnassignedJobs::new(Arc::new(move |_, job, _| {
-                                    get_unassigned_job_estimate(job, breaks, 1.)
-                                }))))
+                                core_objectives.push(Arc::new(get_unassigned_objective(breaks)))
                             } else {
-                                core_objectives.push(Arc::new(TotalUnassignedJobs::default()))
+                                core_objectives.push(Arc::new(get_unassigned_objective(1.)))
                             }
                         }
                         BalanceMaxLoad { options } => {
@@ -96,12 +94,8 @@ pub fn create_objective(
             constraint.add_module(value_module);
             constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
 
-            let mut objectives = vec![
-                vec![value_objective],
-                vec![Arc::new(TotalUnassignedJobs::default())],
-                vec![Arc::new(TotalRoutes::default())],
-                vec![TotalCost::minimize()],
-            ];
+            let mut objectives =
+                std::iter::once(vec![value_objective]).chain(get_default_objectives().into_iter()).collect::<Vec<_>>();
 
             if has_order {
                 let (order_module, order_objective) = get_order(false);
@@ -115,18 +109,14 @@ pub fn create_objective(
             let (order_module, order_objective) = get_order(false);
             constraint.add_module(order_module);
 
-            let mut objectives: Vec<Vec<TargetObjective>> = vec![
-                vec![Arc::new(TotalUnassignedJobs::default())],
-                vec![Arc::new(TotalRoutes::default())],
-                vec![TotalCost::minimize()],
-            ];
+            let mut objectives = get_default_objectives();
             objectives.insert(1, vec![order_objective]);
 
             ObjectiveCost::new(objectives)
         }
         _ => {
             constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
-            ObjectiveCost::default()
+            ObjectiveCost::new(get_default_objectives())
         }
     })
 }
@@ -198,6 +188,18 @@ fn get_load_balance(
             Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
         )
     }
+}
+
+fn get_default_objectives() -> Vec<Vec<TargetObjective>> {
+    vec![
+        vec![Arc::new(get_unassigned_objective(1.))],
+        vec![Arc::new(TotalRoutes::default())],
+        vec![TotalCost::minimize()],
+    ]
+}
+
+fn get_unassigned_objective(break_value: f64) -> TotalUnassignedJobs {
+    TotalUnassignedJobs::new(Arc::new(move |_, job, _| get_unassigned_job_estimate(job, break_value, 1.)))
 }
 
 fn get_unassigned_job_estimate(job: &Job, break_value: f64, default_value: f64) -> f64 {

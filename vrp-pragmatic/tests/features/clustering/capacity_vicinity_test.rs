@@ -79,13 +79,13 @@ fn can_mix_pickup_delivery_jobs() {
     );
 }
 
-parameterized_test! {can_vary_cluster_size_based_on_capacity, (capacity, stops, statistic), {
+parameterized_test! {can_vary_cluster_size_based_on_capacity, (capacity, stops, unassigned, statistic), {
     let stops = stops.into_iter().map(StopData::new).collect();
-    can_vary_cluster_size_based_on_capacity_impl(capacity, stops, statistic);
+    can_vary_cluster_size_based_on_capacity_impl(capacity, stops, unassigned, statistic);
 }}
 
 can_vary_cluster_size_based_on_capacity! {
-    case_01_full: (
+    case_01: (
         4,
         vec![
           (4., 4, 0, (4., 14.), vec![
@@ -95,13 +95,27 @@ can_vary_cluster_size_based_on_capacity! {
             ActivityData::new(("job1", Some(1.), "delivery", Some((10., 11.)), Some((Some((1., 9., 10.)), Some((3., 11., 14.)))))),
           ])
         ],
+        None,
         (28., 4, 14, (4, 4, 6)),
+    ),
+    case_02: (
+        3,
+        vec![
+          (4., 4, 0, (4., 11.), vec![
+            ActivityData::new(("job4", Some(4.), "delivery", Some((4., 5.)), Some((None, None)))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((1., 5., 6.)), None)))),
+            ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((1., 7., 8.)), Some((2., 9., 11.)))))),
+          ])
+        ],
+        Some(vec!["job1"]),
+        (25., 4, 11, (4, 3, 4)),
     ),
 }
 
 fn can_vary_cluster_size_based_on_capacity_impl(
     capacity: i32,
     stops: Vec<StopData>,
+    unassigned: Option<Vec<&str>>,
     statistic_data: (f64, i64, i64, (i64, i64, i64)),
 ) {
     let statistic = create_statistic(statistic_data);
@@ -147,6 +161,16 @@ fn can_vary_cluster_size_based_on_capacity_impl(
 
                 statistic,
             }],
+            unassigned: unassigned.map(|job_ids| job_ids
+                .iter()
+                .map(|job_id| UnassignedJob {
+                    job_id: job_id.to_string(),
+                    reasons: vec![UnassignedJobReason {
+                        code: "CAPACITY_CONSTRAINT".to_string(),
+                        description: "does not fit into any vehicle due to capacity".to_string()
+                    }]
+                })
+                .collect()),
             ..create_empty_solution()
         }
     );
