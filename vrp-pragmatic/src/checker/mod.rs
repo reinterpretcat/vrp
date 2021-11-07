@@ -214,12 +214,10 @@ impl CheckerContext {
 
     fn get_commute_info(
         &self,
-        vehicle_id: &str,
+        profile: Option<Profile>,
         stop: &Stop,
         activity_idx: usize,
     ) -> Result<Option<DomainCommute>, String> {
-        let profile = self.get_vehicle_profile(vehicle_id).ok();
-
         let get_activity_location_by_idx = |idx: usize| {
             stop.activities
                 .get(idx)

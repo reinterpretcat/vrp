@@ -1,12 +1,6 @@
 use super::*;
 use std::iter::once;
 
-// TODO
-//  check different matrix/scale?
-//  check with constraints
-//  - skills?
-//  - no capacity overload
-
 #[test]
 fn can_mix_pickup_delivery_jobs() {
     let a = ActivityData::new;

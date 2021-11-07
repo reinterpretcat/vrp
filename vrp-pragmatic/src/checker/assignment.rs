@@ -178,7 +178,9 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                             match result {
                                 Err(_) => true,
                                 Ok(Some(JobInfo(_, _, place, time))) => {
-                                    let domain_commute = ctx.get_commute_info(&tour.vehicle_id, stop, *idx);
+                                    let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
+                                    let domain_commute = ctx.get_commute_info(commute_profile, stop, *idx);
+
                                     match (&ctx.clustering, &activity.commute, domain_commute) {
                                         (_, _, Err(_))
                                         | (_, None, Ok(Some(_)))
