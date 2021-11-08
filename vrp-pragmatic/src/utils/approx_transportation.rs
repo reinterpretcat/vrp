@@ -10,8 +10,10 @@ pub fn get_approx_transportation(locations: &[Location], speeds: &[f64]) -> Vec<
     assert!(!speeds.is_empty());
     assert!(speeds.iter().all(|&speed| speed > 0.));
 
-    let distances =
-        locations.iter().flat_map(|l1| locations.iter().map(move |l2| get_distance(l1, l2))).collect::<Vec<_>>();
+    let distances = locations
+        .iter()
+        .flat_map(|l1| locations.iter().map(move |l2| get_haversine_distance(l1, l2)))
+        .collect::<Vec<_>>();
 
     let distances_rounded = distances.iter().map(|distance| distance.round() as i64).collect::<Vec<_>>();
 
@@ -23,7 +25,7 @@ pub fn get_approx_transportation(locations: &[Location], speeds: &[f64]) -> Vec<
 }
 
 /// Gets distance between two points using haversine formula.
-fn get_distance(p1: &Location, p2: &Location) -> f64 {
+pub(crate) fn get_haversine_distance(p1: &Location, p2: &Location) -> f64 {
     let (p1_lat, p1_lng) = as_lat_lon(p1.clone());
     let (p2_lat, p2_lng) = as_lat_lon(p2.clone());
 

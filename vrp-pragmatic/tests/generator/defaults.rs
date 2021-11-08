@@ -2,12 +2,24 @@
 
 use super::*;
 use crate::format::problem::*;
+use crate::format::Location;
 use crate::helpers::create_default_matrix_profiles;
+use crate::utils::get_haversine_distance;
 use crate::{format_time, parse_time};
 
 pub const START_DAY: &str = "2020-07-04T00:00:00Z";
 
 pub const DEFAULT_BOUNDING_BOX: ((f64, f64), (f64, f64)) = ((52.4240, 13.2148), (52.5937, 13.5970));
+
+pub fn get_default_bounding_box_radius() -> f64 {
+    let center_lat = DEFAULT_BOUNDING_BOX.0 .0 + (DEFAULT_BOUNDING_BOX.1 .0 - DEFAULT_BOUNDING_BOX.0 .0) / 2.;
+    let center_lng = DEFAULT_BOUNDING_BOX.0 .1 + (DEFAULT_BOUNDING_BOX.1 .1 - DEFAULT_BOUNDING_BOX.0 .1) / 2.;
+
+    let center = Location::new_coordinate(center_lat, center_lng);
+    let corner = Location::new_coordinate(DEFAULT_BOUNDING_BOX.0 .0, DEFAULT_BOUNDING_BOX.0 .1);
+
+    get_haversine_distance(&center, &corner)
+}
 
 pub fn default_time_plus_offset(offset: i32) -> String {
     format_time(parse_time(&START_DAY.to_string()) + from_hours(offset).as_secs_f64())

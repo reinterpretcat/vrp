@@ -16,7 +16,7 @@ fn can_calculate_distance_between_two_locations() {
     let l1 = Location::Coordinate { lat: 52.52599, lng: 13.45413 };
     let l2 = Location::Coordinate { lat: 52.5165, lng: 13.3808 };
 
-    let distance = get_distance(&l1, &l2);
+    let distance = get_haversine_distance(&l1, &l2);
 
     assert_eq!(distance.round(), 5078.);
 }

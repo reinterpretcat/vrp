@@ -1,7 +1,7 @@
 //! Contains utility logic.
 
-mod approx_transporation;
-pub use self::approx_transporation::get_approx_transportation;
+mod approx_transportation;
+pub use self::approx_transportation::*;
 
 mod collections;
 pub use self::collections::*;
