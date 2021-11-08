@@ -23,7 +23,7 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
             stop.activities
                 .windows(stop.activities.len().min(2))
                 .flat_map(|leg| as_leg_info_with_break(context, tour, stop, leg))
-                .try_fold(acc, |acc, (from_loc, to, vehicle_break)| {
+                .try_fold(acc, |acc, (from_loc, from, to, vehicle_break)| {
                     // check time
                     let visit_time = get_time_window(stop, to);
                     let break_time_window = get_break_time_window(tour, &vehicle_break)?;
@@ -35,17 +35,22 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
                     }
 
                     // check location
-                    let actual_location = context.get_activity_location(stop, to);
+                    let actual_loc = context.get_activity_location(stop, to);
+                    let backward_loc = from
+                        .and_then(|activity| activity.commute.as_ref())
+                        .and_then(|commute| commute.backward.as_ref())
+                        .map(|info| &info.location);
+
                     // TODO check tag and duration
                     let has_match = vehicle_break.places.iter().any(|place| match &place.location {
-                        Some(location) => actual_location == *location,
-                        None => *from_loc == actual_location,
+                        Some(location) => actual_loc == *location,
+                        None => *from_loc == actual_loc || backward_loc.map_or(false, |loc| *loc == actual_loc),
                     });
 
                     if !has_match {
                         return Err(format!(
                             "break location '{:?}' is invalid: cannot match to any break place'",
-                            actual_location
+                            actual_loc
                         ));
                     }
                     Ok(acc + 1)
@@ -100,16 +105,18 @@ fn as_leg_info_with_break<'a>(
     tour: &Tour,
     stop: &'a Stop,
     leg: &'a [Activity],
-) -> Option<(&'a Location, &'a Activity, VehicleBreak)> {
+) -> Option<(&'a Location, Option<&'a Activity>, &'a Activity, VehicleBreak)> {
     let leg = match leg {
-        [from, to] => Some((from.location.as_ref().unwrap_or(&stop.location), to)),
-        [to] => Some((&stop.location, to)),
+        [from, to] => Some((Some(from), to)),
+        [to] => Some((None, to)),
         _ => None,
     };
 
-    if let Some((from_loc, to)) = leg {
+    if let Some((from, to)) = leg {
         if let Ok(ActivityType::Break(vehicle_break)) = context.get_activity_type(tour, stop, to) {
-            return Some((from_loc, to, vehicle_break));
+            let from_loc =
+                leg.and_then(|(from, _)| from).and_then(|action| action.location.as_ref()).unwrap_or(&stop.location);
+            return Some((from_loc, from, to, vehicle_break));
         }
     }
     None

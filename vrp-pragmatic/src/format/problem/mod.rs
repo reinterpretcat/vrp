@@ -5,7 +5,7 @@ mod model;
 pub use self::model::*;
 
 mod reader;
-pub(crate) use self::reader::create_approx_matrices;
+pub use self::reader::create_approx_matrices;
 pub use self::reader::PragmaticProblem;
 
 pub(crate) fn get_job_tasks(job: &Job) -> impl Iterator<Item = &JobTask> {
