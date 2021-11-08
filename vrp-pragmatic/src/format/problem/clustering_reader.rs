@@ -70,7 +70,11 @@ fn get_builder_policy() -> BuilderPolicy {
             ordering_rule(left_candidates.len().cmp(&right_candidates.len()), left_job, right_job)
         }),
         ordering_local: Arc::new(move |left, right| {
-            ordering_rule(compare_floats(left.forward.1, right.forward.1), &left.job, &right.job)
+            ordering_rule(
+                compare_floats(left.commute.forward.duration, right.commute.forward.duration),
+                &left.job,
+                &right.job,
+            )
         }),
     }
 }

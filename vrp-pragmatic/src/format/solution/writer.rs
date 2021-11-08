@@ -2,12 +2,14 @@
 #[path = "../../../tests/unit/format/solution/writer_test.rs"]
 mod writer_test;
 
+use crate::core::utils::compare_floats;
 use crate::format::coord_index::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
 use crate::format_time;
+use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::route_intervals;
 use vrp_core::models::common::*;
@@ -205,7 +207,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     _ => activity_type.clone(),
                 };
 
-                let commute = act.commute.clone().unwrap_or(DomainCommute { forward: (0., 0.), backward: (0., 0.) });
+                let commute = act.commute.clone().unwrap_or_else(DomainCommute::default);
                 let driving = if commute.is_zero_time() {
                     transport.duration(profile, prev_location, act.place.location, prev_departure)
                 } else {
@@ -213,15 +215,15 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     0.
                 };
 
-                let activity_arrival = act.schedule.arrival + commute.forward.1;
+                let activity_arrival = act.schedule.arrival + commute.forward.duration;
                 let service_start = activity_arrival.max(act.place.time.start);
                 let waiting = service_start - activity_arrival;
                 let serving = act.place.duration;
                 let service_end = service_start + serving;
-                let commuting = commute.forward.1 + commute.backward.1;
-                let activity_departure = act.schedule.departure - commute.backward.1;
+                let commuting = commute.forward.duration + commute.backward.duration;
+                let activity_departure = act.schedule.departure - commute.backward.duration;
 
-                debug_assert_eq!(service_end, activity_departure);
+                debug_assert!(compare_floats(service_end, activity_departure) == Ordering::Equal);
 
                 // NOTE: use original cost traits to adapt time-based costs (except waiting/commuting)
                 // TODO: add better support of time based activity costs
@@ -236,7 +238,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
                 let location_distance =
                     transport.distance(profile, prev_location, act.place.location, prev_departure) as i64;
-                let distance = leg.statistic.distance + location_distance - commute.forward.0 as i64;
+                let distance = leg.statistic.distance + location_distance - commute.forward.distance as i64;
 
                 let is_new_stop = match (act.commute.as_ref(), prev_location == act.place.location) {
                     (Some(commute), false) if commute.is_zero_time() => true,
@@ -274,11 +276,11 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     commute: act
                         .commute
                         .as_ref()
-                        .map(|commute| Commute::new(commute, act.schedule.arrival, activity_departure)),
+                        .map(|commute| Commute::new(commute, act.schedule.arrival, activity_departure, coord_index)),
                 });
 
                 // NOTE detect when vehicle returns after activity to stop point
-                let end_location = if commute.backward.1 > 0. {
+                let end_location = if commute.backward.duration > 0. {
                     tour.stops
                         .last()
                         .and_then(|stop| coord_index.get_by_loc(&stop.location))

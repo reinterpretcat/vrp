@@ -26,10 +26,18 @@ fn create_cluster_info(
     job: Job,
     service_time: Duration,
     place_idx: usize,
-    forward: (Distance, Duration),
-    backward: (Distance, Duration),
+    forward: (Location, Distance, Duration),
+    backward: (Location, Distance, Duration),
 ) -> ClusterInfo {
-    ClusterInfo { job, service_time, place_idx, forward, backward }
+    ClusterInfo {
+        job,
+        service_time,
+        place_idx,
+        commute: Commute {
+            forward: CommuteInfo { location: forward.0, distance: forward.1, duration: forward.2 },
+            backward: CommuteInfo { location: backward.0, distance: backward.1, duration: backward.2 },
+        },
+    }
 }
 
 fn create_single_job(job_id: &str, places: Vec<(Option<Location>, Duration, Vec<(f64, f64)>)>) -> Job {
@@ -38,10 +46,14 @@ fn create_single_job(job_id: &str, places: Vec<(Option<Location>, Duration, Vec<
 
 fn compare_visit_info(result: &ClusterInfo, expected: &ClusterInfo) {
     assert_eq!(result.place_idx, expected.place_idx);
-    assert_eq!(result.forward.0, expected.forward.0);
-    assert_eq!(result.forward.1, expected.forward.1);
-    assert_eq!(result.backward.0, expected.backward.0);
-    assert_eq!(result.backward.1, expected.backward.1);
+
+    assert_eq!(result.commute.forward.location, expected.commute.forward.location);
+    assert_eq!(result.commute.forward.distance, expected.commute.forward.distance);
+    assert_eq!(result.commute.forward.duration, expected.commute.forward.duration);
+
+    assert_eq!(result.commute.backward.location, expected.commute.backward.location);
+    assert_eq!(result.commute.backward.distance, expected.commute.backward.distance);
+    assert_eq!(result.commute.backward.duration, expected.commute.backward.duration);
 }
 
 fn create_jobs(jobs_places: Vec<JobPlaces>) -> Vec<Job> {
@@ -65,7 +77,7 @@ parameterized_test! {can_get_dissimilarities, (places_outer, places_inner, thres
         max_jobs_per_cluster: None,
     };
     let expected = expected.into_iter()
-      .map(|e: (usize, usize, Duration, (Duration, Distance), (Duration, Distance))| {
+      .map(|e: (usize, usize, Duration, (Location, Duration, Distance), (Location, Duration, Distance))| {
         let dummy_job = SingleBuilder::default().build_as_job_ref();
         (e.0, create_cluster_info(dummy_job, e.2, e.1, e.3, e.4))
       })
@@ -79,32 +91,32 @@ can_get_dissimilarities! {
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
         (5., 5., None), ServingPolicy::Original,
-        vec![(0, 0, 3., (1., 1.), (1., 1.))]
+        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
     ),
     case_02_two_places: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(1), 3., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(2), 2., vec![(20., 40.)])],
         (5., 5., None), ServingPolicy::Original,
-        vec![(0, 0, 3., (1., 1.), (1., 1.)), (1, 1, 2., (1., 1.), (1., 1.))]
+        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (1, 1, 2., (1, 1., 1.), (1, 1., 1.))]
     ),
     case_03_two_places: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(1), 3., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(2), 2., vec![(50., 60.)])],
         (5., 5., None), ServingPolicy::Original,
-        vec![(0, 0, 3., (1., 1.), (1., 1.))]
+        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
     ),
 
     case_04_serving_policy: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
         (5., 5., None), ServingPolicy::Multiplier(0.5),
-        vec![(0, 0, 1.5, (1., 1.), (1., 1.))]
+        vec![(0, 0, 1.5, (1, 1., 1.), (1, 1., 1.))]
     ),
     case_05_serving_policy: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
         (5., 5., None), ServingPolicy::Fixed(20.),
-        vec![(0, 0, 20., (1., 1.), (1., 1.))]
+        vec![(0, 0, 20., (1, 1., 1.), (1, 1., 1.))]
     ),
 
     case_06_threshold: (
@@ -124,7 +136,7 @@ can_get_dissimilarities! {
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
         (5., 5., Some(4.9)), ServingPolicy::Original,
-        vec![(0, 0, 3., (1., 1.), (1., 1.))]
+        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
     ),
     case_09_shared_time: (
         vec![(Some(1), 2., vec![(0., 10.)])],
@@ -143,20 +155,20 @@ can_get_dissimilarities! {
         vec![(Some(1), 2., vec![(0., 100.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(5), 3., vec![(20., 40.)])],
         (5., 5., None), ServingPolicy::Original,
-        vec![(0, 0, 3., (1., 1.), (1., 1.)), (0, 1, 3., (4., 4.), (4., 4.))]
+        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (0, 1, 3., (1, 4., 4.), (1, 4., 4.))]
     ),
     case_12_wide_time_windows: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(4), 2., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(0., 100.)])],
         (5., 5., None), ServingPolicy::Original,
-        vec![(0, 0, 3., (1., 1.), (1., 1.)), (1, 0, 3., (2., 2.), (2., 2.))]
+        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (1, 0, 3., (4, 2., 2.), (4, 2., 2.))]
     ),
 
     case_13_sorting_shared_time: (
         vec![(Some(1), 2., vec![(0., 100.)])],
         vec![(Some(2), 3., vec![(5., 15.), (20., 40.)])],
         (5., 5., Some(10.)), ServingPolicy::Original,
-        vec![(0, 0, 3., (1., 1.), (1., 1.))]
+        vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
     ),
     case_14_sorting_shared_time: (
         vec![(Some(1), 2., vec![(0., 30.)])],
@@ -191,7 +203,7 @@ fn can_get_dissimilarities_impl(
 }
 
 parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowed_to_merge, is_disallowed_to_insert, visiting, smallest_time_window, expected), {
-    let expected = expected.map(|e: (usize, Duration, (Duration, Distance), (Duration, Distance))| {
+    let expected = expected.map(|e: (usize, Duration, (Location, Duration, Distance), (Location, Duration, Distance))| {
         let dummy_job = SingleBuilder::default().build_as_job_ref();
         create_cluster_info(dummy_job, e.1, e.0, e.2, e.3)
     });
@@ -204,11 +216,11 @@ parameterized_test! {can_add_job, (center_places, candidate_places, is_disallowe
 can_add_job! {
     case_01_trivial: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, None, Some((0, 4., (4., 4.), (0., 0.))),
+        false, false, VisitPolicy::ClosedContinuation, None, Some((0, 4., (1, 4., 4.), (5, 0., 0.))),
     ),
     case_02_two_places: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)]), (Some(3), 3., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, None,Some((1, 5., (2., 2.), (0., 0.))),
+        false, false, VisitPolicy::ClosedContinuation, None,Some((1, 5., (1, 2., 2.), (3, 0., 0.))),
     ),
 
     case_03_disallowed_insertion: (
@@ -222,7 +234,7 @@ can_add_job! {
 
     case_05_visit_repetition: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::Return, None, Some((0, 8., (4., 4.), (4., 4.))),
+        false, false, VisitPolicy::Return, None, Some((0, 8., (1, 4., 4.), (1, 4., 4.))),
     ),
 
     case_06_time_window_threshold_above: (
@@ -231,7 +243,7 @@ can_add_job! {
     ),
     case_07_time_window_threshold_below: (
         vec![(Some(1), 2., vec![(0., 100.)])], vec![(Some(5), 2., vec![(0., 100.)])],
-        false, false, VisitPolicy::ClosedContinuation, Some(94.), Some((0, 4., (4., 4.), (0., 0.))),
+        false, false, VisitPolicy::ClosedContinuation, Some(94.), Some((0, 4., (1, 4., 4.), (5, 0., 0.))),
     ),
 }
 
@@ -257,12 +269,12 @@ fn can_add_job_impl(
     };
     let constraint = create_constraint_pipeline(disallow_merge_list);
     let check_insertion = get_check_insertion_fn(disallow_insertion_list);
-    let return_movement = |info: &ClusterInfo| (info.forward.clone(), info.backward.clone());
+    let center_commute = |info: &ClusterInfo| info.commute.clone();
     let transport = TestTransportCost::default();
     let dissimilarity_info = get_dissimilarities(&cluster, &candidate, &transport, &config);
     let candidate = (&candidate, &dissimilarity_info);
 
-    let result = try_add_job(&constraint, 0, &cluster, candidate, &config, &return_movement, check_insertion.as_ref());
+    let result = try_add_job(&constraint, 0, &cluster, candidate, &config, &center_commute, check_insertion.as_ref());
 
     match (result, expected) {
         (Some((_, result_visit_info)), Some(expected_visit_info)) => {

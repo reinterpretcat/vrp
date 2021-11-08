@@ -4,16 +4,11 @@ use super::*;
 fn can_use_scale_on_profile() {
     let capacity = 2;
     let a = ActivityData::new;
-    let stop2 = StopData::new((
-        2.,
-        2,
-        0,
-        (2., 8.),
-        vec![
-            a(("job2", Some(2.), "delivery", Some((2., 3.)), Some((None, None)))),
-            a(("job1", Some(1.), "delivery", Some((5., 6.)), Some((Some((1., 3., 5.)), Some((1., 6., 8.)))))),
-        ],
-    ));
+    let activities = vec![
+        a(("job2", Some(2.), "delivery", Some((2., 3.)), Some((None, None)))),
+        a(("job1", Some(1.), "delivery", Some((5., 6.)), Some((Some((2., 1., 3., 5.)), Some((2., 1., 6., 8.)))))),
+    ];
+    let stop2 = StopData::new((2., 2, 0, (2., 8.), activities));
     let statistic = create_statistic((20., 2, 8, (2, 2, 4)));
     let problem = create_test_problem(
         &[(1., "delivery"), (2., "delivery")],

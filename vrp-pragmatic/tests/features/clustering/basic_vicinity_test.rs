@@ -10,8 +10,8 @@ can_cluster_simple_jobs! {
         VicinityVisitPolicy::Continue, VicinityServingPolicy::Original,
         (3., 3, 1, (3., 10.), vec![
           ActivityData::new(("job3", Some(3.), "delivery", Some((3., 4.)), Some((None, None)))),
-          ActivityData::new(("job2", Some(2.), "delivery", Some((5., 6.)), Some((Some((1., 4., 5.)), None)))),
-          ActivityData::new(("job1", Some(1.), "delivery", Some((7., 8.)), Some((Some((1., 6., 7.)), Some((2., 8., 10.)))))),
+          ActivityData::new(("job2", Some(2.), "delivery", Some((5., 6.)), Some((Some((3., 1., 4., 5.)), None)))),
+          ActivityData::new(("job1", Some(1.), "delivery", Some((7., 8.)), Some((Some((2., 1., 6., 7.)), Some((3., 2., 8., 10.)))))),
         ]),
         (17., 18.),
         (38., 10, 18, (10, 4, 4)),
@@ -20,8 +20,8 @@ can_cluster_simple_jobs! {
        VicinityVisitPolicy::Return, VicinityServingPolicy::Original,
         (3., 3, 1, (3., 12.), vec![
           ActivityData::new(("job3", Some(3.), "delivery", Some((3., 4.)), Some((None, None)))),
-          ActivityData::new(("job2", Some(2.), "delivery", Some((5., 6.)), Some((Some((1., 4., 5.)), Some((1., 6., 7.)))))),
-          ActivityData::new(("job1", Some(1.), "delivery", Some((9., 10.)), Some((Some((2., 7., 9.)), Some((2., 10., 12.)))))),
+          ActivityData::new(("job2", Some(2.), "delivery", Some((5., 6.)), Some((Some((3., 1., 4., 5.)), Some((3., 1., 6., 7.)))))),
+          ActivityData::new(("job1", Some(1.), "delivery", Some((9., 10.)), Some((Some((3., 2., 7., 9.)), Some((3., 2., 10., 12.)))))),
         ]),
         (19., 20.),
         (40., 10, 20, (10, 4, 6)),
@@ -30,8 +30,8 @@ can_cluster_simple_jobs! {
        VicinityVisitPolicy::Continue, VicinityServingPolicy::Fixed { value: 5. },
         (3., 3, 1, (3., 22.), vec![
           ActivityData::new(("job3", Some(3.), "delivery", Some((3., 8.)), Some((None, None)))),
-          ActivityData::new(("job2", Some(2.), "delivery", Some((9., 14.)), Some((Some((1., 8., 9.)), None)))),
-          ActivityData::new(("job1", Some(1.), "delivery", Some((15., 20.)), Some((Some((1., 14., 15.)), Some((2., 20., 22.)))))),
+          ActivityData::new(("job2", Some(2.), "delivery", Some((9., 14.)), Some((Some((3., 1., 8., 9.)), None)))),
+          ActivityData::new(("job1", Some(1.), "delivery", Some((15., 20.)), Some((Some((2., 1., 14., 15.)), Some((3., 2., 20., 22.)))))),
         ]),
         (29., 30.),
         (50., 10, 30, (10, 16, 4))
@@ -40,8 +40,8 @@ can_cluster_simple_jobs! {
        VicinityVisitPolicy::Continue, VicinityServingPolicy::Multiplier { multiplier: 5. },
         (3., 3, 1, (3., 22.), vec![
           ActivityData::new(("job3", Some(3.), "delivery", Some((3., 8.)), Some((None, None)))),
-          ActivityData::new(("job2", Some(2.), "delivery", Some((9., 14.)), Some((Some((1., 8., 9.)), None)))),
-          ActivityData::new(("job1", Some(1.), "delivery", Some((15., 20.)), Some((Some((1., 14., 15.)), Some((2., 20., 22.)))))),
+          ActivityData::new(("job2", Some(2.), "delivery", Some((9., 14.)), Some((Some((3., 1., 8., 9.)), None)))),
+          ActivityData::new(("job1", Some(1.), "delivery", Some((15., 20.)), Some((Some((2., 1., 14., 15.)), Some((3., 2., 20., 22.)))))),
         ]),
         (29., 30.),
         (50., 10, 30, (10, 16, 4))
@@ -122,11 +122,11 @@ can_handle_two_clusters! {
         vec![
           (2., 2, 2, (2., 6.), vec![
             ActivityData::new(("job2", Some(2.), "delivery", Some((2., 3.)), Some((None, None)))),
-            ActivityData::new(("job1", Some(1.), "delivery", Some((4., 5.)), Some((Some((1., 3., 4.)), Some((1., 5., 6.)))))),
+            ActivityData::new(("job1", Some(1.), "delivery", Some((4., 5.)), Some((Some((2., 1., 3., 4.)), Some((2., 1., 5., 6.)))))),
           ]),
           (4., 4, 0, (8., 12.), vec![
             ActivityData::new(("job4", Some(4.), "delivery", Some((8., 9.)), Some((None, None)))),
-            ActivityData::new(("job3", Some(3.), "delivery", Some((10., 11.)), Some((Some((1., 9., 10.)), Some((1., 11., 12.)))))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((10., 11.)), Some((Some((4., 1., 9., 10.)), Some((4., 1., 11., 12.)))))),
           ])
         ],
         (26., 4, 12, (4, 4, 4)),

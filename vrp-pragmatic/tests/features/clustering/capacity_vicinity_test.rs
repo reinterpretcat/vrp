@@ -11,8 +11,8 @@ fn can_mix_pickup_delivery_jobs() {
         (3., 10.),
         vec![
             a(("job3", Some(3.), "delivery", Some((3., 4.)), Some((None, None)))),
-            a(("job2", Some(2.), "pickup", Some((5., 6.)), Some((Some((1., 4., 5.)), None)))),
-            a(("job1", Some(1.), "delivery", Some((7., 8.)), Some((Some((1., 6., 7.)), Some((2., 8., 10.)))))),
+            a(("job2", Some(2.), "pickup", Some((5., 6.)), Some((Some((3., 1., 4., 5.)), None)))),
+            a(("job1", Some(1.), "delivery", Some((7., 8.)), Some((Some((2., 1., 6., 7.)), Some((3., 2., 8., 10.)))))),
         ],
     ));
     let stop3_schedule = (17., 18.);
@@ -84,9 +84,9 @@ can_vary_cluster_size_based_on_capacity! {
         vec![
           (4., 4, 0, (4., 14.), vec![
             ActivityData::new(("job4", Some(4.), "delivery", Some((4., 5.)), Some((None, None)))),
-            ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((1., 5., 6.)), None)))),
-            ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((1., 7., 8.)), None)))),
-            ActivityData::new(("job1", Some(1.), "delivery", Some((10., 11.)), Some((Some((1., 9., 10.)), Some((3., 11., 14.)))))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((4., 1., 5., 6.)), None)))),
+            ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((3., 1., 7., 8.)), None)))),
+            ActivityData::new(("job1", Some(1.), "delivery", Some((10., 11.)), Some((Some((2., 1., 9., 10.)), Some((4., 3., 11., 14.)))))),
           ])
         ],
         None,
@@ -97,8 +97,8 @@ can_vary_cluster_size_based_on_capacity! {
         vec![
           (4., 4, 0, (4., 11.), vec![
             ActivityData::new(("job4", Some(4.), "delivery", Some((4., 5.)), Some((None, None)))),
-            ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((1., 5., 6.)), None)))),
-            ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((1., 7., 8.)), Some((2., 9., 11.)))))),
+            ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((4., 1., 5., 6.)), None)))),
+            ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((3., 1., 7., 8.)), Some((4., 2., 9., 11.)))))),
           ])
         ],
         Some(vec!["job1"]),

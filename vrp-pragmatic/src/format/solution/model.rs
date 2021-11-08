@@ -1,11 +1,10 @@
-use crate::format::Location;
+use crate::format::{CoordIndex, Location};
 use crate::{format_time, parse_time};
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use std::io::{BufReader, BufWriter, Error, Read, Write};
-use vrp_core::models::common::{Distance, Duration, Timestamp};
+use vrp_core::models::common::{Duration, Timestamp};
 use vrp_core::models::solution::Commute as DomainCommute;
-use vrp_core::utils::compare_floats;
+use vrp_core::models::solution::CommuteInfo as DomainCommuteInfo;
 
 /// Timing statistic.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
@@ -67,6 +66,8 @@ pub struct Commute {
 /// Stores information about commuting information in one direction.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct CommuteInfo {
+    /// Commute location.
+    pub location: Location,
     /// Travelled distance.
     pub distance: f64,
     /// Travel time.
@@ -274,33 +275,36 @@ impl Default for Timing {
 
 impl Commute {
     /// Creates a new instance of `Commute`.
-    pub fn new(commute: &DomainCommute, start: Timestamp, end: Timestamp) -> Commute {
-        let parse_info = |info: (Distance, Duration), time: Timestamp| {
-            let (distance, duration) = info;
-            if compare_floats(distance, 0.) == Ordering::Equal && compare_floats(duration, 0.) == Ordering::Equal {
+    pub fn new(commute: &DomainCommute, start: Timestamp, end: Timestamp, coord_index: &CoordIndex) -> Commute {
+        let parse_info = |info: &DomainCommuteInfo, time: Timestamp| {
+            if info.is_zero_time() {
                 None
             } else {
                 Some(CommuteInfo {
-                    distance,
-                    time: Interval { start: format_time(time), end: format_time(time + duration) },
+                    location: coord_index.get_by_idx(info.location).expect("commute info has no location"),
+                    distance: info.distance,
+                    time: Interval { start: format_time(time), end: format_time(time + info.duration) },
                 })
             }
         };
 
-        Commute { forward: parse_info(commute.forward, start), backward: parse_info(commute.backward, end) }
+        Commute { forward: parse_info(&commute.forward, start), backward: parse_info(&commute.backward, end) }
     }
-}
 
-impl From<&Commute> for DomainCommute {
-    fn from(commute: &Commute) -> Self {
+    /// Converts given commute object to core model.
+    pub(crate) fn to_domain(&self, coord_index: &CoordIndex) -> DomainCommute {
         let parse_info = |info: &Option<CommuteInfo>| {
-            info.as_ref().map_or((0., 0.), |info| {
+            info.as_ref().map_or(DomainCommuteInfo::default(), |info| {
                 let start = parse_time(&info.time.start);
                 let end = parse_time(&info.time.end);
-                (info.distance, end - start)
+                DomainCommuteInfo {
+                    location: coord_index.get_by_loc(&info.location).expect("expect to have coordinate in commute"),
+                    distance: info.distance,
+                    duration: end - start,
+                }
             })
         };
 
-        DomainCommute { forward: parse_info(&commute.forward), backward: parse_info(&commute.backward) }
+        DomainCommute { forward: parse_info(&self.forward), backward: parse_info(&self.backward) }
     }
 }

@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 mod estimations;
 use self::estimations::*;
+use crate::models::solution::Commute;
 
 const CLUSTER_DIMENSION_KEY: &str = "cls";
 
@@ -129,10 +130,8 @@ pub struct ClusterInfo {
     pub service_time: Duration,
     /// An used place index.
     pub place_idx: usize,
-    /// Movement info in forward direction.
-    pub forward: (Distance, Duration),
-    /// Movement info in backward direction.
-    pub backward: (Distance, Duration),
+    /// Commute information.
+    pub commute: Commute,
 }
 
 /// Creates clusters of jobs grouping them together best on vicinity properties.

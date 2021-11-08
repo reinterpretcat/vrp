@@ -9,6 +9,7 @@ use vrp_core::utils::{as_mut, compare_floats};
 
 type DomainActivity = vrp_core::models::solution::Activity;
 type DomainCommute = vrp_core::models::solution::Commute;
+type DomainCommuteInfo = vrp_core::models::solution::CommuteInfo;
 type DomainSchedule = vrp_core::models::common::Schedule;
 
 #[test]
@@ -164,8 +165,11 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
         .map(|(index, commute)| {
             coord_index.add(&Location::Reference { index });
             let arrival = index as f64;
-            let commute = commute.map(|(f, b)| DomainCommute { forward: (0., f), backward: (0., b) });
-            let departure = arrival + commute.as_ref().map(|c| c.forward.1 + c.backward.1).unwrap_or(0.);
+            let commute = commute.map(|(f, b)| DomainCommute {
+                forward: DomainCommuteInfo { location: 0, distance: 0., duration: f },
+                backward: DomainCommuteInfo { location: 0, distance: 0., duration: b },
+            });
+            let departure = arrival + commute.as_ref().map(|c| c.forward.duration + c.backward.duration).unwrap_or(0.);
             DomainActivity {
                 schedule: DomainSchedule { arrival, departure },
                 commute,

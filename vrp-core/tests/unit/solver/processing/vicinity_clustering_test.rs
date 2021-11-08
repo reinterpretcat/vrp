@@ -6,6 +6,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::IdDimension;
 use crate::models::problem::Job;
+use crate::models::solution::{Commute, CommuteInfo};
 use crate::utils::as_mut;
 
 fn create_test_jobs() -> Vec<Job> {
@@ -81,7 +82,10 @@ fn can_unwrap_clusters_in_route_on_post_process_impl(
                         place: Place { location: 3, duration: DEFAULT_JOB_DURATION * 3., time: clustered_time },
                         schedule: Schedule::new(3., 3. + duration),
                         job: Some(clustered_single),
-                        commute: Some(Commute { forward: (0., 0.), backward: (0., 0.) }),
+                        commute: Some(Commute {
+                            forward: CommuteInfo { location: 3, duration: 0., distance: 0. },
+                            backward: CommuteInfo { location: 3, duration: 0., distance: 0. },
+                        }),
                     }],
                 )),
                 Arc::new(RouteState::default()),

@@ -8,11 +8,24 @@ use std::sync::Arc;
 /// Specifies an extra commute information to reach the actual place.
 #[derive(Clone)]
 pub struct Commute {
-    /// An commute information to reach place.
-    pub forward: (Distance, Duration),
+    /// An commute information to reach place from other location.
+    pub forward: CommuteInfo,
 
-    /// An commute information to get out from the place.
-    pub backward: (Distance, Duration),
+    /// An commute information to get out from the place to the next location.
+    pub backward: CommuteInfo,
+}
+
+/// Commute information.
+#[derive(Clone)]
+pub struct CommuteInfo {
+    /// A previous or next location.
+    pub location: Location,
+
+    /// Travelled distance.
+    pub distance: Distance,
+
+    /// Travelled duration.
+    pub duration: Duration,
 }
 
 /// Specifies activity place.
@@ -106,9 +119,39 @@ impl Activity {
     }
 }
 
+impl Default for Commute {
+    fn default() -> Self {
+        Self { forward: CommuteInfo::default(), backward: CommuteInfo::default() }
+    }
+}
+
 impl Commute {
     /// Checks whether zero is no time costs for commute.
     pub fn is_zero_time(&self) -> bool {
-        compare_floats(self.forward.1, 0.) == Ordering::Equal && compare_floats(self.backward.1, 0.) == Ordering::Equal
+        self.forward.is_zero_time() & self.backward.is_zero_time()
+    }
+
+    /// Gets total commute duration.
+    pub fn duration(&self) -> Duration {
+        self.forward.duration + self.backward.duration
+    }
+}
+
+impl Default for CommuteInfo {
+    fn default() -> Self {
+        Self { location: 0, distance: 0., duration: 0. }
+    }
+}
+
+impl CommuteInfo {
+    /// Checks whether zero is no time costs for part of commute.
+    pub fn is_zero_time(&self) -> bool {
+        let is_zero_time = compare_floats(self.duration, 0.) == Ordering::Equal;
+
+        if is_zero_time {
+            assert_eq!(compare_floats(self.distance, 0.), Ordering::Equal)
+        }
+
+        is_zero_time
     }
 }

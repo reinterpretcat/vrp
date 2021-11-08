@@ -6,7 +6,7 @@ use super::*;
 use crate::construction::clustering::vicinity::*;
 use crate::models::common::{Schedule, ValueDimension};
 use crate::models::problem::Jobs;
-use crate::models::solution::{Activity, Commute, Place};
+use crate::models::solution::{Activity, Place};
 use crate::models::{Extras, Problem};
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
@@ -121,12 +121,12 @@ impl Processing for VicinityClustering {
                         let place = job.places.first().unwrap();
 
                         let backward = match config.visiting {
-                            VisitPolicy::Return => info.backward.1,
-                            VisitPolicy::ClosedContinuation if info.job == last_job => info.backward.1,
+                            VisitPolicy::Return => info.commute.backward.duration,
+                            VisitPolicy::ClosedContinuation if info.job == last_job => info.commute.backward.duration,
                             _ => 0.,
                         };
 
-                        let service_start = (arrival + info.forward.1).max(cluster_time.start);
+                        let service_start = (arrival + info.commute.forward.duration).max(cluster_time.start);
                         let departure = service_start + info.service_time + backward;
 
                         activities.push(Activity {
@@ -137,7 +137,7 @@ impl Processing for VicinityClustering {
                             },
                             schedule: Schedule::new(arrival, departure),
                             job: Some(job),
-                            commute: Some(Commute { forward: info.forward, backward: info.backward }),
+                            commute: Some(info.commute),
                         });
 
                         (departure, activities)

@@ -6,6 +6,7 @@ use super::*;
 use crate::construction::constraints::ConstraintPipeline;
 use crate::models::common::*;
 use crate::models::problem::{Place, Single, TransportCost};
+use crate::models::solution::CommuteInfo;
 use crate::utils::*;
 use hashbrown::{HashMap, HashSet};
 use std::ops::Deref;
@@ -168,8 +169,18 @@ fn get_dissimilarities(
                             job: inner.clone(),
                             service_time,
                             place_idx: inner_place_idx,
-                            forward: (fwd_distance, fwd_duration),
-                            backward: (bck_distance, bck_duration),
+                            commute: Commute {
+                                forward: CommuteInfo {
+                                    location: outer_loc,
+                                    distance: fwd_distance,
+                                    duration: fwd_duration,
+                                },
+                                backward: CommuteInfo {
+                                    location: outer_loc,
+                                    distance: bck_distance,
+                                    duration: bck_duration,
+                                },
+                            },
                         };
 
                         Some((reachable, outer_place_idx, info))
@@ -205,10 +216,12 @@ fn build_job_cluster(
                 job: center_job.clone(),
                 service_time: new_duration,
                 place_idx: center_place_idx,
-                forward: (0., 0.),
-                backward: (0., 0.),
+                commute: Commute {
+                    forward: CommuteInfo { location: center_place_idx, distance: 0., duration: 0. },
+                    backward: CommuteInfo { location: center_place_idx, distance: 0., duration: 0. },
+                },
             };
-            let return_movement = |original_info: &ClusterInfo| {
+            let center_commute = |original_info: &ClusterInfo| {
                 estimates
                     .get(center_job)
                     .and_then(|index| index.get(&original_info.job))
@@ -217,7 +230,7 @@ fn build_job_cluster(
                             *outer_place_idx == center_place_idx && info.place_idx == original_info.place_idx
                         })
                     })
-                    .map(|(_, _, info)| (info.forward, info.backward))
+                    .map(|(_, _, info)| info.commute.clone())
                     .expect("cannot find movement info")
             };
 
@@ -266,7 +279,7 @@ fn build_job_cluster(
                         &cluster,
                         (candidate.0, candidate.1),
                         config,
-                        &return_movement,
+                        &center_commute,
                         check_insertion,
                     )
                     .map_or_else(
@@ -295,7 +308,7 @@ fn build_job_cluster(
             }
 
             if count > 1 {
-                cluster = finish_cluster(cluster, config, &return_movement);
+                cluster = finish_cluster(cluster, config, &center_commute);
             }
 
             match (&best_cluster, count) {
@@ -315,11 +328,11 @@ fn try_add_job<F>(
     cluster: &Job,
     candidate: (&Job, &Vec<DissimilarityInfo>),
     config: &ClusterConfig,
-    return_movement: F,
+    center_commute: F,
     check_insertion: &CheckInsertionFn,
 ) -> Option<(Job, ClusterInfo)>
 where
-    F: Fn(&ClusterInfo) -> ((f64, f64), (f64, f64)),
+    F: Fn(&ClusterInfo) -> Commute,
 {
     let time_window_threshold = config.threshold.smallest_time_window.unwrap_or(0.);
     let cluster = cluster.to_single();
@@ -336,7 +349,8 @@ where
                 .and_then(|(job, info)| job.places.first().map(|place| (place, info)))
         })
         .map_or(cluster_place.duration, |(place, info)| {
-            place.duration + if matches!(config.visiting, VisitPolicy::Return) { info.backward.1 } else { 0. }
+            place.duration
+                + if matches!(config.visiting, VisitPolicy::Return) { info.commute.backward.duration } else { 0. }
         });
 
     let job = candidate.0.to_single();
@@ -349,12 +363,15 @@ where
         let place_times = filter_times(place.times.as_slice());
 
         // override backward movement costs in case of return
-        let info = if matches!(config.visiting, VisitPolicy::Return) {
-            let (forward, backward) = return_movement(&info);
-            ClusterInfo { forward, backward, ..info }
+        let commute = if matches!(config.visiting, VisitPolicy::Return) {
+            center_commute(&info)
         } else {
-            ClusterInfo { backward: (0., 0.), ..info }
+            Commute {
+                forward: info.commute.forward,
+                backward: CommuteInfo { location: place.location.expect("no location"), distance: 0., duration: 0. },
+            }
         };
+        let info = ClusterInfo { commute, ..info };
 
         let new_cluster_times = cluster_times
             .iter()
@@ -363,7 +380,8 @@ where
                     let info = info.clone();
                     move |place_time| {
                         // NOTE travel duration to the place can be deducted from its time window requirement
-                        let place_time = TimeWindow::new(place_time.start - info.forward.1, place_time.end);
+                        let place_time =
+                            TimeWindow::new(place_time.start - info.commute.forward.duration, place_time.end);
                         let overlap_time = place_time.overlapping(cluster_time);
 
                         let duration = if place_time.end < cluster_time.end {
@@ -380,7 +398,7 @@ where
                 // TODO adapt service time from last cluster job to avoid time window violation of
                 //      a next job in case of last time arrival. However, this can be too restrictive
                 //      in some cases and can be improved to keep time window a bit wider.
-                let end = overlap_time.end - duration - info.forward.1;
+                let end = overlap_time.end - duration - info.commute.forward.duration;
                 if end - overlap_time.start < time_window_threshold {
                     None
                 } else {
@@ -395,8 +413,8 @@ where
         }
 
         let movement = match config.visiting {
-            VisitPolicy::Return => info.forward.1 + info.backward.1,
-            VisitPolicy::ClosedContinuation | VisitPolicy::OpenContinuation => info.forward.1,
+            VisitPolicy::Return => info.commute.duration(),
+            VisitPolicy::ClosedContinuation | VisitPolicy::OpenContinuation => info.commute.forward.duration,
         };
 
         let new_cluster_duration = cluster_place.duration + movement + info.service_time;
@@ -456,9 +474,9 @@ fn with_cluster_dimension(cluster: Job, visit_info: ClusterInfo) -> Job {
     Job::Single(Arc::new(cluster))
 }
 
-fn finish_cluster<F>(cluster: Job, config: &ClusterConfig, return_movement: F) -> Job
+fn finish_cluster<F>(cluster: Job, config: &ClusterConfig, center_commute: F) -> Job
 where
-    F: Fn(&ClusterInfo) -> ((f64, f64), (f64, f64)),
+    F: Fn(&ClusterInfo) -> Commute,
 {
     let clustered_jobs = cluster.dimens().get_cluster();
 
@@ -473,10 +491,10 @@ where
             // NOTE add a return duration back to the cluster duration and modify backward info
             let last_info = clustered.last_mut().expect("empty cluster");
             let mut place = cluster.places.first().unwrap().clone();
-            let (_, backward) = return_movement(last_info);
 
-            place.duration += backward.1;
-            last_info.backward = backward;
+            let commute = center_commute(last_info);
+            place.duration += commute.backward.duration;
+            last_info.commute.backward = commute.backward;
 
             let mut dimens = cluster.dimens.clone();
             dimens.set_cluster(clustered);

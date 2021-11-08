@@ -5,7 +5,7 @@ use crate::format_time;
 use crate::helpers::*;
 use vrp_core::models::common::{Distance, Timestamp};
 
-type CommuteData = Option<(Distance, Timestamp, Timestamp)>;
+type CommuteData = Option<(f64, Distance, Timestamp, Timestamp)>;
 
 struct ActivityData {
     job_id: String,
@@ -25,10 +25,11 @@ impl ActivityData {
 
 impl From<ActivityData> for Activity {
     fn from(activity: ActivityData) -> Self {
-        let convert_expected_commute_info = |commute: Option<(f64, f64, f64)>| {
+        let convert_expected_commute_info = |commute: CommuteData| {
             commute.map(|commute| CommuteInfo {
-                distance: commute.0,
-                time: Interval { start: format_time(commute.1), end: format_time(commute.2) },
+                location: vec![commute.0, 0.].to_loc(),
+                distance: commute.1,
+                time: Interval { start: format_time(commute.2), end: format_time(commute.3) },
             })
         };
 

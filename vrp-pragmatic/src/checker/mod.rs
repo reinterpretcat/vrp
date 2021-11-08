@@ -15,7 +15,7 @@ use vrp_core::construction::clustering::vicinity::ClusterConfig;
 use vrp_core::construction::clustering::vicinity::VisitPolicy;
 use vrp_core::models::common::Profile;
 use vrp_core::models::common::TimeWindow;
-use vrp_core::models::solution::Commute as DomainCommute;
+use vrp_core::models::solution::{Commute as DomainCommute, CommuteInfo as DomainCommuteInfo};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::solver::processing::VicinityDimension;
 
@@ -226,7 +226,10 @@ impl CheckerContext {
         };
 
         let get_activity_commute_by_idx = |idx: usize| -> Option<DomainCommute> {
-            stop.activities.get(idx).and_then(|activity| activity.commute.as_ref()).map(|commute| commute.into())
+            stop.activities
+                .get(idx)
+                .and_then(|activity| activity.commute.as_ref())
+                .map(|commute| commute.to_domain(&self.coord_index))
         };
 
         match (&self.clustering, &profile, get_activity_commute_by_idx(activity_idx)) {
@@ -252,19 +255,30 @@ impl CheckerContext {
                                 let has_next_commute = get_activity_location_by_idx(idx + 1)
                                     .zip(get_activity_commute_by_idx(idx + 1))
                                     .is_some();
-                                let (b_distance, b_duration) = match (&config.visiting, has_next_commute) {
+                                let (b_location, b_distance, b_duration) = match (&config.visiting, has_next_commute) {
                                     (VisitPolicy::Return, _) | (VisitPolicy::ClosedContinuation, false) => {
                                         let stop_location = self.get_location_index(&stop.location)?;
-                                        self.get_matrix_data(profile, curr_location, stop_location)?
+                                        let (b_distance, b_duration) =
+                                            self.get_matrix_data(profile, curr_location, stop_location)?;
+
+                                        (stop_location, b_distance, b_duration)
                                     }
                                     (VisitPolicy::OpenContinuation, _) | (VisitPolicy::ClosedContinuation, true) => {
-                                        (0_i64, 0_i64)
+                                        (curr_location, 0_i64, 0_i64)
                                     }
                                 };
 
                                 Ok(Some(DomainCommute {
-                                    forward: (f_distance as f64, f_duration as f64),
-                                    backward: (b_distance as f64, b_duration as f64),
+                                    forward: DomainCommuteInfo {
+                                        location: prev_location,
+                                        distance: f_distance as f64,
+                                        duration: f_duration as f64,
+                                    },
+                                    backward: DomainCommuteInfo {
+                                        location: b_location,
+                                        distance: b_distance as f64,
+                                        duration: b_duration as f64,
+                                    },
                                 }))
                             }
                             _ => Err("cannot find next commute info".to_string()),

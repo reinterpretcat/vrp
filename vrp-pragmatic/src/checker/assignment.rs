@@ -173,7 +173,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                 get_job_index(&ctx.core_problem),
                                 get_coord_index(&ctx.core_problem),
                             );
-                            let are_not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
+                            let not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
 
                             match result {
                                 Err(_) => true,
@@ -188,7 +188,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                         | (&None, &Some(_), Ok(Some(_))) => true,
                                         (_, None, Ok(None)) => {
                                             let expected_departure = time.start.max(place.time.start) + place.duration;
-                                            are_not_equal(time.end, expected_departure)
+                                            not_equal(time.end, expected_departure)
                                         }
                                         (Some(config), Some(commute), Ok(Some(d_commute))) => {
                                             let service_time = match config.serving {
@@ -196,16 +196,17 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                                 ServingPolicy::Multiplier(multiplier) => place.duration * multiplier,
                                                 ServingPolicy::Fixed(value) => value,
                                             };
-                                            let expected_departure =
-                                                time.start.max(place.time.start) + service_time + d_commute.backward.1;
+                                            let expected_departure = time.start.max(place.time.start)
+                                                + service_time
+                                                + d_commute.backward.duration;
 
-                                            let a_commute: DomainCommute = commute.into();
+                                            let a_commute = commute.to_domain(&ctx.coord_index);
 
-                                            are_not_equal(time.end + d_commute.backward.1, expected_departure)
-                                                || are_not_equal(a_commute.forward.0, d_commute.forward.0)
-                                                || are_not_equal(a_commute.forward.1, d_commute.forward.1)
-                                                || are_not_equal(a_commute.backward.0, d_commute.backward.0)
-                                                || are_not_equal(a_commute.backward.1, d_commute.backward.1)
+                                            not_equal(time.end + d_commute.backward.duration, expected_departure)
+                                                || not_equal(a_commute.forward.distance, d_commute.forward.distance)
+                                                || not_equal(a_commute.forward.duration, d_commute.forward.duration)
+                                                || not_equal(a_commute.backward.distance, d_commute.backward.distance)
+                                                || not_equal(a_commute.backward.duration, d_commute.backward.duration)
                                         }
                                     }
                                 }
