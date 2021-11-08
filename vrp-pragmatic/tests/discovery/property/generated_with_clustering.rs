@@ -27,7 +27,16 @@ prop_compose! {
      moving_duration in 30..1800,
      plan in generate_plan(generate_jobs(job_prototype(), 1..512)),
      fleet in generate_fleet(
-        generate_vehicles(default_vehicle_type_prototype(), 1..4),
+        generate_vehicles(
+             generate_vehicle(
+                2..4,
+                Just(VehicleProfile { matrix: "car".to_string(), scale: None }),
+                generate_simple_capacity(5..20),
+                default_costs_prototype(),
+                generate_no_vehicle_skills(),
+                generate_no_limits(),
+                default_vehicle_shifts(),
+            ), 1..4),
         default_matrix_profiles())
     ) -> Problem {
         let moving_duration = moving_duration as f64;
