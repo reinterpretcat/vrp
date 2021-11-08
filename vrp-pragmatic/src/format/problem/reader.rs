@@ -123,7 +123,7 @@ pub struct ProblemProperties {
     max_job_value: Option<f64>,
 }
 
-fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
+pub(crate) fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
     const DEFAULT_SPEED: f64 = 10.;
     // get each speed value once
     let speeds = problem

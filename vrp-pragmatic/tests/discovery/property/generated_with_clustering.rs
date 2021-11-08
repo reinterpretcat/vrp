@@ -61,6 +61,7 @@ proptest! {
     #[test]
     #[ignore]
     fn can_solve_problem_with_vicinity(problem in get_problem_with_vicinity(get_default_bounding_box_radius())) {
-        solve_with_metaheuristic_and_iterations(problem, None, 1);
+        let matrices = create_approx_matrices(&problem);
+        solve_with_metaheuristic_and_iterations(problem, Some(matrices), 1);
     }
 }
