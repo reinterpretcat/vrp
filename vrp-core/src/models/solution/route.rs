@@ -148,8 +148,8 @@ impl CommuteInfo {
     pub fn is_zero_time(&self) -> bool {
         let is_zero_time = compare_floats(self.duration, 0.) == Ordering::Equal;
 
-        if is_zero_time {
-            assert_eq!(compare_floats(self.distance, 0.), Ordering::Equal)
+        if is_zero_time && compare_floats(self.distance, 0.) != Ordering::Equal {
+            unreachable!("expected to have distance to be zero, got: {}", self.distance);
         }
 
         is_zero_time
