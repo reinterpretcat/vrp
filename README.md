@@ -88,7 +88,7 @@ stored in the folder where a problem definition is located.
 
 # Usage
 
-Use can use vrp solver either from command line or from code:
+You can use vrp solver either from command line or from code:
 
 ## Use from command line
 
