@@ -175,7 +175,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
             .end()
             .map(|end| {
                 self.multi_trip.is_reload_needed(
-                    &ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_else(T::default),
+                    &ctx.state.get_activity_state(MAX_PAST_CAPACITY_KEY, end).cloned().unwrap_or_default(),
                     ctx.route.actor.vehicle.dimens.get_capacity().unwrap(),
                 )
             })
@@ -226,7 +226,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
             if let Some(&capacity) = capacity {
                 let default = T::default();
 
-                // cannot handle more static deliveries
+                // check how static delivery affect past max load
                 if demand.delivery.0.is_not_empty() {
                     let past = *state.get_activity_state(MAX_PAST_CAPACITY_KEY, pivot).unwrap_or(&default);
                     if !capacity.can_fit(&(past + demand.delivery.0)) {
@@ -234,23 +234,29 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
                     }
                 }
 
-                let change = demand.change();
+                // check how static pickup affect future max load
+                if demand.pickup.0.is_not_empty() {
+                    let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&default);
+                    if !capacity.can_fit(&(future + demand.pickup.0)) {
+                        return Some(stopped);
+                    }
+                }
 
-                // cannot handle more pickups
+                // check dynamic load change
+                let change = demand.change();
                 if change.is_not_empty() {
                     let future = *state.get_activity_state(MAX_FUTURE_CAPACITY_KEY, pivot).unwrap_or(&default);
                     if !capacity.can_fit(&(future + change)) {
                         return Some(stopped);
                     }
+
+                    let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&default);
+                    if !capacity.can_fit(&(current + change)) {
+                        return Some(false);
+                    }
                 }
 
-                // can load more at current
-                let current = *state.get_activity_state(CURRENT_CAPACITY_KEY, pivot).unwrap_or(&default);
-                if capacity.can_fit(&(current + change)) {
-                    None
-                } else {
-                    Some(false)
-                }
+                None
             } else {
                 Some(stopped)
             }
