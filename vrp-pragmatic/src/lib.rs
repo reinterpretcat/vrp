@@ -20,6 +20,10 @@ mod features;
 #[path = "../tests/discovery/mod.rs"]
 pub mod discovery;
 
+#[cfg(test)]
+#[path = "../tests/regression/mod.rs"]
+pub mod regression;
+
 pub use vrp_core as core;
 
 mod constraints;
