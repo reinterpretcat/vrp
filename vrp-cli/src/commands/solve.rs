@@ -195,7 +195,7 @@ pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
         .arg(
             Arg::with_name(MIN_CV_ARG_NAME)
                 .help(
-                    "Specifies variation coefficient termination criteria in form \"sample_size,threshold,is_global\"",
+                    "Specifies variation coefficient termination criteria in form \"type,sample_size,threshold,is_global\"",
                 )
                 .short("v")
                 .long(MIN_CV_ARG_NAME)
