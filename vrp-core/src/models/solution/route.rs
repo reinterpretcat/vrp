@@ -126,9 +126,9 @@ impl Default for Commute {
 }
 
 impl Commute {
-    /// Checks whether zero is no time costs for commute.
-    pub fn is_zero_time(&self) -> bool {
-        self.forward.is_zero_time() & self.backward.is_zero_time()
+    /// Checks whether there is no distance costs for commute.
+    pub fn is_zero_distance(&self) -> bool {
+        self.forward.is_zero_distance() & self.backward.is_zero_distance()
     }
 
     /// Gets total commute duration.
@@ -144,14 +144,14 @@ impl Default for CommuteInfo {
 }
 
 impl CommuteInfo {
-    /// Checks whether zero is no time costs for part of commute.
-    pub fn is_zero_time(&self) -> bool {
-        let is_zero_time = compare_floats(self.duration, 0.) == Ordering::Equal;
+    /// Checks whether there is no distance costs for part of commute.
+    pub fn is_zero_distance(&self) -> bool {
+        let is_zero_distance = compare_floats(self.distance, 0.) == Ordering::Equal;
 
-        if is_zero_time && compare_floats(self.distance, 0.) != Ordering::Equal {
-            unreachable!("expected to have distance to be zero, got: {}", self.distance);
+        if is_zero_distance && compare_floats(self.duration, 0.) != Ordering::Equal {
+            unreachable!("expected to have duration to be zero, got: {}", self.duration);
         }
 
-        is_zero_time
+        is_zero_distance
     }
 }

@@ -178,8 +178,17 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                             match result {
                                 Err(_) => true,
                                 Ok(Some(JobInfo(_, _, place, time))) => {
+                                    let parking = ctx
+                                        .clustering
+                                        .as_ref()
+                                        .map(|config| match config.serving {
+                                            ServingPolicy::Original { parking } => parking,
+                                            ServingPolicy::Multiplier { parking, .. } => parking,
+                                            ServingPolicy::Fixed { parking, .. } => parking,
+                                        })
+                                        .unwrap_or(0.);
                                     let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
-                                    let domain_commute = ctx.get_commute_info(commute_profile, stop, *idx);
+                                    let domain_commute = ctx.get_commute_info(commute_profile, parking, stop, *idx);
 
                                     match (&ctx.clustering, &activity.commute, domain_commute) {
                                         (_, _, Err(_))
@@ -191,18 +200,32 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                             not_equal(time.end, expected_departure)
                                         }
                                         (Some(config), Some(commute), Ok(Some(d_commute))) => {
-                                            let service_time = match config.serving {
-                                                ServingPolicy::Original => place.duration,
-                                                ServingPolicy::Multiplier(multiplier) => place.duration * multiplier,
-                                                ServingPolicy::Fixed(value) => value,
+                                            let (service_time, parking) = match config.serving {
+                                                ServingPolicy::Original { parking } => (place.duration, parking),
+                                                ServingPolicy::Multiplier { multiplier, parking } => {
+                                                    (place.duration * multiplier, parking)
+                                                }
+                                                ServingPolicy::Fixed { value, parking } => (value, parking),
                                             };
-                                            let expected_departure = time.start.max(place.time.start)
-                                                + service_time
-                                                + d_commute.backward.duration;
 
                                             let a_commute = commute.to_domain(&ctx.coord_index);
 
-                                            not_equal(time.end + d_commute.backward.duration, expected_departure)
+                                            // NOTE: we keep parking in service time of a first activity of the non-first cluster
+                                            let parking =
+                                                if a_commute.is_zero_distance() && *idx > 0 { parking } else { 0. };
+
+                                            let expected_departure = time.start.max(place.time.start)
+                                                + parking
+                                                + service_time
+                                                + d_commute.backward.duration;
+                                            let actual_departure = time.end + d_commute.backward.duration;
+
+                                            let a_commute = commute.to_domain(&ctx.coord_index);
+
+                                            // NOTE: a "workaroundish" approach for two clusters in the same stop
+                                            (not_equal(actual_departure, expected_departure)
+                                                && not_equal(actual_departure, expected_departure - parking))
+                                                // compare commute
                                                 || not_equal(a_commute.forward.distance, d_commute.forward.distance)
                                                 || not_equal(a_commute.forward.duration, d_commute.forward.duration)
                                                 || not_equal(a_commute.backward.distance, d_commute.backward.distance)

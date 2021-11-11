@@ -8,6 +8,7 @@ fn can_mix_pickup_delivery_jobs() {
         3.,
         3,
         2,
+        0,
         (3., 10.),
         vec![
             a(("job3", Some(3.), "delivery", Some((3., 4.)), Some((None, None)))),
@@ -16,7 +17,7 @@ fn can_mix_pickup_delivery_jobs() {
         ],
     ));
     let stop3_schedule = (17., 18.);
-    let statistic = create_statistic((38., 10, 18, (10, 4, 4)));
+    let statistic = create_statistic((38., 10, 18, (10, 4, 4, 0)));
 
     let problem = create_test_problem(
         &[(1., "delivery"), (2., "pickup"), (3., "delivery"), (10., "delivery")],
@@ -31,7 +32,7 @@ fn can_mix_pickup_delivery_jobs() {
                 max_jobs_per_cluster: None,
             },
             visiting: VicinityVisitPolicy::Continue,
-            serving: VicinityServingPolicy::Original,
+            serving: VicinityServingPolicy::Original { parking: 0. },
             filtering: None,
         },
     );
@@ -82,7 +83,7 @@ can_vary_cluster_size_based_on_capacity! {
     case_01: (
         4,
         vec![
-          (4., 4, 0, (4., 14.), vec![
+          (4., 4, 0, 0, (4., 14.), vec![
             ActivityData::new(("job4", Some(4.), "delivery", Some((4., 5.)), Some((None, None)))),
             ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((4., 1., 5., 6.)), None)))),
             ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((3., 1., 7., 8.)), None)))),
@@ -90,19 +91,19 @@ can_vary_cluster_size_based_on_capacity! {
           ])
         ],
         None,
-        (28., 4, 14, (4, 4, 6)),
+        (28., 4, 14, (4, 4, 6, 0)),
     ),
     case_02: (
         3,
         vec![
-          (4., 4, 0, (4., 11.), vec![
+          (4., 4, 0, 0, (4., 11.), vec![
             ActivityData::new(("job4", Some(4.), "delivery", Some((4., 5.)), Some((None, None)))),
             ActivityData::new(("job3", Some(3.), "delivery", Some((6., 7.)), Some((Some((4., 1., 5., 6.)), None)))),
             ActivityData::new(("job2", Some(2.), "delivery", Some((8., 9.)), Some((Some((3., 1., 7., 8.)), Some((4., 2., 9., 11.)))))),
           ])
         ],
         Some(vec!["job1"]),
-        (25., 4, 11, (4, 3, 4)),
+        (25., 4, 11, (4, 3, 4, 0)),
     ),
 }
 
@@ -110,7 +111,7 @@ fn can_vary_cluster_size_based_on_capacity_impl(
     capacity: i32,
     stops: Vec<StopData>,
     unassigned: Option<Vec<&str>>,
-    statistic_data: (f64, i64, i64, (i64, i64, i64)),
+    statistic_data: (f64, i64, i64, (i64, i64, i64, i64)),
 ) {
     let statistic = create_statistic(statistic_data);
     let problem = create_test_problem(
@@ -126,7 +127,7 @@ fn can_vary_cluster_size_based_on_capacity_impl(
                 max_jobs_per_cluster: None,
             },
             visiting: VicinityVisitPolicy::Continue,
-            serving: VicinityServingPolicy::Original,
+            serving: VicinityServingPolicy::Original { parking: 0. },
             filtering: None,
         },
     );

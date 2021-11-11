@@ -163,7 +163,7 @@ fn get_dissimilarities(
                             && (bck_duration - config.threshold.moving_duration < 0.)
                             && (bck_distance - config.threshold.moving_distance < 0.);
 
-                        let service_time = get_service_time(inner_duration, &config.serving);
+                        let (service_time, _) = get_service_time(inner_duration, &config.serving);
 
                         let info = ClusterInfo {
                             job: inner.clone(),
@@ -210,7 +210,8 @@ fn build_job_cluster(
         Option::<(Job, usize)>::None,
         |best_cluster, center_place_info| {
             let (center_place_idx, center_location, center_duration, center_times) = center_place_info;
-            let new_duration = get_service_time(center_duration, &config.serving);
+            let (new_duration, parking) = get_service_time(center_duration, &config.serving);
+            let new_duration = new_duration + parking;
             let new_center_job = create_single_job(Some(center_location), new_duration, &center_times, &center.dimens);
             let new_visit_info = ClusterInfo {
                 job: center_job.clone(),
@@ -516,10 +517,10 @@ fn create_single_job(location: Option<Location>, duration: Duration, times: &[Ti
     }))
 }
 
-fn get_service_time(original: Duration, policy: &ServingPolicy) -> Duration {
-    match policy {
-        ServingPolicy::Original => original,
-        ServingPolicy::Multiplier(multiplier) => original * *multiplier,
-        ServingPolicy::Fixed(service_time) => *service_time,
+fn get_service_time(original: Duration, policy: &ServingPolicy) -> (Duration, Duration) {
+    match *policy {
+        ServingPolicy::Original { parking } => (original, parking),
+        ServingPolicy::Multiplier { multiplier, parking } => (original * multiplier, parking),
+        ServingPolicy::Fixed { value, parking } => (value, parking),
     }
 }

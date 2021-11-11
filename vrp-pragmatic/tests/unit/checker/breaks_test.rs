@@ -154,6 +154,7 @@ fn can_check_breaks_impl(
                         departure: "1970-01-01T00:00:06Z".to_string(),
                     },
                     distance: 2,
+                    parking: None,
                     load: vec![0],
                     activities,
                 },

@@ -13,8 +13,7 @@ use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterConfig;
 use vrp_core::construction::clustering::vicinity::VisitPolicy;
-use vrp_core::models::common::Profile;
-use vrp_core::models::common::TimeWindow;
+use vrp_core::models::common::{Duration, Profile, TimeWindow};
 use vrp_core::models::solution::{Commute as DomainCommute, CommuteInfo as DomainCommuteInfo};
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::solver::processing::VicinityDimension;
@@ -215,6 +214,7 @@ impl CheckerContext {
     fn get_commute_info(
         &self,
         profile: Option<Profile>,
+        parking: Duration,
         stop: &Stop,
         activity_idx: usize,
     ) -> Result<Option<DomainCommute>, String> {
@@ -235,7 +235,7 @@ impl CheckerContext {
         match (&self.clustering, &profile, get_activity_commute_by_idx(activity_idx)) {
             (Some(config), Some(profile), Some(commute)) => {
                 // NOTE we don't check whether zero time commute is correct here
-                match (commute.is_zero_time(), activity_idx) {
+                match (commute.is_zero_distance(), activity_idx) {
                     (true, _) => Ok(Some(commute)),
                     // NOTE that's unreachable
                     (false, idx) if idx == 0 => Err("cannot have commute at first activity in the stop".to_string()),
@@ -268,11 +268,14 @@ impl CheckerContext {
                                     }
                                 };
 
+                                // NOTE parking correction
+                                let f_duration = if f_duration == 0 { parking as f64 } else { f_duration as f64 };
+
                                 Ok(Some(DomainCommute {
                                     forward: DomainCommuteInfo {
                                         location: prev_location,
                                         distance: f_distance as f64,
-                                        duration: f_duration as f64,
+                                        duration: f_duration,
                                     },
                                     backward: DomainCommuteInfo {
                                         location: b_location,

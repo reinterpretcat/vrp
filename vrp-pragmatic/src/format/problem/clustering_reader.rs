@@ -28,10 +28,12 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                     VicinityVisitPolicy::Continue => VisitPolicy::ClosedContinuation,
                     VicinityVisitPolicy::Return => VisitPolicy::Return,
                 },
-                serving: match serving {
-                    VicinityServingPolicy::Original => ServingPolicy::Original,
-                    VicinityServingPolicy::Multiplier { multiplier } => ServingPolicy::Multiplier(*multiplier),
-                    VicinityServingPolicy::Fixed { value } => ServingPolicy::Multiplier(*value),
+                serving: match *serving {
+                    VicinityServingPolicy::Original { parking } => ServingPolicy::Original { parking },
+                    VicinityServingPolicy::Multiplier { multiplier, parking } => {
+                        ServingPolicy::Multiplier { multiplier, parking }
+                    }
+                    VicinityServingPolicy::Fixed { value, parking } => ServingPolicy::Fixed { value, parking },
                 },
                 filtering: get_filter_policy(filtering.as_ref()),
                 building: get_builder_policy(),

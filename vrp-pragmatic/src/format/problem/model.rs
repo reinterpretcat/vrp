@@ -174,16 +174,23 @@ pub enum VicinityVisitPolicy {
 #[serde(untagged)]
 pub enum VicinityServingPolicy {
     /// Keep original service time.
-    Original,
+    Original {
+        /// Parking time.
+        parking: f64,
+    },
     /// Correct service time by some multiplier.
     Multiplier {
-        /// A multiplier to job's service time.
+        /// Multiplier value applied to original job's duration.
         multiplier: f64,
+        /// Parking time.
+        parking: f64,
     },
     /// Use fixed value for all clustered jobs.
     Fixed {
-        /// All clustered job will have this servic time.
+        /// Fixed value used for all jobs in the cluster.
         value: f64,
+        /// Parking time.
+        parking: f64,
     },
 }
 

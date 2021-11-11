@@ -123,6 +123,7 @@ fn can_read_basic_init_solution() {
                         departure: "1970-01-01T00:00:08Z".to_string(),
                     },
                     distance: 3,
+                    parking: None,
                     load: vec![2],
                     activities: vec![
                         Activity {
@@ -224,6 +225,7 @@ fn can_handle_commute_error_in_init_solution() {
                         departure: "1970-01-01T00:00:02Z".to_string(),
                     },
                     distance: 1,
+                    parking: None,
                     load: vec![0],
                     activities: vec![Activity {
                         job_id: "job1".to_string(),

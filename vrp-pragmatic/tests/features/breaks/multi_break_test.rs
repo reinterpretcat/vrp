@@ -91,6 +91,7 @@ fn can_use_two_breaks() {
                             departure: "1970-01-01T00:01:45Z".to_string(),
                         },
                         distance: 99,
+                        parking: None,
                         load: vec![0],
                         activities: vec![
                             Activity {

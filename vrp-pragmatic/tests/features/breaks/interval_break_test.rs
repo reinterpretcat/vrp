@@ -66,6 +66,7 @@ fn can_assign_interval_break_between_jobs() {
                         },
                         distance: 5,
                         load: vec![1],
+                        parking: None,
                         activities: vec![
                             Activity {
                                 job_id: "job1".to_string(),
@@ -200,6 +201,7 @@ fn can_assign_interval_break_with_reload() {
                         },
                         distance: 10,
                         load: vec![1],
+                        parking: None,
                         activities: vec![
                             Activity {
                                 job_id: "job1".to_string(),

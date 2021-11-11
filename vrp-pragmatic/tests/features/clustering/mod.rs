@@ -51,13 +51,21 @@ struct StopData {
     location: Location,
     distance: i64,
     load: i32,
+    parking: i64,
     time: (Timestamp, Timestamp),
     activities: Vec<ActivityData>,
 }
 
 impl StopData {
-    pub fn new(data: (f64, i64, i32, (Timestamp, Timestamp), Vec<ActivityData>)) -> Self {
-        Self { location: vec![data.0, 0.].to_loc(), distance: data.1, load: data.2, time: data.3, activities: data.4 }
+    pub fn new(data: (f64, i64, i32, i64, (Timestamp, Timestamp), Vec<ActivityData>)) -> Self {
+        Self {
+            location: vec![data.0, 0.].to_loc(),
+            distance: data.1,
+            load: data.2,
+            parking: data.3,
+            time: data.4,
+            activities: data.5,
+        }
     }
 }
 
@@ -67,18 +75,29 @@ impl From<StopData> for Stop {
             location: stop.location,
             time: Schedule { arrival: format_time(stop.time.0), departure: format_time(stop.time.1) },
             distance: stop.distance,
+            parking: if stop.parking > 0 {
+                Some(Interval { start: format_time(stop.time.0), end: format_time(stop.time.0 + stop.parking as f64) })
+            } else {
+                None
+            },
             load: vec![stop.load],
             activities: stop.activities.into_iter().map(ActivityData::into).collect(),
         }
     }
 }
 
-fn create_statistic(data: (f64, i64, i64, (i64, i64, i64))) -> Statistic {
+fn create_statistic(data: (f64, i64, i64, (i64, i64, i64, i64))) -> Statistic {
     Statistic {
         cost: data.0,
         distance: data.1,
         duration: data.2,
-        times: Timing { driving: data.3 .0, serving: data.3 .1, commuting: data.3 .2, ..Timing::default() },
+        times: Timing {
+            driving: data.3 .0,
+            serving: data.3 .1,
+            commuting: data.3 .2,
+            parking: data.3 .3,
+            ..Timing::default()
+        },
     }
 }
 

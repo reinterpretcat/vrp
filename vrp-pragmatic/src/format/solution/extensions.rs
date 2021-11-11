@@ -21,6 +21,7 @@ impl Add for Statistic {
                 waiting: self.times.waiting + rhs.times.waiting,
                 break_time: self.times.break_time + rhs.times.break_time,
                 commuting: self.times.commuting + rhs.times.commuting,
+                parking: self.times.parking + rhs.times.parking,
             },
         }
     }

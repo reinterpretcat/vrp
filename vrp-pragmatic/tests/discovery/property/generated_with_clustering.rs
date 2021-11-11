@@ -54,7 +54,7 @@ prop_compose! {
                         max_jobs_per_cluster: None,
                     },
                     visiting: VicinityVisitPolicy::Continue,
-                    serving: VicinityServingPolicy::Original,
+                    serving: VicinityServingPolicy::Original { parking: 0. },
                     filtering: None,
                 }),
                 ..plan

@@ -39,6 +39,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                     location: vec![1., 0.].to_loc(),
                     time: Schedule { arrival: format_time(first.0), departure: "1970-01-01T00:00:02Z".to_string() },
                     distance: first.1,
+                    parking: None,
                     load: vec![1],
                     activities: vec![Activity {
                         job_id: "job1".to_string(),
@@ -53,6 +54,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                     location: vec![2., 0.].to_loc(),
                     time: Schedule { arrival: format_time(second.0), departure: "1970-01-01T00:00:04Z".to_string() },
                     distance: second.1,
+                    parking: None,
                     load: vec![0],
                     activities: vec![Activity {
                         job_id: "job2".to_string(),

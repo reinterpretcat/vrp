@@ -58,6 +58,7 @@ fn can_use_init_solution_with_dispatch() {
                             departure: "1970-01-01T00:00:04Z".to_string(),
                         },
                         distance: 0,
+                        parking: None,
                         load: vec![1],
                         activities: vec![
                             Activity {
@@ -120,6 +121,7 @@ fn can_use_init_solution_with_dispatch() {
                             departure: "1970-01-01T00:00:06Z".to_string(),
                         },
                         distance: 0,
+                        parking: None,
                         load: vec![1],
                         activities: vec![
                             Activity {

@@ -115,14 +115,14 @@ pub fn create_cluster_config() -> ClusterConfig {
     ClusterConfig {
         profile: Profile::new(0, None),
         threshold: ThresholdPolicy {
-            moving_duration: 10.0,
-            moving_distance: 10.0,
+            moving_duration: 10.,
+            moving_distance: 10.,
             min_shared_time: None,
             smallest_time_window: None,
             max_jobs_per_cluster: None,
         },
         visiting: VisitPolicy::Return,
-        serving: ServingPolicy::Original,
+        serving: ServingPolicy::Original { parking: 0. },
         filtering: FilterPolicy { job_filter: Arc::new(|_| true), actor_filter: Arc::new(|_| true) },
         building: BuilderPolicy {
             ordering_global: Arc::new(move |(left_job, left_candidates), (right_job, right_candidates)| {

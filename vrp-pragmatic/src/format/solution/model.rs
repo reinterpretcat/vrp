@@ -21,6 +21,9 @@ pub struct Timing {
     /// Commuting time.
     #[serde(default = "i64::default")]
     pub commuting: i64,
+    /// Parking time.
+    #[serde(default = "i64::default")]
+    pub parking: i64,
 }
 
 /// Represents statistic.
@@ -109,6 +112,8 @@ pub struct Stop {
     pub distance: i64,
     /// Vehicle load after departure from this stop.
     pub load: Vec<i32>,
+    /// Parking time.
+    pub parking: Option<Interval>,
     /// Activities performed at the stop.
     pub activities: Vec<Activity>,
 }
@@ -269,7 +274,7 @@ impl Interval {
 
 impl Default for Timing {
     fn default() -> Self {
-        Self { driving: 0, serving: 0, waiting: 0, break_time: 0, commuting: 0 }
+        Self { driving: 0, serving: 0, waiting: 0, break_time: 0, commuting: 0, parking: 0 }
     }
 }
 
@@ -277,7 +282,7 @@ impl Commute {
     /// Creates a new instance of `Commute`.
     pub fn new(commute: &DomainCommute, start: Timestamp, end: Timestamp, coord_index: &CoordIndex) -> Commute {
         let parse_info = |info: &DomainCommuteInfo, time: Timestamp| {
-            if info.is_zero_time() {
+            if info.is_zero_distance() {
                 None
             } else {
                 Some(CommuteInfo {

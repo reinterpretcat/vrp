@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/format/solution/writer_test.rs"]
 mod writer_test;
 
+use crate::core::construction::clustering::vicinity::ServingPolicy;
 use crate::core::utils::compare_floats;
 use crate::format::coord_index::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
@@ -16,6 +17,7 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::Multi;
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
+use vrp_core::solver::processing::VicinityDimension;
 use vrp_core::solver::Metrics;
 
 type ApiActivity = crate::format::solution::model::Activity;
@@ -110,6 +112,7 @@ pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&
 
 fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> Tour {
     let is_multi_dimen = has_multi_dimensional_capacity(problem.extras.as_ref());
+    let parking = get_parking_time(problem.extras.as_ref());
 
     let actor = route.actor.as_ref();
     let vehicle = actor.vehicle.as_ref();
@@ -172,6 +175,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     job_tag: None,
                     commute: None,
                 }],
+                parking: None,
             });
             (start_idx + 1, start)
         } else {
@@ -208,19 +212,22 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 };
 
                 let commute = act.commute.clone().unwrap_or_else(DomainCommute::default);
-                let driving = if commute.is_zero_time() {
-                    transport.duration(profile, prev_location, act.place.location, prev_departure)
+                let (driving, parking) = if commute.is_zero_distance() {
+                    // NOTE two clusters at the same stop location
+                    let parking = if prev_location == act.place.location { 0. } else { parking };
+                    (transport.duration(profile, prev_location, act.place.location, prev_departure), parking)
                 } else {
                     // NOTE: no need to drive in case of non-zero commute, this goes to commuting time
-                    0.
+                    (0., 0.)
                 };
 
-                let activity_arrival = act.schedule.arrival + commute.forward.duration;
+                let activity_arrival = act.schedule.arrival + parking + commute.forward.duration;
                 let service_start = activity_arrival.max(act.place.time.start);
                 let waiting = service_start - activity_arrival;
-                let serving = act.place.duration;
+                // NOTE parking was included into duration
+                let serving = act.place.duration - parking;
                 let service_end = service_start + serving;
-                let commuting = commute.forward.duration + commute.backward.duration;
+                let commuting = commute.duration();
                 let activity_departure = act.schedule.departure - commute.backward.duration;
 
                 debug_assert!(compare_floats(service_end, activity_departure) == Ordering::Equal);
@@ -228,7 +235,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 // NOTE: use original cost traits to adapt time-based costs (except waiting/commuting)
                 // TODO: add better support of time based activity costs
                 let serving_cost = problem.activity.cost(actor, act, service_start);
-                let transport_cost = if commute.is_zero_time() {
+                let transport_cost = if commute.is_zero_distance() {
                     transport.cost(actor, prev_location, act.place.location, prev_departure)
                 } else {
                     // no real driving costs in case of commute
@@ -241,7 +248,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let distance = leg.statistic.distance + location_distance - commute.forward.distance as i64;
 
                 let is_new_stop = match (act.commute.as_ref(), prev_location == act.place.location) {
-                    (Some(commute), false) if commute.is_zero_time() => true,
+                    (Some(commute), false) if commute.is_zero_distance() => true,
                     (Some(_), _) => false,
                     (None, is_same_location) => !is_same_location,
                 };
@@ -252,6 +259,14 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                         time: format_schedule(&act.schedule),
                         load: prev_load.as_vec(),
                         distance,
+                        parking: if parking > 0. {
+                            Some(Interval {
+                                start: format_time(act.schedule.arrival),
+                                end: format_time(act.schedule.arrival + parking),
+                            })
+                        } else {
+                            None
+                        },
                         activities: vec![],
                     });
                 }
@@ -280,13 +295,13 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 });
 
                 // NOTE detect when vehicle returns after activity to stop point
-                let end_location = if commute.backward.duration > 0. {
+                let end_location = if commute.backward.is_zero_distance() {
+                    act.place.location
+                } else {
                     tour.stops
                         .last()
                         .and_then(|stop| coord_index.get_by_loc(&stop.location))
                         .expect("expect to have at least one stop")
-                } else {
-                    act.place.location
                 };
 
                 Leg {
@@ -301,6 +316,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                             waiting: leg.statistic.times.waiting + waiting as i64,
                             break_time: leg.statistic.times.break_time + (if is_break { serving as i64 } else { 0 }),
                             commuting: leg.statistic.times.commuting + commuting as i64,
+                            parking: leg.statistic.times.parking + parking as i64,
                         },
                     },
                     load: Some(load),
@@ -414,6 +430,14 @@ fn has_multi_dimensional_capacity(extras: &DomainExtras) -> bool {
         "single" => false,
         _ => panic!("Unknown capacity type: '{}'", capacity_type),
     }
+}
+
+fn get_parking_time(extras: &DomainExtras) -> f64 {
+    extras.get_cluster_config().map_or(0., |config| match config.serving {
+        ServingPolicy::Original { parking, .. } => parking,
+        ServingPolicy::Multiplier { parking, .. } => parking,
+        ServingPolicy::Fixed { parking, .. } => parking,
+    })
 }
 
 fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extras> {

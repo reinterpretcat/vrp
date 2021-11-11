@@ -126,6 +126,7 @@ impl Processing for VicinityClustering {
                             _ => 0.,
                         };
 
+                        // NOTE ignore parking
                         let service_start = (arrival + info.commute.forward.duration).max(cluster_time.start);
                         let departure = service_start + info.service_time + backward;
 

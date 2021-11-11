@@ -85,6 +85,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                         departure: "1970-01-01T00:00:05Z".to_string(),
                     },
                     distance: 1,
+                    parking: None,
                     load: vec![*stop_loads.get(1).unwrap()],
                     activities: vec![
                         Activity {
@@ -112,6 +113,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                         departure: "1970-01-01T00:00:05Z".to_string(),
                     },
                     distance: 1,
+                    parking: None,
                     load: vec![*stop_loads.get(2).unwrap()],
                     activities: vec![Activity {
                         job_id: "reload".to_string(),
@@ -129,6 +131,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                         departure: "1970-01-01T00:00:08Z".to_string(),
                     },
                     distance: 3,
+                    parking: None,
                     load: vec![*stop_loads.get(3).unwrap()],
                     activities: vec![
                         Activity {
@@ -230,6 +233,7 @@ fn can_check_load_when_departure_has_other_activity() {
                         departure: "1970-01-01T00:00:01Z".to_string(),
                     },
                     distance: 0,
+                    parking: None,
                     load: vec![1],
                     activities: vec![
                         Activity {

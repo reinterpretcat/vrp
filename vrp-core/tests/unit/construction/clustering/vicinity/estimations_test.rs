@@ -90,90 +90,90 @@ can_get_dissimilarities! {
     case_01_one_place: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServingPolicy::Original,
+        (5., 5., None), ServingPolicy::Original { parking: 0. },
         vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
     ),
     case_02_two_places: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(1), 3., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(2), 2., vec![(20., 40.)])],
-        (5., 5., None), ServingPolicy::Original,
+        (5., 5., None), ServingPolicy::Original { parking: 0. },
         vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (1, 1, 2., (1, 1., 1.), (1, 1., 1.))]
     ),
     case_03_two_places: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(1), 3., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(2), 2., vec![(50., 60.)])],
-        (5., 5., None), ServingPolicy::Original,
+        (5., 5., None), ServingPolicy::Original { parking: 0. },
         vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
     ),
 
     case_04_serving_policy: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServingPolicy::Multiplier(0.5),
+        (5., 5., None), ServingPolicy::Multiplier { multiplier: 0.5, parking: 0. },
         vec![(0, 0, 1.5, (1, 1., 1.), (1, 1., 1.))]
     ),
     case_05_serving_policy: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., None), ServingPolicy::Fixed(20.),
+        (5., 5., None), ServingPolicy::Fixed  { value: 20., parking: 0. },
         vec![(0, 0, 20., (1, 1., 1.), (1, 1., 1.))]
     ),
 
     case_06_threshold: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(5), 3., vec![(5., 15.)])],
-        (2., 5., None), ServingPolicy::Original,
+        (2., 5., None), ServingPolicy::Original { parking: 0. },
         Vec::default(),
     ),
     case_07_threshold: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(5), 3., vec![(5., 15.)])],
-        (5., 2., None), ServingPolicy::Original,
+        (5., 2., None), ServingPolicy::Original { parking: 0. },
         Vec::default(),
     ),
 
     case_08_shared_time: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(4.9)), ServingPolicy::Original,
+        (5., 5., Some(4.9)), ServingPolicy::Original { parking: 0. },
         vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
     ),
     case_09_shared_time: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(5.)), ServingPolicy::Original,
+        (5., 5., Some(5.)), ServingPolicy::Original { parking: 0. },
         Vec::default(),
     ),
     case_10_shared_time: (
         vec![(Some(1), 2., vec![(0., 10.)])],
         vec![(Some(2), 3., vec![(5., 15.)])],
-        (5., 5., Some(6.)), ServingPolicy::Original,
+        (5., 5., Some(6.)), ServingPolicy::Original { parking: 0. },
         Vec::default(),
     ),
 
     case_11_wide_time_windows: (
         vec![(Some(1), 2., vec![(0., 100.)])],
         vec![(Some(2), 3., vec![(5., 15.)]), (Some(5), 3., vec![(20., 40.)])],
-        (5., 5., None), ServingPolicy::Original,
+        (5., 5., None), ServingPolicy::Original { parking: 0. },
         vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (0, 1, 3., (1, 4., 4.), (1, 4., 4.))]
     ),
     case_12_wide_time_windows: (
         vec![(Some(1), 2., vec![(0., 10.)]), (Some(4), 2., vec![(20., 30.)])],
         vec![(Some(2), 3., vec![(0., 100.)])],
-        (5., 5., None), ServingPolicy::Original,
+        (5., 5., None), ServingPolicy::Original { parking: 0. },
         vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.)), (1, 0, 3., (4, 2., 2.), (4, 2., 2.))]
     ),
 
     case_13_sorting_shared_time: (
         vec![(Some(1), 2., vec![(0., 100.)])],
         vec![(Some(2), 3., vec![(5., 15.), (20., 40.)])],
-        (5., 5., Some(10.)), ServingPolicy::Original,
+        (5., 5., Some(10.)), ServingPolicy::Original { parking: 0. },
         vec![(0, 0, 3., (1, 1., 1.), (1, 1., 1.))]
     ),
     case_14_sorting_shared_time: (
         vec![(Some(1), 2., vec![(0., 30.)])],
         vec![(Some(2), 3., vec![(5., 15.), (20., 40.)])],
-        (5., 5., Some(10.)), ServingPolicy::Original,
+        (5., 5., Some(10.)), ServingPolicy::Original { parking: 0. },
         Vec::default(),
     ),
 }

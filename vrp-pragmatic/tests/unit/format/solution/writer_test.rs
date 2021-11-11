@@ -166,8 +166,8 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
             coord_index.add(&Location::Reference { index });
             let arrival = index as f64;
             let commute = commute.map(|(f, b)| DomainCommute {
-                forward: DomainCommuteInfo { location: 0, distance: 0., duration: f },
-                backward: DomainCommuteInfo { location: 0, distance: 0., duration: b },
+                forward: DomainCommuteInfo { location: 0, distance: f, duration: f },
+                backward: DomainCommuteInfo { location: 0, distance: b, duration: b },
             });
             let departure = arrival + commute.as_ref().map(|c| c.forward.duration + c.backward.duration).unwrap_or(0.);
             DomainActivity {

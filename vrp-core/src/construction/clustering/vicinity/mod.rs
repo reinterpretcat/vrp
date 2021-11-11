@@ -105,11 +105,24 @@ pub struct FilterPolicy {
 #[derive(Clone)]
 pub enum ServingPolicy {
     /// Keep original service time.
-    Original,
+    Original {
+        /// Parking time.
+        parking: f64,
+    },
     /// Correct service time by some multiplier.
-    Multiplier(f64),
+    Multiplier {
+        /// Multiplier value applied to original job's duration.
+        multiplier: f64,
+        /// Parking time.
+        parking: f64,
+    },
     /// Use fixed value for all clustered jobs.
-    Fixed(f64),
+    Fixed {
+        /// Fixed value used for all jobs in the cluster.
+        value: f64,
+        /// Parking time.
+        parking: f64,
+    },
 }
 
 /// Allows to control how clusters are built.

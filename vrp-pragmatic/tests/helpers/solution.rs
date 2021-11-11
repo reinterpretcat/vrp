@@ -64,6 +64,7 @@ fn create_stop_with_activity_impl(
             job_tag,
             commute: None,
         }],
+        parking: None,
     }
 }
 
