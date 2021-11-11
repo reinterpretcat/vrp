@@ -20,9 +20,14 @@ fn job_prototype() -> impl Strategy<Value = Job> {
     ]
 }
 
+fn get_parking_time() -> impl Strategy<Value = f64> {
+    prop_oneof![Just(0.), Just(0.), Just(0.), Just(0.), Just(0.), Just(300.), Just(120.)]
+}
+
 prop_compose! {
     fn get_problem_with_vicinity(radius: f64)
     (
+     parking in get_parking_time(),
      radius_fraction in 1..100,
      moving_duration in 30..1800,
      plan in generate_plan(generate_jobs(job_prototype(), 1..512)),
@@ -41,6 +46,7 @@ prop_compose! {
     ) -> Problem {
         let moving_duration = moving_duration as f64;
         let moving_distance = radius * (radius_fraction as f64 / 1000.);
+        let parking = parking as f64;
 
         Problem {
             plan: Plan {
@@ -54,7 +60,7 @@ prop_compose! {
                         max_jobs_per_cluster: None,
                     },
                     visiting: VicinityVisitPolicy::Continue,
-                    serving: VicinityServingPolicy::Original { parking: 0. },
+                    serving: VicinityServingPolicy::Original { parking },
                     filtering: None,
                 }),
                 ..plan
