@@ -130,3 +130,4 @@ fn create_test_problem(jobs_data: &[(f64, &str)], capacity: i32, clustering: Clu
 mod basic_vicinity_test;
 mod capacity_vicinity_test;
 mod profile_vicinity_test;
+mod specific_vicinity_test;

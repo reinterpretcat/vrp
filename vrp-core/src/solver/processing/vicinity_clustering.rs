@@ -93,6 +93,8 @@ impl Processing for VicinityClustering {
             return insertion_ctx;
         };
 
+        let parking = config.serving.get_parking();
+
         insertion_ctx.solution.routes.iter_mut().for_each(|route_ctx| {
             #[allow(clippy::needless_collect)]
             let clusters = route_ctx
@@ -108,14 +110,21 @@ impl Processing for VicinityClustering {
                 })
                 .collect::<Vec<_>>();
 
-            clusters.into_iter().rev().for_each(|(cluster_idx, cluster)| {
-                let cluster_activity = route_ctx.route.tour.get(cluster_idx).unwrap();
+            clusters.into_iter().rev().for_each(|(activity_idx, cluster)| {
+                let cluster_activity = route_ctx.route.tour.get(activity_idx).unwrap();
                 let cluster_time = cluster_activity.place.time.clone();
                 let cluster_arrival = cluster_activity.schedule.arrival;
                 let last_job = cluster.last().unwrap().job.clone();
 
-                let (_, activities) =
-                    cluster.into_iter().fold((cluster_arrival, Vec::new()), |(arrival, mut activities), info| {
+                let prev_location = if activity_idx > 0 {
+                    route_ctx.route.tour.get(activity_idx - 1).map(|a| a.place.location)
+                } else {
+                    None
+                };
+
+                let (_, activities) = cluster.into_iter().enumerate().fold(
+                    (cluster_arrival, Vec::new()),
+                    |(arrival, mut activities), (cluster_idx, info)| {
                         // NOTE assumption: no waiting time possible in between of clustered jobs
                         let job = info.job.to_single().clone();
                         let place = job.places.first().unwrap();
@@ -126,9 +135,15 @@ impl Processing for VicinityClustering {
                             _ => 0.,
                         };
 
-                        // NOTE ignore parking
-                        let service_start = (arrival + info.commute.forward.duration).max(cluster_time.start);
-                        let departure = service_start + info.service_time + backward;
+                        let is_same_stop = prev_location.zip(place.location).map_or(false, |(prev, curr)| prev == curr);
+                        let parking = match (is_same_stop, cluster_idx == 0) {
+                            (false, true) => parking,
+                            _ => 0.,
+                        };
+
+                        let service_time = info.service_time - parking;
+                        let service_start = (arrival + parking + info.commute.forward.duration).max(cluster_time.start);
+                        let departure = service_start + service_time + backward;
 
                         activities.push(Activity {
                             place: Place {
@@ -142,11 +157,12 @@ impl Processing for VicinityClustering {
                         });
 
                         (departure, activities)
-                    });
+                    },
+                );
 
-                route_ctx.route_mut().tour.remove_activity_at(cluster_idx);
+                route_ctx.route_mut().tour.remove_activity_at(activity_idx);
                 activities.into_iter().enumerate().for_each(|(seq_idx, activity)| {
-                    route_ctx.route_mut().tour.insert_at(activity, cluster_idx + seq_idx);
+                    route_ctx.route_mut().tour.insert_at(activity, activity_idx + seq_idx);
                 });
             });
         });

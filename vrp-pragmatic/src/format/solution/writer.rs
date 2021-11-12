@@ -2,7 +2,6 @@
 #[path = "../../../tests/unit/format/solution/writer_test.rs"]
 mod writer_test;
 
-use crate::core::construction::clustering::vicinity::ServingPolicy;
 use crate::core::utils::compare_floats;
 use crate::format::coord_index::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
@@ -212,36 +211,39 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 };
 
                 let commute = act.commute.clone().unwrap_or_else(DomainCommute::default);
-                let (driving, parking) = if commute.is_zero_distance() {
-                    // NOTE two clusters at the same stop location
-                    let parking = if prev_location == act.place.location { 0. } else { parking };
-                    (transport.duration(profile, prev_location, act.place.location, prev_departure), parking)
+                let commuting = commute.duration();
+
+                let (driving, transport_cost) = if commute.is_zero_distance() {
+                    // NOTE: use original cost traits to adapt time-based costs (except waiting/commuting)
+                    let duration = transport.duration(profile, prev_location, act.place.location, prev_departure);
+                    let transport_cost = transport.cost(actor, prev_location, act.place.location, prev_departure);
+                    (duration, transport_cost)
                 } else {
                     // NOTE: no need to drive in case of non-zero commute, this goes to commuting time
-                    (0., 0.)
+                    (0., commuting * vehicle.costs.per_service_time)
                 };
+
+                // NOTE two clusters at the same stop location
+                let parking =
+                    match (prev_location == act.place.location, act.commute.is_some(), commute.is_zero_distance()) {
+                        (false, true, true) => parking,
+                        _ => 0.,
+                    };
 
                 let activity_arrival = act.schedule.arrival + parking + commute.forward.duration;
                 let service_start = activity_arrival.max(act.place.time.start);
                 let waiting = service_start - activity_arrival;
-                // NOTE parking was included into duration
                 let serving = act.place.duration - parking;
                 let service_end = service_start + serving;
-                let commuting = commute.duration();
                 let activity_departure = act.schedule.departure - commute.backward.duration;
 
-                debug_assert!(compare_floats(service_end, activity_departure) == Ordering::Equal);
+                if compare_floats(service_end, activity_departure) != Ordering::Equal {
+                    debug_assert!(compare_floats(service_end, activity_departure) == Ordering::Equal);
+                }
 
-                // NOTE: use original cost traits to adapt time-based costs (except waiting/commuting)
                 // TODO: add better support of time based activity costs
                 let serving_cost = problem.activity.cost(actor, act, service_start);
-                let transport_cost = if commute.is_zero_distance() {
-                    transport.cost(actor, prev_location, act.place.location, prev_departure)
-                } else {
-                    // no real driving costs in case of commute
-                    commuting * vehicle.costs.per_service_time
-                };
-                let cost = serving_cost + transport_cost + waiting * vehicle.costs.per_waiting_time;
+                let total_cost = serving_cost + transport_cost + waiting * vehicle.costs.per_waiting_time;
 
                 let location_distance =
                     transport.distance(profile, prev_location, act.place.location, prev_departure) as i64;
@@ -307,7 +309,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 Leg {
                     last_detail: Some((end_location, act.schedule.departure)),
                     statistic: Statistic {
-                        cost: leg.statistic.cost + cost,
+                        cost: leg.statistic.cost + total_cost,
                         distance,
                         duration: leg.statistic.duration + act.schedule.departure as i64 - prev_departure as i64,
                         times: Timing {
@@ -433,11 +435,7 @@ fn has_multi_dimensional_capacity(extras: &DomainExtras) -> bool {
 }
 
 fn get_parking_time(extras: &DomainExtras) -> f64 {
-    extras.get_cluster_config().map_or(0., |config| match config.serving {
-        ServingPolicy::Original { parking, .. } => parking,
-        ServingPolicy::Multiplier { parking, .. } => parking,
-        ServingPolicy::Fixed { parking, .. } => parking,
-    })
+    extras.get_cluster_config().map_or(0., |config| config.serving.get_parking())
 }
 
 fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extras> {

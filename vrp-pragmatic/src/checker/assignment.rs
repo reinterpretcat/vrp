@@ -181,11 +181,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                     let parking = ctx
                                         .clustering
                                         .as_ref()
-                                        .map(|config| match config.serving {
-                                            ServingPolicy::Original { parking } => parking,
-                                            ServingPolicy::Multiplier { parking, .. } => parking,
-                                            ServingPolicy::Fixed { parking, .. } => parking,
-                                        })
+                                        .map(|config| config.serving.get_parking())
                                         .unwrap_or(0.);
                                     let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
                                     let domain_commute = ctx.get_commute_info(commute_profile, parking, stop, *idx);
@@ -219,8 +215,6 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                                 + service_time
                                                 + d_commute.backward.duration;
                                             let actual_departure = time.end + d_commute.backward.duration;
-
-                                            let a_commute = commute.to_domain(&ctx.coord_index);
 
                                             // NOTE: a "workaroundish" approach for two clusters in the same stop
                                             (not_equal(actual_departure, expected_departure)

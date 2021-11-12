@@ -204,3 +204,14 @@ fn get_check_insertion_fn(
         }))
     }
 }
+
+impl ServingPolicy {
+    /// Gets parking time.
+    pub fn get_parking(&self) -> f64 {
+        match &self {
+            Self::Original { parking } => *parking,
+            Self::Multiplier { parking, .. } => *parking,
+            Self::Fixed { parking, .. } => *parking,
+        }
+    }
+}
