@@ -207,11 +207,10 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                             let a_commute = commute.to_domain(&ctx.coord_index);
 
                                             // NOTE: we keep parking in service time of a first activity of the non-first cluster
-                                            let parking =
-                                                if a_commute.is_zero_distance() && *idx > 0 { parking } else { 0. };
+                                            let service_time = service_time
+                                                + if a_commute.is_zero_distance() && *idx > 0 { parking } else { 0. };
 
                                             let expected_departure = time.start.max(place.time.start)
-                                                + parking
                                                 + service_time
                                                 + d_commute.backward.duration;
                                             let actual_departure = time.end + d_commute.backward.duration;

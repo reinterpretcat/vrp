@@ -158,7 +158,6 @@ can_handle_two_clusters! {
         ],
         (34., 4, 20, (4, 4, 4, 8)),
     ),
-
     case_04_same_stops_parking: (
         &[1., 1., 1., 1.], VicinityServingPolicy::Fixed { value: 2., parking: 4. }, true,
         vec![
