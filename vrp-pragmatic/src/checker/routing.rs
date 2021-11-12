@@ -24,7 +24,7 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
 
         let (departure_time, total_distance) = tour.stops.windows(2).enumerate().try_fold::<_, _, Result<_, String>>(
             (time_offset, 0),
-            |(time, total_distance), (leg_idx, stops)| {
+            |(arrival_time, total_distance), (leg_idx, stops)| {
                 let (from, to) = match stops {
                     [from, to] => (from, to),
                     _ => unreachable!(),
@@ -34,10 +34,10 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
                 let to_idx = context.get_location_index(&to.location)?;
                 let (distance, duration) = context.get_matrix_data(&profile, from_idx, to_idx)?;
 
-                let time = time + duration;
+                let arrival_time = arrival_time + duration;
                 let total_distance = total_distance + distance;
 
-                check_stop_statistic(time, total_distance, leg_idx + 1, to, tour, skip_distance_check)?;
+                check_stop_statistic(arrival_time, total_distance, leg_idx + 1, to, tour, skip_distance_check)?;
 
                 Ok((parse_time(&to.time.departure) as i64, to.distance))
             },
@@ -50,19 +50,19 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
 }
 
 fn check_stop_statistic(
-    time: i64,
+    arrival_time: i64,
     total_distance: i64,
     stop_idx: usize,
     to: &Stop,
     tour: &Tour,
     skip_distance_check: bool,
 ) -> Result<(), String> {
-    if (time - parse_time(&to.time.arrival) as i64).abs() > 1 {
+    if (arrival_time - parse_time(&to.time.arrival) as i64).abs() > 1 {
         return Err(format!(
             "arrival time mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
             stop_idx,
             tour.vehicle_id,
-            format_time(time as f64),
+            format_time(arrival_time as f64),
             to.time.arrival
         ));
     }
