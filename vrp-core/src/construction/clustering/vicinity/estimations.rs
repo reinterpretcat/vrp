@@ -214,6 +214,7 @@ fn build_job_cluster(
             let (new_duration, parking) = get_service_time(center_duration, &config.serving);
             let new_duration = new_duration + parking;
 
+            // NOTE as parking time is part of service time in the cluster, we need to shrink time window
             let center_times = if parking > 0. {
                 center_times.into_iter().map(|tw| TimeWindow::new(tw.start, tw.end - parking)).collect()
             } else {

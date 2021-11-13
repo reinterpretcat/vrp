@@ -24,12 +24,17 @@ fn get_parking_time() -> impl Strategy<Value = f64> {
     prop_oneof![Just(0.), Just(0.), Just(0.), Just(0.), Just(0.), Just(300.), Just(120.)]
 }
 
+fn get_visiting_policy() -> impl Strategy<Value = VicinityVisitPolicy> {
+    prop_oneof![Just(VicinityVisitPolicy::Continue), Just(VicinityVisitPolicy::Return)]
+}
+
 prop_compose! {
     fn get_problem_with_vicinity(radius: f64)
     (
      parking in get_parking_time(),
      radius_fraction in 1..100,
      moving_duration in 30..1800,
+     visiting in get_visiting_policy(),
      plan in generate_plan(generate_jobs(job_prototype(), 1..512)),
      fleet in generate_fleet(
         generate_vehicles(
@@ -59,7 +64,7 @@ prop_compose! {
                         smallest_time_window: None,
                         max_jobs_per_cluster: None,
                     },
-                    visiting: VicinityVisitPolicy::Continue,
+                    visiting,
                     serving: VicinityServingPolicy::Original { parking },
                     filtering: None,
                 }),
