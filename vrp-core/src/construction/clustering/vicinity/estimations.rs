@@ -126,6 +126,8 @@ fn get_dissimilarities(
     transport: &(dyn TransportCost + Send + Sync),
     config: &ClusterConfig,
 ) -> Vec<DissimilarityInfo> {
+    let min_shared_time = config.threshold.min_shared_time.unwrap_or(0.).max(config.serving.get_parking());
+
     outer
         .to_single()
         .places
@@ -145,7 +147,7 @@ fn get_dissimilarities(
                         .max_by(|a, b| compare_floats(*a, *b))
                         .unwrap_or(0.);
 
-                    if shared_time > config.threshold.min_shared_time.unwrap_or(0.) {
+                    if shared_time > min_shared_time {
                         let departure = Default::default();
 
                         let fwd_distance = transport.distance(&config.profile, outer_loc, inner_loc, departure);
@@ -212,6 +214,13 @@ fn build_job_cluster(
             let (center_place_idx, center_location, center_duration, center_times) = center_place_info;
             let (new_duration, parking) = get_service_time(center_duration, &config.serving);
             let new_duration = new_duration + parking;
+
+            let center_times = if parking > 0. {
+                center_times.into_iter().map(|tw| TimeWindow::new(tw.start, tw.end - parking)).collect()
+            } else {
+                center_times
+            };
+
             let new_center_job = create_single_job(Some(center_location), new_duration, &center_times, &center.dimens);
             let new_visit_info = ClusterInfo {
                 job: center_job.clone(),
