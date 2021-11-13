@@ -33,11 +33,10 @@ pub(crate) fn get_clusters(
                 .iter()
                 .filter_map(|(job, infos)| {
                     // get only reachable estimates
-                    let infos = infos.iter().filter(|(reachable, ..)| *reachable).collect::<Vec<_>>();
-                    if infos.is_empty() {
-                        None
-                    } else {
+                    if infos.iter().any(|(reachable, ..)| *reachable) {
                         Some(job.clone())
+                    } else {
+                        None
                     }
                 })
                 .collect::<HashSet<_>>();

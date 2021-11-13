@@ -358,8 +358,8 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
                 match (source_demand, candidate_demand) {
                     (None, None) | (Some(_), None) => Ok(source),
                     _ => {
-                        let source_demand = source_demand.cloned().unwrap_or_else(Default::default);
-                        let candidate_demand = candidate_demand.cloned().unwrap_or_else(Default::default);
+                        let source_demand = source_demand.cloned().unwrap_or_default();
+                        let candidate_demand = candidate_demand.cloned().unwrap_or_default();
                         let new_demand = source_demand + candidate_demand;
 
                         let mut dimens = s_source.dimens.clone();

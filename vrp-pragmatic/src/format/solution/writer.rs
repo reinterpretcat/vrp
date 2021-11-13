@@ -27,7 +27,6 @@ type ApiIndividual = crate::format::solution::model::Individual;
 type DomainSchedule = vrp_core::models::common::Schedule;
 type DomainLocation = vrp_core::models::common::Location;
 type DomainExtras = vrp_core::models::Extras;
-type DomainCommute = vrp_core::models::solution::Commute;
 
 /// A trait to serialize solution in pragmatic format.
 pub trait PragmaticSolution<W: Write> {
@@ -128,7 +127,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
     let mut leg = intervals.into_iter().fold(Leg::empty(), |leg, (start_idx, end_idx)| {
         let (start_delivery, end_pickup) = route.tour.activities_slice(start_idx, end_idx).iter().fold(
-            (leg.load.unwrap_or_else(MultiDimLoad::default), MultiDimLoad::default()),
+            (leg.load.unwrap_or_default(), MultiDimLoad::default()),
             |acc, activity| {
                 let (delivery, pickup) = activity
                     .job
@@ -208,7 +207,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                     _ => activity_type.clone(),
                 };
 
-                let commute = act.commute.clone().unwrap_or_else(DomainCommute::default);
+                let commute = act.commute.clone().unwrap_or_default();
                 let commuting = commute.duration();
 
                 let (driving, transport_cost) = if commute.is_zero_distance() {
