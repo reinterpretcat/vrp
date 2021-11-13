@@ -126,8 +126,7 @@ fn get_dissimilarities(
     transport: &(dyn TransportCost + Send + Sync),
     config: &ClusterConfig,
 ) -> Vec<DissimilarityInfo> {
-    let min_shared_time = config.threshold.min_shared_time.unwrap_or(0.).max(config.serving.get_parking());
-
+    let min_shared_time = config.threshold.min_shared_time.unwrap_or(0.);
     outer
         .to_single()
         .places
@@ -344,7 +343,7 @@ fn try_add_job<F>(
 where
     F: Fn(&ClusterInfo) -> Commute,
 {
-    let time_window_threshold = config.threshold.smallest_time_window.unwrap_or(0.);
+    let time_window_threshold = config.threshold.smallest_time_window.unwrap_or(0.).max(config.serving.get_parking());
     let cluster = cluster.to_single();
     let cluster_place = cluster.places.first().expect("expect one place in cluster");
     let cluster_times = filter_times(cluster_place.times.as_slice());
