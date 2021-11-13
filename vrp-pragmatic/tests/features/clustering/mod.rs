@@ -1,9 +1,10 @@
+use vrp_core::models::common::{Distance, Timestamp};
+
 use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
-use vrp_core::models::common::{Distance, Timestamp};
 
 type CommuteData = Option<(f64, Distance, Timestamp, Timestamp)>;
 

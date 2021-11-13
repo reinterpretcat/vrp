@@ -49,21 +49,45 @@ fn can_handle_parking_with_no_clusters_and_job_time_windows() {
     solve_with_metaheuristic_and_iterations(problem, Some(matrices), 1);
 }
 
-#[test]
-fn can_handle_waiting_time_with_parking() {
+parameterized_test! {can_handle_waiting_time_with_parking, (jobs, threshold, vehicle_location), {
+    let vehicle_location = Location::Coordinate { lat: vehicle_location.0, lng: vehicle_location.1 };
+    can_handle_waiting_time_with_parking_impl(jobs, threshold, vehicle_location);
+}}
+
+can_handle_waiting_time_with_parking! {
+    case_01: (vec![
+            ("job1", vec![52.424, 13.2148], vec![(32400, 39600)]),
+            ("job2", vec![52.507, 13.506], vec![(50400, 57600)]),
+            ("job3", vec![52.498, 13.499], vec![(50400, 57600)]),
+        ],
+        (1143., 128.), (52.505, 13.218),
+    ),
+    case_02: (vec![
+            ("job1", vec![52.559, 13.228], vec![(50400, 64800)]),
+            ("job2", vec![52.575, 13.395], vec![(32400, 39600)]),
+            ("job3", vec![52.575, 13.395], vec![(32400, 39600)]),
+        ],
+        (210., 930.), (52.577, 13.530),
+    ),
+}
+
+fn can_handle_waiting_time_with_parking_impl(
+    jobs: Vec<(&str, Vec<f64>, Vec<(i32, i32)>)>,
+    threshold: (f64, f64),
+    vehicle_location: Location,
+) {
     let problem = Problem {
         plan: Plan {
-            jobs: vec![
-                create_delivery_job_with_times("job1", vec![52.424, 13.2148], vec![(32400, 39600)], 1.),
-                create_delivery_job_with_times("job2", vec![52.507, 13.506], vec![(50400, 57600)], 1.),
-                create_delivery_job_with_times("job3", vec![52.498, 13.499], vec![(50400, 57600)], 1.),
-            ],
+            jobs: jobs
+                .into_iter()
+                .map(|(id, coordinates, times)| create_delivery_job_with_times(id, coordinates, times, 1.))
+                .collect(),
             relations: None,
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                 threshold: VicinityThresholdPolicy {
-                    moving_duration: 1143.,
-                    moving_distance: 128.,
+                    moving_duration: threshold.0,
+                    moving_distance: threshold.1,
                     min_shared_time: None,
                     smallest_time_window: None,
                     max_jobs_per_cluster: None,
@@ -79,12 +103,12 @@ fn can_handle_waiting_time_with_parking() {
                     start: ShiftStart {
                         earliest: "1970-01-01T09:00:00Z".to_string(),
                         latest: None,
-                        location: Location::Coordinate { lat: 52.505, lng: 13.218 },
+                        location: vehicle_location.clone(),
                     },
                     end: Some(ShiftEnd {
                         earliest: None,
                         latest: "1970-01-01T18:00:00Z".to_string(),
-                        location: Location::Coordinate { lat: 52.505, lng: 13.218 },
+                        location: vehicle_location,
                     }),
                     ..create_default_vehicle_shift()
                 }],
