@@ -2,14 +2,12 @@
 #[path = "../../../tests/unit/format/solution/writer_test.rs"]
 mod writer_test;
 
-use crate::core::utils::compare_floats;
 use crate::format::coord_index::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
 use crate::format_time;
-use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::route_intervals;
 use vrp_core::models::common::*;
@@ -230,16 +228,12 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                         _ => 0.,
                     };
 
-                let activity_arrival = act.schedule.arrival + parking + commute.forward.duration;
+                let activity_arrival = parking + act.schedule.arrival + commute.forward.duration;
                 let service_start = activity_arrival.max(act.place.time.start);
                 let waiting = service_start - activity_arrival;
                 let serving = act.place.duration - parking;
                 let service_end = service_start + serving;
-                let activity_departure = act.schedule.departure - commute.backward.duration;
-
-                if compare_floats(service_end, activity_departure) != Ordering::Equal {
-                    debug_assert!(compare_floats(service_end, activity_departure) == Ordering::Equal);
-                }
+                let activity_departure = service_end;
 
                 // TODO: add better support of time based activity costs
                 let serving_cost = problem.activity.cost(actor, act, service_start);
