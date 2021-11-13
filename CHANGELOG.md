@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 * a new local search operator: exchange sequence
 * a vicinity job clustering: group close jobs in the same stop and visit them differently
 
+### Changed
+
+* update dependencies
+
 
 ## [v1.11.5] - 2021-09-27
 
