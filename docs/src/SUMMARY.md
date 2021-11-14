@@ -17,6 +17,7 @@
       * [Jobs](concepts/pragmatic/problem/jobs.md)
       * [Vehicles](concepts/pragmatic/problem/vehicles.md)
       * [Relations](concepts/pragmatic/problem/relations.md)
+      * [Clustering](concepts/pragmatic/problem/clustering.md)
       * [Objectives](concepts/pragmatic/problem/objectives.md)
     * [Routing data](concepts/pragmatic/routing/index.md)
         * [Routing matrix](concepts/pragmatic/routing/format.md)
