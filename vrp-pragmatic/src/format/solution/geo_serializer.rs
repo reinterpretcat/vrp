@@ -3,14 +3,16 @@
 mod geo_serializer_test;
 
 use super::Solution;
-use crate::format::solution::{Stop, Tour, UnassignedJob};
+use crate::format::solution::{Activity, Stop, Tour, UnassignedJob};
 use crate::format::{get_coord_index, get_job_index, CoordIndex, Location};
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{BufWriter, Error, ErrorKind, Write};
+use vrp_core::construction::clustering::vicinity::{ClusterConfig, VisitPolicy};
 use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;
+use vrp_core::solver::processing::VicinityDimension;
 use vrp_core::utils::compare_floats;
 
 #[derive(Clone, Debug, Serialize)]
@@ -133,6 +135,7 @@ fn get_marker_symbol(stop: &Stop) -> String {
 }
 
 fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) -> Result<Feature, Error> {
+    // TODO add parking
     Ok(Feature {
         properties: slice_to_map(&[
             ("marker-color", color),
@@ -146,6 +149,79 @@ fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) ->
         ]),
         geometry: Geometry::Point { coordinates: get_lng_lat(&stop.location)? },
     })
+}
+
+fn get_activity_point(
+    tour_idx: usize,
+    stop_idx: usize,
+    activity_idx: usize,
+    activity: &Activity,
+    location: &Location,
+    color: &str,
+) -> Result<Feature, Error> {
+    let time =
+        activity.time.as_ref().ok_or_else(|| Error::new(ErrorKind::InvalidData, "activity has no time defined"))?;
+
+    Ok(Feature {
+        properties: slice_to_map(&[
+            ("marker-color", color),
+            ("marker-size", "medium"),
+            ("marker-symbol", "marker"),
+            ("tour_idx", tour_idx.to_string().as_str()),
+            ("stop_idx", stop_idx.to_string().as_str()),
+            ("activity_idx", activity_idx.to_string().as_str()),
+            ("start", time.start.as_str()),
+            ("end", time.end.as_str()),
+            ("jobs_id", activity.job_id.as_str()),
+        ]),
+        geometry: Geometry::Point { coordinates: get_lng_lat(location)? },
+    })
+}
+
+fn get_cluster_geometry(
+    tour_idx: usize,
+    stop_idx: usize,
+    stop: &Stop,
+    config: Option<&ClusterConfig>,
+) -> Result<Vec<Feature>, Error> {
+    let config = config.ok_or_else(|| invalid_data("no clustering config"))?;
+
+    let (_, features) = stop.activities.iter().enumerate().try_fold::<_, _, Result<_, Error>>(
+        (stop.location.clone(), Vec::<Feature>::new()),
+        |(prev_location, mut features), (activity_idx, activity)| {
+            let location = activity.location.clone().ok_or_else(|| invalid_data("activity without location"))?;
+            features.push(get_activity_point(
+                tour_idx,
+                stop_idx,
+                activity_idx,
+                activity,
+                &location,
+                get_color_inverse(tour_idx).as_str(),
+            )?);
+
+            let line_color = get_color(tour_idx);
+            let get_line = |from: (f64, f64), to: (f64, f64)| -> Feature {
+                Feature {
+                    properties: slice_to_map(&[("stroke-width", "3"), ("stroke", line_color.as_str())]),
+                    geometry: Geometry::LineString { coordinates: vec![from, to] },
+                }
+            };
+
+            if let Some(commute) = &activity.commute {
+                if let Some(forward) = &commute.forward {
+                    features.push(get_line(get_lng_lat(&prev_location)?, get_lng_lat(&forward.location)?))
+                }
+
+                if let (Some(backward), VisitPolicy::Return) = (&commute.backward, &config.visiting) {
+                    features.push(get_line(get_lng_lat(&location)?, get_lng_lat(&backward.location)?))
+                }
+            }
+
+            Ok((location, features))
+        },
+    )?;
+
+    Ok(features)
 }
 
 fn get_unassigned_points(
@@ -202,6 +278,8 @@ fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Result<Feature, E
 
 /// Creates solution as geo json.
 fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<FeatureCollection, Error> {
+    let cluster_config = problem.extras.get_cluster_config();
+
     let stop_markers = solution
         .tours
         .iter()
@@ -212,6 +290,21 @@ fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<Fea
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
+
+    let clusters_geometry = solution
+        .tours
+        .iter()
+        .enumerate()
+        .flat_map(|(tour_idx, tour)| {
+            tour.stops
+                .iter()
+                .enumerate()
+                .filter(|(_, stop)| stop.parking.is_some())
+                .map(move |(stop_idx, stop)| get_cluster_geometry(tour_idx, stop_idx, stop, cluster_config))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten();
 
     let stop_lines = solution
         .tours
@@ -228,9 +321,9 @@ fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<Fea
         .flat_map(|unassigned| unassigned.iter())
         .enumerate()
         .map(|(idx, unassigned_job)| {
-            let job = job_index.get(&unassigned_job.job_id).ok_or_else(|| {
-                Error::new(ErrorKind::InvalidData, format!("cannot find job: {}", unassigned_job.job_id))
-            })?;
+            let job = job_index
+                .get(&unassigned_job.job_id)
+                .ok_or_else(|| invalid_data(format!("cannot find job: {}", unassigned_job.job_id).as_str()))?;
             let color = get_color(idx);
             get_unassigned_points(coord_index, unassigned_job, job, color.as_str())
         })
@@ -239,7 +332,12 @@ fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<Fea
         .flatten();
 
     Ok(FeatureCollection {
-        features: stop_markers.into_iter().chain(stop_lines.into_iter()).chain(unassigned_markers).collect(),
+        features: stop_markers
+            .into_iter()
+            .chain(stop_lines.into_iter())
+            .chain(unassigned_markers)
+            .chain(clusters_geometry)
+            .collect(),
     })
 }
 
@@ -266,6 +364,10 @@ fn get_lng_lat(location: &Location) -> Result<(f64, f64), Error> {
             Err(Error::new(ErrorKind::InvalidData, "geojson cannot be used with location indices"))
         }
     }
+}
+
+fn invalid_data(msg: &str) -> Error {
+    Error::new(ErrorKind::InvalidData, msg)
 }
 
 type ColorList = &'static [&'static str; 15];
