@@ -124,6 +124,7 @@ pub struct Job {
 
 /// Specifies clustering algorithm.
 #[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(tag = "type")]
 pub enum Clustering {
     /// Vicinity clustering.
     #[serde(rename(deserialize = "vicinity", serialize = "vicinity"))]
@@ -171,21 +172,24 @@ pub enum VicinityVisitPolicy {
 
 /// Specifies service time policy.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(untagged)]
+#[serde(tag = "type")]
 pub enum VicinityServingPolicy {
     /// Keep original service time.
+    #[serde(rename(deserialize = "original", serialize = "original"))]
     Original {
         /// Parking time.
         parking: f64,
     },
     /// Correct service time by some multiplier.
+    #[serde(rename(deserialize = "multiplier", serialize = "multiplier"))]
     Multiplier {
         /// Multiplier value applied to original job's duration.
-        multiplier: f64,
+        value: f64,
         /// Parking time.
         parking: f64,
     },
     /// Use fixed value for all clustered jobs.
+    #[serde(rename(deserialize = "fixed", serialize = "fixed"))]
     Fixed {
         /// Fixed value used for all jobs in the cluster.
         value: f64,

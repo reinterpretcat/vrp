@@ -61,8 +61,10 @@ pub struct Interval {
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Commute {
     /// Commuting to the activity place.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub forward: Option<CommuteInfo>,
     /// Commuting from the activity place.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub backward: Option<CommuteInfo>,
 }
 
@@ -113,6 +115,7 @@ pub struct Stop {
     /// Vehicle load after departure from this stop.
     pub load: Vec<i32>,
     /// Parking time.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub parking: Option<Interval>,
     /// Activities performed at the stop.
     pub activities: Vec<Activity>,

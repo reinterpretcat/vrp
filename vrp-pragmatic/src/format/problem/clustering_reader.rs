@@ -30,8 +30,8 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
                 },
                 serving: match *serving {
                     VicinityServingPolicy::Original { parking } => ServingPolicy::Original { parking },
-                    VicinityServingPolicy::Multiplier { multiplier, parking } => {
-                        ServingPolicy::Multiplier { multiplier, parking }
+                    VicinityServingPolicy::Multiplier { value, parking } => {
+                        ServingPolicy::Multiplier { multiplier: value, parking }
                     }
                     VicinityServingPolicy::Fixed { value, parking } => ServingPolicy::Fixed { value, parking },
                 },

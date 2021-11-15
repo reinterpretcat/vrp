@@ -37,7 +37,7 @@ can_cluster_simple_jobs! {
         (50., 10, 30, (10, 16, 4, 0))
     ),
     case_04_multiplier: (
-       VicinityVisitPolicy::Continue, VicinityServingPolicy::Multiplier { multiplier: 5., parking: 0. },
+       VicinityVisitPolicy::Continue, VicinityServingPolicy::Multiplier { value: 5., parking: 0. },
         (3., 3, 1, 0, (3., 22.), vec![
           ActivityData::new(("job3", Some(3.), "delivery", Some((3., 8.)), Some((None, None)))),
           ActivityData::new(("job2", Some(2.), "delivery", Some((9., 14.)), Some((Some((3., 1., 8., 9.)), None)))),

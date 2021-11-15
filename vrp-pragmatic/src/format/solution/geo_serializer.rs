@@ -9,10 +9,8 @@ use serde::Serialize;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{BufWriter, Error, ErrorKind, Write};
-use vrp_core::construction::clustering::vicinity::{ClusterConfig, VisitPolicy};
 use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;
-use vrp_core::solver::processing::VicinityDimension;
 use vrp_core::utils::compare_floats;
 
 #[derive(Clone, Debug, Serialize)]
@@ -178,17 +176,10 @@ fn get_activity_point(
     })
 }
 
-fn get_cluster_geometry(
-    tour_idx: usize,
-    stop_idx: usize,
-    stop: &Stop,
-    config: Option<&ClusterConfig>,
-) -> Result<Vec<Feature>, Error> {
-    let config = config.ok_or_else(|| invalid_data("no clustering config"))?;
-
-    let (_, features) = stop.activities.iter().enumerate().try_fold::<_, _, Result<_, Error>>(
-        (stop.location.clone(), Vec::<Feature>::new()),
-        |(prev_location, mut features), (activity_idx, activity)| {
+fn get_cluster_geometry(tour_idx: usize, stop_idx: usize, stop: &Stop) -> Result<Vec<Feature>, Error> {
+    let features = stop.activities.iter().enumerate().try_fold::<_, _, Result<_, Error>>(
+        Vec::<Feature>::new(),
+        |mut features, (activity_idx, activity)| {
             let location = activity.location.clone().ok_or_else(|| invalid_data("activity without location"))?;
             features.push(get_activity_point(
                 tour_idx,
@@ -199,7 +190,7 @@ fn get_cluster_geometry(
                 get_color_inverse(tour_idx).as_str(),
             )?);
 
-            let line_color = get_color(tour_idx);
+            let line_color = get_color_inverse(tour_idx);
             let get_line = |from: (f64, f64), to: (f64, f64)| -> Feature {
                 Feature {
                     properties: slice_to_map(&[("stroke-width", "3"), ("stroke", line_color.as_str())]),
@@ -209,15 +200,15 @@ fn get_cluster_geometry(
 
             if let Some(commute) = &activity.commute {
                 if let Some(forward) = &commute.forward {
-                    features.push(get_line(get_lng_lat(&prev_location)?, get_lng_lat(&forward.location)?))
+                    features.push(get_line(get_lng_lat(&forward.location)?, get_lng_lat(&location)?));
                 }
 
-                if let (Some(backward), VisitPolicy::Return) = (&commute.backward, &config.visiting) {
-                    features.push(get_line(get_lng_lat(&location)?, get_lng_lat(&backward.location)?))
+                if let Some(backward) = &commute.backward {
+                    features.push(get_line(get_lng_lat(&location)?, get_lng_lat(&backward.location)?));
                 }
             }
 
-            Ok((location, features))
+            Ok(features)
         },
     )?;
 
@@ -278,8 +269,6 @@ fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Result<Feature, E
 
 /// Creates solution as geo json.
 fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<FeatureCollection, Error> {
-    let cluster_config = problem.extras.get_cluster_config();
-
     let stop_markers = solution
         .tours
         .iter()
@@ -300,7 +289,7 @@ fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<Fea
                 .iter()
                 .enumerate()
                 .filter(|(_, stop)| stop.parking.is_some())
-                .map(move |(stop_idx, stop)| get_cluster_geometry(tour_idx, stop_idx, stop, cluster_config))
+                .map(move |(stop_idx, stop)| get_cluster_geometry(tour_idx, stop_idx, stop))
         })
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
@@ -352,7 +341,7 @@ fn get_color(idx: usize) -> String {
 fn get_color_inverse(idx: usize) -> String {
     static COLOR_LIST: ColorList = get_color_list();
 
-    let idx = (COLOR_LIST.len() - idx) % COLOR_LIST.len();
+    let idx = (COLOR_LIST.len() - idx + 1) % COLOR_LIST.len();
 
     (**COLOR_LIST.get(idx).as_ref().unwrap()).to_string()
 }
