@@ -62,8 +62,8 @@ fn can_cluster_simple_jobs_impl(
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
-                moving_duration: 3.,
-                moving_distance: 3.,
+                duration: 3.,
+                distance: 3.,
                 min_shared_time: None,
                 smallest_time_window: None,
                 max_jobs_per_cluster: None,
@@ -186,8 +186,8 @@ fn can_handle_two_clusters_impl(
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: None },
             threshold: VicinityThresholdPolicy {
-                moving_duration: 5.,
-                moving_distance: 5.,
+                duration: 5.,
+                distance: 5.,
                 min_shared_time: None,
                 smallest_time_window: None,
                 max_jobs_per_cluster: Some(2),

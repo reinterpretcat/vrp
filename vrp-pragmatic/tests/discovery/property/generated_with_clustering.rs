@@ -58,8 +58,8 @@ prop_compose! {
                 clustering: Some(Clustering::Vicinity {
                     profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                     threshold: VicinityThresholdPolicy {
-                        moving_duration,
-                        moving_distance,
+                        duration,
+                        distance,
                         min_shared_time: None,
                         smallest_time_window: None,
                         max_jobs_per_cluster: None,

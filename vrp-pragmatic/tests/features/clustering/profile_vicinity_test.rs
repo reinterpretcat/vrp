@@ -16,8 +16,8 @@ fn can_use_scale_on_profile() {
         Clustering::Vicinity {
             profile: VehicleProfile { matrix: "car".to_string(), scale: Some(2.) },
             threshold: VicinityThresholdPolicy {
-                moving_duration: 3.,
-                moving_distance: 3.,
+                duration: 3.,
+                distance: 3.,
                 min_shared_time: None,
                 smallest_time_window: None,
                 max_jobs_per_cluster: None,

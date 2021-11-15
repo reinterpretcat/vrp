@@ -18,8 +18,8 @@ pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<C
             Clustering::Vicinity { profile, threshold, visiting, serving, filtering } => Ok(Some(ClusterConfig {
                 profile: get_profile(api_problem, profile)?,
                 threshold: ThresholdPolicy {
-                    moving_duration: threshold.moving_distance,
-                    moving_distance: threshold.moving_duration,
+                    moving_duration: threshold.distance,
+                    moving_distance: threshold.duration,
                     min_shared_time: threshold.min_shared_time,
                     smallest_time_window: threshold.smallest_time_window,
                     max_jobs_per_cluster: threshold.max_jobs_per_cluster,

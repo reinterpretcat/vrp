@@ -11,8 +11,8 @@ fn can_handle_parking_with_no_clusters_and_job_time_windows() {
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                 threshold: VicinityThresholdPolicy {
-                    moving_duration: 30.,
-                    moving_distance: 16.,
+                    duration: 30.,
+                    distance: 16.,
                     min_shared_time: None,
                     smallest_time_window: None,
                     max_jobs_per_cluster: None,
@@ -86,8 +86,8 @@ fn can_handle_waiting_time_with_parking_impl(
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                 threshold: VicinityThresholdPolicy {
-                    moving_duration: threshold.0,
-                    moving_distance: threshold.1,
+                    duration: threshold.0,
+                    distance: threshold.1,
                     min_shared_time: None,
                     smallest_time_window: None,
                     max_jobs_per_cluster: None,

@@ -18,7 +18,7 @@ Check next [job](./jobs.md) section for detailed explanation.
 
 Vehicles are defined by `fleet.vehicles` property which specifies array of vehicle types, not specific vehicles.
  
-More details can be found in [vehicle type section](vehicles.md).
+More details can be found in [vehicle type section](./vehicles.md).
 
 
 ## Relation between jobs and vehicles
@@ -62,4 +62,9 @@ Vehicle time is limited per each shift and has required start optional end time:
 {{#include ../../../../../examples/data/pragmatic/simple.basic.problem.json:114:127}}
 ```
 
-More details about `shift` property can be found in [vehicle type section](vehicles.md).
+More details about `shift` property can be found in [vehicle type section](./vehicles.md).
+
+
+### Clustering
+
+Some jobs can be clustered together to have more realistic ETA, check [vicinity clustering section](./clustering.md).

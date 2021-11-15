@@ -148,9 +148,9 @@ pub enum Clustering {
 #[serde(rename_all = "camelCase")]
 pub struct VicinityThresholdPolicy {
     /// Moving duration limit.
-    pub moving_duration: f64,
+    pub duration: f64,
     /// Moving distance limit.
-    pub moving_distance: f64,
+    pub distance: f64,
     /// Minimum shared time for jobs (non-inclusive).
     pub min_shared_time: Option<f64>,
     /// The smallest time window of the cluster after service time shrinking.

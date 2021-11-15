@@ -1,0 +1,399 @@
+{
+  "statistic": {
+    "cost": 40.0274,
+    "distance": 1009,
+    "duration": 2985,
+    "times": {
+      "driving": 102,
+      "serving": 2520,
+      "waiting": 0,
+      "break": 0,
+      "commuting": 1,
+      "parking": 360
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5262872,
+            "lng": 13.4532952
+          },
+          "time": {
+            "arrival": "2020-05-01T09:00:00Z",
+            "departure": "2020-05-01T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            12
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5253342,
+            "lng": 13.4533489
+          },
+          "time": {
+            "arrival": "2020-05-01T09:00:11Z",
+            "departure": "2020-05-01T09:14:12Z"
+          },
+          "distance": 106,
+          "load": [
+            8
+          ],
+          "parking": {
+            "start": "2020-05-01T09:00:11Z",
+            "end": "2020-05-01T09:02:11Z"
+          },
+          "activities": [
+            {
+              "jobId": "job4",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5253342,
+                "lng": 13.4533489
+              },
+              "time": {
+                "start": "2020-05-01T09:02:11Z",
+                "end": "2020-05-01T09:05:11Z"
+              },
+              "commute": {}
+            },
+            {
+              "jobId": "job3",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5255366,
+                "lng": 13.4530162
+              },
+              "time": {
+                "start": "2020-05-01T09:05:11Z",
+                "end": "2020-05-01T09:08:11Z"
+              },
+              "commute": {
+                "forward": {
+                  "location": {
+                    "lat": 52.5253342,
+                    "lng": 13.4533489
+                  },
+                  "distance": 32.0,
+                  "time": {
+                    "start": "2020-05-01T09:05:11Z",
+                    "end": "2020-05-01T09:05:11Z"
+                  }
+                }
+              }
+            },
+            {
+              "jobId": "job2",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5254256,
+                "lng": 13.4527159
+              },
+              "time": {
+                "start": "2020-05-01T09:08:11Z",
+                "end": "2020-05-01T09:11:11Z"
+              },
+              "commute": {
+                "forward": {
+                  "location": {
+                    "lat": 52.5255366,
+                    "lng": 13.4530162
+                  },
+                  "distance": 24.0,
+                  "time": {
+                    "start": "2020-05-01T09:08:11Z",
+                    "end": "2020-05-01T09:08:11Z"
+                  }
+                }
+              }
+            },
+            {
+              "jobId": "job1",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5253538,
+                "lng": 13.4525549
+              },
+              "time": {
+                "start": "2020-05-01T09:11:11Z",
+                "end": "2020-05-01T09:14:11Z"
+              },
+              "commute": {
+                "forward": {
+                  "location": {
+                    "lat": 52.5254256,
+                    "lng": 13.4527159
+                  },
+                  "distance": 14.0,
+                  "time": {
+                    "start": "2020-05-01T09:11:11Z",
+                    "end": "2020-05-01T09:11:11Z"
+                  }
+                },
+                "backward": {
+                  "location": {
+                    "lat": 52.5253342,
+                    "lng": 13.4533489
+                  },
+                  "distance": 54.0,
+                  "time": {
+                    "start": "2020-05-01T09:14:11Z",
+                    "end": "2020-05-01T09:14:12Z"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5239243,
+            "lng": 13.4545827
+          },
+          "time": {
+            "arrival": "2020-05-01T09:14:30Z",
+            "departure": "2020-05-01T09:19:30Z"
+          },
+          "distance": 284,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "job5",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5223315,
+            "lng": 13.4555697
+          },
+          "time": {
+            "arrival": "2020-05-01T09:19:49Z",
+            "departure": "2020-05-01T09:27:49Z"
+          },
+          "distance": 473,
+          "load": [
+            5
+          ],
+          "parking": {
+            "start": "2020-05-01T09:19:49Z",
+            "end": "2020-05-01T09:21:49Z"
+          },
+          "activities": [
+            {
+              "jobId": "job6",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5223315,
+                "lng": 13.4555697
+              },
+              "time": {
+                "start": "2020-05-01T09:21:49Z",
+                "end": "2020-05-01T09:24:49Z"
+              },
+              "commute": {}
+            },
+            {
+              "jobId": "job12",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5223184,
+                "lng": 13.4551942
+              },
+              "time": {
+                "start": "2020-05-01T09:24:49Z",
+                "end": "2020-05-01T09:27:49Z"
+              },
+              "commute": {
+                "forward": {
+                  "location": {
+                    "lat": 52.5223315,
+                    "lng": 13.4555697
+                  },
+                  "distance": 25.0,
+                  "time": {
+                    "start": "2020-05-01T09:24:49Z",
+                    "end": "2020-05-01T09:24:49Z"
+                  }
+                },
+                "backward": {
+                  "location": {
+                    "lat": 52.5223315,
+                    "lng": 13.4555697
+                  },
+                  "distance": 25.0,
+                  "time": {
+                    "start": "2020-05-01T09:27:49Z",
+                    "end": "2020-05-01T09:27:49Z"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5240157,
+            "lng": 13.457222
+          },
+          "time": {
+            "arrival": "2020-05-01T09:28:11Z",
+            "departure": "2020-05-01T09:33:11Z"
+          },
+          "distance": 691,
+          "load": [
+            4
+          ],
+          "activities": [
+            {
+              "jobId": "job7",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5250209,
+            "lng": 13.4567821
+          },
+          "time": {
+            "arrival": "2020-05-01T09:33:23Z",
+            "departure": "2020-05-01T09:38:23Z"
+          },
+          "distance": 807,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "job11",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5243028,
+            "lng": 13.45952868
+          },
+          "time": {
+            "arrival": "2020-05-01T09:38:43Z",
+            "departure": "2020-05-01T09:49:45Z"
+          },
+          "distance": 1009,
+          "load": [
+            0
+          ],
+          "parking": {
+            "start": "2020-05-01T09:38:43Z",
+            "end": "2020-05-01T09:40:43Z"
+          },
+          "activities": [
+            {
+              "jobId": "job8",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5243028,
+                "lng": 13.45952868
+              },
+              "time": {
+                "start": "2020-05-01T09:40:43Z",
+                "end": "2020-05-01T09:43:43Z"
+              },
+              "commute": {}
+            },
+            {
+              "jobId": "job9",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5241593,
+                "lng": 13.4589815
+              },
+              "time": {
+                "start": "2020-05-01T09:43:44Z",
+                "end": "2020-05-01T09:46:44Z"
+              },
+              "commute": {
+                "forward": {
+                  "location": {
+                    "lat": 52.5243028,
+                    "lng": 13.45952868
+                  },
+                  "distance": 40.0,
+                  "time": {
+                    "start": "2020-05-01T09:43:43Z",
+                    "end": "2020-05-01T09:43:44Z"
+                  }
+                }
+              }
+            },
+            {
+              "jobId": "job10",
+              "type": "delivery",
+              "location": {
+                "lat": 52.5239896,
+                "lng": 13.4600115
+              },
+              "time": {
+                "start": "2020-05-01T09:46:44Z",
+                "end": "2020-05-01T09:49:44Z"
+              },
+              "commute": {
+                "forward": {
+                  "location": {
+                    "lat": 52.5241593,
+                    "lng": 13.4589815
+                  },
+                  "distance": 72.0,
+                  "time": {
+                    "start": "2020-05-01T09:46:44Z",
+                    "end": "2020-05-01T09:46:44Z"
+                  }
+                },
+                "backward": {
+                  "location": {
+                    "lat": 52.5243028,
+                    "lng": 13.45952868
+                  },
+                  "distance": 48.0,
+                  "time": {
+                    "start": "2020-05-01T09:49:44Z",
+                    "end": "2020-05-01T09:49:45Z"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 40.0274,
+        "distance": 1009,
+        "duration": 2985,
+        "times": {
+          "driving": 102,
+          "serving": 2520,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 1,
+          "parking": 360
+        }
+      }
+    }
+  ]
+}
