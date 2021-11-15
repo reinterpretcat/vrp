@@ -33,7 +33,7 @@ prop_compose! {
     (
      parking in get_parking_time(),
      radius_fraction in 1..100,
-     moving_duration in 30..1800,
+     duration in 30..1800,
      visiting in get_visiting_policy(),
      plan in generate_plan(generate_jobs(job_prototype(), 1..512)),
      fleet in generate_fleet(
@@ -49,8 +49,8 @@ prop_compose! {
             ), 1..4),
         default_matrix_profiles())
     ) -> Problem {
-        let moving_duration = moving_duration as f64;
-        let moving_distance = radius * (radius_fraction as f64 / 1000.);
+        let duration = duration as f64;
+        let distance = radius * (radius_fraction as f64 / 1000.);
         let parking = parking as f64;
 
         Problem {
