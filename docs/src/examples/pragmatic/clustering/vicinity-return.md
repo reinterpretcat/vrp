@@ -1,5 +1,7 @@
 # Vicinity clustering with return
 
+This examples demonstrates a `return` type of visit: after each job visit, the driver has to return to the stop point.
+Check previous example for other details.
 
 <details>
     <summary>Problem</summary><p>

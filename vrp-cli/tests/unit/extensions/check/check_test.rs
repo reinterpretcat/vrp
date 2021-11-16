@@ -35,6 +35,6 @@ pub fn can_detect_invalid_matrix_file() {
                                  reader(PRAGMATIC_SOLUTION_PATH),
                                 Some(vec![reader(PRAGMATIC_SOLUTION_PATH)]))
             .expect_err("no error returned"),
-        vec!["cannot read matrix: 'E0001, cause: 'cannot deserialize matrix', action: 'check input json: 'missing field `travelTimes` at line 155 column 1''.'"]
+        vec!["cannot read matrix: 'E0001, cause: 'cannot deserialize matrix', action: 'check input json: 'missing field `travelTimes` at line 159 column 1''.'"]
     );
 }

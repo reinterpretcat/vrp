@@ -133,6 +133,9 @@ fn check_e1506_profiles_exist(ctx: &ValidationContext) -> Result<(), FormatError
         .iter()
         .filter(|vehicle| !known_matrix_profiles.contains(&vehicle.profile.matrix))
         .map(|vehicle| vehicle.profile.matrix.clone())
+        .chain(ctx.problem.plan.clustering.iter().map(|clustering| match clustering {
+            Clustering::Vicinity { profile, .. } => profile.matrix.clone(),
+        }))
         .collect::<HashSet<_>>();
 
     if unknown_vehicle_profiles.is_empty() {
@@ -141,7 +144,7 @@ fn check_e1506_profiles_exist(ctx: &ValidationContext) -> Result<(), FormatError
         let unknown_profiles = unknown_vehicle_profiles.into_iter().collect::<Vec<_>>();
         Err(FormatError::new(
             "E1506".to_string(),
-            "unknown matrix profile name in vehicle profile".to_string(),
+            "unknown matrix profile name in vehicle or vicinity clustering profile".to_string(),
             format!("ensure that matrix profiles '{}' are defined in profiles", unknown_profiles.join(", ")),
         ))
     }

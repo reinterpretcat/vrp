@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * update dependencies
+* bug fixes
 
 
 ## [v1.11.5] - 2021-09-27

@@ -187,7 +187,7 @@ fn get_cluster_geometry(tour_idx: usize, stop_idx: usize, stop: &Stop) -> Result
                 activity_idx,
                 activity,
                 &location,
-                get_color_inverse(tour_idx).as_str(),
+                get_color(tour_idx).as_str(),
             )?);
 
             let line_color = get_color_inverse(tour_idx);

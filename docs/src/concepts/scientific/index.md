@@ -4,3 +4,4 @@ The project supports two text formats widely used for benchmarking various a alg
 
 - **Solomon**: specifies CVRPTW
 - **Li&Lim**: specifies VRPPD
+- **tsplib** specifies CVRPTW

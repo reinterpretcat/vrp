@@ -4,14 +4,14 @@
     {
       "type": "Feature",
       "properties": {
-        "arrival": "2020-05-01T09:00:00Z",
-        "tour_idx": "0",
-        "marker-size": "medium",
-        "marker-symbol": "warehouse",
-        "stop_idx": "0",
         "departure": "2020-05-01T09:00:00Z",
+        "tour_idx": "0",
         "jobs_ids": "departure",
-        "marker-color": "#3cb44b"
+        "stop_idx": "0",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "arrival": "2020-05-01T09:00:00Z",
+        "marker-symbol": "warehouse"
       },
       "geometry": {
         "type": "Point",
@@ -25,13 +25,13 @@
       "type": "Feature",
       "properties": {
         "stop_idx": "1",
-        "marker-size": "medium",
-        "departure": "2020-05-01T09:14:12Z",
+        "marker-color": "#3cb44b",
         "jobs_ids": "job4,job3,job2,job1",
-        "tour_idx": "0",
         "marker-symbol": "marker",
-        "arrival": "2020-05-01T09:00:11Z",
-        "marker-color": "#3cb44b"
+        "marker-size": "medium",
+        "departure": "2020-05-01T09:16:01Z",
+        "tour_idx": "0",
+        "arrival": "2020-05-01T09:00:11Z"
       },
       "geometry": {
         "type": "Point",
@@ -44,14 +44,14 @@
     {
       "type": "Feature",
       "properties": {
-        "stop_idx": "2",
         "jobs_ids": "job5",
-        "departure": "2020-05-01T09:19:30Z",
-        "arrival": "2020-05-01T09:14:30Z",
-        "marker-color": "#3cb44b",
         "marker-size": "medium",
+        "departure": "2020-05-01T09:21:19Z",
+        "marker-symbol": "marker",
+        "marker-color": "#3cb44b",
         "tour_idx": "0",
-        "marker-symbol": "marker"
+        "arrival": "2020-05-01T09:16:19Z",
+        "stop_idx": "2"
       },
       "geometry": {
         "type": "Point",
@@ -65,13 +65,13 @@
       "type": "Feature",
       "properties": {
         "marker-symbol": "marker",
+        "departure": "2020-05-01T09:30:38Z",
         "stop_idx": "3",
-        "departure": "2020-05-01T09:27:49Z",
-        "marker-color": "#3cb44b",
         "tour_idx": "0",
         "jobs_ids": "job6,job12",
         "marker-size": "medium",
-        "arrival": "2020-05-01T09:19:49Z"
+        "marker-color": "#3cb44b",
+        "arrival": "2020-05-01T09:21:38Z"
       },
       "geometry": {
         "type": "Point",
@@ -84,14 +84,14 @@
     {
       "type": "Feature",
       "properties": {
-        "tour_idx": "0",
         "jobs_ids": "job7",
+        "tour_idx": "0",
         "marker-symbol": "marker",
+        "arrival": "2020-05-01T09:31:00Z",
         "stop_idx": "4",
-        "arrival": "2020-05-01T09:28:11Z",
         "marker-color": "#3cb44b",
         "marker-size": "medium",
-        "departure": "2020-05-01T09:33:11Z"
+        "departure": "2020-05-01T09:36:00Z"
       },
       "geometry": {
         "type": "Point",
@@ -104,14 +104,14 @@
     {
       "type": "Feature",
       "properties": {
-        "arrival": "2020-05-01T09:33:23Z",
+        "tour_idx": "0",
+        "stop_idx": "5",
+        "arrival": "2020-05-01T09:36:12Z",
         "marker-color": "#3cb44b",
         "marker-symbol": "marker",
         "marker-size": "medium",
-        "tour_idx": "0",
-        "stop_idx": "5",
-        "departure": "2020-05-01T09:38:23Z",
-        "jobs_ids": "job11"
+        "jobs_ids": "job11",
+        "departure": "2020-05-01T09:41:12Z"
       },
       "geometry": {
         "type": "Point",
@@ -124,35 +124,35 @@
     {
       "type": "Feature",
       "properties": {
-        "arrival": "2020-05-01T09:38:43Z",
-        "marker-color": "#3cb44b",
-        "marker-symbol": "marker",
-        "departure": "2020-05-01T09:49:45Z",
-        "stop_idx": "6",
-        "marker-size": "medium",
         "tour_idx": "0",
-        "jobs_ids": "job8,job9,job10"
+        "marker-size": "medium",
+        "departure": "2020-05-01T09:55:10Z",
+        "stop_idx": "6",
+        "marker-symbol": "marker",
+        "marker-color": "#3cb44b",
+        "jobs_ids": "job9,job8,job10",
+        "arrival": "2020-05-01T09:41:30Z"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          13.45952868,
-          52.5243028
+          13.4589815,
+          52.5241593
         ]
       }
     },
     {
       "type": "Feature",
       "properties": {
+        "vehicle_id": "vehicle_1",
+        "distance": "984",
+        "stroke-width": "4",
+        "activities": "13",
+        "arrival": "2020-05-01T09:41:30Z",
         "tour_idx": "0",
         "shift_idx": "0",
         "departure": "2020-05-01T09:00:00Z",
-        "arrival": "2020-05-01T09:38:43Z",
-        "stroke-width": "4",
-        "stroke": "#e6194b",
-        "distance": "1009",
-        "activities": "13",
-        "vehicle_id": "vehicle_1"
+        "stroke": "#e6194b"
       },
       "geometry": {
         "type": "LineString",
@@ -182,8 +182,8 @@
             52.5250209
           ],
           [
-            13.45952868,
-            52.5243028
+            13.4589815,
+            52.5241593
           ]
         ]
       }
@@ -191,15 +191,15 @@
     {
       "type": "Feature",
       "properties": {
-        "tour_idx": "0",
         "activity_idx": "0",
-        "end": "2020-05-01T09:05:11Z",
         "start": "2020-05-01T09:02:11Z",
+        "marker-size": "medium",
+        "end": "2020-05-01T09:05:11Z",
         "jobs_id": "job4",
-        "marker-color": "#3cb44b",
-        "stop_idx": "1",
+        "tour_idx": "0",
         "marker-symbol": "marker",
-        "marker-size": "medium"
+        "marker-color": "#e6194b",
+        "stop_idx": "1"
       },
       "geometry": {
         "type": "Point",
@@ -212,15 +212,15 @@
     {
       "type": "Feature",
       "properties": {
-        "marker-symbol": "marker",
-        "marker-size": "medium",
-        "activity_idx": "1",
-        "end": "2020-05-01T09:08:11Z",
-        "marker-color": "#3cb44b",
-        "stop_idx": "1",
-        "start": "2020-05-01T09:05:11Z",
+        "jobs_id": "job3",
         "tour_idx": "0",
-        "jobs_id": "job3"
+        "marker-size": "medium",
+        "start": "2020-05-01T09:05:41Z",
+        "marker-symbol": "marker",
+        "activity_idx": "1",
+        "stop_idx": "1",
+        "end": "2020-05-01T09:08:41Z",
+        "marker-color": "#e6194b"
       },
       "geometry": {
         "type": "Point",
@@ -253,15 +253,15 @@
     {
       "type": "Feature",
       "properties": {
-        "marker-size": "medium",
-        "stop_idx": "1",
-        "start": "2020-05-01T09:08:11Z",
+        "end": "2020-05-01T09:12:01Z",
+        "start": "2020-05-01T09:09:01Z",
         "marker-symbol": "marker",
         "jobs_id": "job2",
         "tour_idx": "0",
-        "activity_idx": "2",
-        "end": "2020-05-01T09:11:11Z",
-        "marker-color": "#3cb44b"
+        "stop_idx": "1",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "activity_idx": "2"
       },
       "geometry": {
         "type": "Point",
@@ -294,15 +294,15 @@
     {
       "type": "Feature",
       "properties": {
-        "marker-size": "medium",
-        "tour_idx": "0",
+        "marker-color": "#e6194b",
         "marker-symbol": "marker",
-        "end": "2020-05-01T09:14:11Z",
-        "jobs_id": "job1",
+        "tour_idx": "0",
         "activity_idx": "3",
-        "start": "2020-05-01T09:11:11Z",
+        "marker-size": "medium",
         "stop_idx": "1",
-        "marker-color": "#3cb44b"
+        "start": "2020-05-01T09:12:11Z",
+        "end": "2020-05-01T09:15:11Z",
+        "jobs_id": "job1"
       },
       "geometry": {
         "type": "Point",
@@ -315,8 +315,8 @@
     {
       "type": "Feature",
       "properties": {
-        "stroke-width": "3",
-        "stroke": "#3cb44b"
+        "stroke": "#3cb44b",
+        "stroke-width": "3"
       },
       "geometry": {
         "type": "LineString",
@@ -335,8 +335,8 @@
     {
       "type": "Feature",
       "properties": {
-        "stroke-width": "3",
-        "stroke": "#3cb44b"
+        "stroke": "#3cb44b",
+        "stroke-width": "3"
       },
       "geometry": {
         "type": "LineString",
@@ -355,15 +355,15 @@
     {
       "type": "Feature",
       "properties": {
-        "stop_idx": "3",
-        "tour_idx": "0",
         "activity_idx": "0",
-        "marker-color": "#3cb44b",
-        "marker-symbol": "marker",
-        "start": "2020-05-01T09:21:49Z",
+        "end": "2020-05-01T09:26:38Z",
         "marker-size": "medium",
+        "marker-symbol": "marker",
+        "marker-color": "#e6194b",
+        "stop_idx": "3",
         "jobs_id": "job6",
-        "end": "2020-05-01T09:24:49Z"
+        "start": "2020-05-01T09:23:38Z",
+        "tour_idx": "0"
       },
       "geometry": {
         "type": "Point",
@@ -376,14 +376,14 @@
     {
       "type": "Feature",
       "properties": {
-        "end": "2020-05-01T09:27:49Z",
-        "tour_idx": "0",
-        "jobs_id": "job12",
-        "marker-size": "medium",
         "activity_idx": "1",
-        "start": "2020-05-01T09:24:49Z",
-        "marker-color": "#3cb44b",
+        "marker-color": "#e6194b",
+        "jobs_id": "job12",
+        "tour_idx": "0",
+        "start": "2020-05-01T09:27:08Z",
+        "marker-size": "medium",
         "marker-symbol": "marker",
+        "end": "2020-05-01T09:30:08Z",
         "stop_idx": "3"
       },
       "geometry": {
@@ -437,15 +437,36 @@
     {
       "type": "Feature",
       "properties": {
-        "marker-color": "#3cb44b",
-        "start": "2020-05-01T09:40:43Z",
-        "stop_idx": "6",
-        "marker-symbol": "marker",
-        "activity_idx": "0",
-        "marker-size": "medium",
-        "end": "2020-05-01T09:43:43Z",
+        "start": "2020-05-01T09:43:30Z",
         "tour_idx": "0",
-        "jobs_id": "job8"
+        "end": "2020-05-01T09:46:30Z",
+        "marker-color": "#e6194b",
+        "marker-symbol": "marker",
+        "marker-size": "medium",
+        "stop_idx": "6",
+        "jobs_id": "job9",
+        "activity_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4589815,
+          52.5241593
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "marker-size": "medium",
+        "end": "2020-05-01T09:50:10Z",
+        "marker-symbol": "marker",
+        "jobs_id": "job8",
+        "stop_idx": "6",
+        "start": "2020-05-01T09:47:10Z",
+        "tour_idx": "0",
+        "activity_idx": "1",
+        "marker-color": "#e6194b"
       },
       "geometry": {
         "type": "Point",
@@ -458,21 +479,41 @@
     {
       "type": "Feature",
       "properties": {
-        "activity_idx": "1",
-        "start": "2020-05-01T09:43:44Z",
-        "tour_idx": "0",
-        "end": "2020-05-01T09:46:44Z",
-        "marker-symbol": "marker",
-        "marker-color": "#3cb44b",
+        "stroke-width": "3",
+        "stroke": "#3cb44b"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4589815,
+            52.5241593
+          ],
+          [
+            13.45952868,
+            52.5243028
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "end": "2020-05-01T09:54:00Z",
         "stop_idx": "6",
-        "jobs_id": "job9",
-        "marker-size": "medium"
+        "marker-color": "#e6194b",
+        "activity_idx": "2",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "jobs_id": "job10",
+        "start": "2020-05-01T09:51:00Z",
+        "tour_idx": "0"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          13.4589815,
-          52.5241593
+          13.4600115,
+          52.5239896
         ]
       }
     },
@@ -490,47 +531,6 @@
             52.5243028
           ],
           [
-            13.4589815,
-            52.5241593
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "stop_idx": "6",
-        "tour_idx": "0",
-        "marker-size": "medium",
-        "activity_idx": "2",
-        "start": "2020-05-01T09:46:44Z",
-        "end": "2020-05-01T09:49:44Z",
-        "jobs_id": "job10",
-        "marker-symbol": "marker",
-        "marker-color": "#3cb44b"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          13.4600115,
-          52.5239896
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "stroke": "#3cb44b",
-        "stroke-width": "3"
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            13.4589815,
-            52.5241593
-          ],
-          [
             13.4600115,
             52.5239896
           ]
@@ -551,8 +551,8 @@
             52.5239896
           ],
           [
-            13.45952868,
-            52.5243028
+            13.4589815,
+            52.5241593
           ]
         ]
       }

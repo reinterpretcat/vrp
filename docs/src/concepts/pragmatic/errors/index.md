@@ -586,9 +586,9 @@ Check locations in problem definition and matrix size.
 
 #### E1506
 
-`unknown matrix profile name in vehicle profile` is returned when vehicle has `fleet.vehicles.profile.matrix`  with value
-which is not specified in `fleet.profiles` collection. To fix issue, either change value to one specified or add a
-corresponding profile in profiles collection.
+`unknown matrix profile name in vehicle or vicinity clustering profile` is returned when vehicle has in `fleet.vehicles.profile.matrix`
+or `plan.clustering.profile` value which is not specified in `fleet.profiles` collection. To fix issue, either change
+value to one specified or add a corresponding profile in profiles collection.
 
 
 ### E16xx: Objectives

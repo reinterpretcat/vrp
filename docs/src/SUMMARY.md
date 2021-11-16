@@ -31,6 +31,7 @@
   * [Scientific formats](concepts/scientific/index.md)
     * [Solomon benchmark](concepts/scientific/solomon.md)
     * [Li&Lim benchmark](concepts/scientific/lilim.md)
+    * [TSPLIB format](concepts/scientific/tsplib.md)
 
 * [Examples](examples/index.md)
   * [Pragmatic format](examples/pragmatic/index.md)

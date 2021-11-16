@@ -26,7 +26,3 @@ Although performance is constantly in focus, a main idea behind projects' design
 the project aims to support a very wide range of VRP variations known as Rich VRP. This is achieved
 through various extension points: custom constraints, objective functions, acceptance criteria, etc.
 
-By default, it provides a metaheuristic which can be roughly described as *Multi-objective Parthenogenesis based
-Evolutionary Algorithm with Ruin and Recreate Mutation Operator*.
-
-More details can be found in [concepts chapter](concepts/index.md).

@@ -4,20 +4,20 @@ List of tours is essentially individual vehicle routes. Each tour consists of th
 
 * **typeId**: id of vehicle type
     ```json
-    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:16}}
+    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:18}}
     ```
 * **vehicleId**: id of used vehicle. Id of the vehicle is generated from the tour using pattern `$typeId_sequenceIndex`:
     ```json
-    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:15}}
+    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:17}}
     ```
 * **shiftIndex**: vehicle's shift index:
     ```json
-    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:17}}
+    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:19}}
     ```
 * **stops**: list of stops. See stop structure below
 * **statistic**: statistic of the tour.
     ```json
-    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:142:152}}
+    {{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:144:155}}
     ```
 
 ## Stop structure
@@ -47,10 +47,10 @@ An activity specifies work to be done and has the following structure:
 
 An example of stop with one activity:
 ```json
-{{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:19:38}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:21:40}}
 ```
 
 An example of stop with two activities:
 ```json
-{{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:59:99}}
+{{#include ../../../../../examples/data/pragmatic/simple.basic.solution.json:61:101}}
 ```

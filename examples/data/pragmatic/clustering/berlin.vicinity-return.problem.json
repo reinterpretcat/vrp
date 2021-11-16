@@ -234,11 +234,11 @@
       "type": "vicinity",
       "profile": {
         "matrix": "car",
-        "scale": 0.1
+        "scale": 10
       },
       "threshold": {
-        "duration": 60,
-        "distance": 50
+        "duration": 120,
+        "distance": 100
       },
       "visiting": "return",
       "serving": {
