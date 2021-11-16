@@ -131,11 +131,11 @@ fn check_e1506_profiles_exist(ctx: &ValidationContext) -> Result<(), FormatError
         .fleet
         .vehicles
         .iter()
-        .filter(|vehicle| !known_matrix_profiles.contains(&vehicle.profile.matrix))
         .map(|vehicle| vehicle.profile.matrix.clone())
         .chain(ctx.problem.plan.clustering.iter().map(|clustering| match clustering {
             Clustering::Vicinity { profile, .. } => profile.matrix.clone(),
         }))
+        .filter(|matrix| !known_matrix_profiles.contains(matrix))
         .collect::<HashSet<_>>();
 
     if unknown_vehicle_profiles.is_empty() {
