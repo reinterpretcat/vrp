@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.12.0] - 2021-11-16
+
 ### Added
 
 * a new local search operator: exchange sequence
@@ -397,7 +400,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.11.5...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.12.0...HEAD
+[v1.12.0]: https://github.com/reinterpretcat/vrp/compare/v1.11.5...v1.12.0
 [v1.11.5]: https://github.com/reinterpretcat/vrp/compare/v1.11.4...v1.11.5
 [v1.11.4]: https://github.com/reinterpretcat/vrp/compare/v1.11.3...v1.11.4
 [v1.11.3]: https://github.com/reinterpretcat/vrp/compare/v1.11.2...v1.11.3
