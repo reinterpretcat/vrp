@@ -1,7 +1,7 @@
 use super::*;
 use crate::format::problem::*;
 use crate::format::Location;
-use crate::helpers::solve_with_metaheuristic_and_iterations;
+use crate::helpers::{create_empty_plan, create_empty_problem, create_job, solve_with_metaheuristic_and_iterations};
 
 /// This is unstable test: it fails with capacity violation message from the solution checker.
 /// It seems the reason is that pipeline wrongly omits extra state update which is fixed in
@@ -13,8 +13,6 @@ fn can_handle_properly_invalid_break_removal() {
             plan: Plan {
                 jobs: vec![
                     Job {
-                        id: "job1".to_string(),
-                        pickups: None,
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.437842517427846, lng: 13.3829646081322 },
@@ -28,15 +26,9 @@ fn can_handle_properly_invalid_break_removal() {
                             demand: Some(vec![1]),
                             order: None,
                         }]),
-                        replacements: None,
-                        services: None,
-                        skills: None,
-                        value: None,
-                        group: None,
+                        ..create_job("job1")
                     },
                     Job {
-                        id: "job2".to_string(),
-                        pickups: None,
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.504574435265766, lng: 13.512204487216097 },
@@ -50,14 +42,9 @@ fn can_handle_properly_invalid_break_removal() {
                             demand: Some(vec![1]),
                             order: None,
                         }]),
-                        replacements: None,
-                        services: None,
-                        skills: None,
-                        value: None,
-                        group: None,
+                        ..create_job("job2")
                     },
                     Job {
-                        id: "job3".to_string(),
                         pickups: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.51627010959871, lng: 13.515165894434492 },
@@ -71,15 +58,9 @@ fn can_handle_properly_invalid_break_removal() {
                             demand: Some(vec![1]),
                             order: None,
                         }]),
-                        deliveries: None,
-                        replacements: None,
-                        services: None,
-                        skills: None,
-                        value: None,
-                        group: None,
+                        ..create_job("job3")
                     },
                     Job {
-                        id: "job4".to_string(),
                         pickups: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.49739587223939, lng: 13.499267072502096 },
@@ -93,16 +74,9 @@ fn can_handle_properly_invalid_break_removal() {
                             demand: Some(vec![2]),
                             order: None,
                         }]),
-                        deliveries: None,
-                        replacements: None,
-                        services: None,
-                        skills: None,
-                        value: None,
-                        group: None,
+                        ..create_job("job4")
                     },
                     Job {
-                        id: "job5".to_string(),
-                        pickups: None,
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.47816437518683, lng: 13.480325156196248 },
@@ -116,14 +90,9 @@ fn can_handle_properly_invalid_break_removal() {
                             demand: Some(vec![3]),
                             order: None,
                         }]),
-                        replacements: None,
-                        services: None,
-                        skills: None,
-                        value: None,
-                        group: None,
+                        ..create_job("job5")
                     },
                     Job {
-                        id: "job6".to_string(),
                         pickups: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: Location::Coordinate { lat: 52.44030727908021, lng: 13.433537947080476 },
@@ -137,16 +106,10 @@ fn can_handle_properly_invalid_break_removal() {
                             demand: Some(vec![1]),
                             order: None,
                         }]),
-                        deliveries: None,
-                        replacements: None,
-                        services: None,
-                        skills: None,
-                        value: None,
-                        group: None,
+                        ..create_job("job6")
                     },
                 ],
-                relations: None,
-                clustering: None,
+                ..create_empty_plan()
             },
             fleet: Fleet {
                 vehicles: vec![VehicleType {
@@ -182,7 +145,7 @@ fn can_handle_properly_invalid_break_removal() {
                 }],
                 profiles: vec![MatrixProfile { name: "car".to_string(), speed: None }],
             },
-            objectives: None,
+            ..create_empty_problem()
         };
         let matrices = create_approx_matrices(&problem);
         solve_with_metaheuristic_and_iterations(problem, Some(matrices), 1);

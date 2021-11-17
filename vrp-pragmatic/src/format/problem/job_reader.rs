@@ -161,9 +161,25 @@ fn read_required_jobs(
 
         let problem_job = if singles.len() > 1 {
             let deliveries_start_index = job.pickups.as_ref().map_or(0, |p| p.len());
-            get_multi_job(&job.id, &job.skills, job.value, &job.group, singles, deliveries_start_index, random)
+            get_multi_job(
+                &job.id,
+                &job.skills,
+                job.value,
+                &job.group,
+                &job.compatibility,
+                singles,
+                deliveries_start_index,
+                random,
+            )
         } else {
-            get_single_job(&job.id, singles.into_iter().next().unwrap(), &job.skills, job.value, &job.group)
+            get_single_job(
+                &job.id,
+                singles.into_iter().next().unwrap(),
+                &job.skills,
+                job.value,
+                &job.group,
+                &job.compatibility,
+            )
         };
 
         job_index.insert(job.id.clone(), problem_job.clone());
@@ -408,12 +424,14 @@ fn get_single_job(
     skills: &Option<FormatJobSkills>,
     value: Option<f64>,
     group: &Option<String>,
+    compatibility: &Option<String>,
 ) -> Job {
     let mut single = single;
     single.dimens.set_id(id);
 
     add_value(&mut single.dimens, value);
     add_group(&mut single.dimens, group);
+    add_compatibility(&mut single.dimens, compatibility);
     add_job_skills(&mut single.dimens, skills);
 
     Job::Single(Arc::new(single))
@@ -424,6 +442,7 @@ fn get_multi_job(
     skills: &Option<FormatJobSkills>,
     value: Option<f64>,
     group: &Option<String>,
+    compatibility: &Option<String>,
     singles: Vec<Single>,
     deliveries_start_index: usize,
     random: &Arc<dyn Random + Send + Sync>,
@@ -432,6 +451,7 @@ fn get_multi_job(
     dimens.set_id(id);
     add_value(&mut dimens, value);
     add_group(&mut dimens, group);
+    add_compatibility(&mut dimens, compatibility);
     add_job_skills(&mut dimens, skills);
 
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
@@ -483,6 +503,12 @@ fn add_value(dimens: &mut Dimensions, value: Option<f64>) {
 fn add_group(dimens: &mut Dimensions, group: &Option<String>) {
     if let Some(group) = group {
         dimens.set_value("group", group.clone());
+    }
+}
+
+fn add_compatibility(dimens: &mut Dimensions, compatibility: &Option<String>) {
+    if let Some(compatibility) = compatibility {
+        dimens.set_value("compat", compatibility.clone());
     }
 }
 

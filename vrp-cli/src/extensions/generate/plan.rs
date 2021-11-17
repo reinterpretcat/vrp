@@ -67,6 +67,7 @@ pub(crate) fn generate_plan(
                 skills: job_proto.skills.clone(),
                 value: job_proto.value,
                 group: job_proto.group.clone(),
+                compatibility: job_proto.compatibility.clone(),
             }
         })
         .collect();

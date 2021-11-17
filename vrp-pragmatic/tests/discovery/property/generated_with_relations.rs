@@ -45,6 +45,7 @@ fn relation_job_prototype() -> impl Strategy<Value = Job> {
         generate_no_jobs_skills(),
         generate_no_jobs_value(),
         generate_no_jobs_group(),
+        generate_no_jobs_compatibility(),
     )
 }
 

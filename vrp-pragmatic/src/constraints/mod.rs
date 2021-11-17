@@ -8,6 +8,7 @@ use vrp_core::models::solution::{Activity, Route};
 
 /// A key which tracks job group state.
 pub const GROUP_KEY: i32 = 1000;
+pub const COMPATIBILITY_KEY: i32 = 1001;
 
 fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
 where
@@ -38,6 +39,9 @@ fn is_single_belongs_to_route(ctx: &RouteContext, single: &Arc<Single>) -> bool 
 
 mod breaks;
 pub use self::breaks::{BreakModule, BreakPolicy};
+
+mod compatibility;
+pub use self::compatibility::CompatibilityModule;
 
 mod dispatch;
 pub use self::dispatch::DispatchModule;

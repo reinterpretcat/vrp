@@ -19,6 +19,8 @@ consists of the following properties:
   by prioritizing assignment value scored jobs in any position of a tour.
   See [job priorities](../../../examples/pragmatic/basics/job-priorities.md) example.
 - **group** (optional): a group name. Jobs with the same groups are scheduled in the same tour or left unassigned.
+- **compatibility** (optional): compatibility class. Jobs with different compatibility classes cannot be assigned in
+  the same tour. This is useful to avoid mixing cargo, such as hazardous goods and food.
 
 A job should have at least one task property specified.
 

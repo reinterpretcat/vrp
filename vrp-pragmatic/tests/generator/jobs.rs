@@ -11,6 +11,7 @@ pub fn delivery_job_prototype(
     skills_proto: impl Strategy<Value = Option<JobSkills>>,
     value_proto: impl Strategy<Value = Option<f64>>,
     group_proto: impl Strategy<Value = Option<String>>,
+    compat_proto: impl Strategy<Value = Option<String>>,
 ) -> impl Strategy<Value = Job> {
     job_prototype(
         generate_no_job_tasks(),
@@ -20,6 +21,7 @@ pub fn delivery_job_prototype(
         skills_proto,
         value_proto,
         group_proto,
+        compat_proto,
     )
 }
 
@@ -29,6 +31,7 @@ pub fn pickup_job_prototype(
     skills_proto: impl Strategy<Value = Option<JobSkills>>,
     value_proto: impl Strategy<Value = Option<f64>>,
     group_proto: impl Strategy<Value = Option<String>>,
+    compat_proto: impl Strategy<Value = Option<String>>,
 ) -> impl Strategy<Value = Job> {
     job_prototype(
         task_proto.prop_map(|p| Some(vec![p])),
@@ -38,6 +41,7 @@ pub fn pickup_job_prototype(
         skills_proto,
         value_proto,
         group_proto,
+        compat_proto,
     )
 }
 
@@ -50,6 +54,7 @@ prop_compose! {
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
         value_proto: impl Strategy<Value = Option<f64>>,
         group_proto: impl Strategy<Value = Option<String>>,
+        compat_proto: impl Strategy<Value = Option<String>>,
     )
     (
      pickup in pickup_place,
@@ -59,6 +64,7 @@ prop_compose! {
      skills in skills_proto,
      value in value_proto,
      group in group_proto,
+     compatibility in compat_proto,
     ) -> Job {
        Job {
             id: Uuid::new_v4().to_string(),
@@ -82,7 +88,8 @@ prop_compose! {
             services: None,
             skills,
             value,
-            group
+            group,
+            compatibility
         }
     }
 }
@@ -106,6 +113,7 @@ prop_compose! {
         skills_proto: impl Strategy<Value = Option<JobSkills>>,
         value_proto: impl Strategy<Value = Option<f64>>,
         group_proto: impl Strategy<Value = Option<String>>,
+        compat_proto: impl Strategy<Value = Option<String>>,
     )
     (
      pickups in pickups_proto,
@@ -114,7 +122,8 @@ prop_compose! {
      services in services_proto,
      skills in skills_proto,
      value in value_proto,
-     group in group_proto
+     group in group_proto,
+     compatibility in compat_proto,
     ) -> Job {
         Job {
             id: Uuid::new_v4().to_string(),
@@ -125,6 +134,7 @@ prop_compose! {
             skills,
             value,
             group,
+            compatibility,
         }
     }
 }
@@ -206,6 +216,13 @@ prop_compose! {
 prop_compose! {
     /// Generates no job group.
     pub fn generate_no_jobs_group()(_ in ".*") -> Option<String> {
+        None
+    }
+}
+
+prop_compose! {
+    /// Generates no job compatibility.
+    pub fn generate_no_jobs_compatibility()(_ in ".*") -> Option<String> {
         None
     }
 }

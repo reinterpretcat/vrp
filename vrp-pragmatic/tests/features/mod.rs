@@ -3,6 +3,7 @@
 
 mod breaks;
 mod clustering;
+mod compatibility;
 mod dispatch;
 mod fleet;
 mod format;

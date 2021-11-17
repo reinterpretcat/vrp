@@ -118,6 +118,7 @@ pub struct ProblemProperties {
     has_reloads: bool,
     has_order: bool,
     has_group: bool,
+    has_compatibility: bool,
     has_area_limits: bool,
     has_tour_size_limits: bool,
     max_job_value: Option<f64>,
@@ -273,6 +274,10 @@ fn create_constraint_pipeline(
         constraint.add_module(Arc::new(BreakModule::new(transport.clone(), BREAK_CONSTRAINT_CODE)));
     }
 
+    if props.has_compatibility {
+        constraint.add_module(Arc::new(CompatibilityModule::new(COMPATIBILITY_CONSTRAINT_CODE, COMPATIBILITY_KEY)));
+    }
+
     if props.has_group {
         constraint.add_module(Arc::new(GroupModule::new(jobs.size(), GROUP_CONSTRAINT_CODE, GROUP_KEY)));
     }
@@ -423,6 +428,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .any(|order| order > 0);
 
     let has_group = api_problem.plan.jobs.iter().any(|job| job.group.is_some());
+    let has_compatibility = api_problem.plan.jobs.iter().any(|job| job.compatibility.is_some());
 
     let has_area_limits = api_problem
         .fleet
@@ -441,6 +447,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_reloads,
         has_order,
         has_group,
+        has_compatibility,
         has_area_limits,
         has_tour_size_limits,
         max_job_value,

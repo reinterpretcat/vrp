@@ -25,6 +25,7 @@ pub fn create_job(id: &str) -> Job {
         skills: None,
         value: None,
         group: None,
+        compatibility: None,
     }
 }
 
@@ -51,6 +52,18 @@ pub fn create_delivery_job_with_group(id: &str, location: Vec<f64>, group: &str)
             order: None,
         }]),
         group: Some(group.to_string()),
+        ..create_job(id)
+    }
+}
+
+pub fn create_delivery_job_with_compatibility(id: &str, location: Vec<f64>, compatibility: &str) -> Job {
+    Job {
+        deliveries: Some(vec![JobTask {
+            places: vec![create_job_place(location, None)],
+            demand: Some(vec![1]),
+            order: None,
+        }]),
+        compatibility: Some(compatibility.to_string()),
         ..create_job(id)
     }
 }

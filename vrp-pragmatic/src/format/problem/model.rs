@@ -118,6 +118,10 @@ pub struct Job {
     /// Job group: jobs of the same group are assigned to the same tour or unassigned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
+
+    /// A compatibility group: jobs with different compatibility cannot be assigned to the same tour.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<String>,
 }
 
 // region Clustering

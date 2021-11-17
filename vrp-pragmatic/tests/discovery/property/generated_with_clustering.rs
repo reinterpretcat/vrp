@@ -10,12 +10,14 @@ fn job_prototype() -> impl Strategy<Value = Job> {
             generate_no_jobs_skills(),
             generate_no_jobs_value(),
             generate_no_jobs_group(),
+            generate_no_jobs_compatibility(),
         ),
         pickup_job_prototype(
             job_task_prototype(default_job_place_prototype(), generate_simple_demand(1..5), generate_no_order(),),
             generate_no_jobs_skills(),
             generate_no_jobs_value(),
             generate_no_jobs_group(),
+            generate_no_jobs_compatibility(),
         )
     ]
 }

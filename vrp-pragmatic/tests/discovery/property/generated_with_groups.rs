@@ -23,6 +23,7 @@ fn job_prototype() -> impl Strategy<Value = Job> {
             generate_no_jobs_skills(),
             generate_no_jobs_value(),
             get_jobs_groups(),
+            generate_no_jobs_compatibility(),
         ),
         pickup_delivery_job_prototype(
             default_job_place_prototype(),
@@ -32,6 +33,7 @@ fn job_prototype() -> impl Strategy<Value = Job> {
             generate_no_jobs_skills(),
             generate_no_jobs_value(),
             get_jobs_groups(),
+            generate_no_jobs_compatibility(),
         )
     ]
 }

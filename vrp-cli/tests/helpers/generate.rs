@@ -11,6 +11,7 @@ pub fn create_empty_job() -> Job {
         skills: None,
         value: None,
         group: None,
+        compatibility: None,
     }
 }
 

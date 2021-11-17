@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* `add compatibility` property to the job definition
+
 
 ## [v1.12.0] - 2021-11-16
 
