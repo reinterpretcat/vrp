@@ -1,4 +1,5 @@
 use crate::format::problem::*;
+use crate::format::solution::UnassignedJobReason;
 use crate::helpers::*;
 
 #[test]
@@ -44,4 +45,36 @@ fn can_separate_jobs_based_on_compatibility() {
     let food_tour = solution.tours.iter().find(|tour| tour.vehicle_id == "type1_1").unwrap();
     assert_eq!(get_ids_from_tour(junk_tour).iter().flatten().filter(|id| *id == "junk" || *id == "job4").count(), 2);
     assert_eq!(get_ids_from_tour(food_tour).iter().flatten().filter(|id| *id == "food" || *id == "job2").count(), 2);
+}
+
+#[test]
+fn can_unassign_job_due_to_compatibility() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_compatibility("food", vec![1., 0.], "food"),
+                create_delivery_job_with_compatibility("junk", vec![2., 0.], "junk"),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType { capacity: vec![2], ..create_default_vehicle_type() }],
+            profiles: create_default_matrix_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert_eq!(solution.tours.len(), 1);
+    assert_eq!(solution.unassigned.as_ref().map_or(0, |u| u.len()), 1);
+    let reasons = solution.unassigned.iter().flatten().flat_map(|u| u.reasons.iter().cloned()).collect::<Vec<_>>();
+    assert_eq!(
+        reasons,
+        vec![UnassignedJobReason {
+            code: "COMPATIBILITY_CONSTRAINT_CODE".to_string(),
+            description: "cannot be assigned due to compatibility constraint".to_string()
+        }]
+    );
 }
