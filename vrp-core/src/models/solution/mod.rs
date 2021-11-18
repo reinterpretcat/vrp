@@ -7,4 +7,4 @@ mod registry;
 pub use self::registry::Registry;
 
 mod tour;
-pub use self::tour::Tour;
+pub use self::tour::{Leg, Tour};

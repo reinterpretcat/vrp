@@ -7,8 +7,11 @@ use crate::models::problem::{Actor, Job};
 use crate::models::solution::{Activity, Place};
 use crate::models::OP_START_MSG;
 use hashbrown::HashSet;
-use std::iter::once;
+use std::iter::{empty, once};
 use std::slice::{Iter, IterMut};
+
+/// A tour leg.
+pub type Leg<'a> = (&'a [Activity], usize);
 
 /// Represents a tour, a smart container for jobs with their associated activities.
 pub struct Tour {
@@ -113,7 +116,11 @@ impl Tour {
     }
 
     /// Returns counted tour legs.
-    pub fn legs<'a>(&'a self) -> Box<dyn Iterator<Item = (&'a [Activity], usize)> + 'a> {
+    pub fn legs<'a>(&'a self) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
+        if self.activities.is_empty() {
+            return Box::new(empty());
+        }
+
         let last_index = self.activities.len() - 1;
         let window_size = if last_index == 0 { 1 } else { 2 };
         let legs = self.activities.windows(window_size).zip(0_usize..);

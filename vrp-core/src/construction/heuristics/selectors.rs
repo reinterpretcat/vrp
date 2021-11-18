@@ -4,8 +4,10 @@ mod selectors_test;
 
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
-use crate::utils::{map_reduce, parallel_collect, Either, Noise};
+use crate::models::solution::Leg;
+use crate::utils::*;
 use rand::prelude::*;
+use std::sync::Arc;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
@@ -253,5 +255,59 @@ impl ResultSelector for NoiseResultSelector {
         } else {
             Either::Right
         }
+    }
+}
+
+// TODO avoid boxing in interfaces
+/// Provides the way to select legs from the tour which should be used for insertion analysis.
+pub trait LegSelector {
+    /// Returns legs from the tour of given route context while inserting the given job.
+    fn get_legs<'a>(
+        &self,
+        route_ctx: &'a RouteContext,
+        job: &Job,
+        skip: usize,
+    ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a>;
+}
+
+/// Selects all legs.
+pub struct AllLegSelector {}
+
+impl LegSelector for AllLegSelector {
+    fn get_legs<'a>(
+        &self,
+        route_ctx: &'a RouteContext,
+        _: &Job,
+        skip: usize,
+    ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
+        Box::new(route_ctx.route.tour.legs().skip(skip))
+    }
+}
+
+/// Samples random legs from the tour.
+pub struct RandomSampleLegSelector {
+    sample_size: usize,
+    random: Arc<dyn Random + Send + Sync>,
+}
+
+impl RandomSampleLegSelector {
+    /// Creates a new instance of `RandomSampleLegSelector`.
+    pub fn new(sample_size: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self { sample_size, random }
+    }
+}
+
+impl LegSelector for RandomSampleLegSelector {
+    fn get_legs<'a>(
+        &self,
+        route_ctx: &'a RouteContext,
+        _: &Job,
+        skip: usize,
+    ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
+        Box::new(SelectionSamplingIterator::new(
+            route_ctx.route.tour.legs().skip(skip),
+            self.sample_size,
+            self.random.clone(),
+        ))
     }
 }

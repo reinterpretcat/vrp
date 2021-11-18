@@ -7,7 +7,7 @@ mod environment;
 pub use self::environment::*;
 
 mod iterators;
-pub use self::iterators::CollectGroupBy;
+pub use self::iterators::*;
 
 mod mutability;
 pub use self::mutability::*;
