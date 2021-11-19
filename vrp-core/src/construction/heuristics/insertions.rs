@@ -63,36 +63,42 @@ impl InsertionHeuristic {
     /// Runs common insertion heuristic algorithm using given selector specializations.
     pub fn process(
         &self,
-        ctx: InsertionContext,
+        insertion_ctx: InsertionContext,
         job_selector: &(dyn JobSelector + Send + Sync),
         route_selector: &(dyn RouteSelector + Send + Sync),
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
         quota: &Option<Arc<dyn Quota + Send + Sync>>,
     ) -> InsertionContext {
-        let mut ctx = ctx;
+        let mut insertion_ctx = insertion_ctx;
 
-        prepare_insertion_ctx(&mut ctx);
+        prepare_insertion_ctx(&mut insertion_ctx);
 
-        while !ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
-            let jobs = job_selector.select(&mut ctx).collect::<Vec<Job>>();
-            let routes = route_selector.select(&mut ctx, jobs.as_slice()).collect::<Vec<RouteContext>>();
+        while !insertion_ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
+            let jobs = job_selector.select(&mut insertion_ctx).collect::<Vec<Job>>();
+            let routes = route_selector.select(&mut insertion_ctx, jobs.as_slice()).collect::<Vec<RouteContext>>();
 
-            let result =
-                self.insertion_evaluator.evaluate_all(&ctx, jobs.as_slice(), routes.as_slice(), result_selector);
+            let result = self.insertion_evaluator.evaluate_all(
+                &insertion_ctx,
+                jobs.as_slice(),
+                routes.as_slice(),
+                leg_selector,
+                result_selector,
+            );
 
             match result {
                 InsertionResult::Success(success) => {
-                    apply_insertion_success(&mut ctx, success);
+                    apply_insertion_success(&mut insertion_ctx, success);
                 }
                 InsertionResult::Failure(failure) => {
-                    apply_insertion_failure(&mut ctx, jobs, routes, failure);
+                    apply_insertion_failure(&mut insertion_ctx, jobs, routes, failure);
                 }
             }
         }
 
-        finalize_insertion_ctx(&mut ctx);
+        finalize_insertion_ctx(&mut insertion_ctx);
 
-        ctx
+        insertion_ctx
     }
 }
 
@@ -135,62 +141,64 @@ impl InsertionResult {
     }
 }
 
-pub(crate) fn prepare_insertion_ctx(ctx: &mut InsertionContext) {
-    ctx.solution.required.extend(ctx.solution.unassigned.iter().map(|(job, _)| job.clone()));
-    ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
+pub(crate) fn prepare_insertion_ctx(insertion_ctx: &mut InsertionContext) {
+    insertion_ctx.solution.required.extend(insertion_ctx.solution.unassigned.iter().map(|(job, _)| job.clone()));
+    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
 }
 
-pub(crate) fn finalize_insertion_ctx(ctx: &mut InsertionContext) {
-    finalize_unassigned(ctx, -1);
+pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
+    finalize_unassigned(insertion_ctx, -1);
 
-    ctx.problem.constraint.accept_solution_state(&mut ctx.solution);
+    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
 }
 
-pub(crate) fn apply_insertion_success(ctx: &mut InsertionContext, success: InsertionSuccess) {
-    let is_new_route = ctx.solution.registry.use_route(&success.context);
-    let route_index = ctx.solution.routes.iter().position(|ctx| ctx == &success.context).unwrap_or_else(|| {
-        assert!(is_new_route);
-        ctx.solution.routes.push(success.context.deep_copy());
-        ctx.solution.routes.len() - 1
-    });
+pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
+    let is_new_route = insertion_ctx.solution.registry.use_route(&success.context);
+    let route_index =
+        insertion_ctx.solution.routes.iter().position(|ctx| ctx == &success.context).unwrap_or_else(|| {
+            assert!(is_new_route);
+            insertion_ctx.solution.routes.push(success.context.deep_copy());
+            insertion_ctx.solution.routes.len() - 1
+        });
 
-    let route_ctx = ctx.solution.routes.get_mut(route_index).unwrap();
+    let route_ctx = insertion_ctx.solution.routes.get_mut(route_index).unwrap();
     let route = route_ctx.route_mut();
     success.activities.into_iter().for_each(|(a, index)| {
         route.tour.insert_at(a, index + 1);
     });
 
     let job = success.job;
-    ctx.solution.required.retain(|j| *j != job);
-    ctx.solution.unassigned.remove(&job);
-    ctx.problem.constraint.accept_insertion(&mut ctx.solution, route_index, &job);
+    insertion_ctx.solution.required.retain(|j| *j != job);
+    insertion_ctx.solution.unassigned.remove(&job);
+    insertion_ctx.problem.constraint.accept_insertion(&mut insertion_ctx.solution, route_index, &job);
 }
 
 fn apply_insertion_failure(
-    ctx: &mut InsertionContext,
+    insertion_ctx: &mut InsertionContext,
     jobs: Vec<Job>,
     routes: Vec<RouteContext>,
     failure: InsertionFailure,
 ) {
     // NOTE in most of the cases, it is not needed to reevaluate insertion for all other jobs
-    let all_unassignable = jobs.len() == ctx.solution.required.len() && routes.len() == ctx.solution.routes.len();
+    let all_unassignable =
+        jobs.len() == insertion_ctx.solution.required.len() && routes.len() == insertion_ctx.solution.routes.len();
 
     // NOTE this happens when evaluator fails to insert jobs due to lack of routes in registry
     // TODO remove from required only jobs from selected list
     let no_routes_available = failure.job.is_none();
 
     if let Some(job) = failure.job {
-        ctx.solution.unassigned.insert(job.clone(), failure.constraint);
-        ctx.solution.required.retain(|j| *j != job);
+        insertion_ctx.solution.unassigned.insert(job.clone(), failure.constraint);
+        insertion_ctx.solution.required.retain(|j| *j != job);
     }
 
     if all_unassignable || no_routes_available {
-        finalize_unassigned(ctx, if all_unassignable { -1 } else { failure.constraint });
+        finalize_unassigned(insertion_ctx, if all_unassignable { -1 } else { failure.constraint });
     }
 }
 
-fn finalize_unassigned(ctx: &mut InsertionContext, code: i32) {
-    let unassigned = &ctx.solution.unassigned;
-    ctx.solution.required.retain(|job| !unassigned.contains_key(job));
-    ctx.solution.unassigned.extend(ctx.solution.required.drain(0..).map(|job| (job, code)));
+fn finalize_unassigned(insertion_ctx: &mut InsertionContext, code: i32) {
+    let unassigned = &insertion_ctx.solution.unassigned;
+    insertion_ctx.solution.required.retain(|job| !unassigned.contains_key(job));
+    insertion_ctx.solution.unassigned.extend(insertion_ctx.solution.required.drain(0..).map(|job| (job, code)));
 }

@@ -178,7 +178,9 @@ fn get_check_insertion_fn(
     insertion_ctx: InsertionContext,
     actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
 ) -> impl Fn(&Job) -> Result<(), i32> {
+    let leg_selector = AllLegSelector::default();
     let result_selector = BestResultSelector::default();
+
     let routes = insertion_ctx
         .solution
         .registry
@@ -187,14 +189,20 @@ fn get_check_insertion_fn(
         .collect::<Vec<_>>();
 
     move |job: &Job| -> Result<(), i32> {
+        let eval_ctx = EvaluationContext {
+            constraint: &insertion_ctx.problem.constraint,
+            job,
+            leg_selector: &leg_selector,
+            result_selector: &result_selector,
+        };
+
         unwrap_from_result(routes.iter().try_fold(Err(-1), |_, route_ctx| {
             let result = evaluate_job_insertion_in_route(
                 &insertion_ctx,
+                &eval_ctx,
                 route_ctx,
-                job,
                 InsertionPosition::Any,
                 InsertionResult::make_failure(),
-                &result_selector,
             );
 
             match result {

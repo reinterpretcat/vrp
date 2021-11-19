@@ -15,6 +15,7 @@ impl Default for RecreateWithCheapest {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
+                Box::new(AllLegSelector::default()),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),

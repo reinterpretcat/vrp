@@ -95,6 +95,7 @@ fn find_best_insertion_pair(
 
         let new_insertion_ctx = get_new_insertion_ctx(insertion_ctx, &seed_job, seed_route_idx).unwrap();
         let seed_route = new_insertion_ctx.solution.routes.get(seed_route_idx).unwrap();
+        let leg_selector = AllLegSelector::default();
         let result_selector = NoiseResultSelector::new(noise.clone());
 
         let insertion_pair = new_insertion_ctx
@@ -115,8 +116,13 @@ fn find_best_insertion_pair(
                         .as_slice(),
                     |(_, test_job)| {
                         // try to insert test job into seed tour
-                        let seed_success =
-                            test_job_insertion(&new_insertion_ctx, seed_route, test_job, &result_selector)?;
+                        let seed_success = test_job_insertion(
+                            &new_insertion_ctx,
+                            seed_route,
+                            test_job,
+                            &leg_selector,
+                            &result_selector,
+                        )?;
 
                         // try to insert seed job into test route
                         let mut test_route = test_route.deep_copy();
@@ -124,8 +130,13 @@ fn find_best_insertion_pair(
                         test_route.route_mut().tour.remove(test_job);
                         new_insertion_ctx.problem.constraint.accept_route_state(&mut test_route);
 
-                        let test_success =
-                            test_job_insertion(&new_insertion_ctx, &test_route, &seed_job, &result_selector)?;
+                        let test_success = test_job_insertion(
+                            &new_insertion_ctx,
+                            &test_route,
+                            &seed_job,
+                            &leg_selector,
+                            &result_selector,
+                        )?;
 
                         Some((seed_success, test_success))
                     },
@@ -153,15 +164,18 @@ fn test_job_insertion(
     insertion_ctx: &InsertionContext,
     route_ctx: &RouteContext,
     job: &Job,
+    leg_selector: &(dyn LegSelector + Send + Sync),
     result_selector: &(dyn ResultSelector + Send + Sync),
 ) -> Option<InsertionSuccess> {
+    let eval_ctx =
+        EvaluationContext { constraint: &insertion_ctx.problem.constraint, job, leg_selector, result_selector };
+
     let insertion = evaluate_job_insertion_in_route(
         insertion_ctx,
+        &eval_ctx,
         route_ctx,
-        job,
         InsertionPosition::Any,
         InsertionResult::make_failure(),
-        result_selector,
     );
 
     match insertion {

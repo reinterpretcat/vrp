@@ -16,6 +16,7 @@ impl Default for RecreateWithFarthest {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
+                Box::new(AllLegSelector::default()),
                 Box::new(FarthestResultSelector {}),
                 Default::default(),
             ),

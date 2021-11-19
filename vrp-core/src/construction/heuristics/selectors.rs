@@ -13,8 +13,11 @@ use std::sync::Arc;
 /// It is up to implementation to decide whether list consists of all possible routes or just some subset.
 pub trait RouteSelector {
     /// Returns routes for job insertion.
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext, jobs: &[Job])
-        -> Box<dyn Iterator<Item = RouteContext> + 'a>;
+    fn select<'a>(
+        &'a self,
+        insertion_ctx: &'a mut InsertionContext,
+        jobs: &[Job],
+    ) -> Box<dyn Iterator<Item = RouteContext> + 'a>;
 }
 
 /// Returns a list of all possible routes for insertion.
@@ -29,11 +32,11 @@ impl Default for AllRouteSelector {
 impl RouteSelector for AllRouteSelector {
     fn select<'a>(
         &'a self,
-        ctx: &'a mut InsertionContext,
+        insertion_ctx: &'a mut InsertionContext,
         _jobs: &[Job],
     ) -> Box<dyn Iterator<Item = RouteContext> + 'a> {
-        ctx.solution.routes.shuffle(&mut ctx.environment.random.get_rng());
-        Box::new(ctx.solution.routes.iter().cloned().chain(ctx.solution.registry.next()))
+        insertion_ctx.solution.routes.shuffle(&mut insertion_ctx.environment.random.get_rng());
+        Box::new(insertion_ctx.solution.routes.iter().cloned().chain(insertion_ctx.solution.registry.next()))
     }
 }
 
@@ -54,10 +57,10 @@ impl Default for AllJobSelector {
 }
 
 impl JobSelector for AllJobSelector {
-    fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
-        ctx.solution.required.shuffle(&mut ctx.environment.random.get_rng());
+    fn select<'a>(&'a self, insertion_ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
+        insertion_ctx.solution.required.shuffle(&mut insertion_ctx.environment.random.get_rng());
 
-        Box::new(ctx.solution.required.iter().cloned())
+        Box::new(insertion_ctx.solution.required.iter().cloned())
     }
 }
 
@@ -66,27 +69,30 @@ pub trait InsertionEvaluator {
     /// Evaluates insertion of a single job into given collection of routes.
     fn evaluate_job(
         &self,
-        ctx: &InsertionContext,
+        insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 
     /// Evaluates insertion of multiple jobs into given route.
     fn evaluate_route(
         &self,
-        ctx: &InsertionContext,
-        route: &RouteContext,
+        insertion_ctx: &InsertionContext,
+        route_ctx: &RouteContext,
         jobs: &[Job],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 
     /// Evaluates insertion of a job collection into given collection of routes.
     fn evaluate_all(
         &self,
-        ctx: &InsertionContext,
+        insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult;
 }
@@ -111,15 +117,18 @@ impl PositionInsertionEvaluator {
     /// Evaluates all jobs ad routes.
     pub(crate) fn evaluate_and_collect_all(
         &self,
-        ctx: &InsertionContext,
+        insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> Vec<InsertionResult> {
-        if Self::is_fold_jobs(ctx) {
-            parallel_collect(jobs, |job| self.evaluate_job(ctx, job, routes, result_selector))
+        if Self::is_fold_jobs(insertion_ctx) {
+            parallel_collect(jobs, |job| self.evaluate_job(insertion_ctx, job, routes, leg_selector, result_selector))
         } else {
-            parallel_collect(routes, |route| self.evaluate_route(ctx, route, jobs, result_selector))
+            parallel_collect(routes, |route_ctx| {
+                self.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selector, result_selector)
+            })
         }
     }
 
@@ -133,48 +142,56 @@ impl PositionInsertionEvaluator {
 impl InsertionEvaluator for PositionInsertionEvaluator {
     fn evaluate_job(
         &self,
-        ctx: &InsertionContext,
+        insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
+        let eval_ctx =
+            EvaluationContext { constraint: &insertion_ctx.problem.constraint, job, leg_selector, result_selector };
+
         routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-            evaluate_job_insertion_in_route(ctx, route_ctx, job, self.insertion_position, acc, result_selector)
+            evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
         })
     }
 
     fn evaluate_route(
         &self,
-        ctx: &InsertionContext,
-        route: &RouteContext,
+        insertion_ctx: &InsertionContext,
+        route_ctx: &RouteContext,
         jobs: &[Job],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
         jobs.iter().fold(InsertionResult::make_failure(), |acc, job| {
-            evaluate_job_insertion_in_route(ctx, route, job, self.insertion_position, acc, result_selector)
+            let eval_ctx =
+                EvaluationContext { constraint: &insertion_ctx.problem.constraint, job, leg_selector, result_selector };
+            evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, self.insertion_position, acc)
         })
     }
 
     fn evaluate_all(
         &self,
-        ctx: &InsertionContext,
+        insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        if Self::is_fold_jobs(ctx) {
+        if Self::is_fold_jobs(insertion_ctx) {
             map_reduce(
                 jobs,
-                |job| self.evaluate_job(ctx, job, routes, result_selector),
+                |job| self.evaluate_job(insertion_ctx, job, routes, leg_selector, result_selector),
                 InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(ctx, a, b),
+                |a, b| result_selector.select_insertion(insertion_ctx, a, b),
             )
         } else {
             map_reduce(
                 routes,
-                |route| self.evaluate_route(ctx, route, jobs, result_selector),
+                |route| self.evaluate_route(insertion_ctx, route, jobs, leg_selector, result_selector),
                 InsertionResult::make_failure,
-                |a, b| result_selector.select_insertion(ctx, a, b),
+                |a, b| result_selector.select_insertion(insertion_ctx, a, b),
             )
         }
     }
@@ -272,6 +289,12 @@ pub trait LegSelector {
 
 /// Selects all legs.
 pub struct AllLegSelector {}
+
+impl Default for AllLegSelector {
+    fn default() -> Self {
+        Self {}
+    }
+}
 
 impl LegSelector for AllLegSelector {
     fn get_legs<'a>(

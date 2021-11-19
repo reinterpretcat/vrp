@@ -14,6 +14,7 @@ impl Default for RecreateWithNearestNeighbor {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
+                Box::new(AllLegSelector::default()),
                 Box::new(BestResultSelector::default()),
                 InsertionHeuristic::new(Box::new(PositionInsertionEvaluator::new(InsertionPosition::Last))),
             ),

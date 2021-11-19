@@ -158,6 +158,7 @@ fn insert_jobs(
     shuffle_prob: f64,
 ) {
     let random = &insertion_ctx.environment.random;
+    let leg_selector = AllLegSelector::default();
     let result_selector = BestResultSelector::default();
 
     let mut jobs = jobs;
@@ -175,6 +176,13 @@ fn insert_jobs(
         random.uniform_int(0, get_route_ctx(insertion_ctx, route_idx).route.tour.job_activity_count() as i32) as usize;
 
     let (failures, _) = jobs.into_iter().fold((Vec::new(), start_index), |(mut unassigned, start_index), job| {
+        let eval_ctx = EvaluationContext {
+            constraint: &insertion_ctx.problem.constraint,
+            job: &job,
+            leg_selector: &leg_selector,
+            result_selector: &result_selector,
+        };
+
         // reevaluate last insertion point
         let last_index = get_route_ctx(insertion_ctx, route_idx).route.tour.job_activity_count();
         // try to find success insertion starting from given point
@@ -183,12 +191,11 @@ fn insert_jobs(
             |_, insertion_idx| {
                 let insertion = evaluate_job_insertion_in_route(
                     insertion_ctx,
+                    &eval_ctx,
                     get_route_ctx(insertion_ctx, route_idx),
-                    &job,
                     InsertionPosition::Concrete(insertion_idx),
                     // NOTE we don't try to insert the best, so alternative is a failure
                     InsertionResult::make_failure(),
-                    &result_selector,
                 );
 
                 match &insertion {

@@ -39,17 +39,25 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                 new_insertion_ctx.solution.required.push(job.clone());
                 new_insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
 
+                let leg_selector = AllLegSelector::default();
+                let result_selector = NoiseResultSelector::new(Noise::new(
+                    self.probability,
+                    self.noise_range,
+                    insertion_ctx.environment.random.clone(),
+                ));
+                let eval_ctx = EvaluationContext {
+                    constraint: &new_insertion_ctx.problem.constraint,
+                    job: &job,
+                    leg_selector: &leg_selector,
+                    result_selector: &result_selector,
+                };
+
                 let insertion = evaluate_job_insertion_in_route(
                     insertion_ctx,
+                    &eval_ctx,
                     route_ctx,
-                    &job,
                     InsertionPosition::Any,
                     InsertionResult::make_failure(),
-                    &NoiseResultSelector::new(Noise::new(
-                        self.probability,
-                        self.noise_range,
-                        insertion_ctx.environment.random.clone(),
-                    )),
                 );
 
                 return match insertion {

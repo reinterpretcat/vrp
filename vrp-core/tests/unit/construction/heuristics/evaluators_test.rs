@@ -22,16 +22,24 @@ fn create_activity_at(loc_and_time: usize) -> Activity {
 }
 
 fn evaluate_job_insertion(
-    ctx: &mut InsertionContext,
+    insertion_ctx: &mut InsertionContext,
     job: &Job,
     insertion_position: InsertionPosition,
 ) -> InsertionResult {
-    let result_selector = BestResultSelector::default();
     let route_selector = AllRouteSelector::default();
-    let routes = route_selector.select(ctx, vec![].as_slice()).collect::<Vec<_>>();
+    let leg_selector = AllLegSelector::default();
+    let result_selector = BestResultSelector::default();
+    let routes = route_selector.select(insertion_ctx, vec![].as_slice()).collect::<Vec<_>>();
+
+    let eval_ctx = EvaluationContext {
+        constraint: &insertion_ctx.problem.constraint,
+        job,
+        leg_selector: &leg_selector,
+        result_selector: &result_selector,
+    };
 
     routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
-        evaluate_job_insertion_in_route(&ctx, &route_ctx, job, insertion_position, acc, &result_selector)
+        evaluate_job_insertion_in_route(&insertion_ctx, &eval_ctx, &route_ctx, insertion_position, acc)
     })
 }
 

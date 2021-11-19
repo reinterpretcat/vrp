@@ -17,6 +17,7 @@ impl Default for RecreateWithSlice {
             recreate: ConfigurableRecreate::new(
                 Box::new(SliceJobSelector::default()),
                 Box::new(SliceRouteSelector::default()),
+                Box::new(AllLegSelector::default()),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),

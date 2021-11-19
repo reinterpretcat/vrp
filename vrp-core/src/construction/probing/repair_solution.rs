@@ -91,6 +91,7 @@ fn synchronize_jobs(
     constraint: &ConstraintPipeline,
 ) -> HashMap<Job, Vec<Arc<Single>>> {
     let position = InsertionPosition::Last;
+    let leg_selector = AllLegSelector::default();
     let result_selector = BestResultSelector::default();
 
     route_ctx
@@ -105,16 +106,22 @@ fn synchronize_jobs(
             let is_already_processed = synchronized_jobs.contains_key(&job) && job.as_single().is_some();
 
             if !is_already_processed {
-                let insertion_result = evaluate_single_constraint_in_route(
-                    &job,
-                    single,
+                let eval_ctx = EvaluationContext {
                     constraint,
+                    job: &job,
+                    leg_selector: &leg_selector,
+                    result_selector: &result_selector,
+                };
+                let route_ctx = new_insertion_ctx.solution.routes.get(route_idx).unwrap();
+
+                let insertion_result = evaluate_single_constraint_in_route(
                     new_insertion_ctx,
-                    new_insertion_ctx.solution.routes.get(route_idx).unwrap(),
+                    &eval_ctx,
+                    route_ctx,
+                    single,
                     position,
                     0.,
                     None,
-                    &result_selector,
                 );
 
                 if let InsertionResult::Success(success) = insertion_result {

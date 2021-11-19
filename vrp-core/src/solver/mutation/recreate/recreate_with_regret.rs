@@ -32,6 +32,7 @@ impl RecreateWithRegret {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
+                Box::new(AllLegSelector::default()),
                 Box::new(BestResultSelector::default()),
                 InsertionHeuristic::new(Box::new(RegretInsertionEvaluator::new(min, max))),
             ),
@@ -58,41 +59,44 @@ impl RegretInsertionEvaluator {
 impl InsertionEvaluator for RegretInsertionEvaluator {
     fn evaluate_job(
         &self,
-        ctx: &InsertionContext,
+        insertion_ctx: &InsertionContext,
         job: &Job,
         routes: &[RouteContext],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        self.fallback_evaluator.evaluate_job(ctx, job, routes, result_selector)
+        self.fallback_evaluator.evaluate_job(insertion_ctx, job, routes, leg_selector, result_selector)
     }
 
     fn evaluate_route(
         &self,
-        ctx: &InsertionContext,
-        route: &RouteContext,
+        insertion_ctx: &InsertionContext,
+        route_ctx: &RouteContext,
         jobs: &[Job],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        self.fallback_evaluator.evaluate_route(ctx, route, jobs, result_selector)
+        self.fallback_evaluator.evaluate_route(insertion_ctx, route_ctx, jobs, leg_selector, result_selector)
     }
 
     fn evaluate_all(
         &self,
-        ctx: &InsertionContext,
+        insertion_ctx: &InsertionContext,
         jobs: &[Job],
         routes: &[RouteContext],
+        leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
     ) -> InsertionResult {
-        let regret_index = ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
+        let regret_index = insertion_ctx.environment.random.uniform_int(self.min as i32, self.max as i32) as usize;
 
         // NOTE no need to proceed with regret, fallback to more performant reducer
-        if regret_index == 1 || jobs.len() == 1 || routes.is_empty() || ctx.solution.routes.len() < 2 {
-            return self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector);
+        if regret_index == 1 || jobs.len() == 1 || routes.is_empty() || insertion_ctx.solution.routes.len() < 2 {
+            return self.fallback_evaluator.evaluate_all(insertion_ctx, jobs, routes, leg_selector, result_selector);
         }
 
         let mut results = self
             .fallback_evaluator
-            .evaluate_and_collect_all(ctx, jobs, routes, result_selector)
+            .evaluate_and_collect_all(insertion_ctx, jobs, routes, leg_selector, result_selector)
             .into_iter()
             .filter_map(|result| match result {
                 InsertionResult::Success(success) => Some(success),
@@ -108,7 +112,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
                 success.sort_by(|a, b| compare_floats(a.cost, b.cost));
 
                 let (_, mut job_results) = success.into_iter().fold(
-                    (HashSet::with_capacity(ctx.solution.routes.len()), Vec::default()),
+                    (HashSet::with_capacity(insertion_ctx.solution.routes.len()), Vec::default()),
                     |(mut routes, mut results), result| {
                         if !routes.contains(&result.context.route.actor) {
                             results.push(result);
@@ -138,7 +142,7 @@ impl InsertionEvaluator for RegretInsertionEvaluator {
 
             InsertionResult::Success(best_success)
         } else {
-            self.fallback_evaluator.evaluate_all(ctx, jobs, routes, result_selector)
+            self.fallback_evaluator.evaluate_all(insertion_ctx, jobs, routes, leg_selector, result_selector)
         }
     }
 }

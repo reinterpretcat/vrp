@@ -20,21 +20,21 @@ pub fn get_route_modifier(constraint: Arc<ConstraintPipeline>, job_index: JobInd
             .take_while(|job| job.is_some())
             .collect::<Vec<_>>();
 
+        let leg_selector = AllLegSelector::default();
         let result_selector = BestResultSelector::default();
 
         let result = candidates
             .iter()
             .filter_map(|job| {
                 job.map(|job| {
-                    evaluate_job_constraint_in_route(
+                    let eval_ctx = EvaluationContext {
+                        constraint: &constraint,
                         job,
-                        &constraint,
-                        &route_ctx,
-                        InsertionPosition::Last,
-                        0.,
-                        None,
-                        &result_selector,
-                    )
+                        leg_selector: &leg_selector,
+                        result_selector: &result_selector,
+                    };
+
+                    evaluate_job_constraint_in_route(&eval_ctx, &route_ctx, InsertionPosition::Last, 0., None)
                 })
                 .and_then(|result| match result {
                     InsertionResult::Success(success) => Some(success),

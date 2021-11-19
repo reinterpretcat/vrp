@@ -163,6 +163,7 @@ impl ResultSelector for BlinkResultSelector {
 pub struct RecreateWithBlinks<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     route_selector: Box<dyn RouteSelector + Send + Sync>,
+    leg_selector: Box<dyn LegSelector + Send + Sync>,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
     insertion_heuristic: InsertionHeuristic,
     weights: Vec<usize>,
@@ -179,6 +180,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
             route_selector: Box::new(AllRouteSelector::default()),
+            leg_selector: Box::new(AllLegSelector::default()),
             result_selector: Box::new(BlinkResultSelector::new_with_defaults(random)),
             insertion_heuristic: Default::default(),
             weights,
@@ -211,6 +213,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Recreate for Recreat
             insertion_ctx,
             job_selector,
             self.route_selector.as_ref(),
+            self.leg_selector.as_ref(),
             self.result_selector.as_ref(),
             &refinement_ctx.quota,
         )

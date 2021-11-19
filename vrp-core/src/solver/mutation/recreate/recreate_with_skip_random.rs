@@ -19,6 +19,7 @@ impl Default for RecreateWithSkipRandom {
             recreate: ConfigurableRecreate::new(
                 Box::new(SkipRandomJobSelector::default()),
                 Box::new(SkipRandomRouteSelector::default()),
+                Box::new(AllLegSelector::default()),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),

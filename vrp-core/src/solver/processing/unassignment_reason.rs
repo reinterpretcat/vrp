@@ -20,9 +20,16 @@ impl Processing for UnassignmentReason {
         let mut insertion_ctx = insertion_ctx;
 
         let unassigned = insertion_ctx.solution.unassigned.drain().collect::<Vec<_>>();
+        let leg_selector = AllLegSelector::default();
         let result_selector = BestResultSelector::default();
 
         let unassigned = parallel_into_collect(unassigned, |(job, code)| {
+            let eval_ctx = EvaluationContext {
+                constraint: &insertion_ctx.problem.constraint,
+                job: &job,
+                leg_selector: &leg_selector,
+                result_selector: &result_selector,
+            };
             let mut unassigned = insertion_ctx
                 .solution
                 .routes
@@ -30,11 +37,10 @@ impl Processing for UnassignmentReason {
                 .map(|route_ctx| {
                     evaluate_job_insertion_in_route(
                         &insertion_ctx,
+                        &eval_ctx,
                         route_ctx,
-                        &job,
                         InsertionPosition::Any,
                         InsertionResult::make_failure(),
-                        &result_selector,
                     )
                 })
                 .filter_map(|result| match &result {
