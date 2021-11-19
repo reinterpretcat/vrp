@@ -224,11 +224,10 @@ fn analyze_insertion_in_route(
                 Ok(init)
             }
         }
-        None => {
-            route_ctx.route.tour.legs().skip(init.index).try_fold(init, |out, leg| {
-                analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, out)
-            })
-        }
+        None => eval_ctx
+            .leg_selector
+            .get_legs(route_ctx, eval_ctx.job, init.index)
+            .try_fold(init, |out, leg| analyze_insertion_in_route_leg(eval_ctx, route_ctx, leg, single, target, out)),
     })
 }
 
