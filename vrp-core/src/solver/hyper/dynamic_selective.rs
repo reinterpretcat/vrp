@@ -92,31 +92,32 @@ impl DynamicSelective {
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> Vec<(Arc<dyn Mutation + Send + Sync>, String)> {
+        let random = environment.random.clone();
         let recreates: Vec<(Arc<dyn Recreate + Send + Sync>, String)> = vec![
-            (Arc::new(RecreateWithSkipBest::new(1, 2)), "skip_best_1".to_string()),
-            (Arc::new(RecreateWithSkipBest::new(1, 4)), "skip_best_2".to_string()),
-            (Arc::new(RecreateWithRegret::new(1, 3)), "regret".to_string()),
-            (Arc::new(RecreateWithCheapest::default()), "cheapest".to_string()),
+            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), "skip_best_1".to_string()),
+            (Arc::new(RecreateWithSkipBest::new(1, 4, random.clone())), "skip_best_2".to_string()),
+            (Arc::new(RecreateWithRegret::new(1, 3, random.clone())), "regret".to_string()),
+            (Arc::new(RecreateWithCheapest::new(random.clone())), "cheapest".to_string()),
+            (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), "perturbation".to_string()),
+            (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), "gaps".to_string()),
             (
-                Arc::new(RecreateWithPerturbation::new_with_defaults(environment.random.clone())),
-                "perturbation".to_string(),
-            ),
-            (Arc::new(RecreateWithGaps::default()), "gaps".to_string()),
-            (
-                Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())),
+                Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())),
                 "blinks_single".to_string(),
             ),
             (
-                Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(environment.random.clone())),
+                Arc::new(RecreateWithBlinks::<MultiDimLoad>::new_with_defaults(random.clone())),
                 "blinks_multi".to_string(),
             ),
-            (Arc::new(RecreateWithFarthest::default()), "farthest".to_string()),
-            (Arc::new(RecreateWithNearestNeighbor::default()), "nearest".to_string()),
+            (Arc::new(RecreateWithFarthest::new(random.clone())), "farthest".to_string()),
+            (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), "nearest".to_string()),
             (
-                Arc::new(RecreateWithSkipRandom::default_explorative_phased(Arc::new(RecreateWithCheapest::default()))),
+                Arc::new(RecreateWithSkipRandom::default_explorative_phased(
+                    Arc::new(RecreateWithCheapest::new(random.clone())),
+                    random.clone(),
+                )),
                 "skip_random".to_string(),
             ),
-            (Arc::new(RecreateWithSlice::default()), "slice".to_string()),
+            (Arc::new(RecreateWithSlice::new(random.clone())), "slice".to_string()),
         ];
 
         let primary_ruins: Vec<(Arc<dyn Ruin + Send + Sync>, String)> = vec![

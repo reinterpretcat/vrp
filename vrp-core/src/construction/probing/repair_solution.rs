@@ -91,7 +91,7 @@ fn synchronize_jobs(
     constraint: &ConstraintPipeline,
 ) -> HashMap<Job, Vec<Arc<Single>>> {
     let position = InsertionPosition::Last;
-    let leg_selector = AllLegSelector::default();
+    let leg_selector = VariableLegSelector::new(new_insertion_ctx.environment.random.clone());
     let result_selector = BestResultSelector::default();
 
     route_ctx

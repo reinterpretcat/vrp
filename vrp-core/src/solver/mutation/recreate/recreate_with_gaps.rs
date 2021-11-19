@@ -4,7 +4,9 @@ use crate::models::problem::Job;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
+use crate::utils::Random;
 use rand::prelude::*;
+use std::sync::Arc;
 
 /// Returns a sub set of randomly selected jobs.
 struct GapsJobSelector {
@@ -32,22 +34,16 @@ pub struct RecreateWithGaps {
 
 impl RecreateWithGaps {
     /// Creates a new instance of `RecreateWithGaps`.
-    pub fn new(min_jobs: usize, max_jobs: usize) -> Self {
+    pub fn new(min_jobs: usize, max_jobs: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::new(GapsJobSelector { min_jobs, max_jobs }),
                 Box::new(AllRouteSelector::default()),
-                Box::new(AllLegSelector::default()),
+                Box::new(VariableLegSelector::new(random)),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),
         }
-    }
-}
-
-impl Default for RecreateWithGaps {
-    fn default() -> Self {
-        Self::new(2, 20)
     }
 }
 

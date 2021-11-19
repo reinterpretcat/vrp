@@ -100,22 +100,26 @@ impl StaticSelective {
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> Arc<dyn Mutation + Send + Sync> {
+        let random = environment.random.clone();
         // initialize recreate
         let recreate = Arc::new(WeightedRecreate::new(vec![
-            (Arc::new(RecreateWithSkipBest::new(1, 2)), 50),
-            (Arc::new(RecreateWithRegret::new(2, 3)), 20),
-            (Arc::new(RecreateWithCheapest::default()), 20),
-            (Arc::new(RecreateWithPerturbation::new_with_defaults(environment.random.clone())), 10),
-            (Arc::new(RecreateWithSkipBest::new(3, 4)), 5),
-            (Arc::new(RecreateWithGaps::default()), 5),
+            (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 50),
+            (Arc::new(RecreateWithRegret::new(2, 3, random.clone())), 20),
+            (Arc::new(RecreateWithCheapest::new(random.clone())), 20),
+            (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 10),
+            (Arc::new(RecreateWithSkipBest::new(3, 4, random.clone())), 5),
+            (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 5),
             // TODO use dimension size from problem
-            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())), 5),
-            (Arc::new(RecreateWithFarthest::default()), 2),
-            (Arc::new(RecreateWithSkipBest::new(4, 8)), 2),
-            (Arc::new(RecreateWithNearestNeighbor::default()), 1),
-            (Arc::new(RecreateWithSlice::default()), 1),
+            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())), 5),
+            (Arc::new(RecreateWithFarthest::new(random.clone())), 2),
+            (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
+            (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
+            (Arc::new(RecreateWithSlice::new(random.clone())), 1),
             (
-                Arc::new(RecreateWithSkipRandom::default_explorative_phased(Arc::new(RecreateWithCheapest::default()))),
+                Arc::new(RecreateWithSkipRandom::default_explorative_phased(
+                    Arc::new(RecreateWithCheapest::new(random.clone())),
+                    random.clone(),
+                )),
                 1,
             ),
         ]));

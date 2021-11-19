@@ -178,7 +178,7 @@ fn get_check_insertion_fn(
     insertion_ctx: InsertionContext,
     actor_filter: &(dyn Fn(&Actor) -> bool + Send + Sync),
 ) -> impl Fn(&Job) -> Result<(), i32> {
-    let leg_selector = AllLegSelector::default();
+    let leg_selector = VariableLegSelector::new(insertion_ctx.environment.random.clone());
     let result_selector = BestResultSelector::default();
 
     let routes = insertion_ctx

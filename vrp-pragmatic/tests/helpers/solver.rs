@@ -19,7 +19,7 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
         let population = create_elitism_population(problem.objective.clone(), environment.clone());
         let mut refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone(), None);
 
-        RecreateWithCheapest::default()
+        RecreateWithCheapest::new(environment.random.clone())
             .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment.clone()))
             .solution
             .to_solution(problem.extras.clone())

@@ -68,8 +68,8 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
         environment.clone(),
         None,
     );
-    let insertion_ctx =
-        RecreateWithCheapest::default().run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment));
+    let insertion_ctx = RecreateWithCheapest::new(environment.random.clone())
+        .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment));
 
     let result_cost = problem.objective.fitness(&insertion_ctx);
     assert_eq!(result_cost.round(), cost.round());

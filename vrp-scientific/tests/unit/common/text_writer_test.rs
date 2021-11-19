@@ -31,7 +31,7 @@ fn can_write_solomon_solution() {
 
     let mut buffer = String::new();
     let writer = unsafe { BufWriter::new(buffer.as_mut_vec()) };
-    let solution = RecreateWithCheapest::default()
+    let solution = RecreateWithCheapest::new(environment.random.clone())
         .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment))
         .solution
         .to_solution(problem.extras.clone());

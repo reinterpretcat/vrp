@@ -27,7 +27,7 @@ fn evaluate_job_insertion(
     insertion_position: InsertionPosition,
 ) -> InsertionResult {
     let route_selector = AllRouteSelector::default();
-    let leg_selector = AllLegSelector::default();
+    let leg_selector = VariableLegSelector::new(insertion_ctx.environment.random.clone());
     let result_selector = BestResultSelector::default();
     let routes = route_selector.select(insertion_ctx, vec![].as_slice()).collect::<Vec<_>>();
 

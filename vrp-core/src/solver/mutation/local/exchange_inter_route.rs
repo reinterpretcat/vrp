@@ -95,7 +95,7 @@ fn find_best_insertion_pair(
 
         let new_insertion_ctx = get_new_insertion_ctx(insertion_ctx, &seed_job, seed_route_idx).unwrap();
         let seed_route = new_insertion_ctx.solution.routes.get(seed_route_idx).unwrap();
-        let leg_selector = AllLegSelector::default();
+        let leg_selector = VariableLegSelector::new(insertion_ctx.environment.random.clone());
         let result_selector = NoiseResultSelector::new(noise.clone());
 
         let insertion_pair = new_insertion_ctx

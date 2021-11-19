@@ -180,7 +180,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T
         Self {
             job_selectors: selectors.into_iter().map(|(selector, _)| selector).collect(),
             route_selector: Box::new(AllRouteSelector::default()),
-            leg_selector: Box::new(AllLegSelector::default()),
+            leg_selector: Box::new(VariableLegSelector::new(random.clone())),
             result_selector: Box::new(BlinkResultSelector::new_with_defaults(random)),
             insertion_heuristic: Default::default(),
             weights,

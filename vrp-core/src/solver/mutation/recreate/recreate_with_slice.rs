@@ -5,19 +5,22 @@ use crate::models::problem::Job;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
+use crate::utils::Random;
+use std::sync::Arc;
 
 /// A recreate method which takes a slice from jobs and routes.
 pub struct RecreateWithSlice {
     recreate: ConfigurableRecreate,
 }
 
-impl Default for RecreateWithSlice {
-    fn default() -> Self {
+impl RecreateWithSlice {
+    /// Creates a new instance of `RecreateWithSlice`.
+    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::new(SliceJobSelector::default()),
                 Box::new(SliceRouteSelector::default()),
-                Box::new(AllLegSelector::default()),
+                Box::new(VariableLegSelector::new(random)),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),

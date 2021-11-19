@@ -6,6 +6,7 @@ use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::{ConfigurableRecreate, PhasedRecreate};
 use crate::solver::population::SelectionPhase;
 use crate::solver::RefinementContext;
+use crate::utils::Random;
 use std::sync::Arc;
 
 /// A recreate method which skips random jobs and routes.
@@ -13,13 +14,14 @@ pub struct RecreateWithSkipRandom {
     recreate: ConfigurableRecreate,
 }
 
-impl Default for RecreateWithSkipRandom {
-    fn default() -> Self {
+impl RecreateWithSkipRandom {
+    /// Creates a new instance of `RecreateWithSkipRandom`.
+    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::new(SkipRandomJobSelector::default()),
                 Box::new(SkipRandomRouteSelector::default()),
-                Box::new(AllLegSelector::default()),
+                Box::new(VariableLegSelector::new(random)),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),
@@ -35,10 +37,13 @@ impl Recreate for RecreateWithSkipRandom {
 
 impl RecreateWithSkipRandom {
     /// Creates `RecreateWithSkipRandom` as PhasedRecreate which runs only in exploration phase.
-    pub fn default_explorative_phased(default_recreate: Arc<dyn Recreate + Send + Sync>) -> PhasedRecreate {
+    pub fn default_explorative_phased(
+        default_recreate: Arc<dyn Recreate + Send + Sync>,
+        random: Arc<dyn Random + Send + Sync>,
+    ) -> PhasedRecreate {
         let recreates = vec![
             (SelectionPhase::Initial, default_recreate.clone()),
-            (SelectionPhase::Exploration, Arc::new(RecreateWithSkipRandom::default())),
+            (SelectionPhase::Exploration, Arc::new(RecreateWithSkipRandom::new(random))),
             (SelectionPhase::Exploitation, default_recreate),
         ];
 

@@ -220,14 +220,16 @@ fn map_to_problem(
     let objective = create_objective(&api_problem, &mut constraint, &problem_props);
     let constraint = Arc::new(constraint);
     let extras = Arc::new(
-        create_extras(&api_problem, constraint.clone(), &problem_props, job_index, coord_index).map_err(|err| {
-            // TODO make sure that error matches actual reason
-            vec![FormatError::new(
-                "E0002".to_string(),
-                "cannot create transport costs".to_string(),
-                format!("check clustering config: '{}'", err),
-            )]
-        })?,
+        create_extras(&api_problem, constraint.clone(), random, &problem_props, job_index, coord_index).map_err(
+            |err| {
+                // TODO make sure that error matches actual reason
+                vec![FormatError::new(
+                    "E0002".to_string(),
+                    "cannot create transport costs".to_string(),
+                    format!("check clustering config: '{}'", err),
+                )]
+            },
+        )?,
     );
 
     Ok(Problem {
@@ -354,6 +356,7 @@ fn add_tour_size_module(constraint: &mut ConstraintPipeline) {
 fn create_extras(
     api_problem: &ApiProblem,
     constraint: Arc<ConstraintPipeline>,
+    random: Arc<dyn Random + Send + Sync>,
     props: &ProblemProperties,
     job_index: JobIndex,
     coord_index: Arc<CoordIndex>,
@@ -367,7 +370,7 @@ fn create_extras(
     extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
 
     if props.has_dispatch {
-        extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(constraint, job_index)));
+        extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(constraint, random, job_index)));
     }
 
     if let Some(config) = create_cluster_config(api_problem)? {

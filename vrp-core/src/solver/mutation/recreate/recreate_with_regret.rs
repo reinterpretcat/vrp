@@ -3,20 +3,15 @@ use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::solver::mutation::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
-use crate::utils::{compare_floats, CollectGroupBy};
+use crate::utils::{compare_floats, CollectGroupBy, Random};
 use hashbrown::HashSet;
+use std::sync::Arc;
 
 /// A recreate strategy which computes the difference in cost of inserting customer in its
 /// best and kth best route, where `k` is a user-defined parameter. Then it inserts the
 /// customer with the max difference in its least cost position.
 pub struct RecreateWithRegret {
     recreate: ConfigurableRecreate,
-}
-
-impl Default for RecreateWithRegret {
-    fn default() -> Self {
-        RecreateWithRegret::new(1, 2)
-    }
 }
 
 impl Recreate for RecreateWithRegret {
@@ -27,12 +22,12 @@ impl Recreate for RecreateWithRegret {
 
 impl RecreateWithRegret {
     /// Creates a new instance of `RecreateWithRegret`.
-    pub fn new(min: usize, max: usize) -> Self {
+    pub fn new(min: usize, max: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
-                Box::new(AllLegSelector::default()),
+                Box::new(VariableLegSelector::new(random)),
                 Box::new(BestResultSelector::default()),
                 InsertionHeuristic::new(Box::new(RegretInsertionEvaluator::new(min, max))),
             ),

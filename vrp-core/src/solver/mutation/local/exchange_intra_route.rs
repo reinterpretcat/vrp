@@ -31,6 +31,7 @@ impl LocalOperator for ExchangeIntraRouteRandom {
         }
 
         if let Some(route_idx) = get_random_route_idx(insertion_ctx) {
+            let random = insertion_ctx.environment.random.clone();
             let mut new_insertion_ctx = insertion_ctx.deep_copy();
             let mut route_ctx = new_insertion_ctx.solution.routes.get_mut(route_idx).unwrap();
 
@@ -39,12 +40,9 @@ impl LocalOperator for ExchangeIntraRouteRandom {
                 new_insertion_ctx.solution.required.push(job.clone());
                 new_insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
 
-                let leg_selector = AllLegSelector::default();
-                let result_selector = NoiseResultSelector::new(Noise::new(
-                    self.probability,
-                    self.noise_range,
-                    insertion_ctx.environment.random.clone(),
-                ));
+                let leg_selector = VariableLegSelector::new(random.clone());
+                let result_selector =
+                    NoiseResultSelector::new(Noise::new(self.probability, self.noise_range, random.clone()));
                 let eval_ctx = EvaluationContext {
                     constraint: &new_insertion_ctx.problem.constraint,
                     job: &job,

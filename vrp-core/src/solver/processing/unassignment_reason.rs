@@ -20,7 +20,7 @@ impl Processing for UnassignmentReason {
         let mut insertion_ctx = insertion_ctx;
 
         let unassigned = insertion_ctx.solution.unassigned.drain().collect::<Vec<_>>();
-        let leg_selector = AllLegSelector::default();
+        let leg_selector = VariableLegSelector::new(insertion_ctx.environment.random.clone());
         let result_selector = BestResultSelector::default();
 
         let unassigned = parallel_into_collect(unassigned, |(job, code)| {

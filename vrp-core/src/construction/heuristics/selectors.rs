@@ -287,23 +287,43 @@ pub trait LegSelector {
     ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a>;
 }
 
-/// Selects all legs.
-pub struct AllLegSelector {}
+/// Selects different legs based on route and job size.
+pub struct VariableLegSelector {
+    random: Arc<dyn Random + Send + Sync>,
+}
 
-impl Default for AllLegSelector {
-    fn default() -> Self {
-        Self {}
+impl VariableLegSelector {
+    /// Creates a new instance of `VariableLegSelector`.
+    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self { random }
     }
 }
 
-impl LegSelector for AllLegSelector {
+impl LegSelector for VariableLegSelector {
     fn get_legs<'a>(
         &self,
         route_ctx: &'a RouteContext,
-        _: &Job,
+        job: &Job,
         skip: usize,
     ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
-        Box::new(route_ctx.route.tour.legs().skip(skip))
+        let (greedy_threshold, sample_size) = match job {
+            Job::Single(_) => (32, 16),
+            Job::Multi(multi) if multi.jobs.len() == 2 => (16, 8),
+            Job::Multi(_) => (16, 4),
+        };
+
+        let total_legs = route_ctx.route.tour.legs().size_hint().0;
+        let visit_legs = if total_legs > skip { total_legs - skip } else { 0 };
+
+        if visit_legs < greedy_threshold {
+            Box::new(route_ctx.route.tour.legs().skip(skip))
+        } else {
+            Box::new(SelectionSamplingIterator::new(
+                route_ctx.route.tour.legs().skip(skip),
+                sample_size,
+                self.random.clone(),
+            ))
+        }
     }
 }
 

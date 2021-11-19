@@ -67,6 +67,7 @@ pub struct InitialConfig {
 impl EvolutionConfig {
     /// Creates a new instance of `EvolutionConfig` using default settings.
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
+        let random = environment.random.clone();
         Self {
             problem: problem.clone(),
             processing: Some(Arc::new(CompositeProcessing::new(vec![
@@ -79,19 +80,14 @@ impl EvolutionConfig {
                     max_size: 4,
                     quota: 0.05,
                     methods: vec![
-                        (Arc::new(RecreateWithCheapest::default()), 1),
-                        (Arc::new(RecreateWithFarthest::default()), 1),
-                        (Arc::new(RecreateWithNearestNeighbor::default()), 1),
-                        (Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1))), 1),
-                        (Arc::new(RecreateWithSkipBest::new(1, 2)), 1),
-                        (Arc::new(RecreateWithRegret::new(2, 3)), 1),
-                        (
-                            Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(
-                                environment.random.clone(),
-                            )),
-                            1,
-                        ),
-                        (Arc::new(RecreateWithPerturbation::new_with_defaults(environment.random.clone())), 1),
+                        (Arc::new(RecreateWithCheapest::new(random.clone())), 1),
+                        (Arc::new(RecreateWithFarthest::new(random.clone())), 1),
+                        (Arc::new(RecreateWithNearestNeighbor::new(random.clone())), 1),
+                        (Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone())), 1),
+                        (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
+                        (Arc::new(RecreateWithRegret::new(2, 3, random.clone())), 1),
+                        (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())), 1),
+                        (Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone())), 1),
                     ],
                     individuals: vec![],
                 },

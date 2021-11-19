@@ -3,19 +3,22 @@ use crate::construction::heuristics::*;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
+use crate::utils::Random;
+use std::sync::Arc;
 
 /// A recreate method which is equivalent to cheapest insertion heuristic.
 pub struct RecreateWithCheapest {
     recreate: ConfigurableRecreate,
 }
 
-impl Default for RecreateWithCheapest {
-    fn default() -> Self {
+impl RecreateWithCheapest {
+    /// Creates a new instance of `RecreateWithCheapest`.
+    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
-                Box::new(AllLegSelector::default()),
+                Box::new(VariableLegSelector::new(random)),
                 Box::new(BestResultSelector::default()),
                 Default::default(),
             ),

@@ -3,17 +3,13 @@ use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::solver::mutation::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
+use crate::utils::Random;
 use std::cmp::Ordering::*;
+use std::sync::Arc;
 
 /// A recreate strategy which skips best job insertion for insertion.
 pub struct RecreateWithSkipBest {
     recreate: ConfigurableRecreate,
-}
-
-impl Default for RecreateWithSkipBest {
-    fn default() -> Self {
-        RecreateWithSkipBest::new(1, 2)
-    }
 }
 
 impl Recreate for RecreateWithSkipBest {
@@ -24,12 +20,12 @@ impl Recreate for RecreateWithSkipBest {
 
 impl RecreateWithSkipBest {
     /// Creates a new instance of `RecreateWithSkipBest`.
-    pub fn new(min: usize, max: usize) -> Self {
+    pub fn new(min: usize, max: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
         Self {
             recreate: ConfigurableRecreate::new(
                 Box::new(AllJobSelector::default()),
                 Box::new(AllRouteSelector::default()),
-                Box::new(AllLegSelector::default()),
+                Box::new(VariableLegSelector::new(random)),
                 Box::new(BestResultSelector::default()),
                 InsertionHeuristic::new(Box::new(SkipBestInsertionEvaluator::new(min, max))),
             ),

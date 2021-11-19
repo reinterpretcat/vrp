@@ -612,20 +612,25 @@ fn create_recreate_method(
     method: &RecreateMethod,
     environment: Arc<Environment>,
 ) -> (Arc<dyn Recreate + Send + Sync>, usize) {
+    let random = environment.random.clone();
     match method {
-        RecreateMethod::Cheapest { weight } => (Arc::new(RecreateWithCheapest::default()), *weight),
-        RecreateMethod::Farthest { weight } => (Arc::new(RecreateWithFarthest::default()), *weight),
-        RecreateMethod::SkipBest { weight, start, end } => (Arc::new(RecreateWithSkipBest::new(*start, *end)), *weight),
-        RecreateMethod::Slice { weight } => (Arc::new(RecreateWithSlice::default()), *weight),
-        RecreateMethod::Blinks { weight } => {
-            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(environment.random.clone())), *weight)
+        RecreateMethod::Cheapest { weight } => (Arc::new(RecreateWithCheapest::new(random)), *weight),
+        RecreateMethod::Farthest { weight } => (Arc::new(RecreateWithFarthest::new(random)), *weight),
+        RecreateMethod::SkipBest { weight, start, end } => {
+            (Arc::new(RecreateWithSkipBest::new(*start, *end, random)), *weight)
         }
-        RecreateMethod::SkipRandom { weight } => (Arc::new(RecreateWithSkipRandom::default()), *weight),
-        RecreateMethod::Gaps { weight, min, max } => (Arc::new(RecreateWithGaps::new(*min, *max)), *weight),
-        RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::default()), *weight),
-        RecreateMethod::Regret { weight, start, end } => (Arc::new(RecreateWithRegret::new(*start, *end)), *weight),
+        RecreateMethod::Slice { weight } => (Arc::new(RecreateWithSlice::new(random)), *weight),
+        RecreateMethod::Blinks { weight } => {
+            (Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone())), *weight)
+        }
+        RecreateMethod::SkipRandom { weight } => (Arc::new(RecreateWithSkipRandom::new(random)), *weight),
+        RecreateMethod::Gaps { weight, min, max } => (Arc::new(RecreateWithGaps::new(*min, *max, random)), *weight),
+        RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::new(random)), *weight),
+        RecreateMethod::Regret { weight, start, end } => {
+            (Arc::new(RecreateWithRegret::new(*start, *end, random)), *weight)
+        }
         RecreateMethod::Perturbation { weight, probability, min, max } => {
-            (Arc::new(RecreateWithPerturbation::new(*probability, *min, *max, environment.random.clone())), *weight)
+            (Arc::new(RecreateWithPerturbation::new(*probability, *min, *max, random.clone())), *weight)
         }
     }
 }
