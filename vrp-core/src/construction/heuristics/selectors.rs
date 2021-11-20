@@ -307,7 +307,7 @@ impl LegSelector for VariableLegSelector {
         skip: usize,
     ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
         let (greedy_threshold, sample_size) = match job {
-            Job::Single(_) => (32, 16),
+            Job::Single(_) => (24, 16),
             Job::Multi(multi) if multi.jobs.len() == 2 => (16, 8),
             Job::Multi(_) => (16, 4),
         };
