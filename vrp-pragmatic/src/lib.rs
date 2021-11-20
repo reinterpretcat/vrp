@@ -36,7 +36,8 @@ pub mod validation;
 
 use crate::format::problem::Problem;
 use crate::format::{CoordIndex, Location};
-use chrono::{DateTime, ParseError, SecondsFormat, TimeZone, Utc};
+use time::format_description::well_known::Rfc3339;
+use time::OffsetDateTime;
 
 /// Get lists of problem.
 pub fn get_unique_locations(problem: &Problem) -> Vec<Location> {
@@ -44,13 +45,16 @@ pub fn get_unique_locations(problem: &Problem) -> Vec<Location> {
 }
 
 fn format_time(time: f64) -> String {
-    Utc.timestamp(time as i64, 0).to_rfc3339_opts(SecondsFormat::Secs, true)
+    // TODO avoid using implicitly unwrap
+    OffsetDateTime::from_unix_timestamp(time as i64).map(|time| time.format(&Rfc3339).unwrap()).unwrap()
 }
 
 fn parse_time(time: &str) -> f64 {
     parse_time_safe(time).unwrap()
 }
 
-fn parse_time_safe(time: &str) -> Result<f64, ParseError> {
-    DateTime::parse_from_rfc3339(time).map(|time| time.timestamp() as f64)
+fn parse_time_safe(time: &str) -> Result<f64, String> {
+    OffsetDateTime::parse(&time, &Rfc3339)
+        .map(|time| time.unix_timestamp() as f64)
+        .map_err(|err| format!("cannot parse date: {}", err))
 }

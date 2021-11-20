@@ -8,6 +8,11 @@ All notable changes to this project will be documented in this file.
 
 * `add compatibility` property to the job definition
 
+### Changed
+
+* use variable strategy for leg insertion analysis
+* removed dependency on `chrono` in favor of `time`
+
 
 ## [v1.12.0] - 2021-11-16
 
