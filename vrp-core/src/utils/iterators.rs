@@ -64,12 +64,8 @@ impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
     type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.needed == 0 {
-            return None;
-        }
-
         loop {
-            let left = if self.size > self.processed {
+            let left = if self.needed != 0 && self.size > self.processed {
                 self.size - self.processed
             } else {
                 return None;
@@ -80,7 +76,7 @@ impl<I: Iterator> Iterator for SelectionSamplingIterator<I> {
             self.processed += 1;
             let next = self.iterator.next();
 
-            if self.random.is_hit(probability) {
+            if next.is_none() || self.random.is_hit(probability) {
                 self.needed -= 1;
                 return next;
             }
