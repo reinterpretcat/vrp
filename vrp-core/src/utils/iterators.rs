@@ -1,5 +1,9 @@
 //! This module provides some handy iterator extensions.
 
+#[cfg(test)]
+#[path = "../../tests/unit/utils/iterators_test.rs"]
+mod iterators_test;
+
 use crate::utils::Random;
 use hashbrown::HashMap;
 use std::hash::Hash;
