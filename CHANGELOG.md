@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 
 * use variable strategy for leg insertion analysis
 * removed dependency on `chrono` in favor of `time`
+* adjust route removal ruin methods to limit a bit amount of removed jobs
+* order of initial heuristics
 
 
 ## [v1.12.0] - 2021-11-16
