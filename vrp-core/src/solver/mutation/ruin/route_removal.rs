@@ -6,6 +6,8 @@ use super::*;
 use crate::construction::heuristics::{group_routes_by_proximity, InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::solver::RefinementContext;
+use crate::utils::Random;
+use rand::prelude::SliceRandom;
 
 /// A ruin strategy which removes random route from solution.
 pub struct RandomRouteRemoval {
@@ -43,7 +45,7 @@ impl Ruin for RandomRouteRemoval {
             let solution = &mut insertion_ctx.solution;
             let route_ctx = &mut solution.routes.get(route_index).unwrap().clone();
 
-            remove_route(solution, route_ctx)
+            remove_route(solution, route_ctx, random.as_ref())
         });
 
         insertion_ctx
@@ -64,7 +66,7 @@ impl Ruin for CloseRouteRemoval {
     #[allow(clippy::needless_collect)]
     fn run(&self, _refinement_ctx: &RefinementContext, mut insertion_ctx: InsertionContext) -> InsertionContext {
         if let Some(route_groups_distances) = group_routes_by_proximity(&insertion_ctx) {
-            let random = &insertion_ctx.environment.random;
+            let random = insertion_ctx.environment.random.clone();
 
             let stale_routes = insertion_ctx
                 .solution
@@ -89,7 +91,7 @@ impl Ruin for CloseRouteRemoval {
                 .collect::<Vec<_>>();
 
             routes.into_iter().for_each(|mut route_ctx| {
-                remove_route(&mut insertion_ctx.solution, &mut route_ctx);
+                remove_route(&mut insertion_ctx.solution, &mut route_ctx, random.as_ref());
             });
         }
 
@@ -97,11 +99,11 @@ impl Ruin for CloseRouteRemoval {
     }
 }
 
-fn remove_route(solution: &mut SolutionContext, route_ctx: &mut RouteContext) {
-    if solution.locked.is_empty() {
+fn remove_route(solution: &mut SolutionContext, route_ctx: &mut RouteContext, random: &(dyn Random + Send + Sync)) {
+    if can_remove_full_route(solution, route_ctx, random) {
         remove_whole_route(solution, route_ctx);
     } else {
-        remove_part_route(solution, route_ctx);
+        remove_part_route(solution, route_ctx, random);
     }
 }
 
@@ -111,21 +113,42 @@ fn remove_whole_route(solution: &mut SolutionContext, route_ctx: &RouteContext) 
     solution.required.extend(route_ctx.route.tour.jobs());
 }
 
-fn remove_part_route(solution: &mut SolutionContext, route_ctx: &mut RouteContext) {
+fn remove_part_route(
+    solution: &mut SolutionContext,
+    route_ctx: &mut RouteContext,
+    random: &(dyn Random + Send + Sync),
+) {
+    const JOB_ACTIVITY_THRESHOLD: usize = 16;
+
     let locked = solution.locked.clone();
 
-    let can_remove_full_route = route_ctx.route.tour.jobs().all(|job| !locked.contains(&job));
+    let mut jobs: Vec<Job> = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect();
 
-    if can_remove_full_route {
-        remove_whole_route(solution, route_ctx);
+    jobs.shuffle(&mut random.get_rng());
+    jobs.truncate(JOB_ACTIVITY_THRESHOLD);
+
+    jobs.iter().for_each(|job| {
+        route_ctx.route_mut().tour.remove(job);
+    });
+    solution.required.extend(jobs);
+}
+
+fn can_remove_full_route(
+    solution: &SolutionContext,
+    route_ctx: &mut RouteContext,
+    random: &(dyn Random + Send + Sync),
+) -> bool {
+    const JOB_ACTIVITY_THRESHOLD: usize = 24;
+    const ROUTES_THRESHOLD: usize = 4;
+    const REMOVAL_PROBABILITY: f64 = 0.25;
+
+    let no_locked_jobs =
+        solution.locked.is_empty() || route_ctx.route.tour.jobs().all(|job| !solution.locked.contains(&job));
+    let job_activities = route_ctx.route.tour.job_activity_count();
+
+    if job_activities > JOB_ACTIVITY_THRESHOLD || solution.routes.len() < ROUTES_THRESHOLD {
+        no_locked_jobs && random.is_hit(REMOVAL_PROBABILITY)
     } else {
-        {
-            let jobs: Vec<Job> = route_ctx.route.tour.jobs().filter(|job| !locked.contains(job)).collect();
-
-            jobs.iter().for_each(|job| {
-                route_ctx.route_mut().tour.remove(job);
-            });
-            solution.required.extend(jobs);
-        }
+        no_locked_jobs
     }
 }

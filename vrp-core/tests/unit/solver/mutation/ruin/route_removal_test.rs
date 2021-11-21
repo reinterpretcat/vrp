@@ -17,7 +17,7 @@ fn can_remove_whole_random_routes_from_context() {
     let insertion_ctx = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),
-        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![]))),
+        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, vec![1.]))),
     );
 
     let insertion_ctx = RandomRouteRemoval::new(params.0, params.1, params.2)
