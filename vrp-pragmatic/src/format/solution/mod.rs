@@ -33,7 +33,6 @@ fn map_code_reason(code: i32) -> (&'static str, &'static str) {
         }
         BREAK_CONSTRAINT_CODE => ("BREAK_CONSTRAINT", "break is not assignable"),
         LOCKING_CONSTRAINT_CODE => ("LOCKING_CONSTRAINT", "cannot be served due to relation lock"),
-        PRIORITY_CONSTRAINT_CODE => ("PRIORITY_CONSTRAINT", "cannot be served due to priority"),
         AREA_CONSTRAINT_CODE => ("AREA_CONSTRAINT", "cannot be assigned due to area constraint"),
         DISPATCH_CONSTRAINT_CODE => ("DISPATCH_CONSTRAINT", "cannot be assigned due to vehicle dispatch"),
         TOUR_SIZE_CONSTRAINT_CODE => {
@@ -58,7 +57,6 @@ fn map_reason_code(reason: &str) -> i32 {
         "SHIFT_TIME_CONSTRAINT" => DURATION_LIMIT_CONSTRAINT_CODE,
         "BREAK_CONSTRAINT" => BREAK_CONSTRAINT_CODE,
         "LOCKING_CONSTRAINT" => LOCKING_CONSTRAINT_CODE,
-        "PRIORITY_CONSTRAINT" => PRIORITY_CONSTRAINT_CODE,
         "AREA_CONSTRAINT" => AREA_CONSTRAINT_CODE,
         "DISPATCH_CONSTRAINT" => DISPATCH_CONSTRAINT_CODE,
         "TOUR_SIZE_CONSTRAINT" => TOUR_SIZE_CONSTRAINT_CODE,
