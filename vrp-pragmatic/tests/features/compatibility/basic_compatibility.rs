@@ -73,7 +73,7 @@ fn can_unassign_job_due_to_compatibility() {
     assert_eq!(
         reasons,
         vec![UnassignedJobReason {
-            code: "COMPATIBILITY_CONSTRAINT_CODE".to_string(),
+            code: "COMPATIBILITY_CONSTRAINT".to_string(),
             description: "cannot be assigned due to compatibility constraint".to_string()
         }]
     );

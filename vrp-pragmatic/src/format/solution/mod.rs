@@ -38,10 +38,10 @@ fn map_code_reason(code: i32) -> (&'static str, &'static str) {
         TOUR_SIZE_CONSTRAINT_CODE => {
             ("TOUR_SIZE_CONSTRAINT", "cannot be assigned due to tour size constraint of vehicle")
         }
-        TOUR_ORDER_CONSTRAINT_CODE => ("TOUR_ORDER_CONSTRAINT_CODE", "cannot be assigned due to tour order constraint"),
-        GROUP_CONSTRAINT_CODE => ("GROUP_CONSTRAINT_CODE", "cannot be assigned due to group constraint"),
+        TOUR_ORDER_CONSTRAINT_CODE => ("TOUR_ORDER_CONSTRAINT", "cannot be assigned due to tour order constraint"),
+        GROUP_CONSTRAINT_CODE => ("GROUP_CONSTRAINT", "cannot be assigned due to group constraint"),
         COMPATIBILITY_CONSTRAINT_CODE => {
-            ("COMPATIBILITY_CONSTRAINT_CODE", "cannot be assigned due to compatibility constraint")
+            ("COMPATIBILITY_CONSTRAINT", "cannot be assigned due to compatibility constraint")
         }
         _ => ("NO_REASON_FOUND", "unknown"),
     }
@@ -60,9 +60,9 @@ fn map_reason_code(reason: &str) -> i32 {
         "AREA_CONSTRAINT" => AREA_CONSTRAINT_CODE,
         "DISPATCH_CONSTRAINT" => DISPATCH_CONSTRAINT_CODE,
         "TOUR_SIZE_CONSTRAINT" => TOUR_SIZE_CONSTRAINT_CODE,
-        "TOUR_ORDER_CONSTRAINT_CODE" => TOUR_ORDER_CONSTRAINT_CODE,
-        "GROUP_CONSTRAINT_CODE" => GROUP_CONSTRAINT_CODE,
-        "COMPATIBILITY_CONSTRAINT_CODE" => COMPATIBILITY_CONSTRAINT_CODE,
+        "TOUR_ORDER_CONSTRAINT" => TOUR_ORDER_CONSTRAINT_CODE,
+        "GROUP_CONSTRAINT" => GROUP_CONSTRAINT_CODE,
+        "COMPATIBILITY_CONSTRAINT" => COMPATIBILITY_CONSTRAINT_CODE,
         _ => -1,
     }
 }
