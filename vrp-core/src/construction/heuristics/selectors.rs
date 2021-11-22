@@ -326,31 +326,3 @@ impl LegSelector for VariableLegSelector {
         }
     }
 }
-
-/// Samples random legs from the tour.
-pub struct RandomSampleLegSelector {
-    sample_size: usize,
-    random: Arc<dyn Random + Send + Sync>,
-}
-
-impl RandomSampleLegSelector {
-    /// Creates a new instance of `RandomSampleLegSelector`.
-    pub fn new(sample_size: usize, random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self { sample_size, random }
-    }
-}
-
-impl LegSelector for RandomSampleLegSelector {
-    fn get_legs<'a>(
-        &self,
-        route_ctx: &'a RouteContext,
-        _: &Job,
-        skip: usize,
-    ) -> Box<dyn Iterator<Item = Leg<'a>> + 'a> {
-        Box::new(SelectionSamplingIterator::new(
-            route_ctx.route.tour.legs().skip(skip),
-            self.sample_size,
-            self.random.clone(),
-        ))
-    }
-}
