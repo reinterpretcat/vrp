@@ -10,6 +10,8 @@ title = "A Vehicle Routing Problem Solver Documentation"
 [preprocessor.puml]
 
 [output.html]
+default-theme = "navy"
+git-repository-url = "https://github.com/reinterpretcat/vrp/"
 additional-css = [
     "resources/leaflet.css"
 ]
@@ -17,3 +19,7 @@ additional-js = [
     "resources/leaflet.js",
     "resources/map.js"
 ]
+
+[output.html.fold]
+enable = true
+level = 1
