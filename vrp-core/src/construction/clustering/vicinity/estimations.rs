@@ -386,11 +386,10 @@ where
             .iter()
             .flat_map(|cluster_time| {
                 place_times.iter().filter_map({
-                    let info = info.clone();
+                    let forward_duration = info.commute.forward.duration;
                     move |place_time| {
                         // NOTE travel duration to the place can be deducted from its time window requirement
-                        let place_time =
-                            TimeWindow::new(place_time.start - info.commute.forward.duration, place_time.end);
+                        let place_time = TimeWindow::new(place_time.start - forward_duration, place_time.end);
                         let overlap_time = place_time.overlapping(cluster_time);
 
                         let duration = if place_time.end < cluster_time.end {
