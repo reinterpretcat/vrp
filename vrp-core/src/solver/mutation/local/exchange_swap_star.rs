@@ -1,9 +1,13 @@
+#[cfg(test)]
+#[path = "../../../../tests/unit/solver/mutation/local/exchange_swap_star_test.rs"]
+mod exchange_swap_star_test;
+
 use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use crate::utils::map_reduce;
 use crate::utils::{compare_floats, Either};
+use crate::utils::{map_reduce, parallel_collect, Random};
 use hashbrown::HashMap;
 use std::iter::once;
 
@@ -20,6 +24,16 @@ use std::iter::once;
 pub struct ExchangeSwapStar {
     leg_selector: Box<dyn LegSelector + Send + Sync>,
     result_selector: Box<dyn ResultSelector + Send + Sync>,
+}
+
+impl ExchangeSwapStar {
+    /// Creates a new instance of `ExchangeSwapStar`.
+    pub fn new(random: Arc<dyn Random + Send + Sync>) -> Self {
+        Self {
+            leg_selector: Box::new(VariableLegSelector::new(random)),
+            result_selector: Box::new(BestResultSelector::default()),
+        }
+    }
 }
 
 impl LocalOperator for ExchangeSwapStar {
@@ -156,42 +170,41 @@ fn find_top_results(
     jobs: &[Job],
 ) -> HashMap<Job, Vec<InsertionResult>> {
     let legs_count = route_ctx.route.tour.legs().count();
-    jobs.iter()
-        .map(|job| {
-            let eval_ctx = EvaluationContext {
-                constraint: search_ctx.0.problem.constraint.as_ref(),
-                job,
-                leg_selector: search_ctx.1,
-                result_selector: search_ctx.2,
-            };
 
-            let mut results = (0..legs_count)
-                .map(InsertionPosition::Concrete)
-                .map(|position| {
-                    evaluate_job_insertion_in_route(
-                        search_ctx.0,
-                        &eval_ctx,
-                        route_ctx,
-                        position,
-                        InsertionResult::make_failure(),
-                    )
-                })
-                .collect::<Vec<_>>();
+    parallel_collect(jobs, |job| {
+        let eval_ctx = EvaluationContext {
+            constraint: search_ctx.0.problem.constraint.as_ref(),
+            job,
+            leg_selector: search_ctx.1,
+            result_selector: search_ctx.2,
+        };
 
-            results.sort_by(|left, right| match (left, right) {
-                (InsertionResult::Success(_), InsertionResult::Failure(_)) => Ordering::Less,
-                (InsertionResult::Failure(_), InsertionResult::Success(_)) => Ordering::Greater,
-                (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Ordering::Equal,
-                (InsertionResult::Success(left), InsertionResult::Success(right)) => {
-                    compare_floats(left.cost, right.cost)
-                }
-            });
+        let mut results = (0..legs_count)
+            .map(InsertionPosition::Concrete)
+            .map(|position| {
+                evaluate_job_insertion_in_route(
+                    search_ctx.0,
+                    &eval_ctx,
+                    route_ctx,
+                    position,
+                    InsertionResult::make_failure(),
+                )
+            })
+            .collect::<Vec<_>>();
 
-            results.truncate(3);
+        results.sort_by(|left, right| match (left, right) {
+            (InsertionResult::Success(_), InsertionResult::Failure(_)) => Ordering::Less,
+            (InsertionResult::Failure(_), InsertionResult::Success(_)) => Ordering::Greater,
+            (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Ordering::Equal,
+            (InsertionResult::Success(left), InsertionResult::Success(right)) => compare_floats(left.cost, right.cost),
+        });
 
-            (job.clone(), results)
-        })
-        .collect()
+        results.truncate(3);
+
+        (job.clone(), results)
+    })
+    .into_iter()
+    .collect()
 }
 
 fn choose_best_result(
@@ -199,7 +212,7 @@ fn choose_best_result(
     in_place_result: InsertionResult,
     top_results: &[InsertionResult],
 ) -> InsertionResult {
-    // TODO apply 10-11 lines
+    // TODO apply 10-11 lines from the paper
 
     let failure = InsertionResult::make_failure();
 
