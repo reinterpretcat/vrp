@@ -1,7 +1,7 @@
 //! This module contains various Local Search operators.
 
 use crate::algorithms::nsga2::Objective;
-use crate::construction::heuristics::InsertionContext;
+use crate::construction::heuristics::*;
 use crate::solver::RefinementContext;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -72,4 +72,16 @@ impl LocalOperator for CompositeLocalOperator {
 
         Some(old_result)
     }
+}
+
+/// Applies insertion success by creating a new route context from it.
+fn apply_insertion(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
+    let route_index =
+        insertion_ctx.solution.routes.iter().position(|ctx| ctx.route.actor == success.context.route.actor).unwrap();
+
+    // NOTE replace existing route context with the different
+    insertion_ctx.solution.routes[route_index] =
+        RouteContext::new_with_state(success.context.route.clone(), success.context.state.clone());
+
+    apply_insertion_success(insertion_ctx, success)
 }

@@ -2,7 +2,7 @@
 #[path = "../../../../tests/unit/solver/mutation/local/exchange_inter_route_test.rs"]
 mod exchange_inter_route_test;
 
-use crate::construction::heuristics::*;
+use super::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::{select_seed_job, LocalOperator};
 use crate::solver::RefinementContext;
@@ -182,17 +182,6 @@ fn test_job_insertion(
         InsertionResult::Failure(_) => None,
         InsertionResult::Success(success) => Some(success),
     }
-}
-
-fn apply_insertion(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
-    let route_index =
-        insertion_ctx.solution.routes.iter().position(|ctx| ctx.route.actor == success.context.route.actor).unwrap();
-
-    // NOTE replace existing route context with the different
-    insertion_ctx.solution.routes[route_index] =
-        RouteContext::new_with_state(success.context.route.clone(), success.context.state.clone());
-
-    apply_insertion_success(insertion_ctx, success)
 }
 
 fn reduce_pair_with_noise(

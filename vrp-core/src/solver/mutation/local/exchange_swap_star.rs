@@ -3,7 +3,6 @@
 mod exchange_swap_star_test;
 
 use super::*;
-use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::utils::{compare_floats, Either};
@@ -58,7 +57,6 @@ impl LocalOperator for ExchangeSwapStar {
                 let outer_route_results = find_top_results(&search_ctx, inner_route_ctx, outer_jobs.as_slice());
                 let inner_route_results = find_top_results(&search_ctx, outer_route_ctx, inner_jobs.as_slice());
 
-                // search phase
                 let job_pairs = outer_jobs
                     .iter()
                     .flat_map(|outer_job| {
@@ -67,6 +65,7 @@ impl LocalOperator for ExchangeSwapStar {
                     })
                     .collect::<Vec<_>>();
 
+                // search phase
                 let (outer_best, inner_best, _) = map_reduce(
                     job_pairs.as_slice(),
                     |&(outer_job, inner_job, delta_outer_job_cost_orig)| {
@@ -114,13 +113,7 @@ impl LocalOperator for ExchangeSwapStar {
                     },
                 );
 
-                if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) =
-                    (outer_best, inner_best)
-                {
-                    apply_insertion_success(&mut insertion_ctx, outer_success);
-                    apply_insertion_success(&mut insertion_ctx, inner_success);
-                    finalize_insertion_ctx(&mut insertion_ctx);
-                }
+                try_exchange_jobs(&mut insertion_ctx, (outer_best, inner_best));
             });
         });
 
@@ -131,6 +124,14 @@ impl LocalOperator for ExchangeSwapStar {
 /// Encapsulates common data used by search phase.
 type SearchContext<'a> =
     (&'a InsertionContext, &'a (dyn LegSelector + Send + Sync), &'a (dyn ResultSelector + Send + Sync));
+
+fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &RouteContext {
+    insertion_ctx.solution.routes.get(route_idx).expect("invalid route index")
+}
+
+fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
+    route_ctx.route.tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect()
+}
 
 /// Finds insertion cost of the existing job in the route.
 fn find_insertion_cost(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> Cost {
@@ -212,8 +213,6 @@ fn choose_best_result(
     in_place_result: InsertionResult,
     top_results: &[InsertionResult],
 ) -> InsertionResult {
-    // TODO apply 10-11 lines from the paper
-
     let failure = InsertionResult::make_failure();
 
     let (idx, result) = once(&in_place_result).chain(top_results.iter()).enumerate().fold(
@@ -253,10 +252,11 @@ fn remove_job(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -
     route_ctx
 }
 
-fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &RouteContext {
-    insertion_ctx.solution.routes.get(route_idx).expect("invalid route index")
-}
-
-fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {
-    route_ctx.route.tour.jobs().filter(|job| insertion_ctx.solution.locked.contains(job)).collect()
+fn try_exchange_jobs(insertion_ctx: &mut InsertionContext, insertion_pair: (InsertionResult, InsertionResult)) {
+    if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) = insertion_pair {
+        // TODO need to remove jobs from routes before insertion and retest it again
+        apply_insertion(insertion_ctx, outer_success);
+        apply_insertion(insertion_ctx, inner_success);
+        finalize_insertion_ctx(insertion_ctx);
+    }
 }
