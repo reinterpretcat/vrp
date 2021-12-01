@@ -77,7 +77,14 @@ mod interop {
 
     fn catch_panic<F: FnOnce() + UnwindSafe>(failure: Callback, action: F) {
         if let Err(err) = panic::catch_unwind(|| action()) {
-            let error = CString::new(format!("fatal: {:?}", err).as_bytes()).unwrap();
+            let message = err
+                .downcast_ref::<&str>()
+                .cloned()
+                .or_else(|| err.downcast_ref::<String>().map(|str| str.as_str()))
+                .map(|msg| format!("panic: '{}'", msg))
+                .unwrap_or_else(|| "panic with unknown type".to_string());
+
+            let error = CString::new(message.as_bytes()).unwrap();
             failure(error.as_ptr());
         }
     }
@@ -227,11 +234,12 @@ mod interop {
         }
 
         #[test]
-        fn can_catch_panic() {
-            extern "C" fn callback(_: *const c_char) {}
-            catch_panic(callback, || {
-                panic!("invaders detected!");
-            })
+        fn can_catch_panic_with_string_literal() {
+            extern "C" fn callback(msg: *const c_char) {
+                assert_eq!(to_string(msg), "panic: 'invaders detected!'");
+            }
+            catch_panic(callback, || panic!("invaders detected!"));
+            catch_panic(callback, || panic!("invaders {}!", "detected"));
         }
 
         #[test]
