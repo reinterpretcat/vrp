@@ -139,6 +139,14 @@ impl InsertionResult {
             }
         }
     }
+
+    /// Returns insertion success as optional
+    pub fn into_success(self) -> Option<InsertionSuccess> {
+        match self {
+            Self::Success(success) => Some(success),
+            Self::Failure(_) => None,
+        }
+    }
 }
 
 pub(crate) fn prepare_insertion_ctx(insertion_ctx: &mut InsertionContext) {

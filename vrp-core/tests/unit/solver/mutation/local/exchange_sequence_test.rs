@@ -1,62 +1,10 @@
 use super::*;
-use crate::construction::constraints::*;
 use crate::helpers::models::domain::*;
 use crate::helpers::solver::*;
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
-use crate::models::common::IdDimension;
-use crate::models::solution::Activity;
-use crate::models::Problem;
-use crate::utils::{as_mut, Environment};
+use crate::utils::Environment;
 use std::sync::Arc;
-
-struct LegConstraint {
-    ignore: String,
-    disallowed_pairs: Vec<(String, String)>,
-}
-
-impl HardActivityConstraint for LegConstraint {
-    fn evaluate_activity(
-        &self,
-        _: &RouteContext,
-        activity_ctx: &ActivityContext,
-    ) -> Option<ActivityConstraintViolation> {
-        let retrieve_job_id = |activity: Option<&Activity>| {
-            activity.as_ref().and_then(|next| {
-                next.retrieve_job().and_then(|job| job.dimens().get_id().cloned()).or_else(|| Some(self.ignore.clone()))
-            })
-        };
-
-        retrieve_job_id(Some(activity_ctx.prev)).zip(retrieve_job_id(activity_ctx.next)).and_then(|(prev, next)| {
-            let is_disallowed = self.disallowed_pairs.iter().any(|(p_prev, p_next)| {
-                let is_left_match = p_prev == &prev || p_prev == &self.ignore;
-                let is_right_match = p_next == &next || p_next == &self.ignore;
-
-                is_left_match && is_right_match
-            });
-
-            if is_disallowed {
-                Some(ActivityConstraintViolation { code: 7, stopped: false })
-            } else {
-                None
-            }
-        })
-    }
-}
-
-impl LegConstraint {
-    fn new(disallowed_pairs: Vec<(String, String)>, ignore: String) -> Self {
-        Self { disallowed_pairs, ignore }
-    }
-}
-
-fn add_leg_constraint(problem: &mut Problem, disallowed_pairs: Vec<(&str, &str)>) {
-    let disallowed_pairs =
-        disallowed_pairs.into_iter().map(|(prev, next)| (prev.to_string(), next.to_string())).collect();
-    unsafe { as_mut(problem.constraint.as_ref()) }.add_constraint(&ConstraintVariant::HardActivity(Arc::new(
-        LegConstraint::new(disallowed_pairs, "cX".to_string()),
-    )));
-}
 
 parameterized_test! { can_extract_jobs, (route_idx, start_idx, sequence_size, locked_ids, expected_route_ids, expected_extracted_ids), {
     can_extract_jobs_impl(route_idx, start_idx, sequence_size, locked_ids, expected_route_ids, expected_extracted_ids);

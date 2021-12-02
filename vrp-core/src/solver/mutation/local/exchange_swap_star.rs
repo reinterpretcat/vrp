@@ -46,74 +46,12 @@ impl LocalOperator for ExchangeSwapStar {
 
         (0..route_count).for_each(|outer_idx| {
             (0..route_count).filter(|&inner_idx| outer_idx != inner_idx).for_each(|inner_idx| {
-                let search_ctx = (&insertion_ctx, self.leg_selector.as_ref(), self.result_selector.as_ref());
-                let outer_route_ctx = get_route_by_idx(&insertion_ctx, outer_idx);
-                let inner_route_ctx = get_route_by_idx(&insertion_ctx, inner_idx);
-
-                // preprocessing phase
-                let outer_jobs = get_movable_jobs(&insertion_ctx, outer_route_ctx);
-                let inner_jobs = get_movable_jobs(&insertion_ctx, inner_route_ctx);
-
-                let outer_route_results = find_top_results(&search_ctx, inner_route_ctx, outer_jobs.as_slice());
-                let inner_route_results = find_top_results(&search_ctx, outer_route_ctx, inner_jobs.as_slice());
-
-                let job_pairs = outer_jobs
-                    .iter()
-                    .flat_map(|outer_job| {
-                        let delta_outer_job_cost_orig = find_insertion_cost(&search_ctx, outer_job, outer_route_ctx);
-                        inner_jobs.iter().map(move |inner_job| (outer_job, inner_job, delta_outer_job_cost_orig))
-                    })
-                    .collect::<Vec<_>>();
-
-                // search phase
-                let (outer_best, inner_best, _) = map_reduce(
-                    job_pairs.as_slice(),
-                    |&(outer_job, inner_job, delta_outer_job_cost_orig)| {
-                        let delta_inner_job_cost = find_insertion_cost(&search_ctx, inner_job, inner_route_ctx);
-
-                        let delta_outer_job_insertion_plan =
-                            find_in_place_result(&search_ctx, outer_job, inner_job, inner_route_ctx);
-                        let delta_inner_job_insertion_plan =
-                            find_in_place_result(&search_ctx, inner_job, outer_job, outer_route_ctx);
-
-                        let outer_result = choose_best_result(
-                            &search_ctx,
-                            delta_outer_job_insertion_plan,
-                            outer_route_results.get(outer_job).unwrap().as_slice(),
-                        );
-
-                        let inner_result = choose_best_result(
-                            &search_ctx,
-                            delta_inner_job_insertion_plan,
-                            inner_route_results.get(inner_job).unwrap().as_slice(),
-                        );
-
-                        let delta_cost = match (&outer_result, &inner_result) {
-                            (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => Some(
-                                outer_success.cost + inner_success.cost
-                                    - delta_outer_job_cost_orig
-                                    - delta_inner_job_cost,
-                            ),
-                            _ => None,
-                        };
-
-                        (outer_result, inner_result, delta_cost)
-                    },
-                    || (InsertionResult::make_failure(), InsertionResult::make_failure(), None),
-                    |left, right| match (&left, &right) {
-                        ((_, _, Some(left_cost)), (_, _, Some(right_cost))) => {
-                            if *left_cost < *right_cost {
-                                left
-                            } else {
-                                right
-                            }
-                        }
-                        ((_, _, Some(_)), _) => left,
-                        _ => right,
-                    },
-                );
-
-                try_exchange_jobs(&mut insertion_ctx, (outer_best, inner_best));
+                try_exchange_jobs_in_routes(
+                    &mut insertion_ctx,
+                    (outer_idx, inner_idx),
+                    self.leg_selector.as_ref(),
+                    self.result_selector.as_ref(),
+                )
             });
         });
 
@@ -133,11 +71,20 @@ fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) 
     route_ctx.route.tour.jobs().filter(|job| !insertion_ctx.solution.locked.contains(job)).collect()
 }
 
+fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> EvaluationContext<'a> {
+    EvaluationContext {
+        constraint: search_ctx.0.problem.constraint.as_ref(),
+        job,
+        leg_selector: search_ctx.1,
+        result_selector: search_ctx.2,
+    }
+}
+
 /// Finds insertion cost of the existing job in the route.
 fn find_insertion_cost(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> Cost {
     let original_costs = route_ctx.get_route_cost();
 
-    let route_ctx = remove_job(search_ctx, job, route_ctx);
+    let route_ctx = remove_job_with_copy(search_ctx, job, route_ctx);
 
     original_costs - route_ctx.get_route_cost()
 }
@@ -153,14 +100,9 @@ fn find_in_place_result(
     let insertion_index = route_ctx.route.tour.index(extract_job).expect("cannot find job in route");
     let position = InsertionPosition::Concrete(insertion_index);
 
-    let route_ctx = remove_job(search_ctx, extract_job, route_ctx);
+    let route_ctx = remove_job_with_copy(search_ctx, extract_job, route_ctx);
 
-    let eval_ctx = EvaluationContext {
-        constraint: search_ctx.0.problem.constraint.as_ref(),
-        job: insert_job,
-        leg_selector: search_ctx.1,
-        result_selector: search_ctx.2,
-    };
+    let eval_ctx = get_evaluation_context(search_ctx, insert_job);
 
     evaluate_job_insertion_in_route(search_ctx.0, &eval_ctx, &route_ctx, position, InsertionResult::make_failure())
 }
@@ -173,12 +115,7 @@ fn find_top_results(
     let legs_count = route_ctx.route.tour.legs().count();
 
     parallel_collect(jobs, |job| {
-        let eval_ctx = EvaluationContext {
-            constraint: search_ctx.0.problem.constraint.as_ref(),
-            job,
-            leg_selector: search_ctx.1,
-            result_selector: search_ctx.2,
-        };
+        let eval_ctx = get_evaluation_context(search_ctx, job);
 
         let mut results = (0..legs_count)
             .map(InsertionPosition::Concrete)
@@ -244,7 +181,7 @@ fn choose_best_result(
     }
 }
 
-fn remove_job(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> RouteContext {
+fn remove_job_with_copy(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> RouteContext {
     let mut route_ctx = route_ctx.deep_copy();
     route_ctx.route_mut().tour.remove(job);
     search_ctx.0.problem.constraint.accept_route_state(&mut route_ctx);
@@ -252,11 +189,121 @@ fn remove_job(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -
     route_ctx
 }
 
-fn try_exchange_jobs(insertion_ctx: &mut InsertionContext, insertion_pair: (InsertionResult, InsertionResult)) {
+/// Tries to exchange jobs between two routes.
+fn try_exchange_jobs_in_routes(
+    insertion_ctx: &mut InsertionContext,
+    route_pair: (usize, usize),
+    leg_selector: &(dyn LegSelector + Send + Sync),
+    result_selector: &(dyn ResultSelector + Send + Sync),
+) {
+    let search_ctx: SearchContext = (insertion_ctx, leg_selector, result_selector);
+    let (outer_idx, inner_idx) = route_pair;
+
+    let outer_route_ctx = get_route_by_idx(insertion_ctx, outer_idx);
+    let inner_route_ctx = get_route_by_idx(insertion_ctx, inner_idx);
+
+    // preprocessing phase
+    let outer_jobs = get_movable_jobs(insertion_ctx, outer_route_ctx);
+    let inner_jobs = get_movable_jobs(insertion_ctx, inner_route_ctx);
+
+    let outer_top_results = find_top_results(&search_ctx, inner_route_ctx, outer_jobs.as_slice());
+    let inner_top_results = find_top_results(&search_ctx, outer_route_ctx, inner_jobs.as_slice());
+
+    let job_pairs = outer_jobs
+        .iter()
+        .flat_map(|outer_job| {
+            let delta_outer_job_cost_orig = find_insertion_cost(&search_ctx, outer_job, outer_route_ctx);
+            inner_jobs.iter().map(move |inner_job| (outer_job, inner_job, delta_outer_job_cost_orig))
+        })
+        .collect::<Vec<_>>();
+
+    // search phase
+    let (outer_best, inner_best, _) = map_reduce(
+        job_pairs.as_slice(),
+        |&(outer_job, inner_job, delta_outer_job_cost_orig)| {
+            let delta_inner_job_cost = find_insertion_cost(&search_ctx, inner_job, inner_route_ctx);
+
+            let outer_in_place_result = find_in_place_result(&search_ctx, outer_job, inner_job, inner_route_ctx);
+            let inner_in_place_result = find_in_place_result(&search_ctx, inner_job, outer_job, outer_route_ctx);
+
+            let outer_result = choose_best_result(
+                &search_ctx,
+                outer_in_place_result,
+                outer_top_results.get(outer_job).unwrap().as_slice(),
+            );
+
+            let inner_result = choose_best_result(
+                &search_ctx,
+                inner_in_place_result,
+                inner_top_results.get(inner_job).unwrap().as_slice(),
+            );
+
+            let delta_cost = match (&outer_result, &inner_result) {
+                (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => {
+                    Some(outer_success.cost + inner_success.cost - delta_outer_job_cost_orig - delta_inner_job_cost)
+                }
+                _ => None,
+            };
+
+            (outer_result, inner_result, delta_cost)
+        },
+        || (InsertionResult::make_failure(), InsertionResult::make_failure(), None),
+        |left, right| match (&left, &right) {
+            ((_, _, Some(left_cost)), (_, _, Some(right_cost))) => {
+                if *left_cost < *right_cost {
+                    left
+                } else {
+                    right
+                }
+            }
+            ((_, _, Some(_)), _) => left,
+            _ => right,
+        },
+    );
+
+    try_exchange_jobs(insertion_ctx, (outer_best, inner_best), leg_selector, result_selector);
+}
+
+/// Tries to apply insertion results to target insertion context.
+fn try_exchange_jobs(
+    insertion_ctx: &mut InsertionContext,
+    insertion_pair: (InsertionResult, InsertionResult),
+    leg_selector: &(dyn LegSelector + Send + Sync),
+    result_selector: &(dyn ResultSelector + Send + Sync),
+) {
     if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) = insertion_pair {
-        // TODO need to remove jobs from routes before insertion and retest it again
-        apply_insertion(insertion_ctx, outer_success);
-        apply_insertion(insertion_ctx, inner_success);
-        finalize_insertion_ctx(insertion_ctx);
+        let constraint = insertion_ctx.problem.constraint.clone();
+
+        let outer_job = outer_success.job.clone();
+        let inner_job = inner_success.job.clone();
+
+        // remove jobs from results and revaluate them again
+        let mut insertion_results = once((outer_success, inner_job))
+            .chain(once((inner_success, outer_job)))
+            .map(|(mut success, job)| {
+                success.context = success.context.deep_copy();
+
+                let removed_idx = success.context.route.tour.index(&job).expect("cannot find job");
+                success.context.route_mut().tour.remove(&job);
+                constraint.accept_route_state(&mut success.context);
+
+                let position = success.activities.first().unwrap().1;
+                let position = if position < removed_idx || position == 0 { position } else { position - 1 };
+                let position = InsertionPosition::Concrete(position);
+
+                let search_ctx: SearchContext = (insertion_ctx, leg_selector, result_selector);
+                let eval_ctx = get_evaluation_context(&search_ctx, &success.job);
+                let alternative = InsertionResult::make_failure();
+
+                evaluate_job_insertion_in_route(insertion_ctx, &eval_ctx, &success.context, position, alternative)
+            })
+            .filter_map(|result| result.into_success())
+            .collect::<Vec<_>>();
+
+        if insertion_results.len() == 2 {
+            apply_insertion(insertion_ctx, insertion_results.pop().unwrap());
+            apply_insertion(insertion_ctx, insertion_results.pop().unwrap());
+            finalize_insertion_ctx(insertion_ctx);
+        }
     }
 }
