@@ -177,6 +177,10 @@ impl DynamicSelective {
                 Arc::new(InfeasibleSearch::new(static_selective, 4, (0.05, 0.2), (0.05, 0.33))),
                 "infeasible_search".to_string(),
             ),
+            (
+                Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(random.clone())))),
+                "local_swap_star".to_string(),
+            ),
         ];
 
         recreates

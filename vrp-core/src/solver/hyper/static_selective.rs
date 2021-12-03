@@ -150,9 +150,12 @@ impl StaticSelective {
         ]))
     }
 
-    fn create_default_local_search(_environment: Arc<Environment>) -> Arc<dyn Mutation + Send + Sync> {
+    fn create_default_local_search(environment: Arc<Environment>) -> Arc<dyn Mutation + Send + Sync> {
+        let random = environment.random.clone();
+
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
             vec![
+                (Arc::new(ExchangeSwapStar::new(random)), 200),
                 (Arc::new(ExchangeInterRouteBest::default()), 100),
                 (Arc::new(ExchangeSequence::default()), 100),
                 (Arc::new(ExchangeInterRouteRandom::default()), 30),
