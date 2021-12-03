@@ -1,8 +1,8 @@
 use super::*;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
-use crate::models::common::IdDimension;
-use crate::models::solution::Activity;
+use crate::models::common::{IdDimension, Schedule};
+use crate::models::solution::{Activity, Place};
 use crate::utils::as_mut;
 use hashbrown::HashMap;
 
@@ -55,6 +55,52 @@ pub fn get_jobs_by_ids(insertion_ctx: &InsertionContext, job_ids: &[&str]) -> Ve
     let (_, jobs): (Vec<_>, Vec<_>) = ids.into_iter().unzip();
 
     jobs
+}
+
+/// Gets all jobs with their id in a map.
+pub fn get_jobs_map_by_ids(insertion_ctx: &InsertionContext) -> HashMap<String, Job> {
+    insertion_ctx
+        .problem
+        .jobs
+        .all()
+        .map(|job| {
+            let job_id = job.dimens().get_id().unwrap().clone();
+            (job_id, job)
+        })
+        .collect()
+}
+
+/// Rearranges jobs in routes to match specified job order.
+pub fn rearrange_jobs_in_routes(insertion_ctx: &mut InsertionContext, job_order: &[Vec<&str>]) {
+    assert_eq!(insertion_ctx.solution.routes.len(), job_order.len());
+    let jobs_map = get_jobs_map_by_ids(insertion_ctx);
+
+    insertion_ctx.solution.routes.iter_mut().zip(job_order.iter()).for_each(|(route_ctx, order)| {
+        let jobs = route_ctx.route.tour.jobs().collect::<Vec<_>>();
+        jobs.iter().for_each(|job| {
+            route_ctx.route_mut().tour.remove(job);
+        });
+        assert_eq!(route_ctx.route.tour.job_count(), 0);
+
+        order.iter().for_each(|job_id| {
+            let job = jobs_map.get(&job_id.to_string()).unwrap().to_single().clone();
+            let place = job.places.first().unwrap();
+            route_ctx.route_mut().tour.insert_last(Activity {
+                place: Place {
+                    location: place.location.unwrap(),
+                    duration: place.duration,
+                    time: place.times.first().unwrap().to_time_window(0.),
+                },
+                schedule: Schedule::new(0., 0.),
+                job: Some(job),
+                commute: None,
+            });
+        });
+
+        insertion_ctx.problem.constraint.accept_route_state(route_ctx);
+    });
+
+    insertion_ctx.problem.constraint.accept_solution_state(&mut insertion_ctx.solution);
 }
 
 /// Adds hard activity constraint on specific route legs.

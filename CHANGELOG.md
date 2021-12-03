@@ -6,7 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-* `add compatibility` property to the job definition
+* add `compatibility` property to the job definition
+* add new local search operator based on SWAP* algorithm
 
 ### Changed
 

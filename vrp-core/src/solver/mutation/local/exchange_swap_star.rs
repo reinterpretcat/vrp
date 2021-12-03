@@ -93,12 +93,12 @@ fn find_insertion_cost(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteC
 /// NOTE hard constraints are NOT evaluated.
 fn find_in_place_result(
     search_ctx: &SearchContext,
+    route_ctx: &RouteContext,
     insert_job: &Job,
     extract_job: &Job,
-    route_ctx: &RouteContext,
 ) -> InsertionResult {
     let insertion_index = route_ctx.route.tour.index(extract_job).expect("cannot find job in route");
-    let position = InsertionPosition::Concrete(insertion_index);
+    let position = InsertionPosition::Concrete(insertion_index - 1);
 
     let route_ctx = remove_job_with_copy(search_ctx, extract_job, route_ctx);
 
@@ -152,9 +152,25 @@ fn choose_best_result(
 ) -> InsertionResult {
     let failure = InsertionResult::make_failure();
 
-    let (idx, result) = once(&in_place_result).chain(top_results.iter()).enumerate().fold(
-        (0, &failure),
-        |(acc_idx, acc_result), (idx, result)| match (acc_result, result) {
+    let in_place_idx = in_place_result
+        .as_success()
+        .and_then(|success| success.activities.first())
+        .map(|(_, idx)| *idx)
+        .unwrap_or(usize::MAX - 1);
+
+    let (idx, result) = once(&in_place_result)
+        .chain(top_results.iter().filter(|result| {
+            // NOTE exclude results near in place result
+            result.as_success().map_or(false, |success| {
+                success
+                    .activities
+                    .first()
+                    .map(|(_, idx)| *idx != in_place_idx && *idx != in_place_idx + 1)
+                    .unwrap_or(false)
+            })
+        }))
+        .enumerate()
+        .fold((0, &failure), |(acc_idx, acc_result), (idx, result)| match (acc_result, result) {
             (InsertionResult::Success(acc_success), InsertionResult::Success(success)) => {
                 match search_ctx.2.select_cost(&acc_success.context, acc_success.cost, success.cost) {
                     Either::Left => (acc_idx, acc_result),
@@ -163,8 +179,7 @@ fn choose_best_result(
             }
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => (acc_idx, acc_result),
             _ => (idx, result),
-        },
-    );
+        });
 
     if idx == 0 {
         in_place_result
@@ -174,7 +189,7 @@ fn choose_best_result(
                 cost: success.cost,
                 job: success.job.clone(),
                 activities: success.activities.iter().map(|(activity, idx)| (activity.deep_copy(), *idx)).collect(),
-                context: success.context.clone(),
+                context: success.context.deep_copy(),
             }),
             InsertionResult::Failure(_) => InsertionResult::make_failure(),
         }
@@ -212,19 +227,19 @@ fn try_exchange_jobs_in_routes(
     let job_pairs = outer_jobs
         .iter()
         .flat_map(|outer_job| {
-            let delta_outer_job_cost_orig = find_insertion_cost(&search_ctx, outer_job, outer_route_ctx);
-            inner_jobs.iter().map(move |inner_job| (outer_job, inner_job, delta_outer_job_cost_orig))
+            let delta_outer_job_cost = find_insertion_cost(&search_ctx, outer_job, outer_route_ctx);
+            inner_jobs.iter().map(move |inner_job| (outer_job, inner_job, delta_outer_job_cost))
         })
         .collect::<Vec<_>>();
 
     // search phase
     let (outer_best, inner_best, _) = map_reduce(
         job_pairs.as_slice(),
-        |&(outer_job, inner_job, delta_outer_job_cost_orig)| {
+        |&(outer_job, inner_job, delta_outer_job_cost)| {
             let delta_inner_job_cost = find_insertion_cost(&search_ctx, inner_job, inner_route_ctx);
 
-            let outer_in_place_result = find_in_place_result(&search_ctx, outer_job, inner_job, inner_route_ctx);
-            let inner_in_place_result = find_in_place_result(&search_ctx, inner_job, outer_job, outer_route_ctx);
+            let outer_in_place_result = find_in_place_result(&search_ctx, inner_route_ctx, outer_job, inner_job);
+            let inner_in_place_result = find_in_place_result(&search_ctx, outer_route_ctx, inner_job, outer_job);
 
             let outer_result = choose_best_result(
                 &search_ctx,
@@ -240,23 +255,16 @@ fn try_exchange_jobs_in_routes(
 
             let delta_cost = match (&outer_result, &inner_result) {
                 (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => {
-                    Some(outer_success.cost + inner_success.cost - delta_outer_job_cost_orig - delta_inner_job_cost)
+                    outer_success.cost + inner_success.cost - delta_outer_job_cost - delta_inner_job_cost
                 }
-                _ => None,
+                _ => 0.,
             };
 
             (outer_result, inner_result, delta_cost)
         },
-        || (InsertionResult::make_failure(), InsertionResult::make_failure(), None),
-        |left, right| match (&left, &right) {
-            ((_, _, Some(left_cost)), (_, _, Some(right_cost))) => {
-                if *left_cost < *right_cost {
-                    left
-                } else {
-                    right
-                }
-            }
-            ((_, _, Some(_)), _) => left,
+        || (InsertionResult::make_failure(), InsertionResult::make_failure(), 0.),
+        |left, right| match compare_floats(left.2, right.2) {
+            Ordering::Less => left,
             _ => right,
         },
     );
@@ -283,7 +291,9 @@ fn try_exchange_jobs(
             .map(|(mut success, job)| {
                 success.context = success.context.deep_copy();
 
-                let removed_idx = success.context.route.tour.index(&job).expect("cannot find job");
+                // NOTE job can be already removed in in-place case
+                let removed_idx = success.context.route.tour.index(&job).unwrap_or(usize::MAX);
+
                 success.context.route_mut().tour.remove(&job);
                 constraint.accept_route_state(&mut success.context);
 

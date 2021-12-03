@@ -140,7 +140,15 @@ impl InsertionResult {
         }
     }
 
-    /// Returns insertion success as optional
+    /// Returns insertion result as success.
+    pub fn as_success(&self) -> Option<&InsertionSuccess> {
+        match self {
+            Self::Success(success) => Some(success),
+            Self::Failure(_) => None,
+        }
+    }
+
+    /// Returns insertion result as success.
     pub fn into_success(self) -> Option<InsertionSuccess> {
         match self {
             Self::Success(success) => Some(success),
