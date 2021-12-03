@@ -5,10 +5,12 @@ mod exchange_swap_star_test;
 use super::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use crate::utils::{compare_floats, Either};
+use crate::utils::{compare_floats, Either, SelectionSamplingIterator};
 use crate::utils::{map_reduce, parallel_collect, Random};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
+use rand::seq::SliceRandom;
 use std::iter::once;
+use std::sync::RwLock;
 
 /// Implements a SWAP* algorithm described in "Hybrid Genetic Search for the CVRP:
 /// Open-Source Implementation and SWAP* Neighborhood" by Thibaut Vidal.
@@ -41,18 +43,17 @@ impl LocalOperator for ExchangeSwapStar {
         _refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
-        let mut insertion_ctx = insertion_ctx.deep_copy();
-        let route_count = insertion_ctx.solution.routes.len();
+        const ROUTE_PAIRS_THRESHOLD: usize = 16;
 
-        (0..route_count).for_each(|outer_idx| {
-            (0..route_count).filter(|&inner_idx| outer_idx != inner_idx).for_each(|inner_idx| {
-                try_exchange_jobs_in_routes(
-                    &mut insertion_ctx,
-                    (outer_idx, inner_idx),
-                    self.leg_selector.as_ref(),
-                    self.result_selector.as_ref(),
-                )
-            });
+        let mut insertion_ctx = insertion_ctx.deep_copy();
+
+        create_route_pairs(&insertion_ctx, ROUTE_PAIRS_THRESHOLD).into_iter().for_each(|route_pair| {
+            try_exchange_jobs_in_routes(
+                &mut insertion_ctx,
+                route_pair,
+                self.leg_selector.as_ref(),
+                self.result_selector.as_ref(),
+            )
         });
 
         Some(insertion_ctx)
@@ -78,6 +79,53 @@ fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> Ev
         leg_selector: search_ctx.1,
         result_selector: search_ctx.2,
     }
+}
+
+/// Creates route pairs to exchange jobs.
+fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: usize) -> Vec<(usize, usize)> {
+    let random = insertion_ctx.environment.random.clone();
+
+    if random.is_hit(0.1) { None } else { group_routes_by_proximity(insertion_ctx) }
+        .map(|route_groups_distances| {
+            let used_indices = RwLock::new(HashSet::<(usize, usize)>::new());
+            let distances = route_groups_distances
+                .into_iter()
+                .enumerate()
+                .flat_map(|(outer_idx, mut route_group_distance)| {
+                    let shuffle_amount = (route_group_distance.len() as f64 * 0.25) as usize;
+                    route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_amount);
+                    route_group_distance
+                        .iter()
+                        .cloned()
+                        .filter(|(inner_idx, _)| {
+                            let used_indices = used_indices.read().unwrap();
+                            !used_indices.contains(&(outer_idx, *inner_idx))
+                                && !used_indices.contains(&(*inner_idx, outer_idx))
+                        })
+                        .map(|(inner_idx, _)| {
+                            let mut used_indices = used_indices.write().unwrap();
+                            used_indices.insert((outer_idx, inner_idx));
+                            used_indices.insert((inner_idx, outer_idx));
+                            inner_idx
+                        })
+                        .next()
+                        .map(|inner_idx| (outer_idx, inner_idx))
+                })
+                .collect::<Vec<_>>();
+            SelectionSamplingIterator::new(distances.into_iter(), route_pairs_threshold, random.clone()).collect()
+        })
+        .unwrap_or_else(|| {
+            let route_count = insertion_ctx.solution.routes.len();
+            // NOTE this is needed to have size hint properly set
+            let all_route_pairs = (0..route_count)
+                .flat_map(move |outer_idx| {
+                    (0..route_count)
+                        .filter(move |&inner_idx| outer_idx != inner_idx)
+                        .map(move |inner_idx| (outer_idx, inner_idx))
+                })
+                .collect::<Vec<_>>();
+            SelectionSamplingIterator::new(all_route_pairs.into_iter(), route_pairs_threshold, random.clone()).collect()
+        })
 }
 
 /// Finds insertion cost of the existing job in the route.

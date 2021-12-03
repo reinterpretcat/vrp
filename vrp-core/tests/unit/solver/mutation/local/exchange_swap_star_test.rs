@@ -2,6 +2,8 @@ use super::*;
 use crate::helpers::models::domain::get_customer_ids_from_routes;
 use crate::helpers::models::problem::get_vehicle_id;
 use crate::helpers::solver::*;
+use crate::helpers::utils::create_test_environment_with_random;
+use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::{Schedule, TimeWindow};
 use crate::models::solution::*;
 use crate::utils::Environment;
@@ -69,7 +71,7 @@ can_use_exchange_swap_star! {
 
 fn can_use_exchange_swap_star_impl(jobs_order: Vec<Vec<&str>>, locked_ids: Vec<&str>, expected: Vec<Vec<&str>>) {
     let matrix = (3, 3);
-    let environment = Arc::new(Environment::default());
+    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![1], vec![0.; 9])));
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
     let mut insertion_ctx = promote_to_locked(
         InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone()),
@@ -229,4 +231,29 @@ fn can_find_top_results_impl(job_id: &str, disallowed_pairs: Vec<(&str, &str)>, 
         .collect::<Vec<_>>();
 
     assert_eq!(results, expected);
+}
+
+parameterized_test! { can_create_route_pairs, (route_pairs_threshold, is_proximity, expected_length), {
+    can_create_route_pairs_impl(route_pairs_threshold, is_proximity, expected_length);
+}}
+
+can_create_route_pairs! {
+    case_01: (9, true, 3),
+    case_02: (9, false, 6),
+
+    case_03: (2, true, 2),
+    case_04: (4, false, 4),
+}
+
+fn can_create_route_pairs_impl(route_pairs_threshold: usize, is_proximity: bool, expected_length: usize) {
+    let reals =
+        once(if is_proximity { 1 } else { 0 }).chain(vec![0; 9].into_iter()).map(|value| value as f64).collect();
+    let matrix = (3, 3);
+    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], reals)));
+    let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, true);
+    let insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment.clone());
+
+    let pairs = create_route_pairs(&insertion_ctx, route_pairs_threshold);
+
+    assert_eq!(pairs.len(), expected_length);
 }
