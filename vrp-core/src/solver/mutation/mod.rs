@@ -8,6 +8,7 @@
 
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::RefinementContext;
+use std::sync::Arc;
 
 mod local;
 pub use self::local::*;
@@ -37,4 +38,25 @@ pub use self::ruin_recreate::RuinAndRecreate;
 pub trait Mutation {
     /// Mutates passed insertion context.
     fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext;
+}
+
+/// Provides the way to pick one mutation from the group of mutation methods.
+pub struct WeightedMutation {
+    mutations: Vec<Arc<dyn Mutation + Send + Sync>>,
+    weights: Vec<usize>,
+}
+
+impl WeightedMutation {
+    /// Creates a new instance of `WeightedMutation`.
+    pub fn new(mutations: Vec<Arc<dyn Mutation + Send + Sync>>, weights: Vec<usize>) -> Self {
+        Self { mutations, weights }
+    }
+}
+
+impl Mutation for WeightedMutation {
+    fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
+        let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
+
+        self.mutations[index].mutate(refinement_ctx, insertion_ctx)
+    }
 }

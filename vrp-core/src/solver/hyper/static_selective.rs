@@ -41,17 +41,7 @@ impl StaticSelective {
     /// Creates an instance of `StaticSelective` with default parameters.
     pub fn new_with_defaults(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
         let default_mutation = Self::create_default_mutation(problem, environment.clone());
-        let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
-            vec![
-                (Arc::new(ExchangeInterRouteBest::default()), 100),
-                (Arc::new(ExchangeInterRouteRandom::default()), 30),
-                (Arc::new(ExchangeIntraRouteRandom::default()), 30),
-                (Arc::new(ExchangeSequence::default()), 100),
-                (Arc::new(RescheduleDeparture::default()), 20),
-            ],
-            1,
-            2,
-        ))));
+        let local_search = Self::create_default_local_search(environment.clone());
 
         Self::new(vec![
             (
@@ -134,12 +124,21 @@ impl StaticSelective {
             (vec![(Arc::new(AdjustedStringRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 100),
             (vec![(Arc::new(NeighbourRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
             (vec![(Arc::new(WorstJobRemoval::default()), 1.), (random_ruin.clone(), 0.1)], 10),
-            (vec![(Arc::new(ClusterRemoval::new_with_defaults(problem, environment)), 1.), (random_ruin, 0.1)], 5),
+            (
+                vec![
+                    (Arc::new(ClusterRemoval::new_with_defaults(problem, environment.clone())), 1.),
+                    (random_ruin, 0.1),
+                ],
+                5,
+            ),
             (vec![(close_route, 1.), (random_job.clone(), 0.1)], 2),
             (vec![(random_route, 1.), (random_job, 0.1)], 1),
         ]));
 
-        Arc::new(RuinAndRecreate::new(ruin, recreate))
+        Arc::new(WeightedMutation::new(
+            vec![Arc::new(RuinAndRecreate::new(ruin, recreate)), Self::create_default_local_search(environment)],
+            vec![100, 10],
+        ))
     }
 
     /// Creates default random ruin method.
@@ -149,6 +148,20 @@ impl StaticSelective {
             (vec![(Arc::new(RandomRouteRemoval::default()), 1.)], 10),
             (vec![(Arc::new(RandomJobRemoval::new(RuinLimits::default())), 1.)], 2),
         ]))
+    }
+
+    fn create_default_local_search(_environment: Arc<Environment>) -> Arc<dyn Mutation + Send + Sync> {
+        Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
+            vec![
+                (Arc::new(ExchangeInterRouteBest::default()), 100),
+                (Arc::new(ExchangeSequence::default()), 100),
+                (Arc::new(ExchangeInterRouteRandom::default()), 30),
+                (Arc::new(ExchangeIntraRouteRandom::default()), 30),
+                (Arc::new(RescheduleDeparture::default()), 20),
+            ],
+            1,
+            2,
+        ))))
     }
 }
 
