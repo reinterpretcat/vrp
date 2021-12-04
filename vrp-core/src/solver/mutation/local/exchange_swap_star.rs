@@ -82,6 +82,7 @@ fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> Ev
 }
 
 /// Creates route pairs to exchange jobs.
+#[allow(clippy::needless_collect)] // NOTE enforce size hint to be non-zero
 fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: usize) -> Vec<(usize, usize)> {
     let random = insertion_ctx.environment.random.clone();
 
