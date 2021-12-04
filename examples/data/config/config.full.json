@@ -102,6 +102,10 @@
         },
         "operators": [
           {
+            "weight": 200,
+            "type": "swap-star"
+          },
+          {
             "weight": 100,
             "type": "inter-route-best",
             "noise": {

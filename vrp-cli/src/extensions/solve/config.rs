@@ -313,6 +313,9 @@ pub enum RecreateMethod {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum LocalOperatorType {
+    #[serde(rename(deserialize = "swap-star"))]
+    SwapStar { weight: usize },
+
     #[serde(rename(deserialize = "inter-route-best"))]
     InterRouteBest { weight: usize, noise: NoiseConfig },
 
@@ -654,7 +657,7 @@ fn create_mutation(
             )
         }
         MutationType::LocalSearch { probability, times, operators: inners } => {
-            let operator = create_local_search(times, inners);
+            let operator = create_local_search(times, inners, environment.random.clone());
             (Arc::new(LocalSearch::new(operator)), create_mutation_probability(probability, environment.random.clone()))
         }
         MutationType::Decomposition { routes, repeat, probability } => {
@@ -736,10 +739,15 @@ fn create_ruin_method(
     }
 }
 
-fn create_local_search(times: &MinMaxConfig, inners: &[LocalOperatorType]) -> Arc<dyn LocalOperator + Send + Sync> {
+fn create_local_search(
+    times: &MinMaxConfig,
+    inners: &[LocalOperatorType],
+    random: Arc<dyn Random + Send + Sync>,
+) -> Arc<dyn LocalOperator + Send + Sync> {
     let operators = inners
         .iter()
         .map::<(Arc<dyn LocalOperator + Send + Sync>, usize), _>(|op| match op {
+            LocalOperatorType::SwapStar { weight } => (Arc::new(ExchangeSwapStar::new(random.clone())), *weight),
             LocalOperatorType::InterRouteBest { weight, noise } => {
                 (Arc::new(ExchangeInterRouteBest::new(noise.probability, noise.min, noise.max)), *weight)
             }

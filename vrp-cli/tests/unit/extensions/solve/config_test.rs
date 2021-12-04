@@ -83,7 +83,7 @@ fn can_read_full_config() {
                 MutationType::LocalSearch { probability, times, operators: inners } => {
                     assert_eq!(as_scalar_probability(probability), 0.05);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
-                    assert_eq!(inners.len(), 3);
+                    assert_eq!(inners.len(), 4);
                 }
                 _ => unreachable!(),
             }
