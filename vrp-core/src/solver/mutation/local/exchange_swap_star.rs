@@ -6,7 +6,7 @@ use super::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::utils::{compare_floats, Either, SelectionSamplingIterator};
-use crate::utils::{map_reduce, parallel_collect, Random};
+use crate::utils::{map_reduce, Random};
 use hashbrown::{HashMap, HashSet};
 use rand::seq::SliceRandom;
 use std::iter::once;
@@ -43,7 +43,7 @@ impl LocalOperator for ExchangeSwapStar {
         _refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
-        const ROUTE_PAIRS_THRESHOLD: usize = 16;
+        const ROUTE_PAIRS_THRESHOLD: usize = 32;
 
         let mut insertion_ctx = insertion_ctx.deep_copy();
 
@@ -85,14 +85,14 @@ fn get_evaluation_context<'a>(search_ctx: &'a SearchContext, job: &'a Job) -> Ev
 fn create_route_pairs(insertion_ctx: &InsertionContext, route_pairs_threshold: usize) -> Vec<(usize, usize)> {
     let random = insertion_ctx.environment.random.clone();
 
-    if random.is_hit(0.1) { None } else { group_routes_by_proximity(insertion_ctx) }
+    if random.is_hit(0.9) { None } else { group_routes_by_proximity(insertion_ctx) }
         .map(|route_groups_distances| {
             let used_indices = RwLock::new(HashSet::<(usize, usize)>::new());
             let distances = route_groups_distances
                 .into_iter()
                 .enumerate()
                 .flat_map(|(outer_idx, mut route_group_distance)| {
-                    let shuffle_amount = (route_group_distance.len() as f64 * 0.25) as usize;
+                    let shuffle_amount = (route_group_distance.len() as f64 * 0.5) as usize;
                     route_group_distance.partial_shuffle(&mut random.get_rng(), shuffle_amount);
                     route_group_distance
                         .iter()
@@ -162,35 +162,37 @@ fn find_top_results(
 ) -> HashMap<Job, Vec<InsertionResult>> {
     let legs_count = route_ctx.route.tour.legs().count();
 
-    parallel_collect(jobs, |job| {
-        let eval_ctx = get_evaluation_context(search_ctx, job);
+    jobs.iter()
+        .map(|job| {
+            let eval_ctx = get_evaluation_context(search_ctx, job);
 
-        let mut results = (0..legs_count)
-            .map(InsertionPosition::Concrete)
-            .map(|position| {
-                evaluate_job_insertion_in_route(
-                    search_ctx.0,
-                    &eval_ctx,
-                    route_ctx,
-                    position,
-                    InsertionResult::make_failure(),
-                )
-            })
-            .collect::<Vec<_>>();
+            let mut results = (0..legs_count)
+                .map(InsertionPosition::Concrete)
+                .map(|position| {
+                    evaluate_job_insertion_in_route(
+                        search_ctx.0,
+                        &eval_ctx,
+                        route_ctx,
+                        position,
+                        InsertionResult::make_failure(),
+                    )
+                })
+                .collect::<Vec<_>>();
 
-        results.sort_by(|left, right| match (left, right) {
-            (InsertionResult::Success(_), InsertionResult::Failure(_)) => Ordering::Less,
-            (InsertionResult::Failure(_), InsertionResult::Success(_)) => Ordering::Greater,
-            (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Ordering::Equal,
-            (InsertionResult::Success(left), InsertionResult::Success(right)) => compare_floats(left.cost, right.cost),
-        });
+            results.sort_by(|left, right| match (left, right) {
+                (InsertionResult::Success(_), InsertionResult::Failure(_)) => Ordering::Less,
+                (InsertionResult::Failure(_), InsertionResult::Success(_)) => Ordering::Greater,
+                (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Ordering::Equal,
+                (InsertionResult::Success(left), InsertionResult::Success(right)) => {
+                    compare_floats(left.cost, right.cost)
+                }
+            });
 
-        results.truncate(3);
+            results.truncate(3);
 
-        (job.clone(), results)
-    })
-    .into_iter()
-    .collect()
+            (job.clone(), results)
+        })
+        .collect()
 }
 
 fn choose_best_result(
