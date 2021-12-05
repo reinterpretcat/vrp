@@ -12,3 +12,7 @@ target
 # IDE
 .idea
 *.iml
+
+# python experiments
+*.pyc
+__pycache__
