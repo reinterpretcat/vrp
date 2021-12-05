@@ -42,10 +42,12 @@ class SolverClient:
             pass
 
     def solve_scientific(self, scientific_format, problem_path, config_path, solution_path, extra_args):
-        p = subprocess.run(
-            [self.cli_path, 'solve', scientific_format, problem_path, '-c', config_path, '-o', solution_path,
-             extra_args],
-            capture_output=True, text=True)
+        command = [self.cli_path, 'solve', scientific_format, problem_path, '-c', config_path, '-o', solution_path]
+
+        if extra_args != '':
+            command = sum([command], [extra_args])
+
+        p = subprocess.run(command, capture_output=True, text=True)
 
         if p.returncode == 0:
             # expected: [10s] total generations: 471, speed: 46.13 gen/sec
