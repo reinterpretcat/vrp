@@ -3,13 +3,8 @@ use crate::construction::heuristics::*;
 use crate::utils::{parallel_into_collect, CollectGroupBy};
 
 /// Tries to improve job unassignment reason.
+#[derive(Default)]
 pub struct UnassignmentReason {}
-
-impl Default for UnassignmentReason {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl Processing for UnassignmentReason {
     fn pre_process(&self, problem: Arc<Problem>, _environment: Arc<Environment>) -> Arc<Problem> {

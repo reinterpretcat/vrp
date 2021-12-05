@@ -51,13 +51,8 @@ impl RecreateWithSkipRandom {
     }
 }
 
+#[derive(Default)]
 struct SkipRandomJobSelector {}
-
-impl Default for SkipRandomJobSelector {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl JobSelector for SkipRandomJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
@@ -69,13 +64,8 @@ impl JobSelector for SkipRandomJobSelector {
     }
 }
 
+#[derive(Default)]
 struct SkipRandomRouteSelector {}
-
-impl Default for SkipRandomRouteSelector {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl RouteSelector for SkipRandomRouteSelector {
     fn select<'a>(

@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// Specifies an extra commute information to reach the actual place.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Commute {
     /// An commute information to reach place from other location.
     pub forward: CommuteInfo,
@@ -116,12 +116,6 @@ impl Activity {
             Some(single) => Multi::roots(single).map(Job::Multi).or_else(|| Some(Job::Single(single.clone()))),
             _ => None,
         }
-    }
-}
-
-impl Default for Commute {
-    fn default() -> Self {
-        Self { forward: CommuteInfo::default(), backward: CommuteInfo::default() }
     }
 }
 

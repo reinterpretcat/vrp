@@ -14,6 +14,7 @@ use std::slice::{Iter, IterMut};
 pub type Leg<'a> = (&'a [Activity], usize);
 
 /// Represents a tour, a smart container for jobs with their associated activities.
+#[derive(Default)]
 pub struct Tour {
     /// Stores activities in the order the performed.
     activities: Vec<Activity>,
@@ -23,12 +24,6 @@ pub struct Tour {
 
     /// Keeps track whether tour is set as closed.
     is_closed: bool,
-}
-
-impl Default for Tour {
-    fn default() -> Self {
-        Tour { activities: Default::default(), jobs: Default::default(), is_closed: false }
-    }
 }
 
 impl Tour {

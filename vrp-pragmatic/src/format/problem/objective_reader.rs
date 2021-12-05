@@ -61,20 +61,20 @@ pub fn create_objective(
                             core_objectives.push(objective);
                         }
                         BalanceActivities { options } => {
-                            let (threshold, tolerance) = unwrap_options(options);
-                            let (module, objective) = WorkBalance::new_activity_balanced(threshold, tolerance);
+                            let threshold = unwrap_options(options);
+                            let (module, objective) = WorkBalance::new_activity_balanced(threshold);
                             constraint.add_module(module);
                             core_objectives.push(objective);
                         }
                         BalanceDistance { options } => {
-                            let (threshold, tolerance) = unwrap_options(options);
-                            let (module, objective) = WorkBalance::new_distance_balanced(threshold, tolerance);
+                            let threshold = unwrap_options(options);
+                            let (module, objective) = WorkBalance::new_distance_balanced(threshold);
                             constraint.add_module(module);
                             core_objectives.push(objective);
                         }
                         BalanceDuration { options } => {
-                            let (threshold, tolerance) = unwrap_options(options);
-                            let (module, objective) = WorkBalance::new_duration_balanced(threshold, tolerance);
+                            let threshold = unwrap_options(options);
+                            let (module, objective) = WorkBalance::new_duration_balanced(threshold);
                             constraint.add_module(module);
                             core_objectives.push(objective);
                         }
@@ -121,8 +121,8 @@ pub fn create_objective(
     })
 }
 
-fn unwrap_options(options: &Option<BalanceOptions>) -> (Option<f64>, Option<f64>) {
-    (options.as_ref().and_then(|o| o.threshold), options.as_ref().and_then(|o| o.tolerance))
+fn unwrap_options(options: &Option<BalanceOptions>) -> Option<f64> {
+    options.as_ref().and_then(|o| o.threshold)
 }
 
 fn get_value(
@@ -165,11 +165,10 @@ fn get_load_balance(
     props: &ProblemProperties,
     options: &Option<BalanceOptions>,
 ) -> (TargetConstraint, TargetObjective) {
-    let (threshold, tolerance) = unwrap_options(options);
+    let threshold = unwrap_options(options);
     if props.has_multi_dimen_capacity {
         WorkBalance::new_load_balanced::<MultiDimLoad>(
             threshold,
-            tolerance,
             Arc::new(|loaded, total| {
                 let mut max_ratio = 0_f64;
 
@@ -184,7 +183,6 @@ fn get_load_balance(
     } else {
         WorkBalance::new_load_balanced::<SingleDimLoad>(
             threshold,
-            tolerance,
             Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
         )
     }

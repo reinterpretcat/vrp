@@ -32,7 +32,6 @@ impl TotalValue {
 
         GenericValue::new_constrained_objective(
             None,
-            None,
             Arc::new({
                 let job_read_value_func = job_read_value_func.clone();
                 move |source, candidate| {

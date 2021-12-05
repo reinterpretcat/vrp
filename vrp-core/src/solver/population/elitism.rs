@@ -37,7 +37,6 @@ struct DominanceOrder {
     orig_index: usize,
     seq_index: usize,
     rank: usize,
-    crowding_distance: f64,
 }
 
 impl Population for Elitism {
@@ -144,12 +143,7 @@ impl Elitism {
         let best_order = select_and_rank(self.individuals.as_slice(), self.individuals.len(), objective.as_ref())
             .into_iter()
             .zip(0..)
-            .map(|(acc, idx)| DominanceOrder {
-                orig_index: acc.index,
-                seq_index: idx,
-                rank: acc.rank,
-                crowding_distance: acc.crowding_distance,
-            })
+            .map(|(acc, idx)| DominanceOrder { orig_index: acc.index, seq_index: idx, rank: acc.rank })
             .collect::<Vec<_>>();
 
         assert_eq!(self.individuals.len(), best_order.len());

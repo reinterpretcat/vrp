@@ -7,7 +7,7 @@ use vrp_core::models::solution::Commute as DomainCommute;
 use vrp_core::models::solution::CommuteInfo as DomainCommuteInfo;
 
 /// Timing statistic.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Default, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Timing {
     /// Driving time.
     pub driving: i64,
@@ -272,12 +272,6 @@ impl Interval {
     /// Returns interval's duration.
     pub fn duration(&self) -> Duration {
         parse_time(&self.end) - parse_time(&self.start)
-    }
-}
-
-impl Default for Timing {
-    fn default() -> Self {
-        Self { driving: 0, serving: 0, waiting: 0, break_time: 0, commuting: 0, parking: 0 }
     }
 }
 

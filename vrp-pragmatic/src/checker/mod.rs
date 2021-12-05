@@ -367,7 +367,7 @@ fn match_job_task<'a>(
         _ => None,
     };
 
-    tasks.and_then(|tasks| tasks_fn(tasks))
+    tasks.and_then(tasks_fn)
 }
 
 fn parse_time_window(tw: &[String]) -> TimeWindow {

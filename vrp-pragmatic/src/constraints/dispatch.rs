@@ -40,8 +40,7 @@ impl ConstraintModule for DispatchModule {
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         // NOTE enforce propagation to locked
-        ctx.locked
-            .extend(ctx.routes.iter().flat_map(|route| route.route.tour.jobs().filter(|job| is_dispatch_job(job))));
+        ctx.locked.extend(ctx.routes.iter().flat_map(|route| route.route.tour.jobs().filter(is_dispatch_job)));
 
         self.conditional.accept_solution_state(ctx);
 
@@ -50,8 +49,7 @@ impl ConstraintModule for DispatchModule {
         ctx.routes.retain(|rc| {
             let tour = &rc.route.tour;
             if tour.job_count() == 1 {
-                let is_dispatch =
-                    tour.jobs().next().unwrap().as_single().map_or(false, |single| is_dispatch_single(single));
+                let is_dispatch = tour.jobs().next().unwrap().as_single().map_or(false, is_dispatch_single);
 
                 if is_dispatch {
                     registry.free_route(rc);
@@ -64,7 +62,7 @@ impl ConstraintModule for DispatchModule {
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        let any_is_dispatch = once(&source).chain(once(&candidate)).any(|job| is_dispatch_job(job));
+        let any_is_dispatch = once(&source).chain(once(&candidate)).any(is_dispatch_job);
 
         if any_is_dispatch {
             Err(self.code)
@@ -146,7 +144,7 @@ fn is_dispatch_single(single: &Arc<Single>) -> bool {
 }
 
 fn is_dispatch_activity(activity: &Option<&Activity>) -> bool {
-    activity.and_then(|activity| activity.job.as_ref()).map_or(false, |job| is_dispatch_single(job))
+    activity.and_then(|activity| activity.job.as_ref()).map_or(false, is_dispatch_single)
 }
 
 fn is_unassignable_route(route_ctx: &RouteContext) -> bool {

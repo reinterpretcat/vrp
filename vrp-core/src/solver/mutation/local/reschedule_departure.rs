@@ -7,13 +7,8 @@ use crate::utils::compare_floats;
 use std::cmp::Ordering;
 
 /// Reschedules departure time of the routes in the solution.
+#[derive(Default)]
 pub struct RescheduleDeparture {}
-
-impl Default for RescheduleDeparture {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl LocalOperator for RescheduleDeparture {
     fn explore(

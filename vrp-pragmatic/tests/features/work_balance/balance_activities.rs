@@ -53,7 +53,7 @@ fn can_balance_activities_with_threshold_impl(threshold: Option<f64>, expected_l
         },
         objectives: Some(vec![
             vec![MinimizeUnassignedJobs { breaks: None }],
-            vec![BalanceActivities { options: Some(BalanceOptions { threshold, tolerance: None }) }],
+            vec![BalanceActivities { options: Some(BalanceOptions { threshold }) }],
             vec![MinimizeCost],
         ]),
         ..create_empty_problem()

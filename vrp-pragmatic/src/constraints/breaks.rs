@@ -58,8 +58,7 @@ impl ConstraintModule for BreakModule {
     }
 
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, i32> {
-        let any_is_break =
-            once(&source).chain(once(&candidate)).flat_map(|job| job.as_single()).any(|single| is_break_single(single));
+        let any_is_break = once(&source).chain(once(&candidate)).flat_map(|job| job.as_single()).any(is_break_single);
 
         if any_is_break {
             Err(self.code)
@@ -241,7 +240,7 @@ fn is_break_single(single: &Arc<Single>) -> bool {
 }
 
 fn as_break_job(activity: &Activity) -> Option<&Arc<Single>> {
-    as_single_job(activity, |job| is_break_single(job))
+    as_single_job(activity, is_break_single)
 }
 
 fn get_break_time_windows(break_job: &'_ Arc<Single>, departure: f64) -> impl Iterator<Item = TimeWindow> + '_ {

@@ -44,7 +44,7 @@ fn get_from_vehicle<F, T>(problem_proto: &Problem, func: F) -> Vec<T>
 where
     F: Fn(&VehicleType) -> T,
 {
-    problem_proto.fleet.vehicles.iter().map(|vehicle| func(vehicle)).collect()
+    problem_proto.fleet.vehicles.iter().map(func).collect()
 }
 
 fn get_vehicle_costs(problem_proto: &Problem) -> Vec<VehicleCosts> {

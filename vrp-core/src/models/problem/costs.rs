@@ -85,13 +85,8 @@ pub trait ActivityCost {
 }
 
 /// Default activity costs.
+#[derive(Default)]
 pub struct SimpleActivityCost {}
-
-impl Default for SimpleActivityCost {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl ActivityCost for SimpleActivityCost {}
 

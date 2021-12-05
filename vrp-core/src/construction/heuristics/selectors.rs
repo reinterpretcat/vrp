@@ -21,13 +21,8 @@ pub trait RouteSelector {
 }
 
 /// Returns a list of all possible routes for insertion.
+#[derive(Default)]
 pub struct AllRouteSelector {}
-
-impl Default for AllRouteSelector {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl RouteSelector for AllRouteSelector {
     fn select<'a>(
@@ -48,13 +43,8 @@ pub trait JobSelector {
 }
 
 /// Returns a list of all jobs to be inserted.
+#[derive(Default)]
 pub struct AllJobSelector {}
-
-impl Default for AllJobSelector {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl JobSelector for AllJobSelector {
     fn select<'a>(&'a self, insertion_ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
@@ -218,13 +208,8 @@ pub trait ResultSelector {
 }
 
 /// Selects best result.
+#[derive(Default)]
 pub struct BestResultSelector {}
-
-impl Default for BestResultSelector {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl ResultSelector for BestResultSelector {
     fn select_insertion(&self, _: &InsertionContext, left: InsertionResult, right: InsertionResult) -> InsertionResult {

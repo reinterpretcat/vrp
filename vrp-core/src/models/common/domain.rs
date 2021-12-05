@@ -66,7 +66,7 @@ pub enum TimeSpan {
 }
 
 /// Specifies a flexible time interval.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TimeInterval {
     /// Earliest possible time to start.
     pub earliest: Option<Timestamp>,
@@ -175,12 +175,6 @@ impl TimeSpan {
             TimeSpan::Window(window) => Some(window.clone()),
             _ => None,
         }
-    }
-}
-
-impl Default for TimeInterval {
-    fn default() -> Self {
-        Self { earliest: None, latest: None }
     }
 }
 

@@ -15,7 +15,6 @@ impl GenericValue {
     /// Creates a new instance of constraint and related objective.
     pub fn new_constrained_objective(
         threshold: Option<f64>,
-        tolerance: Option<f64>,
         job_merge_func: Arc<dyn Fn(Job, Job) -> Result<Job, i32> + Send + Sync>,
         route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
         solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
@@ -24,7 +23,6 @@ impl GenericValue {
     ) -> (TargetConstraint, TargetObjective) {
         let objective = GenericValueObjective {
             threshold,
-            tolerance,
             state_key,
             route_value_func: route_value_func.clone(),
             solution_value_func: solution_value_func.clone(),
@@ -86,7 +84,6 @@ impl ConstraintModule for GenericValueConstraint {
 #[derive(Clone)]
 struct GenericValueObjective {
     threshold: Option<f64>,
-    tolerance: Option<f64>,
     state_key: i32,
     route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
     solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,

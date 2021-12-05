@@ -70,13 +70,8 @@ impl<S: State> PolicyStrategy<S> for EpsilonGreedy {
 }
 
 /// A greedy strategy.
+#[derive(Default)]
 pub struct Greedy;
-
-impl Default for Greedy {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl<S: State> PolicyStrategy<S> for Greedy {
     fn select(&self, estimates: &ActionEstimates<S>) -> Option<S::Action> {

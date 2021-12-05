@@ -4,13 +4,8 @@ use crate::solver::{RefinementContext, Telemetry};
 use crate::utils::Timer;
 
 /// A simple evolution algorithm which maintains single population.
+#[derive(Default)]
 pub struct RunSimple {}
-
-impl Default for RunSimple {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl EvolutionStrategy for RunSimple {
     fn run(

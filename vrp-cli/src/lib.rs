@@ -76,7 +76,7 @@ mod interop {
     }
 
     fn catch_panic<F: FnOnce() + UnwindSafe>(failure: Callback, action: F) {
-        if let Err(err) = panic::catch_unwind(|| action()) {
+        if let Err(err) = panic::catch_unwind(action) {
             let message = err
                 .downcast_ref::<&str>()
                 .cloned()

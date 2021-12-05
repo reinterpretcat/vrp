@@ -34,13 +34,8 @@ impl Recreate for RecreateWithSlice {
     }
 }
 
+#[derive(Default)]
 struct SliceJobSelector {}
-
-impl Default for SliceJobSelector {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl JobSelector for SliceJobSelector {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
@@ -54,13 +49,8 @@ impl JobSelector for SliceJobSelector {
     }
 }
 
+#[derive(Default)]
 struct SliceRouteSelector {}
-
-impl Default for SliceRouteSelector {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl RouteSelector for SliceRouteSelector {
     fn select<'a>(

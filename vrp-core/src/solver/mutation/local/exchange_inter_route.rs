@@ -213,7 +213,7 @@ fn get_new_insertion_ctx(
 ) -> Result<InsertionContext, String> {
     let mut new_insertion_ctx = insertion_ctx.deep_copy();
 
-    let mut route_ctx = &mut new_insertion_ctx.solution.routes[seed_route_idx];
+    let route_ctx = &mut new_insertion_ctx.solution.routes[seed_route_idx];
     let removal_result = route_ctx.route_mut().tour.remove(seed_job);
     if !removal_result {
         return Err("cannot find job in insertion ctx".to_string());
@@ -222,7 +222,7 @@ fn get_new_insertion_ctx(
     // NOTE removed job is not added to the required list as it will be tried
     // to be reinserted later. If insertion fails, the context is discarded
 
-    new_insertion_ctx.problem.constraint.accept_route_state(&mut route_ctx);
+    new_insertion_ctx.problem.constraint.accept_route_state(route_ctx);
 
     Ok(new_insertion_ctx)
 }

@@ -55,6 +55,7 @@ pub trait Random {
 }
 
 /// A default random implementation.
+#[derive(Default)]
 pub struct DefaultRandom {
     seed: Option<u64>,
 }
@@ -73,12 +74,6 @@ impl Random for DefaultRandom {
         } else {
             StdRng::from_rng(thread_rng()).expect("cannot get RNG")
         }
-    }
-}
-
-impl Default for DefaultRandom {
-    fn default() -> Self {
-        Self { seed: None }
     }
 }
 

@@ -3,13 +3,8 @@ use crate::construction::constraints::TransportConstraintModule;
 use crate::construction::heuristics::InsertionContext;
 
 /// Provides way to reduce waiting time by advancing departure time.
+#[derive(Default)]
 pub struct AdvanceDeparture {}
-
-impl Default for AdvanceDeparture {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl Processing for AdvanceDeparture {
     fn pre_process(&self, problem: Arc<Problem>, _environment: Arc<Environment>) -> Arc<Problem> {

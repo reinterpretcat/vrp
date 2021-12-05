@@ -53,13 +53,8 @@ impl Ruin for RandomRouteRemoval {
 }
 
 /// Removes a few random, close to each other, routes from solution.
+#[derive(Default)]
 pub struct CloseRouteRemoval {}
-
-impl Default for CloseRouteRemoval {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl Ruin for CloseRouteRemoval {
     // NOTE clippy's false positive in route_groups_distances loop

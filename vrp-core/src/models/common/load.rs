@@ -103,7 +103,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> DemandDimension<T> f
 }
 
 /// Specifies single dimensional load type.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct SingleDimLoad {
     /// An actual load value.
     pub value: i32,
@@ -113,12 +113,6 @@ impl SingleDimLoad {
     /// Creates a new instance of `SingleDimLoad`.
     pub fn new(value: i32) -> Self {
         Self { value }
-    }
-}
-
-impl Default for SingleDimLoad {
-    fn default() -> Self {
-        Self { value: 0 }
     }
 }
 

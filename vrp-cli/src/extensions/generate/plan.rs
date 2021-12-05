@@ -156,12 +156,7 @@ fn get_plan_time_windows(plan: &Plan) -> Vec<Vec<Vec<String>>> {
 }
 
 fn get_plan_demands(plan: &Plan) -> Vec<Vec<i32>> {
-    plan.jobs
-        .iter()
-        .flat_map(|job| get_job_tasks(job))
-        .filter_map(|job_task| job_task.demand.as_ref())
-        .cloned()
-        .collect()
+    plan.jobs.iter().flat_map(get_job_tasks).filter_map(|job_task| job_task.demand.as_ref()).cloned().collect()
 }
 
 fn get_plan_durations(plan: &Plan) -> Vec<f64> {
@@ -169,7 +164,7 @@ fn get_plan_durations(plan: &Plan) -> Vec<f64> {
 }
 
 fn get_plan_places(plan: &Plan) -> impl Iterator<Item = &JobPlace> {
-    plan.jobs.iter().flat_map(|job| get_job_tasks(job)).flat_map(|job_task| job_task.places.iter())
+    plan.jobs.iter().flat_map(get_job_tasks).flat_map(|job_task| job_task.places.iter())
 }
 
 fn get_job_tasks(job: &Job) -> impl Iterator<Item = &JobTask> {

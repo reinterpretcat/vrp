@@ -33,13 +33,8 @@ impl VicinityDimension for Extras {
 }
 
 /// Provides way to change problem definition by reducing total job count using clustering.
+#[derive(Default)]
 pub struct VicinityClustering {}
-
-impl Default for VicinityClustering {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 impl Processing for VicinityClustering {
     fn pre_process(&self, problem: Arc<Problem>, environment: Arc<Environment>) -> Arc<Problem> {

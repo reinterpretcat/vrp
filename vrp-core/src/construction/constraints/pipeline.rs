@@ -110,6 +110,7 @@ pub trait ConstraintModule {
 }
 
 /// Provides the way to work with multiple constraints.
+#[derive(Default)]
 pub struct ConstraintPipeline {
     /// Pipeline modules.
     pub modules: Vec<Arc<dyn ConstraintModule + Send + Sync>>,
@@ -123,19 +124,6 @@ pub struct ConstraintPipeline {
     pub soft_route_constraints: Vec<Arc<dyn SoftRouteConstraint + Send + Sync>>,
     /// Soft activity constraints.
     pub soft_activity_constraints: Vec<Arc<dyn SoftActivityConstraint + Send + Sync>>,
-}
-
-impl Default for ConstraintPipeline {
-    fn default() -> Self {
-        ConstraintPipeline {
-            modules: vec![],
-            state_keys: Default::default(),
-            hard_route_constraints: vec![],
-            hard_activity_constraints: vec![],
-            soft_route_constraints: vec![],
-            soft_activity_constraints: vec![],
-        }
-    }
 }
 
 impl ConstraintPipeline {

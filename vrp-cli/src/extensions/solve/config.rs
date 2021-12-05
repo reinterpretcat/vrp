@@ -21,7 +21,7 @@ use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
 use vrp_core::utils::{Environment, Parallelism, Random};
 
 /// An algorithm configuration.
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Default, Deserialize, Debug)]
 pub struct Config {
     /// Specifies evolution configuration.
     pub evolution: Option<EvolutionConfig>,
@@ -438,12 +438,6 @@ pub struct MinMaxConfig {
 pub struct NameWeight {
     pub name: String,
     pub weight: usize,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self { evolution: None, hyper: None, termination: None, processing: None, environment: None, telemetry: None }
-    }
 }
 
 fn configure_from_evolution(

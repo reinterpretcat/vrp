@@ -106,9 +106,9 @@ pub(crate) fn create_constraint(
     constraint
 }
 
-pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, mut buffer: &mut String) -> Result<usize, String> {
+pub(crate) fn read_line<R: Read>(reader: &mut BufReader<R>, buffer: &mut String) -> Result<usize, String> {
     buffer.clear();
-    reader.read_line(&mut buffer).map_err(|err| err.to_string())
+    reader.read_line(buffer).map_err(|err| err.to_string())
 }
 
 pub(crate) fn skip_lines<R: Read>(count: usize, reader: &mut BufReader<R>, buffer: &mut String) -> Result<(), String> {

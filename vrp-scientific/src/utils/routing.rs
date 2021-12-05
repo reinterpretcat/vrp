@@ -6,15 +6,9 @@ use std::sync::Arc;
 use vrp_core::models::common::Location;
 use vrp_core::models::problem::{create_matrix_transport_cost, MatrixData, TransportCost};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub(crate) struct CoordIndex {
     locations: Vec<(i32, i32)>,
-}
-
-impl Default for CoordIndex {
-    fn default() -> Self {
-        Self { locations: vec![] }
-    }
 }
 
 impl CoordIndex {

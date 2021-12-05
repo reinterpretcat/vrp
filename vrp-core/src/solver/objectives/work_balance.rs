@@ -16,7 +16,6 @@ impl WorkBalance {
     /// Creates _(constraint, objective)_  type pair which balances max load across all tours.
     pub fn new_load_balanced<T: Load + Add<Output = T> + Sub<Output = T> + 'static>(
         threshold: Option<f64>,
-        tolerance: Option<f64>,
         load_func: Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>,
     ) -> (TargetConstraint, TargetObjective) {
         let default_capacity = T::default();
@@ -40,7 +39,6 @@ impl WorkBalance {
 
         GenericValue::new_constrained_objective(
             threshold,
-            tolerance,
             Arc::new(|source, _| Ok(source)),
             Arc::new({
                 let get_load_ratio = get_load_ratio.clone();
@@ -58,13 +56,9 @@ impl WorkBalance {
     }
 
     /// Creates _(constraint, objective)_  type pair which balances activities across all tours.
-    pub fn new_activity_balanced(
-        threshold: Option<f64>,
-        tolerance: Option<f64>,
-    ) -> (TargetConstraint, TargetObjective) {
+    pub fn new_activity_balanced(threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
         GenericValue::new_constrained_objective(
             threshold,
-            tolerance,
             Arc::new(|source, _| Ok(source)),
             Arc::new(|rc: &RouteContext| rc.route.tour.job_activity_count() as f64),
             Arc::new(|ctx: &SolutionContext| {
@@ -82,30 +76,22 @@ impl WorkBalance {
     }
 
     /// Creates _(constraint, objective)_  type pair which balances travelled distances across all tours.
-    pub fn new_distance_balanced(
-        threshold: Option<f64>,
-        tolerance: Option<f64>,
-    ) -> (TargetConstraint, TargetObjective) {
-        Self::new_transport_balanced(threshold, tolerance, TOTAL_DISTANCE_KEY, BALANCE_DISTANCE_KEY)
+    pub fn new_distance_balanced(threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
+        Self::new_transport_balanced(threshold, TOTAL_DISTANCE_KEY, BALANCE_DISTANCE_KEY)
     }
 
     /// Creates _(constraint, objective)_  type pair which balances travelled durations across all tours.
-    pub fn new_duration_balanced(
-        threshold: Option<f64>,
-        tolerance: Option<f64>,
-    ) -> (TargetConstraint, TargetObjective) {
-        Self::new_transport_balanced(threshold, tolerance, TOTAL_DURATION_KEY, BALANCE_DURATION_KEY)
+    pub fn new_duration_balanced(threshold: Option<f64>) -> (TargetConstraint, TargetObjective) {
+        Self::new_transport_balanced(threshold, TOTAL_DURATION_KEY, BALANCE_DURATION_KEY)
     }
 
     fn new_transport_balanced(
         threshold: Option<f64>,
-        tolerance: Option<f64>,
         transport_state_key: i32,
         memory_state_key: i32,
     ) -> (TargetConstraint, TargetObjective) {
         GenericValue::new_constrained_objective(
             threshold,
-            tolerance,
             Arc::new(|source, _| Ok(source)),
             Arc::new(move |rc: &RouteContext| {
                 debug_assert!(transport_state_key == TOTAL_DISTANCE_KEY || transport_state_key == TOTAL_DURATION_KEY);

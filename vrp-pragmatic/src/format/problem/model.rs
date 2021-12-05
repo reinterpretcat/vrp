@@ -595,11 +595,6 @@ pub struct BalanceOptions {
     /// favor of another objective.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub threshold: Option<f64>,
-
-    /// A balancing tolerance specifies how much balance values should differ in order
-    /// to be considered as not-equal.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tolerance: Option<f64>,
 }
 
 // endregion
