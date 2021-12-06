@@ -62,5 +62,9 @@
 
 * [Internals](internals/index.md)
   * [Overview](internals/overview.md)
-  * [Rosomaxa](internals/rosomaxa.md)
-  * [Hyper-heuristic](internals/hyper.md)
+  * [Development](internals/development/index.md)
+    * [Code style](internals/development/code-style.md)
+    * [Testing](internals/development/testing.md)
+  * [Algorithms](internals/algorithms/index.md)
+    * [Rosomaxa](internals/algorithms/rosomaxa.md)
+    * [Hyper-heuristic](internals/algorithms/hyper.md)

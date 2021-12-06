@@ -35,7 +35,7 @@ which is a growing variant of a self-organizing map. In `rosomaxa`, it has the f
 
 This animation shows some insights how algorithms performs over time:
 
-![Visualization example](../images/rosomaxa.gif "Visualization")
+![Visualization example](../../images/rosomaxa.gif "Visualization")
 
 Here:
 * `u_matrix` is unified distance matrix calculated using solution characteristics
