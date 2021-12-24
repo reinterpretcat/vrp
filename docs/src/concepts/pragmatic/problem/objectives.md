@@ -37,7 +37,7 @@ constraints such as time windows. The objective has the following optional param
     * `reductionFactor`: a factor to reduce value cost compared to max routing costs
     * `breaks`: a value penalty for skipping a break. Default value is 100.
 * `tour-order`: controls desired activity order in tours
-    * `is_constrained`: violating order is not allowed, even if it leads to less assigned jobs (default is false).
+    * `isConstrained`: violating order is not allowed, even if it leads to less assigned jobs (default is false).
 
 ### Work balance objectives
 
