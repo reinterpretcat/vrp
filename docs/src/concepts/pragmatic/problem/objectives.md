@@ -44,7 +44,7 @@ constraints such as time windows. The objective has the following optional param
 There are four work balance objectives available:
 
 * `balance-max-load`: balances max load in tour
-* `balance-activites`: balances amount of activities performed in tour
+* `balance-activities`: balances amount of activities performed in tour
 * `balance-distance`: balances travelled distance per tour
 * `balance-duration`: balances tour durations
 
