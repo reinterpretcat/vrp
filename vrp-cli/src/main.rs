@@ -1,6 +1,13 @@
 //! A command line interface to *Vehicle Routing Problem* solver.
 //!
 
+#[cfg(not(target_env = "msvc"))]
+use jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 #[cfg(test)]
 #[path = "../tests/unit/main_test.rs"]
 mod main_test;
