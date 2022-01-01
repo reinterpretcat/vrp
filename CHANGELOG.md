@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* update dependencies
+
 
 ## [v1.13.0] - 2021-12-05
 
