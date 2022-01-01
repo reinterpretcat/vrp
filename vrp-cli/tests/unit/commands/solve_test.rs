@@ -20,16 +20,16 @@ fn run_solve_with_out_writer(matches: &ArgMatches) {
     run_solve(matches, |_| BufWriter::new(Box::new(DummyWrite {}))).unwrap();
 }
 
-fn get_solomon_matches<'a>(params: &'a [&str]) -> ArgMatches<'a> {
+fn get_solomon_matches(params: &[&str]) -> ArgMatches {
     let args = [&["solve", "solomon", SOLOMON_PROBLEM_PATH], params].concat();
 
-    get_solve_app().get_matches_from_safe(args).unwrap()
+    get_solve_app().try_get_matches_from(args).unwrap()
 }
 
 #[test]
 fn can_solve_pragmatic_problem_with_generation_limit() {
     let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--max-generations", "1"];
-    let matches = get_solve_app().get_matches_from_safe(args).unwrap();
+    let matches = get_solve_app().try_get_matches_from(args).unwrap();
 
     run_solve_with_out_writer(&matches);
 }
@@ -37,7 +37,7 @@ fn can_solve_pragmatic_problem_with_generation_limit() {
 #[test]
 fn can_solve_lilim_problem_with_multiple_limits() {
     let args = vec!["solve", "lilim", LILIM_PROBLEM_PATH, "--max-time", "300", "--max-generations", "1"];
-    let matches = get_solve_app().get_matches_from_safe(args).unwrap();
+    let matches = get_solve_app().try_get_matches_from(args).unwrap();
 
     run_solve_with_out_writer(&matches);
 }
@@ -50,7 +50,7 @@ fn can_solve_solomon_problem_with_generation_limit() {
 #[test]
 fn can_require_problem_path() {
     for format in &["pragmatic", "solomon", "lilim", "tsplib"] {
-        get_solve_app().get_matches_from_safe(vec!["solve", format]).unwrap_err();
+        get_solve_app().try_get_matches_from(vec!["solve", format]).unwrap_err();
     }
 }
 
@@ -58,20 +58,20 @@ fn can_require_problem_path() {
 fn can_specify_search_mode_setting() {
     for mode in &["deep", "broad"] {
         let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--search-mode", mode];
-        get_solve_app().get_matches_from_safe(args).unwrap();
+        get_solve_app().try_get_matches_from(args).unwrap();
     }
 }
 
 #[test]
 fn can_specify_experimental_setting() {
     let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--experimental"];
-    get_solve_app().get_matches_from_safe(args).unwrap();
+    get_solve_app().try_get_matches_from(args).unwrap();
 }
 
 #[test]
 fn can_specify_round_setting() {
     let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--round"];
-    get_solve_app().get_matches_from_safe(args).unwrap();
+    get_solve_app().try_get_matches_from(args).unwrap();
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn can_specify_heuristic_setting() {
         vec![("default", Some(())), ("dynamic", Some(())), ("static", Some(())), ("ggg", None), ("multi", None)]
     {
         let args = vec!["solve", "pragmatic", PRAGMATIC_PROBLEM_PATH, "--heuristic", mode];
-        assert_eq!(get_solve_app().get_matches_from_safe(args).ok().map(|_| ()), result);
+        assert_eq!(get_solve_app().try_get_matches_from(args).ok().map(|_| ()), result);
     }
 }
 

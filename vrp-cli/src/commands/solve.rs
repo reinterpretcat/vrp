@@ -165,147 +165,147 @@ fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) 
     formats
 }
 
-pub fn get_solve_app<'a, 'b>() -> App<'a, 'b> {
+pub fn get_solve_app() -> App<'static> {
     App::new("solve")
         .about("Solves variations of Vehicle Routing Problem")
         .arg(
-            Arg::with_name(FORMAT_ARG_NAME)
+            Arg::new(FORMAT_ARG_NAME)
                 .help("Specifies the problem type")
                 .required(true)
                 .possible_values(&["solomon", "lilim", "tsplib", "pragmatic"])
                 .index(1),
         )
-        .arg(Arg::with_name(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
+        .arg(Arg::new(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
         .arg(
-            Arg::with_name(GENERATIONS_ARG_NAME)
+            Arg::new(GENERATIONS_ARG_NAME)
                 .help("Specifies maximum number of generations")
-                .short("n")
+                .short('n')
                 .long(GENERATIONS_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(TIME_ARG_NAME)
+            Arg::new(TIME_ARG_NAME)
                 .help("Specifies max time algorithm run in seconds")
-                .short("t")
+                .short('t')
                 .long(TIME_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(MIN_CV_ARG_NAME)
+            Arg::new(MIN_CV_ARG_NAME)
                 .help(
                     "Specifies variation coefficient termination criteria in form \"type,sample_size,threshold,is_global\"",
                 )
-                .short("v")
+                .short('v')
                 .long(MIN_CV_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(INIT_SOLUTION_ARG_NAME)
+            Arg::new(INIT_SOLUTION_ARG_NAME)
                 .help("Specifies path to file with initial solution")
-                .short("i")
+                .short('i')
                 .long(INIT_SOLUTION_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(INIT_SIZE_ARG_NAME)
+            Arg::new(INIT_SIZE_ARG_NAME)
                 .help("Specifies amount of initial solutions. Min is 1")
                 .long(INIT_SIZE_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(MATRIX_ARG_NAME)
+            Arg::new(MATRIX_ARG_NAME)
                 .help("Specifies path to file with routing matrix")
-                .short("m")
+                .short('m')
                 .long(MATRIX_ARG_NAME)
-                .multiple(true)
+                .multiple_values(true)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(OUT_RESULT_ARG_NAME)
+            Arg::new(OUT_RESULT_ARG_NAME)
                 .help("Specifies path to file for result output")
-                .short("o")
+                .short('o')
                 .long(OUT_RESULT_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(GET_LOCATIONS_ARG_NAME)
+            Arg::new(GET_LOCATIONS_ARG_NAME)
                 .help("Returns list of unique locations")
-                .short("l")
+                .short('l')
                 .long(GET_LOCATIONS_ARG_NAME)
                 .required(false),
         )
         .arg(
-            Arg::with_name(GEO_JSON_ARG_NAME)
+            Arg::new(GEO_JSON_ARG_NAME)
                 .help("Specifies path to solution output in geo json format")
-                .short("g")
+                .short('g')
                 .long(GEO_JSON_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(CONFIG_ARG_NAME)
+            Arg::new(CONFIG_ARG_NAME)
                 .help("Specifies path to algorithm configuration file")
-                .short("c")
+                .short('c')
                 .long(CONFIG_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(LOG_ARG_NAME)
+            Arg::new(LOG_ARG_NAME)
                 .help("Specifies whether default logging is enabled")
                 .long(LOG_ARG_NAME)
                 .required(false)
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name(CHECK_ARG_NAME)
+            Arg::new(CHECK_ARG_NAME)
                 .help("Specifies whether final solution should be checked for feasibility")
                 .long(CHECK_ARG_NAME)
                 .required(false)
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name(SEARCH_MODE_ARG_NAME)
+            Arg::new(SEARCH_MODE_ARG_NAME)
                 .help("Specifies solution space search mode")
                 .long(SEARCH_MODE_ARG_NAME)
-                .short("s")
+                .short('s')
                 .required(false)
                 .possible_values(&["broad", "deep"])
                 .default_value("broad"),
         )
         .arg(
-            Arg::with_name(PARALELLISM_ARG_NAME)
+            Arg::new(PARALELLISM_ARG_NAME)
                 .help("Specifies data parallelism settings in format \"num_thread_pools,threads_per_pool\"")
                 .long(PARALELLISM_ARG_NAME)
-                .short("p")
+                .short('p')
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(HEURISTIC_ARG_NAME)
+            Arg::new(HEURISTIC_ARG_NAME)
                 .help("Specifies hyper heuristic algorithm")
                 .long(HEURISTIC_ARG_NAME)
-                .short("e")
+                .short('e')
                 .required(false)
                 .possible_values(&["default", "dynamic", "static"])
                 .default_value("default"),
         )
         .arg(
-            Arg::with_name(EXPERIMENTAL_ARG_NAME)
+            Arg::new(EXPERIMENTAL_ARG_NAME)
                 .help("Specifies whether experimental (unstable) features are enabled.")
                 .long(EXPERIMENTAL_ARG_NAME)
                 .required(false)
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name(ROUNDED_ARG_NAME)
+            Arg::new(ROUNDED_ARG_NAME)
                 .help("Specifies whether costs are rounded. Applicable only for scientific formats.")
                 .long(ROUNDED_ARG_NAME)
                 .required(false)

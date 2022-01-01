@@ -16,7 +16,7 @@ fn can_run_check_solution() {
         "--solution-file",
         PRAGMATIC_SOLUTION_PATH,
     ];
-    let matches = get_check_app().get_matches_from_safe(args).unwrap();
+    let matches = get_check_app().try_get_matches_from(args).unwrap();
 
     run_check(&matches).unwrap();
 }

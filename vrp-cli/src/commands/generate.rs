@@ -17,61 +17,61 @@ pub const VEHICLES_SIZE_ARG_NAME: &str = "vehicles-size";
 pub const LOCATIONS_ARG_NAME: &str = "locations";
 pub const AREA_SIZE_ARG_NAME: &str = "area-size";
 
-pub fn get_generate_app<'a, 'b>() -> App<'a, 'b> {
+pub fn get_generate_app() -> App<'static> {
     App::new("generate")
         .about("Provides the way to generate meaningful problems for testing")
         .arg(
-            Arg::with_name(FORMAT_ARG_NAME)
+            Arg::new(FORMAT_ARG_NAME)
                 .help("Specifies input type")
                 .required(true)
                 .possible_values(&["pragmatic"])
                 .index(1),
         )
         .arg(
-            Arg::with_name(PROTOTYPES_ARG_NAME)
+            Arg::new(PROTOTYPES_ARG_NAME)
                 .help("Sets input files which contains a VRP definition prototype")
-                .short("p")
+                .short('p')
                 .long(PROTOTYPES_ARG_NAME)
                 .required(true)
                 .takes_value(true)
-                .multiple(true),
+                .multiple_values(true),
         )
         .arg(
-            Arg::with_name(OUT_RESULT_ARG_NAME)
+            Arg::new(OUT_RESULT_ARG_NAME)
                 .help("Specifies path to the file for result output")
-                .short("o")
+                .short('o')
                 .long(OUT_RESULT_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(LOCATIONS_ARG_NAME)
+            Arg::new(LOCATIONS_ARG_NAME)
                 .help("Specifies path to the file with a list of job locations")
-                .short("l")
+                .short('l')
                 .long(LOCATIONS_ARG_NAME)
                 .required(false)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(JOBS_SIZE_ARG_NAME)
+            Arg::new(JOBS_SIZE_ARG_NAME)
                 .help("Amount of jobs in the plan of generated problem")
-                .short("j")
+                .short('j')
                 .long(JOBS_SIZE_ARG_NAME)
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(VEHICLES_SIZE_ARG_NAME)
+            Arg::new(VEHICLES_SIZE_ARG_NAME)
                 .help("Amount of vehicle types in the fleet of generated problem")
-                .short("v")
+                .short('v')
                 .long(VEHICLES_SIZE_ARG_NAME)
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(AREA_SIZE_ARG_NAME)
+            Arg::new(AREA_SIZE_ARG_NAME)
                 .help("Half side size of job distribution bounding box. Center is calculated using prototype locations")
-                .short("a")
+                .short('a')
                 .long(AREA_SIZE_ARG_NAME)
                 .required(false)
                 .takes_value(true),

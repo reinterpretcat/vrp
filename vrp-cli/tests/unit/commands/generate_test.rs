@@ -18,7 +18,7 @@ fn can_generate_problem_from_args() {
         "--out-result",
         tmpfile.path().to_str().unwrap(),
     ];
-    let matches = get_generate_app().get_matches_from_safe(args).unwrap();
+    let matches = get_generate_app().try_get_matches_from(args).unwrap();
 
     let _ = run_generate(&matches).unwrap();
 

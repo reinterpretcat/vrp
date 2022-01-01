@@ -9,39 +9,39 @@ const PROBLEM_ARG_NAME: &str = "problem-file";
 const SOLUTION_ARG_NAME: &str = "solution-file";
 const MATRIX_ARG_NAME: &str = "matrix";
 
-pub fn get_check_app<'a, 'b>() -> App<'a, 'b> {
+pub fn get_check_app() -> App<'static> {
     App::new("check")
         .about("Provides the way to check solution feasibility")
         .arg(
-            Arg::with_name(FORMAT_ARG_NAME)
+            Arg::new(FORMAT_ARG_NAME)
                 .help("Specifies input type")
                 .required(true)
                 .possible_values(&["pragmatic"])
                 .index(1),
         )
         .arg(
-            Arg::with_name(PROBLEM_ARG_NAME)
+            Arg::new(PROBLEM_ARG_NAME)
                 .help("Sets input files which contain a VRP definition")
-                .short("p")
+                .short('p')
                 .long(PROBLEM_ARG_NAME)
                 .required(true)
                 .takes_value(true)
-                .multiple(true),
+                .multiple_values(true),
         )
         .arg(
-            Arg::with_name(SOLUTION_ARG_NAME)
+            Arg::new(SOLUTION_ARG_NAME)
                 .help("Sets solution file")
-                .short("s")
+                .short('s')
                 .long(SOLUTION_ARG_NAME)
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name(MATRIX_ARG_NAME)
+            Arg::new(MATRIX_ARG_NAME)
                 .help("Specifies path to file with routing matrix")
-                .short("m")
+                .short('m')
                 .long(MATRIX_ARG_NAME)
-                .multiple(true)
+                .multiple_values(true)
                 .required(false)
                 .takes_value(true),
         )

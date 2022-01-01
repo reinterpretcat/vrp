@@ -20,16 +20,16 @@ mod cli {
     use crate::commands::check::{get_check_app, run_check};
     use crate::commands::create_write_buffer;
     use crate::commands::generate::{get_generate_app, run_generate};
-    use clap::{crate_version, App, ArgMatches};
+    use clap::{App, ArgMatches};
     use std::process;
 
     pub fn run_app() {
         run_subcommand(get_app().get_matches());
     }
 
-    pub fn get_app<'a, 'b>() -> App<'a, 'b> {
+    pub fn get_app() -> App<'static> {
         App::new("Vehicle Routing Problem Solver")
-            .version(crate_version!())
+            .version("1.13.0")
             .author("Ilya Builuk <ilya.builuk@gmail.com>")
             .about("A command line interface to Vehicle Routing Problem solver")
             .subcommand(get_analyze_app())
@@ -41,16 +41,15 @@ mod cli {
 
     pub fn run_subcommand(arg_matches: ArgMatches) {
         if let Err(err) = match arg_matches.subcommand() {
-            ("analyze", Some(analyze_matches)) => run_analyze(analyze_matches, create_write_buffer),
-            ("solve", Some(solve_matches)) => run_solve(solve_matches, create_write_buffer),
-            ("import", Some(import_matches)) => run_import(import_matches),
-            ("check", Some(check_matches)) => run_check(check_matches),
-            ("generate", Some(generate_matches)) => run_generate(generate_matches),
-            ("", None) => {
+            Some(("analyze", analyze_matches)) => run_analyze(analyze_matches, create_write_buffer),
+            Some(("solve", solve_matches)) => run_solve(solve_matches, create_write_buffer),
+            Some(("import", import_matches)) => run_import(import_matches),
+            Some(("check", check_matches)) => run_check(check_matches),
+            Some(("generate", generate_matches)) => run_generate(generate_matches),
+            _ => {
                 eprintln!("no subcommand was used. Use -h to print help information.");
                 process::exit(1);
             }
-            _ => unreachable!(),
         } {
             eprintln!("{}", err);
             process::exit(1)

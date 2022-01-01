@@ -12,48 +12,48 @@ const MIN_POINTS_ARG_NAME: &str = "min-points";
 const EPSILON_ARG_NAME: &str = "epsilon";
 const OUT_RESULT_ARG_NAME: &str = "out-result";
 
-pub fn get_analyze_app<'a, 'b>() -> App<'a, 'b> {
+pub fn get_analyze_app() -> App<'static> {
     App::new("analyze").about("Provides helper functionality to analyze problem or solution").subcommand(
         App::new("clusters")
             .about("Analyzes job clusters")
             .arg(
-                Arg::with_name(FORMAT_ARG_NAME)
+                Arg::new(FORMAT_ARG_NAME)
                     .help("Specifies input type")
                     .required(true)
                     .possible_values(&["pragmatic"])
                     .index(1),
             )
-            .arg(Arg::with_name(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
+            .arg(Arg::new(PROBLEM_ARG_NAME).help("Sets the problem file to use").required(true).index(2))
             .arg(
-                Arg::with_name(MIN_POINTS_ARG_NAME)
+                Arg::new(MIN_POINTS_ARG_NAME)
                     .help("Minimum cluster size")
-                    .short("c")
+                    .short('c')
                     .default_value("3")
                     .long(MIN_POINTS_ARG_NAME)
                     .required(false)
                     .takes_value(true),
             )
             .arg(
-                Arg::with_name(EPSILON_ARG_NAME)
+                Arg::new(EPSILON_ARG_NAME)
                     .help("Epsilon parameter in DBSCAN")
-                    .short("e")
+                    .short('e')
                     .long(EPSILON_ARG_NAME)
                     .required(false)
                     .takes_value(true),
             )
             .arg(
-                Arg::with_name(MATRIX_ARG_NAME)
+                Arg::new(MATRIX_ARG_NAME)
                     .help("Specifies path to file with routing matrix")
-                    .short("m")
+                    .short('m')
                     .long(MATRIX_ARG_NAME)
-                    .multiple(true)
+                    .multiple_values(true)
                     .required(false)
                     .takes_value(true),
             )
             .arg(
-                Arg::with_name(OUT_RESULT_ARG_NAME)
+                Arg::new(OUT_RESULT_ARG_NAME)
                     .help("Specifies path to the file for result output")
-                    .short("o")
+                    .short('o')
                     .long(OUT_RESULT_ARG_NAME)
                     .required(true)
                     .takes_value(true),
@@ -66,7 +66,7 @@ pub fn run_analyze(
     out_writer_func: fn(Option<File>) -> BufWriter<Box<dyn Write>>,
 ) -> Result<(), String> {
     match matches.subcommand() {
-        ("clusters", Some(clusters_matches)) => {
+        Some(("clusters", clusters_matches)) => {
             let problem_path = clusters_matches.value_of(PROBLEM_ARG_NAME).unwrap();
             let problem_format = clusters_matches.value_of(FORMAT_ARG_NAME).unwrap();
 
@@ -92,7 +92,6 @@ pub fn run_analyze(
 
             geo_writer.write_all(clusters.as_bytes()).map_err(|err| format!("cannot write result: '{}'", err))
         }
-        ("", None) => Err("no analyze subcommand was used. Use -h to print help information.".to_string()),
-        _ => unreachable!(),
+        _ => Err("no argument with analyze subcommand was used. Use -h to print help information".to_string()),
     }
 }
