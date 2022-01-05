@@ -7,6 +7,32 @@ fn coord(lat: f64, lng: f64) -> Location {
     Location::Coordinate { lat, lng }
 }
 
+#[test]
+fn can_detect_invalid_break_time() {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![VehicleBreak {
+                        time: VehicleBreakTime::TimeWindow(vec![]),
+                        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                        policy: None,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            profiles: vec![],
+        },
+        ..create_empty_problem()
+    };
+
+    let result =
+        check_e1303_vehicle_breaks_time_is_correct(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.err().map(|err| err.code), Some("E1303".to_string()));
+}
+
 parameterized_test! {can_detect_invalid_area, (allowed_areas, expected), {
     can_detect_invalid_area_impl(allowed_areas, expected);
 }}
