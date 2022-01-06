@@ -107,7 +107,9 @@ pub fn create_objective(
         }
         (None, None, true) => {
             let (order_module, order_objective) = get_order(false);
+
             constraint.add_module(order_module);
+            constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
 
             let mut objectives = get_default_objectives();
             objectives.insert(1, vec![order_objective]);
