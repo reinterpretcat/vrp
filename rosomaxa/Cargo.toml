@@ -1,0 +1,20 @@
+[package]
+name = "rosomaxa"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+license = "Apache-2.0"
+keywords = ["heuristics", "optimization"]
+categories = ["algorithms", "science"]
+readme = "README.md"
+homepage = "https://github.com/reinterpretcat/vrp"
+repository = "https://github.com/reinterpretcat/vrp"
+description = "A rosomaxa algorithm and other building blocks for building a solver for optimization problems"
+
+[dependencies]
+rayon = "1.5.1"
+rand = "0.8.4"
+hashbrown = "0.11.2"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+num_cpus = "1.13.1"

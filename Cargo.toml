@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "rosomaxa",
     "vrp-core",
     "vrp-cli",
     "vrp-pragmatic",
