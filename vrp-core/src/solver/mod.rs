@@ -133,7 +133,7 @@ pub struct RefinementContext {
     pub problem: Arc<Problem>,
 
     /// A population which tracks best discovered solutions.
-    pub population: Box<dyn HeuristicPopulation + Sync + Send>,
+    pub population: TargetPopulation,
 
     /// A collection of data associated with refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
@@ -184,7 +184,7 @@ impl RefinementContext {
     /// Creates a new instance of `RefinementContext`.
     pub fn new(
         problem: Arc<Problem>,
-        population: Box<dyn HeuristicPopulation + Sync + Send>,
+        population: TargetPopulation,
         environment: Arc<Environment>,
         quota: Option<Arc<dyn Quota + Send + Sync>>,
     ) -> Self {

@@ -10,12 +10,12 @@ impl EvolutionStrategy for RunSimple {
     fn run(
         &self,
         refinement_ctx: RefinementContext,
-        hyper: Box<dyn HyperHeuristic + Send + Sync>,
+        heuristic: TargetHeuristic,
         termination: &(dyn Termination + Send + Sync),
         telemetry: Telemetry,
     ) -> EvolutionResult {
         let mut refinement_ctx = refinement_ctx;
-        let mut hyper = hyper;
+        let mut heuristic = heuristic;
         let mut telemetry = telemetry;
 
         while !should_stop(&mut refinement_ctx, termination) {
@@ -23,7 +23,7 @@ impl EvolutionStrategy for RunSimple {
 
             let parents = refinement_ctx.population.select().collect();
 
-            let offspring = hyper.search(&refinement_ctx, parents);
+            let offspring = heuristic.search(&refinement_ctx, parents);
 
             let is_improved =
                 if should_add_solution(&refinement_ctx) { refinement_ctx.population.add_all(offspring) } else { false };

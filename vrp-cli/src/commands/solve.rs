@@ -381,7 +381,7 @@ pub fn run_solve(
                                 .with_max_time(max_time)
                                 .with_min_cv(min_cv)
                                 .with_population(get_population(mode, problem.objective.clone(), environment.clone()))
-                                .with_hyper(get_heuristic(matches, problem.clone(), environment)?)
+                                .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
                         };
 
                         let (solution, cost, metrics) = builder

@@ -4,7 +4,7 @@ use crate::construction::probing::repair_solution_from_unknown;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::mutation::Mutation;
-use crate::solver::RefinementContext;
+use crate::solver::{ElitismPopulation, RefinementContext};
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -67,7 +67,7 @@ fn create_relaxed_refinement_ctx(
 ) -> RefinementContext {
     let problem = new_insertion_ctx.problem.clone();
     let environment = new_insertion_ctx.environment.clone();
-    let population = Box::new(Elitism::new(problem.objective.clone(), environment.random.clone(), 4, 4));
+    let population = Box::new(ElitismPopulation::new(problem.objective.clone(), environment.random.clone(), 4, 4));
 
     RefinementContext {
         problem,

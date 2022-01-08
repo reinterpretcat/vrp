@@ -136,7 +136,7 @@ fn can_create_builder_from_config() {
 
     let builder = create_builder_from_config(problem.clone(), &config).unwrap();
 
-    assert!(builder.config.population.variation.is_some());
+    assert!(builder.config.population.population.is_some());
     assert_eq!(builder.config.problem.as_ref() as *const Problem, problem.as_ref() as *const Problem);
     assert_eq!(builder.config.population.initial.max_size, 4);
     assert_eq!(builder.config.population.initial.quota, 0.05);

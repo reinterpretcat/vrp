@@ -5,7 +5,7 @@ use crate::solver::evolution::EvolutionConfig;
 use crate::solver::mutation::*;
 use crate::solver::processing::Processing;
 use crate::solver::termination::*;
-use crate::solver::{Solver, Telemetry};
+use crate::solver::{Solver, TargetHeuristic, TargetPopulation, Telemetry};
 use crate::utils::TimeQuota;
 use rosomaxa::prelude::*;
 use std::sync::Arc;
@@ -28,7 +28,7 @@ use std::sync::Arc;
 /// # use std::sync::Arc;
 /// use vrp_core::solver::Builder;
 /// use vrp_core::models::Problem;
-/// use vrp_core::utils::Environment;
+/// use rosomaxa::utils::Environment;
 ///
 /// // create your VRP problem
 /// let problem: Arc<Problem> = create_example_problem();
@@ -134,14 +134,14 @@ impl Builder {
     }
 
     /// Sets population algorithm. Default is rosomaxa.
-    pub fn with_population(mut self, population: Box<dyn Population + Send + Sync>) -> Self {
-        self.config.population.variation = Some(population);
+    pub fn with_population(mut self, population: TargetPopulation) -> Self {
+        self.config.population.population = Some(population);
         self
     }
 
     /// Sets hyper heuristic algorithm. Default is simple selective.
-    pub fn with_hyper(mut self, hyper: Box<dyn HyperHeuristic + Send + Sync>) -> Self {
-        self.config.hyper = hyper;
+    pub fn with_heuristic(mut self, heuristic: TargetHeuristic) -> Self {
+        self.config.heuristic = heuristic;
         self
     }
 

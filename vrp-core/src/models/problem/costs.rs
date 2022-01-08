@@ -54,7 +54,7 @@ impl MultiObjective for ObjectiveCost {
     }
 }
 
-impl HeuristicObjective<Solution = InsertionContext> for ObjectiveCost {}
+impl HeuristicObjective for ObjectiveCost {}
 
 impl Shuffled for ObjectiveCost {
     /// Returns a new instance of `ObjectiveCost` with shuffled objectives.

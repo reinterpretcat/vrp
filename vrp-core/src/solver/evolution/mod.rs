@@ -1,7 +1,7 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
-use crate::solver::{Metrics, RefinementContext};
+use crate::solver::{Metrics, RefinementContext, TargetHeuristic, TargetPopulation};
 use crate::utils::Timer;
 use rosomaxa::prelude::*;
 
@@ -16,7 +16,7 @@ mod config;
 mod run_simple;
 
 /// Defines evolution result type.
-pub type EvolutionResult = Result<(Box<dyn HeuristicPopulation + Send + Sync>, Option<Metrics>), String>;
+pub type EvolutionResult = Result<(TargetPopulation, Option<Metrics>), String>;
 
 /// An evolution algorithm strategy.
 pub trait EvolutionStrategy {
@@ -24,7 +24,7 @@ pub trait EvolutionStrategy {
     fn run(
         &self,
         refinement_ctx: RefinementContext,
-        hyper: Box<dyn HyperHeuristic + Send + Sync>,
+        heuristic: TargetHeuristic,
         termination: &(dyn Termination + Send + Sync),
         telemetry: Telemetry,
     ) -> EvolutionResult;
@@ -50,14 +50,14 @@ impl EvolutionSimulator {
         let refinement_ctx = self.create_refinement_ctx();
         let strategy = self.config.strategy.clone();
 
-        strategy.run(refinement_ctx, self.config.hyper, self.config.termination.as_ref(), self.config.telemetry)
+        strategy.run(refinement_ctx, self.config.heuristic, self.config.termination.as_ref(), self.config.telemetry)
     }
 
     /// Creates refinement context with population containing initial individuals.
     fn create_refinement_ctx(&mut self) -> RefinementContext {
         let mut refinement_ctx = RefinementContext::new(
             self.config.problem.clone(),
-            std::mem::replace(&mut self.config.population.variation, None).unwrap(),
+            std::mem::replace(&mut self.config.population.population, None).unwrap(),
             self.config.environment.clone(),
             std::mem::replace(&mut self.config.quota, None),
         );

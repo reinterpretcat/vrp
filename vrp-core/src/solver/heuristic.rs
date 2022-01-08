@@ -2,9 +2,12 @@ use super::*;
 use crate::construction::heuristics::InsertionContext;
 use crate::models::problem::ObjectiveCost;
 use rosomaxa::heuristics::population::*;
-use rosomaxa::prelude::*;
 
 // TODO add type aliases for greedy, elitism, rosomaxa populations?
+
+pub type TargetPopulation =
+    Box<dyn HeuristicPopulation<Objective = ObjectiveCost, Individual = InsertionContext> + Send + Sync>;
+pub type TargetHeuristic = Box<dyn HyperHeuristic<Context = RefinementContext, Solution = InsertionContext>>;
 
 pub type GreedyPopulation = Greedy<ObjectiveCost, InsertionContext>;
 pub type ElitismPopulation = Elitism<ObjectiveCost, InsertionContext>;
@@ -16,10 +19,7 @@ pub fn get_default_selection_size(environment: &Environment) -> usize {
 }
 
 /// Gets default population algorithm.
-pub fn get_default_population(
-    objective: Arc<ObjectiveCost>,
-    environment: Arc<Environment>,
-) -> Box<dyn Population + Send + Sync> {
+pub fn get_default_population(objective: Arc<ObjectiveCost>, environment: Arc<Environment>) -> TargetPopulation {
     let selection_size = get_default_selection_size(environment.as_ref());
     if selection_size == 1 {
         Box::new(Greedy::new(objective, 1, None))
@@ -32,11 +32,13 @@ pub fn get_default_population(
     }
 }
 
+/// Gets default heuristic.
+pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
+    todo!()
+}
+
 /// Creates elitism population algorithm.
-pub fn create_elitism_population(
-    objective: Arc<ObjectiveCost>,
-    environment: Arc<Environment>,
-) -> Box<dyn Population + Sync + Send> {
+pub fn create_elitism_population(objective: Arc<ObjectiveCost>, environment: Arc<Environment>) -> TargetPopulation {
     let selection_size = get_default_selection_size(environment.as_ref());
     Box::new(Elitism::new(objective, environment.random.clone(), 4, selection_size))
 }

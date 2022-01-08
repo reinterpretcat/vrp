@@ -4,8 +4,7 @@ mod decompose_search_test;
 
 use crate::construction::heuristics::*;
 use crate::solver::mutation::Mutation;
-use crate::solver::telemetry::InsertionContext;
-use crate::solver::{RefinementContext, GreedyPopulation};
+use crate::solver::{GreedyPopulation, RefinementContext, TargetPopulation};
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
@@ -84,7 +83,7 @@ impl DecomposeSearch {
     }
 }
 
-fn create_population(insertion_ctx: InsertionContext) -> Box<dyn Population + Send + Sync> {
+fn create_population(insertion_ctx: InsertionContext) -> TargetPopulation {
     Box::new(GreedyPopulation::new(insertion_ctx.problem.objective.clone(), 1, Some(insertion_ctx)))
 }
 
@@ -106,7 +105,8 @@ fn create_multiple_insertion_ctxs(
         .enumerate()
         .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
         .map(|(outer_idx, route_group_distance)| {
-            let group_size = insertion_ctx.environment.random.uniform_int(max_routes_range.0, max_routes_range.1) as usize;
+            let group_size =
+                insertion_ctx.environment.random.uniform_int(max_routes_range.0, max_routes_range.1) as usize;
             let route_group = once(outer_idx)
                 .chain(
                     route_group_distance
@@ -130,7 +130,10 @@ fn create_multiple_insertion_ctxs(
     Some(insertion_ctxs)
 }
 
-fn create_partial_insertion_ctx(insertion_ctx: &InsertionContext, route_indices: HashSet<usize>) -> (InsertionContext, HashSet<usize>) {
+fn create_partial_insertion_ctx(
+    insertion_ctx: &InsertionContext,
+    route_indices: HashSet<usize>,
+) -> (InsertionContext, HashSet<usize>) {
     let solution = &insertion_ctx.solution;
 
     let routes = route_indices.iter().map(|idx| solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
@@ -162,7 +165,9 @@ fn create_partial_insertion_ctx(insertion_ctx: &InsertionContext, route_indices:
     )
 }
 
-fn create_empty_insertion_ctxs(insertion_ctx: &InsertionContext) -> Box<dyn Iterator<Item = (InsertionContext, HashSet<usize>)>> {
+fn create_empty_insertion_ctxs(
+    insertion_ctx: &InsertionContext,
+) -> Box<dyn Iterator<Item = (InsertionContext, HashSet<usize>)>> {
     // TODO split into more insertion_ctxs if too many required jobs are present
     //      this might increase overall refinement speed
 

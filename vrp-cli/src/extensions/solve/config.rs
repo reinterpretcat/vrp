@@ -560,14 +560,14 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
                     )
                 };
 
-                builder = builder.with_hyper(Box::new(static_selective));
+                builder = builder.with_heuristic(Box::new(static_selective));
             }
             HyperType::DynamicSelective => {
                 let dynamic_selective = vrp_core::solver::hyper::DynamicSelective::new_with_defaults(
                     builder.config.problem.clone(),
                     builder.config.environment.clone(),
                 );
-                builder = builder.with_hyper(Box::new(dynamic_selective));
+                builder = builder.with_heuristic(Box::new(dynamic_selective));
             }
         }
     }

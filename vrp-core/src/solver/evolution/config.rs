@@ -7,7 +7,7 @@ use crate::solver::mutation::*;
 use crate::solver::processing::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
-use crate::solver::TelemetryMode;
+use crate::solver::{get_default_heuristic, get_default_population, TargetHeuristic, TargetPopulation, TelemetryMode};
 use rosomaxa::prelude::*;
 use std::sync::Arc;
 
@@ -23,7 +23,7 @@ pub struct EvolutionConfig {
     pub population: PopulationConfig,
 
     /// A hyper heuristic.
-    pub hyper: Box<dyn HyperHeuristic + Send + Sync>,
+    pub heuristic: TargetHeuristic,
 
     /// A termination defines when evolution should stop.
     pub termination: Arc<dyn Termination + Send + Sync>,
@@ -46,8 +46,8 @@ pub struct PopulationConfig {
     /// An initial solution config.
     pub initial: InitialConfig,
 
-    /// Population algorithm variation.
-    pub variation: Option<Box<dyn Population + Send + Sync>>,
+    /// Population algorithm.
+    pub population: Option<TargetPopulation>,
 }
 
 /// An initial solutions configuration.
@@ -89,9 +89,9 @@ impl EvolutionConfig {
                     ],
                     individuals: vec![],
                 },
-                variation: Some(get_default_population(problem.objective.clone(), environment.clone())),
+                population: Some(get_default_population(problem.objective.clone(), environment.clone())),
             },
-            hyper: Box::new(MultiSelective::new_with_defaults(problem, environment.clone())),
+            heuristic: get_default_heuristic(problem, environment.clone()),
             termination: Arc::new(CompositeTermination::new(vec![
                 Box::new(MaxTime::new(300.)),
                 Box::new(MaxGeneration::new(3000)),
