@@ -5,6 +5,7 @@ use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::mutation::Mutation;
 use crate::solver::{ElitismPopulation, RefinementContext};
+use rosomaxa::heuristics::population::Shuffled;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -97,7 +98,7 @@ fn create_relaxed_insertion_ctx(
     };
 
     let objective = if random.is_hit(shuffle_prob) {
-        Arc::new(problem.objective.shuffled(random.as_ref()))
+        Arc::new(problem.objective.get_shuffled(random.as_ref()))
     } else {
         problem.objective.clone()
     };

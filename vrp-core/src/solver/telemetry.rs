@@ -152,7 +152,7 @@ impl Telemetry {
                         insertion_ctx.problem.objective.fitness(insertion_ctx),
                         insertion_ctx.solution.routes.len(),
                         insertion_ctx.solution.unassigned.len(),
-                        Self::format_fitness(insertion_ctx.get_fitness_values())
+                        Self::format_fitness(insertion_ctx.get_fitness())
                     )
                     .as_str(),
                 );
@@ -311,7 +311,7 @@ impl Telemetry {
         insertion_ctx: &InsertionContext,
         rank: usize,
     ) -> Individual {
-        let fitness_values = insertion_ctx.get_fitness_values().collect::<Vec<_>>();
+        let fitness_values = insertion_ctx.get_fitness().collect::<Vec<_>>();
 
         let (cost, cost_difference) = Self::get_fitness(refinement_ctx, insertion_ctx);
 

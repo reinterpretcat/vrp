@@ -80,7 +80,7 @@ impl InsertionContext {
 }
 
 impl HeuristicSolution for InsertionContext {
-    fn get_fitness(&self) -> Box<dyn Iterator<Item = f64>> {
+    fn get_fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
         Box::new(self.problem.objective.objectives().map(move |objective| objective.fitness(self)))
     }
 

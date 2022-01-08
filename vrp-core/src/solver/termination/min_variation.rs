@@ -2,11 +2,12 @@
 #[path = "../../../tests/unit/solver/termination/min_variation_test.rs"]
 mod min_variation_test;
 
-use super::super::rand::prelude::SliceRandom;
 use crate::algorithms::statistics::get_cv;
 use crate::solver::termination::Termination;
 use crate::solver::RefinementContext;
+use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
+use rosomaxa::utils::CollectGroupBy;
 
 /// A termination criteria which calculates coefficient variation in each objective and terminates
 /// when min threshold is not reached.

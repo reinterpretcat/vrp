@@ -1,10 +1,10 @@
-use super::super::super::rand::prelude::SliceRandom;
 use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
+use rand::prelude::SliceRandom;
 use rosomaxa::utils::Random;
 use std::sync::Arc;
 

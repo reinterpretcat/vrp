@@ -1,6 +1,7 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::mutation::{LocalOperator, Mutation};
 use crate::solver::RefinementContext;
+use rosomaxa::heuristics::HeuristicSolution;
 use std::sync::Arc;
 
 /// A mutation operator which applies local search principles.

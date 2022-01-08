@@ -1,6 +1,7 @@
 use super::*;
 use crate::construction::constraints::TransportConstraintModule;
 use crate::construction::heuristics::InsertionContext;
+use rosomaxa::heuristics::HeuristicSolution;
 
 /// Provides way to reduce waiting time by advancing departure time.
 #[derive(Default)]

@@ -8,7 +8,7 @@ use crate::solver::mutation::LocalOperator;
 use crate::solver::RefinementContext;
 use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
-use rosomaxa::utils::unwrap_from_result;
+use rosomaxa::prelude::*;
 
 const MIN_JOBS: usize = 2;
 
