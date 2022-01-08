@@ -1,12 +1,12 @@
 use crate::algorithms::statistics::get_cv;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{RouteContext, SolutionContext};
-use crate::models::common::{CapacityDimension, Load};
+use crate::models::common::{CapacityDimension, LoadOps};
 use crate::models::problem::{TargetConstraint, TargetObjective};
 use crate::solver::objectives::GenericValue;
 use crate::solver::*;
 use std::cmp::Ordering;
-use std::ops::{Add, Deref, Sub};
+use std::ops::Deref;
 use std::sync::Arc;
 
 /// A type which provides functionality needed to balance work across all routes.
@@ -14,7 +14,7 @@ pub struct WorkBalance {}
 
 impl WorkBalance {
     /// Creates _(constraint, objective)_  type pair which balances max load across all tours.
-    pub fn new_load_balanced<T: Load + Add<Output = T> + Sub<Output = T> + 'static>(
+    pub fn new_load_balanced<T: LoadOps>(
         threshold: Option<f64>,
         load_func: Arc<dyn Fn(&T, &T) -> f64 + Send + Sync>,
     ) -> (TargetConstraint, TargetObjective) {

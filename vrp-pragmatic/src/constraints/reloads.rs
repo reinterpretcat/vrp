@@ -3,26 +3,26 @@
 mod reload_test;
 
 use crate::constraints::*;
-use std::ops::{Add, Deref, Sub};
+use std::ops::Deref;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::RouteContext;
-use vrp_core::models::common::{IdDimension, Load, ValueDimension};
+use vrp_core::models::common::{IdDimension, LoadOps, ValueDimension};
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Route};
 
 /// A strategy to use multi trip with reload jobs.
-pub struct ReloadMultiTrip<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+pub struct ReloadMultiTrip<T: LoadOps> {
     threshold: Box<dyn Fn(&T) -> T + Send + Sync>,
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ReloadMultiTrip<T> {
+impl<T: LoadOps> ReloadMultiTrip<T> {
     pub fn new(threshold: Box<dyn Fn(&T) -> T + Send + Sync>) -> Self {
         Self { threshold }
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> MultiTrip<T> for ReloadMultiTrip<T> {
+impl<T: LoadOps> MultiTrip<T> for ReloadMultiTrip<T> {
     fn is_reload_job(&self, job: &Job) -> bool {
         job.as_single().map_or(false, |single| self.is_reload_single(single))
     }

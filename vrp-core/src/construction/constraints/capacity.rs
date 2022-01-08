@@ -10,7 +10,7 @@ use crate::models::solution::{Activity, Route};
 use hashbrown::HashSet;
 use std::iter::{empty, once};
 use std::marker::PhantomData;
-use std::ops::{Add, Deref, Sub};
+use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -30,7 +30,7 @@ pub fn route_intervals(route: &Route, is_reload: Box<dyn Fn(&Activity) -> bool +
 }
 
 /// This trait defines multi-trip strategy.
-pub trait MultiTrip<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+pub trait MultiTrip<T: LoadOps> {
     /// Returns true if job is reload.
     fn is_reload_job(&self, job: &Job) -> bool;
 
@@ -55,7 +55,7 @@ pub trait MultiTrip<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
 }
 
 /// A module which ensures vehicle capacity limitation while serving customer's demand.
-pub struct CapacityConstraintModule<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+pub struct CapacityConstraintModule<T: LoadOps> {
     code: i32,
     state_keys: Vec<i32>,
     conditional: ConditionalJobModule,
@@ -64,9 +64,7 @@ pub struct CapacityConstraintModule<T: Load + Add<Output = T> + Sub<Output = T> 
     multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output = T> + 'static>
-    CapacityConstraintModule<T>
-{
+impl<T: LoadOps + 'static> CapacityConstraintModule<T> {
     /// Creates a new instance of `CapacityConstraintModule` without multi trip (reload) functionality
     pub fn new(transport: Arc<dyn TransportCost + Send + Sync>, code: i32) -> Self {
         Self::new_with_multi_trip(transport, code, Arc::new(NoMultiTrip { phantom: PhantomData }))
@@ -301,7 +299,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + Add<Output = T> + Sub<Output 
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for CapacityConstraintModule<T> {
+impl<T: LoadOps> ConstraintModule for CapacityConstraintModule<T> {
     fn accept_insertion(&self, solution_ctx: &mut SolutionContext, route_index: usize, job: &Job) {
         let route_ctx = solution_ctx.routes.get_mut(route_index).unwrap();
         self.accept_route_state(route_ctx);
@@ -382,11 +380,11 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> ConstraintModule for
     }
 }
 
-struct CapacitySoftRouteConstraint<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+struct CapacitySoftRouteConstraint<T: LoadOps> {
     multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> SoftRouteConstraint for CapacitySoftRouteConstraint<T> {
+impl<T: LoadOps> SoftRouteConstraint for CapacitySoftRouteConstraint<T> {
     fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> f64 {
         if self.multi_trip.is_reload_job(job) {
             0. - ctx.route.actor.vehicle.costs.fixed.max(1000.)
@@ -397,12 +395,12 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> SoftRouteConstraint 
 }
 
 /// Locks reload jobs to specific vehicles
-struct CapacityHardRouteConstraint<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+struct CapacityHardRouteConstraint<T: LoadOps> {
     code: i32,
     multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> HardRouteConstraint for CapacityHardRouteConstraint<T> {
+impl<T: LoadOps> HardRouteConstraint for CapacityHardRouteConstraint<T> {
     fn evaluate_job(&self, _: &SolutionContext, ctx: &RouteContext, job: &Job) -> Option<RouteConstraintViolation> {
         if self.multi_trip.is_reload_job(job) {
             return if self.multi_trip.is_assignable(&ctx.route, job) {
@@ -429,14 +427,12 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> HardRouteConstraint 
     }
 }
 
-struct CapacityHardActivityConstraint<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+struct CapacityHardActivityConstraint<T: LoadOps> {
     code: i32,
     multi_trip: Arc<dyn MultiTrip<T> + Send + Sync>,
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> HardActivityConstraint
-    for CapacityHardActivityConstraint<T>
-{
+impl<T: LoadOps> HardActivityConstraint for CapacityHardActivityConstraint<T> {
     fn evaluate_activity(
         &self,
         route_ctx: &RouteContext,
@@ -482,11 +478,11 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> HardActivityConstrai
 }
 
 /// A no multi trip strategy.
-struct NoMultiTrip<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+struct NoMultiTrip<T: LoadOps> {
     phantom: PhantomData<T>,
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> MultiTrip<T> for NoMultiTrip<T> {
+impl<T: LoadOps> MultiTrip<T> for NoMultiTrip<T> {
     fn is_reload_job(&self, _: &Job) -> bool {
         false
     }

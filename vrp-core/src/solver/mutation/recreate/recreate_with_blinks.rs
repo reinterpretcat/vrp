@@ -13,15 +13,14 @@ use crate::utils::{compare_floats, Either, Random};
 use rand::prelude::*;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
-use std::ops::{Add, Sub};
 use std::sync::Arc;
 
-struct DemandJobSelector<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+struct DemandJobSelector<T: LoadOps> {
     asc_order: bool,
     phantom: PhantomData<T>,
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> DemandJobSelector<T> {
+impl<T: LoadOps> DemandJobSelector<T> {
     pub fn new(asc_order: bool) -> Self {
         Self { asc_order, phantom: PhantomData }
     }
@@ -39,7 +38,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> DemandJobSelector<T>
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> JobSelector for DemandJobSelector<T> {
+impl<T: LoadOps> JobSelector for DemandJobSelector<T> {
     fn select<'a>(&'a self, ctx: &'a mut InsertionContext) -> Box<dyn Iterator<Item = Job> + 'a> {
         ctx.solution.required.sort_by(|a, b| match (Self::get_job_demand(a), Self::get_job_demand(b)) {
             (None, Some(_)) => Ordering::Less,
@@ -160,7 +159,7 @@ impl ResultSelector for BlinkResultSelector {
 
 /// A recreate method as described in "Slack Induction by String Removals for
 /// Vehicle Routing Problems" (aka SISR) paper by Jan Christiaens, Greet Vanden Berghe.
-pub struct RecreateWithBlinks<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+pub struct RecreateWithBlinks<T: LoadOps> {
     job_selectors: Vec<Box<dyn JobSelector + Send + Sync>>,
     route_selector: Box<dyn RouteSelector + Send + Sync>,
     leg_selector: Box<dyn LegSelector + Send + Sync>,
@@ -170,7 +169,7 @@ pub struct RecreateWithBlinks<T: Load + Add<Output = T> + Sub<Output = T> + 'sta
     phantom: PhantomData<T>,
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T> {
+impl<T: LoadOps> RecreateWithBlinks<T> {
     /// Creates a new instance of `RecreateWithBlinks`.
     pub fn new(
         selectors: Vec<(Box<dyn JobSelector + Send + Sync>, usize)>,
@@ -204,7 +203,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> RecreateWithBlinks<T
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Recreate for RecreateWithBlinks<T> {
+impl<T: LoadOps> Recreate for RecreateWithBlinks<T> {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
         let job_selector = self.job_selectors.get(index).unwrap().as_ref();

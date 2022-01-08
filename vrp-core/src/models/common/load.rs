@@ -26,8 +26,15 @@ pub trait Load: Add + Sub + Ord + Copy + Default + Send + Sync {
     fn ratio(&self, other: &Self) -> f64;
 }
 
+/// Specifies constraints on Load operations.
+pub trait LoadOps: Load + Add<Output = Self> + Sub<Output = Self> + 'static
+where
+    Self: std::marker::Sized,
+{
+}
+
 /// Represents job demand, both static and dynamic.
-pub struct Demand<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+pub struct Demand<T: LoadOps> {
     /// Keeps static and dynamic pickup amount.
     pub pickup: (T, T),
     /// Keeps static and dynamic delivery amount.
@@ -35,7 +42,7 @@ pub struct Demand<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
 }
 
 /// A trait to get or set vehicle's capacity.
-pub trait CapacityDimension<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+pub trait CapacityDimension<T: LoadOps> {
     /// Sets capacity.
     fn set_capacity(&mut self, demand: T) -> &mut Self;
     /// Gets capacity.
@@ -43,33 +50,33 @@ pub trait CapacityDimension<T: Load + Add<Output = T> + Sub<Output = T> + 'stati
 }
 
 /// A trait to get or set demand.
-pub trait DemandDimension<T: Load + Add<Output = T> + Sub<Output = T> + 'static> {
+pub trait DemandDimension<T: LoadOps> {
     /// Sets demand.
     fn set_demand(&mut self, demand: Demand<T>) -> &mut Self;
     /// Gets demand.
     fn get_demand(&self) -> Option<&Demand<T>>;
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Demand<T> {
+impl<T: LoadOps> Demand<T> {
     /// Returns capacity change as difference between pickup and delivery.
     pub fn change(&self) -> T {
         self.pickup.0 + self.pickup.1 - self.delivery.0 - self.delivery.1
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Default for Demand<T> {
+impl<T: LoadOps> Default for Demand<T> {
     fn default() -> Self {
         Self { pickup: (Default::default(), Default::default()), delivery: (Default::default(), Default::default()) }
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Clone for Demand<T> {
+impl<T: LoadOps> Clone for Demand<T> {
     fn clone(&self) -> Self {
         Self { pickup: self.pickup, delivery: self.delivery }
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Add for Demand<T> {
+impl<T: LoadOps> Add for Demand<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -80,7 +87,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> Add for Demand<T> {
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> CapacityDimension<T> for Dimensions {
+impl<T: LoadOps> CapacityDimension<T> for Dimensions {
     fn set_capacity(&mut self, demand: T) -> &mut Self {
         self.set_value(CAPACITY_DIMENSION_KEY, demand);
         self
@@ -91,7 +98,7 @@ impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> CapacityDimension<T>
     }
 }
 
-impl<T: Load + Add<Output = T> + Sub<Output = T> + 'static> DemandDimension<T> for Dimensions {
+impl<T: LoadOps> DemandDimension<T> for Dimensions {
     fn set_demand(&mut self, demand: Demand<T>) -> &mut Self {
         self.set_value(DEMAND_DIMENSION_KEY, demand);
         self
@@ -115,6 +122,8 @@ impl SingleDimLoad {
         Self { value }
     }
 }
+
+impl LoadOps for SingleDimLoad {}
 
 impl Load for SingleDimLoad {
     fn is_not_empty(&self) -> bool {
@@ -237,6 +246,8 @@ impl Load for MultiDimLoad {
         self.load.iter().zip(other.load.iter()).fold(0., |acc, (a, b)| (*a as f64 / *b as f64).max(acc))
     }
 }
+
+impl LoadOps for MultiDimLoad {}
 
 impl Default for MultiDimLoad {
     fn default() -> Self {
