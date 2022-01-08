@@ -4,8 +4,8 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::OP_START_MSG;
 use crate::models::{LockOrder, Problem, Solution};
-use crate::utils::Environment;
 use hashbrown::{HashMap, HashSet};
+use rosomaxa::utils::Environment;
 use std::ops::Deref;
 use std::sync::Arc;
 

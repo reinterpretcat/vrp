@@ -8,7 +8,7 @@ use crate::models::common::{Cost, Distance, Duration, Profile, Timestamp};
 use crate::models::problem::{ActivityCost, Actor, Job, Single, TransportCost};
 use crate::models::solution::Activity;
 use crate::models::OP_START_MSG;
-use crate::utils::compare_floats;
+use rosomaxa::utils::compare_floats;
 use std::cmp::Ordering;
 use std::slice::Iter;
 use std::sync::Arc;

@@ -7,8 +7,8 @@ use crate::construction::heuristics::*;
 use crate::models::common::TimeSpan;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::Activity;
-use crate::utils::{compare_floats, unwrap_from_result};
 use hashbrown::{HashMap, HashSet};
+use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 

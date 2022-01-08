@@ -9,7 +9,7 @@ use crate::algorithms::geometry::Point;
 use crate::models::common::Timestamp;
 use crate::models::problem::{Job, Single};
 use crate::models::Problem;
-use crate::utils::{compare_floats, Random};
+use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 

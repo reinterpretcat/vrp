@@ -6,7 +6,7 @@ use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
 use crate::models::common::Location;
 use crate::models::problem::{Actor, Job, Single};
-use crate::utils::compare_floats;
+use rosomaxa::utils::compare_floats;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::slice::Iter;

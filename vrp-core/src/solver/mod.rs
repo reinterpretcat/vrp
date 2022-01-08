@@ -92,25 +92,25 @@
 
 extern crate rand;
 
-use crate::algorithms::nsga2::Objective;
 use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::{Problem, Solution};
-use crate::solver::population::Population;
-use crate::utils::{Environment, Timer};
+use crate::utils::Timer;
 use hashbrown::HashMap;
+use rosomaxa::prelude::*;
 use std::any::Any;
 use std::sync::Arc;
 
-pub mod hyper;
 pub mod mutation;
 pub mod objectives;
-pub mod population;
 pub mod processing;
 pub mod termination;
 
 mod builder;
 pub use self::builder::Builder;
+
+mod heuristic;
+pub use self::heuristic::*;
 
 mod evolution;
 use self::evolution::{EvolutionConfig, EvolutionSimulator};
@@ -133,7 +133,7 @@ pub struct RefinementContext {
     pub problem: Arc<Problem>,
 
     /// A population which tracks best discovered solutions.
-    pub population: Box<dyn Population + Sync + Send>,
+    pub population: Box<dyn HeuristicPopulation + Sync + Send>,
 
     /// A collection of data associated with refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
@@ -184,7 +184,7 @@ impl RefinementContext {
     /// Creates a new instance of `RefinementContext`.
     pub fn new(
         problem: Arc<Problem>,
-        population: Box<dyn Population + Sync + Send>,
+        population: Box<dyn HeuristicPopulation + Sync + Send>,
         environment: Arc<Environment>,
         quota: Option<Arc<dyn Quota + Send + Sync>>,
     ) -> Self {
@@ -225,9 +225,9 @@ impl Solver {
     /// ```
     /// # use vrp_core::models::examples::create_example_problem;
     /// # use std::sync::Arc;
+    /// use rosomaxa::utils::Environment;
     /// use vrp_core::solver::Builder;
     /// use vrp_core::models::Problem;
-    /// use vrp_core::utils::Environment;
     ///
     /// // create your VRP problem
     /// let problem: Arc<Problem> = create_example_problem();

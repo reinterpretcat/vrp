@@ -3,7 +3,7 @@ use crate::construction::heuristics::*;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
-use crate::utils::Random;
+use rosomaxa::utils::Random;
 use std::sync::Arc;
 
 /// A recreate method which always insert first the farthest job in empty route and prefers

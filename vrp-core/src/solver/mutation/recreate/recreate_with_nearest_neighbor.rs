@@ -2,7 +2,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::construction::heuristics::*;
 use crate::solver::mutation::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
-use crate::utils::Random;
+use rosomaxa::utils::Random;
 use std::sync::Arc;
 
 /// A recreate strategy which solution using nearest neighbor algorithm.

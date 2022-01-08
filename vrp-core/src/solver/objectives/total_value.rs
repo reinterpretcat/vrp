@@ -6,7 +6,7 @@ use crate::construction::constraints::*;
 use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
 use crate::solver::objectives::GenericValue;
-use crate::utils::compare_floats;
+use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;

@@ -3,11 +3,11 @@
 mod route_removal_test;
 
 use super::*;
-use crate::construction::heuristics::{group_routes_by_proximity, InsertionContext, RouteContext, SolutionContext};
+use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::RefinementContext;
-use crate::utils::Random;
 use rand::prelude::SliceRandom;
+use rosomaxa::prelude::*;
 
 /// A ruin strategy which removes random route from solution.
 pub struct RandomRouteRemoval {

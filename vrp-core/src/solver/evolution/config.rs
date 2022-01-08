@@ -3,14 +3,12 @@ use crate::construction::Quota;
 use crate::models::common::SingleDimLoad;
 use crate::models::Problem;
 use crate::solver::evolution::{EvolutionStrategy, RunSimple};
-use crate::solver::hyper::{HyperHeuristic, MultiSelective};
 use crate::solver::mutation::*;
-use crate::solver::population::*;
 use crate::solver::processing::*;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::TelemetryMode;
-use crate::utils::Environment;
+use rosomaxa::prelude::*;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.

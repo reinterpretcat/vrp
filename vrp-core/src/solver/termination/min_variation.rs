@@ -3,12 +3,10 @@
 mod min_variation_test;
 
 use super::super::rand::prelude::SliceRandom;
-use crate::algorithms::nsga2::MultiObjective;
 use crate::algorithms::statistics::get_cv;
-use crate::solver::population::SelectionPhase;
 use crate::solver::termination::Termination;
 use crate::solver::RefinementContext;
-use crate::utils::{unwrap_from_result, CollectGroupBy};
+use rosomaxa::prelude::*;
 
 /// A termination criteria which calculates coefficient variation in each objective and terminates
 /// when min threshold is not reached.

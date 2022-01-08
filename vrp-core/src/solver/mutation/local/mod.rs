@@ -1,8 +1,8 @@
 //! This module contains various Local Search operators.
 
-use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::*;
 use crate::solver::RefinementContext;
+use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 

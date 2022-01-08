@@ -5,7 +5,7 @@ use crate::models::problem::Job;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
-use crate::utils::Random;
+use rosomaxa::utils::Random;
 use std::sync::Arc;
 
 /// A recreate method which takes a slice from jobs and routes.

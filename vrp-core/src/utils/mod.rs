@@ -1,22 +1,10 @@
 //! A collection of various utility helpers.
 
-mod comparison;
-pub use self::comparison::*;
-
-mod environment;
-pub use self::environment::*;
-
-mod iterators;
-pub use self::iterators::*;
-
 mod mutability;
 pub use self::mutability::*;
 
-mod parallel;
-pub use self::parallel::*;
-
-mod random;
-pub use self::random::*;
+mod noise;
+pub use self::noise::Noise;
 
 mod time_quota;
 pub use self::time_quota::TimeQuota;

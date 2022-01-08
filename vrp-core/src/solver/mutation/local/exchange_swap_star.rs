@@ -5,10 +5,10 @@ mod exchange_swap_star_test;
 use super::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
-use crate::utils::{compare_floats, Either, SelectionSamplingIterator};
-use crate::utils::{map_reduce, Random};
+use crate::utils::Either;
 use hashbrown::{HashMap, HashSet};
 use rand::seq::SliceRandom;
+use rosomaxa::utils::{compare_floats, map_reduce, Random, SelectionSamplingIterator};
 use std::iter::once;
 use std::sync::RwLock;
 

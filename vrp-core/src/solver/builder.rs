@@ -2,13 +2,12 @@ use crate::construction::heuristics::InsertionContext;
 use crate::construction::Quota;
 use crate::models::{Problem, Solution};
 use crate::solver::evolution::EvolutionConfig;
-use crate::solver::hyper::HyperHeuristic;
 use crate::solver::mutation::*;
-use crate::solver::population::Population;
 use crate::solver::processing::Processing;
 use crate::solver::termination::*;
 use crate::solver::{Solver, Telemetry};
-use crate::utils::{Environment, TimeQuota};
+use crate::utils::TimeQuota;
+use rosomaxa::prelude::*;
 use std::sync::Arc;
 
 /// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent

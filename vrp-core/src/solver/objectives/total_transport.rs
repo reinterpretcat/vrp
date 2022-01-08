@@ -3,10 +3,10 @@
 mod total_transport_test;
 
 use super::*;
-use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::{TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::models::common::Cost;
 use crate::models::problem::TargetObjective;
+use rosomaxa::prelude::*;
 use std::ops::Deref;
 use std::sync::Arc;
 

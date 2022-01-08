@@ -6,7 +6,8 @@ use super::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::{select_seed_job, LocalOperator};
 use crate::solver::RefinementContext;
-use crate::utils::{map_reduce, Noise};
+use crate::utils::Noise;
+use rosomaxa::utils::map_reduce;
 
 /// A local search operator which tries to exchange jobs in best way between different routes.
 pub struct ExchangeInterRouteBest {

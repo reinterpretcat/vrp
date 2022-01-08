@@ -1,5 +1,4 @@
 use crate::solver::evolution::*;
-use crate::solver::hyper::HyperHeuristic;
 use crate::solver::{RefinementContext, Telemetry};
 use crate::utils::Timer;
 

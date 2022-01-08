@@ -40,8 +40,8 @@ pub use self::recreate_with_skip_random::RecreateWithSkipRandom;
 mod recreate_with_slice;
 pub use self::recreate_with_slice::RecreateWithSlice;
 
-use crate::solver::population::SelectionPhase;
 use hashbrown::HashMap;
+use rosomaxa::prelude::SelectionPhase;
 
 /// Provides the way to run one of multiple recreate methods.
 pub struct WeightedRecreate {

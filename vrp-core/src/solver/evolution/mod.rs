@@ -1,9 +1,9 @@
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::hyper::HyperHeuristic;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
-use crate::solver::{Metrics, Population, RefinementContext};
+use crate::solver::{Metrics, RefinementContext};
 use crate::utils::Timer;
+use rosomaxa::prelude::*;
 
 pub use self::config::*;
 pub use self::run_simple::RunSimple;
@@ -16,7 +16,7 @@ mod config;
 mod run_simple;
 
 /// Defines evolution result type.
-pub type EvolutionResult = Result<(Box<dyn Population + Send + Sync>, Option<Metrics>), String>;
+pub type EvolutionResult = Result<(Box<dyn HeuristicPopulation + Send + Sync>, Option<Metrics>), String>;
 
 /// An evolution algorithm strategy.
 pub trait EvolutionStrategy {

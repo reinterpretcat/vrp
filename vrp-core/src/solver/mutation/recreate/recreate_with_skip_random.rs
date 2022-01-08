@@ -4,9 +4,8 @@ use crate::construction::heuristics::*;
 use crate::models::problem::Job;
 use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::{ConfigurableRecreate, PhasedRecreate};
-use crate::solver::population::SelectionPhase;
 use crate::solver::RefinementContext;
-use crate::utils::Random;
+use rosomaxa::prelude::*;
 use std::sync::Arc;
 
 /// A recreate method which skips random jobs and routes.

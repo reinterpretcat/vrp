@@ -1,7 +1,10 @@
 //! Specifies population types.
 
 mod elitism;
+pub use self::elitism::DominanceOrder;
+pub use self::elitism::DominanceOrdered;
 pub use self::elitism::Elitism;
+pub use self::elitism::Shuffled;
 
 mod greedy;
 pub use self::greedy::Greedy;
@@ -9,6 +12,7 @@ pub use self::greedy::Greedy;
 mod rosomaxa;
 pub use self::rosomaxa::Rosomaxa;
 pub use self::rosomaxa::RosomaxaConfig;
+pub use self::rosomaxa::RosomaxaWeighted;
 
 use crate::heuristics::{HeuristicObjective, HeuristicSolution, HeuristicStatistics};
 use crate::utils::compare_floats;

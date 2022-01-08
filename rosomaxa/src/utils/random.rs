@@ -3,7 +3,6 @@
 mod random_test;
 
 use rand::prelude::*;
-use std::sync::Arc;
 
 /// Provides the way to use randomized values in generic way.
 pub trait Random {
@@ -73,30 +72,6 @@ impl Random for DefaultRandom {
             StdRng::seed_from_u64(*seed)
         } else {
             StdRng::from_rng(thread_rng()).expect("cannot get RNG")
-        }
-    }
-}
-
-/// Provides way to generate some noise to floating point value.
-#[derive(Clone)]
-pub struct Noise {
-    probability: f64,
-    range: (f64, f64),
-    random: Arc<dyn Random + Send + Sync>,
-}
-
-impl Noise {
-    /// Creates a new instance of `Noise`.
-    pub fn new(probability: f64, range: (f64, f64), random: Arc<dyn Random + Send + Sync>) -> Self {
-        Self { probability, range, random }
-    }
-
-    /// Adds some noise to given value.
-    pub fn add(&self, value: f64) -> f64 {
-        if self.random.is_hit(self.probability) {
-            value * self.random.uniform_real(self.range.0, self.range.1)
-        } else {
-            value
         }
     }
 }

@@ -1,8 +1,7 @@
-use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext, SolutionContext};
 use crate::models::problem::{Job, TargetConstraint, TargetObjective};
-use crate::utils::compare_floats;
+use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::slice::Iter;

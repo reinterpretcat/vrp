@@ -2,14 +2,14 @@
 #[path = "../../../tests/unit/solver/mutation/decompose_search_test.rs"]
 mod decompose_search_test;
 
-use super::super::rand::prelude::SliceRandom;
-use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::*;
 use crate::solver::mutation::Mutation;
-use crate::solver::population::{Greedy, Individual, Population};
-use crate::solver::RefinementContext;
-use crate::utils::parallel_into_collect;
+use crate::solver::telemetry::InsertionContext;
+use crate::solver::{RefinementContext, GreedyPopulation};
 use hashbrown::HashSet;
+use rand::prelude::SliceRandom;
+use rosomaxa::prelude::*;
+use rosomaxa::utils::parallel_into_collect;
 use std::cmp::Ordering;
 use std::iter::{empty, once};
 use std::sync::{Arc, RwLock};
@@ -37,21 +37,21 @@ impl DecomposeSearch {
 
 impl Mutation for DecomposeSearch {
     fn mutate(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> InsertionContext {
-        decompose_individual(refinement_ctx, insertion_ctx, self.max_routes_range)
+        decompose_insertion_ctx(refinement_ctx, insertion_ctx, self.max_routes_range)
             .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
             .unwrap_or_else(|| self.inner_mutation.mutate(refinement_ctx, insertion_ctx))
     }
 }
 
-const GREEDY_ERROR: &str = "greedy population has no individuals";
+const GREEDY_ERROR: &str = "greedy population has no insertion_ctxs";
 
 impl DecomposeSearch {
     fn refine_decomposed(
         &self,
         refinement_ctx: &RefinementContext,
-        original_individual: &Individual,
+        original_insertion_ctx: &InsertionContext,
         decomposed: Vec<(RefinementContext, HashSet<usize>)>,
-    ) -> Individual {
+    ) -> InsertionContext {
         // NOTE: validate decomposition
         decomposed.iter().enumerate().for_each(|(outer_ix, (_, outer))| {
             decomposed.iter().enumerate().filter(|(inner_idx, _)| outer_ix != *inner_idx).for_each(
@@ -71,42 +71,42 @@ impl DecomposeSearch {
             decomposed
         });
 
-        // merge evolution results into one individual
-        let mut individual = decomposed.into_iter().fold(
-            Individual::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
-            |individual, decomposed| merge_best(decomposed, original_individual, individual),
+        // merge evolution results into one insertion_ctx
+        let mut insertion_ctx = decomposed.into_iter().fold(
+            InsertionContext::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
+            |insertion_ctx, decomposed| merge_best(decomposed, original_insertion_ctx, insertion_ctx),
         );
 
-        individual.restore();
-        finalize_insertion_ctx(&mut individual);
+        insertion_ctx.restore();
+        finalize_insertion_ctx(&mut insertion_ctx);
 
-        individual
+        insertion_ctx
     }
 }
 
-fn create_population(individual: Individual) -> Box<dyn Population + Send + Sync> {
-    Box::new(Greedy::new(individual.problem.objective.clone(), 1, Some(individual)))
+fn create_population(insertion_ctx: InsertionContext) -> Box<dyn Population + Send + Sync> {
+    Box::new(GreedyPopulation::new(insertion_ctx.problem.objective.clone(), 1, Some(insertion_ctx)))
 }
 
-fn create_multiple_individuals(
-    individual: &Individual,
+fn create_multiple_insertion_ctxs(
+    insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
-) -> Option<Vec<(Individual, HashSet<usize>)>> {
-    let mut route_groups_distances = group_routes_by_proximity(individual)?;
+) -> Option<Vec<(InsertionContext, HashSet<usize>)>> {
+    let mut route_groups_distances = group_routes_by_proximity(insertion_ctx)?;
     route_groups_distances.iter_mut().for_each(|route_distances| {
-        let random = &individual.environment.random;
+        let random = &insertion_ctx.environment.random;
         let shuffle_count = random.uniform_int(2, (route_distances.len() as i32 / 4).max(2)) as usize;
         route_distances.partial_shuffle(&mut random.get_rng(), shuffle_count);
     });
 
-    // identify route groups and create individuals from them
+    // identify route groups and create insertion_ctxs from them
     let used_indices = RwLock::new(HashSet::new());
-    let individuals = route_groups_distances
+    let insertion_ctxs = route_groups_distances
         .iter()
         .enumerate()
         .filter(|(outer_idx, _)| !used_indices.read().unwrap().contains(outer_idx))
         .map(|(outer_idx, route_group_distance)| {
-            let group_size = individual.environment.random.uniform_int(max_routes_range.0, max_routes_range.1) as usize;
+            let group_size = insertion_ctx.environment.random.uniform_int(max_routes_range.0, max_routes_range.1) as usize;
             let route_group = once(outer_idx)
                 .chain(
                     route_group_distance
@@ -122,24 +122,24 @@ fn create_multiple_individuals(
                 used_indices.write().unwrap().insert(*idx);
             });
 
-            create_partial_individual(individual, route_group)
+            create_partial_insertion_ctx(insertion_ctx, route_group)
         })
-        .chain(create_empty_individuals(individual))
+        .chain(create_empty_insertion_ctxs(insertion_ctx))
         .collect();
 
-    Some(individuals)
+    Some(insertion_ctxs)
 }
 
-fn create_partial_individual(individual: &Individual, route_indices: HashSet<usize>) -> (Individual, HashSet<usize>) {
-    let solution = &individual.solution;
+fn create_partial_insertion_ctx(insertion_ctx: &InsertionContext, route_indices: HashSet<usize>) -> (InsertionContext, HashSet<usize>) {
+    let solution = &insertion_ctx.solution;
 
     let routes = route_indices.iter().map(|idx| solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
     let actors = routes.iter().map(|route_ctx| route_ctx.route.actor.clone()).collect::<HashSet<_>>();
     let registry = solution.registry.deep_slice(|actor| actors.contains(actor));
 
     (
-        Individual {
-            problem: individual.problem.clone(),
+        InsertionContext {
+            problem: insertion_ctx.problem.clone(),
             solution: SolutionContext {
                 // NOTE we need to handle empty route indices case differently
                 required: if route_indices.is_empty() { solution.required.clone() } else { Default::default() },
@@ -156,17 +156,17 @@ fn create_partial_individual(individual: &Individual, route_indices: HashSet<usi
                 registry,
                 state: Default::default(),
             },
-            environment: individual.environment.clone(),
+            environment: insertion_ctx.environment.clone(),
         },
         route_indices,
     )
 }
 
-fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = (Individual, HashSet<usize>)>> {
-    // TODO split into more individuals if too many required jobs are present
+fn create_empty_insertion_ctxs(insertion_ctx: &InsertionContext) -> Box<dyn Iterator<Item = (InsertionContext, HashSet<usize>)>> {
+    // TODO split into more insertion_ctxs if too many required jobs are present
     //      this might increase overall refinement speed
 
-    let solution = &individual.solution;
+    let solution = &insertion_ctx.solution;
 
     if solution.required.is_empty()
         && solution.unassigned.is_empty()
@@ -176,8 +176,8 @@ fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = 
         Box::new(empty())
     } else {
         Box::new(once((
-            Individual {
-                problem: individual.problem.clone(),
+            InsertionContext {
+                problem: insertion_ctx.problem.clone(),
                 solution: SolutionContext {
                     required: solution.required.clone(),
                     ignored: solution.ignored.clone(),
@@ -187,27 +187,27 @@ fn create_empty_individuals(individual: &Individual) -> Box<dyn Iterator<Item = 
                     registry: solution.registry.deep_copy(),
                     state: Default::default(),
                 },
-                environment: individual.environment.clone(),
+                environment: insertion_ctx.environment.clone(),
             },
             HashSet::default(),
         )))
     }
 }
 
-fn decompose_individual(
+fn decompose_insertion_ctx(
     refinement_ctx: &RefinementContext,
-    individual: &Individual,
+    insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
 ) -> Option<Vec<(RefinementContext, HashSet<usize>)>> {
-    create_multiple_individuals(individual, max_routes_range)
-        .map(|individuals| {
-            individuals
+    create_multiple_insertion_ctxs(insertion_ctx, max_routes_range)
+        .map(|insertion_ctxs| {
+            insertion_ctxs
                 .into_iter()
-                .map(|(individual, indices)| {
+                .map(|(insertion_ctx, indices)| {
                     (
                         RefinementContext {
                             problem: refinement_ctx.problem.clone(),
-                            population: create_population(individual),
+                            population: create_population(insertion_ctx),
                             state: Default::default(),
                             quota: refinement_ctx.quota.clone(),
                             environment: refinement_ctx.environment.clone(),
@@ -223,19 +223,19 @@ fn decompose_individual(
 
 fn merge_best(
     decomposed: (RefinementContext, HashSet<usize>),
-    original_individual: &Individual,
-    accumulated: Individual,
-) -> Individual {
+    original_insertion_ctx: &InsertionContext,
+    accumulated: InsertionContext,
+) -> InsertionContext {
     let (decomposed_ctx, route_indices) = decomposed;
-    let (decomposed_individual, _) = decomposed_ctx.population.ranked().next().expect(GREEDY_ERROR);
+    let (decomposed_insertion_ctx, _) = decomposed_ctx.population.ranked().next().expect(GREEDY_ERROR);
 
-    let (partial_individual, _) = create_partial_individual(original_individual, route_indices);
-    let objective = partial_individual.problem.objective.as_ref();
+    let (partial_insertion_ctx, _) = create_partial_insertion_ctx(original_insertion_ctx, route_indices);
+    let objective = partial_insertion_ctx.problem.objective.as_ref();
 
-    let source_solution = if objective.total_order(decomposed_individual, &partial_individual) == Ordering::Less {
-        &decomposed_individual.solution
+    let source_solution = if objective.total_order(decomposed_insertion_ctx, &partial_insertion_ctx) == Ordering::Less {
+        &decomposed_insertion_ctx.solution
     } else {
-        &partial_individual.solution
+        &partial_insertion_ctx.solution
     };
 
     let mut accumulated = accumulated;

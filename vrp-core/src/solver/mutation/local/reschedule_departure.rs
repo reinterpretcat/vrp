@@ -3,7 +3,7 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::solution::Activity;
 use crate::solver::mutation::LocalOperator;
 use crate::solver::RefinementContext;
-use crate::utils::compare_floats;
+use rosomaxa::utils::compare_floats;
 use std::cmp::Ordering;
 
 /// Reschedules departure time of the routes in the solution.

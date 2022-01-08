@@ -7,7 +7,7 @@ use crate::algorithms::statistics::*;
 use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY, WAITING_KEY};
 use crate::construction::heuristics::RouteContext;
 use crate::models::problem::TransportCost;
-use crate::utils::compare_floats;
+use rosomaxa::utils::compare_floats;
 use std::cmp::Ordering;
 
 /// Gets max load variance in tours.

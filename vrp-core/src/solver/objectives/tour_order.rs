@@ -2,13 +2,11 @@
 #[path = "../../../tests/unit/solver/objectives/tour_order_test.rs"]
 mod tour_order_test;
 
-use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::models::problem::*;
-use crate::utils::compare_floats;
+use rosomaxa::prelude::*;
 use std::cmp::Ordering;
-use std::cmp::Ordering::Greater;
 use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
@@ -117,7 +115,7 @@ impl HardActivityConstraint for TourOrderHardActivityConstraint {
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
         evaluate_result(activity_ctx, self.order_func.as_ref(), &|first, second, stopped| {
-            if compare_floats(first, second) == Greater {
+            if compare_floats(first, second) == Ordering::Greater {
                 Some(ActivityConstraintViolation { code: self.constraint_code, stopped })
             } else {
                 None
@@ -133,7 +131,7 @@ struct TourOrderSoftActivityConstraint {
 impl SoftActivityConstraint for TourOrderSoftActivityConstraint {
     fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> f64 {
         evaluate_result(activity_ctx, self.order_func.as_ref(), &|first, second, _| {
-            if compare_floats(first, second) == Greater {
+            if compare_floats(first, second) == Ordering::Greater {
                 let max_cost = route_ctx.get_route_cost();
                 let penalty = if compare_floats(max_cost, 0.) == Ordering::Equal { 1E9 } else { max_cost * 2. };
 

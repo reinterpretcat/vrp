@@ -9,7 +9,8 @@ use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::{Job, Multi, Single};
 use crate::models::solution::{Activity, Leg, Place};
-use crate::utils::{unwrap_from_result, Either};
+use crate::utils::Either;
+use rosomaxa::utils::unwrap_from_result;
 use std::iter::repeat;
 
 /// Specifies an evaluation context data.

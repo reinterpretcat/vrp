@@ -1,13 +1,11 @@
-use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::construction::probing::repair_solution_from_unknown;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::mutation::Mutation;
-use crate::solver::population::Elitism;
 use crate::solver::RefinementContext;
-use crate::utils::Random;
+use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
 

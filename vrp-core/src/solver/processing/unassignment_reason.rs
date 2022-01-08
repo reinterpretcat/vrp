@@ -1,6 +1,6 @@
 use super::*;
 use crate::construction::heuristics::*;
-use crate::utils::{parallel_into_collect, CollectGroupBy};
+use rosomaxa::utils::{parallel_into_collect, CollectGroupBy};
 
 /// Tries to improve job unassignment reason.
 #[derive(Default)]

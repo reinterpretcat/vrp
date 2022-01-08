@@ -4,11 +4,10 @@
 #[path = "../../tests/unit/solver/telemetry_test.rs"]
 mod telemetry_test;
 
-use crate::algorithms::nsga2::Objective;
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::population::SelectionPhase;
 use crate::solver::{RefinementContext, RefinementSpeed, Statistics};
-use crate::utils::{InfoLogger, Timer};
+use crate::utils::Timer;
+use rosomaxa::prelude::*;
 use std::fmt::Write;
 use std::ops::Deref;
 

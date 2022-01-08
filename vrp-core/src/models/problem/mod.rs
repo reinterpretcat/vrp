@@ -1,8 +1,8 @@
 //! Problem domain models.
 
-use crate::algorithms::nsga2::Objective;
 use crate::construction::constraints::ConstraintModule;
 use crate::construction::heuristics::InsertionContext;
+use rosomaxa::prelude::Objective;
 use std::sync::Arc;
 
 mod costs;

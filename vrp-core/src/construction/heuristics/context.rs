@@ -2,15 +2,15 @@
 #[path = "../../../tests/unit/construction/heuristics/context_test.rs"]
 mod context_test;
 
-use crate::algorithms::nsga2::MultiObjective;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::factories::*;
 use crate::models::common::Cost;
 use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{Extras, Problem, Solution};
-use crate::utils::{as_mut, compare_floats, Environment};
+use crate::utils::as_mut;
 use hashbrown::{HashMap, HashSet};
+use rosomaxa::prelude::*;
 use std::any::Any;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -65,15 +65,6 @@ impl InsertionContext {
         });
     }
 
-    /// Creates a deep copy of `InsertionContext`.
-    pub fn deep_copy(&self) -> Self {
-        InsertionContext {
-            problem: self.problem.clone(),
-            solution: self.solution.deep_copy(),
-            environment: self.environment.clone(),
-        }
-    }
-
     /// Removes empty routes from solution context.
     fn remove_empty_routes(&mut self) {
         let registry = &mut self.solution.registry;
@@ -86,10 +77,19 @@ impl InsertionContext {
             }
         });
     }
+}
 
-    /// Returns fitness values.
-    pub fn get_fitness_values(&'_ self) -> impl Iterator<Item = f64> + '_ {
-        self.problem.objective.objectives().map(move |objective| objective.fitness(self))
+impl HeuristicSolution for InsertionContext {
+    fn get_fitness(&self) -> Box<dyn Iterator<Item = f64>> {
+        Box::new(self.problem.objective.objectives().map(move |objective| objective.fitness(self)))
+    }
+
+    fn deep_copy(&self) -> Self {
+        InsertionContext {
+            problem: self.problem.clone(),
+            solution: self.solution.deep_copy(),
+            environment: self.environment.clone(),
+        }
     }
 }
 

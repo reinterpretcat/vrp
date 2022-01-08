@@ -7,8 +7,8 @@ use crate::construction::constraints::ConstraintPipeline;
 use crate::models::common::*;
 use crate::models::problem::{Place, Single, TransportCost};
 use crate::models::solution::CommuteInfo;
-use crate::utils::*;
 use hashbrown::{HashMap, HashSet};
+use rosomaxa::utils::parallel_foreach_mut;
 use std::ops::Deref;
 
 type PlaceInfo = (PlaceIndex, Location, Duration, Vec<TimeWindow>);

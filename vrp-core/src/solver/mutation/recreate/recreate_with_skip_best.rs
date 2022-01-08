@@ -3,7 +3,7 @@ use crate::construction::heuristics::{InsertionContext, InsertionResult};
 use crate::models::problem::Job;
 use crate::solver::mutation::{ConfigurableRecreate, Recreate};
 use crate::solver::RefinementContext;
-use crate::utils::Random;
+use rosomaxa::utils::Random;
 use std::cmp::Ordering::*;
 use std::sync::Arc;
 

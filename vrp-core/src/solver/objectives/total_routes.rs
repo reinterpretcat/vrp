@@ -1,7 +1,5 @@
 use super::*;
-
-use crate::algorithms::nsga2::Objective;
-use crate::utils::compare_floats;
+use rosomaxa::prelude::*;
 
 /// An objective function which controls total amount of routes.
 pub struct TotalRoutes {

@@ -7,6 +7,7 @@ use crate::models::problem::Job;
 use crate::models::solution::Leg;
 use crate::utils::*;
 use rand::prelude::*;
+use rosomaxa::utils::{map_reduce, parallel_collect, Random, SelectionSamplingIterator};
 use std::sync::Arc;
 
 /// On each insertion step, selects a list of routes where jobs can be inserted.

@@ -3,9 +3,8 @@
 mod total_unassigned_jobs_test;
 
 use super::*;
-use crate::algorithms::nsga2::Objective;
 use crate::models::problem::Job;
-use crate::utils::compare_floats;
+use rosomaxa::prelude::*;
 use std::ops::Deref;
 use std::sync::Arc;
 
