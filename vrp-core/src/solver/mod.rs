@@ -100,9 +100,9 @@ use rosomaxa::prelude::*;
 use std::any::Any;
 use std::sync::Arc;
 
-pub mod mutation;
 pub mod objectives;
 pub mod processing;
+pub mod search;
 pub mod termination;
 
 mod builder;

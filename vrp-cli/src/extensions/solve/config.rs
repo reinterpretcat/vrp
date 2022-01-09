@@ -11,14 +11,13 @@ extern crate serde_json;
 use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
-use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::prelude::*;
 use vrp_core::rosomaxa::utils::*;
 use vrp_core::solver::get_default_selection_size;
-use vrp_core::solver::mutation::*;
 use vrp_core::solver::processing::*;
+use vrp_core::solver::search::*;
 use vrp_core::solver::*;
 
 /// An algorithm configuration.
@@ -634,13 +633,7 @@ fn create_mutation(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
     mutation: &MutationType,
-) -> Result<
-    (
-        Arc<dyn HeuristicOperator<Context = RefinementContext, Solution = InsertionContext> + Send + Sync>,
-        MutationProbability,
-    ),
-    String,
-> {
+) -> Result<(TargetHeuristicOperator, MutationProbability), String> {
     Ok(match mutation {
         MutationType::RuinRecreate { probability, ruins, recreates } => {
             let ruin = Arc::new(WeightedRuin::new(
@@ -666,9 +659,9 @@ fn create_mutation(
                 return Err(format!("min routes must be greater than 2. Specified: {}", routes.min));
             }
 
-            let mutation = create_default_mutation(problem, environment.clone());
+            let operator = create_default_heuristic_operator(problem, environment.clone());
             (
-                Arc::new(DecomposeSearch::new(mutation, (routes.min, routes.max), *repeat)),
+                Arc::new(DecomposeSearch::new(operator, (routes.min, routes.max), *repeat)),
                 create_mutation_probability(probability, environment.random.clone()),
             )
         }

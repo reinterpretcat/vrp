@@ -2,7 +2,7 @@ use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::SingleDimLoad;
 use crate::models::problem::ObjectiveCost;
-use crate::solver::mutation::*;
+use crate::solver::search::*;
 use rosomaxa::heuristics::hyper::*;
 use rosomaxa::heuristics::population::*;
 use std::marker::PhantomData;
@@ -11,6 +11,9 @@ use std::marker::PhantomData;
 pub type TargetPopulation = Box<dyn HeuristicPopulation<Objective = ObjectiveCost, Individual = InsertionContext>>;
 /// A type alias for domain specific heuristic.
 pub type TargetHeuristic = Box<dyn HyperHeuristic<Context = RefinementContext, Solution = InsertionContext>>;
+/// A type for domain specific heuristic operator.
+pub type TargetHeuristicOperator =
+    Arc<dyn HeuristicOperator<Context = RefinementContext, Solution = InsertionContext> + Send + Sync>;
 
 /// A type for greedy population.
 pub type GreedyPopulation = Greedy<ObjectiveCost, InsertionContext>;
@@ -97,11 +100,11 @@ impl DominanceOrdered for InsertionContext {
     }
 }
 
-/// Creates default mutation (ruin and recreate) with default parameters.
-pub fn create_default_mutation(
+/// Creates default heuristic operator (ruin and recreate) with default parameters.
+pub fn create_default_heuristic_operator(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-) -> Arc<dyn Mutation + Send + Sync> {
+) -> TargetHeuristicOperator {
     let random = environment.random.clone();
     // initialize recreate
     let recreate = Arc::new(WeightedRecreate::new(vec![
@@ -188,7 +191,7 @@ pub fn create_context_mutation_probability(
     )
 }
 
-fn create_default_local_search(environment: Arc<Environment>) -> Arc<dyn Mutation + Send + Sync> {
+fn create_default_local_search(environment: Arc<Environment>) -> TargetHeuristicOperator {
     let random = environment.random.clone();
 
     Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(

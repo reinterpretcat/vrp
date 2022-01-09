@@ -6,8 +6,8 @@ use std::sync::Arc;
 use vrp_core::algorithms::nsga2::Objective;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem;
-use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::population::create_elitism_population;
+use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::Environment;
 

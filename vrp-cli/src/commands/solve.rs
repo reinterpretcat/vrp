@@ -8,16 +8,14 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::sync::Arc;
-use vrp_cli::core::solver::population::{get_default_population, Population};
+use vrp_cli::core::solver::{get_default_population, TargetHeuristic};
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::models::problem::ObjectiveCost;
-use vrp_core::models::{Problem, Solution};
-use vrp_core::solver::hyper::*;
-use vrp_core::solver::population::{get_default_selection_size, Elitism};
-use vrp_core::solver::{Builder, Metrics, Telemetry, TelemetryMode};
-use vrp_core::utils::{DefaultRandom, Environment, Parallelism, Random};
+use vrp_core::prelude::*;
+use vrp_core::solver::*;
+use vrp_core::utils::Parallelism;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -476,9 +474,9 @@ fn get_population(
     mode: Option<&str>,
     objective: Arc<ObjectiveCost>,
     environment: Arc<Environment>,
-) -> Box<dyn Population + Send + Sync> {
+) -> TargetPopulation {
     match mode {
-        Some("deep") => Box::new(Elitism::new(
+        Some("deep") => Box::new(ElitismPopulation::new(
             objective,
             environment.random.clone(),
             4,
@@ -492,12 +490,12 @@ fn get_heuristic(
     matches: &ArgMatches,
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-) -> Result<Box<dyn HyperHeuristic + Send + Sync>, String> {
+) -> Result<TargetHeuristic, String> {
     match matches.value_of(HEURISTIC_ARG_NAME) {
-        Some("dynamic") => Ok(Box::new(DynamicSelective::new_with_defaults(problem, environment))),
-        Some("static") => Ok(Box::new(StaticSelective::new_with_defaults(problem, environment))),
+        Some("dynamic") => Ok(get_dynamic_heuristic(problem, environment)),
+        Some("static") => Ok(get_static_heuristic_with_defaults(problem, environment)),
         Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{}'", name)),
-        _ => Ok(Box::new(MultiSelective::new_with_defaults(problem, environment))),
+        _ => Ok(get_dynamic_heuristic(problem, environment)),
     }
 }
 

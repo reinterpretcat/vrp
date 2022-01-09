@@ -3,8 +3,8 @@ use crate::helpers::SolomonBuilder;
 use crate::solomon::{SolomonProblem, SolomonSolution};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::solver::mutation::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::population::Elitism;
+use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::Environment;
 
