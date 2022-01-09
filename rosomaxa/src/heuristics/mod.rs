@@ -23,8 +23,6 @@ pub trait HeuristicObjective: MultiObjective + Send + Sync {}
 pub trait HeuristicContext: Send + Sync {
     /// A heuristic objective function type.
     type Objective: HeuristicObjective<Solution = Self::Solution>;
-    /// A population type used by heuristic.
-    type Population: HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>;
     /// A heuristic solution type.
     type Solution: HeuristicSolution;
 
@@ -32,7 +30,7 @@ pub trait HeuristicContext: Send + Sync {
     fn objective(&self) -> &Self::Objective;
 
     /// Returns population.
-    fn population(&self) -> &Self::Population;
+    fn population(&self) -> &(dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>);
 
     /// Returns current statistic used to track the search progress.
     fn statistics(&self) -> &HeuristicStatistics;

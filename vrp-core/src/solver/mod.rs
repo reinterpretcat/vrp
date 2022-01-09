@@ -180,14 +180,13 @@ impl RefinementContext {
 
 impl HeuristicContext for RefinementContext {
     type Objective = ObjectiveCost;
-    type Population = ();
     type Solution = InsertionContext;
 
-    fn objective(&self) -> &<Self::Population as HeuristicPopulation>::Objective {
-        self.objective().as_ref()
+    fn objective(&self) -> &Self::Objective {
+        self.problem.objective.as_ref()
     }
 
-    fn population(&self) -> &Self::Population {
+    fn population(&self) -> &(dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>) {
         self.population.as_ref()
     }
 

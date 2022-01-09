@@ -17,7 +17,7 @@ pub type GreedyPopulation = Greedy<ObjectiveCost, InsertionContext>;
 pub type ElitismPopulation = Elitism<ObjectiveCost, InsertionContext>;
 pub type RosomaxaPopulation = Rosomaxa<ObjectiveCost, InsertionContext>;
 
-pub type MutationProbability<P> = HeuristicProbability<RefinementContext, ObjectiveCost, P, InsertionContext>;
+pub type MutationProbability = HeuristicProbability<RefinementContext, ObjectiveCost, InsertionContext>;
 
 /// Gets default population selection size.
 pub fn get_default_selection_size(environment: &Environment) -> usize {
@@ -43,13 +43,10 @@ pub fn get_default_heuristic(_problem: Arc<Problem>, _environment: Arc<Environme
     todo!()
 }
 
-pub fn get_static_heuristic<Population>(
+pub fn get_static_heuristic(
     _problem: Arc<Problem>,
     _environment: Arc<Environment>,
-) -> StaticSelective<RefinementContext, ObjectiveCost, RosomaxaPopulation, InsertionContext>
-where
-    Population: HeuristicPopulation<Objective = ObjectiveCost, Individual = InsertionContext>,
-{
+) -> StaticSelective<RefinementContext, ObjectiveCost, InsertionContext> {
     todo!()
 }
 
@@ -70,7 +67,7 @@ impl DominanceOrdered for InsertionContext {
         todo!()
     }
 
-    fn set_order(&mut self, order: DominanceOrder) {
+    fn set_order(&mut self, _order: DominanceOrder) {
         todo!()
     }
 }
@@ -135,20 +132,20 @@ pub fn create_default_random_ruin() -> Arc<dyn Ruin + Send + Sync> {
 }
 
 /// Creates a mutation probability which uses `is_hit` method from passed random object.
-pub fn create_scalar_mutation_probability<P>(
+pub fn create_scalar_mutation_probability(
     scalar_probability: f64,
     random: Arc<dyn Random + Send + Sync>,
-) -> MutationProbability<P> {
-    (Box::new(move |_, _| random.is_hit(scalar_probability)), PhantomData::default(), PhantomData::default())
+) -> MutationProbability {
+    (Box::new(move |_, _| random.is_hit(scalar_probability)), PhantomData::default())
 }
 
 /// Creates a mutation probability which uses context state.
-pub fn create_context_mutation_probability<P>(
+pub fn create_context_mutation_probability(
     jobs_threshold: usize,
     routes_threshold: usize,
     phases: Vec<(SelectionPhase, f64)>,
     random: Arc<dyn Random + Send + Sync>,
-) -> MutationProbability<P> {
+) -> MutationProbability {
     let phases = phases.into_iter().collect::<HashMap<_, _>>();
     (
         Box::new(move |refinement_ctx, insertion_ctx| {
@@ -162,7 +159,6 @@ pub fn create_context_mutation_probability<P>(
             let phase_probability = phases.get(&refinement_ctx.population.selection_phase()).cloned().unwrap_or(0.);
             random.is_hit(phase_probability)
         }),
-        PhantomData::default(),
         PhantomData::default(),
     )
 }

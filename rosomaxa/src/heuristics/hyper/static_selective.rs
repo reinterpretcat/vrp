@@ -1,34 +1,29 @@
 use super::*;
-use crate::algorithms::nsga2::Objective;
 use crate::utils::{parallel_into_collect, unwrap_from_result};
 use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// A type which specifies probability behavior for heuristic selection.
-pub type HeuristicProbability<C, O, P, S> = (Box<dyn Fn(&C, &S) -> bool + Send + Sync>, PhantomData<O>, PhantomData<P>);
+pub type HeuristicProbability<C, O, S> = (Box<dyn Fn(&C, &S) -> bool + Send + Sync>, PhantomData<O>);
 
 /// A type which specifies a group of multiple heuristic strategies with their probability.
-pub type HeuristicGroup<C, O, P, S> = (
-    Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, HeuristicProbability<C, O, P, S>)>,
-    PhantomData<P>,
-);
+pub type HeuristicGroup<C, O, S> =
+    Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, HeuristicProbability<C, O, S>)>;
 
 /// A simple hyper-heuristic which selects metaheuristic from the list with fixed (static) probabilities.
-pub struct StaticSelective<C, O, P, S>
+pub struct StaticSelective<C, O, S>
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
-    heuristic_group: HeuristicGroup<C, O, P, S>,
+    heuristic_group: HeuristicGroup<C, O, S>,
 }
 
-impl<C, O, P, S> HyperHeuristic for StaticSelective<C, O, P, S>
+impl<C, O, S> HyperHeuristic for StaticSelective<C, O, S>
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
     type Context = C;
@@ -39,9 +34,8 @@ where
             heuristic_ctx.environment().parallelism.thread_pool_execute(idx, || {
                 unwrap_from_result(
                     self.heuristic_group
-                        .0
                         .iter()
-                        .filter(|(_, (probability, _, _))| probability(heuristic_ctx, solution))
+                        .filter(|(_, (probability, _))| probability(heuristic_ctx, solution))
                         // NOTE not more than two search runs in a row
                         .take(2)
                         .try_fold(solution.deep_copy(), |base_solution, (heuristic, _)| {

@@ -1,7 +1,6 @@
 use super::*;
 use crate::algorithms::math::relative_distance;
 use crate::algorithms::mdp::*;
-use crate::algorithms::nsga2::Objective;
 use crate::utils::{compare_floats, Random};
 use hashbrown::HashMap;
 use std::cmp::Ordering;
@@ -10,23 +9,21 @@ use std::sync::Arc;
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled by
 /// Markov Decision Process.
-pub struct DynamicSelective<C, O, P, S>
+pub struct DynamicSelective<C, O, S>
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
     heuristic_simulator: Simulator<SearchState>,
     initial_estimates: HashMap<SearchState, ActionEstimates<SearchState>>,
-    action_registry: SearchActionRegistry<C, O, P, S>,
+    action_registry: SearchActionRegistry<C, O, S>,
 }
 
-impl<C, O, P, S> HyperHeuristic for DynamicSelective<C, O, P, S>
+impl<C, O, S> HyperHeuristic for DynamicSelective<C, O, S>
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
     type Context = C;
@@ -69,11 +66,10 @@ where
     }
 }
 
-impl<C, O, P, S> DynamicSelective<C, O, P, S>
+impl<C, O, S> DynamicSelective<C, O, S>
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
     /// Creates a new instance of `DynamicSelective`.
@@ -144,36 +140,33 @@ enum SearchAction {
     Search { heuristic_idx: usize },
 }
 
-struct SearchActionRegistry<C, O, P, S>
+struct SearchActionRegistry<C, O, S>
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
     pub heuristics: Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, String)>,
 }
 
-struct SearchAgent<'a, C, O, P, S>
+struct SearchAgent<'a, C, O, S>
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
     heuristic_ctx: &'a C,
-    registry: &'a SearchActionRegistry<C, O, P, S>,
+    registry: &'a SearchActionRegistry<C, O, S>,
     estimates: &'a HashMap<SearchState, ActionEstimates<SearchState>>,
     state: SearchState,
     original: &'a S,
     solution: Option<S>,
 }
 
-impl<'a, C, O, P, S> Agent<SearchState> for SearchAgent<'a, C, O, P, S>
+impl<'a, C, O, S> Agent<SearchState> for SearchAgent<'a, C, O, S>
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
     fn get_state(&self) -> &SearchState {
@@ -246,11 +239,10 @@ fn try_exchange_estimates(heuristic_simulator: &mut Simulator<SearchState>) {
     }
 }
 
-fn compare_to_best<C, O, P, S>(heuristic_ctx: &C, solution: &S) -> Ordering
+fn compare_to_best<C, O, S>(heuristic_ctx: &C, solution: &S) -> Ordering
 where
-    C: HeuristicContext<Population = P, Solution = S>,
+    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
-    P: HeuristicPopulation<Objective = O, Individual = S>,
     S: HeuristicSolution,
 {
     heuristic_ctx
