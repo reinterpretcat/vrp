@@ -21,6 +21,8 @@ pub type RosomaxaPopulation = Rosomaxa<ObjectiveCost, InsertionContext>;
 
 /// A mutability probability type alias.
 pub type MutationProbability = HeuristicProbability<RefinementContext, ObjectiveCost, InsertionContext>;
+/// A mutability group type alias.
+pub type MutationGroup = HeuristicGroup<RefinementContext, ObjectiveCost, InsertionContext>;
 
 /// Gets default population selection size.
 pub fn get_default_selection_size(environment: &Environment) -> usize {
@@ -43,6 +45,21 @@ pub fn get_default_population(objective: Arc<ObjectiveCost>, environment: Arc<En
 
 /// Gets default heuristic.
 pub fn get_default_heuristic(_problem: Arc<Problem>, _environment: Arc<Environment>) -> TargetHeuristic {
+    todo!()
+}
+
+/// Gets static heuristic using default settings.
+pub fn get_static_heuristic_with_defaults(_problem: Arc<Problem>, _environment: Arc<Environment>) -> TargetHeuristic {
+    todo!()
+}
+
+/// Gets static heuristic using mutation group.
+pub fn get_static_heuristic_from_mutation_group(_mutation_group: MutationGroup) -> TargetHeuristic {
+    todo!()
+}
+
+/// Gets dynamic heuristic using default settings.
+pub fn get_dynamic_heuristic(_problem: Arc<Problem>, _environment: Arc<Environment>) -> TargetHeuristic {
     todo!()
 }
 

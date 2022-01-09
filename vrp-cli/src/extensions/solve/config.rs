@@ -10,12 +10,15 @@ extern crate serde_json;
 
 use serde::Deserialize;
 use std::io::{BufReader, Read};
+use std::marker::PhantomData;
 use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::prelude::*;
+use vrp_core::rosomaxa::prelude::*;
+use vrp_core::solver::get_default_selection_size;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::processing::*;
-use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
+use vrp_core::solver::*;
 
 /// An algorithm configuration.
 #[derive(Clone, Default, Deserialize, Debug)]
@@ -463,12 +466,12 @@ fn configure_from_evolution(
         if let Some(variation) = &config.population {
             let default_selection_size = get_default_selection_size(builder.config.environment.as_ref());
             let population = match &variation {
-                PopulationType::Greedy { selection_size } => Box::new(Greedy::new(
+                PopulationType::Greedy { selection_size } => Box::new(GreedyPopulation::new(
                     builder.config.problem.objective.clone(),
                     selection_size.unwrap_or(default_selection_size),
                     None,
                 )),
-                PopulationType::Elitism { max_size, selection_size } => Box::new(Elitism::new(
+                PopulationType::Elitism { max_size, selection_size } => Box::new(ElitismPopulation::new(
                     builder.config.problem.objective.clone(),
                     builder.config.environment.random.clone(),
                     max_size.unwrap_or(4),
@@ -519,7 +522,7 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    Box::new(Rosomaxa::new(
+                    Box::new(RosomaxaPopulation::new(
                         builder.config.problem.objective.clone(),
                         builder.config.environment.clone(),
                         config,
@@ -542,16 +545,19 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
                     let mutation_group = mutations
                         .iter()
                         .map(|mutation| {
-                            create_mutation(
-                                builder.config.problem.clone(),
-                                builder.config.environment.clone(),
-                                mutation,
+                            (
+                                create_mutation(
+                                    builder.config.problem.clone(),
+                                    builder.config.environment.clone(),
+                                    mutation,
+                                ),
+                                PhantomData::default(),
                             )
                         })
                         .collect::<Result<Vec<_>, _>>()?;
-                    vrp_core::solver::hyper::StaticSelective::new(mutation_group)
+                    get_static_heuristic_from_mutation_group(mutation_group)
                 } else {
-                    vrp_core::solver::hyper::StaticSelective::new_with_defaults(
+                    get_static_heuristic_with_defaults(
                         builder.config.problem.clone(),
                         builder.config.environment.clone(),
                     )
@@ -560,10 +566,8 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
                 builder = builder.with_heuristic(Box::new(static_selective));
             }
             HyperType::DynamicSelective => {
-                let dynamic_selective = vrp_core::solver::hyper::DynamicSelective::new_with_defaults(
-                    builder.config.problem.clone(),
-                    builder.config.environment.clone(),
-                );
+                let dynamic_selective =
+                    get_dynamic_heuristic(builder.config.problem.clone(), builder.config.environment.clone());
                 builder = builder.with_heuristic(Box::new(dynamic_selective));
             }
         }
@@ -659,8 +663,7 @@ fn create_mutation(
                 return Err(format!("min routes must be greater than 2. Specified: {}", routes.min));
             }
 
-            let mutation =
-                vrp_core::solver::hyper::StaticSelective::create_default_mutation(problem, environment.clone());
+            let mutation = create_default_mutation(problem, environment.clone());
             (
                 Arc::new(DecomposeSearch::new(mutation, (routes.min, routes.max), *repeat)),
                 create_mutation_probability(probability, environment.random.clone()),
@@ -726,7 +729,7 @@ fn create_ruin_method(
             *probability,
         ),
         RuinMethod::CloseRoute { probability } => (Arc::new(CloseRouteRemoval::default()), *probability),
-        RuinMethod::RandomRuin { probability } => (StaticSelective::create_default_random_ruin(), *probability),
+        RuinMethod::RandomRuin { probability } => (create_default_random_ruin(), *probability),
     }
 }
 
