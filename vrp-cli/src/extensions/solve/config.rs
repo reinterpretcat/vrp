@@ -10,11 +10,12 @@ extern crate serde_json;
 
 use serde::Deserialize;
 use std::io::{BufReader, Read};
-use std::marker::PhantomData;
 use std::sync::Arc;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::prelude::*;
+use vrp_core::rosomaxa::utils::*;
 use vrp_core::solver::get_default_selection_size;
 use vrp_core::solver::mutation::*;
 use vrp_core::solver::processing::*;
@@ -476,8 +477,7 @@ fn configure_from_evolution(
                     builder.config.environment.random.clone(),
                     max_size.unwrap_or(4),
                     selection_size.unwrap_or(default_selection_size),
-                ))
-                    as Box<dyn Population + Send + Sync>,
+                )) as TargetPopulation,
                 PopulationType::Rosomaxa {
                     max_elite_size,
                     max_node_size,
@@ -545,13 +545,10 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
                     let mutation_group = mutations
                         .iter()
                         .map(|mutation| {
-                            (
-                                create_mutation(
-                                    builder.config.problem.clone(),
-                                    builder.config.environment.clone(),
-                                    mutation,
-                                ),
-                                PhantomData::default(),
+                            create_mutation(
+                                builder.config.problem.clone(),
+                                builder.config.environment.clone(),
+                                mutation,
                             )
                         })
                         .collect::<Result<Vec<_>, _>>()?;
@@ -563,12 +560,12 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
                     )
                 };
 
-                builder = builder.with_heuristic(Box::new(static_selective));
+                builder = builder.with_heuristic(static_selective);
             }
             HyperType::DynamicSelective => {
                 let dynamic_selective =
                     get_dynamic_heuristic(builder.config.problem.clone(), builder.config.environment.clone());
-                builder = builder.with_heuristic(Box::new(dynamic_selective));
+                builder = builder.with_heuristic(dynamic_selective);
             }
         }
     }
@@ -637,7 +634,13 @@ fn create_mutation(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
     mutation: &MutationType,
-) -> Result<(Arc<dyn Mutation + Send + Sync>, MutationProbability), String> {
+) -> Result<
+    (
+        Arc<dyn HeuristicOperator<Context = RefinementContext, Solution = InsertionContext> + Send + Sync>,
+        MutationProbability,
+    ),
+    String,
+> {
     Ok(match mutation {
         MutationType::RuinRecreate { probability, ruins, recreates } => {
             let ruin = Arc::new(WeightedRuin::new(
