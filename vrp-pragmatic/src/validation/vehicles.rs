@@ -10,7 +10,7 @@ use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use vrp_core::models::common::TimeWindow;
-use vrp_core::utils::compare_floats;
+use vrp_core::prelude::*;
 
 /// Checks that fleet has no vehicle with duplicate type ids.
 fn check_e1300_no_vehicle_types_with_duplicate_type_ids(ctx: &ValidationContext) -> Result<(), FormatError> {

@@ -3,22 +3,20 @@
 mod initial_reader_test;
 
 use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
+use crate::format::solution::Activity as FormatActivity;
+use crate::format::solution::Stop as FormatStop;
+use crate::format::solution::Tour as FormatTour;
 use crate::format::solution::{deserialize_solution, map_reason_code};
 use crate::format::{get_coord_index, get_job_index, CoordIndex, JobIndex};
 use crate::parse_time;
+use hashbrown::{HashMap, HashSet};
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Job, Single};
-use vrp_core::models::solution::{Activity, Place, Registry, Route};
-use vrp_core::models::{Problem, Solution};
-
-use crate::format::solution::Activity as FormatActivity;
-use crate::format::solution::Stop as FormatStop;
-use crate::format::solution::Tour as FormatTour;
-use hashbrown::{HashMap, HashSet};
 use vrp_core::models::solution::Tour as CoreTour;
-use vrp_core::utils::Random;
+use vrp_core::models::solution::{Activity, Place, Registry, Route};
+use vrp_core::prelude::*;
 
 type ActorKey = (String, String, usize);
 

@@ -9,7 +9,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterConfig;
 use vrp_core::models::common::Profile;
-use vrp_core::utils::compare_floats;
+use vrp_core::prelude::*;
 
 /// Creates cluster config if it is defined on the api problem.
 pub(crate) fn create_cluster_config(api_problem: &ApiProblem) -> Result<Option<ClusterConfig>, String> {

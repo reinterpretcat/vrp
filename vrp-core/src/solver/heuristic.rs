@@ -7,16 +7,19 @@ use rosomaxa::heuristics::hyper::*;
 use rosomaxa::heuristics::population::*;
 use std::marker::PhantomData;
 
-// TODO add type aliases for greedy, elitism, rosomaxa populations?
-
-pub type TargetPopulation =
-    Box<dyn HeuristicPopulation<Objective = ObjectiveCost, Individual = InsertionContext> + Send + Sync>;
+/// A type alias for domain specific population.
+pub type TargetPopulation = Box<dyn HeuristicPopulation<Objective = ObjectiveCost, Individual = InsertionContext>>;
+/// A type alias for domain specific heuristic.
 pub type TargetHeuristic = Box<dyn HyperHeuristic<Context = RefinementContext, Solution = InsertionContext>>;
 
+/// A type for greedy population.
 pub type GreedyPopulation = Greedy<ObjectiveCost, InsertionContext>;
+/// A type for elitism population.
 pub type ElitismPopulation = Elitism<ObjectiveCost, InsertionContext>;
+/// A type for rosomaxa population.
 pub type RosomaxaPopulation = Rosomaxa<ObjectiveCost, InsertionContext>;
 
+/// A mutability probability type alias.
 pub type MutationProbability = HeuristicProbability<RefinementContext, ObjectiveCost, InsertionContext>;
 
 /// Gets default population selection size.
@@ -43,13 +46,6 @@ pub fn get_default_heuristic(_problem: Arc<Problem>, _environment: Arc<Environme
     todo!()
 }
 
-pub fn get_static_heuristic(
-    _problem: Arc<Problem>,
-    _environment: Arc<Environment>,
-) -> StaticSelective<RefinementContext, ObjectiveCost, InsertionContext> {
-    todo!()
-}
-
 /// Creates elitism population algorithm.
 pub fn create_elitism_population(objective: Arc<ObjectiveCost>, environment: Arc<Environment>) -> TargetPopulation {
     let selection_size = get_default_selection_size(environment.as_ref());
@@ -64,11 +60,11 @@ impl RosomaxaWeighted for InsertionContext {
 
 impl DominanceOrdered for InsertionContext {
     fn get_order(&self) -> &DominanceOrder {
-        todo!()
+        self.solution.state.get(&SOLUTION_ORDER_KEY).and_then(|s| s.downcast_ref::<DominanceOrder>()).unwrap()
     }
 
-    fn set_order(&mut self, _order: DominanceOrder) {
-        todo!()
+    fn set_order(&mut self, order: DominanceOrder) {
+        self.solution.state.insert(SOLUTION_ORDER_KEY, Arc::new(order));
     }
 }
 

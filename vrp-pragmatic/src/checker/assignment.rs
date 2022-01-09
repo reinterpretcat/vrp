@@ -9,7 +9,7 @@ use crate::utils::combine_error_results;
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use vrp_core::construction::clustering::vicinity::ServingPolicy;
-use vrp_core::utils::compare_floats;
+use vrp_core::prelude::*;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<String>> {

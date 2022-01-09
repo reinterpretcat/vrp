@@ -3,8 +3,7 @@ use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::{IdDimension, ValueDimension};
-use vrp_core::utils::compare_floats;
-use vrp_core::utils::Random;
+use vrp_core::prelude::*;
 
 /// Returns route modifier.
 pub fn get_route_modifier(

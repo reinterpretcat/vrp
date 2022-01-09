@@ -12,13 +12,10 @@ use serde::Deserialize;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
-use vrp_core::models::Problem;
-use vrp_core::solver::hyper::*;
+use vrp_core::prelude::*;
 use vrp_core::solver::mutation::*;
-use vrp_core::solver::population::*;
 use vrp_core::solver::processing::*;
 use vrp_core::solver::{Builder, Telemetry, TelemetryMode};
-use vrp_core::utils::{Environment, Parallelism, Random};
 
 /// An algorithm configuration.
 #[derive(Clone, Default, Deserialize, Debug)]

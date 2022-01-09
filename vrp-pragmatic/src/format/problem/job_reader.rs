@@ -7,7 +7,7 @@ use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Actor, Fleet, Job, Jobs, Multi, Place, Single, TransportCost};
 use vrp_core::models::{Lock, LockDetail, LockOrder, LockPosition};
-use vrp_core::utils::{compare_floats, Random};
+use vrp_core::prelude::*;
 
 use crate::constraints::{BreakPolicy, JobSkills as ConstraintJobSkills};
 use crate::format::problem::JobSkills as FormatJobSkills;

@@ -34,8 +34,8 @@ use vrp_core::construction::constraints::*;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
 use vrp_core::models::problem::{ActivityCost, Fleet, Jobs, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
+use vrp_core::prelude::*;
 use vrp_core::solver::processing::VicinityDimension;
-use vrp_core::utils::{compare_floats, DefaultRandom, Random};
 
 pub type ApiProblem = crate::format::problem::Problem;
 

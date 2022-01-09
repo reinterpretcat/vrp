@@ -2,7 +2,7 @@ use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use std::sync::Arc;
 use vrp_core::models::problem::JobPermutation;
-use vrp_core::utils::Random;
+use vrp_core::prelude::*;
 
 #[cfg(test)]
 #[path = "../../tests/unit/utils/permutations_test.rs"]

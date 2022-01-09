@@ -10,8 +10,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{BufWriter, Error, ErrorKind, Write};
 use vrp_core::models::problem::Job;
-use vrp_core::models::Problem;
-use vrp_core::utils::compare_floats;
+use vrp_core::prelude::*;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type")]

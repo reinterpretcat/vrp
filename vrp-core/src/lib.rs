@@ -75,9 +75,7 @@
 //! ```
 //! # use vrp_core::models::examples::create_example_problem;
 //! # use std::sync::Arc;
-//! use vrp_core::solver::Builder;
-//! use vrp_core::models::Problem;
-//! use vrp_core::utils::Environment;
+//! use vrp_core::prelude::*;
 //!
 //! // create your VRP problem
 //! let problem = create_example_problem();
@@ -103,6 +101,8 @@
 #[path = "../tests/helpers/mod.rs"]
 #[macro_use]
 pub mod helpers;
+
+pub mod prelude;
 
 pub mod algorithms;
 pub mod construction;

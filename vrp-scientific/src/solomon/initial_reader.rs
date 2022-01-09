@@ -9,8 +9,7 @@ use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 use vrp_core::models::solution::{Activity, Registry, Route, Tour};
-use vrp_core::models::{Problem, Solution};
-use vrp_core::utils::Random;
+use vrp_core::prelude::*;
 
 /// Reads initial solution from a buffer.
 /// NOTE: Solution feasibility is not checked.
