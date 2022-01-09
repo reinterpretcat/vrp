@@ -9,7 +9,7 @@ mod timing {
     use crate::models::common::{Location, Schedule, TimeInterval, TimeWindow, Timestamp};
     use crate::models::problem::{Vehicle, VehicleDetail, VehiclePlace};
     use crate::models::solution::{Activity, Place, Registry};
-    use crate::utils::compare_floats;
+    use rosomaxa::prelude::compare_floats;
     use std::cmp::Ordering;
 
     fn create_detail(

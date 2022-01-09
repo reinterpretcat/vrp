@@ -98,7 +98,7 @@ fn can_interpolate_durations() {
 mod objective {
     use super::*;
     use crate::helpers::models::domain::create_empty_insertion_context;
-    use crate::utils::compare_floats;
+    use rosomaxa::prelude::compare_floats;
 
     struct TestObjective {
         index: usize,

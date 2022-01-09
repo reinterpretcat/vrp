@@ -3,6 +3,7 @@
 use crate::algorithms::nsga2::MultiObjective;
 use crate::heuristics::population::HeuristicPopulation;
 use crate::utils::Environment;
+use crate::utils::Timer;
 
 pub mod hyper;
 pub mod population;
@@ -28,7 +29,7 @@ pub trait HeuristicContext: Send + Sync {
     type Solution: HeuristicSolution;
 
     /// Returns objective function used by the population.
-    fn objective(&self) -> &<Self::Population as HeuristicPopulation>::Objective;
+    fn objective(&self) -> &Self::Objective;
 
     /// Returns population.
     fn population(&self) -> &Self::Population;
@@ -56,6 +57,9 @@ pub struct HeuristicStatistics {
     /// A number which specifies refinement generation.
     pub generation: usize,
 
+    /// Elapsed seconds since algorithm start.
+    pub time: Timer,
+
     /// A current refinement speed.
     pub speed: HeuristicSpeed,
 
@@ -67,4 +71,17 @@ pub struct HeuristicStatistics {
 
     /// A progress till algorithm's termination.
     pub termination_estimate: f64,
+}
+
+impl Default for HeuristicStatistics {
+    fn default() -> Self {
+        Self {
+            generation: 0,
+            time: Timer::start(),
+            speed: HeuristicSpeed::Moderate,
+            improvement_all_ratio: 0.,
+            improvement_1000_ratio: 0.,
+            termination_estimate: 0.,
+        }
+    }
 }

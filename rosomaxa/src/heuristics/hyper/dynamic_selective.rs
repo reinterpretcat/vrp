@@ -1,6 +1,7 @@
 use super::*;
 use crate::algorithms::math::relative_distance;
 use crate::algorithms::mdp::*;
+use crate::algorithms::nsga2::Objective;
 use crate::utils::{compare_floats, Random};
 use hashbrown::HashMap;
 use std::cmp::Ordering;

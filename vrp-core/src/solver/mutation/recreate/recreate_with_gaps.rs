@@ -5,7 +5,7 @@ use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
 use rand::prelude::*;
-use rosomaxa::utils::Random;
+use rosomaxa::prelude::Random;
 use std::sync::Arc;
 
 /// Returns a sub set of randomly selected jobs.

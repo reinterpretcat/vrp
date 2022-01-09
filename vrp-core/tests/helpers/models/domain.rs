@@ -7,7 +7,7 @@ use crate::models::examples::create_example_problem;
 use crate::models::problem::{Fleet, Job, Jobs, ObjectiveCost};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
-use crate::utils::{DefaultRandom, Environment, Random};
+use rosomaxa::utils::{DefaultRandom, Environment, Random};
 use std::sync::Arc;
 
 pub fn test_random() -> Arc<dyn Random + Send + Sync> {

@@ -1,6 +1,6 @@
 use super::*;
-use crate::helpers::algorithms::p;
 use crate::helpers::construction::clustering::dbscan::create_test_distances;
+use crate::helpers::construction::clustering::p;
 use crate::helpers::models::problem::test_single_with_id_and_location;
 use crate::helpers::solver::{generate_matrix_distances_from_points, generate_matrix_routes};
 use crate::helpers::utils::random::FakeRandom;

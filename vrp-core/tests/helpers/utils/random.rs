@@ -1,5 +1,5 @@
-use crate::utils::Random;
 use rand::prelude::*;
+use rosomaxa::prelude::Random;
 
 struct FakeDistribution<T> {
     values: Vec<T>,

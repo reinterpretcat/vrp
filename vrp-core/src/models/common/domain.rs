@@ -4,7 +4,7 @@ mod domain_test;
 
 use crate::models::common::{Duration, Timestamp};
 use hashbrown::HashMap;
-use rosomaxa::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 use std::any::Any;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};

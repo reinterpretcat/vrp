@@ -5,7 +5,7 @@ mod jobs_test;
 use crate::models::common::*;
 use crate::models::problem::{Costs, Fleet, TransportCost};
 use hashbrown::HashMap;
-use rosomaxa::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 use std::cell::UnsafeCell;
 use std::cmp::Ordering::Less;
 use std::hash::{Hash, Hasher};

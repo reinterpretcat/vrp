@@ -1,4 +1,4 @@
-use rosomaxa::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 
 /// Returns coefficient variation.

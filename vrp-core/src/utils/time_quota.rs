@@ -1,5 +1,5 @@
 use crate::construction::Quota;
-use crate::utils::Timer;
+use rosomaxa::utils::Timer;
 
 /// A time quota.
 pub struct TimeQuota {

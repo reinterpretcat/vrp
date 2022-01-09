@@ -5,9 +5,9 @@
 mod telemetry_test;
 
 use crate::construction::heuristics::InsertionContext;
-use crate::solver::{RefinementContext, RefinementSpeed, Statistics};
-use crate::utils::Timer;
+use crate::solver::RefinementContext;
 use rosomaxa::prelude::*;
+use rosomaxa::utils::Timer;
 use std::fmt::Write;
 use std::ops::Deref;
 
@@ -175,7 +175,7 @@ impl Telemetry {
         self.improvement_tracker.track(generation, is_improved);
         self.speed_tracker.track(generation, termination_estimate);
 
-        refinement_ctx.statistics = Statistics {
+        refinement_ctx.statistics = HeuristicStatistics {
             generation,
             time: self.time.clone(),
             speed: self.speed_tracker.get_current_speed(),
@@ -419,12 +419,12 @@ impl ImprovementTracker {
 
 struct SpeedTracker {
     initial: f64,
-    speed: RefinementSpeed,
+    speed: HeuristicSpeed,
 }
 
 impl Default for SpeedTracker {
     fn default() -> Self {
-        Self { initial: 0., speed: RefinementSpeed::Moderate }
+        Self { initial: 0., speed: HeuristicSpeed::Moderate }
     }
 }
 
@@ -434,7 +434,7 @@ impl SpeedTracker {
             self.initial = termination_estimate;
         } else {
             match &self.speed {
-                RefinementSpeed::Moderate => {
+                HeuristicSpeed::Moderate => {
                     let delta = (termination_estimate - self.initial).max(0.);
                     let speed = match (generation, delta) {
                         (generation, delta) if generation < 10 && delta > 0.1 => 0.1,
@@ -444,14 +444,14 @@ impl SpeedTracker {
                         _ => return,
                     };
 
-                    self.speed = RefinementSpeed::Slow(speed);
+                    self.speed = HeuristicSpeed::Slow(speed);
                 }
-                RefinementSpeed::Slow(_) => {}
+                HeuristicSpeed::Slow(_) => {}
             }
         }
     }
 
-    pub fn get_current_speed(&self) -> RefinementSpeed {
+    pub fn get_current_speed(&self) -> HeuristicSpeed {
         self.speed.clone()
     }
 }

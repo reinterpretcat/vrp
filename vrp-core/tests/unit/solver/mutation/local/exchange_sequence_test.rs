@@ -3,7 +3,7 @@ use crate::helpers::models::domain::*;
 use crate::helpers::solver::*;
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
-use crate::utils::Environment;
+use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
 parameterized_test! { can_extract_jobs, (route_idx, start_idx, sequence_size, locked_ids, expected_route_ids, expected_extracted_ids), {

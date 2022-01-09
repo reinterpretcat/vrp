@@ -7,9 +7,8 @@ use crate::models::common::Location;
 use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
-use crate::solver::population::create_elitism_population;
-use crate::solver::RefinementContext;
-use crate::utils::Environment;
+use crate::solver::{create_elitism_population, RefinementContext};
+use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
 mod mutation;

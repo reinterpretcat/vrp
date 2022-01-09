@@ -4,7 +4,7 @@ use crate::solver::mutation::recreate::Recreate;
 use crate::solver::mutation::ConfigurableRecreate;
 use crate::solver::RefinementContext;
 use crate::utils::Either;
-use rosomaxa::utils::Random;
+use rosomaxa::prelude::Random;
 use std::sync::Arc;
 
 /// A recreate method which perturbs the cost by a factor to introduce randomization.

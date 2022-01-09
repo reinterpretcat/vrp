@@ -2,7 +2,7 @@ use super::*;
 use crate::helpers::models::domain::create_empty_insertion_context;
 use crate::helpers::solver::create_default_refinement_ctx;
 use crate::models::examples::create_example_problem;
-use crate::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 
 fn compare_statistic(refinement_ctx: &RefinementContext, expected: (usize, f64, f64)) {

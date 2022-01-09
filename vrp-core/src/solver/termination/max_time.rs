@@ -1,6 +1,6 @@
 use crate::solver::termination::Termination;
 use crate::solver::RefinementContext;
-use crate::utils::Timer;
+use rosomaxa::utils::Timer;
 
 /// A termination criteria which is in terminated state when max time elapsed.
 pub struct MaxTime {

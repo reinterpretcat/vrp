@@ -1,15 +1,15 @@
 use super::*;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
-use crate::solver::hyper::StaticSelective;
-use crate::utils::Environment;
+use crate::solver::create_default_mutation;
+use rosomaxa::prelude::*;
 
 #[test]
-fn can_create_multiple_individuals_without_unassigned() {
+fn can_create_multiple_insertion_ctxs_without_unassigned() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
-    let individuals = create_multiple_individuals(&individual, (2, 2)).unwrap();
+    let individuals = create_multiple_insertion_ctxs(&individual, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 4);
     assert_eq!(individuals[0].0.solution.routes.len(), 2);
@@ -19,7 +19,7 @@ fn can_create_multiple_individuals_without_unassigned() {
 }
 
 #[test]
-fn can_create_multiple_individuals_with_unassigned() {
+fn can_create_multiple_insertion_ctxs_with_unassigned() {
     let environment = Arc::new(Environment::default());
     let (problem, mut solution) = generate_matrix_routes_with_defaults(5, 6, false);
     solution.registry.free_actor(&solution.routes[0].actor);
@@ -27,7 +27,7 @@ fn can_create_multiple_individuals_with_unassigned() {
     solution.routes.remove(0);
     let individual = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
 
-    let individuals = create_multiple_individuals(&individual, (2, 2)).unwrap();
+    let individuals = create_multiple_insertion_ctxs(&individual, (2, 2)).unwrap();
 
     assert_eq!(individuals.len(), 4);
 
@@ -49,12 +49,11 @@ fn can_mutate() {
     let environment = Arc::new(Environment::default());
     let (problem, solution) = generate_matrix_routes_with_defaults(5, 7, false);
     let problem = Arc::new(problem);
-    let population = Box::new(Greedy::new(problem.objective.clone(), 1, None));
+    let population = Box::new(GreedyPopulation::new(problem.objective.clone(), 1, None));
 
     let refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone(), None);
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
-    let decompose_search =
-        DecomposeSearch::new(StaticSelective::create_default_mutation(problem.clone(), environment), (2, 2), 10);
+    let decompose_search = DecomposeSearch::new(create_default_mutation(problem.clone(), environment), (2, 2), 10);
 
     let result = decompose_search.mutate(&refinement_ctx, &insertion_ctx);
 

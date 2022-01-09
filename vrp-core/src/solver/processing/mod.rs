@@ -2,7 +2,7 @@
 
 use crate::construction::heuristics::InsertionContext;
 use crate::models::Problem;
-use rosomaxa::utils::Environment;
+use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
 mod advance_departure;

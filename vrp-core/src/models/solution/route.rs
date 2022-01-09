@@ -2,7 +2,7 @@ use crate::models::common::{Distance, Duration, Location, Schedule, TimeWindow};
 use crate::models::problem::{Actor, Job, Multi, Single};
 use crate::models::solution::Tour;
 use crate::utils::compare_shared;
-use rosomaxa::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 use std::sync::Arc;
 

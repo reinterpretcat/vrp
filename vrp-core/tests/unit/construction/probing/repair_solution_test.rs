@@ -6,7 +6,7 @@ use crate::models::common::*;
 use crate::models::problem::*;
 use crate::models::solution::Place;
 use crate::models::{Lock, LockDetail, LockOrder, LockPosition, Problem};
-use crate::utils::Environment;
+use rosomaxa::prelude::Environment;
 
 type JobData = (Option<Location>, (f64, f64), Duration, i32);
 type VehicleData = ((Location, Option<f64>, Option<f64>), Option<(Location, Option<f64>, Option<f64>)>);

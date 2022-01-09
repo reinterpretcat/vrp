@@ -2,7 +2,7 @@
 //! e.g. when to stop evolution in evolutionary algorithms.
 
 use crate::solver::RefinementContext;
-use rosomaxa::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 
 /// A trait which specifies criteria when metaheuristic should stop searching for improved solution.
 pub trait Termination {

@@ -95,7 +95,6 @@ extern crate rand;
 use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::{Problem, Solution};
-use crate::utils::Timer;
 use hashbrown::HashMap;
 use rosomaxa::prelude::*;
 use std::any::Any;
@@ -117,6 +116,8 @@ use self::evolution::{EvolutionConfig, EvolutionSimulator};
 
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
+use crate::construction::heuristics::InsertionContext;
+use crate::models::problem::ObjectiveCost;
 
 /// A key to store solution order information.
 const SOLUTION_ORDER_KEY: i32 = 1;
@@ -145,7 +146,7 @@ pub struct RefinementContext {
     pub environment: Arc<Environment>,
 
     /// A refinement statistics.
-    pub statistics: Statistics,
+    pub statistics: HeuristicStatistics,
 }
 
 /// Defines instant refinement speed type.
@@ -158,28 +159,6 @@ pub enum RefinementSpeed {
     Moderate,
 }
 
-/// A refinement statistics to track evolution progress.
-#[derive(Clone)]
-pub struct Statistics {
-    /// A number which specifies refinement generation.
-    pub generation: usize,
-
-    /// Elapsed seconds since algorithm start.
-    pub time: Timer,
-
-    /// A current refinement speed.
-    pub speed: RefinementSpeed,
-
-    /// An improvement ratio from beginning.
-    pub improvement_all_ratio: f64,
-
-    /// An improvement ratio for last 1000 iterations.
-    pub improvement_1000_ratio: f64,
-
-    /// A progress till algorithm's termination.
-    pub termination_estimate: f64,
-}
-
 impl RefinementContext {
     /// Creates a new instance of `RefinementContext`.
     pub fn new(
@@ -188,20 +167,36 @@ impl RefinementContext {
         environment: Arc<Environment>,
         quota: Option<Arc<dyn Quota + Send + Sync>>,
     ) -> Self {
-        Self { problem, population, state: Default::default(), quota, environment, statistics: Statistics::default() }
+        Self {
+            problem,
+            population,
+            state: Default::default(),
+            quota,
+            environment,
+            statistics: HeuristicStatistics::default(),
+        }
     }
 }
 
-impl Default for Statistics {
-    fn default() -> Self {
-        Self {
-            generation: 0,
-            time: Timer::start(),
-            speed: RefinementSpeed::Moderate,
-            improvement_all_ratio: 0.,
-            improvement_1000_ratio: 0.,
-            termination_estimate: 0.,
-        }
+impl HeuristicContext for RefinementContext {
+    type Objective = ObjectiveCost;
+    type Population = ();
+    type Solution = InsertionContext;
+
+    fn objective(&self) -> &<Self::Population as HeuristicPopulation>::Objective {
+        self.objective().as_ref()
+    }
+
+    fn population(&self) -> &Self::Population {
+        self.population.as_ref()
+    }
+
+    fn statistics(&self) -> &HeuristicStatistics {
+        &self.statistics
+    }
+
+    fn environment(&self) -> &Environment {
+        self.environment.as_ref()
     }
 }
 
@@ -225,7 +220,7 @@ impl Solver {
     /// ```
     /// # use vrp_core::models::examples::create_example_problem;
     /// # use std::sync::Arc;
-    /// use rosomaxa::utils::Environment;
+    /// use rosomaxa::prelude::Environment;
     /// use vrp_core::solver::Builder;
     /// use vrp_core::models::Problem;
     ///

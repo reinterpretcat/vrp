@@ -1,6 +1,6 @@
 use crate::solver::evolution::*;
 use crate::solver::{RefinementContext, Telemetry};
-use crate::utils::Timer;
+use rosomaxa::utils::Timer;
 
 /// A simple evolution algorithm which maintains single population.
 #[derive(Default)]

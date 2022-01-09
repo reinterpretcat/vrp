@@ -1,4 +1,4 @@
-use crate::helpers::algorithms::p;
+use crate::helpers::construction::clustering::p;
 use crate::helpers::solver::generate_matrix_distances_from_points;
 
 pub fn create_test_distances() -> Vec<f64> {

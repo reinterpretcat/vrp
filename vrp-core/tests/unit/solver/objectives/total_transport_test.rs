@@ -8,8 +8,8 @@ use crate::models::problem::{Job, Jobs, ObjectiveCost, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
 use crate::solver::objectives::TotalCost;
-use crate::utils::Environment;
 use hashbrown::HashMap;
+use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
 #[test]

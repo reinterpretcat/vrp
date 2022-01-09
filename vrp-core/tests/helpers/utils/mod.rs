@@ -1,4 +1,4 @@
-use crate::utils::{Environment, Random};
+use rosomaxa::utils::{Environment, Random};
 use std::sync::Arc;
 
 pub mod random;

@@ -10,7 +10,7 @@ use crate::models::problem::Job;
 use crate::models::solution::Tour;
 use crate::solver::mutation::{select_seed_jobs, RuinLimits};
 use crate::solver::RefinementContext;
-use rosomaxa::utils::Random;
+use rosomaxa::prelude::Random;
 
 /// _Adjusted string removal_ ruin strategy based on "Slack Induction by String Removals for
 /// Vehicle Routing Problems" by Jan Christiaens, Greet Vanden Berghe.

@@ -14,3 +14,6 @@ pub use self::parallel::*;
 
 mod random;
 pub use self::random::*;
+
+mod timing;
+pub use self::timing::*;

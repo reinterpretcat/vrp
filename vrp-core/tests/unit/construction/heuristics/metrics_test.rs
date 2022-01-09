@@ -2,7 +2,7 @@ use crate::construction::constraints::*;
 use crate::construction::heuristics::*;
 use crate::helpers::models::domain::create_empty_insertion_context;
 use crate::helpers::models::solution::create_empty_route_ctx;
-use crate::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering::Equal;
 
 fn create_insertion_ctx(route_amount: usize, route_factory: &(dyn Fn(usize) -> RouteContext)) -> InsertionContext {

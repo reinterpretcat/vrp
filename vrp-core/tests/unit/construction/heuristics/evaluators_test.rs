@@ -7,7 +7,7 @@ use crate::helpers::models::solution::ActivityBuilder;
 use crate::models::common::{Cost, Location, Schedule, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Activity, Place, Registry};
-use crate::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;

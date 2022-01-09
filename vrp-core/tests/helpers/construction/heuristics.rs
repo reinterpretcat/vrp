@@ -3,7 +3,7 @@ use crate::construction::heuristics::{InsertionContext, RegistryContext, RouteCo
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::domain::{create_empty_problem_with_constraint, create_empty_solution_context};
 use crate::models::solution::Registry;
-use crate::utils::Environment;
+use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
 pub fn create_insertion_context(

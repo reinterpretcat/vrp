@@ -1,4 +1,3 @@
-pub mod algorithms;
 pub mod construction;
 pub mod models;
 pub mod solver;

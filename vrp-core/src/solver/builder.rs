@@ -28,7 +28,7 @@ use std::sync::Arc;
 /// # use std::sync::Arc;
 /// use vrp_core::solver::Builder;
 /// use vrp_core::models::Problem;
-/// use rosomaxa::utils::Environment;
+/// use rosomaxa::prelude::Environment;
 ///
 /// // create your VRP problem
 /// let problem: Arc<Problem> = create_example_problem();

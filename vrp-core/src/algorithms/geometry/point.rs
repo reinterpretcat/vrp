@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/algorithms/geometry/point_test.rs"]
 mod point_test;
 
-use rosomaxa::utils::compare_floats;
+use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 

@@ -6,7 +6,7 @@ use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::{Schedule, TimeWindow};
 use crate::models::solution::*;
-use crate::utils::Environment;
+use rosomaxa::prelude::Environment;
 
 fn create_insertion_success(insertion_ctx: &InsertionContext, insertion_data: (usize, &str, usize)) -> InsertionResult {
     let (route_idx, job_id, insertion_idx) = insertion_data;

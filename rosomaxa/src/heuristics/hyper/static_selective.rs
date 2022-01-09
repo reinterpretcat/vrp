@@ -1,4 +1,5 @@
 use super::*;
+use crate::algorithms::nsga2::Objective;
 use crate::utils::{parallel_into_collect, unwrap_from_result};
 use std::cmp::Ordering;
 use std::sync::Arc;

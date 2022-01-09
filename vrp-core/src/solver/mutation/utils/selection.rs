@@ -2,7 +2,7 @@ use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::problem::Job;
 use crate::models::Problem;
 use hashbrown::HashMap;
-use rosomaxa::utils::Random;
+use rosomaxa::prelude::Random;
 use std::iter::{empty, once};
 use std::sync::Arc;
 

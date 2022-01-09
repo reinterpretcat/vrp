@@ -2,8 +2,8 @@ use crate::construction::heuristics::InsertionContext;
 use crate::solver::telemetry::Telemetry;
 use crate::solver::termination::*;
 use crate::solver::{Metrics, RefinementContext, TargetHeuristic, TargetPopulation};
-use crate::utils::Timer;
 use rosomaxa::prelude::*;
+use rosomaxa::utils::Timer;
 
 pub use self::config::*;
 pub use self::run_simple::RunSimple;
