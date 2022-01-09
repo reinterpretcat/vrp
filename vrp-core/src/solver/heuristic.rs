@@ -1,5 +1,5 @@
 use super::*;
-use crate::construction::heuristics::InsertionContext;
+use crate::construction::heuristics::*;
 use crate::models::common::SingleDimLoad;
 use crate::models::problem::ObjectiveCost;
 use crate::solver::mutation::*;
@@ -54,7 +54,19 @@ pub fn create_elitism_population(objective: Arc<ObjectiveCost>, environment: Arc
 
 impl RosomaxaWeighted for InsertionContext {
     fn weights(&self) -> Vec<f64> {
-        todo!()
+        vec![
+            get_max_load_variance(self),
+            get_duration_mean(self),
+            get_distance_mean(self),
+            get_waiting_mean(self),
+            get_longest_distance_between_customers_mean(self),
+            get_average_distance_between_depot_customer_mean(self),
+            get_distance_gravity_mean(self),
+            get_customers_deviation(self),
+            get_longest_distance_between_depot_customer_mean(self),
+            self.solution.routes.len() as f64,
+            self.solution.unassigned.len() as f64,
+        ]
     }
 }
 
