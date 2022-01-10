@@ -59,16 +59,16 @@ fn can_read_full_config() {
 
     let hyper_config = config.hyper.expect("cannot get hyper");
     match hyper_config {
-        HyperType::StaticSelective { mutations } => {
-            let mutations = mutations.expect("cannot get mutations");
-            assert_eq!(mutations.len(), 4);
-            match mutations.first().unwrap() {
-                MutationType::Decomposition { routes, repeat, probability } => {
+        HyperType::StaticSelective { operators } => {
+            let operators = operators.expect("cannot get operators");
+            assert_eq!(operators.len(), 4);
+            match operators.first().unwrap() {
+                SearchOperatorType::Decomposition { routes, repeat, probability } => {
                     assert_eq!(*repeat, 4);
                     assert_eq!(routes.min, 2);
                     assert_eq!(routes.max, 4);
                     match probability {
-                        MutationProbabilityType::Context { threshold, phases } => {
+                        OperatorProbabilityType::Context { threshold, phases } => {
                             assert_eq!(threshold.jobs, 300);
                             assert_eq!(threshold.routes, 10);
                             assert_eq!(phases.len(), 2);
@@ -79,8 +79,8 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
 
-            match mutations.get(1).unwrap() {
-                MutationType::LocalSearch { probability, times, operators: inners } => {
+            match operators.get(1).unwrap() {
+                SearchOperatorType::LocalSearch { probability, times, operators: inners } => {
                     assert_eq!(as_scalar_probability(probability), 0.05);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
                     assert_eq!(inners.len(), 4);
@@ -88,8 +88,8 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
 
-            match mutations.get(2).unwrap() {
-                MutationType::RuinRecreate { probability, ruins, recreates } => {
+            match operators.get(2).unwrap() {
+                SearchOperatorType::RuinRecreate { probability, ruins, recreates } => {
                     assert_eq!(as_scalar_probability(probability), 1.);
                     assert_eq!(ruins.len(), 6);
                     assert_eq!(recreates.len(), 12);
@@ -97,8 +97,8 @@ fn can_read_full_config() {
                 _ => unreachable!(),
             }
 
-            match mutations.last().unwrap() {
-                MutationType::LocalSearch { probability, times, operators: inners } => {
+            match operators.last().unwrap() {
+                SearchOperatorType::LocalSearch { probability, times, operators: inners } => {
                     assert_eq!(as_scalar_probability(probability), 0.01);
                     assert_eq!(*times, MinMaxConfig { min: 1, max: 2 });
                     assert_eq!(inners.len(), 4);
@@ -157,9 +157,9 @@ fn can_create_default_config() {
     assert!(config.telemetry.is_none());
 }
 
-fn as_scalar_probability(probability: &MutationProbabilityType) -> f64 {
+fn as_scalar_probability(probability: &OperatorProbabilityType) -> f64 {
     match probability {
-        MutationProbabilityType::Scalar { scalar } => *scalar,
+        OperatorProbabilityType::Scalar { scalar } => *scalar,
         _ => unreachable!(),
     }
 }

@@ -34,20 +34,20 @@ pub use self::local_search::LocalSearch;
 mod ruin_recreate;
 pub use self::ruin_recreate::RuinAndRecreate;
 
-/// Provides the way to pick one mutation from the group of mutation methods.
-pub struct WeightedMutation {
+/// Provides the way to pick one heuristic operator from the group.
+pub struct WeightedHeuristicOperator {
     mutations: Vec<TargetHeuristicOperator>,
     weights: Vec<usize>,
 }
 
-impl WeightedMutation {
-    /// Creates a new instance of `WeightedMutation`.
+impl WeightedHeuristicOperator {
+    /// Creates a new instance of `WeightedHeuristicOperator`.
     pub fn new(mutations: Vec<TargetHeuristicOperator>, weights: Vec<usize>) -> Self {
         Self { mutations, weights }
     }
 }
 
-impl HeuristicOperator for WeightedMutation {
+impl HeuristicOperator for WeightedHeuristicOperator {
     type Context = RefinementContext;
     type Solution = InsertionContext;
 

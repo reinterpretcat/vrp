@@ -4,7 +4,7 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
 use crate::models::common::IdDimension;
 use crate::models::examples::create_example_problem;
-use crate::models::problem::{Fleet, Job, Jobs, ObjectiveCost};
+use crate::models::problem::{Fleet, Job, Jobs, ProblemObjective};
 use crate::models::solution::Registry;
 use crate::models::{Problem, Solution};
 use rosomaxa::utils::{DefaultRandom, Environment, Random};
@@ -37,7 +37,7 @@ pub fn create_problem_with_constraint_jobs_and_fleet(
         constraint: Arc::new(constraint),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        objective: Arc::new(ObjectiveCost::default()),
+        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     })
 }

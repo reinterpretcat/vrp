@@ -72,8 +72,8 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    /// Creates a new instance of `DynamicSelective`.
-    pub fn new_with_defaults(
+    /// Creates a new instance of `DynamicSelective` heuristic.
+    pub fn new(
         operators: Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, String)>,
         random: Arc<dyn Random + Send + Sync>,
     ) -> Self {

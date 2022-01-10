@@ -150,7 +150,7 @@ mod objective {
     }
 
     fn can_use_total_order_with_hierarchy_impl(data_a: Vec<f64>, data_b: Vec<f64>, expected: Ordering) {
-        let objective = ObjectiveCost::new(vec![
+        let objective = ProblemObjective::new(vec![
             vec![Arc::new(TestObjective { index: 0 })],
             vec![Arc::new(TestObjective { index: 1 })],
             vec![Arc::new(TestObjective { index: 2 })],
@@ -185,7 +185,7 @@ mod objective {
     }
 
     fn can_use_total_order_with_multi_impl(data_a: Vec<f64>, data_b: Vec<f64>, case: bool, expected: Ordering) {
-        let objective = ObjectiveCost::new(if case {
+        let objective = ProblemObjective::new(if case {
             vec![
                 vec![Arc::new(TestObjective { index: 0 }), Arc::new(TestObjective { index: 1 })],
                 vec![Arc::new(TestObjective { index: 2 })],

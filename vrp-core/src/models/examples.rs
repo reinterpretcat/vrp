@@ -77,7 +77,7 @@ pub fn create_example_problem() -> Arc<Problem> {
         constraint: Arc::new(constraint),
         activity,
         transport,
-        objective: Arc::new(ObjectiveCost::default()),
+        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     })
 }

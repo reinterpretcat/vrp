@@ -127,23 +127,23 @@ pub enum SelectionType {
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum HyperType {
-    /// A hyper heuristic which selects one mutation from the list based on its predefined probability.
+    /// A hyper heuristic which selects one operator from the list based on its predefined probability.
     #[serde(rename(deserialize = "static-selective"))]
     StaticSelective {
-        /// A collection of inner mutation operators (metaheuristics).
-        mutations: Option<Vec<MutationType>>,
+        /// A collection of inner operators (metaheuristics).
+        operators: Option<Vec<SearchOperatorType>>,
     },
 
-    /// A hyper heuristic which selects mutations from the predefined list using reinforcement
+    /// A hyper heuristic which selects operator from the predefined list using reinforcement
     /// learning technics.
     #[serde(rename(deserialize = "dynamic-selective"))]
     DynamicSelective,
 }
 
-/// A mutation operator configuration.
+/// A operator configuration.
 #[derive(Clone, Deserialize, Debug)]
 #[serde(tag = "type")]
-pub enum MutationType {
+pub enum SearchOperatorType {
     /// A metaheuristic which splits problem into smaller and solves them independently.
     #[serde(rename(deserialize = "decomposition"))]
     #[serde(rename_all = "camelCase")]
@@ -152,15 +152,15 @@ pub enum MutationType {
         routes: MinMaxConfig,
         /// Amount of attempts to repeat refinement.
         repeat: usize,
-        /// Probability of mutation.
-        probability: MutationProbabilityType,
+        /// Probability of operator.
+        probability: OperatorProbabilityType,
     },
 
     /// A local search heuristic.
     #[serde(rename(deserialize = "local-search"))]
     LocalSearch {
-        /// Probability of mutation.
-        probability: MutationProbabilityType,
+        /// Probability of operator.
+        probability: OperatorProbabilityType,
         /// Amount of times one of operators is applied.
         times: MinMaxConfig,
         /// Local search operator.
@@ -171,7 +171,7 @@ pub enum MutationType {
     #[serde(rename(deserialize = "ruin-recreate"))]
     RuinRecreate {
         /// Probability.
-        probability: MutationProbabilityType,
+        probability: OperatorProbabilityType,
         /// Ruin methods.
         ruins: Vec<RuinGroupConfig>,
         /// Recreate methods.
@@ -179,13 +179,13 @@ pub enum MutationType {
     },
 }
 
-/// A mutation method probability type
+/// A operator probability type
 #[derive(Clone, Deserialize, Debug)]
 #[serde(untagged)]
-pub enum MutationProbabilityType {
+pub enum OperatorProbabilityType {
     /// A scalar probability based type.
     Scalar {
-        /// Probability value of the mutation.
+        /// Probability value of the operator.
         scalar: f64,
     },
 
@@ -539,24 +539,21 @@ fn configure_from_evolution(
 fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) -> Result<Builder, String> {
     if let Some(config) = hyper_config {
         match config {
-            HyperType::StaticSelective { mutations } => {
-                let static_selective = if let Some(mutations) = mutations {
-                    let mutation_group = mutations
+            HyperType::StaticSelective { operators } => {
+                let static_selective = if let Some(operators) = operators {
+                    let heuristic_group = operators
                         .iter()
-                        .map(|mutation| {
-                            create_mutation(
+                        .map(|operator| {
+                            create_operator(
                                 builder.config.problem.clone(),
                                 builder.config.environment.clone(),
-                                mutation,
+                                operator,
                             )
                         })
                         .collect::<Result<Vec<_>, _>>()?;
-                    get_static_heuristic_from_mutation_group(mutation_group)
+                    get_static_heuristic_from_heuristic_group(heuristic_group)
                 } else {
-                    get_static_heuristic_with_defaults(
-                        builder.config.problem.clone(),
-                        builder.config.environment.clone(),
-                    )
+                    get_static_heuristic(builder.config.problem.clone(), builder.config.environment.clone())
                 };
 
                 builder = builder.with_heuristic(static_selective);
@@ -629,13 +626,13 @@ fn create_recreate_method(
     }
 }
 
-fn create_mutation(
+fn create_operator(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-    mutation: &MutationType,
-) -> Result<(TargetHeuristicOperator, MutationProbability), String> {
-    Ok(match mutation {
-        MutationType::RuinRecreate { probability, ruins, recreates } => {
+    operator: &SearchOperatorType,
+) -> Result<(TargetHeuristicOperator, TargetHeuristicProbability), String> {
+    Ok(match operator {
+        SearchOperatorType::RuinRecreate { probability, ruins, recreates } => {
             let ruin = Arc::new(WeightedRuin::new(
                 ruins.iter().map(|g| create_ruin_group(&problem, environment.clone(), g)).collect(),
             ));
@@ -644,14 +641,14 @@ fn create_mutation(
             ));
             (
                 Arc::new(RuinAndRecreate::new(ruin, recreate)),
-                create_mutation_probability(probability, environment.random.clone()),
+                create_operator_probability(probability, environment.random.clone()),
             )
         }
-        MutationType::LocalSearch { probability, times, operators: inners } => {
+        SearchOperatorType::LocalSearch { probability, times, operators: inners } => {
             let operator = create_local_search(times, inners, environment.random.clone());
-            (Arc::new(LocalSearch::new(operator)), create_mutation_probability(probability, environment.random.clone()))
+            (Arc::new(LocalSearch::new(operator)), create_operator_probability(probability, environment.random.clone()))
         }
-        MutationType::Decomposition { routes, repeat, probability } => {
+        SearchOperatorType::Decomposition { routes, repeat, probability } => {
             if *repeat < 1 {
                 return Err(format!("repeat must be greater than 1. Specified: {}", repeat));
             }
@@ -662,19 +659,19 @@ fn create_mutation(
             let operator = create_default_heuristic_operator(problem, environment.clone());
             (
                 Arc::new(DecomposeSearch::new(operator, (routes.min, routes.max), *repeat)),
-                create_mutation_probability(probability, environment.random.clone()),
+                create_operator_probability(probability, environment.random.clone()),
             )
         }
     })
 }
 
-fn create_mutation_probability(
-    probability: &MutationProbabilityType,
+fn create_operator_probability(
+    probability: &OperatorProbabilityType,
     random: Arc<dyn Random + Send + Sync>,
-) -> MutationProbability {
+) -> TargetHeuristicProbability {
     match probability {
-        MutationProbabilityType::Scalar { scalar } => create_scalar_mutation_probability(*scalar, random),
-        MutationProbabilityType::Context { threshold, phases } => create_context_mutation_probability(
+        OperatorProbabilityType::Scalar { scalar } => create_scalar_operator_probability(*scalar, random),
+        OperatorProbabilityType::Context { threshold, phases } => create_context_operator_probability(
             threshold.jobs,
             threshold.routes,
             phases

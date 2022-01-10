@@ -29,7 +29,7 @@ pub struct Problem {
     pub transport: Arc<dyn TransportCost + Send + Sync>,
 
     /// Specifies an objective costs..
-    pub objective: Arc<ObjectiveCost>,
+    pub objective: Arc<ProblemObjective>,
 
     /// Specifies index for storing extra parameters of arbitrary type.
     pub extras: Arc<Extras>,

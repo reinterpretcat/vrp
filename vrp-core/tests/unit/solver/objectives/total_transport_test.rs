@@ -4,7 +4,7 @@ use crate::helpers::models::domain::{create_empty_solution_context, test_random}
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::Schedule;
-use crate::models::problem::{Job, Jobs, ObjectiveCost, SimpleActivityCost};
+use crate::models::problem::{Job, Jobs, ProblemObjective, SimpleActivityCost};
 use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
 use crate::solver::objectives::TotalCost;
@@ -53,7 +53,7 @@ fn can_calculate_transport_cost() {
         constraint: constraint.clone(),
         activity,
         transport,
-        objective: Arc::new(ObjectiveCost::default()),
+        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Extras::default()),
     });
     let mut insertion_ctx = InsertionContext {

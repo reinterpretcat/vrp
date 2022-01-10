@@ -104,7 +104,7 @@ pub fn generate_matrix_routes(
         constraint: Arc::new(create_constraint_pipeline_with_transport()),
         activity: Arc::new(TestActivityCost::default()),
         transport,
-        objective: Arc::new(ObjectiveCost::default()),
+        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     };
 

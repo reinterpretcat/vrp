@@ -65,7 +65,7 @@
   },
   "hyper": {
     "type": "static-selective",
-    "mutations": [
+    "operators": [
       {
         "type": "decomposition",
         "maxSelected": 2,

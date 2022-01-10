@@ -1,10 +1,10 @@
 use crate::constraints::{JobSkills, SkillsModule};
-use crate::core::construction::constraints::ConstraintModule;
 use crate::extensions::create_typed_actor_groups;
 use crate::helpers::*;
 use hashbrown::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
+use vrp_core::construction::constraints::ConstraintModule;
 use vrp_core::construction::constraints::{ConstraintPipeline, RouteConstraintViolation};
 use vrp_core::construction::heuristics::{RouteContext, RouteState};
 use vrp_core::models::common::ValueDimension;

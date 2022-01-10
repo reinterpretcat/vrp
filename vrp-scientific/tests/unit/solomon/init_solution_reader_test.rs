@@ -1,7 +1,7 @@
 use super::*;
 use crate::helpers::{create_c101_100_problem, get_test_resource};
-use vrp_core::algorithms::nsga2::Objective;
 use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::rosomaxa::prelude::Objective;
 use vrp_core::utils::Environment;
 
 #[test]
@@ -15,5 +15,5 @@ pub fn can_read_init_solution() {
     assert_eq!(solution.routes.len(), 10);
 
     let ctx = InsertionContext::new_from_solution(problem, (solution, None), environment);
-    assert_eq!(ObjectiveCost::default().fitness(&ctx).round(), 828.936f64.round());
+    assert_eq!(ProblemObjective::default().fitness(&ctx).round(), 828.936f64.round());
 }

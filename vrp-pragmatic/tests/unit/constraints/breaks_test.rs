@@ -1,11 +1,11 @@
 use crate::constraints::BreakModule;
-use crate::core::construction::constraints::ConstraintModule;
-use crate::core::models::problem::Job;
 use crate::helpers::*;
 use std::sync::Arc;
+use vrp_core::construction::constraints::ConstraintModule;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::{RouteContext, RouteState, SolutionContext};
 use vrp_core::models::common::{IdDimension, Location, ValueDimension};
+use vrp_core::models::problem::Job;
 use vrp_core::models::problem::Single;
 
 fn create_single(id: &str) -> Arc<Single> {

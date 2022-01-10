@@ -33,14 +33,21 @@ pub trait HyperHeuristic {
 }
 
 /// A selective heuristic which uses dynamic or static selective heuristic depending on search performance.
-pub struct MultiSelective<C: HeuristicContext, S: HeuristicSolution> {
+pub struct MultiSelective<C, S>
+where
+    C: HeuristicContext,
+    S: HeuristicSolution,
+{
     actual: Box<dyn HyperHeuristic<Context = C, Solution = S>>,
     slow: Box<dyn HyperHeuristic<Context = C, Solution = S>>,
     is_slow_search: bool,
-    phantom: PhantomData<S>,
 }
 
-impl<C: HeuristicContext, S: HeuristicSolution> HyperHeuristic for MultiSelective<C, S> {
+impl<C, S> HyperHeuristic for MultiSelective<C, S>
+where
+    C: HeuristicContext,
+    S: HeuristicSolution,
+{
     type Context = C;
     type Solution = S;
 
@@ -61,5 +68,19 @@ impl<C: HeuristicContext, S: HeuristicSolution> HyperHeuristic for MultiSelectiv
         };
 
         self.actual.search(heuristic_ctx, solutions)
+    }
+}
+
+impl<C, S> MultiSelective<C, S>
+where
+    C: HeuristicContext,
+    S: HeuristicSolution,
+{
+    /// Creates a new instance of `MultiSelective` heuristic.
+    pub fn new(
+        init_heuristic: Box<dyn HyperHeuristic<Context = C, Solution = S>>,
+        slow_fallback_heuristic: Box<dyn HyperHeuristic<Context = C, Solution = S>>,
+    ) -> Self {
+        Self { actual: init_heuristic, slow: slow_fallback_heuristic, is_slow_search: false }
     }
 }

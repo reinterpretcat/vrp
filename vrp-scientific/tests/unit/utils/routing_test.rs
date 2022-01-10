@@ -1,5 +1,5 @@
 use super::*;
-use crate::core::models::common::Profile;
+use vrp_core::models::common::Profile;
 
 fn get_index() -> CoordIndex {
     let mut index = CoordIndex::default();

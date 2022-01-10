@@ -96,7 +96,7 @@ fn create_test_problem(
         constraint: Arc::new(constraint),
         activity,
         transport,
-        objective: Arc::new(ObjectiveCost::default()),
+        objective: Arc::new(ProblemObjective::default()),
         extras: Arc::new(Default::default()),
     }
 }

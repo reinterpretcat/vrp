@@ -3,12 +3,12 @@
 mod reader_test;
 
 use crate::common::*;
-use crate::core::models::common::{Demand, DemandDimension, SingleDimLoad, TimeSpan};
 use crate::utils::CoordIndex;
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::TimeWindow;
+use vrp_core::models::common::{Demand, DemandDimension, SingleDimLoad, TimeSpan};
 use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, Problem};
 

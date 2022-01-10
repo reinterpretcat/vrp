@@ -16,18 +16,18 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 
 /// A hierarchical multi objective for vehicle routing problem.
-pub struct ObjectiveCost {
+pub struct ProblemObjective {
     objectives: Vec<Vec<TargetObjective>>,
 }
 
-impl ObjectiveCost {
-    /// Creates an instance of `ObjectiveCost`.
+impl ProblemObjective {
+    /// Creates an instance of `InsertionObjective`.
     pub fn new(objectives: Vec<Vec<TargetObjective>>) -> Self {
         Self { objectives }
     }
 }
 
-impl Objective for ObjectiveCost {
+impl Objective for ProblemObjective {
     type Solution = InsertionContext;
 
     fn total_order(&self, a: &Self::Solution, b: &Self::Solution) -> Ordering {
@@ -48,15 +48,15 @@ impl Objective for ObjectiveCost {
     }
 }
 
-impl MultiObjective for ObjectiveCost {
+impl MultiObjective for ProblemObjective {
     fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &TargetObjective> + 'a> {
         Box::new(self.objectives.iter().flatten())
     }
 }
 
-impl HeuristicObjective for ObjectiveCost {}
+impl HeuristicObjective for ProblemObjective {}
 
-impl Shuffled for ObjectiveCost {
+impl Shuffled for ProblemObjective {
     /// Returns a new instance of `ObjectiveCost` with shuffled objectives.
     fn get_shuffled(&self, random: &(dyn Random + Send + Sync)) -> Self {
         let mut objectives = self.objectives.clone();
@@ -67,7 +67,7 @@ impl Shuffled for ObjectiveCost {
     }
 }
 
-impl Default for ObjectiveCost {
+impl Default for ProblemObjective {
     fn default() -> Self {
         Self::new(vec![
             vec![Arc::new(TotalUnassignedJobs::default())],

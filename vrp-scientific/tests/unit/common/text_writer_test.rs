@@ -3,9 +3,8 @@ use crate::helpers::SolomonBuilder;
 use crate::solomon::{SolomonProblem, SolomonSolution};
 use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::solver::population::Elitism;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
-use vrp_core::solver::RefinementContext;
+use vrp_core::solver::{ElitismPopulation, RefinementContext};
 use vrp_core::utils::Environment;
 
 #[test]
@@ -24,7 +23,7 @@ fn can_write_solomon_solution() {
 
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
-        Box::new(Elitism::new(problem.objective.clone(), environment.random.clone(), 1, 1)),
+        Box::new(ElitismPopulation::new(problem.objective.clone(), environment.random.clone(), 1, 1)),
         environment.clone(),
         None,
     );

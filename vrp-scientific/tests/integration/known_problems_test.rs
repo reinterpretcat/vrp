@@ -1,12 +1,12 @@
-use crate::core::construction::heuristics::*;
-use crate::core::models::common::IdDimension;
-use crate::core::models::problem::Job;
 use crate::helpers::*;
 use std::sync::Arc;
-use vrp_core::algorithms::nsga2::Objective;
 use vrp_core::construction::heuristics::InsertionContext;
+use vrp_core::construction::heuristics::*;
+use vrp_core::models::common::IdDimension;
+use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;
-use vrp_core::solver::population::create_elitism_population;
+use vrp_core::rosomaxa::prelude::Objective;
+use vrp_core::solver::create_elitism_population;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::Environment;

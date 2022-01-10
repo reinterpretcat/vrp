@@ -20,7 +20,7 @@ pub(crate) trait TextReader {
             constraint: Arc::new(create_constraint(activity.clone(), transport.clone())),
             activity,
             transport,
-            objective: Arc::new(ObjectiveCost::default()),
+            objective: Arc::new(ProblemObjective::default()),
             extras: Arc::new(self.create_extras()),
         })
     }

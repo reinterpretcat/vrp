@@ -6,7 +6,7 @@ use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
-use vrp_core::solver::population::create_elitism_population;
+use vrp_core::solver::create_elitism_population;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::Builder;
 use vrp_core::solver::RefinementContext;

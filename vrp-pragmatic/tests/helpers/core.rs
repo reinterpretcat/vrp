@@ -1,6 +1,6 @@
-use crate::core::construction::heuristics::InsertionContext;
 use crate::extensions::create_typed_actor_groups;
 use std::sync::Arc;
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
 use vrp_core::models::examples::create_example_problem;

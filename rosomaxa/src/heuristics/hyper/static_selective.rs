@@ -54,3 +54,15 @@ where
         })
     }
 }
+
+impl<C, O, S> StaticSelective<C, O, S>
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    /// Creates a new instance of `StaticSelective` heuristic.
+    pub fn new(heuristic_group: HeuristicGroup<C, O, S>) -> Self {
+        Self { heuristic_group }
+    }
+}

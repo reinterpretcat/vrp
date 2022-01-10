@@ -2,8 +2,6 @@
 #[path = "../../../tests/unit/format/problem/objective_reader_test.rs"]
 mod objective_reader_test;
 
-use crate::core::models::common::ValueDimension;
-use crate::core::models::problem::Job;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::TourOrder as FormatTourOrder;
@@ -12,8 +10,10 @@ use crate::format::TOUR_ORDER_CONSTRAINT_CODE;
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
+use vrp_core::models::common::ValueDimension;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
-use vrp_core::models::problem::{ObjectiveCost, Single, TargetConstraint, TargetObjective};
+use vrp_core::models::problem::Job;
+use vrp_core::models::problem::{ProblemObjective, Single, TargetConstraint, TargetObjective};
 use vrp_core::solver::objectives::TourOrder as CoreTourOrder;
 use vrp_core::solver::objectives::*;
 
@@ -21,9 +21,9 @@ pub fn create_objective(
     api_problem: &ApiProblem,
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
-) -> Arc<ObjectiveCost> {
+) -> Arc<ProblemObjective> {
     Arc::new(match (&api_problem.objectives, props.max_job_value, props.has_order) {
-        (Some(objectives), _, _) => ObjectiveCost::new(
+        (Some(objectives), _, _) => ProblemObjective::new(
             objectives
                 .iter()
                 .map(|objectives| {
@@ -103,7 +103,7 @@ pub fn create_objective(
                 objectives.insert(2, vec![order_objective]);
             }
 
-            ObjectiveCost::new(objectives)
+            ProblemObjective::new(objectives)
         }
         (None, None, true) => {
             let (order_module, order_objective) = get_order(false);
@@ -114,11 +114,11 @@ pub fn create_objective(
             let mut objectives = get_default_objectives();
             objectives.insert(1, vec![order_objective]);
 
-            ObjectiveCost::new(objectives)
+            ProblemObjective::new(objectives)
         }
         _ => {
             constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
-            ObjectiveCost::new(get_default_objectives())
+            ProblemObjective::new(get_default_objectives())
         }
     })
 }

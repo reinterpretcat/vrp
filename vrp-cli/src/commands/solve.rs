@@ -12,7 +12,7 @@ use vrp_cli::core::solver::{get_default_population, TargetHeuristic};
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
-use vrp_core::models::problem::ObjectiveCost;
+use vrp_core::models::problem::ProblemObjective;
 use vrp_core::prelude::*;
 use vrp_core::solver::*;
 use vrp_core::utils::Parallelism;
@@ -472,7 +472,7 @@ fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
 
 fn get_population(
     mode: Option<&str>,
-    objective: Arc<ObjectiveCost>,
+    objective: Arc<ProblemObjective>,
     environment: Arc<Environment>,
 ) -> TargetPopulation {
     match mode {
@@ -493,7 +493,7 @@ fn get_heuristic(
 ) -> Result<TargetHeuristic, String> {
     match matches.value_of(HEURISTIC_ARG_NAME) {
         Some("dynamic") => Ok(get_dynamic_heuristic(problem, environment)),
-        Some("static") => Ok(get_static_heuristic_with_defaults(problem, environment)),
+        Some("static") => Ok(get_static_heuristic(problem, environment)),
         Some(name) if name != "default" => Err(format!("unknown heuristic type name: '{}'", name)),
         _ => Ok(get_dynamic_heuristic(problem, environment)),
     }

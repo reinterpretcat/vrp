@@ -117,7 +117,7 @@ use self::evolution::{EvolutionConfig, EvolutionSimulator};
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
 use crate::construction::heuristics::InsertionContext;
-use crate::models::problem::ObjectiveCost;
+use crate::models::problem::ProblemObjective;
 
 /// A key to store solution order information.
 const SOLUTION_ORDER_KEY: i32 = 1;
@@ -179,7 +179,7 @@ impl RefinementContext {
 }
 
 impl HeuristicContext for RefinementContext {
-    type Objective = ObjectiveCost;
+    type Objective = ProblemObjective;
     type Solution = InsertionContext;
 
     fn objective(&self) -> &Self::Objective {

@@ -1,6 +1,3 @@
-use crate::core::construction::clustering::vicinity::*;
-use crate::core::models::common::IdDimension;
-use crate::core::models::problem::Job;
 use crate::format::problem::reader::fleet_reader::get_profile_index_map;
 use crate::format::problem::reader::ApiProblem;
 use crate::format::problem::*;
@@ -8,7 +5,10 @@ use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterConfig;
+use vrp_core::construction::clustering::vicinity::*;
+use vrp_core::models::common::IdDimension;
 use vrp_core::models::common::Profile;
+use vrp_core::models::problem::Job;
 use vrp_core::prelude::*;
 
 /// Creates cluster config if it is defined on the api problem.
