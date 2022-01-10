@@ -2,4 +2,3 @@
 
 pub mod clustering;
 pub mod geometry;
-pub mod statistics;

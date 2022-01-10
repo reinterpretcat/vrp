@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+* `breaking`: extract rosomaxa crate with generalized heuristic implementation
 * update dependencies
 
 

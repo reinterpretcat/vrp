@@ -11,7 +11,7 @@ impl EvolutionStrategy for RunSimple {
         &self,
         refinement_ctx: RefinementContext,
         heuristic: TargetHeuristic,
-        termination: &(dyn Termination + Send + Sync),
+        termination: &TargetTermination,
         telemetry: Telemetry,
     ) -> EvolutionResult {
         let mut refinement_ctx = refinement_ctx;

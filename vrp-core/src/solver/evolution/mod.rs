@@ -1,7 +1,6 @@
 use crate::construction::heuristics::InsertionContext;
 use crate::solver::telemetry::Telemetry;
-use crate::solver::termination::*;
-use crate::solver::{Metrics, RefinementContext, TargetHeuristic, TargetPopulation};
+use crate::solver::{Metrics, RefinementContext, TargetHeuristic, TargetPopulation, TargetTermination};
 use rosomaxa::prelude::*;
 use rosomaxa::utils::Timer;
 
@@ -25,7 +24,7 @@ pub trait EvolutionStrategy {
         &self,
         refinement_ctx: RefinementContext,
         heuristic: TargetHeuristic,
-        termination: &(dyn Termination + Send + Sync),
+        termination: &TargetTermination,
         telemetry: Telemetry,
     ) -> EvolutionResult;
 }
@@ -161,7 +160,7 @@ fn should_add_solution(refinement_ctx: &RefinementContext) -> bool {
     is_population_empty || !is_quota_reached
 }
 
-fn should_stop(refinement_ctx: &mut RefinementContext, termination: &dyn Termination) -> bool {
+fn should_stop(refinement_ctx: &mut RefinementContext, termination: &TargetTermination) -> bool {
     let is_terminated = termination.is_termination(refinement_ctx);
     let is_quota_reached = refinement_ctx.quota.as_ref().map_or(false, |q| q.is_reached());
 
@@ -171,7 +170,7 @@ fn should_stop(refinement_ctx: &mut RefinementContext, termination: &dyn Termina
 fn on_generation(
     refinement_ctx: &mut RefinementContext,
     telemetry: &mut Telemetry,
-    termination: &dyn Termination,
+    termination: &TargetTermination,
     generation_time: Timer,
     is_improved: bool,
 ) {

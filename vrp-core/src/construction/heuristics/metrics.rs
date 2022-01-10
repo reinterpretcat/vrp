@@ -3,10 +3,10 @@
 mod metrics_test;
 
 use super::InsertionContext;
-use crate::algorithms::statistics::*;
 use crate::construction::constraints::{MAX_LOAD_KEY, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY, WAITING_KEY};
 use crate::construction::heuristics::RouteContext;
 use crate::models::problem::TransportCost;
+use rosomaxa::algorithms::math::*;
 use rosomaxa::prelude::compare_floats;
 use std::cmp::Ordering;
 

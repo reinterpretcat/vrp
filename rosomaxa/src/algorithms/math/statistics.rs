@@ -1,4 +1,4 @@
-use rosomaxa::prelude::compare_floats;
+use crate::utils::compare_floats;
 use std::cmp::Ordering;
 
 /// Returns coefficient variation.
@@ -10,6 +10,17 @@ pub fn get_cv(values: &[f64]) -> f64 {
     let sdev = variance.sqrt();
 
     sdev / mean
+}
+
+/// Returns coefficient of variation without NaN (1 is returned instead).
+pub fn get_cv_safe(values: &[f64]) -> f64 {
+    let value = get_cv(values);
+
+    if value.is_nan() {
+        1.
+    } else {
+        value
+    }
 }
 
 /// Gets mean of values using given slice.

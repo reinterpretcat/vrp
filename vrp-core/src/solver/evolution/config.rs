@@ -6,9 +6,7 @@ use crate::solver::evolution::{EvolutionStrategy, RunSimple};
 use crate::solver::processing::*;
 use crate::solver::search::*;
 use crate::solver::telemetry::Telemetry;
-use crate::solver::termination::*;
-use crate::solver::{get_default_heuristic, get_default_population, TargetHeuristic, TargetPopulation, TelemetryMode};
-use rosomaxa::prelude::*;
+use crate::solver::*;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -26,7 +24,7 @@ pub struct EvolutionConfig {
     pub heuristic: TargetHeuristic,
 
     /// A termination defines when evolution should stop.
-    pub termination: Arc<dyn Termination + Send + Sync>,
+    pub termination: Arc<TargetTermination>,
 
     /// An evolution strategy.
     pub strategy: Arc<dyn EvolutionStrategy + Send + Sync>,
@@ -92,9 +90,9 @@ impl EvolutionConfig {
                 population: Some(get_default_population(problem.objective.clone(), environment.clone())),
             },
             heuristic: get_default_heuristic(problem, environment.clone()),
-            termination: Arc::new(CompositeTermination::new(vec![
-                Box::new(MaxTime::new(300.)),
-                Box::new(MaxGeneration::new(3000)),
+            termination: Arc::new(TargetCompositeTermination::new(vec![
+                Box::new(MaxTimeTermination::new(300.)),
+                Box::new(MaxGenerationTermination::new(3000)),
             ])),
             strategy: Arc::new(RunSimple::default()),
             quota: None,

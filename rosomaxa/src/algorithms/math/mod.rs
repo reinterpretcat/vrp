@@ -2,3 +2,6 @@
 
 mod distance;
 pub use self::distance::*;
+
+mod statistics;
+pub use self::statistics::*;

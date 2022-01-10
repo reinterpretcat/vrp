@@ -12,6 +12,7 @@ pub use crate::heuristics::population::SelectionPhase;
 
 pub use crate::heuristics::hyper::HeuristicOperator;
 pub use crate::heuristics::hyper::HyperHeuristic;
+pub use crate::heuristics::Stateful;
 
 pub use crate::algorithms::nsga2::dominance_order;
 pub use crate::algorithms::nsga2::MultiObjective;

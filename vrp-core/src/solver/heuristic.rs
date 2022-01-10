@@ -5,6 +5,7 @@ use crate::models::problem::ProblemObjective;
 use crate::solver::search::*;
 use rosomaxa::heuristics::hyper::*;
 use rosomaxa::heuristics::population::*;
+use rosomaxa::heuristics::termination::*;
 use std::marker::PhantomData;
 
 /// A type alias for domain specific population.
@@ -21,6 +22,17 @@ pub type GreedyPopulation = Greedy<ProblemObjective, InsertionContext>;
 pub type ElitismPopulation = Elitism<ProblemObjective, InsertionContext>;
 /// A type for rosomaxa population.
 pub type RosomaxaPopulation = Rosomaxa<ProblemObjective, InsertionContext>;
+
+/// A type alias for domain specific termination type.
+pub type TargetTermination = dyn Termination<Context = RefinementContext, Objective = ProblemObjective> + Send + Sync;
+/// A type for composite termination.
+pub type TargetCompositeTermination = CompositeTermination<RefinementContext, ProblemObjective, InsertionContext>;
+/// A type for max time termination.
+pub type MaxTimeTermination = MaxTime<RefinementContext, ProblemObjective, InsertionContext>;
+/// A type for max generation termination.
+pub type MaxGenerationTermination = MaxGeneration<RefinementContext, ProblemObjective, InsertionContext>;
+/// A type for min variation termination.
+pub type MinVariationTermination = MinVariation<RefinementContext, ProblemObjective, InsertionContext, String>;
 
 /// A heuristic probability type alias.
 pub type TargetHeuristicProbability = HeuristicProbability<RefinementContext, ProblemObjective, InsertionContext>;

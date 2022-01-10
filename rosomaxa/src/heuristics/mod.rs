@@ -4,9 +4,11 @@ use crate::algorithms::nsga2::MultiObjective;
 use crate::heuristics::population::HeuristicPopulation;
 use crate::utils::Environment;
 use crate::utils::Timer;
+use std::hash::Hash;
 
 pub mod hyper;
 pub mod population;
+pub mod termination;
 
 /// Represents solution in population defined as actual solution.
 pub trait HeuristicSolution: Send + Sync {
@@ -82,4 +84,19 @@ impl Default for HeuristicStatistics {
             termination_estimate: 0.,
         }
     }
+}
+
+/// A trait which specifies object with state behavior.
+pub trait Stateful {
+    /// A key type.
+    type Key: Hash + Eq;
+
+    /// Saves state using given key.
+    fn set_state<T: 'static + Send + Sync>(&mut self, key: Self::Key, state: T);
+
+    /// Tries to get state using given key.
+    fn get_state<T: 'static + Send + Sync>(&self, key: &Self::Key) -> Option<&T>;
+
+    /// Gets state as mutable, inserts if not exists.
+    fn state_mut<T: 'static + Send + Sync, F: Fn() -> T>(&mut self, key: Self::Key, inserter: F) -> &mut T;
 }

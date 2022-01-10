@@ -1,10 +1,10 @@
-use crate::algorithms::statistics::get_cv;
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::common::{CapacityDimension, LoadOps};
 use crate::models::problem::{TargetConstraint, TargetObjective};
 use crate::solver::objectives::GenericValue;
 use crate::solver::*;
+use rosomaxa::algorithms::math::get_cv_safe;
 use std::cmp::Ordering;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -109,15 +109,5 @@ impl WorkBalance {
             Arc::new(|solution_ctx, _, _, value| value * solution_ctx.get_max_cost()),
             memory_state_key,
         )
-    }
-}
-
-fn get_cv_safe(values: &[f64]) -> f64 {
-    let value = get_cv(values);
-
-    if value.is_nan() {
-        1.
-    } else {
-        value
     }
 }

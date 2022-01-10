@@ -4,10 +4,8 @@ use crate::models::{Problem, Solution};
 use crate::solver::evolution::EvolutionConfig;
 use crate::solver::processing::Processing;
 use crate::solver::search::*;
-use crate::solver::termination::*;
-use crate::solver::{Solver, TargetHeuristic, TargetPopulation, Telemetry};
+use crate::solver::*;
 use crate::utils::TimeQuota;
-use rosomaxa::prelude::*;
 use std::sync::Arc;
 
 /// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent
@@ -146,7 +144,7 @@ impl Builder {
     }
 
     /// Sets termination algorithm. Default is max time and max generations.
-    pub fn with_termination(mut self, termination: Arc<dyn Termination + Send + Sync>) -> Self {
+    pub fn with_termination(mut self, termination: Arc<TargetTermination>) -> Self {
         self.config.termination = termination;
         self
     }
@@ -161,25 +159,25 @@ impl Builder {
     pub fn build(self) -> Result<Solver, String> {
         let problem = self.config.problem.clone();
 
-        let (criterias, quota): (Vec<Box<dyn Termination + Send + Sync>>, _) =
+        let (criterias, quota): (Vec<Box<TargetTermination>>, _) =
             match (self.max_generations, self.max_time, &self.min_cv) {
                 (None, None, None) => {
                     self.config
                         .telemetry
                         .log("configured to use default max-generations (3000) and max-time (300secs)");
-                    (vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))], None)
+                    (vec![Box::new(MaxGenerationTermination::new(3000)), Box::new(MaxTimeTermination::new(300.))], None)
                 }
                 _ => {
-                    let mut criterias: Vec<Box<dyn Termination + Send + Sync>> = vec![];
+                    let mut criterias: Vec<Box<TargetTermination>> = vec![];
 
                     if let Some(limit) = self.max_generations {
                         self.config.telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
-                        criterias.push(Box::new(MaxGeneration::new(limit)))
+                        criterias.push(Box::new(MaxGenerationTermination::new(limit)))
                     }
 
                     let quota = if let Some(limit) = self.max_time {
                         self.config.telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
-                        criterias.push(Box::new(MaxTime::new(limit as f64)));
+                        criterias.push(Box::new(MaxTimeTermination::new(limit as f64)));
                         Some(create_time_quota(limit))
                     } else {
                         None
@@ -193,10 +191,15 @@ impl Builder {
                             )
                             .as_str(),
                         );
+                        let key = "min_var".to_string();
 
-                        let variation = match interval_type.as_str() {
-                            "sample" => Box::new(MinVariation::new_with_sample(*value, *threshold, *is_global)),
-                            "period" => Box::new(MinVariation::new_with_period(*value, *threshold, *is_global)),
+                        let variation: Box<TargetTermination> = match interval_type.as_str() {
+                            "sample" => {
+                                Box::new(MinVariationTermination::new_with_sample(*value, *threshold, *is_global, key))
+                            }
+                            "period" => {
+                                Box::new(MinVariationTermination::new_with_period(*value, *threshold, *is_global, key))
+                            }
                             _ => unreachable!(),
                         };
 
@@ -208,7 +211,7 @@ impl Builder {
             };
 
         let mut config = self.config;
-        config.termination = Arc::new(CompositeTermination::new(criterias));
+        config.termination = Arc::new(TargetCompositeTermination::new(criterias));
         config.quota = quota;
 
         Ok(Solver { problem, config })

@@ -103,7 +103,6 @@ use std::sync::Arc;
 pub mod objectives;
 pub mod processing;
 pub mod search;
-pub mod termination;
 
 mod builder;
 pub use self::builder::Builder;
@@ -116,6 +115,7 @@ use self::evolution::{EvolutionConfig, EvolutionSimulator};
 
 mod telemetry;
 pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
+
 use crate::construction::heuristics::InsertionContext;
 use crate::models::problem::ProblemObjective;
 
@@ -196,6 +196,23 @@ impl HeuristicContext for RefinementContext {
 
     fn environment(&self) -> &Environment {
         self.environment.as_ref()
+    }
+}
+
+impl Stateful for RefinementContext {
+    type Key = String;
+
+    fn set_state<T: 'static + Send + Sync>(&mut self, key: Self::Key, state: T) {
+        self.state.insert(key, Box::new(state));
+    }
+
+    fn get_state<T: 'static + Send + Sync>(&self, key: &Self::Key) -> Option<&T> {
+        self.state.get(key).and_then(|v| v.downcast_ref::<T>())
+    }
+
+    fn state_mut<T: 'static + Send + Sync, F: Fn() -> T>(&mut self, key: Self::Key, inserter: F) -> &mut T {
+        // NOTE may panic if casting fails
+        self.state.entry(key).or_insert_with(|| Box::new(inserter())).downcast_mut::<T>().unwrap()
     }
 }
 
