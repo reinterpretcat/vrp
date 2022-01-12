@@ -4,8 +4,9 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
-pub struct EvolutionConfig<C, O, S>
+pub struct EvolutionConfig<E, C, O, S>
 where
+    E: EvolutionStrategy<Context = C, Objective = O, Solution = S>,
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
@@ -13,11 +14,14 @@ where
     /// An initial solution config.
     pub initial: InitialConfig<C, O, S>,
 
+    /// A desired amount of solutions returned in the end.
+    pub desired_amount: usize,
+
+    /// An evolution strategy.
+    pub evolution_strategy: E,
+
     /// A hyper heuristic.
     pub heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
-
-    /// Evolution strategy.
-    pub strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
 
     /// Population algorithm.
     pub population: Box<dyn HeuristicPopulation<Objective = O, Individual = S>>,
@@ -67,35 +71,33 @@ where
 }
 
 /// Provides configurable way to build evolution configuration using fluent interface style.
-pub struct Builder<C, O, S, K>
+pub struct Builder<E, C, O, S, K>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-    K: Hash + Eq + Clone + Send + Sync,
+    E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
+    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
+    O: HeuristicObjective<Solution = S> + 'static,
+    S: HeuristicSolution + 'static,
+    K: Hash + Eq + Clone + Send + Sync + 'static,
 {
-    /// A max amount generations in evolution.
     max_generations: Option<usize>,
-    /// A max seconds to run evolution.
     max_time: Option<usize>,
-    /// A variation coefficient parameters for termination criteria.
     min_cv: Option<(String, usize, f64, bool, K)>,
-    /// An evolution configuration.
-    config: EvolutionConfig<C, O, S>,
+    config: EvolutionConfig<E, C, O, S>,
 }
 
-impl<C, O, S, K> Builder<C, O, S, K>
+impl<E, C, O, S, K> Builder<E, C, O, S, K>
 where
-    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-    K: Hash + Eq + Clone + Send + Sync,
+    E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
+    C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
+    O: HeuristicObjective<Solution = S> + 'static,
+    S: HeuristicSolution + 'static,
+    K: Hash + Eq + Clone + Send + Sync + 'static,
 {
     /// Creates a new instance of `Builder` from mandatory arguments.
     pub fn new(
+        evolution_strategy: E,
         heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
         population: Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>,
-        strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S> + Send + Sync>,
         termination: Box<dyn Termination<Context = C, Objective = O> + Send + Sync>,
         operators: InitialOperators<C, O, S>,
         environment: Arc<Environment>,
@@ -106,9 +108,10 @@ where
             min_cv: None,
             config: EvolutionConfig {
                 initial: InitialConfig { operators, max_size: 4, quota: 0.05, individuals: vec![] },
+                desired_amount: 1,
                 heuristic,
                 population,
-                strategy,
+                evolution_strategy,
                 termination,
                 environment,
                 telemetry: Telemetry::new(TelemetryMode::None),
@@ -116,9 +119,9 @@ where
         }
     }
 
-    /// Sets telemetry. Default telemetry is set to do nothing.
-    pub fn with_telemetry(mut self, telemetry: Telemetry<C, O, S>) -> Self {
-        self.config.telemetry = telemetry;
+    /// Sets desired amount of solutions.
+    pub fn with_desired_solutions(mut self, amount: usize) -> Self {
+        self.config.desired_amount = amount;
         self
     }
 
@@ -176,9 +179,22 @@ where
         self
     }
 
+    /// Sets telemetry. Default telemetry is set to do nothing.
+    pub fn with_telemetry(mut self, telemetry: Telemetry<C, O, S>) -> Self {
+        self.config.telemetry = telemetry;
+        self
+    }
+
     /// Builds an evolution config.
-    pub fn build(self) -> Result<EvolutionConfig<C, O, S>, String> {
-        /*let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
+    pub fn build(self) -> Result<EvolutionConfig<E, C, O, S>, String> {
+        if self.config.desired_amount < 1 {
+            return Err(format!(
+                "desired amount of solutions should be more than 1, specified: {}",
+                self.config.desired_amount
+            ));
+        }
+
+        let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
             match (self.max_generations, self.max_time, &self.min_cv) {
                 (None, None, None) => {
                     self.config
@@ -224,8 +240,6 @@ where
         let mut config = self.config;
         config.termination = Box::new(CompositeTermination::new(terminations));
 
-        Ok(config)*/
-
-        unimplemented!()
+        Ok(config)
     }
 }

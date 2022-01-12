@@ -2,13 +2,13 @@
 
 use crate::prelude::*;
 use crate::utils::{Quota, Timer};
+use std::sync::Arc;
 
 mod config;
 pub use self::config::*;
 
 pub mod telemetry;
 pub use self::telemetry::*;
-use std::sync::Arc;
 
 /// Defines evolution result type.
 pub type EvolutionResult<S> = Result<(Vec<S>, Option<TelemetryMetrics>), String>;
@@ -23,21 +23,23 @@ pub trait EvolutionStrategy {
     type Solution: HeuristicSolution;
 
     /// Runs evolution and returns a population with solution(-s).
-    fn run(&self, heuristic_ctx: Self::Context) -> EvolutionResult<Self::Solution>;
+    fn run(self, heuristic_ctx: Self::Context) -> EvolutionResult<Self::Solution>;
 }
 
 /// A simple evolution algorithm which maintains single population.
-pub struct RunSimple<C, O, S>
+pub struct RunSimple<E, C, O, S>
 where
+    E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    _config: EvolutionConfig<C, O, S>,
+    config: EvolutionConfig<E, C, O, S>,
 }
 
-impl<C, O, S> EvolutionStrategy for RunSimple<C, O, S>
+impl<E, C, O, S> EvolutionStrategy for RunSimple<E, C, O, S>
 where
+    E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
@@ -46,51 +48,68 @@ where
     type Objective = O;
     type Solution = S;
 
-    fn run(&self, _heuristic_ctx: Self::Context) -> EvolutionResult<S> {
-        /*let mut heuristic_ctx = heuristic_ctx;
+    fn run(self, heuristic_ctx: Self::Context) -> EvolutionResult<S> {
+        let mut heuristic_ctx = heuristic_ctx;
+        let mut config = self.config;
 
-        while !should_stop(heuristic_ctx.environment().quota.as_ref(), termination) {
+        while !should_stop(&mut heuristic_ctx, config.termination.as_ref()) {
             let generation_time = Timer::start();
 
             let parents = heuristic_ctx.population().select().collect();
 
-            let offspring = self.config.heuristic.search(&refinement_ctx, parents);
+            let offspring = config.heuristic.search(&heuristic_ctx, parents);
 
-            let is_improved =
-                if should_add_solution(&refinement_ctx) { refinement_ctx.population.add_all(offspring) } else { false };
+            let is_improved = if should_add_solution(&config.environment.quota, config.population.as_ref()) {
+                heuristic_ctx.population_mut().add_all(offspring)
+            } else {
+                false
+            };
 
-            on_generation(&mut refinement_ctx, &mut telemetry, termination, generation_time, is_improved);
+            on_generation(
+                &mut heuristic_ctx,
+                &mut config.telemetry,
+                config.termination.as_ref(),
+                generation_time,
+                is_improved,
+            );
         }
 
-        telemetry.on_result(&refinement_ctx);
+        config.telemetry.on_result(&heuristic_ctx);
 
-        Ok((refinement_ctx.population, telemetry.take_metrics()))*/
+        let solutions = heuristic_ctx
+            .population()
+            .ranked()
+            .map(|(solution, _)| solution.deep_copy())
+            .take(config.desired_amount)
+            .collect();
 
-        unimplemented!()
+        Ok((solutions, config.telemetry.take_metrics()))
     }
 }
 
 /// An entity which simulates evolution process.
-pub struct EvolutionSimulator<C, O, S, F>
+pub struct EvolutionSimulator<E, C, O, S, F>
 where
+    E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
     F: FnOnce(Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> C,
 {
-    config: EvolutionConfig<C, O, S>,
+    config: EvolutionConfig<E, C, O, S>,
     context_factory: F,
 }
 
-impl<C, O, S, F> EvolutionSimulator<C, O, S, F>
+impl<E, C, O, S, F> EvolutionSimulator<E, C, O, S, F>
 where
+    E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
     F: FnOnce(Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> C,
 {
     /// Creates a new instance of `EvolutionSimulator`.
-    pub fn new(config: EvolutionConfig<C, O, S>, context_factory: F) -> Result<Self, String> {
+    pub fn new(config: EvolutionConfig<E, C, O, S>, context_factory: F) -> Result<Self, String> {
         if config.initial.operators.is_empty() {
             return Err("at least one initial method has to be specified".to_string());
         }
@@ -165,8 +184,20 @@ where
             config.telemetry.log("created an empty population");
         }
 
-        config.strategy.run(heuristic_ctx)
+        config.evolution_strategy.run(heuristic_ctx)
     }
+}
+
+fn should_stop<C, O, S>(heuristic_ctx: &mut C, termination: &(dyn Termination<Context = C, Objective = O>)) -> bool
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let is_terminated = termination.is_termination(heuristic_ctx);
+    let is_quota_reached = heuristic_ctx.environment().quota.as_ref().map_or(false, |q| q.is_reached());
+
+    is_terminated || is_quota_reached
 }
 
 fn should_add_solution<O, S>(
