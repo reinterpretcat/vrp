@@ -6,6 +6,10 @@ use hashbrown::HashMap;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
+/// A collection of heuristic operators.
+pub type HeuristicOperators<C, O, S> =
+    Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>;
+
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled by
 /// Markov Decision Process.
@@ -74,10 +78,7 @@ where
     S: HeuristicSolution,
 {
     /// Creates a new instance of `DynamicSelective` heuristic.
-    pub fn new(
-        operators: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>,
-        random: Arc<dyn Random + Send + Sync>,
-    ) -> Self {
+    pub fn new(operators: HeuristicOperators<C, O, S>, random: Arc<dyn Random + Send + Sync>) -> Self {
         let operator_estimates = (0..operators.len())
             .map(|heuristic_idx| (SearchAction::Search { heuristic_idx }, 0.))
             .collect::<HashMap<_, _>>();
@@ -147,7 +148,7 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    pub heuristics: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>,
+    pub heuristics: HeuristicOperators<C, O, S>,
 }
 
 struct SearchAgent<'a, C, O, S>

@@ -32,6 +32,7 @@ where
     pub telemetry: Telemetry<C, O, S>,
 }
 
+/// Specifies an operator which builds initial solution.
 pub trait InitialOperator {
     /// A heuristic context type.
     type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
@@ -44,6 +45,10 @@ pub trait InitialOperator {
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution;
 }
 
+/// A collection of initial operators.
+pub type InitialOperators<C, O, S> =
+    Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>;
+
 /// An initial solutions configuration.
 pub struct InitialConfig<C, O, S>
 where
@@ -52,7 +57,7 @@ where
     S: HeuristicSolution,
 {
     /// Create methods to produce initial individuals.
-    pub methods: Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
+    pub operators: InitialOperators<C, O, S>,
     /// Initial size of population to be generated.
     pub max_size: usize,
     /// Quota for initial solution generation.
@@ -92,7 +97,7 @@ where
         population: Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>,
         strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S> + Send + Sync>,
         termination: Box<dyn Termination<Context = C, Objective = O> + Send + Sync>,
-        methods: Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
+        operators: InitialOperators<C, O, S>,
         environment: Arc<Environment>,
     ) -> Self {
         Self {
@@ -100,7 +105,7 @@ where
             max_time: None,
             min_cv: None,
             config: EvolutionConfig {
-                initial: InitialConfig { methods, max_size: 4, quota: 0.05, individuals: vec![] },
+                initial: InitialConfig { operators, max_size: 4, quota: 0.05, individuals: vec![] },
                 heuristic,
                 population,
                 strategy,
@@ -136,17 +141,12 @@ where
     }
 
     /// Sets initial parameters used to construct initial population.
-    pub fn with_initial(
-        mut self,
-        max_size: usize,
-        quota: f64,
-        methods: Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
-    ) -> Self {
+    pub fn with_initial(mut self, max_size: usize, quota: f64, operators: InitialOperators<C, O, S>) -> Self {
         self.config.telemetry.log("configured to use custom initial population parameters");
 
         self.config.initial.max_size = max_size;
         self.config.initial.quota = quota;
-        self.config.initial.methods = methods;
+        self.config.initial.operators = operators;
 
         self
     }
@@ -178,7 +178,7 @@ where
 
     /// Builds an evolution config.
     pub fn build(self) -> Result<EvolutionConfig<C, O, S>, String> {
-        let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
+        /*let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
             match (self.max_generations, self.max_time, &self.min_cv) {
                 (None, None, None) => {
                     self.config
@@ -224,6 +224,8 @@ where
         let mut config = self.config;
         config.termination = Box::new(CompositeTermination::new(terminations));
 
-        Ok(config)
+        Ok(config)*/
+
+        unimplemented!()
     }
 }

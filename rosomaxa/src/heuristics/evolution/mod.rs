@@ -1,3 +1,5 @@
+//! Contains functionality to run evolution simulation.
+
 use crate::prelude::*;
 use crate::utils::{Quota, Timer};
 
@@ -9,7 +11,7 @@ pub use self::telemetry::*;
 use std::sync::Arc;
 
 /// Defines evolution result type.
-pub type EvolutionResult<S: HeuristicSolution> = Result<(Vec<S>, Option<TelemetryMetrics>), String>;
+pub type EvolutionResult<S> = Result<(Vec<S>, Option<TelemetryMetrics>), String>;
 
 /// An evolution algorithm strategy.
 pub trait EvolutionStrategy {
@@ -31,7 +33,7 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    config: EvolutionConfig<C, O, S>,
+    _config: EvolutionConfig<C, O, S>,
 }
 
 impl<C, O, S> EvolutionStrategy for RunSimple<C, O, S>
@@ -44,7 +46,7 @@ where
     type Objective = O;
     type Solution = S;
 
-    fn run(&self, heuristic_ctx: Self::Context) -> EvolutionResult<S> {
+    fn run(&self, _heuristic_ctx: Self::Context) -> EvolutionResult<S> {
         /*let mut heuristic_ctx = heuristic_ctx;
 
         while !should_stop(heuristic_ctx.environment().quota.as_ref(), termination) {
@@ -87,8 +89,9 @@ where
     S: HeuristicSolution,
     F: FnOnce(Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> C,
 {
+    /// Creates a new instance of `EvolutionSimulator`.
     pub fn new(config: EvolutionConfig<C, O, S>, context_factory: F) -> Result<Self, String> {
-        if config.initial.methods.is_empty() {
+        if config.initial.operators.is_empty() {
             return Err("at least one initial method has to be specified".to_string());
         }
 
@@ -97,7 +100,7 @@ where
 
     /// Runs evolution for given `problem` using evolution `config`.
     /// Returns populations filled with solutions.
-    pub fn run(mut self) -> EvolutionResult<S> {
+    pub fn run(self) -> EvolutionResult<S> {
         let mut config = self.config;
 
         config.telemetry.log("preparing initial solution(-s)");
@@ -117,7 +120,7 @@ where
 
         let mut heuristic_ctx = (self.context_factory)(config.population);
 
-        let weights = config.initial.methods.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
+        let weights = config.initial.operators.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
 
         let initial_time = Timer::start();
         let _ = (heuristic_ctx.population().size()..config.initial.max_size).try_for_each(|idx| {
@@ -137,14 +140,14 @@ where
                 return Err(());
             }
 
-            let method_idx = if idx < config.initial.methods.len() {
+            let operator_idx = if idx < config.initial.operators.len() {
                 idx
             } else {
                 config.environment.random.weighted(weights.as_slice())
             };
 
             // TODO consider initial quota limit
-            let solution = config.initial.methods[method_idx].0.create(&heuristic_ctx);
+            let solution = config.initial.operators[operator_idx].0.create(&heuristic_ctx);
 
             if should_add_solution(&heuristic_ctx.environment().quota, heuristic_ctx.population()) {
                 config.telemetry.on_initial(&solution, idx, config.initial.max_size, item_time);
@@ -195,5 +198,5 @@ fn on_generation<C, O, S>(
     let termination_estimate = termination.estimate(heuristic_ctx);
 
     let statistics = telemetry.on_generation(heuristic_ctx, termination_estimate, generation_time, is_improved);
-    heuristic_ctx.population().on_generation(&statistics);
+    heuristic_ctx.population_mut().on_generation(&statistics);
 }
