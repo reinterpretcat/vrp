@@ -92,32 +92,29 @@
 
 extern crate rand;
 
-use crate::construction::Quota;
-use crate::models::common::Cost;
-use crate::models::{Problem, Solution};
-use hashbrown::HashMap;
-use rosomaxa::prelude::*;
 use std::any::Any;
 use std::sync::Arc;
+
+use hashbrown::HashMap;
+
+pub use rosomaxa::heuristics::evolution::config::Builder;
+pub use rosomaxa::heuristics::evolution::telemetry::{Telemetry, TelemetryMetrics, TelemetryMode};
+use rosomaxa::heuristics::evolution::{EvolutionConfig, EvolutionSimulator};
+use rosomaxa::prelude::*;
+
+use crate::construction::heuristics::InsertionContext;
+use crate::construction::Quota;
+use crate::models::common::Cost;
+use crate::models::problem::ProblemObjective;
+use crate::models::{Problem, Solution};
+
+pub use self::heuristic::*;
 
 pub mod objectives;
 pub mod processing;
 pub mod search;
 
-mod builder;
-pub use self::builder::Builder;
-
 mod heuristic;
-pub use self::heuristic::*;
-
-mod evolution;
-use self::evolution::{EvolutionConfig, EvolutionSimulator};
-
-mod telemetry;
-pub use self::telemetry::{Metrics, Telemetry, TelemetryMode};
-
-use crate::construction::heuristics::InsertionContext;
-use crate::models::problem::ProblemObjective;
 
 /// A key to store solution order information.
 const SOLUTION_ORDER_KEY: i32 = 1;

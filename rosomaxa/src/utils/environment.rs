@@ -1,16 +1,26 @@
 //! Contains environment specific logic.
 
-use crate::utils::{DefaultRandom, Random, ThreadPool};
+use crate::utils::{DefaultRandom, Random, ThreadPool, Timer};
 use std::sync::Arc;
 
 /// A logger type which is called with various information.
 pub type InfoLogger = Arc<dyn Fn(&str) + Send + Sync>;
+
+/// Specifies a computational quota for executions. The main purpose is to allow to stop algorithm
+/// in reaction to external events such as user cancellation, timer, etc.
+pub trait Quota: Send + Sync {
+    /// Returns true when computation should be stopped.
+    fn is_reached(&self) -> bool;
+}
 
 /// Keeps track of environment specific information which influences algorithm behavior.
 #[derive(Clone)]
 pub struct Environment {
     /// A wrapper on random generator.
     pub random: Arc<dyn Random + Send + Sync>,
+
+    /// A global execution quota.
+    pub quota: Option<Arc<dyn Quota + Send + Sync>>,
 
     /// Keeps data parallelism settings.
     pub parallelism: Parallelism,
@@ -26,11 +36,12 @@ impl Environment {
     /// Creates an instance of `Environment`.
     pub fn new(
         random: Arc<dyn Random + Send + Sync>,
+        quota: Option<Arc<dyn Quota + Send + Sync>>,
         parallelism: Parallelism,
         logger: InfoLogger,
         is_experimental: bool,
     ) -> Self {
-        Self { random, parallelism, logger, is_experimental }
+        Self { random, quota, parallelism, logger, is_experimental }
     }
 }
 
@@ -38,10 +49,30 @@ impl Default for Environment {
     fn default() -> Self {
         Environment::new(
             Arc::new(DefaultRandom::default()),
+            None,
             Parallelism::default(),
             Arc::new(|msg| println!("{}", msg)),
             false,
         )
+    }
+}
+
+/// A time quota.
+pub struct TimeQuota {
+    start: Timer,
+    limit_in_secs: f64,
+}
+
+impl TimeQuota {
+    /// Creates a new instance of `TimeQuota`.
+    pub fn new(limit_in_secs: f64) -> Self {
+        Self { start: Timer::start(), limit_in_secs }
+    }
+}
+
+impl Quota for TimeQuota {
+    fn is_reached(&self) -> bool {
+        self.start.elapsed_secs_as_f64() > self.limit_in_secs
     }
 }
 

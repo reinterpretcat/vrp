@@ -10,5 +10,4 @@ pub use self::types::Either;
 
 mod mutability;
 mod noise;
-mod time_quota;
 mod types;

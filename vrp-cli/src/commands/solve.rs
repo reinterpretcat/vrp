@@ -50,7 +50,7 @@ struct SolutionWriter(
             &Problem,
             Solution,
             f64,
-            Option<Metrics>,
+            Option<TelemetryMetrics>,
             BufWriter<Box<dyn Write>>,
             Option<BufWriter<Box<dyn Write>>>,
         ) -> Result<(), String>,

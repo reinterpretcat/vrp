@@ -1,11 +1,13 @@
 //! This module contains heuristic-related functionality.
 
+use std::hash::Hash;
+
 use crate::algorithms::nsga2::MultiObjective;
 use crate::heuristics::population::HeuristicPopulation;
 use crate::utils::Environment;
 use crate::utils::Timer;
-use std::hash::Hash;
 
+pub mod evolution;
 pub mod hyper;
 pub mod population;
 pub mod termination;
@@ -41,16 +43,6 @@ pub trait HeuristicContext: Send + Sync {
     fn environment(&self) -> &Environment;
 }
 
-/// Defines instant refinement speed type.
-#[derive(Clone)]
-pub enum HeuristicSpeed {
-    /// Slow speed with ratio estimation
-    Slow(f64),
-
-    /// Moderate speed.
-    Moderate,
-}
-
 /// A refinement statistics to track evolution progress.
 #[derive(Clone)]
 pub struct HeuristicStatistics {
@@ -84,6 +76,16 @@ impl Default for HeuristicStatistics {
             termination_estimate: 0.,
         }
     }
+}
+
+/// Defines instant refinement speed type.
+#[derive(Clone)]
+pub enum HeuristicSpeed {
+    /// Slow speed with ratio estimation
+    Slow(f64),
+
+    /// Moderate speed.
+    Moderate,
 }
 
 /// A trait which specifies object with state behavior.

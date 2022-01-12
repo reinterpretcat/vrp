@@ -1,18 +1,17 @@
 //! A module which provides the logic to collect metrics about algorithm execution and simple logging.
 
 #[cfg(test)]
-#[path = "../../tests/unit/solver/telemetry_test.rs"]
+#[path = "../../../tests/unit/heuristics/evolution/telemetry_test.rs"]
 mod telemetry_test;
 
-use crate::construction::heuristics::InsertionContext;
-use crate::solver::RefinementContext;
-use rosomaxa::prelude::*;
-use rosomaxa::utils::Timer;
+use crate::prelude::*;
+use crate::utils::Timer;
 use std::fmt::Write;
+use std::marker::PhantomData;
 use std::ops::Deref;
 
 /// Encapsulates different measurements regarding algorithm evaluation.
-pub struct Metrics {
+pub struct TelemetryMetrics {
     /// Algorithm duration.
     pub duration: usize,
     /// Total amount of generations.
@@ -20,11 +19,11 @@ pub struct Metrics {
     /// Speed: generations per second.
     pub speed: f64,
     /// Evolution progress.
-    pub evolution: Vec<Generation>,
+    pub evolution: Vec<TelemetryGeneration>,
 }
 
 /// Represents information about generation.
-pub struct Generation {
+pub struct TelemetryGeneration {
     /// Generation sequence number.
     pub number: usize,
     /// Time since evolution started.
@@ -36,19 +35,13 @@ pub struct Generation {
     /// True if this generation considered as improvement.
     pub is_improvement: bool,
     /// Population state.
-    pub population: Population,
+    pub population: TelemetryPopulation,
 }
 
 /// Keeps essential information about particular individual in population.
-pub struct Individual {
+pub struct TelemetryIndividual {
     /// Rank in population.
     pub rank: usize,
-    /// Total amount of tours.
-    pub tours: usize,
-    /// Total amount of unassigned jobs.
-    pub unassigned: usize,
-    /// Solution cost.
-    pub cost: f64,
     /// Solution improvement from best individual.
     pub improvement: f64,
     /// Objectives fitness values.
@@ -56,9 +49,9 @@ pub struct Individual {
 }
 
 /// Holds population state.
-pub struct Population {
+pub struct TelemetryPopulation {
     /// Population individuals.
-    pub individuals: Vec<Individual>,
+    pub individuals: Vec<TelemetryIndividual>,
 }
 
 /// Specifies a telemetry mode.
@@ -97,25 +90,37 @@ pub enum TelemetryMode {
 }
 
 /// Provides way to collect metrics and write information into log.
-pub struct Telemetry {
-    metrics: Metrics,
+pub struct Telemetry<C, O, S>
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    metrics: TelemetryMetrics,
     time: Timer,
     mode: TelemetryMode,
     improvement_tracker: ImprovementTracker,
     speed_tracker: SpeedTracker,
     next_generation: Option<usize>,
+    _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
 }
 
-impl Telemetry {
+impl<C, O, S> Telemetry<C, O, S>
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
     /// Creates a new instance of `Telemetry`.
     pub fn new(mode: TelemetryMode) -> Self {
         Self {
             time: Timer::start(),
-            metrics: Metrics { duration: 0, generations: 0, speed: 0.0, evolution: vec![] },
+            metrics: TelemetryMetrics { duration: 0, generations: 0, speed: 0.0, evolution: vec![] },
             mode,
             improvement_tracker: ImprovementTracker::new(1000),
             speed_tracker: SpeedTracker::default(),
             next_generation: None,
+            _marker: Default::default(),
         }
     }
 
@@ -125,37 +130,20 @@ impl Telemetry {
     }
 
     /// Reports initial solution statistics.
-    pub fn on_initial(
-        &mut self,
-        insertion_ctx: &InsertionContext,
-        item_idx: usize,
-        total_items: usize,
-        item_time: Timer,
-        termination_estimate: f64,
-    ) {
+    pub fn on_initial(&mut self, solution: &S, item_idx: usize, total_items: usize, item_time: Timer) {
         match &self.mode {
             TelemetryMode::OnlyLogging { .. } | TelemetryMode::All { .. } => {
                 self.log(
                     format!(
-                        "[{}s] created {} of {} initial solutions in {}ms (ts: {})",
+                        "[{}s] created {} of {} initial solutions in {}ms",
                         self.time.elapsed_secs(),
                         item_idx + 1,
                         total_items,
                         item_time.elapsed_millis(),
-                        termination_estimate,
                     )
                     .as_str(),
                 );
-                self.log(
-                    format!(
-                        "\tcost: {:.2}, tours: {}, unassigned: {}, fitness: ({})",
-                        insertion_ctx.problem.objective.fitness(insertion_ctx),
-                        insertion_ctx.solution.routes.len(),
-                        insertion_ctx.solution.unassigned.len(),
-                        Self::format_fitness(insertion_ctx.get_fitness())
-                    )
-                    .as_str(),
-                );
+                self.log(format!("\tfitness: ({})", format_fitness(solution.get_fitness())).as_str());
             }
             _ => {}
         };
@@ -164,18 +152,19 @@ impl Telemetry {
     /// Reports generation statistics.
     pub fn on_generation(
         &mut self,
-        refinement_ctx: &mut RefinementContext,
+        heuristic_ctx: &C,
         termination_estimate: f64,
         generation_time: Timer,
         is_improved: bool,
-    ) {
+    ) -> HeuristicStatistics {
         let generation = self.next_generation.unwrap_or(0);
 
         self.metrics.generations = generation;
         self.improvement_tracker.track(generation, is_improved);
         self.speed_tracker.track(generation, termination_estimate);
+        self.next_generation = Some(generation + 1);
 
-        refinement_ctx.statistics = HeuristicStatistics {
+        let statistics = HeuristicStatistics {
             generation,
             time: self.time.clone(),
             speed: self.speed_tracker.get_current_speed(),
@@ -184,10 +173,8 @@ impl Telemetry {
             termination_estimate,
         };
 
-        self.next_generation = Some(generation + 1);
-
         let (log_best, log_population, track_population, should_dump_population) = match &self.mode {
-            TelemetryMode::None => return,
+            TelemetryMode::None => return statistics,
             TelemetryMode::OnlyLogging { log_best, log_population, dump_population, .. } => {
                 (Some(log_best), Some(log_population), None, *dump_population)
             }
@@ -197,28 +184,30 @@ impl Telemetry {
             }
         };
 
-        if let Some((best_individual, rank)) = refinement_ctx.population.ranked().next() {
+        if let Some((best_individual, rank)) = heuristic_ctx.population().ranked().next() {
             let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
             let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0;
             let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0;
 
             if should_log_best {
                 self.log_individual(
-                    &self.get_individual_metrics(refinement_ctx, best_individual, rank),
-                    Some((refinement_ctx.statistics.generation, generation_time)),
+                    &self.get_individual_metrics(heuristic_ctx, best_individual, rank),
+                    Some((generation, generation_time)),
                 )
             }
 
-            self.on_population(refinement_ctx, should_log_population, should_track_population, should_dump_population);
+            self.on_population(heuristic_ctx, should_log_population, should_track_population, should_dump_population);
         } else {
             self.log("no progress yet");
         }
+
+        statistics
     }
 
     /// Reports population state.
     fn on_population(
         &mut self,
-        refinement_ctx: &RefinementContext,
+        heuristic_ctx: &C,
         should_log_population: bool,
         should_track_population: bool,
         should_dump_population: bool,
@@ -227,13 +216,15 @@ impl Telemetry {
             return;
         }
 
+        let generation = heuristic_ctx.statistics().generation;
+
         if should_log_population {
             self.log(
                 format!(
                     "[{}s] population state (phase: {}, speed: {:.2} gen/sec, improvement ratio: {:.3}:{:.3}):",
                     self.time.elapsed_secs(),
-                    Self::get_selection_phase(refinement_ctx),
-                    refinement_ctx.statistics.generation as f64 / self.time.elapsed_secs_as_f64(),
+                    get_selection_phase(heuristic_ctx),
+                    generation as f64 / self.time.elapsed_secs_as_f64(),
                     self.improvement_tracker.i_all_ratio,
                     self.improvement_tracker.i_1000_ratio,
                 )
@@ -241,34 +232,34 @@ impl Telemetry {
             );
         }
 
-        let individuals = refinement_ctx
-            .population
+        let individuals = heuristic_ctx
+            .population()
             .ranked()
-            .map(|(insertion_ctx, rank)| self.get_individual_metrics(refinement_ctx, insertion_ctx, rank))
+            .map(|(insertion_ctx, rank)| self.get_individual_metrics(heuristic_ctx, insertion_ctx, rank))
             .collect::<Vec<_>>();
 
         if should_log_population {
             individuals.iter().for_each(|metrics| self.log_individual(metrics, None));
             if should_dump_population {
-                self.log(&format!("\t{}", Self::get_population_state(refinement_ctx)));
+                self.log(&format!("\t{}", get_population_state(heuristic_ctx)));
             }
         }
 
         if should_track_population {
-            self.metrics.evolution.push(Generation {
-                number: refinement_ctx.statistics.generation,
+            self.metrics.evolution.push(TelemetryGeneration {
+                number: generation,
                 timestamp: self.time.elapsed_secs_as_f64(),
                 i_all_ratio: self.improvement_tracker.i_all_ratio,
                 i_1000_ratio: self.improvement_tracker.i_1000_ratio,
                 is_improvement: self.improvement_tracker.is_last_improved,
-                population: Population { individuals },
+                population: TelemetryPopulation { individuals },
             });
         }
     }
 
     /// Reports final statistic.
-    pub fn on_result(&mut self, refinement_ctx: &RefinementContext) {
-        let generations = refinement_ctx.statistics.generation;
+    pub fn on_result(&mut self, heuristic_ctx: &C) {
+        let generations = heuristic_ctx.statistics().generation;
 
         let (should_log_population, should_track_population) = match &self.mode {
             TelemetryMode::OnlyLogging { .. } => (true, false),
@@ -277,10 +268,10 @@ impl Telemetry {
             _ => return,
         };
 
-        self.on_population(refinement_ctx, should_log_population, should_track_population, false);
+        self.on_population(heuristic_ctx, should_log_population, should_track_population, false);
 
         let elapsed = self.time.elapsed_secs() as usize;
-        let speed = refinement_ctx.statistics.generation as f64 / self.time.elapsed_secs_as_f64();
+        let speed = generations as f64 / self.time.elapsed_secs_as_f64();
 
         self.log(format!("[{}s] total generations: {}, speed: {:.2} gen/sec", elapsed, generations, speed).as_str());
 
@@ -289,7 +280,7 @@ impl Telemetry {
     }
 
     /// Gets metrics.
-    pub fn get_metrics(self) -> Option<Metrics> {
+    pub fn take_metrics(self) -> Option<TelemetryMetrics> {
         match &self.mode {
             TelemetryMode::OnlyMetrics { .. } | TelemetryMode::All { .. } => Some(self.metrics),
             _ => None,
@@ -305,30 +296,18 @@ impl Telemetry {
         }
     }
 
-    fn get_individual_metrics(
-        &self,
-        refinement_ctx: &RefinementContext,
-        insertion_ctx: &InsertionContext,
-        rank: usize,
-    ) -> Individual {
-        let fitness_values = insertion_ctx.get_fitness().collect::<Vec<_>>();
+    fn get_individual_metrics(&self, heuristic_ctx: &C, solution: &S, rank: usize) -> TelemetryIndividual {
+        let fitness = solution.get_fitness().collect::<Vec<_>>();
 
-        let (cost, cost_difference) = Self::get_fitness(refinement_ctx, insertion_ctx);
+        let (_, improvement) = get_fitness_value(heuristic_ctx, solution);
 
-        Individual {
-            rank,
-            tours: insertion_ctx.solution.routes.len(),
-            unassigned: insertion_ctx.solution.unassigned.len(),
-            cost,
-            improvement: cost_difference,
-            fitness: fitness_values,
-        }
+        TelemetryIndividual { rank, improvement, fitness }
     }
 
-    fn log_individual(&self, metrics: &Individual, gen_info: Option<(usize, Timer)>) {
+    fn log_individual(&self, metrics: &TelemetryIndividual, gen_info: Option<(usize, Timer)>) {
         self.log(
             format!(
-                "{} rank: {}, cost: {:.2}({:.3}%), tours: {}, unassigned: {}, fitness: ({})",
+                "{} rank: {}, fitness: ({}), improvement: {:.3}%",
                 gen_info.map_or("\t".to_string(), |(gen, gen_time)| format!(
                     "[{}s] generation {} took {}ms,",
                     self.time.elapsed_secs(),
@@ -336,47 +315,11 @@ impl Telemetry {
                     gen_time.elapsed_millis()
                 )),
                 metrics.rank,
-                metrics.cost,
+                format_fitness(metrics.fitness.iter().cloned()),
                 metrics.improvement,
-                metrics.tours,
-                metrics.unassigned,
-                Self::format_fitness(metrics.fitness.iter().cloned()),
             )
             .as_str(),
         );
-    }
-
-    fn get_fitness(refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext) -> (f64, f64) {
-        let fitness_value = refinement_ctx.problem.objective.fitness(insertion_ctx);
-
-        let fitness_change = refinement_ctx
-            .population
-            .ranked()
-            .next()
-            .map(|(best_ctx, _)| refinement_ctx.problem.objective.fitness(best_ctx))
-            .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.)
-            .unwrap_or(0.);
-
-        (fitness_value, fitness_change)
-    }
-
-    fn get_population_state(refinement_ctx: &RefinementContext) -> String {
-        let mut state = String::new();
-        write!(state, "{}", refinement_ctx.population).unwrap();
-
-        state
-    }
-
-    fn get_selection_phase(refinement_ctx: &RefinementContext) -> &str {
-        match refinement_ctx.population.selection_phase() {
-            SelectionPhase::Initial => "initial",
-            SelectionPhase::Exploration => "exploration",
-            SelectionPhase::Exploitation => "exploitation",
-        }
-    }
-
-    fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {
-        fitness.map(|v| format!("{:.3}", v)).collect::<Vec<_>>().join(", ")
     }
 }
 
@@ -454,4 +397,52 @@ impl SpeedTracker {
     pub fn get_current_speed(&self) -> HeuristicSpeed {
         self.speed.clone()
     }
+}
+
+fn get_fitness_value<C, O, S>(heuristic_ctx: &C, solution: &S) -> (f64, f64)
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let fitness_value = heuristic_ctx.objective().fitness(solution);
+
+    let fitness_change = heuristic_ctx
+        .population()
+        .ranked()
+        .next()
+        .map(|(best_ctx, _)| heuristic_ctx.objective().fitness(best_ctx))
+        .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.)
+        .unwrap_or(0.);
+
+    (fitness_value, fitness_change)
+}
+
+fn get_population_state<C, O, S>(heuristic_ctx: &C) -> String
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let mut state = String::new();
+    write!(state, "{}", heuristic_ctx.population()).unwrap();
+
+    state
+}
+
+fn get_selection_phase<C, O, S>(heuristic_ctx: &C) -> &str
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    match heuristic_ctx.population().selection_phase() {
+        SelectionPhase::Initial => "initial",
+        SelectionPhase::Exploration => "exploration",
+        SelectionPhase::Exploitation => "exploitation",
+    }
+}
+
+fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {
+    fitness.map(|v| format!("{:.3}", v)).collect::<Vec<_>>().join(", ")
 }

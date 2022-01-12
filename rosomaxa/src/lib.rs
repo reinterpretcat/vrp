@@ -10,6 +10,9 @@ pub mod helpers;
 
 pub mod algorithms;
 pub mod heuristics;
+pub mod prelude;
 pub mod utils;
 
-pub mod prelude;
+// TODO:
+// - ensure all essential tests are implemented
+// - add documentation examples

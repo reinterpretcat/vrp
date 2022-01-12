@@ -448,7 +448,7 @@ fn configure_from_evolution(
         if let Some(initial) = &config.initial {
             let environment = builder.config.environment.clone();
 
-            builder = builder.with_init_params(
+            builder = builder.with_initial(
                 initial.alternatives.max_size,
                 initial.alternatives.quota,
                 std::iter::once(create_recreate_method(&initial.method, environment.clone()))

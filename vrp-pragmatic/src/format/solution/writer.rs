@@ -15,7 +15,7 @@ use vrp_core::models::problem::Multi;
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::solver::processing::VicinityDimension;
-use vrp_core::solver::Metrics;
+use vrp_core::solver::TelemetryMetrics;
 
 type ApiActivity = crate::format::solution::model::Activity;
 type ApiSolution = crate::format::solution::model::Solution;
@@ -47,7 +47,7 @@ impl<W: Write> PragmaticSolution<W> for (&Solution, f64) {
     }
 }
 
-impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &Metrics) {
+impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &TelemetryMetrics) {
     fn write_pragmatic_json(&self, problem: &Problem, writer: BufWriter<W>) -> Result<(), String> {
         write_pragmatic_json(problem, self.0, Some(self.2), writer)
     }
@@ -60,7 +60,7 @@ impl<W: Write> PragmaticSolution<W> for (&Solution, f64, &Metrics) {
 fn write_pragmatic_json<W: Write>(
     problem: &Problem,
     solution: &Solution,
-    metrics: Option<&Metrics>,
+    metrics: Option<&TelemetryMetrics>,
     writer: BufWriter<W>,
 ) -> Result<(), String> {
     let solution = create_solution(problem, solution, metrics);
@@ -91,7 +91,7 @@ impl Leg {
 }
 
 /// Creates solution.
-pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&Metrics>) -> ApiSolution {
+pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&TelemetryMetrics>) -> ApiSolution {
     let coord_index = get_coord_index(problem);
 
     let tours = solution.routes.iter().map(|r| create_tour(problem, r, coord_index)).collect::<Vec<Tour>>();
@@ -431,7 +431,7 @@ fn get_parking_time(extras: &DomainExtras) -> f64 {
     extras.get_cluster_config().map_or(0., |config| config.serving.get_parking())
 }
 
-fn create_extras(_solution: &Solution, metrics: Option<&Metrics>) -> Option<Extras> {
+fn create_extras(_solution: &Solution, metrics: Option<&TelemetryMetrics>) -> Option<Extras> {
     metrics.map(|metrics| Extras {
         metrics: Some(ApiMetrics {
             duration: metrics.duration,

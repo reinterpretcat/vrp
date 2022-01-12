@@ -1,9 +1,9 @@
 use super::*;
-use crate::helpers::models::domain::create_empty_insertion_context;
-use crate::helpers::solver::create_default_refinement_ctx;
-use crate::models::examples::create_example_problem;
-use rosomaxa::prelude::compare_floats;
+use crate::utils::compare_floats;
 use std::cmp::Ordering;
+use vrp_core::helpers::models::domain::create_empty_insertion_context;
+use vrp_core::helpers::solver::create_default_refinement_ctx;
+use vrp_core::models::examples::create_example_problem;
 
 fn compare_statistic(refinement_ctx: &RefinementContext, expected: (usize, f64, f64)) {
     assert_eq!(refinement_ctx.statistics.generation, expected.0);

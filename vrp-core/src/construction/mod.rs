@@ -8,14 +8,6 @@
 //! route.
 //!
 
-/// Specifies a computational quota for solving VRP.
-/// The main purpose is to allow to stop algorithm in reaction to external events such
-/// as user cancellation, timer, etc.
-pub trait Quota {
-    /// Returns true when computation should be stopped.
-    fn is_reached(&self) -> bool;
-}
-
 pub mod clustering;
 pub mod constraints;
 pub mod heuristics;
