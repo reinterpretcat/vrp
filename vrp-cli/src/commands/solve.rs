@@ -373,7 +373,7 @@ pub fn run_solve(
                             create_builder_from_config_file(problem.clone(), BufReader::new(config))
                                 .map_err(|err| format!("cannot read config: '{}'", err))?
                         } else {
-                            Builder::new(problem.clone(), environment.clone())
+                            EvolutionConfigBuilder::new(problem.clone(), environment.clone())
                                 .with_telemetry(telemetry)
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)

@@ -6,6 +6,8 @@ pub use crate::heuristics::HeuristicSolution;
 pub use crate::heuristics::HeuristicSpeed;
 pub use crate::heuristics::HeuristicStatistics;
 
+pub use crate::heuristics::evolution::EvolutionConfigBuilder;
+
 pub use crate::heuristics::population::HeuristicPopulation;
 pub use crate::heuristics::population::RosomaxaConfig;
 pub use crate::heuristics::population::SelectionPhase;

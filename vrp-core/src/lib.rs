@@ -81,7 +81,7 @@
 //! let problem = create_example_problem();
 //! let environment = Arc::new(Environment::default());
 //! // build solver to run 10 secs or 1000 generation
-//! let solver = Builder::new(problem, environment)
+//! let solver = EvolutionConfigBuilder::new(problem, environment)
 //!     .with_max_time(Some(10))
 //!     .with_max_generations(Some(1000))
 //!     .build()?;

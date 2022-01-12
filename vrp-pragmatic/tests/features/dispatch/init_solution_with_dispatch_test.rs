@@ -4,7 +4,7 @@ use crate::format_time;
 use crate::helpers::assert_vehicle_agnostic;
 use crate::helpers::*;
 use std::sync::Arc;
-use vrp_core::solver::Builder;
+use vrp_core::solver::EvolutionConfigBuilder;
 use vrp_core::utils::Environment;
 
 #[test]
@@ -180,7 +180,7 @@ fn can_use_init_solution_with_dispatch() {
     let core_problem = Arc::new((problem.clone(), vec![matrix]).read_pragmatic().unwrap());
     let core_solution = to_core_solution(&init_solution, core_problem.clone(), environment.random.clone()).unwrap();
 
-    let (core_solution, _, metrics) = Builder::new(core_problem.clone(), environment)
+    let (core_solution, _, metrics) = EvolutionConfigBuilder::new(core_problem.clone(), environment)
         .with_max_generations(Some(100))
         .with_init_solutions(vec![core_solution], None)
         .build()

@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;
 use vrp_pragmatic::core::models::Solution;
-use vrp_pragmatic::core::solver::Builder;
+use vrp_pragmatic::core::solver::EvolutionConfigBuilder;
 use vrp_pragmatic::core::utils::Environment;
 use vrp_pragmatic::format::problem::PragmaticProblem;
 use vrp_pragmatic::format::FormatError;
@@ -15,7 +15,7 @@ fn solve_problem_with_max_generations(problem_path: &str, generations: usize) ->
         panic!("cannot create pragmatic problem: {}", FormatError::format_many(errs.as_slice(), ","))
     }));
 
-    let (solution, _, _) = Builder::new(problem.clone(), Arc::new(Environment::default()))
+    let (solution, _, _) = EvolutionConfigBuilder::new(problem.clone(), Arc::new(Environment::default()))
         .with_max_generations(Some(generations))
         .build()
         .unwrap_or_else(|err| panic!("cannot build solver: {}", err))

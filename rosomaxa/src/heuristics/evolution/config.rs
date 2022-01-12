@@ -71,7 +71,7 @@ where
 }
 
 /// Provides configurable way to build evolution configuration using fluent interface style.
-pub struct Builder<E, C, O, S, K>
+pub struct EvolutionConfigBuilder<E, C, O, S, K>
 where
     E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
@@ -85,7 +85,7 @@ where
     config: EvolutionConfig<E, C, O, S>,
 }
 
-impl<E, C, O, S, K> Builder<E, C, O, S, K>
+impl<E, C, O, S, K> EvolutionConfigBuilder<E, C, O, S, K>
 where
     E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,

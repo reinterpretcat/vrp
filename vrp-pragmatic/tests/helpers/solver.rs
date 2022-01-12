@@ -8,7 +8,7 @@ use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
 use vrp_core::solver::create_elitism_population;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
-use vrp_core::solver::Builder;
+use vrp_core::solver::EvolutionConfigBuilder;
 use vrp_core::solver::RefinementContext;
 use vrp_core::utils::Environment;
 
@@ -52,7 +52,7 @@ pub fn solve_with_metaheuristic_and_iterations_without_check(
 pub fn solve(problem: Problem, matrices: Option<Vec<Matrix>>, generations: usize, perform_check: bool) -> Solution {
     get_core_solution(problem, matrices, perform_check, |problem: Arc<CoreProblem>| {
         let environment = Arc::new(Environment::default());
-        let (solution, _, _) = Builder::new(problem, environment)
+        let (solution, _, _) = EvolutionConfigBuilder::new(problem, environment)
             .with_max_generations(Some(generations))
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))

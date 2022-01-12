@@ -97,7 +97,7 @@ use std::sync::Arc;
 
 use hashbrown::HashMap;
 
-pub use rosomaxa::heuristics::evolution::config::Builder;
+pub use rosomaxa::heuristics::evolution::config::EvolutionConfigBuilder;
 pub use rosomaxa::heuristics::evolution::telemetry::{Telemetry, TelemetryMetrics, TelemetryMode};
 use rosomaxa::heuristics::evolution::{EvolutionConfig, EvolutionSimulator};
 use rosomaxa::prelude::*;
@@ -234,14 +234,14 @@ impl Solver {
     /// # use vrp_core::models::examples::create_example_problem;
     /// # use std::sync::Arc;
     /// use rosomaxa::prelude::Environment;
-    /// use vrp_core::solver::Builder;
+    /// use vrp_core::solver::EvolutionConfigBuilder;
     /// use vrp_core::models::Problem;
     ///
     /// // create your VRP problem
     /// let problem: Arc<Problem> = create_example_problem();
     /// let environment = Arc::new(Environment::default());
     /// // build solver using builder with default settings
-    /// let solver = Builder::new(problem, environment).build()?;
+    /// let solver = EvolutionConfigBuilder::new(problem, environment).build()?;
     /// // run solver and get the best known solution within its cost.
     /// let (solution, cost, _) = solver.solve()?;
     ///

@@ -59,7 +59,7 @@ fn run_examples(base_path: &str) {
             panic!("cannot read pragmatic problem: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
         }));
 
-        let (solution, cost, _) = Builder::new(core_problem.clone(), environment)
+        let (solution, cost, _) = EvolutionConfigBuilder::new(core_problem.clone(), environment)
             .with_max_generations(Some(100))
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))

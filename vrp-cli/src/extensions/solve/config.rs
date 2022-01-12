@@ -441,9 +441,9 @@ pub struct NameWeight {
 }
 
 fn configure_from_evolution(
-    mut builder: Builder,
+    mut builder: EvolutionConfigBuilder,
     population_config: &Option<EvolutionConfig>,
-) -> Result<Builder, String> {
+) -> Result<EvolutionConfigBuilder, String> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
             let environment = builder.config.environment.clone();
@@ -536,7 +536,10 @@ fn configure_from_evolution(
     Ok(builder)
 }
 
-fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) -> Result<Builder, String> {
+fn configure_from_hyper(
+    mut builder: EvolutionConfigBuilder,
+    hyper_config: &Option<HyperType>,
+) -> Result<EvolutionConfigBuilder, String> {
     if let Some(config) = hyper_config {
         match config {
             HyperType::StaticSelective { operators } => {
@@ -569,7 +572,10 @@ fn configure_from_hyper(mut builder: Builder, hyper_config: &Option<HyperType>) 
     Ok(builder)
 }
 
-fn configure_from_termination(mut builder: Builder, termination_config: &Option<TerminationConfig>) -> Builder {
+fn configure_from_termination(
+    mut builder: EvolutionConfigBuilder,
+    termination_config: &Option<TerminationConfig>,
+) -> EvolutionConfigBuilder {
     if let Some(config) = termination_config {
         builder = builder
             .with_max_time(config.max_time)
@@ -580,7 +586,10 @@ fn configure_from_termination(mut builder: Builder, termination_config: &Option<
     builder
 }
 
-fn configure_from_processing(mut builder: Builder, processing_config: &Option<Vec<ProcessingType>>) -> Builder {
+fn configure_from_processing(
+    mut builder: EvolutionConfigBuilder,
+    processing_config: &Option<Vec<ProcessingType>>,
+) -> EvolutionConfigBuilder {
     if let Some(config) = processing_config {
         let processors = config
             .iter()
@@ -751,7 +760,10 @@ fn create_local_search(
     Arc::new(CompositeLocalOperator::new(operators, times.min, times.max))
 }
 
-fn configure_from_telemetry(builder: Builder, telemetry_config: &Option<TelemetryConfig>) -> Builder {
+fn configure_from_telemetry(
+    builder: EvolutionConfigBuilder,
+    telemetry_config: &Option<TelemetryConfig>,
+) -> EvolutionConfigBuilder {
     const LOG_BEST: usize = 100;
     const LOG_POPULATION: usize = 1000;
     const TRACK_POPULATION: usize = 1000;
@@ -827,14 +839,14 @@ pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
 pub fn create_builder_from_config_file<R: Read>(
     problem: Arc<Problem>,
     reader: BufReader<R>,
-) -> Result<Builder, String> {
+) -> Result<EvolutionConfigBuilder, String> {
     read_config(reader).and_then(|config| create_builder_from_config(problem, &config))
 }
 
 /// Creates a solver `Builder` from config.
-pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<Builder, String> {
+pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<EvolutionConfigBuilder, String> {
     let environment = configure_from_environment(&config.environment);
-    let mut builder = Builder::new(problem, environment);
+    let mut builder = EvolutionConfigBuilder::new(problem, environment);
 
     builder = configure_from_telemetry(builder, &config.telemetry);
     builder = configure_from_evolution(builder, &config.evolution)?;
