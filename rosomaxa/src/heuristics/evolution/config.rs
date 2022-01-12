@@ -14,7 +14,7 @@ where
     pub initial: InitialConfig<C, O, S>,
 
     /// A hyper heuristic.
-    pub heuristic: Box<dyn HyperHeuristic<Context = C, Solution = S>>,
+    pub heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
 
     /// Evolution strategy.
     pub strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
@@ -32,6 +32,8 @@ where
     pub telemetry: Telemetry<C, O, S>,
 }
 
+pub trait InitialOperator {}
+
 /// An initial solutions configuration.
 pub struct InitialConfig<C, O, S>
 where
@@ -40,7 +42,7 @@ where
     S: HeuristicSolution,
 {
     /// Create methods to produce initial individuals.
-    pub methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, usize)>,
+    pub methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
     /// Initial size of population to be generated.
     pub max_size: usize,
     /// Quota for initial solution generation.
@@ -76,11 +78,11 @@ where
 {
     /// Creates a new instance of `Builder` from mandatory arguments.
     pub fn new(
-        heuristic: Box<dyn HyperHeuristic<Context = C, Solution = S>>,
+        heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
         population: Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>,
         strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S> + Send + Sync>,
         termination: Box<dyn Termination<Context = C, Objective = O> + Send + Sync>,
-        methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, usize)>,
+        methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
         environment: Arc<Environment>,
     ) -> Self {
         Self {
@@ -128,7 +130,7 @@ where
         mut self,
         max_size: usize,
         quota: f64,
-        methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, usize)>,
+        methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
     ) -> Self {
         self.config.telemetry.log("configured to use custom initial population parameters");
 

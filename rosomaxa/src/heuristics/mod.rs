@@ -36,6 +36,11 @@ pub trait HeuristicContext: Send + Sync {
     /// Returns population.
     fn population(&self) -> &(dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>);
 
+    /// Returns population as mutable reference.
+    fn population_mut(
+        &mut self,
+    ) -> &mut (dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>);
+
     /// Returns current statistic used to track the search progress.
     fn statistics(&self) -> &HeuristicStatistics;
 

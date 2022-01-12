@@ -16,3 +16,4 @@ pub mod utils;
 // TODO:
 // - ensure all essential tests are implemented
 // - add documentation examples
+// - check whether Objective as associated type can be removed from HeuristicOperator

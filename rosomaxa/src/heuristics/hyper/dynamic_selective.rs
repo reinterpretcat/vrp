@@ -27,6 +27,7 @@ where
     S: HeuristicSolution,
 {
     type Context = C;
+    type Objective = O;
     type Solution = S;
 
     fn search(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
@@ -74,7 +75,7 @@ where
 {
     /// Creates a new instance of `DynamicSelective` heuristic.
     pub fn new(
-        operators: Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, String)>,
+        operators: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>,
         random: Arc<dyn Random + Send + Sync>,
     ) -> Self {
         let operator_estimates = (0..operators.len())
@@ -146,7 +147,7 @@ where
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    pub heuristics: Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, String)>,
+    pub heuristics: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String)>,
 }
 
 struct SearchAgent<'a, C, O, S>

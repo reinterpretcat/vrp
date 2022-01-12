@@ -7,8 +7,10 @@ use std::sync::Arc;
 pub type HeuristicProbability<C, O, S> = (Box<dyn Fn(&C, &S) -> bool + Send + Sync>, PhantomData<O>);
 
 /// A type which specifies a group of multiple heuristic strategies with their probability.
-pub type HeuristicGroup<C, O, S> =
-    Vec<(Arc<dyn HeuristicOperator<Context = C, Solution = S> + Send + Sync>, HeuristicProbability<C, O, S>)>;
+pub type HeuristicGroup<C, O, S> = Vec<(
+    Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>,
+    HeuristicProbability<C, O, S>,
+)>;
 
 /// A simple hyper-heuristic which selects metaheuristic from the list with fixed (static) probabilities.
 pub struct StaticSelective<C, O, S>
@@ -27,6 +29,7 @@ where
     S: HeuristicSolution,
 {
     type Context = C;
+    type Objective = O;
     type Solution = S;
 
     fn search(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
