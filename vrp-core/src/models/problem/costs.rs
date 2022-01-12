@@ -9,7 +9,7 @@ use crate::models::solution::Activity;
 use crate::solver::objectives::{TotalCost, TotalRoutes, TotalUnassignedJobs};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
-use rosomaxa::heuristics::population::Shuffled;
+use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::CollectGroupBy;
 use std::cmp::Ordering;

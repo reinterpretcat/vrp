@@ -1,22 +1,22 @@
 //! This module reimports a common used types.
 
-pub use crate::heuristics::HeuristicContext;
-pub use crate::heuristics::HeuristicObjective;
-pub use crate::heuristics::HeuristicSolution;
-pub use crate::heuristics::HeuristicSpeed;
-pub use crate::heuristics::HeuristicStatistics;
+pub use crate::HeuristicContext;
+pub use crate::HeuristicObjective;
+pub use crate::HeuristicSolution;
+pub use crate::HeuristicSpeed;
+pub use crate::HeuristicStatistics;
+pub use crate::Stateful;
 
-pub use crate::heuristics::evolution::EvolutionConfigBuilder;
+pub use crate::evolution::EvolutionConfigBuilder;
 
-pub use crate::heuristics::population::HeuristicPopulation;
-pub use crate::heuristics::population::RosomaxaConfig;
-pub use crate::heuristics::population::SelectionPhase;
+pub use crate::population::HeuristicPopulation;
+pub use crate::population::RosomaxaConfig;
+pub use crate::population::SelectionPhase;
 
-pub use crate::heuristics::hyper::HeuristicOperator;
-pub use crate::heuristics::hyper::HyperHeuristic;
-pub use crate::heuristics::Stateful;
+pub use crate::hyper::HeuristicOperator;
+pub use crate::hyper::HyperHeuristic;
 
-pub use crate::heuristics::termination::Termination;
+pub use crate::termination::Termination;
 
 pub use crate::algorithms::nsga2::dominance_order;
 pub use crate::algorithms::nsga2::MultiObjective;

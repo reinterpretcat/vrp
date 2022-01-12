@@ -1,9 +1,8 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/heuristics/population/greedy_test.rs"]
+#[path = "../../tests/unit/population/greedy_test.rs"]
 mod greedy_test;
 
 use super::*;
-use crate::heuristics::HeuristicStatistics;
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::iter::{empty, repeat};

@@ -1,7 +1,7 @@
 //! A module which provides the logic to collect metrics about algorithm execution and simple logging.
 
 #[cfg(test)]
-#[path = "../../../tests/unit/heuristics/evolution/telemetry_test.rs"]
+#[path = "../../tests/unit/evolution/telemetry_test.rs"]
 mod telemetry_test;
 
 use crate::prelude::*;

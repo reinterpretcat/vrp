@@ -14,8 +14,7 @@ pub use self::rosomaxa::Rosomaxa;
 pub use self::rosomaxa::RosomaxaConfig;
 pub use self::rosomaxa::RosomaxaWeighted;
 
-use crate::heuristics::{HeuristicObjective, HeuristicSolution, HeuristicStatistics};
-use crate::utils::compare_floats;
+use crate::prelude::*;
 use std::cmp::Ordering;
 use std::fmt::Display;
 

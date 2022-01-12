@@ -6,7 +6,7 @@ pub use self::dynamic_selective::*;
 mod static_selective;
 pub use self::static_selective::*;
 
-use crate::heuristics::*;
+use crate::prelude::*;
 use std::marker::PhantomData;
 use std::ops::Deref;
 

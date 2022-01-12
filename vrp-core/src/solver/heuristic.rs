@@ -3,9 +3,9 @@ use crate::construction::heuristics::*;
 use crate::models::common::SingleDimLoad;
 use crate::models::problem::ProblemObjective;
 use crate::solver::search::*;
-use rosomaxa::heuristics::hyper::*;
-use rosomaxa::heuristics::population::*;
-use rosomaxa::heuristics::termination::*;
+use rosomaxa::hyper::*;
+use rosomaxa::population::*;
+use rosomaxa::termination::*;
 use std::marker::PhantomData;
 
 /// A type alias for domain specific population.

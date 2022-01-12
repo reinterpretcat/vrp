@@ -97,9 +97,9 @@ use std::sync::Arc;
 
 use hashbrown::HashMap;
 
-pub use rosomaxa::heuristics::evolution::config::EvolutionConfigBuilder;
-pub use rosomaxa::heuristics::evolution::telemetry::{Telemetry, TelemetryMetrics, TelemetryMode};
-use rosomaxa::heuristics::evolution::{EvolutionConfig, EvolutionSimulator};
+pub use rosomaxa::evolution::config::EvolutionConfigBuilder;
+pub use rosomaxa::evolution::telemetry::{Telemetry, TelemetryMetrics, TelemetryMode};
+use rosomaxa::evolution::{EvolutionConfig, EvolutionSimulator};
 use rosomaxa::prelude::*;
 
 use crate::construction::heuristics::InsertionContext;

@@ -1,5 +1,5 @@
-use crate::heuristics::evolution::*;
-use crate::heuristics::termination::*;
+use crate::evolution::*;
+use crate::termination::*;
 use std::hash::Hash;
 use std::sync::Arc;
 

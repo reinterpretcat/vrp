@@ -1,11 +1,11 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/heuristics/population/elitism_test.rs"]
+#[path = "../../tests/unit/population/elitism_test.rs"]
 mod elitism_test;
 
 use super::*;
 use crate::algorithms::nsga2::select_and_rank;
-use crate::heuristics::{HeuristicSpeed, HeuristicStatistics};
 use crate::utils::Random;
+use crate::{HeuristicSpeed, HeuristicStatistics};
 use std::cmp::Ordering;
 use std::fmt::{Formatter, Write};
 use std::iter::{empty, once};

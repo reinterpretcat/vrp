@@ -4,7 +4,7 @@ use crate::construction::probing::repair_solution_from_unknown;
 use crate::models::problem::Job;
 use crate::models::Problem;
 use crate::solver::*;
-use rosomaxa::heuristics::population::Shuffled;
+use rosomaxa::population::Shuffled;
 use std::cmp::Ordering;
 use std::sync::Arc;
 

@@ -1,12 +1,11 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/heuristics/population/rosomaxa_test.rs"]
+#[path = "../../tests/unit/population/rosomaxa_test.rs"]
 mod rosomaxa_test;
 
 use super::*;
 use crate::algorithms::gsom::*;
 use crate::algorithms::math::relative_distance;
-use crate::heuristics::population::elitism::{DominanceOrdered, Shuffled};
-use crate::heuristics::HeuristicSpeed;
+use crate::population::elitism::{DominanceOrdered, Shuffled};
 use crate::utils::{Environment, Random};
 use rand::prelude::SliceRandom;
 use std::convert::TryInto;

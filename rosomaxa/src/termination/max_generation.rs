@@ -1,5 +1,5 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/heuristics/termination/max_generation_test.rs"]
+#[path = "../../tests/unit/termination/max_generation_test.rs"]
 mod max_generation_test;
 
 use super::*;

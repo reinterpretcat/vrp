@@ -1,8 +1,7 @@
 //! The termination module contains logic which defines termination criteria for metaheuristic,
 //! e.g. when to stop evolution in evolutionary algorithms.
 
-use crate::heuristics::{HeuristicContext, HeuristicObjective, HeuristicSolution};
-use crate::prelude::compare_floats;
+use crate::prelude::*;
 
 /// A trait which specifies criteria when metaheuristic should stop searching for improved solution.
 pub trait Termination {

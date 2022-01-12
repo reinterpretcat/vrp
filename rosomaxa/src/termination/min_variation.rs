@@ -1,10 +1,9 @@
 #[cfg(test)]
-#[path = "../../../tests/unit/heuristics/termination/min_variation_test.rs"]
+#[path = "../../tests/unit/termination/min_variation_test.rs"]
 mod min_variation_test;
 
 use super::*;
 use crate::algorithms::math::get_cv;
-use crate::prelude::*;
 use crate::utils::CollectGroupBy;
 use rand::prelude::SliceRandom;
 use std::hash::Hash;
