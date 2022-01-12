@@ -144,7 +144,7 @@ where
             };
 
             // TODO consider initial quota limit
-            let solution = config.initial.methods[method_idx].0.search(&heuristic_ctx);
+            let solution = config.initial.methods[method_idx].0.create(&heuristic_ctx);
 
             if should_add_solution(&heuristic_ctx.environment().quota, heuristic_ctx.population()) {
                 config.telemetry.on_initial(&solution, idx, config.initial.max_size, item_time);

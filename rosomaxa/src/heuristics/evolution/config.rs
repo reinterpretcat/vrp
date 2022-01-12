@@ -32,7 +32,17 @@ where
     pub telemetry: Telemetry<C, O, S>,
 }
 
-pub trait InitialOperator {}
+pub trait InitialOperator {
+    /// A heuristic context type.
+    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
+    /// A heuristic objective type.
+    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    /// A heuristic solution type.
+    type Solution: HeuristicSolution;
+
+    /// Creates an initial solution from scratch.
+    fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution;
+}
 
 /// An initial solutions configuration.
 pub struct InitialConfig<C, O, S>
@@ -42,7 +52,7 @@ where
     S: HeuristicSolution,
 {
     /// Create methods to produce initial individuals.
-    pub methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
+    pub methods: Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
     /// Initial size of population to be generated.
     pub max_size: usize,
     /// Quota for initial solution generation.
@@ -82,7 +92,7 @@ where
         population: Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>,
         strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S> + Send + Sync>,
         termination: Box<dyn Termination<Context = C, Objective = O> + Send + Sync>,
-        methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
+        methods: Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
         environment: Arc<Environment>,
     ) -> Self {
         Self {
@@ -130,7 +140,7 @@ where
         mut self,
         max_size: usize,
         quota: f64,
-        methods: Vec<(Arc<dyn HeuristicOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
+        methods: Vec<(Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>,
     ) -> Self {
         self.config.telemetry.log("configured to use custom initial population parameters");
 
