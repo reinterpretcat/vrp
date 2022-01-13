@@ -12,10 +12,12 @@ use vrp_cli::core::solver::{get_default_population, TargetHeuristic};
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
+use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::problem::ProblemObjective;
 use vrp_core::prelude::*;
+use vrp_core::rosomaxa::evolution::*;
 use vrp_core::solver::*;
-use vrp_core::utils::Parallelism;
+use vrp_core::utils::{Parallelism, Quota, TimeQuota};
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -316,7 +318,9 @@ pub fn run_solve(
     matches: &ArgMatches,
     out_writer_func: fn(Option<File>) -> BufWriter<Box<dyn Write>>,
 ) -> Result<(), String> {
-    let environment = get_environment(matches)?;
+    let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time")?;
+
+    let environment = get_environment(matches, max_time)?;
 
     let formats = get_formats(matches, environment.random.clone());
 
@@ -327,7 +331,6 @@ pub fn run_solve(
 
     // optional
     let max_generations = parse_int_value::<usize>(matches, GENERATIONS_ARG_NAME, "max generations")?;
-    let max_time = parse_int_value::<usize>(matches, TIME_ARG_NAME, "max time")?;
     let telemetry = Telemetry::new(if matches.is_present(LOG_ARG_NAME) {
         TelemetryMode::OnlyLogging {
             logger: environment.logger.clone(),
@@ -365,7 +368,13 @@ pub fn run_solve(
                             .map(|file| {
                                 init_reader.0(file, problem.clone())
                                     .map_err(|err| format!("cannot read initial solution '{}'", err))
-                                    .map(|solution| vec![solution])
+                                    .map(|solution| {
+                                        vec![InsertionContext::new_from_solution(
+                                            problem.clone(),
+                                            (solution, None),
+                                            environment.clone(),
+                                        )]
+                                    })
                             })
                             .unwrap_or_else(|| Ok(Vec::new()))?;
 
@@ -373,7 +382,7 @@ pub fn run_solve(
                             create_builder_from_config_file(problem.clone(), BufReader::new(config))
                                 .map_err(|err| format!("cannot read config: '{}'", err))?
                         } else {
-                            EvolutionConfigBuilder::new(problem.clone(), environment.clone())
+                            SolverBuilder::new(problem.clone(), environment.clone())
                                 .with_telemetry(telemetry)
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
@@ -441,13 +450,15 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
         .unwrap_or(Ok(None))
 }
 
-fn get_environment(matches: &ArgMatches) -> Result<Arc<Environment>, String> {
+fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<Environment>, String> {
     matches
         .value_of(PARALELLISM_ARG_NAME)
         .map(|arg| {
             if let [num_thread_pools, threads_per_pool] =
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
             {
+                let quota =
+                    max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64)));
                 let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
                 let logger: Arc<fn(&str)> = if matches.is_present(LOG_ARG_NAME) {
                     Arc::new(|msg: &str| println!("{}", msg))
@@ -456,7 +467,13 @@ fn get_environment(matches: &ArgMatches) -> Result<Arc<Environment>, String> {
                 };
                 let is_experimental = matches.is_present(EXPERIMENTAL_ARG_NAME);
 
-                Ok(Arc::new(Environment::new(Arc::new(DefaultRandom::default()), parallelism, logger, is_experimental)))
+                Ok(Arc::new(Environment::new(
+                    Arc::new(DefaultRandom::default()),
+                    quota,
+                    parallelism,
+                    logger,
+                    is_experimental,
+                )))
             } else {
                 Err("cannot parse parallelism parameter".to_string())
             }

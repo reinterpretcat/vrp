@@ -175,6 +175,15 @@ where
         self
     }
 
+    /// Sets a different heuristic replacing initial.
+    pub fn with_heuristic(
+        mut self,
+        heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
+    ) -> Self {
+        self.config.heuristic = heuristic;
+        self
+    }
+
     /// Builds an evolution config.
     pub fn build(self) -> Result<EvolutionConfig<C, O, S>, String> {
         let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =

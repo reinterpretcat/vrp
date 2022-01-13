@@ -194,21 +194,21 @@ mod builder {
     ) -> InitialOperators<RefinementContext, ProblemObjective, InsertionContext> {
         let random = environment.random.clone();
 
-        let wrap = |recreate: Box<dyn Recreate + Send + Sync>| {
+        let wrap = |recreate: Arc<dyn Recreate + Send + Sync>| {
             let problem = problem.clone();
             let environment = environment.clone();
             Box::new(RecreateInitialOperator::new(problem, environment, recreate))
         };
 
         vec![
-            (wrap(Box::new(RecreateWithCheapest::new(random.clone()))), 1),
-            (wrap(Box::new(RecreateWithFarthest::new(random.clone()))), 1),
-            (wrap(Box::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
-            (wrap(Box::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone()))), 1),
-            (wrap(Box::new(RecreateWithSkipBest::new(1, 2, random.clone()))), 1),
-            (wrap(Box::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone()))), 1),
-            (wrap(Box::new(RecreateWithPerturbation::new_with_defaults(random.clone()))), 1),
-            (wrap(Box::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithFarthest::new(random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithSkipBest::new(1, 2, random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()))), 1),
+            (wrap(Arc::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
         ]
     }
 

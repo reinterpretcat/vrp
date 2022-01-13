@@ -85,7 +85,7 @@ impl SolverBuilder {
         mut self,
         max_size: usize,
         quota: f64,
-        recreates: Vec<(Box<dyn Recreate + Send + Sync>, usize)>,
+        recreates: Vec<(Arc<dyn Recreate + Send + Sync>, usize)>,
     ) -> Self {
         let operators = recreates
             .into_iter()
@@ -148,6 +148,17 @@ impl SolverBuilder {
         self
     }
 
+    /// Sets a different heuristic replacing initial.
+    pub fn with_heuristic(
+        mut self,
+        heuristic: Box<
+            dyn HyperHeuristic<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>,
+        >,
+    ) -> Self {
+        self.config_builder = self.config_builder.with_heuristic(heuristic);
+        self
+    }
+
     /// Sets problem processing logic.
     pub fn with_processing(mut self, processing: Option<Box<dyn Processing + Send + Sync>>) -> Self {
         self.processing = processing;
@@ -168,14 +179,14 @@ type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, ProblemObj
 pub(crate) struct RecreateInitialOperator {
     problem: Arc<Problem>,
     environment: Arc<Environment>,
-    recreate: Box<dyn Recreate + Send + Sync>,
+    recreate: Arc<dyn Recreate + Send + Sync>,
 }
 
 impl RecreateInitialOperator {
     pub fn new(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
-        recreate: Box<dyn Recreate + Send + Sync>,
+        recreate: Arc<dyn Recreate + Send + Sync>,
     ) -> Self {
         Self { problem, environment, recreate }
     }
