@@ -4,21 +4,14 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
-pub struct EvolutionConfig<E, C, O, S>
+pub struct EvolutionConfig<C, O, S>
 where
-    E: EvolutionStrategy<Context = C, Objective = O, Solution = S>,
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
     /// An initial solution config.
     pub initial: InitialConfig<C, O, S>,
-
-    /// A desired amount of solutions returned in the end.
-    pub desired_amount: usize,
-
-    /// An evolution strategy.
-    pub evolution_strategy: E,
 
     /// A hyper heuristic.
     pub heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
@@ -71,9 +64,8 @@ where
 }
 
 /// Provides configurable way to build evolution configuration using fluent interface style.
-pub struct EvolutionConfigBuilder<E, C, O, S, K>
+pub struct EvolutionConfigBuilder<C, O, S, K>
 where
-    E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
     O: HeuristicObjective<Solution = S> + 'static,
     S: HeuristicSolution + 'static,
@@ -82,23 +74,20 @@ where
     max_generations: Option<usize>,
     max_time: Option<usize>,
     min_cv: Option<(String, usize, f64, bool, K)>,
-    config: EvolutionConfig<E, C, O, S>,
+    config: EvolutionConfig<C, O, S>,
 }
 
-impl<E, C, O, S, K> EvolutionConfigBuilder<E, C, O, S, K>
+impl<C, O, S, K> EvolutionConfigBuilder<C, O, S, K>
 where
-    E: EvolutionStrategy<Context = C, Objective = O, Solution = S> + 'static,
     C: HeuristicContext<Objective = O, Solution = S> + Stateful<Key = K> + 'static,
     O: HeuristicObjective<Solution = S> + 'static,
     S: HeuristicSolution + 'static,
     K: Hash + Eq + Clone + Send + Sync + 'static,
 {
-    /// Creates a new instance of `Builder` from mandatory arguments.
+    /// Creates a new instance of `Builder` using required arguments.
     pub fn new(
-        evolution_strategy: E,
         heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
-        population: Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>,
-        termination: Box<dyn Termination<Context = C, Objective = O> + Send + Sync>,
+        population: Box<dyn HeuristicPopulation<Objective = O, Individual = S>>,
         operators: InitialOperators<C, O, S>,
         environment: Arc<Environment>,
     ) -> Self {
@@ -108,21 +97,16 @@ where
             min_cv: None,
             config: EvolutionConfig {
                 initial: InitialConfig { operators, max_size: 4, quota: 0.05, individuals: vec![] },
-                desired_amount: 1,
                 heuristic,
                 population,
-                evolution_strategy,
-                termination,
+                termination: Box::new(CompositeTermination::new(vec![
+                    Box::new(MaxGeneration::new(3000)),
+                    Box::new(MaxTime::new(300.)),
+                ])),
                 environment,
                 telemetry: Telemetry::new(TelemetryMode::None),
             },
         }
-    }
-
-    /// Sets desired amount of solutions.
-    pub fn with_desired_solutions(mut self, amount: usize) -> Self {
-        self.config.desired_amount = amount;
-        self
     }
 
     /// Sets max generations to be run by evolution. Default is 3000.
@@ -131,15 +115,15 @@ where
         self
     }
 
-    /// Sets variation coefficient termination criteria. Default is None.
-    pub fn with_min_cv(mut self, min_cv: Option<(String, usize, f64, bool)>, key: K) -> Self {
-        self.min_cv = min_cv.map(|min_cv| (min_cv.0, min_cv.1, min_cv.2, min_cv.3, key));
-        self
-    }
-
     /// Sets max running time limit for evolution. Default is 300 seconds.
     pub fn with_max_time(mut self, limit: Option<usize>) -> Self {
         self.max_time = limit;
+        self
+    }
+
+    /// Sets variation coefficient termination criteria. Default is None.
+    pub fn with_min_cv(mut self, min_cv: Option<(String, usize, f64, bool)>, key: K) -> Self {
+        self.min_cv = min_cv.map(|min_cv| (min_cv.0, min_cv.1, min_cv.2, min_cv.3, key));
         self
     }
 
@@ -173,6 +157,12 @@ where
         self
     }
 
+    /// Sets population algorithm. Default is rosomaxa.
+    pub fn with_population(mut self, population: Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> Self {
+        self.config.population = population;
+        self
+    }
+
     /// Sets termination algorithm. Default is max time and max generations.
     pub fn with_termination(mut self, termination: Box<dyn Termination<Context = C, Objective = O>>) -> Self {
         self.config.termination = termination;
@@ -186,14 +176,7 @@ where
     }
 
     /// Builds an evolution config.
-    pub fn build(self) -> Result<EvolutionConfig<E, C, O, S>, String> {
-        if self.config.desired_amount < 1 {
-            return Err(format!(
-                "desired amount of solutions should be more than 1, specified: {}",
-                self.config.desired_amount
-            ));
-        }
-
+    pub fn build(self) -> Result<EvolutionConfig<C, O, S>, String> {
         let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
             match (self.max_generations, self.max_time, &self.min_cv) {
                 (None, None, None) => {

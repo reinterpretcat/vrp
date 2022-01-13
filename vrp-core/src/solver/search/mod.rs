@@ -7,6 +7,7 @@
 //!
 
 use crate::construction::heuristics::InsertionContext;
+use crate::models::problem::ProblemObjective;
 use crate::solver::{RefinementContext, TargetHeuristicOperator};
 use rosomaxa::prelude::HeuristicOperator;
 
@@ -49,6 +50,7 @@ impl WeightedHeuristicOperator {
 
 impl HeuristicOperator for WeightedHeuristicOperator {
     type Context = RefinementContext;
+    type Objective = ProblemObjective;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {

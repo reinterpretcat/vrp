@@ -30,6 +30,7 @@ impl InfeasibleSearch {
 
 impl HeuristicOperator for InfeasibleSearch {
     type Context = RefinementContext;
+    type Objective = ProblemObjective;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
@@ -78,7 +79,6 @@ fn create_relaxed_refinement_ctx(
         problem,
         population,
         state: Default::default(),
-        quota: refinement_ctx.quota.clone(),
         environment,
         statistics: refinement_ctx.statistics.clone(),
     }

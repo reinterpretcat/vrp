@@ -6,6 +6,7 @@ use std::sync::Arc;
 use vrp_pragmatic::checker::CheckerContext;
 use vrp_pragmatic::core::models::{Problem as CoreProblem, Solution as CoreSolution};
 use vrp_pragmatic::core::prelude::*;
+use vrp_pragmatic::core::solver::SolverBuilder;
 use vrp_pragmatic::format::problem::{deserialize_matrix, deserialize_problem, Matrix, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::{deserialize_solution, PragmaticSolution, Solution};
 use vrp_pragmatic::format::FormatError;
@@ -59,7 +60,7 @@ fn run_examples(base_path: &str) {
             panic!("cannot read pragmatic problem: {}", FormatError::format_many(errors.as_slice(), "\t\n"))
         }));
 
-        let (solution, cost, _) = EvolutionConfigBuilder::new(core_problem.clone(), environment)
+        let (solution, cost, _) = SolverBuilder::new(core_problem.clone(), environment)
             .with_max_generations(Some(100))
             .build()
             .unwrap_or_else(|err| panic!("cannot build solver: {}", err))

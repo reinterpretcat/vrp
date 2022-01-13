@@ -11,10 +11,14 @@ use std::marker::PhantomData;
 /// A type alias for domain specific population.
 pub type TargetPopulation = Box<dyn HeuristicPopulation<Objective = ProblemObjective, Individual = InsertionContext>>;
 /// A type alias for domain specific heuristic.
-pub type TargetHeuristic = Box<dyn HyperHeuristic<Context = RefinementContext, Solution = InsertionContext>>;
+pub type TargetHeuristic =
+    Box<dyn HyperHeuristic<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>>;
 /// A type for domain specific heuristic operator.
-pub type TargetHeuristicOperator =
-    Arc<dyn HeuristicOperator<Context = RefinementContext, Solution = InsertionContext> + Send + Sync>;
+pub type TargetHeuristicOperator = Arc<
+    dyn HeuristicOperator<Context = RefinementContext, Objective = ProblemObjective, Solution = InsertionContext>
+        + Send
+        + Sync,
+>;
 
 /// A type for greedy population.
 pub type GreedyPopulation = Greedy<ProblemObjective, InsertionContext>;
@@ -60,7 +64,7 @@ pub fn get_default_population(objective: Arc<ProblemObjective>, environment: Arc
 
 /// Gets default heuristic.
 pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    Box::new(MultiSelective::<RefinementContext, InsertionContext>::new(
+    Box::new(MultiSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
         get_dynamic_heuristic(problem.clone(), environment.clone()),
         get_static_heuristic(problem, environment),
     ))
@@ -171,8 +175,52 @@ pub fn create_context_operator_probability(
     )
 }
 
+pub use self::builder::create_default_init_operators;
+pub use self::builder::create_default_processing;
 pub use self::stat::create_default_heuristic_operator;
 pub use self::stat::create_default_random_ruin;
+
+mod builder {
+    use super::*;
+    use crate::models::common::SingleDimLoad;
+    use crate::rosomaxa::evolution::InitialOperators;
+    use crate::solver::builder::RecreateInitialOperator;
+    use crate::solver::processing::*;
+
+    /// Creates default init operators.
+    pub fn create_default_init_operators(
+        problem: Arc<Problem>,
+        environment: Arc<Environment>,
+    ) -> InitialOperators<RefinementContext, ProblemObjective, InsertionContext> {
+        let random = environment.random.clone();
+
+        let wrap = |recreate: Box<dyn Recreate + Send + Sync>| {
+            let problem = problem.clone();
+            let environment = environment.clone();
+            Box::new(RecreateInitialOperator::new(problem, environment, recreate))
+        };
+
+        vec![
+            (wrap(Box::new(RecreateWithCheapest::new(random.clone()))), 1),
+            (wrap(Box::new(RecreateWithFarthest::new(random.clone()))), 1),
+            (wrap(Box::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
+            (wrap(Box::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone()))), 1),
+            (wrap(Box::new(RecreateWithSkipBest::new(1, 2, random.clone()))), 1),
+            (wrap(Box::new(RecreateWithBlinks::<SingleDimLoad>::new_with_defaults(random.clone()))), 1),
+            (wrap(Box::new(RecreateWithPerturbation::new_with_defaults(random.clone()))), 1),
+            (wrap(Box::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
+        ]
+    }
+
+    /// Create default processing.
+    pub fn create_default_processing() -> Option<Box<dyn Processing + Send + Sync>> {
+        Some(Box::new(CompositeProcessing::new(vec![
+            Box::new(VicinityClustering::default()),
+            Box::new(AdvanceDeparture::default()),
+            Box::new(UnassignmentReason::default()),
+        ])))
+    }
+}
 
 mod stat {
     use super::*;

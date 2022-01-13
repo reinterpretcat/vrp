@@ -25,12 +25,12 @@ pub trait Processing {
 
 /// Provides the way to run multiple processors one by one on problem/solution.
 pub struct CompositeProcessing {
-    processors: Vec<Arc<dyn Processing + Send + Sync>>,
+    processors: Vec<Box<dyn Processing + Send + Sync>>,
 }
 
 impl CompositeProcessing {
     /// Creates an instance of `CompositeProcessing`.
-    pub fn new(processors: Vec<Arc<dyn Processing + Send + Sync>>) -> Self {
+    pub fn new(processors: Vec<Box<dyn Processing + Send + Sync>>) -> Self {
         Self { processors }
     }
 }

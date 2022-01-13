@@ -215,7 +215,7 @@ impl<T: LoadOps> Recreate for RecreateWithBlinks<T> {
             self.route_selector.as_ref(),
             self.leg_selector.as_ref(),
             self.result_selector.as_ref(),
-            &refinement_ctx.quota,
+            &refinement_ctx.environment.quota,
         )
     }
 }

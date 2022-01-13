@@ -92,29 +92,27 @@
 
 extern crate rand;
 
-use std::any::Any;
-use std::sync::Arc;
-
-use hashbrown::HashMap;
-
-pub use rosomaxa::evolution::config::EvolutionConfigBuilder;
-pub use rosomaxa::evolution::telemetry::{Telemetry, TelemetryMetrics, TelemetryMode};
-use rosomaxa::evolution::{EvolutionConfig, EvolutionSimulator};
-use rosomaxa::prelude::*;
-
 use crate::construction::heuristics::InsertionContext;
-use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::problem::ProblemObjective;
 use crate::models::{Problem, Solution};
+use crate::solver::processing::Processing;
+use hashbrown::HashMap;
+use rosomaxa::evolution::*;
+use rosomaxa::prelude::*;
+use std::any::Any;
+use std::sync::Arc;
 
 pub use self::heuristic::*;
+use rosomaxa::population::Rosomaxa;
 
 pub mod objectives;
 pub mod processing;
 pub mod search;
 
+mod builder;
 mod heuristic;
+pub use self::builder::SolverBuilder;
 
 /// A key to store solution order information.
 const SOLUTION_ORDER_KEY: i32 = 1;
@@ -136,9 +134,6 @@ pub struct RefinementContext {
     /// A collection of data associated with refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
 
-    /// A quota for refinement process.
-    pub quota: Option<Arc<dyn Quota + Send + Sync>>,
-
     /// An environmental context.
     pub environment: Arc<Environment>,
 
@@ -158,20 +153,8 @@ pub enum RefinementSpeed {
 
 impl RefinementContext {
     /// Creates a new instance of `RefinementContext`.
-    pub fn new(
-        problem: Arc<Problem>,
-        population: TargetPopulation,
-        environment: Arc<Environment>,
-        quota: Option<Arc<dyn Quota + Send + Sync>>,
-    ) -> Self {
-        Self {
-            problem,
-            population,
-            state: Default::default(),
-            quota,
-            environment,
-            statistics: HeuristicStatistics::default(),
-        }
+    pub fn new(problem: Arc<Problem>, population: TargetPopulation, environment: Arc<Environment>) -> Self {
+        Self { problem, population, state: Default::default(), environment, statistics: HeuristicStatistics::default() }
     }
 }
 
@@ -185,6 +168,12 @@ impl HeuristicContext for RefinementContext {
 
     fn population(&self) -> &(dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>) {
         self.population.as_ref()
+    }
+
+    fn population_mut(
+        &mut self,
+    ) -> &mut (dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>) {
+        self.population.as_mut()
     }
 
     fn statistics(&self) -> &HeuristicStatistics {
@@ -215,10 +204,9 @@ impl Stateful for RefinementContext {
 
 /// A Vehicle Routing Problem Solver based on evolutionary algorithm.
 pub struct Solver {
-    /// A VRP problem definition.
-    pub problem: Arc<Problem>,
-    /// An evolution configuration.
-    pub config: EvolutionConfig,
+    problem: Arc<Problem>,
+    config: EvolutionConfig<RefinementContext, ProblemObjective, InsertionContext>,
+    processing: Option<Box<dyn Processing + Send + Sync>>,
 }
 
 impl Solver {
@@ -250,25 +238,28 @@ impl Solver {
     /// assert_eq!(solution.unassigned.len(), 0);
     /// # Ok::<(), String>(())
     /// ```
-    pub fn solve(self) -> Result<(Solution, Cost, Option<Metrics>), String> {
-        let mut config = self.config;
-        let processing = config.processing.clone();
+    pub fn solve(self) -> Result<(Solution, Cost, Option<TelemetryMetrics>), String> {
+        let config = self.config;
+        let environment = config.environment.clone();
 
-        config.problem = if let Some(processing) = &processing {
-            processing.pre_process(config.problem.clone(), config.environment.clone())
+        let problem = if let Some(processing) = &self.processing {
+            processing.pre_process(self.problem.clone(), environment.clone())
         } else {
-            config.problem.clone()
+            self.problem.clone()
         };
 
-        let (population, metrics) = EvolutionSimulator::new(config)?.run()?;
+        let (mut solutions, metrics) = EvolutionSimulator::new(config, Box::new(RunSimple::new(1)), {
+            move |population| RefinementContext::new(problem, population, environment)
+        })?
+        .run()?;
 
         // NOTE select the first best individual from population
-        let (insertion_ctx, _) = population.ranked().next().ok_or_else(|| "cannot find any solution".to_string())?;
+        let insertion_ctx = solutions.drain(0..1).next().ok_or_else(|| "cannot find any solution".to_string())?;
 
-        let insertion_ctx = if let Some(processing) = processing {
-            processing.post_process(insertion_ctx.deep_copy())
+        let insertion_ctx = if let Some(processing) = &self.processing {
+            processing.post_process(insertion_ctx)
         } else {
-            insertion_ctx.deep_copy()
+            insertion_ctx
         };
 
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());

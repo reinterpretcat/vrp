@@ -3,7 +3,6 @@
 // Reimport core types
 pub use crate::models::Problem;
 pub use crate::models::Solution;
-pub use crate::solver::EvolutionConfigBuilder;
 
 // Reimport rosomaxa utils
 pub use rosomaxa::utils::compare_floats;

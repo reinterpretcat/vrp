@@ -4,7 +4,7 @@ use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
 use crate::utils::Noise;
 use rand::prelude::SliceRandom;
-use rosomaxa::heuristics::HeuristicSolution;
+use rosomaxa::HeuristicSolution;
 
 /// A local search operator which tries to exchange jobs in random way inside one route.
 pub struct ExchangeIntraRouteRandom {

@@ -1,8 +1,8 @@
 use crate::construction::heuristics::*;
-use crate::construction::Quota;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::solution::Activity;
+use crate::rosomaxa::utils::Quota;
 use std::sync::Arc;
 
 /// Specifies insertion result variant.

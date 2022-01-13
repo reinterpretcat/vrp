@@ -30,6 +30,7 @@ impl DecomposeSearch {
 
 impl HeuristicOperator for DecomposeSearch {
     type Context = RefinementContext;
+    type Objective = ProblemObjective;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
@@ -214,7 +215,6 @@ fn decompose_insertion_ctx(
                             problem: refinement_ctx.problem.clone(),
                             population: create_population(insertion_ctx),
                             state: Default::default(),
-                            quota: refinement_ctx.quota.clone(),
                             environment: refinement_ctx.environment.clone(),
                             statistics: Default::default(),
                         },

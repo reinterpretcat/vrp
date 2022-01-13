@@ -207,12 +207,6 @@ pub struct Generation {
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Individual {
-    /// Total amount of tours.
-    pub tours: usize,
-    /// Total amount of unassigned jobs.
-    pub unassigned: usize,
-    /// Solution cost.
-    pub cost: f64,
     /// Solution cost difference from best individual.
     pub improvement: f64,
     /// Objectives fitness values.

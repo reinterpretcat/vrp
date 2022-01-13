@@ -1,8 +1,8 @@
 use crate::construction::heuristics::InsertionContext;
+use crate::models::problem::ProblemObjective;
 use crate::solver::search::LocalOperator;
 use crate::solver::RefinementContext;
-use rosomaxa::heuristics::HeuristicSolution;
-use rosomaxa::prelude::HeuristicOperator;
+use rosomaxa::prelude::*;
 use std::sync::Arc;
 
 /// A mutation operator which applies local search principles.
@@ -19,6 +19,7 @@ impl LocalSearch {
 
 impl HeuristicOperator for LocalSearch {
     type Context = RefinementContext;
+    type Objective = ProblemObjective;
     type Solution = InsertionContext;
 
     fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {

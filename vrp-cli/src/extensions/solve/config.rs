@@ -13,6 +13,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::prelude::*;
+use vrp_core::rosomaxa::evolution::{Telemetry, TelemetryMode};
 use vrp_core::rosomaxa::prelude::*;
 use vrp_core::rosomaxa::utils::*;
 use vrp_core::solver::get_default_selection_size;
@@ -441,12 +442,12 @@ pub struct NameWeight {
 }
 
 fn configure_from_evolution(
-    mut builder: EvolutionConfigBuilder,
+    mut builder: SolverBuilder,
     population_config: &Option<EvolutionConfig>,
-) -> Result<EvolutionConfigBuilder, String> {
+) -> Result<SolverBuilder, String> {
     if let Some(config) = population_config {
         if let Some(initial) = &config.initial {
-            let environment = builder.config.environment.clone();
+            let environment = builder.environment.clone();
 
             builder = builder.with_initial(
                 initial.alternatives.max_size,
@@ -464,16 +465,16 @@ fn configure_from_evolution(
         }
 
         if let Some(variation) = &config.population {
-            let default_selection_size = get_default_selection_size(builder.config.environment.as_ref());
+            let default_selection_size = get_default_selection_size(builder.environment.as_ref());
             let population = match &variation {
                 PopulationType::Greedy { selection_size } => Box::new(GreedyPopulation::new(
-                    builder.config.problem.objective.clone(),
+                    builder.problem.objective.clone(),
                     selection_size.unwrap_or(default_selection_size),
                     None,
                 )),
                 PopulationType::Elitism { max_size, selection_size } => Box::new(ElitismPopulation::new(
-                    builder.config.problem.objective.clone(),
-                    builder.config.environment.random.clone(),
+                    builder.problem.objective.clone(),
+                    builder.environment.random.clone(),
                     max_size.unwrap_or(4),
                     selection_size.unwrap_or(default_selection_size),
                 )) as TargetPopulation,
@@ -522,8 +523,8 @@ fn configure_from_evolution(
                     }
 
                     Box::new(RosomaxaPopulation::new(
-                        builder.config.problem.objective.clone(),
-                        builder.config.environment.clone(),
+                        builder.problem.objective.clone(),
+                        builder.environment.clone(),
                         config,
                     )?)
                 }
@@ -536,34 +537,24 @@ fn configure_from_evolution(
     Ok(builder)
 }
 
-fn configure_from_hyper(
-    mut builder: EvolutionConfigBuilder,
-    hyper_config: &Option<HyperType>,
-) -> Result<EvolutionConfigBuilder, String> {
+fn configure_from_hyper(mut builder: SolverBuilder, hyper_config: &Option<HyperType>) -> Result<SolverBuilder, String> {
     if let Some(config) = hyper_config {
         match config {
             HyperType::StaticSelective { operators } => {
                 let static_selective = if let Some(operators) = operators {
                     let heuristic_group = operators
                         .iter()
-                        .map(|operator| {
-                            create_operator(
-                                builder.config.problem.clone(),
-                                builder.config.environment.clone(),
-                                operator,
-                            )
-                        })
+                        .map(|operator| create_operator(builder.problem.clone(), builder.environment.clone(), operator))
                         .collect::<Result<Vec<_>, _>>()?;
                     get_static_heuristic_from_heuristic_group(heuristic_group)
                 } else {
-                    get_static_heuristic(builder.config.problem.clone(), builder.config.environment.clone())
+                    get_static_heuristic(builder.problem.clone(), builder.environment.clone())
                 };
 
                 builder = builder.with_heuristic(static_selective);
             }
             HyperType::DynamicSelective => {
-                let dynamic_selective =
-                    get_dynamic_heuristic(builder.config.problem.clone(), builder.config.environment.clone());
+                let dynamic_selective = get_dynamic_heuristic(builder.problem.clone(), builder.environment.clone());
                 builder = builder.with_heuristic(dynamic_selective);
             }
         }
@@ -573,9 +564,9 @@ fn configure_from_hyper(
 }
 
 fn configure_from_termination(
-    mut builder: EvolutionConfigBuilder,
+    mut builder: SolverBuilder,
     termination_config: &Option<TerminationConfig>,
-) -> EvolutionConfigBuilder {
+) -> SolverBuilder {
     if let Some(config) = termination_config {
         builder = builder
             .with_max_time(config.max_time)
@@ -587,21 +578,21 @@ fn configure_from_termination(
 }
 
 fn configure_from_processing(
-    mut builder: EvolutionConfigBuilder,
+    mut builder: SolverBuilder,
     processing_config: &Option<Vec<ProcessingType>>,
-) -> EvolutionConfigBuilder {
+) -> SolverBuilder {
     if let Some(config) = processing_config {
         let processors = config
             .iter()
-            .map::<Arc<dyn Processing + Send + Sync>, _>(|p_type| match p_type {
-                ProcessingType::VicinityClustering => Arc::new(VicinityClustering::default()),
-                ProcessingType::AdvanceDeparture => Arc::new(AdvanceDeparture::default()),
-                ProcessingType::UnassignmentReason => Arc::new(UnassignmentReason::default()),
+            .map::<Box<dyn Processing + Send + Sync>, _>(|p_type| match p_type {
+                ProcessingType::VicinityClustering => Box::new(VicinityClustering::default()),
+                ProcessingType::AdvanceDeparture => Box::new(AdvanceDeparture::default()),
+                ProcessingType::UnassignmentReason => Box::new(UnassignmentReason::default()),
             })
             .collect::<Vec<_>>();
 
         if !processors.is_empty() {
-            builder = builder.with_processing(Some(Arc::new(CompositeProcessing::new(processors))));
+            builder = builder.with_processing(Some(Box::new(CompositeProcessing::new(processors))));
         }
     }
 
@@ -760,10 +751,7 @@ fn create_local_search(
     Arc::new(CompositeLocalOperator::new(operators, times.min, times.max))
 }
 
-fn configure_from_telemetry(
-    builder: EvolutionConfigBuilder,
-    telemetry_config: &Option<TelemetryConfig>,
-) -> EvolutionConfigBuilder {
+fn configure_from_telemetry(builder: SolverBuilder, telemetry_config: &Option<TelemetryConfig>) -> SolverBuilder {
     const LOG_BEST: usize = 100;
     const LOG_POPULATION: usize = 1000;
     const TRACK_POPULATION: usize = 1000;
@@ -774,7 +762,7 @@ fn configure_from_telemetry(
 
     let create_progress = |log_best: &Option<usize>, log_population: &Option<usize>, dump_population: &Option<bool>| {
         TelemetryMode::OnlyLogging {
-            logger: builder.config.environment.logger.clone(),
+            logger: builder.environment.logger.clone(),
             log_best: log_best.unwrap_or(LOG_BEST),
             log_population: log_population.unwrap_or(LOG_POPULATION),
             dump_population: dump_population.unwrap_or(false),
@@ -791,7 +779,7 @@ fn configure_from_telemetry(
             Some(MetricsConfig { enabled: metrics_enabled, track_population }),
         )) => match (progress_enabled, metrics_enabled) {
             (true, true) => TelemetryMode::All {
-                logger: builder.config.environment.logger.clone(),
+                logger: builder.environment.logger.clone(),
                 log_best: log_best.unwrap_or(LOG_BEST),
                 log_population: log_population.unwrap_or(LOG_POPULATION),
                 track_population: track_population.unwrap_or(TRACK_POPULATION),
@@ -839,14 +827,14 @@ pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
 pub fn create_builder_from_config_file<R: Read>(
     problem: Arc<Problem>,
     reader: BufReader<R>,
-) -> Result<EvolutionConfigBuilder, String> {
+) -> Result<SolverBuilder, String> {
     read_config(reader).and_then(|config| create_builder_from_config(problem, &config))
 }
 
 /// Creates a solver `Builder` from config.
-pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<EvolutionConfigBuilder, String> {
+pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<SolverBuilder, String> {
     let environment = configure_from_environment(&config.environment);
-    let mut builder = EvolutionConfigBuilder::new(problem, environment);
+    let mut builder = SolverBuilder::new(problem, environment);
 
     builder = configure_from_telemetry(builder, &config.telemetry);
     builder = configure_from_evolution(builder, &config.evolution)?;

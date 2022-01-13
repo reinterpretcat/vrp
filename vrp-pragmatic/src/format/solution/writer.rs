@@ -14,8 +14,8 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::Multi;
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
+use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
-use vrp_core::solver::TelemetryMetrics;
 
 type ApiActivity = crate::format::solution::model::Activity;
 type ApiSolution = crate::format::solution::model::Solution;
@@ -451,13 +451,7 @@ fn create_extras(_solution: &Solution, metrics: Option<&TelemetryMetrics>) -> Op
                             .population
                             .individuals
                             .iter()
-                            .map(|i| ApiIndividual {
-                                tours: i.tours,
-                                unassigned: i.unassigned,
-                                cost: i.cost,
-                                improvement: i.improvement,
-                                fitness: i.fitness.clone(),
-                            })
+                            .map(|i| ApiIndividual { improvement: i.improvement, fitness: i.fitness.clone() })
                             .collect(),
                     },
                 })
