@@ -25,7 +25,6 @@ fn can_write_solomon_solution() {
         problem.clone(),
         Box::new(ElitismPopulation::new(problem.objective.clone(), environment.random.clone(), 1, 1)),
         environment.clone(),
-        None,
     );
 
     let mut buffer = String::new();

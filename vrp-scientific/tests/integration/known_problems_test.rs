@@ -66,7 +66,6 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
         problem.clone(),
         create_elitism_population(problem.objective.clone(), environment.clone()),
         environment.clone(),
-        None,
     );
     let insertion_ctx = RecreateWithCheapest::new(environment.random.clone())
         .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment));

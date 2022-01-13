@@ -20,7 +20,6 @@ pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext
         problem.clone(),
         create_elitism_population(problem.objective.clone(), environment.clone()),
         environment,
-        None,
     )
 }
 

@@ -51,7 +51,7 @@ fn can_mutate() {
     let problem = Arc::new(problem);
     let population = Box::new(GreedyPopulation::new(problem.objective.clone(), 1, None));
 
-    let refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone(), None);
+    let refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone());
     let insertion_ctx = InsertionContext::new_from_solution(problem.clone(), (solution, None), environment.clone());
     let inner_search = create_default_heuristic_operator(problem.clone(), environment);
     let decompose_search = DecomposeSearch::new(inner_search, (2, 2), 10);

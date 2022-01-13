@@ -1,6 +1,5 @@
 use super::*;
 use std::fs::File;
-use vrp_core::models::examples::create_example_problem;
 
 #[test]
 fn can_read_full_config() {
@@ -126,25 +125,6 @@ fn can_read_full_config() {
     let logging = environment.logging.expect("no logging config");
     assert_eq!(logging.enabled, true);
     assert_eq!(logging.prefix, Some("[config.full]".to_string()));
-}
-
-#[test]
-fn can_create_builder_from_config() {
-    let file = File::open("../examples/data/config/config.full.json").expect("cannot read config from file");
-    let config = read_config(BufReader::new(file)).unwrap();
-    let problem = create_example_problem();
-
-    let builder = create_builder_from_config(problem.clone(), &config).unwrap();
-
-    assert!(builder.config.population.population.is_some());
-    assert_eq!(builder.config.problem.as_ref() as *const Problem, problem.as_ref() as *const Problem);
-    assert_eq!(builder.config.population.initial.max_size, 4);
-    assert_eq!(builder.config.population.initial.quota, 0.05);
-    assert_eq!(builder.config.population.initial.individuals.len(), 0);
-    assert_eq!(builder.config.population.initial.methods.len(), 8);
-    assert_eq!(builder.max_time, Some(300));
-    assert_eq!(builder.max_generations, Some(3000));
-    assert_eq!(builder.config.environment.is_experimental, false);
 }
 
 #[test]
