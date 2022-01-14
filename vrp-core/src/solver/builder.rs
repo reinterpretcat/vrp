@@ -18,9 +18,7 @@ use crate::solver::search::Recreate;
 /// ```
 /// # use vrp_core::models::examples::create_example_problem;
 /// # use std::sync::Arc;
-/// use vrp_core::solver::Builder;
-/// use vrp_core::models::Problem;
-/// use vrp_core::utils::Environment;
+/// use vrp_core::prelude::*;
 ///
 /// // create your VRP problem
 /// let problem: Arc<Problem> = create_example_problem();

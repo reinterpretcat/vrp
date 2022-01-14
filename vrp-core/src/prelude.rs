@@ -1,6 +1,9 @@
 //! This module reimports a common used types.
 
 // Reimport core types
+pub use crate::solver::Solver;
+pub use crate::solver::SolverBuilder;
+
 pub use crate::models::Problem;
 pub use crate::models::Solution;
 

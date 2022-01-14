@@ -81,9 +81,9 @@
 //! let problem = create_example_problem();
 //! let environment = Arc::new(Environment::default());
 //! // build solver to run 10 secs or 1000 generation
-//! let solver = EvolutionConfigBuilder::new(problem, environment)
+//! let solver = SolverBuilder::new(problem, environment)
 //!     .with_max_time(Some(10))
-//!     .with_max_generations(Some(1000))
+//!     .with_max_generations(Some(10))
 //!     .build()?;
 //! // run solver and get the best known solution within its cost.
 //! let (solution, cost, _) = solver.solve()?;

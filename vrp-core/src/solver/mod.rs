@@ -216,32 +216,6 @@ pub struct Solver {
 impl Solver {
     /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
     /// or error description, if solution cannot be found.
-    ///
-    /// # Examples
-    ///
-    /// The most simple way to run solver is to use [`Builder`](./struct.Builder.html)
-    /// which has preconfigured settings:
-    ///
-    /// ```
-    /// # use vrp_core::models::examples::create_example_problem;
-    /// # use std::sync::Arc;
-    /// use rosomaxa::prelude::Environment;
-    /// use vrp_core::solver::EvolutionConfigBuilder;
-    /// use vrp_core::models::Problem;
-    ///
-    /// // create your VRP problem
-    /// let problem: Arc<Problem> = create_example_problem();
-    /// let environment = Arc::new(Environment::default());
-    /// // build solver using builder with default settings
-    /// let solver = EvolutionConfigBuilder::new(problem, environment).build()?;
-    /// // run solver and get the best known solution within its cost.
-    /// let (solution, cost, _) = solver.solve()?;
-    ///
-    /// assert_eq!(cost, 42.);
-    /// assert_eq!(solution.routes.len(), 1);
-    /// assert_eq!(solution.unassigned.len(), 0);
-    /// # Ok::<(), String>(())
-    /// ```
     pub fn solve(self) -> Result<(Solution, Cost, Option<TelemetryMetrics>), String> {
         let config = self.config;
         let environment = config.environment.clone();
