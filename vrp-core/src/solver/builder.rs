@@ -99,16 +99,7 @@ impl SolverBuilder {
                         + Sync,
                 >,
                 usize,
-            ), _>(|(recreate, weight)| {
-                (
-                    Box::new(RecreateInitialOperator {
-                        problem: self.problem.clone(),
-                        environment: self.environment.clone(),
-                        recreate,
-                    }),
-                    weight,
-                )
-            })
+            ), _>(|(recreate, weight)| (Box::new(RecreateInitialOperator { recreate }), weight))
             .collect();
 
         self.config_builder = self.config_builder.with_initial(max_size, quota, operators);
@@ -177,18 +168,12 @@ impl SolverBuilder {
 type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, ProblemObjective, InsertionContext, String>;
 
 pub(crate) struct RecreateInitialOperator {
-    problem: Arc<Problem>,
-    environment: Arc<Environment>,
     recreate: Arc<dyn Recreate + Send + Sync>,
 }
 
 impl RecreateInitialOperator {
-    pub fn new(
-        problem: Arc<Problem>,
-        environment: Arc<Environment>,
-        recreate: Arc<dyn Recreate + Send + Sync>,
-    ) -> Self {
-        Self { problem, environment, recreate }
+    pub fn new(recreate: Arc<dyn Recreate + Send + Sync>) -> Self {
+        Self { recreate }
     }
 }
 
@@ -198,7 +183,7 @@ impl InitialOperator for RecreateInitialOperator {
     type Solution = InsertionContext;
 
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution {
-        let insertion_ctx = InsertionContext::new(self.problem.clone(), self.environment.clone());
+        let insertion_ctx = InsertionContext::new(heuristic_ctx.problem.clone(), heuristic_ctx.environment.clone());
         self.recreate.run(heuristic_ctx, insertion_ctx)
     }
 }

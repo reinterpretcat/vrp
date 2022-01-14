@@ -193,12 +193,7 @@ mod builder {
         environment: Arc<Environment>,
     ) -> InitialOperators<RefinementContext, ProblemObjective, InsertionContext> {
         let random = environment.random.clone();
-
-        let wrap = |recreate: Arc<dyn Recreate + Send + Sync>| {
-            let problem = problem.clone();
-            let environment = environment.clone();
-            Box::new(RecreateInitialOperator::new(problem, environment, recreate))
-        };
+        let wrap = |recreate: Arc<dyn Recreate + Send + Sync>| Box::new(RecreateInitialOperator::new(recreate));
 
         vec![
             (wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),

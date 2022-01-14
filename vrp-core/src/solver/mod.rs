@@ -180,6 +180,10 @@ impl HeuristicContext for RefinementContext {
         &self.statistics
     }
 
+    fn statistics_mut(&mut self) -> &mut HeuristicStatistics {
+        &mut self.statistics
+    }
+
     fn environment(&self) -> &Environment {
         self.environment.as_ref()
     }

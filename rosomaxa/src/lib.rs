@@ -60,6 +60,9 @@ pub trait HeuristicContext: Send + Sync {
     /// Returns current statistic used to track the search progress.
     fn statistics(&self) -> &HeuristicStatistics;
 
+    /// Returns statistics as mutable reference.
+    fn statistics_mut(&mut self) -> &mut HeuristicStatistics;
+
     /// Returns environment.
     fn environment(&self) -> &Environment;
 }

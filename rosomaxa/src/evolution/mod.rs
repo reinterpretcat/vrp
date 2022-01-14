@@ -266,5 +266,7 @@ fn on_generation<C, O, S>(
     let termination_estimate = termination.estimate(heuristic_ctx);
 
     let statistics = telemetry.on_generation(heuristic_ctx, termination_estimate, generation_time, is_improved);
+
     heuristic_ctx.population_mut().on_generation(&statistics);
+    *heuristic_ctx.statistics_mut() = statistics;
 }
