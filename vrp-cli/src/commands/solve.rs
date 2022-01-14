@@ -451,14 +451,14 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
 }
 
 fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<Environment>, String> {
+    let quota = max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64)));
+
     matches
         .value_of(PARALELLISM_ARG_NAME)
         .map(|arg| {
             if let [num_thread_pools, threads_per_pool] =
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
             {
-                let quota =
-                    max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64)));
                 let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
                 let logger: Arc<fn(&str)> = if matches.is_present(LOG_ARG_NAME) {
                     Arc::new(|msg: &str| println!("{}", msg))
@@ -469,7 +469,7 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
 
                 Ok(Arc::new(Environment::new(
                     Arc::new(DefaultRandom::default()),
-                    quota,
+                    quota.clone(),
                     parallelism,
                     logger,
                     is_experimental,
@@ -478,7 +478,7 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
                 Err("cannot parse parallelism parameter".to_string())
             }
         })
-        .unwrap_or_else(|| Ok(Arc::new(Environment::default())))
+        .unwrap_or_else(|| Ok(Arc::new(Environment { quota, ..Environment::default() })))
 }
 
 fn get_matrix_files(matches: &ArgMatches) -> Option<Vec<File>> {
