@@ -192,15 +192,21 @@ where
                     self.config
                         .telemetry
                         .log("configured to use default max-generations (3000) and max-time (300secs)");
-                    vec![Box::new(MaxGeneration::<C, O, S>::new(3000)), Box::new(MaxTime::<C, O, S>::new(300.))]
+                    vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
                 }
                 _ => {
                     let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
 
                     if let Some(limit) = self.max_generations {
                         self.config.telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
-                        terminations.push(Box::new(MaxGeneration::<C, O, S>::new(limit)))
+                        terminations.push(Box::new(MaxGeneration::new(limit)))
                     }
+
+                    if let Some(limit) = self.max_time {
+                        self.config.telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
+                        terminations.push(Box::new(MaxTime::new(limit as f64)));
+                    } else {
+                    };
 
                     if let Some((interval_type, value, threshold, is_global, key)) = self.min_cv {
                         self.config.telemetry.log(
