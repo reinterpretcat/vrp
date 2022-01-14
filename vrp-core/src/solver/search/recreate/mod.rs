@@ -87,14 +87,13 @@ impl ConfigurableRecreate {
 }
 
 impl Recreate for ConfigurableRecreate {
-    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         self.insertion_heuristic.process(
             insertion_ctx,
             self.job_selector.as_ref(),
             self.route_selector.as_ref(),
             self.leg_selector.as_ref(),
             self.result_selector.as_ref(),
-            &refinement_ctx.environment.quota,
         )
     }
 }

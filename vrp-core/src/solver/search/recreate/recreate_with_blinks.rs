@@ -205,7 +205,7 @@ impl<T: LoadOps> RecreateWithBlinks<T> {
 }
 
 impl<T: LoadOps> Recreate for RecreateWithBlinks<T> {
-    fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
+    fn run(&self, _: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
         let index = insertion_ctx.environment.random.weighted(self.weights.as_slice());
         let job_selector = self.job_selectors.get(index).unwrap().as_ref();
 
@@ -215,7 +215,6 @@ impl<T: LoadOps> Recreate for RecreateWithBlinks<T> {
             self.route_selector.as_ref(),
             self.leg_selector.as_ref(),
             self.result_selector.as_ref(),
-            &refinement_ctx.environment.quota,
         )
     }
 }

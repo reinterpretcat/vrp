@@ -2,8 +2,6 @@ use crate::construction::heuristics::*;
 use crate::models::common::Cost;
 use crate::models::problem::Job;
 use crate::models::solution::Activity;
-use crate::rosomaxa::utils::Quota;
-use std::sync::Arc;
 
 /// Specifies insertion result variant.
 pub enum InsertionResult {
@@ -68,13 +66,14 @@ impl InsertionHeuristic {
         route_selector: &(dyn RouteSelector + Send + Sync),
         leg_selector: &(dyn LegSelector + Send + Sync),
         result_selector: &(dyn ResultSelector + Send + Sync),
-        quota: &Option<Arc<dyn Quota + Send + Sync>>,
     ) -> InsertionContext {
         let mut insertion_ctx = insertion_ctx;
 
         prepare_insertion_ctx(&mut insertion_ctx);
 
-        while !insertion_ctx.solution.required.is_empty() && !quota.as_ref().map_or(false, |q| q.is_reached()) {
+        while !insertion_ctx.solution.required.is_empty()
+            && !insertion_ctx.environment.quota.as_ref().map_or(false, |q| q.is_reached())
+        {
             let jobs = job_selector.select(&mut insertion_ctx).collect::<Vec<Job>>();
             let routes = route_selector.select(&mut insertion_ctx, jobs.as_slice()).collect::<Vec<RouteContext>>();
 
