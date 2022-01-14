@@ -18,7 +18,6 @@ pub use crate::hyper::HyperHeuristic;
 
 pub use crate::termination::Termination;
 
-pub use crate::algorithms::nsga2::dominance_order;
 pub use crate::algorithms::nsga2::MultiObjective;
 pub use crate::algorithms::nsga2::Objective;
 

@@ -19,14 +19,12 @@ pub mod utils;
 // TODO:
 // - ensure all essential tests are implemented
 // - add documentation examples
-// - check whether Objective as associated type can be removed from HeuristicOperator
-
-use std::hash::Hash;
 
 use crate::algorithms::nsga2::MultiObjective;
 use crate::population::HeuristicPopulation;
 use crate::utils::Environment;
 use crate::utils::Timer;
+use std::hash::Hash;
 
 /// Represents solution in population defined as actual solution.
 pub trait HeuristicSolution: Send + Sync {
