@@ -19,12 +19,14 @@ pub mod utils;
 // TODO:
 // - ensure all essential tests are implemented
 // - add documentation examples
+// - add_observer interface?
 
 use crate::algorithms::nsga2::MultiObjective;
-use crate::population::HeuristicPopulation;
+use crate::population::*;
 use crate::utils::Environment;
 use crate::utils::Timer;
 use std::hash::Hash;
+use std::sync::Arc;
 
 /// Represents solution in population defined as actual solution.
 pub trait HeuristicSolution: Send + Sync {
@@ -123,4 +125,31 @@ pub trait Stateful {
 
     /// Gets state as mutable, inserts if not exists.
     fn state_mut<T: 'static + Send + Sync, F: Fn() -> T>(&mut self, key: Self::Key, inserter: F) -> &mut T;
+}
+
+/// Gets default population selection size.
+pub fn get_default_selection_size(environment: &Environment) -> usize {
+    environment.parallelism.available_cpus().min(8)
+}
+
+/// Gets default population algorithm.
+pub fn get_default_population<C, O, S>(
+    objective: Arc<O>,
+    environment: Arc<Environment>,
+) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
+where
+    C: HeuristicContext<Objective = O, Solution = S> + 'static,
+    O: HeuristicObjective<Solution = S> + Shuffled + 'static,
+    S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
+{
+    let selection_size = get_default_selection_size(environment.as_ref());
+    if selection_size == 1 {
+        Box::new(Greedy::new(objective, 1, None))
+    } else {
+        let config = RosomaxaConfig::new_with_defaults(selection_size);
+        let population =
+            Rosomaxa::new(objective, environment, config).expect("cannot create rosomaxa with default configuration");
+
+        Box::new(population)
+    }
 }

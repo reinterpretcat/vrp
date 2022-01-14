@@ -1,5 +1,6 @@
 use super::*;
 use crate::rosomaxa::evolution::{InitialOperator, Telemetry};
+use crate::rosomaxa::get_default_population;
 use crate::solver::search::Recreate;
 
 /// Provides configurable way to build Vehile Routing Problem [`Solver`] instance using fluent
@@ -50,7 +51,7 @@ impl SolverBuilder {
     pub fn new(problem: Arc<Problem>, environment: Arc<Environment>) -> Self {
         let config_builder = ProblemConfigBuilder::new(
             get_default_heuristic(problem.clone(), environment.clone()),
-            get_default_population(problem.objective.clone(), environment.clone()),
+            get_default_population::<RefinementContext, _, _>(problem.objective.clone(), environment.clone()),
             create_default_init_operators(problem.clone(), environment.clone()),
             environment.clone(),
         );

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::sync::Arc;
-use vrp_cli::core::solver::{get_default_population, TargetHeuristic};
+use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
@@ -16,6 +16,7 @@ use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::problem::ProblemObjective;
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::*;
+use vrp_core::rosomaxa::{get_default_population, get_default_selection_size};
 use vrp_core::solver::*;
 use vrp_core::utils::{Parallelism, Quota, TimeQuota};
 
@@ -499,7 +500,7 @@ fn get_population(
             4,
             get_default_selection_size(environment.as_ref()),
         )),
-        _ => get_default_population(objective, environment),
+        _ => get_default_population::<RefinementContext, _, _>(objective, environment),
     }
 }
 

@@ -2,6 +2,7 @@ use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::SingleDimLoad;
 use crate::models::problem::ProblemObjective;
+use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
 use rosomaxa::hyper::*;
 use rosomaxa::population::*;
@@ -42,25 +43,6 @@ pub type MinVariationTermination = MinVariation<RefinementContext, ProblemObject
 pub type TargetHeuristicProbability = HeuristicProbability<RefinementContext, ProblemObjective, InsertionContext>;
 /// A heuristic group type alias.
 pub type TargetHeuristicGroup = HeuristicGroup<RefinementContext, ProblemObjective, InsertionContext>;
-
-/// Gets default population selection size.
-pub fn get_default_selection_size(environment: &Environment) -> usize {
-    environment.parallelism.available_cpus().min(8)
-}
-
-/// Gets default population algorithm.
-pub fn get_default_population(objective: Arc<ProblemObjective>, environment: Arc<Environment>) -> TargetPopulation {
-    let selection_size = get_default_selection_size(environment.as_ref());
-    if selection_size == 1 {
-        Box::new(Greedy::new(objective, 1, None))
-    } else {
-        let config = RosomaxaConfig::new_with_defaults(selection_size);
-        let population =
-            Rosomaxa::new(objective, environment, config).expect("cannot create rosomaxa with default configuration");
-
-        Box::new(population)
-    }
-}
 
 /// Gets default heuristic.
 pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
