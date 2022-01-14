@@ -232,7 +232,8 @@ impl Solver {
         .run()?;
 
         // NOTE select the first best individual from population
-        let insertion_ctx = solutions.drain(0..1).next().ok_or_else(|| "cannot find any solution".to_string())?;
+        let insertion_ctx = if solutions.is_empty() { None } else { solutions.drain(0..1).next() }
+            .ok_or_else(|| "cannot find any solution".to_string())?;
 
         let insertion_ctx = if let Some(processing) = &self.processing {
             processing.post_process(insertion_ctx)
