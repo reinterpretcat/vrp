@@ -121,6 +121,28 @@ where
     }
 }
 
+/// Provides the way to preprocess context before using it.
+pub trait HeuristicContextProcessing {
+    /// A heuristic context type.
+    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
+    /// A heuristic objective type.
+    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    /// A solution type.
+    type Solution: HeuristicSolution;
+
+    /// Preprocess a context in order to replace usages of a given context with a new one.
+    fn process(&self, context: Self::Context) -> Self::Context;
+}
+
+/// Provides the way to modify solution before returning it.
+pub trait HeuristicSolutionProcessing {
+    /// A solution type.
+    type Solution: HeuristicSolution;
+
+    /// Post processes solution.
+    fn process(&self, solution: Self::Solution) -> Self::Solution;
+}
+
 /// An entity which simulates evolution process.
 pub struct EvolutionSimulator<C, O, S, F>
 where
@@ -130,7 +152,6 @@ where
     F: FnOnce(Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> C,
 {
     config: EvolutionConfig<C, O, S>,
-    evolution_strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
     context_factory: F,
 }
 
@@ -142,16 +163,12 @@ where
     F: FnOnce(Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> C,
 {
     /// Creates a new instance of `EvolutionSimulator`.
-    pub fn new(
-        config: EvolutionConfig<C, O, S>,
-        evolution_strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
-        context_factory: F,
-    ) -> Result<Self, String> {
+    pub fn new(config: EvolutionConfig<C, O, S>, context_factory: F) -> Result<Self, String> {
         if config.initial.operators.is_empty() {
             return Err("at least one initial method has to be specified".to_string());
         }
 
-        Ok(Self { config, evolution_strategy, context_factory })
+        Ok(Self { config, context_factory })
     }
 
     /// Runs evolution for given `problem` using evolution `config`.
@@ -174,7 +191,10 @@ where
                 }
             });
 
-        let mut heuristic_ctx = (self.context_factory)(config.population);
+        let hooks = config.processing;
+
+        let heuristic_ctx = (self.context_factory)(config.population);
+        let mut heuristic_ctx = hooks.context.iter().fold(heuristic_ctx, |ctx, hook| hook.process(ctx));
 
         let weights = config.initial.operators.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
 
@@ -221,7 +241,16 @@ where
             config.telemetry.log("created an empty population");
         }
 
-        self.evolution_strategy.run(heuristic_ctx, config.heuristic, config.termination, config.telemetry)
+        config.strategy.as_ref().run(heuristic_ctx, config.heuristic, config.termination, config.telemetry).map(
+            |(solutions, metrics)| {
+                let solutions = solutions
+                    .into_iter()
+                    .map(|solution| hooks.solution.iter().fold(solution, |s, hook| hook.process(s)))
+                    .collect();
+
+                (solutions, metrics)
+            },
+        )
     }
 }
 

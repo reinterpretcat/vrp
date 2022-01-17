@@ -7,13 +7,11 @@ use rosomaxa::HeuristicSolution;
 #[derive(Default)]
 pub struct AdvanceDeparture {}
 
-impl Processing for AdvanceDeparture {
-    fn pre_process(&self, problem: Arc<Problem>, _environment: Arc<Environment>) -> Arc<Problem> {
-        problem
-    }
+impl HeuristicSolutionProcessing for AdvanceDeparture {
+    type Solution = InsertionContext;
 
-    fn post_process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
-        let mut insertion_ctx = insertion_ctx.deep_copy();
+    fn process(&self, solution: Self::Solution) -> Self::Solution {
+        let mut insertion_ctx = solution.deep_copy();
 
         let problem = insertion_ctx.problem.clone();
         let transport = problem.transport.clone();

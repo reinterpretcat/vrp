@@ -6,13 +6,11 @@ use rosomaxa::utils::{parallel_into_collect, CollectGroupBy};
 #[derive(Default)]
 pub struct UnassignmentReason {}
 
-impl Processing for UnassignmentReason {
-    fn pre_process(&self, problem: Arc<Problem>, _environment: Arc<Environment>) -> Arc<Problem> {
-        problem
-    }
+impl HeuristicSolutionProcessing for UnassignmentReason {
+    type Solution = InsertionContext;
 
-    fn post_process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
-        let mut insertion_ctx = insertion_ctx;
+    fn process(&self, solution: Self::Solution) -> Self::Solution {
+        let mut insertion_ctx = solution;
 
         let unassigned = insertion_ctx.solution.unassigned.drain().collect::<Vec<_>>();
         let leg_selector = VariableLegSelector::new(insertion_ctx.environment.random.clone());

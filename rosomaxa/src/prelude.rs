@@ -9,6 +9,8 @@ pub use crate::Stateful;
 
 pub use crate::evolution::EvolutionConfig;
 pub use crate::evolution::EvolutionConfigBuilder;
+pub use crate::evolution::HeuristicContextProcessing;
+pub use crate::evolution::HeuristicSolutionProcessing;
 pub use crate::evolution::InitialOperators;
 
 pub use crate::population::HeuristicPopulation;

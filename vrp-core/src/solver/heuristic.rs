@@ -166,8 +166,8 @@ mod builder {
     use super::*;
     use crate::models::common::SingleDimLoad;
     use crate::rosomaxa::evolution::InitialOperators;
-    use crate::solver::builder::RecreateInitialOperator;
     use crate::solver::processing::*;
+    use crate::solver::RecreateInitialOperator;
 
     /// Creates default init operators.
     pub fn create_default_init_operators(
@@ -190,12 +190,15 @@ mod builder {
     }
 
     /// Create default processing.
-    pub fn create_default_processing() -> Option<Box<dyn Processing + Send + Sync>> {
-        Some(Box::new(CompositeProcessing::new(vec![
-            Box::new(VicinityClustering::default()),
-            Box::new(AdvanceDeparture::default()),
-            Box::new(UnassignmentReason::default()),
-        ])))
+    pub fn create_default_processing() -> ProcessingConfig<RefinementContext, ProblemObjective, InsertionContext> {
+        ProcessingConfig {
+            context: vec![Box::new(VicinityClustering::default())],
+            solution: vec![
+                Box::new(VicinityClustering::default()),
+                Box::new(AdvanceDeparture::default()),
+                Box::new(UnassignmentReason::default()),
+            ],
+        }
     }
 }
 

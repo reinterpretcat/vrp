@@ -379,24 +379,27 @@ pub fn run_solve(
                             })
                             .unwrap_or_else(|| Ok(Vec::new()))?;
 
-                        let builder = if let Some(config) = config {
+                        let solver = if let Some(config) = config {
                             create_builder_from_config_file(problem.clone(), BufReader::new(config))
+                                .and_then(|builder| builder.build())
+                                .map(|config| Solver::new(problem.clone(), config))
                                 .map_err(|err| format!("cannot read config: '{}'", err))?
                         } else {
-                            SolverBuilder::new(problem.clone(), environment.clone())
+                            let config = create_default_config_builder(problem.clone(), environment.clone())
+                                .with_init_solutions(solutions, init_size)
                                 .with_telemetry(telemetry)
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
-                                .with_min_cv(min_cv)
+                                .with_min_cv(min_cv, "min_cv".to_string())
                                 .with_population(get_population(mode, problem.objective.clone(), environment.clone()))
                                 .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
+                                .build()?;
+
+                            Solver::new(problem.clone(), config)
                         };
 
-                        let (solution, cost, metrics) = builder
-                            .with_init_solutions(solutions, init_size)
-                            .build()
-                            .and_then(|solver| solver.solve())
-                            .map_err(|err| format!("cannot find any solution: '{}'", err))?;
+                        let (solution, cost, metrics) =
+                            solver.solve().map_err(|err| format!("cannot find any solution: '{}'", err))?;
 
                         solution_writer.0(&problem, solution, cost, metrics, out_buffer, geo_buffer).unwrap();
 

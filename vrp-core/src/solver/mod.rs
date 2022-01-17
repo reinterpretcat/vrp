@@ -96,9 +96,10 @@ use crate::construction::heuristics::InsertionContext;
 use crate::models::common::Cost;
 use crate::models::problem::ProblemObjective;
 use crate::models::{Problem, Solution};
-use crate::solver::processing::Processing;
+use crate::solver::search::Recreate;
 use hashbrown::HashMap;
 use rosomaxa::evolution::*;
+use rosomaxa::get_default_population;
 use rosomaxa::prelude::*;
 use std::any::Any;
 use std::sync::Arc;
@@ -110,9 +111,7 @@ pub mod objectives;
 pub mod processing;
 pub mod search;
 
-mod builder;
 mod heuristic;
-pub use self::builder::SolverBuilder;
 
 /// A key to store solution order information.
 const SOLUTION_ORDER_KEY: i32 = 1;
@@ -206,27 +205,100 @@ impl Stateful for RefinementContext {
     }
 }
 
-/// A Vehicle Routing Problem Solver based on evolutionary algorithm.
+/// Wraps recreate method as `InitialOperator`
+pub struct RecreateInitialOperator {
+    recreate: Arc<dyn Recreate + Send + Sync>,
+}
+
+impl RecreateInitialOperator {
+    /// Creates a new instance of `RecreateInitialOperator`.
+    pub fn new(recreate: Arc<dyn Recreate + Send + Sync>) -> Self {
+        Self { recreate }
+    }
+}
+
+impl InitialOperator for RecreateInitialOperator {
+    type Context = RefinementContext;
+    type Objective = ProblemObjective;
+    type Solution = InsertionContext;
+
+    fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution {
+        let insertion_ctx = InsertionContext::new(heuristic_ctx.problem.clone(), heuristic_ctx.environment.clone());
+        self.recreate.run(heuristic_ctx, insertion_ctx)
+    }
+}
+
+/// A type alias for evolution config builder.
+pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, ProblemObjective, InsertionContext, String>;
+
+/// Creates config builder with default settings.
+pub fn create_default_config_builder(problem: Arc<Problem>, environment: Arc<Environment>) -> ProblemConfigBuilder {
+    ProblemConfigBuilder::default()
+        .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
+        .with_population(get_default_population::<RefinementContext, _, _>(
+            problem.objective.clone(),
+            environment.clone(),
+        ))
+        .with_initial(4, 0.05, create_default_init_operators(problem, environment))
+        .with_processing(create_default_processing())
+}
+
+/// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
+/// or error description, if solution cannot be found.
+///
+/// A newly created builder instance is pre-configured with some reasonable defaults for mid-size
+/// problems (~200), so there is no need to call any of its methods.
+///
+///
+/// # Examples
+///
+/// This example shows how to construct default configuration for the solver, override some of default
+/// metaheuristic parameters using fluent interface methods, and run the solver:
+///
+/// ```
+/// # use vrp_core::models::examples::create_example_problem;
+/// # use std::sync::Arc;
+/// use vrp_core::prelude::*;
+///
+/// // create your VRP problem
+/// let problem: Arc<Problem> = create_example_problem();
+/// let environment = Arc::new(Environment::default());
+/// // build solver config using pre-build builder with defaults and then override some parameters
+/// let config = create_default_config_builder(problem.clone(), environment)
+///     .with_max_time(Some(60))
+///     .with_max_generations(Some(100))
+///     .build()?;
+///
+/// // run solver and get the best known solution within its cost. Telemetry metrics are ignored.
+/// let (solution, cost, _) = Solver::new(problem, config).solve()?;
+///
+/// assert_eq!(cost, 42.);
+/// assert_eq!(solution.routes.len(), 1);
+/// assert_eq!(solution.unassigned.len(), 0);
+/// # Ok::<(), String>(())
+/// ```
 pub struct Solver {
     problem: Arc<Problem>,
     config: EvolutionConfig<RefinementContext, ProblemObjective, InsertionContext>,
-    processing: Option<Box<dyn Processing + Send + Sync>>,
 }
 
 impl Solver {
+    /// Tries to create an instance of `Solver` from provided config.
+    pub fn new(
+        problem: Arc<Problem>,
+        config: EvolutionConfig<RefinementContext, ProblemObjective, InsertionContext>,
+    ) -> Self {
+        Self { problem, config }
+    }
+
     /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
     /// or error description, if solution cannot be found.
     pub fn solve(self) -> Result<(Solution, Cost, Option<TelemetryMetrics>), String> {
         let config = self.config;
         let environment = config.environment.clone();
 
-        let problem = if let Some(processing) = &self.processing {
-            processing.pre_process(self.problem.clone(), environment.clone())
-        } else {
-            self.problem.clone()
-        };
-
-        let (mut solutions, metrics) = EvolutionSimulator::new(config, Box::new(RunSimple::new(1)), {
+        let (mut solutions, metrics) = EvolutionSimulator::new(config, {
+            let problem = self.problem.clone();
             move |population| RefinementContext::new(problem, population, environment)
         })?
         .run()?;
@@ -234,12 +306,6 @@ impl Solver {
         // NOTE select the first best individual from population
         let insertion_ctx = if solutions.is_empty() { None } else { solutions.drain(0..1).next() }
             .ok_or_else(|| "cannot find any solution".to_string())?;
-
-        let insertion_ctx = if let Some(processing) = &self.processing {
-            processing.post_process(insertion_ctx)
-        } else {
-            insertion_ctx
-        };
 
         let solution = insertion_ctx.solution.to_solution(self.problem.extras.clone());
         let cost = self.problem.objective.fitness(&insertion_ctx);

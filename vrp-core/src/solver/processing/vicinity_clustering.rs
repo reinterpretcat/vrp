@@ -5,9 +5,10 @@ mod vicinity_clustering_test;
 use super::*;
 use crate::construction::clustering::vicinity::*;
 use crate::models::common::{Schedule, ValueDimension};
-use crate::models::problem::Jobs;
+use crate::models::problem::{Jobs, ProblemObjective};
 use crate::models::solution::{Activity, Place};
 use crate::models::{Extras, Problem};
+use crate::solver::RefinementContext;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -36,14 +37,21 @@ impl VicinityDimension for Extras {
 #[derive(Default)]
 pub struct VicinityClustering {}
 
-impl Processing for VicinityClustering {
-    fn pre_process(&self, problem: Arc<Problem>, environment: Arc<Environment>) -> Arc<Problem> {
-        let config = if let Some(config) = problem.extras.get_cluster_config() { config } else { return problem };
+impl HeuristicContextProcessing for VicinityClustering {
+    type Context = RefinementContext;
+    type Objective = ProblemObjective;
+    type Solution = InsertionContext;
+
+    fn process(&self, context: Self::Context) -> Self::Context {
+        let problem = context.problem.clone();
+        let environment = context.environment.clone();
+
+        let config = if let Some(config) = problem.extras.get_cluster_config() { config } else { return context };
 
         let clusters = create_job_clusters(problem.clone(), environment, config);
 
         if clusters.is_empty() {
-            problem
+            context
         } else {
             let (clusters, clustered_jobs) = clusters.into_iter().fold(
                 (Vec::new(), HashSet::new()),
@@ -62,7 +70,7 @@ impl Processing for VicinityClustering {
                 problem.extras.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<HashMap<_, _>>();
             extras.insert(ORIG_PROBLEM_KEY.to_string(), problem.clone());
 
-            Arc::new(Problem {
+            let problem = Arc::new(Problem {
                 fleet: problem.fleet.clone(),
                 jobs: Arc::new(Jobs::new(problem.fleet.as_ref(), jobs, &problem.transport)),
                 locks: problem.locks.clone(),
@@ -71,12 +79,18 @@ impl Processing for VicinityClustering {
                 transport: problem.transport.clone(),
                 objective: problem.objective.clone(),
                 extras: Arc::new(extras),
-            })
+            });
+
+            RefinementContext { problem, ..context }
         }
     }
+}
 
-    fn post_process(&self, insertion_ctx: InsertionContext) -> InsertionContext {
-        let mut insertion_ctx = insertion_ctx;
+impl HeuristicSolutionProcessing for VicinityClustering {
+    type Solution = InsertionContext;
+
+    fn process(&self, solution: Self::Solution) -> Self::Solution {
+        let mut insertion_ctx = solution;
 
         let config = insertion_ctx.problem.extras.get_cluster_config();
         let orig_problem =

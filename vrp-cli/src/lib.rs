@@ -37,6 +37,7 @@ use crate::extensions::solve::config::{create_builder_from_config, Config};
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 use vrp_core::models::Problem as CoreProblem;
+use vrp_core::prelude::Solver;
 use vrp_pragmatic::format::problem::{serialize_problem, PragmaticProblem, Problem};
 use vrp_pragmatic::format::solution::PragmaticSolution;
 use vrp_pragmatic::format::FormatError;
@@ -429,6 +430,7 @@ pub fn get_locations_serialized(problem: &Problem) -> Result<String, String> {
 pub fn get_solution_serialized(problem: Arc<CoreProblem>, config: Config) -> Result<String, String> {
     let (solution, cost, metrics) = create_builder_from_config(problem.clone(), &config)
         .and_then(|builder| builder.build())
+        .map(|config| Solver::new(problem.clone(), config))
         .and_then(|solver| solver.solve())
         .map_err(|err| {
             FormatError::new(

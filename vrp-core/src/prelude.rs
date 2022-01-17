@@ -1,11 +1,13 @@
 //! This module reimports a common used types.
 
 // Reimport core types
+pub use crate::solver::create_default_config_builder;
 pub use crate::solver::Solver;
-pub use crate::solver::SolverBuilder;
 
 pub use crate::models::Problem;
 pub use crate::models::Solution;
+
+pub use rosomaxa::evolution::EvolutionConfigBuilder;
 
 // Reimport rosomaxa utils
 pub use rosomaxa::utils::compare_floats;
