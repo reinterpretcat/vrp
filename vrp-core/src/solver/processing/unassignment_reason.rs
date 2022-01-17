@@ -9,7 +9,7 @@ pub struct UnassignmentReason {}
 impl HeuristicSolutionProcessing for UnassignmentReason {
     type Solution = InsertionContext;
 
-    fn process(&self, solution: Self::Solution) -> Self::Solution {
+    fn post_process(&self, solution: Self::Solution) -> Self::Solution {
         let mut insertion_ctx = solution;
 
         let unassigned = insertion_ctx.solution.unassigned.drain().collect::<Vec<_>>();

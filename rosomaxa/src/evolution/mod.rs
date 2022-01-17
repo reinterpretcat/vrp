@@ -131,7 +131,7 @@ pub trait HeuristicContextProcessing {
     type Solution: HeuristicSolution;
 
     /// Preprocess a context in order to replace usages of a given context with a new one.
-    fn process(&self, context: Self::Context) -> Self::Context;
+    fn pre_process(&self, context: Self::Context) -> Self::Context;
 }
 
 /// Provides the way to modify solution before returning it.
@@ -140,7 +140,7 @@ pub trait HeuristicSolutionProcessing {
     type Solution: HeuristicSolution;
 
     /// Post processes solution.
-    fn process(&self, solution: Self::Solution) -> Self::Solution;
+    fn post_process(&self, solution: Self::Solution) -> Self::Solution;
 }
 
 /// An entity which simulates evolution process.
@@ -194,7 +194,7 @@ where
         let hooks = config.processing;
 
         let heuristic_ctx = (self.context_factory)(config.population);
-        let mut heuristic_ctx = hooks.context.iter().fold(heuristic_ctx, |ctx, hook| hook.process(ctx));
+        let mut heuristic_ctx = hooks.context.iter().fold(heuristic_ctx, |ctx, hook| hook.pre_process(ctx));
 
         let weights = config.initial.operators.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
 
@@ -245,7 +245,7 @@ where
             |(solutions, metrics)| {
                 let solutions = solutions
                     .into_iter()
-                    .map(|solution| hooks.solution.iter().fold(solution, |s, hook| hook.process(s)))
+                    .map(|solution| hooks.solution.iter().fold(solution, |s, hook| hook.post_process(s)))
                     .collect();
 
                 (solutions, metrics)

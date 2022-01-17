@@ -1,8 +1,9 @@
 use crate::extensions::solve::config::{create_builder_from_config, read_config};
-use crate::pragmatic::format::problem::PragmaticProblem;
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;
+use vrp_core::prelude::Solver;
+use vrp_pragmatic::format::problem::PragmaticProblem;
 
 #[test]
 fn can_solve_problem_using_full_config() {
@@ -21,7 +22,13 @@ fn can_solve_problem_using_full_config() {
         termination.max_generations = Some(1);
     }
 
-    let (solution, _, _) = create_builder_from_config(problem, &config).unwrap().build().unwrap().solve().unwrap();
+    let (solution, _, _) = create_builder_from_config(problem.clone(), &config)
+        .unwrap()
+        .build()
+        .map(|config| Solver::new(problem.clone(), config))
+        .unwrap()
+        .solve()
+        .unwrap();
 
     assert!(!solution.routes.is_empty())
 }

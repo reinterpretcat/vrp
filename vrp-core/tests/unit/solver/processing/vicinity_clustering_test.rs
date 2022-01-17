@@ -4,6 +4,7 @@ use crate::helpers::construction::clustering::vicinity::*;
 use crate::helpers::models::domain::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
+use crate::helpers::solver::create_default_refinement_ctx;
 use crate::models::common::IdDimension;
 use crate::models::problem::Job;
 use crate::models::solution::{Commute, CommuteInfo};
@@ -27,9 +28,11 @@ fn create_problems(config: ClusterConfig, jobs: Vec<Job>) -> (Arc<Problem>, Arc<
     unsafe { as_mut(orig_problem.extras.as_ref()).set_cluster_config(config) };
     let orig_problem = Arc::new(orig_problem);
 
-    let new_problem = VicinityClustering::default().pre_process(orig_problem.clone(), environment);
+    let refinement_cxt = RefinementContext { environment, ..create_default_refinement_ctx(orig_problem.clone()) };
 
-    (orig_problem, new_problem)
+    let new_refinement_cxt = VicinityClustering::default().pre_process(refinement_cxt);
+
+    (orig_problem, new_refinement_cxt.problem.clone())
 }
 
 #[test]

@@ -10,7 +10,7 @@ pub struct AdvanceDeparture {}
 impl HeuristicSolutionProcessing for AdvanceDeparture {
     type Solution = InsertionContext;
 
-    fn process(&self, solution: Self::Solution) -> Self::Solution {
+    fn post_process(&self, solution: Self::Solution) -> Self::Solution {
         let mut insertion_ctx = solution.deep_copy();
 
         let problem = insertion_ctx.problem.clone();

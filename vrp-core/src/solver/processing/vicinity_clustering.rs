@@ -42,7 +42,7 @@ impl HeuristicContextProcessing for VicinityClustering {
     type Objective = ProblemObjective;
     type Solution = InsertionContext;
 
-    fn process(&self, context: Self::Context) -> Self::Context {
+    fn pre_process(&self, context: Self::Context) -> Self::Context {
         let problem = context.problem.clone();
         let environment = context.environment.clone();
 
@@ -89,7 +89,7 @@ impl HeuristicContextProcessing for VicinityClustering {
 impl HeuristicSolutionProcessing for VicinityClustering {
     type Solution = InsertionContext;
 
-    fn process(&self, solution: Self::Solution) -> Self::Solution {
+    fn post_process(&self, solution: Self::Solution) -> Self::Solution {
         let mut insertion_ctx = solution;
 
         let config = insertion_ctx.problem.extras.get_cluster_config();

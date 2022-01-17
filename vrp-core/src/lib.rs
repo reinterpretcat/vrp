@@ -80,13 +80,13 @@
 //! // create your VRP problem
 //! let problem = create_example_problem();
 //! let environment = Arc::new(Environment::default());
-//! // build solver to run 10 secs or 1000 generation
-//! let solver = SolverBuilder::new(problem, environment)
+//! // build solver config to run 10 secs or 1000 generation
+//! let config = create_default_config_builder(problem.clone(), environment)
 //!     .with_max_time(Some(10))
 //!     .with_max_generations(Some(10))
 //!     .build()?;
-//! // run solver and get the best known solution within its cost.
-//! let (solution, cost, _) = solver.solve()?;
+//! // run solver and get the best known solution within its cost. Telemetry metrics are ignored.
+//! let (solution, cost, _) = Solver::new(problem, config).solve()?;
 //!
 //! assert_eq!(cost, 42.);
 //! assert_eq!(solution.routes.len(), 1);
