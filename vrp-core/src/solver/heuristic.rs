@@ -194,9 +194,9 @@ mod builder {
         ProcessingConfig {
             context: vec![Box::new(VicinityClustering::default())],
             solution: vec![
-                Box::new(VicinityClustering::default()),
                 Box::new(AdvanceDeparture::default()),
                 Box::new(UnassignmentReason::default()),
+                Box::new(VicinityClustering::default()),
             ],
         }
     }
