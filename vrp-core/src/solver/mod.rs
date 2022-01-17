@@ -228,21 +228,6 @@ impl InitialOperator for RecreateInitialOperator {
     }
 }
 
-/// A type alias for evolution config builder.
-pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, ProblemObjective, InsertionContext, String>;
-
-/// Creates config builder with default settings.
-pub fn create_default_config_builder(problem: Arc<Problem>, environment: Arc<Environment>) -> ProblemConfigBuilder {
-    ProblemConfigBuilder::default()
-        .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
-        .with_population(get_default_population::<RefinementContext, _, _>(
-            problem.objective.clone(),
-            environment.clone(),
-        ))
-        .with_initial(4, 0.05, create_default_init_operators(problem, environment))
-        .with_processing(create_default_processing())
-}
-
 /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
 /// or error description, if solution cannot be found.
 ///

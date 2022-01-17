@@ -44,6 +44,21 @@ pub type TargetHeuristicProbability = HeuristicProbability<RefinementContext, Pr
 /// A heuristic group type alias.
 pub type TargetHeuristicGroup = HeuristicGroup<RefinementContext, ProblemObjective, InsertionContext>;
 
+/// A type alias for evolution config builder.
+pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, ProblemObjective, InsertionContext, String>;
+
+/// Creates config builder with default settings.
+pub fn create_default_config_builder(problem: Arc<Problem>, environment: Arc<Environment>) -> ProblemConfigBuilder {
+    ProblemConfigBuilder::default()
+        .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
+        .with_population(get_default_population::<RefinementContext, _, _>(
+            problem.objective.clone(),
+            environment.clone(),
+        ))
+        .with_initial(4, 0.05, create_default_init_operators(problem, environment))
+        .with_processing(create_default_processing())
+}
+
 /// Gets default heuristic.
 pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
     Box::new(MultiSelective::<RefinementContext, ProblemObjective, InsertionContext>::new(
@@ -54,8 +69,8 @@ pub fn get_default_heuristic(problem: Arc<Problem>, environment: Arc<Environment
 
 /// Gets static heuristic using default settings.
 pub fn get_static_heuristic(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetHeuristic {
-    let default_operator = stat::create_default_heuristic_operator(problem, environment.clone());
-    let local_search = stat::create_default_local_search(environment.clone());
+    let default_operator = statik::create_default_heuristic_operator(problem, environment.clone());
+    let local_search = statik::create_default_local_search(environment.clone());
 
     let heuristic_group: TargetHeuristicGroup = vec![
         (
@@ -159,8 +174,8 @@ pub fn create_context_operator_probability(
 
 pub use self::builder::create_default_init_operators;
 pub use self::builder::create_default_processing;
-pub use self::stat::create_default_heuristic_operator;
-pub use self::stat::create_default_random_ruin;
+pub use self::statik::create_default_heuristic_operator;
+pub use self::statik::create_default_random_ruin;
 
 mod builder {
     use super::*;
@@ -202,7 +217,7 @@ mod builder {
     }
 }
 
-mod stat {
+mod statik {
     use super::*;
 
     /// Creates default heuristic operator (ruin and recreate) with default parameters.
@@ -357,7 +372,7 @@ mod dynamic {
             ))
             .collect::<Vec<_>>();
 
-        let inner_search = stat::create_default_heuristic_operator(problem, environment);
+        let inner_search = statik::create_default_heuristic_operator(problem, environment);
 
         let mutations: Vec<(TargetHeuristicOperator, String)> = vec![
             (
