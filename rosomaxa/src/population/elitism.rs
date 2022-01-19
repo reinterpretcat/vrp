@@ -49,7 +49,7 @@ pub trait Shuffled {
 }
 
 /// Contains ordering information about individual in population.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct DominanceOrder {
     orig_index: usize,
     seq_index: usize,

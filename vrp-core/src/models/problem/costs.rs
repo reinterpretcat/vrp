@@ -50,8 +50,10 @@ impl Objective for ProblemObjective {
 }
 
 impl MultiObjective for ProblemObjective {
-    fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &TargetObjective> + 'a> {
-        Box::new(self.objectives.iter().flatten())
+    fn objectives<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
+        Box::new(self.objectives.iter().flatten().map(|o| o.as_ref()))
     }
 }
 

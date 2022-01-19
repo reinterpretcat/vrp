@@ -43,7 +43,7 @@ pub trait MultiObjective: Objective {
     /// Returns collection of objective functions.
     fn objectives<'a>(
         &'a self,
-    ) -> Box<dyn Iterator<Item = &Arc<dyn Objective<Solution = Self::Solution> + Send + Sync>> + 'a>;
+    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a>;
 }
 
 /// Calculates dominance order of two solutions using multiple objectives.

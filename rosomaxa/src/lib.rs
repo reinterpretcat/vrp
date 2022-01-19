@@ -10,6 +10,7 @@ pub mod helpers;
 
 pub mod algorithms;
 pub mod evolution;
+pub mod example;
 pub mod hyper;
 pub mod population;
 pub mod prelude;

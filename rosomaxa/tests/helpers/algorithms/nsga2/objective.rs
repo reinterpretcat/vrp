@@ -96,8 +96,10 @@ impl Objective for SliceMultiObjective {
 }
 
 impl MultiObjective for SliceMultiObjective {
-    fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &SliceObjective> + 'a> {
-        Box::new(self.objectives.iter())
+    fn objectives<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
+        Box::new(self.objectives.iter().map(|o| o.as_ref()))
     }
 }
 
@@ -132,7 +134,9 @@ impl Objective for SliceHierarchicalObjective {
 }
 
 impl MultiObjective for SliceHierarchicalObjective {
-    fn objectives<'a>(&'a self) -> Box<dyn Iterator<Item = &SliceObjective> + 'a> {
-        Box::new(self.primary_objectives.iter().chain(self.secondary_objectives.iter()))
+    fn objectives<'a>(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = &'a (dyn Objective<Solution = Self::Solution> + Send + Sync)> + 'a> {
+        Box::new(self.primary_objectives.iter().chain(self.secondary_objectives.iter()).map(|o| o.as_ref()))
     }
 }
