@@ -5,7 +5,8 @@ use crate::get_default_population;
 use crate::hyper::*;
 use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuffled};
 use crate::prelude::*;
-use hashbrown::HashMap;
+use crate::utils::noise::Noise;
+use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -171,6 +172,45 @@ impl InitialOperator for VectorInitialOperator {
     }
 }
 
+/// Specifies mode of heuristic operator.
+pub enum VectorHeuristicOperatorMode {
+    JustNoise(Noise),
+    DimensionNoise(Noise, HashSet<usize>),
+}
+
+/// A naive implementation of heuristic search operator in vector space.
+struct VectorHeuristicOperator {
+    mode: VectorHeuristicOperatorMode,
+}
+
+impl HeuristicOperator for VectorHeuristicOperator {
+    type Context = VectorContext;
+    type Objective = VectorObjective;
+    type Solution = VectorSolution;
+
+    fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+        Self::Solution::new(match &self.mode {
+            VectorHeuristicOperatorMode::JustNoise(noise) => solution.data.iter().map(|d| noise.add(*d)).collect(),
+            VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
+                .data
+                .iter()
+                .enumerate()
+                .map(|(idx, d)| if dimens.contains(&idx) { noise.add(*d) } else { *d })
+                .collect(),
+        })
+    }
+}
+
+type TargetInitialOperator = Box<
+    dyn InitialOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution> + Send + Sync,
+>;
+
+type TargetHeuristicOperator = Arc<
+    dyn HeuristicOperator<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>
+        + Send
+        + Sync,
+>;
+
 pub struct Solver {
     environment: Arc<Environment>,
     initial_solutions: Vec<Vec<f64>>,
@@ -179,6 +219,7 @@ pub struct Solver {
     max_time: Option<usize>,
     max_generations: Option<usize>,
     min_cv: Option<(String, usize, f64, bool)>,
+    operators: Vec<(TargetHeuristicOperator, String, f64)>,
 }
 
 impl Solver {
@@ -192,6 +233,7 @@ impl Solver {
             max_time: Some(10),
             max_generations: Some(100),
             min_cv: None,
+            operators: vec![],
         }
     }
 
@@ -221,17 +263,39 @@ impl Solver {
         self
     }
 
+    /// Sets search operator.
+    pub fn with_operator(mut self, mode: VectorHeuristicOperatorMode, name: &str, probability: f64) -> Self {
+        self.operators.push((Arc::new(VectorHeuristicOperator { mode }), name.to_string(), probability));
+        self
+    }
+
     /// Runs the solver using configuration provided through fluent interface methods.
     pub fn solve(self) -> Result<(Vec<(Vec<f64>, f64)>, Option<TelemetryMetrics>), String> {
         // build instances of implementation types from submitted data
         let func = self.objective_func.ok_or("objective function must be set".to_string())?;
         let objective = Arc::new(VectorObjective::new(func));
         let heuristic = Box::new(MultiSelective::new(
-            Box::new(DynamicSelective::new(operators, self.environment.random.clone())),
-            Box::new(StaticSelective::new(heuristic_group)),
+            Box::new(DynamicSelective::new(
+                self.operators.iter().map(|(op, name, _)| (op.clone(), name.clone())).collect(),
+                self.environment.random.clone(),
+            )),
+            Box::new(StaticSelective::new(
+                self.operators
+                    .iter()
+                    .map(|(op, _, probability)| {
+                        let random = self.environment.random.clone();
+                        let probability_func = (Box::new(move |_, _| random.is_hit(*probability)), Default::default());
+                        (op.clone(), probability_func)
+                    })
+                    .collect(),
+            )),
         ));
-        let initial_operators =
-            self.initial_solutions.into_iter().map(VectorInitialOperator::new).map(Box::new).map(|o| (o, 1)).collect();
+        let initial_operators = self
+            .initial_solutions
+            .into_iter()
+            .map(VectorInitialOperator::new)
+            .map::<(TargetInitialOperator, _), _>(|o| (Box::new(o), 1))
+            .collect();
 
         // build evolution config using fluent interface
         let config = EvolutionConfigBuilder::default()

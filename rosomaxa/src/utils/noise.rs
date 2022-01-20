@@ -1,4 +1,4 @@
-use rosomaxa::prelude::Random;
+use crate::prelude::Random;
 use std::sync::Arc;
 
 /// Provides way to generate some noise to floating point value.
