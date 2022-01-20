@@ -41,10 +41,9 @@ In this example, new jobs can be inserted only after job with id `job1`.
 
 Please consider the following notes:
 
-* jobs specified in `sequence` and `strict` are not checked for constraint violations. This might lead to
-non-feasible solutions (e.g. routes with capacity or time window violation).
-
-* relation with jobs which have multiple pickups or deliveries are not yet supported
+* jobs specified in relations are not checked for constraint violations. This might lead to non-feasible solutions
+(e.g. routes with capacity or time window violation).
+* relation with jobs which have multiple pickups or deliveries places are not yet supported
 
 
 ## Related errors
