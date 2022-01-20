@@ -1,3 +1,5 @@
+//! Specifies some logic to work with noise.
+
 use crate::prelude::Random;
 use std::sync::Arc;
 

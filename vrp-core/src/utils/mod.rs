@@ -1,7 +1,6 @@
 //! A collection of various utility helpers.
 
 // Reimport rosomaxa utils
-pub use rosomaxa::utils::noise::Noise;
 pub use rosomaxa::utils::*;
 
 pub use self::mutability::*;

@@ -5,7 +5,7 @@ use crate::get_default_population;
 use crate::hyper::*;
 use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuffled};
 use crate::prelude::*;
-use crate::utils::noise::Noise;
+use crate::utils::Noise;
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::ops::Deref;
@@ -30,6 +30,7 @@ pub struct VectorObjective {
 
 /// An example heuristic solution.
 pub struct VectorSolution {
+    /// Solution payload.
     pub data: Vec<f64>,
     order: DominanceOrder,
 }
@@ -174,7 +175,9 @@ impl InitialOperator for VectorInitialOperator {
 
 /// Specifies mode of heuristic operator.
 pub enum VectorHeuristicOperatorMode {
+    /// Adds some noice to all dimensions.
     JustNoise(Noise),
+    /// Adds some noice to specific dimensions.
     DimensionNoise(Noise, HashSet<usize>),
 }
 
@@ -211,6 +214,10 @@ type TargetHeuristicOperator = Arc<
         + Sync,
 >;
 
+/// Specifies solver solution.
+pub type SolverSolution = Vec<(Vec<f64>, f64)>;
+
+/// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
     environment: Arc<Environment>,
     initial_solutions: Vec<Vec<f64>>,
@@ -249,6 +256,8 @@ impl Solver {
         self
     }
 
+    // TODO add termination to stop when solution close to some target
+
     /// Sets termination parameters.
     pub fn with_termination(
         mut self,
@@ -270,9 +279,9 @@ impl Solver {
     }
 
     /// Runs the solver using configuration provided through fluent interface methods.
-    pub fn solve(self) -> Result<(Vec<(Vec<f64>, f64)>, Option<TelemetryMetrics>), String> {
+    pub fn solve(self) -> Result<(SolverSolution, Option<TelemetryMetrics>), String> {
         // build instances of implementation types from submitted data
-        let func = self.objective_func.ok_or("objective function must be set".to_string())?;
+        let func = self.objective_func.ok_or_else(|| "objective function must be set".to_string())?;
         let objective = Arc::new(VectorObjective::new(func));
         let heuristic = Box::new(MultiSelective::new(
             Box::new(DynamicSelective::new(
@@ -284,7 +293,9 @@ impl Solver {
                     .iter()
                     .map(|(op, _, probability)| {
                         let random = self.environment.random.clone();
-                        let probability_func = (Box::new(move |_, _| random.is_hit(*probability)), Default::default());
+                        let probability = *probability;
+                        let probability_func: HeuristicProbability<VectorContext, VectorObjective, VectorSolution> =
+                            (Box::new(move |_, _| random.is_hit(probability)), Default::default());
                         (op.clone(), probability_func)
                     })
                     .collect(),
@@ -320,8 +331,13 @@ impl Solver {
         })?
         .run()?;
 
-        let solutions =
-            solutions.into_iter().map(|s| (s.data, s.get_fitness().next().expect("empty fitness"))).collect();
+        let solutions = solutions
+            .into_iter()
+            .map(|s| {
+                let fitness = s.get_fitness().next().expect("empty fitness");
+                (s.data, fitness)
+            })
+            .collect();
 
         Ok((solutions, metrics))
     }

@@ -3,6 +3,7 @@
 pub use self::comparison::*;
 pub use self::environment::*;
 pub use self::iterators::*;
+pub use self::noise::*;
 pub use self::parallel::*;
 pub use self::random::*;
 pub use self::timing::*;
@@ -10,7 +11,7 @@ pub use self::timing::*;
 mod comparison;
 mod environment;
 mod iterators;
-pub mod noise;
+mod noise;
 mod parallel;
 mod random;
 mod timing;
