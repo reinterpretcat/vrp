@@ -79,7 +79,7 @@
 //!
 //! // create your VRP problem
 //! let problem = create_example_problem();
-//! let environment = Arc::new(Environment::default());
+//! let environment = Arc::new(Environment::new_with_time_quota(Some(10)));
 //! // build solver config to run 10 secs or 1000 generation
 //! let config = create_default_config_builder(problem.clone(), environment)
 //!     .with_max_time(Some(10))

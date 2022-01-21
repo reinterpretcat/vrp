@@ -5,31 +5,28 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 /// An entity which simulates evolution process.
-pub struct EvolutionSimulator<C, O, S, F>
+pub struct EvolutionSimulator<C, O, S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
-    F: FnOnce(Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> C,
 {
     config: EvolutionConfig<C, O, S>,
-    context_factory: F,
 }
 
-impl<C, O, S, F> EvolutionSimulator<C, O, S, F>
+impl<C, O, S> EvolutionSimulator<C, O, S>
 where
     C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
-    F: FnOnce(Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> C,
 {
     /// Creates a new instance of `EvolutionSimulator`.
-    pub fn new(config: EvolutionConfig<C, O, S>, context_factory: F) -> Result<Self, String> {
+    pub fn new(config: EvolutionConfig<C, O, S>) -> Result<Self, String> {
         if config.initial.operators.is_empty() {
             return Err("at least one initial method has to be specified".to_string());
         }
 
-        Ok(Self { config, context_factory })
+        Ok(Self { config })
     }
 
     /// Runs evolution for given `problem` using evolution `config`.
@@ -44,17 +41,18 @@ where
             .zip(0_usize..)
             .take(config.initial.max_size)
             .for_each(|(solution, idx)| {
-                if should_add_solution(&config.environment.quota, config.population.as_ref()) {
+                if should_add_solution(&config.context.environment().quota, config.context.population()) {
                     config.telemetry.on_initial(&solution, idx, config.initial.max_size, Timer::start());
-                    config.population.add(solution);
+                    config.context.population_mut().add(solution);
                 } else {
                     config.telemetry.log(format!("skipping provided initial solution {}", idx).as_str())
                 }
             });
 
         let hooks = config.processing;
+        let random = config.context.environment().random.clone();
 
-        let heuristic_ctx = (self.context_factory)(config.population);
+        let heuristic_ctx = config.context;
         let mut heuristic_ctx = hooks.context.iter().fold(heuristic_ctx, |ctx, hook| hook.pre_process(ctx));
 
         let weights = config.initial.operators.iter().map(|(_, weight)| *weight).collect::<Vec<_>>();
@@ -80,7 +78,7 @@ where
             let operator_idx = if idx < config.initial.operators.len() {
                 idx
             } else {
-                config.environment.random.weighted(weights.as_slice())
+                random.weighted(weights.as_slice())
             };
 
             // TODO consider initial quota limit

@@ -1,8 +1,6 @@
 use crate::evolution::*;
 use crate::hyper::*;
-use crate::population::*;
 use crate::termination::*;
-use crate::utils::TimeQuota;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -19,11 +17,11 @@ where
     /// A pre/post processing config.
     pub processing: ProcessingConfig<C, O, S>,
 
+    /// A heuristic context.
+    pub context: C,
+
     /// A hyper heuristic.
     pub heuristic: Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>,
-
-    /// Population algorithm.
-    pub population: Box<dyn HeuristicPopulation<Objective = O, Individual = S>>,
 
     /// An evolution strategy.
     pub strategy: Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>,
@@ -33,9 +31,6 @@ where
 
     /// A telemetry to be used.
     pub telemetry: Telemetry<C, O, S>,
-
-    /// An environmental context.
-    pub environment: Arc<Environment>,
 }
 
 /// Specifies an operator which builds initial solution.
@@ -97,7 +92,7 @@ where
     max_time: Option<usize>,
     min_cv: Option<(String, usize, f64, bool, K)>,
     heuristic: Option<Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>>,
-    population: Option<Box<dyn HeuristicPopulation<Objective = O, Individual = S>>>,
+    context: Option<C>,
     termination: Option<Box<dyn Termination<Context = C, Objective = O>>>,
     strategy: Option<Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>>,
 
@@ -107,7 +102,6 @@ where
     objective: Option<Arc<dyn HeuristicObjective<Solution = S>>>,
 
     telemetry: Option<Telemetry<C, O, S>>,
-    environment: Option<Arc<Environment>>,
 
     initial: InitialConfig<C, O, S>,
     processing: ProcessingConfig<C, O, S>,
@@ -126,14 +120,13 @@ where
             max_time: None,
             min_cv: None,
             heuristic: None,
-            population: None,
+            context: None,
             termination: None,
             strategy: None,
             heuristic_operators: None,
             heuristic_group: None,
             objective: None,
             telemetry: None,
-            environment: None,
             initial: InitialConfig { operators: vec![], max_size: 4, quota: 0.05, individuals: vec![] },
             processing: ProcessingConfig { context: vec![], solution: vec![] },
         }
@@ -147,12 +140,6 @@ where
     S: HeuristicSolution + 'static,
     K: Hash + Eq + Clone + Send + Sync + 'static,
 {
-    /// Sets environment.
-    pub fn with_environment(mut self, environment: Arc<Environment>) -> Self {
-        self.environment = Some(environment);
-        self
-    }
-
     /// Sets max generations to be run by evolution. Default is 3000.
     pub fn with_max_generations(mut self, limit: Option<usize>) -> Self {
         self.max_generations = limit;
@@ -202,9 +189,9 @@ where
         self
     }
 
-    /// Sets population algorithm. Default is rosomaxa.
-    pub fn with_population(mut self, population: Box<dyn HeuristicPopulation<Objective = O, Individual = S>>) -> Self {
-        self.population = Some(population);
+    /// Sets heuristic context.
+    pub fn with_context(mut self, context: C) -> Self {
+        self.context = Some(context);
         self
     }
 
@@ -252,78 +239,65 @@ where
 
     /// Gets termination criterias.
     #[allow(clippy::type_complexity)]
-    fn get_termination(
-        &self,
-    ) -> Result<
-        (Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, Option<Arc<dyn Quota + Send + Sync>>),
-        String,
-    > {
+    fn get_termination(&self) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, String> {
         let telemetry = Telemetry::new(TelemetryMode::None);
         let telemetry = self.telemetry.as_ref().unwrap_or(&telemetry);
 
-        let (terminations, quota): (
-            Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>>,
-            Option<Arc<dyn Quota + Send + Sync>>,
-        ) = match (self.max_generations, self.max_time, &self.min_cv) {
-            (None, None, None) => {
-                telemetry.log("configured to use default max-generations (3000) and max-time (300secs)");
-                (
-                    vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))],
-                    Some(Arc::new(TimeQuota::new(300.))),
-                )
-            }
-            _ => {
-                let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
-
-                if let Some(limit) = self.max_generations {
-                    telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
-                    terminations.push(Box::new(MaxGeneration::new(limit)))
+        let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
+            match (self.max_generations, self.max_time, &self.min_cv) {
+                (None, None, None) => {
+                    telemetry.log("configured to use default max-generations (3000) and max-time (300secs)");
+                    vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
                 }
+                _ => {
+                    let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
 
-                let quota: Option<Arc<dyn Quota + Send + Sync>> = if let Some(limit) = self.max_time {
-                    telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
-                    terminations.push(Box::new(MaxTime::new(limit as f64)));
-                    Some(Arc::new(TimeQuota::new(limit as f64)))
-                } else {
-                    None
-                };
+                    if let Some(limit) = self.max_generations {
+                        telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
+                        terminations.push(Box::new(MaxGeneration::new(limit)))
+                    }
 
-                if let Some((interval_type, value, threshold, is_global, key)) = self.min_cv.clone() {
-                    telemetry.log(
-                        format!(
-                            "configured to use variation coefficient {} with sample: {}, threshold: {}",
-                            interval_type, value, threshold
-                        )
-                        .as_str(),
-                    );
+                    if let Some(limit) = self.max_time {
+                        telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
+                        terminations.push(Box::new(MaxTime::new(limit as f64)));
+                    }
 
-                    let variation: Box<dyn Termination<Context = C, Objective = O> + Send + Sync> =
-                        match interval_type.as_str() {
-                            "sample" => {
-                                Box::new(MinVariation::<C, O, S, K>::new_with_sample(value, threshold, is_global, key))
-                            }
-                            "period" => {
-                                Box::new(MinVariation::<C, O, S, K>::new_with_period(value, threshold, is_global, key))
-                            }
-                            _ => return Err(format!("unknown variation interval type: {}", interval_type)),
-                        };
+                    if let Some((interval_type, value, threshold, is_global, key)) = self.min_cv.clone() {
+                        telemetry.log(
+                            format!(
+                                "configured to use variation coefficient {} with sample: {}, threshold: {}",
+                                interval_type, value, threshold
+                            )
+                            .as_str(),
+                        );
 
-                    terminations.push(variation)
+                        let variation: Box<dyn Termination<Context = C, Objective = O> + Send + Sync> =
+                            match interval_type.as_str() {
+                                "sample" => Box::new(MinVariation::<C, O, S, K>::new_with_sample(
+                                    value, threshold, is_global, key,
+                                )),
+                                "period" => Box::new(MinVariation::<C, O, S, K>::new_with_period(
+                                    value, threshold, is_global, key,
+                                )),
+                                _ => return Err(format!("unknown variation interval type: {}", interval_type)),
+                            };
+
+                        terminations.push(variation)
+                    }
+
+                    terminations
                 }
+            };
 
-                (terminations, quota)
-            }
-        };
-
-        Ok((Box::new(CompositeTermination::new(terminations)), quota))
+        Ok(Box::new(CompositeTermination::new(terminations)))
     }
 
     /// Builds the evolution config.
     pub fn build(self) -> Result<EvolutionConfig<C, O, S>, String> {
-        let (termination, quota) = self.get_termination()?;
+        let termination = self.get_termination()?;
 
+        let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
         let telemetry = self.telemetry.unwrap_or_else(|| Telemetry::new(TelemetryMode::None));
-        let environment = self.environment.unwrap_or_else(|| Arc::new(Environment { quota, ..Environment::default() }));
 
         Ok(EvolutionConfig {
             initial: self.initial,
@@ -335,19 +309,14 @@ where
                     Box::new(DynamicSelective::new(
                         self.heuristic_operators
                             .ok_or_else(|| "missing heuristic operators or heuristic".to_string())?,
-                        environment.random.clone(),
+                        context.environment().random.clone(),
                     )),
                     Box::new(StaticSelective::new(
                         self.heuristic_group.ok_or_else(|| "missing heuristic group or heuristic".to_string())?,
                     )),
                 ))
             },
-            population: if let Some(population) = self.population {
-                telemetry.log("configured to use custom population");
-                population
-            } else {
-                return Err("missing heuristic population".to_string());
-            },
+            context,
             strategy: if let Some(strategy) = self.strategy {
                 telemetry.log("configured to use custom strategy");
                 strategy
@@ -357,7 +326,6 @@ where
             termination,
             processing: self.processing,
             telemetry,
-            environment,
         })
     }
 }

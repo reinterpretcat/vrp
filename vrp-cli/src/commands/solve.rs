@@ -391,7 +391,11 @@ pub fn run_solve(
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
                                 .with_min_cv(min_cv, "min_cv".to_string())
-                                .with_population(get_population(mode, problem.objective.clone(), environment.clone()))
+                                .with_context(RefinementContext::new(
+                                    problem.clone(),
+                                    get_population(mode, problem.objective.clone(), environment.clone()),
+                                    environment.clone(),
+                                ))
                                 .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)
                                 .build()?;
 

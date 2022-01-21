@@ -33,6 +33,14 @@ pub struct Environment {
 }
 
 impl Environment {
+    /// Creates an instance of `Environment` using optional time quota and defaults.
+    pub fn new_with_time_quota(max_time: Option<usize>) -> Self {
+        Self {
+            quota: max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64))),
+            ..Self::default()
+        }
+    }
+
     /// Creates an instance of `Environment`.
     pub fn new(
         random: Arc<dyn Random + Send + Sync>,

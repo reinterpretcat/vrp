@@ -247,7 +247,7 @@ impl InitialOperator for RecreateInitialOperator {
 ///
 /// // create your VRP problem
 /// let problem: Arc<Problem> = create_example_problem();
-/// let environment = Arc::new(Environment::default());
+/// let environment = Arc::new(Environment::new_with_time_quota(Some(60)));
 /// // build solver config using pre-build builder with defaults and then override some parameters
 /// let config = create_default_config_builder(problem.clone(), environment)
 ///     .with_max_time(Some(60))
@@ -279,14 +279,7 @@ impl Solver {
     /// Solves a Vehicle Routing Problem and returns a _(solution, its cost)_ pair in case of success
     /// or error description, if solution cannot be found.
     pub fn solve(self) -> Result<(Solution, Cost, Option<TelemetryMetrics>), String> {
-        let config = self.config;
-        let environment = config.environment.clone();
-
-        let (mut solutions, metrics) = EvolutionSimulator::new(config, {
-            let problem = self.problem.clone();
-            move |population| RefinementContext::new(problem, population, environment)
-        })?
-        .run()?;
+        let (mut solutions, metrics) = EvolutionSimulator::new(self.config)?.run()?;
 
         // NOTE select the first best individual from population
         let insertion_ctx = if solutions.is_empty() { None } else { solutions.drain(0..1).next() }

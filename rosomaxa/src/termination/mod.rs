@@ -27,6 +27,9 @@ pub use self::max_generation::MaxGeneration;
 mod max_time;
 pub use self::max_time::MaxTime;
 
+mod target_proximity;
+pub use self::target_proximity::TargetProximity;
+
 /// A trait which encapsulates multiple termination criteria.
 pub struct CompositeTermination<C, O, S>
 where

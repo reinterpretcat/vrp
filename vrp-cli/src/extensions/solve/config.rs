@@ -525,11 +525,11 @@ fn configure_from_evolution(
                         config.exploration_ratio = *exploration_ratio;
                     }
 
-                    Box::new(RosomaxaPopulation::new(problem.objective.clone(), environment, config)?)
+                    Box::new(RosomaxaPopulation::new(problem.objective.clone(), environment.clone(), config)?)
                 }
             };
 
-            builder = builder.with_population(population);
+            builder = builder.with_context(RefinementContext::new(problem, population, environment));
         }
     }
 
@@ -781,8 +781,11 @@ fn configure_from_telemetry(
     builder.with_telemetry(Telemetry::new(telemetry_mode))
 }
 
-fn configure_from_environment(environment_config: &Option<EnvironmentConfig>) -> Arc<Environment> {
-    let mut environment = Environment::default();
+fn configure_from_environment(
+    environment_config: &Option<EnvironmentConfig>,
+    max_time: Option<usize>,
+) -> Arc<Environment> {
+    let mut environment = Environment::new_with_time_quota(max_time);
 
     if let Some(parallelism) = environment_config.as_ref().and_then(|c| c.parallelism.as_ref()) {
         // TODO validate parameters
@@ -822,7 +825,8 @@ where
 
 /// Creates a solver `Builder` from config.
 pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<ProblemConfigBuilder, String> {
-    let environment = configure_from_environment(&config.environment);
+    let environment =
+        configure_from_environment(&config.environment, config.termination.as_ref().and_then(|t| t.max_time));
     let mut builder = create_default_config_builder(problem.clone(), environment.clone());
 
     builder = configure_from_telemetry(builder, environment.clone(), &config.telemetry);

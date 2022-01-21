@@ -32,7 +32,19 @@ pub struct VectorObjective {
 pub struct VectorSolution {
     /// Solution payload.
     pub data: Vec<f64>,
+    objective: Arc<VectorObjective>,
     order: DominanceOrder,
+}
+
+impl VectorContext {
+    /// Creates a new instance of `VectorContext`.
+    pub fn new(
+        objective: Arc<VectorObjective>,
+        population: Box<dyn HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution>>,
+        environment: Arc<Environment>,
+    ) -> Self {
+        Self { objective, population, statistics: Default::default(), environment, state: Default::default() }
+    }
 }
 
 impl HeuristicContext for VectorContext {
@@ -117,11 +129,12 @@ impl Shuffled for VectorObjective {
 
 impl HeuristicSolution for VectorSolution {
     fn get_fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
-        Box::new(self.data.iter().cloned())
+        Box::new(self.objective.objectives().map(move |objective| objective.fitness(self)))
+        //Box::new(self.fitness.iter())
     }
 
     fn deep_copy(&self) -> Self {
-        Self::new(self.data.clone())
+        Self::new(self.data.clone(), self.objective.clone())
     }
 }
 
@@ -146,8 +159,8 @@ impl RosomaxaWeighted for VectorSolution {
 
 impl VectorSolution {
     /// Creates a new instance of `VectorSolution`.
-    pub fn new(data: Vec<f64>) -> Self {
-        Self { data, order: DominanceOrder::default() }
+    pub fn new(data: Vec<f64>, objective: Arc<VectorObjective>) -> Self {
+        Self { data, objective, order: DominanceOrder::default() }
     }
 }
 
@@ -168,8 +181,8 @@ impl InitialOperator for VectorInitialOperator {
     type Objective = VectorObjective;
     type Solution = VectorSolution;
 
-    fn create(&self, _: &Self::Context) -> Self::Solution {
-        Self::Solution::new(self.data.clone())
+    fn create(&self, context: &Self::Context) -> Self::Solution {
+        Self::Solution::new(self.data.clone(), context.objective.clone())
     }
 }
 
@@ -191,16 +204,19 @@ impl HeuristicOperator for VectorHeuristicOperator {
     type Objective = VectorObjective;
     type Solution = VectorSolution;
 
-    fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
-        Self::Solution::new(match &self.mode {
-            VectorHeuristicOperatorMode::JustNoise(noise) => solution.data.iter().map(|d| noise.add(*d)).collect(),
-            VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
-                .data
-                .iter()
-                .enumerate()
-                .map(|(idx, d)| if dimens.contains(&idx) { noise.add(*d) } else { *d })
-                .collect(),
-        })
+    fn search(&self, context: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+        Self::Solution::new(
+            match &self.mode {
+                VectorHeuristicOperatorMode::JustNoise(noise) => solution.data.iter().map(|d| noise.add(*d)).collect(),
+                VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
+                    .data
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, d)| if dimens.contains(&idx) { noise.add(*d) } else { *d })
+                    .collect(),
+            },
+            context.objective.clone(),
+        )
     }
 }
 
@@ -219,7 +235,6 @@ pub type SolverSolution = Vec<(Vec<f64>, f64)>;
 
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
-    environment: Arc<Environment>,
     initial_solutions: Vec<Vec<f64>>,
     initial_params: (usize, f64),
     objective_func: Option<VectorFunction>,
@@ -229,11 +244,9 @@ pub struct Solver {
     operators: Vec<(TargetHeuristicOperator, String, f64)>,
 }
 
-impl Solver {
-    /// Creates a new instance of `Solver`.
-    pub fn new(environment: Arc<Environment>) -> Self {
+impl Default for Solver {
+    fn default() -> Self {
         Self {
-            environment,
             initial_solutions: vec![],
             initial_params: (4, 0.05),
             objective_func: None,
@@ -243,7 +256,9 @@ impl Solver {
             operators: vec![],
         }
     }
+}
 
+impl Solver {
     /// Sets initial parameters.
     pub fn with_init_params(mut self, max_size: usize, quota: f64) -> Self {
         self.initial_params = (max_size, quota);
@@ -280,19 +295,21 @@ impl Solver {
 
     /// Runs the solver using configuration provided through fluent interface methods.
     pub fn solve(self) -> Result<(SolverSolution, Option<TelemetryMetrics>), String> {
+        let environment = Arc::new(Environment::new_with_time_quota(self.max_time));
+
         // build instances of implementation types from submitted data
         let func = self.objective_func.ok_or_else(|| "objective function must be set".to_string())?;
         let objective = Arc::new(VectorObjective::new(func));
         let heuristic = Box::new(MultiSelective::new(
             Box::new(DynamicSelective::new(
                 self.operators.iter().map(|(op, name, _)| (op.clone(), name.clone())).collect(),
-                self.environment.random.clone(),
+                environment.random.clone(),
             )),
             Box::new(StaticSelective::new(
                 self.operators
                     .iter()
                     .map(|(op, _, probability)| {
-                        let random = self.environment.random.clone();
+                        let random = environment.random.clone();
                         let probability = *probability;
                         let probability_func: HeuristicProbability<VectorContext, VectorObjective, VectorSolution> =
                             (Box::new(move |_, _| random.is_hit(probability)), Default::default());
@@ -308,11 +325,17 @@ impl Solver {
             .map::<(TargetInitialOperator, _), _>(|o| (Box::new(o), 1))
             .collect();
 
+        // create a heuristic context
+        let context = VectorContext::new(
+            objective.clone(),
+            get_default_population::<VectorContext, _, _>(objective, environment.clone()),
+            environment,
+        );
+
         // build evolution config using fluent interface
         let config = EvolutionConfigBuilder::default()
             .with_heuristic(heuristic)
-            // TODO replace `with_population` api with `with_context`
-            .with_population(get_default_population::<VectorContext, _, _>(objective.clone(), self.environment.clone()))
+            .with_context(context)
             .with_min_cv(self.min_cv, 1)
             .with_max_time(self.max_time)
             .with_max_generations(self.max_generations)
@@ -320,16 +343,7 @@ impl Solver {
             .build()?;
 
         // solve the problem
-        let (solutions, metrics) = EvolutionSimulator::new(config, {
-            move |population| VectorContext {
-                objective,
-                population,
-                statistics: Default::default(),
-                environment: Arc::new(Default::default()),
-                state: Default::default(),
-            }
-        })?
-        .run()?;
+        let (solutions, metrics) = EvolutionSimulator::new(config)?.run()?;
 
         let solutions = solutions
             .into_iter()
