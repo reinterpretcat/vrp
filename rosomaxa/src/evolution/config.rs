@@ -91,6 +91,7 @@ where
     max_generations: Option<usize>,
     max_time: Option<usize>,
     min_cv: Option<(String, usize, f64, bool, K)>,
+    target_proximity: Option<(Vec<f64>, f64)>,
     heuristic: Option<Box<dyn HyperHeuristic<Context = C, Objective = O, Solution = S>>>,
     context: Option<C>,
     termination: Option<Box<dyn Termination<Context = C, Objective = O>>>,
@@ -119,6 +120,7 @@ where
             max_generations: None,
             max_time: None,
             min_cv: None,
+            target_proximity: None,
             heuristic: None,
             context: None,
             termination: None,
@@ -155,6 +157,12 @@ where
     /// Sets variation coefficient termination criteria. Default is None.
     pub fn with_min_cv(mut self, min_cv: Option<(String, usize, f64, bool)>, key: K) -> Self {
         self.min_cv = min_cv.map(|min_cv| (min_cv.0, min_cv.1, min_cv.2, min_cv.3, key));
+        self
+    }
+
+    /// Sets target fitness and distance threshold as termination criteria.
+    pub fn with_target_proximity(mut self, target_fitness: Vec<f64>, distance_threshold: f64) -> Self {
+        self.target_proximity = Some((target_fitness, distance_threshold));
         self
     }
 
@@ -244,8 +252,8 @@ where
         let telemetry = self.telemetry.as_ref().unwrap_or(&telemetry);
 
         let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
-            match (self.max_generations, self.max_time, &self.min_cv) {
-                (None, None, None) => {
+            match (self.max_generations, self.max_time, &self.min_cv, &self.target_proximity) {
+                (None, None, None, None) => {
                     telemetry.log("configured to use default max-generations (3000) and max-time (300secs)");
                     vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
                 }
@@ -283,6 +291,17 @@ where
                             };
 
                         terminations.push(variation)
+                    }
+
+                    if let Some((target_fitness, distance_threshold)) = self.target_proximity.clone() {
+                        telemetry.log(
+                            format!(
+                                "configured to use target fitness: {:?}, distance threshold: {}",
+                                target_fitness, distance_threshold
+                            )
+                            .as_str(),
+                        );
+                        terminations.push(Box::new(TargetProximity::new(target_fitness, distance_threshold)));
                     }
 
                     terminations
