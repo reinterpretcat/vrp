@@ -17,7 +17,7 @@
 //!     .with_objective_fun(create_rosenbrock_function())
 //!     .with_init_solutions(vec![vec![2., 2.]])
 //!     .with_operator(VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random)), "first", 1.)
-//!     .with_termination(Some(5), Some(1000), None, Some((vec![0.], 0.01)))
+//!     .with_termination(Some(5), Some(1000), None, None)
 //!     .solve()
 //!     .expect("cannot build and use solver");
 //!

@@ -42,11 +42,11 @@ fn can_solve_rosenbrock() {
         .with_operator(just_noise(1., (-0.1, 0.), random.clone()), "third", 0.25)
         .with_operator(dimen_noise(1., (-0.1, 0.1), 0, random.clone()), "fourth", 0.5)
         .with_operator(dimen_noise(1., (-0.1, 0.1), 1, random.clone()), "five", 0.25)
-        .with_termination(Some(5), Some(1000), None, Some((vec![0.], 0.01)))
+        .with_termination(Some(5), Some(1000), None, None)
         .solve()
         .expect("cannot build and use solver");
 
     assert_eq!(solutions.len(), 1);
     let (_, fitness) = solutions.first().unwrap();
-    assert!(*fitness < 100.);
+    assert!(*fitness < 0.01);
 }

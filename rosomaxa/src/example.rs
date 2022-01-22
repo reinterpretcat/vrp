@@ -210,12 +210,14 @@ impl HeuristicOperator for VectorHeuristicOperator {
     fn search(&self, context: &Self::Context, solution: &Self::Solution) -> Self::Solution {
         Self::Solution::new(
             match &self.mode {
-                VectorHeuristicOperatorMode::JustNoise(noise) => solution.data.iter().map(|d| noise.add(*d)).collect(),
+                VectorHeuristicOperatorMode::JustNoise(noise) => {
+                    solution.data.iter().map(|d| *d + noise.add(*d)).collect()
+                }
                 VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
                     .data
                     .iter()
                     .enumerate()
-                    .map(|(idx, d)| if dimens.contains(&idx) { noise.add(*d) } else { *d })
+                    .map(|(idx, d)| if dimens.contains(&idx) { *d + noise.add(*d) } else { *d })
                     .collect(),
             },
             context.objective.clone(),
@@ -342,8 +344,16 @@ impl Solver {
         let context = VectorContext::new(
             objective.clone(),
             get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone()),
-            environment,
+            environment.clone(),
         );
+
+        // create a telemetry which will log population
+        let telemetry = Telemetry::new(TelemetryMode::OnlyLogging {
+            logger: environment.logger.clone(),
+            log_best: 100,
+            log_population: 500,
+            dump_population: false,
+        });
 
         // build evolution config using fluent interface
         let config = EvolutionConfigBuilder::default()
@@ -353,7 +363,9 @@ impl Solver {
             .with_min_cv(self.min_cv, 1)
             .with_max_time(self.max_time)
             .with_max_generations(self.max_generations)
+            .with_target_proximity(self.target_proximity)
             .with_initial(self.initial_params.0, self.initial_params.1, initial_operators)
+            .with_telemetry(telemetry)
             .build()?;
 
         // solve the problem

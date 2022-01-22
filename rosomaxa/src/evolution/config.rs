@@ -161,8 +161,8 @@ where
     }
 
     /// Sets target fitness and distance threshold as termination criteria.
-    pub fn with_target_proximity(mut self, target_fitness: Vec<f64>, distance_threshold: f64) -> Self {
-        self.target_proximity = Some((target_fitness, distance_threshold));
+    pub fn with_target_proximity(mut self, target_proximity: Option<(Vec<f64>, f64)>) -> Self {
+        self.target_proximity = target_proximity;
         self
     }
 
