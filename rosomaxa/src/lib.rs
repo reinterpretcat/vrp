@@ -13,17 +13,23 @@
 //! use rosomaxa::prelude::*;
 //! use rosomaxa::example::*;
 //! let random = Arc::new(DefaultRandom::default());
+//! // an example of heuristic operator, it is domain specific
+//! let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
+//!
+//! // add some configuration and run the solver
 //! let (solutions, _) = Solver::default()
 //!     .with_objective_fun(create_rosenbrock_function())
 //!     .with_init_solutions(vec![vec![2., 2.]])
-//!     .with_operator(VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random)), "first", 1.)
+//!     .with_operator(noise_op, "first", 1.)
 //!     .with_termination(Some(5), Some(1000), None, None)
 //!     .solve()
 //!     .expect("cannot build and use solver");
 //!
+//! // expecting at least one solution with fitness close to 0
 //! assert_eq!(solutions.len(), 1);
 //! let (_, fitness) = solutions.first().unwrap();
-//! assert!(*fitness < 100.);
+//! assert!(*fitness < 0.01);
+//!
 //! # Ok::<(), String>(())
 //! ```
 //!
