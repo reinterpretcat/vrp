@@ -37,7 +37,8 @@ jobs:
       - name: Publish all packages from workspace
         run: |
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
-          cd vrp-core && cargo publish && sleep 20
+          cd rosomaxa && cargo publish && sleep 20
+          cd ../vrp-core && cargo publish && sleep 20
           cd ../vrp-scientific && cargo publish && sleep 20
           cd ../vrp-pragmatic && cargo publish && sleep 20
           cd ../vrp-cli && cargo publish
