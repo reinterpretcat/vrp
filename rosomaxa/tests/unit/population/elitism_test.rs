@@ -1,6 +1,5 @@
 use super::*;
 use crate::example::*;
-use crate::helpers::example::*;
 
 fn get_best_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> f64 {
     population.objective.fitness(population.ranked().next().unwrap().0)

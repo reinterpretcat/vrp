@@ -1,5 +1,6 @@
 use super::*;
-use crate::helpers::example::*;
+use crate::example::create_rosenbrock_function;
+use crate::helpers::example::create_heuristic_context_with_solutions;
 
 parameterized_test! {can_use_target_proximity, (solutions, target_fitness, distance_threshold, expected), {
     can_use_target_proximity_impl(solutions, target_fitness, distance_threshold, expected);

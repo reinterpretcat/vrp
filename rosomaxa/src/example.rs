@@ -1,5 +1,9 @@
 //! This module contains example models and logic to demonstrate practical usage of rosomaxa crate.
 
+#[cfg(test)]
+#[path = "../tests/unit/example_test.rs"]
+mod example_test;
+
 use crate::evolution::*;
 use crate::get_default_population;
 use crate::hyper::*;
@@ -229,8 +233,8 @@ type TargetHeuristicOperator = Arc<
         + Sync,
 >;
 
-/// Specifies solver solution.
-pub type SolverSolution = Vec<(Vec<f64>, f64)>;
+/// Specifies solver solutions.
+pub type SolverSolutions = Vec<(Vec<f64>, f64)>;
 
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
@@ -240,6 +244,7 @@ pub struct Solver {
     max_time: Option<usize>,
     max_generations: Option<usize>,
     min_cv: Option<(String, usize, f64, bool)>,
+    target_proximity: Option<(Vec<f64>, f64)>,
     operators: Vec<(TargetHeuristicOperator, String, f64)>,
 }
 
@@ -252,6 +257,7 @@ impl Default for Solver {
             max_time: Some(10),
             max_generations: Some(100),
             min_cv: None,
+            target_proximity: None,
             operators: vec![],
         }
     }
@@ -278,10 +284,12 @@ impl Solver {
         max_time: Option<usize>,
         max_generations: Option<usize>,
         min_cv: Option<(String, usize, f64, bool)>,
+        target_proximity: Option<(Vec<f64>, f64)>,
     ) -> Self {
         self.max_time = max_time;
         self.max_generations = max_generations;
         self.min_cv = min_cv;
+        self.target_proximity = target_proximity;
 
         self
     }
@@ -292,8 +300,14 @@ impl Solver {
         self
     }
 
+    /// Sets objective function.
+    pub fn with_objective_fun(mut self, objective_func: VectorFunction) -> Self {
+        self.objective_func = Some(objective_func);
+        self
+    }
+
     /// Runs the solver using configuration provided through fluent interface methods.
-    pub fn solve(self) -> Result<(SolverSolution, Option<TelemetryMetrics>), String> {
+    pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), String> {
         let environment = Arc::new(Environment::new_with_time_quota(self.max_time));
 
         // build instances of implementation types from submitted data
@@ -327,13 +341,14 @@ impl Solver {
         // create a heuristic context
         let context = VectorContext::new(
             objective.clone(),
-            get_default_population::<VectorContext, _, _>(objective, environment.clone()),
+            get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone()),
             environment,
         );
 
         // build evolution config using fluent interface
         let config = EvolutionConfigBuilder::default()
             .with_heuristic(heuristic)
+            .with_objective(objective)
             .with_context(context)
             .with_min_cv(self.min_cv, 1)
             .with_max_time(self.max_time)
@@ -354,4 +369,22 @@ impl Solver {
 
         Ok((solutions, metrics))
     }
+}
+
+/// Creates multidimensional Rosenbrock function, also referred to as the Valley or Banana function.
+/// The function is usually evaluated on the hypercube xi ∈ [-5, 10], for all i = 1, …, d, although
+/// it may be restricted to the hypercube xi ∈ [-2.048, 2.048], for all i = 1, …, d.
+pub fn create_rosenbrock_function() -> VectorFunction {
+    Arc::new(|input| {
+        assert!(input.len() > 1);
+
+        input.windows(2).fold(0., |acc, pair| {
+            let (x1, x2) = match pair {
+                [x1, x2] => (*x1, *x2),
+                _ => unreachable!(),
+            };
+
+            acc + 100. * (x2 - x1.powi(2)).powi(2) + (x1 - 1.).powi(2)
+        })
+    })
 }

@@ -1,5 +1,32 @@
 //! This crate exposes a generalized hyper heuristics and some helper functionality which can be
 //! used to build a solver for optimization problems.
+//!
+//!
+//! # Examples
+//!
+//! This example demonstrates the usage of example models and heuristics to minimize Rosenbrock function.
+//! For the sake of minimalism, there is a pre-built solver and heuristic operator models. Check
+//! example module to see how to use functionality of the crate for an arbitrary domain.
+//!
+//! ```
+//! # use std::sync::Arc;
+//! use rosomaxa::prelude::*;
+//! use rosomaxa::example::*;
+//! let random = Arc::new(DefaultRandom::default());
+//! let (solutions, _) = Solver::default()
+//!     .with_objective_fun(create_rosenbrock_function())
+//!     .with_init_solutions(vec![vec![2., 2.]])
+//!     .with_operator(VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random)), "first", 1.)
+//!     .with_termination(Some(5), Some(1000), None, Some((vec![0.], 0.01)))
+//!     .solve()
+//!     .expect("cannot build and use solver");
+//!
+//! assert_eq!(solutions.len(), 1);
+//! let (_, fitness) = solutions.first().unwrap();
+//! assert!(*fitness < 100.);
+//! # Ok::<(), String>(())
+//! ```
+//!
 
 #![warn(missing_docs)]
 
@@ -16,11 +43,6 @@ pub mod population;
 pub mod prelude;
 pub mod termination;
 pub mod utils;
-
-// TODO:
-// - ensure all essential tests are implemented
-// - add documentation examples
-// - add_observer interface?
 
 use crate::algorithms::nsga2::MultiObjective;
 use crate::population::*;

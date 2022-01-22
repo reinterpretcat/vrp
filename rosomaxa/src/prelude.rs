@@ -30,5 +30,6 @@ pub use crate::utils::unwrap_from_result;
 pub use crate::utils::DefaultRandom;
 pub use crate::utils::Environment;
 pub use crate::utils::InfoLogger;
+pub use crate::utils::Noise;
 pub use crate::utils::Quota;
 pub use crate::utils::Random;

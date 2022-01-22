@@ -1,6 +1,5 @@
 use super::*;
 use crate::example::*;
-use crate::helpers::example::*;
 use crate::utils::Timer;
 
 fn create_rosomaxa(rebalance_memory: usize) -> (Arc<VectorObjective>, Rosomaxa<VectorObjective, VectorSolution>) {
