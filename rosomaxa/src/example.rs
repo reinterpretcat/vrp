@@ -130,7 +130,6 @@ impl Shuffled for VectorObjective {
 impl HeuristicSolution for VectorSolution {
     fn get_fitness<'a>(&'a self) -> Box<dyn Iterator<Item = f64> + 'a> {
         Box::new(self.objective.objectives().map(move |objective| objective.fitness(self)))
-        //Box::new(self.fitness.iter())
     }
 
     fn deep_copy(&self) -> Self {
