@@ -17,10 +17,3 @@ rosomaxa = { path = "../rosomaxa", version = "0.1.0" }
 rayon = "1.5.1"
 rand = "0.8.4"
 hashbrown = "0.12.0"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-num_cpus = "1.13.1"
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2.4", features = ["js"] }
-js-sys = "0.3.56"
