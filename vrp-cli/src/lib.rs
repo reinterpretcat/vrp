@@ -204,8 +204,6 @@ mod interop {
     }
 
     #[cfg(test)]
-    // NOTE some segfault on CI only, seems some issue with the tool
-    #[cfg(not(tarpaulin))]
     mod tests {
         use super::*;
         use crate::helpers::generate::SIMPLE_PROBLEM;

@@ -77,7 +77,7 @@ fn run_examples(base_path: &str) {
 
 fn open_file(path: &str) -> BufReader<File> {
     println!("Reading '{}'", path);
-    BufReader::new(File::open(path).unwrap_or_else(|err| panic!("cannot open {} file: '{}'", path, err.to_string())))
+    BufReader::new(File::open(path).unwrap_or_else(|err| panic!("cannot open {} file: '{}'", path, err)))
 }
 
 fn get_pragmatic_problem(base_path: &str, name: &str) -> Problem {
