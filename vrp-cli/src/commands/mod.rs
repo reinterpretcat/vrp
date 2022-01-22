@@ -22,14 +22,14 @@ pub(crate) fn create_write_buffer(out_file: Option<File>) -> BufWriter<Box<dyn W
 
 fn open_file(path: &str, description: &str) -> File {
     File::open(path).unwrap_or_else(|err| {
-        eprintln!("Cannot open {} file '{}': '{}'", description, path, err.to_string());
+        eprintln!("Cannot open {} file '{}': '{}'", description, path, err);
         process::exit(1);
     })
 }
 
 fn create_file(path: &str, description: &str) -> File {
     File::create(path).unwrap_or_else(|err| {
-        eprintln!("Cannot create {} file '{}': '{}'", description, path, err.to_string());
+        eprintln!("Cannot create {} file '{}': '{}'", description, path, err);
         process::exit(1);
     })
 }
@@ -43,7 +43,7 @@ fn parse_float_value<T: FromStr<Err = std::num::ParseFloatError>>(
         .value_of(arg_name)
         .map(|arg| {
             arg.parse::<T>()
-                .map_err(|err| format!("cannot get float value, error: '{}': '{}'", err.to_string(), arg_desc))
+                .map_err(|err| format!("cannot get float value, error: '{}': '{}'", err, arg_desc))
                 .map(Some)
         })
         .unwrap_or(Ok(None))
@@ -58,7 +58,7 @@ fn parse_int_value<T: FromStr<Err = std::num::ParseIntError>>(
         .value_of(arg_name)
         .map(|arg| {
             arg.parse::<T>()
-                .map_err(|err| format!("cannot get integer value, error: '{}': '{}'", err.to_string(), arg_desc))
+                .map_err(|err| format!("cannot get integer value, error: '{}': '{}'", err, arg_desc))
                 .map(Some)
         })
         .unwrap_or(Ok(None))
