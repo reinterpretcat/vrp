@@ -21,6 +21,11 @@ pub fn create_rosenbrock_function() -> VectorFunction {
     })
 }
 
+/// A helper method to create an example of VectorContext.
+pub fn create_default_heuristic_context() -> VectorContext {
+    create_heuristic_context_with_solutions(vec![], create_rosenbrock_function())
+}
+
 /// A helper method to create an example of VectorContext with given solutions and objective function.
 pub fn create_heuristic_context_with_solutions(
     solutions: Vec<Vec<f64>>,
