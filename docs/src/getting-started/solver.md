@@ -8,36 +8,39 @@ If you specify `--log` option, it will produce some log output which contains va
 process such as costs, amount of routes, time, etc.:
 
 ```
-provided 0 initial solutions to start with, max init size: default
-configured to use max-time: 120s
-problem has total jobs: 1000, actors: 250
+configured to use max-time: 300s
 preparing initial solution(-s)
-[0s] created 1 of 4 initial solutions in 622ms (ts: 0.005186183741666667)
-        cost: 70928.74, tours: 104, unassigned: 0, fitness: (0.000, 104.000, 70928.735)
-[1s] created 2 of 4 initial solutions in 655ms (ts: 0.010658395816666666)
-        cost: 74667.55, tours: 109, unassigned: 0, fitness: (0.000, 109.000, 74667.552)
-[2s] created 3 of 4 initial solutions in 1356ms (ts: 0.021964635916666666)
-        cost: 92749.84, tours: 147, unassigned: 0, fitness: (0.000, 147.000, 92749.835)
-[3s] created 4 of 4 initial solutions in 237ms (ts: 0.02394588325)
-        cost: 104125.42, tours: 132, unassigned: 0, fitness: (0.000, 132.000, 104125.418)
-[3s] generation 0 took 2873ms, rank: 0, cost: 70928.74(0.000%), tours: 104, unassigned: 0, fitness: (0.000, 104.000, 70928.735)
-[3s] population state (phase: initial, speed: 0.00 gen/sec, improvement ratio: 1.000:1.000):
-         rank: 0, cost: 70928.74(0.000%), tours: 104, unassigned: 0, fitness: (0.000, 104.000, 70928.735)
-[9s] generation 100 took 56ms, rank: 0, cost: 61572.58(0.000%), tours: 97, unassigned: 0, fitness: (0.000, 97.000, 61572.584)
-[13s] generation 200 took 32ms, rank: 0, cost: 60189.31(0.000%), tours: 95, unassigned: 0, fitness: (0.000, 95.000, 60189.313)
+[0s] created 1 of 4 initial solutions in 502ms
+        fitness: (0.000, 104.000, 70928.735)
+[1s] created 2 of 4 initial solutions in 510ms
+        fitness: (0.000, 109.000, 74500.133)
+[2s] created 3 of 4 initial solutions in 1032ms
+        fitness: (0.000, 104.000, 70928.735)
+[2s] created 4 of 4 initial solutions in 166ms
+        fitness: (0.000, 127.000, 99956.273)
+[2s] generation 0 took 2214ms, rank: 0, fitness: (0.000, 104.000, 70928.735), improvement: 0.000%
+[2s] population state (phase: initial, speed: 0.00 gen/sec, improvement ratio: 1.000:1.000):
+         rank: 0, fitness: (0.000, 104.000, 70928.735), improvement: 0.000%
+[5s] generation 100 took 15ms, rank: 0, fitness: (0.000, 97.000, 63075.095), improvement: 0.000%
 ..
-[42s] generation 900 took 45ms, rank: 0, cost: 57367.53(0.000%), tours: 93, unassigned: 0, fitness: (0.000, 93.000, 57367.531)
-[46s] generation 1000 took 33ms, rank: 0, cost: 57051.52(0.000%), tours: 93, unassigned: 0, fitness: (0.000, 93.000, 57051.516)
-[46s] population state (phase: exploration, speed: 21.58 gen/sec, improvement ratio: 0.444:0.443):
-         rank: 0, cost: 57051.52(0.000%), tours: 93, unassigned: 0, fitness: (0.000, 93.000, 57051.516)
-         rank: 1, cost: 57177.18(0.220%), tours: 93, unassigned: 0, fitness: (0.000, 93.000, 57177.178)
+[38s] generation 900 took 19ms, rank: 0, fitness: (0.000, 94.000, 55739.089), improvement: 0.000%
+[43s] generation 1000 took 113ms, rank: 0, fitness: (0.000, 94.000, 55356.272), improvement: 0.000%
+[43s] population state (phase: exploration, speed: 23.13 gen/sec, improvement ratio: 0.386:0.385):
+         rank: 0, fitness: (0.000, 94.000, 55356.272), improvement: 0.000%
+         rank: 1, fitness: (0.000, 94.000, 55376.441), improvement: 0.036%
 ..
-[115s] generation 2800 took 30ms, rank: 0, cost: 54100.07(0.000%), tours: 92, unassigned: 0, fitness: (0.000, 92.000, 54100.067)
-[118s] generation 2900 took 29ms, rank: 0, cost: 54041.48(0.000%), tours: 92, unassigned: 0, fitness: (0.000, 92.000, 54041.477)
-[120s] population state (phase: exploitation, speed: 24.49 gen/sec, improvement ratio: 0.293:0.165):
-         rank: 0, cost: 54041.48(0.000%), tours: 92, unassigned: 0, fitness: (0.000, 92.000, 54041.477)
-         rank: 1, cost: 54041.48(0.000%), tours: 92, unassigned: 0, fitness: (0.000, 92.000, 54041.477)
-[120s] total generations: 2945, speed: 24.49 gen/sec
+[227s] generation 5300 took 28ms, rank: 0, fitness: (0.000, 92.000, 53623.011), improvement: 0.000%
+[232s] generation 5400 took 25ms, rank: 0, fitness: (0.000, 92.000, 53323.363), improvement: 0.000%
+[236s] generation 5500 took 33ms, rank: 0, fitness: (0.000, 91.000, 55788.493), improvement: 0.000%
+..
+[300s] population state (phase: exploitation, speed: 23.47 gen/sec, improvement ratio: 0.193:0.179):
+         rank: 0, fitness: (0.000, 91.000, 54009.256), improvement: 0.000%
+         rank: 1, fitness: (0.000, 91.000, 54009.256), improvement: 0.000%
+[300s] total generations: 7042, speed: 23.47 gen/sec
+Route 1: 179 892 828 821 431 211 55 512 473 95 897 758
+Route 2: 798 962 999 773 443 3 949 213 499 848 392 72
+..
+Route 91: 844 364 377 452 165 41 336 380 172 403
 ```
 Once the problem is solved, it will save solution in `pragmatic` and `geojson` (optional) format.
 
