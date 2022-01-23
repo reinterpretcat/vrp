@@ -14,12 +14,12 @@ WORKDIR /src/
 # copy source code
 COPY Cargo.toml ./
 COPY examples ./examples
+COPY rosomaxa ./rosomaxa
 COPY vrp-core ./vrp-core
 COPY vrp-scientific ./vrp-scientific
 COPY vrp-pragmatic ./vrp-pragmatic
 COPY vrp-cli ./vrp-cli
 
-RUN cargo test
 RUN cargo build --release
 
 
