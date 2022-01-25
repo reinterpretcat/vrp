@@ -23,7 +23,7 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: '0.19.1'
-          args: '--exclude-files *_test.rs *tests*'
+          args: '--exclude-files *_test.rs *tests* *experiments*'
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v1.0.2
