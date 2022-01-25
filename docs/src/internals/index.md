@@ -18,3 +18,4 @@ The project consists of the following parts:
     - *data*: a data examples such as problem definition, configuration, etc.
     - *json-pragmatic*: an example how to solve problem in `pragmatic` json format from rust code using the project crates
     - *jvm-interop*: a gradle project which demonstrates how to use the library from java and kotlin
+- **experiments**: a playground for various experiments

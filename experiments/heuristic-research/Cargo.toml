@@ -1,0 +1,20 @@
+[package]
+name = "heuristic-research"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
+license = "Apache-2.0"
+keywords = ["heuristics", "optimization"]
+categories = ["algorithms", "science"]
+readme = "README.md"
+homepage = "https://github.com/reinterpretcat/vrp"
+repository = "https://github.com/reinterpretcat/vrp"
+description = "A playground for heuristic research"
+publish = false
+
+[dependencies]
+rosomaxa = { path = "../../rosomaxa" }
+
+[dependencies.pyo3]
+version = "0.15.1"
+features = ["auto-initialize"]

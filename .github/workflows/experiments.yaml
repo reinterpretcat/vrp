@@ -25,13 +25,13 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      -  run: python ./examples/experiments/collect-metrics.py ${{ github.event.inputs.config_url }}
+      -  run: python ./experiments/etc/collect-metrics.py ${{ github.event.inputs.config_url }}
 
       - name: Upload Results artifact
         uses: actions/upload-artifact@v2
         with:
           name: experiments-results.csv
-          path: examples/experiments/collect-metrics-results.csv
+          path: experiments/etc/collect-metrics-results.csv
 
 
   bench-scientific:
@@ -47,11 +47,11 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: python ./examples/experiments/bench-scientific.py ${{ github.event.inputs.config_url }}
+      - run: python ./experiments/etc/bench-scientific.py ${{ github.event.inputs.config_url }}
 
       - name: Upload Results artifact
         uses: actions/upload-artifact@v2
         with:
           name: bench-results
-          path: examples/experiments/results
+          path: experiments/etc/results
 
