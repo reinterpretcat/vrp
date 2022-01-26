@@ -19,8 +19,8 @@ fn can_assign_break_using_second_place() {
                         latest: format_time(1000.).to_string(),
                         location: vec![30., 0.].to_loc(),
                     }),
-                    breaks: Some(vec![VehicleBreak {
-                        time: VehicleBreakTime::TimeWindow(vec![format_time(10.), format_time(30.)]),
+                    breaks: Some(vec![VehicleBreak::Optional {
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(10.), format_time(30.)]),
                         places: vec![
                             VehicleBreakPlace {
                                 duration: 2.0,

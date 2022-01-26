@@ -9,8 +9,8 @@ fn can_detect_invalid_break_time() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    breaks: Some(vec![VehicleBreak {
-                        time: VehicleBreakTime::TimeWindow(vec![]),
+                    breaks: Some(vec![VehicleBreak::Optional {
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![]),
                         places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
                         policy: None,
                     }]),

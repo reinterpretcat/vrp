@@ -4,19 +4,19 @@ use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
 
-fn get_permissive_break_time() -> VehicleBreakTime {
-    VehicleBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)])
+fn get_permissive_break_time() -> VehicleOptionalBreakTime {
+    VehicleOptionalBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)])
 }
 
-fn get_challenging_break_time() -> VehicleBreakTime {
-    VehicleBreakTime::TimeWindow(vec![format_time(10.), format_time(15.)])
+fn get_challenging_break_time() -> VehicleOptionalBreakTime {
+    VehicleOptionalBreakTime::TimeWindow(vec![format_time(10.), format_time(15.)])
 }
 
 fn get_solution(
     relation_type: RelationType,
     job_duration: f64,
     break_location: Option<Location>,
-    break_time: VehicleBreakTime,
+    break_time: VehicleOptionalBreakTime,
     jobs: Vec<String>,
     perform_check: bool,
 ) -> Solution {
@@ -37,7 +37,7 @@ fn get_solution(
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    breaks: Some(vec![VehicleBreak {
+                    breaks: Some(vec![VehicleBreak::Optional {
                         time: break_time,
                         places: vec![VehicleBreakPlace { duration: 2.0, location: break_location, tag: None }],
                         policy: None,

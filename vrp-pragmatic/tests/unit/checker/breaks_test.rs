@@ -21,12 +21,12 @@ fn get_total_break_error_msg(expected: usize, actual: usize) -> Result<(), Vec<S
     )])
 }
 
-fn get_offset_break(start: f64, end: f64) -> VehicleBreakTime {
-    VehicleBreakTime::TimeOffset(vec![start, end])
+fn get_offset_break(start: f64, end: f64) -> VehicleOptionalBreakTime {
+    VehicleOptionalBreakTime::TimeOffset(vec![start, end])
 }
 
-fn get_time_break(start: f64, end: f64) -> VehicleBreakTime {
-    VehicleBreakTime::TimeWindow(vec![format_time(start), format_time(end)])
+fn get_time_break(start: f64, end: f64) -> VehicleOptionalBreakTime {
+    VehicleOptionalBreakTime::TimeWindow(vec![format_time(start), format_time(end)])
 }
 
 parameterized_test! {can_check_breaks, (break_times, violations, has_break, expected_result), {
@@ -65,7 +65,7 @@ can_check_breaks! {
 }
 
 fn can_check_breaks_impl(
-    break_times: VehicleBreakTime,
+    break_times: VehicleOptionalBreakTime,
     violations: Option<Vec<Violation>>,
     has_break: bool,
     expected_result: Result<(), Vec<String>>,
@@ -85,7 +85,7 @@ fn can_check_breaks_impl(
                         location: vec![0., 0.].to_loc(),
                     }),
                     dispatch: None,
-                    breaks: Some(vec![VehicleBreak {
+                    breaks: Some(vec![VehicleBreak::Optional {
                         time: break_times,
                         places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
                         policy: None,

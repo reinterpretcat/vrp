@@ -152,8 +152,8 @@ fn can_read_complex_problem() {
                         location: vec![52.4862, 13.45148].to_loc(),
                     }),
                     dispatch: None,
-                    breaks: Some(vec![VehicleBreak {
-                        time: VehicleBreakTime::TimeWindow(vec![
+                    breaks: Some(vec![VehicleBreak::Optional {
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![
                             "1970-01-01T00:00:10Z".to_string(),
                             "1970-01-01T00:01:20Z".to_string(),
                         ]),

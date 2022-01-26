@@ -51,7 +51,7 @@ fn job_prototype() -> impl Strategy<Value = Job> {
     )
 }
 
-fn get_break_times() -> impl Strategy<Value = VehicleBreakTime> {
+fn get_break_times() -> impl Strategy<Value = VehicleOptionalBreakTime> {
     prop_oneof![get_break_offset_time(), get_break_time_windows()]
 }
 
@@ -60,19 +60,19 @@ prop_compose! {
     (
      start in 3600..14400,
      length in 600..1800
-    ) -> VehicleBreakTime {
-        VehicleBreakTime::TimeOffset(vec![start as f64, (start + length) as f64])
+    ) -> VehicleOptionalBreakTime {
+        VehicleOptionalBreakTime::TimeOffset(vec![start as f64, (start + length) as f64])
     }
 }
 
-pub fn get_break_time_windows() -> impl Strategy<Value = VehicleBreakTime> {
+pub fn get_break_time_windows() -> impl Strategy<Value = VehicleOptionalBreakTime> {
     generate_multiple_time_windows_fixed(
         START_DAY,
         vec![from_hours(11), from_hours(13)],
         vec![from_hours(2), from_hours(4)],
         1..2,
     )
-    .prop_map(|tws| VehicleBreakTime::TimeWindow(tws.first().unwrap().clone()))
+    .prop_map(|tws| VehicleOptionalBreakTime::TimeWindow(tws.first().unwrap().clone()))
 }
 
 prop_compose! {

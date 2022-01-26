@@ -175,16 +175,23 @@ impl CheckerContext {
                 .breaks
                 .as_ref()
                 .and_then(|breaks| {
-                    breaks.iter().find(|b| match &b.time {
-                        VehicleBreakTime::TimeWindow(tw) => parse_time_window(tw).intersects(&time),
-                        VehicleBreakTime::TimeOffset(offset) => {
-                            assert_eq!(offset.len(), 2);
-                            // NOTE make expected time window wider due to reschedule departure
-                            let stops = &tour.stops;
-                            let start = parse_time(&stops.first().unwrap().time.arrival) + *offset.first().unwrap();
-                            let end = parse_time(&stops.first().unwrap().time.departure) + *offset.last().unwrap();
+                    breaks.iter().find(|b| {
+                        let break_time = match b {
+                            VehicleBreak::Optional { time, .. } => time,
+                            VehicleBreak::Required { .. } => unimplemented!(),
+                        };
 
-                            TimeWindow::new(start, end).intersects(&time)
+                        match break_time {
+                            VehicleOptionalBreakTime::TimeWindow(tw) => parse_time_window(tw).intersects(&time),
+                            VehicleOptionalBreakTime::TimeOffset(offset) => {
+                                assert_eq!(offset.len(), 2);
+                                // NOTE make expected time window wider due to reschedule departure
+                                let stops = &tour.stops;
+                                let start = parse_time(&stops.first().unwrap().time.arrival) + *offset.first().unwrap();
+                                let end = parse_time(&stops.first().unwrap().time.departure) + *offset.last().unwrap();
+
+                                TimeWindow::new(start, end).intersects(&time)
+                            }
                         }
                     })
                 })

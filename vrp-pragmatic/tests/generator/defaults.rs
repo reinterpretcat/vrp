@@ -98,8 +98,8 @@ pub fn default_shift_places_prototype() -> impl Strategy<Value = (ShiftStart, Op
 }
 
 pub fn default_breaks_prototype() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
-    Just(Some(vec![VehicleBreak {
-        time: VehicleBreakTime::TimeWindow(vec![default_time_plus_offset(12), default_time_plus_offset(14)]),
+    Just(Some(vec![VehicleBreak::Optional {
+        time: VehicleOptionalBreakTime::TimeWindow(vec![default_time_plus_offset(12), default_time_plus_offset(14)]),
         places: vec![VehicleBreakPlace { duration: 3600., location: None, tag: None }],
         policy: None,
     }]))

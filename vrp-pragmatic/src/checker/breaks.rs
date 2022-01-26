@@ -41,8 +41,13 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
                         .and_then(|commute| commute.backward.as_ref())
                         .map(|info| &info.location);
 
+                    let optional_break_places = match vehicle_break {
+                        VehicleBreak::Optional { places, .. } => places,
+                        VehicleBreak::Required { .. } => unimplemented!(),
+                    };
+
                     // TODO check tag and duration
-                    let has_match = vehicle_break.places.iter().any(|place| match &place.location {
+                    let has_match = optional_break_places.iter().any(|place| match &place.location {
                         Some(location) => actual_loc == *location,
                         None => *from_loc == actual_loc || backward_loc.map_or(false, |loc| *loc == actual_loc),
                     });
@@ -73,7 +78,14 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
         let expected_break_count =
             vehicle_shift.breaks.iter().flat_map(|breaks| breaks.iter()).fold(0, |acc, vehicle_break| {
                 let break_tw = get_break_time_window(tour, vehicle_break).expect("cannot get break time windows");
-                let policy = vehicle_break.policy.as_ref().cloned().unwrap_or(VehicleBreakPolicy::SkipIfNoIntersection);
+
+                let optional_break_policy = match vehicle_break {
+                    VehicleBreak::Optional { policy, .. } => policy,
+                    VehicleBreak::Required { .. } => unimplemented!(),
+                };
+
+                let policy =
+                    optional_break_policy.as_ref().cloned().unwrap_or(VehicleBreakPolicy::SkipIfNoIntersection);
 
                 let should_assign = match policy {
                     VehicleBreakPolicy::SkipIfNoIntersection => break_tw.start < arrival,
@@ -123,9 +135,14 @@ fn as_leg_info_with_break<'a>(
 }
 
 fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<TimeWindow, String> {
-    match &vehicle_break.time {
-        VehicleBreakTime::TimeWindow(tw) => Ok(parse_time_window(tw)),
-        VehicleBreakTime::TimeOffset(offset) => {
+    let optional_break_time = match vehicle_break {
+        VehicleBreak::Optional { time, .. } => time,
+        VehicleBreak::Required { .. } => unimplemented!(),
+    };
+
+    match &optional_break_time {
+        VehicleOptionalBreakTime::TimeWindow(tw) => Ok(parse_time_window(tw)),
+        VehicleOptionalBreakTime::TimeOffset(offset) => {
             if offset.len() != 2 {
                 return Err(format!("invalid offset break for tour: '{}'", tour.vehicle_id));
             }

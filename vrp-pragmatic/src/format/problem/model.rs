@@ -393,14 +393,24 @@ pub struct AreaLimit {
     pub job_value: f64,
 }
 
-/// Vehicle break time variant.
+/// Vehicle optional break time variant.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(untagged)]
-pub enum VehicleBreakTime {
+pub enum VehicleOptionalBreakTime {
     /// Break time is defined by a time window with time specified in RFC3339 format.
     TimeWindow(Vec<String>),
     /// Break time is defined by a time offset range.
     TimeOffset(Vec<f64>),
+}
+
+/// Vehicle required break time variant.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(untagged)]
+pub enum VehicleRequiredBreakTime {
+    /// Break time is defined by exact time in RFC3339 format.
+    ExactTime(String),
+    /// Break time is defined by amount of seconds since driving time.
+    OffsetTime(f64),
 }
 
 /// Vehicle break place.
@@ -427,17 +437,27 @@ pub enum VehicleBreakPolicy {
     SkipIfArrivalBeforeEnd,
 }
 
-/// Vehicle break.
+/// Specifies a vehicle break.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct VehicleBreak {
-    /// Break time.
-    pub time: VehicleBreakTime,
-
-    /// Vehicle break places.
-    pub places: Vec<VehicleBreakPlace>,
-
-    /// Specifies vehicle break policy.
-    pub policy: Option<VehicleBreakPolicy>,
+#[serde(untagged)]
+pub enum VehicleBreak {
+    /// An optional break which is more flexible, but might be not assigned.
+    Optional {
+        /// Break time.
+        time: VehicleOptionalBreakTime,
+        /// Vehicle break places.
+        places: Vec<VehicleBreakPlace>,
+        /// Specifies vehicle break policy.
+        policy: Option<VehicleBreakPolicy>,
+    },
+    /// A break which has to be assigned. It is less flexible than optional break, but has strong
+    /// assignment guarantee.
+    Required {
+        /// Break time.
+        time: VehicleRequiredBreakTime,
+        /// Break duration.
+        duration: f64,
+    },
 }
 
 /// Specifies a vehicle type.

@@ -1,6 +1,6 @@
 //! A helper module for processing geo coordinates in problem and solution.
 
-use crate::format::problem::Problem;
+use crate::format::problem::{Problem, VehicleBreak};
 use crate::format::Location;
 use hashbrown::HashMap;
 use std::cmp::Ordering::Less;
@@ -46,7 +46,11 @@ impl CoordIndex {
                 if let Some(breaks) = &shift.breaks {
                     breaks
                         .iter()
-                        .flat_map(|vehicle_break| vehicle_break.places.iter())
+                        .filter_map(|vehicle_break| match vehicle_break {
+                            VehicleBreak::Optional { places, .. } => Some(places),
+                            VehicleBreak::Required { .. } => None,
+                        })
+                        .flat_map(|places| places.iter())
                         .filter_map(|place| place.location.as_ref())
                         .for_each(|location| index.add(location));
                 }

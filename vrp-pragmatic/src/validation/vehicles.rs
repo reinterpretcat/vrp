@@ -82,8 +82,12 @@ fn check_e1303_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
                 .map(|breaks| {
                     let tws = breaks
                         .iter()
-                        .filter_map(|b| match &b.time {
-                            VehicleBreakTime::TimeWindow(tw) => Some(get_time_window_from_vec(tw)),
+                        .map(|b| match b {
+                            VehicleBreak::Optional { time, .. } => time,
+                            VehicleBreak::Required { .. } => unimplemented!(),
+                        })
+                        .filter_map(|time| match &time {
+                            VehicleOptionalBreakTime::TimeWindow(tw) => Some(get_time_window_from_vec(tw)),
                             _ => None,
                         })
                         .collect::<Vec<_>>();
