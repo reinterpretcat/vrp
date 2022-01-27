@@ -427,7 +427,7 @@ impl CostSoftActivityConstraint {
         end: &Activity,
         time: Timestamp,
     ) -> (Cost, Cost, Timestamp) {
-        let arrival = time + self.transport.duration(&actor, start.place.location, end.place.location, time);
+        let arrival = time + self.transport.duration(actor, start.place.location, end.place.location, time);
         let departure = arrival.max(end.place.time.start) + end.place.duration;
 
         let transport_cost = self.transport.cost(actor, start.place.location, end.place.location, time);

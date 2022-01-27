@@ -102,8 +102,8 @@ impl ActivityCost for SimpleActivityCost {}
 pub trait TransportCost {
     /// Returns time-dependent transport cost between two locations for given actor.
     fn cost(&self, actor: &Actor, from: Location, to: Location, departure: Timestamp) -> Cost {
-        let distance = self.distance(&actor, from, to, departure);
-        let duration = self.duration(&actor, from, to, departure);
+        let distance = self.distance(actor, from, to, departure);
+        let duration = self.duration(actor, from, to, departure);
 
         distance * (actor.driver.costs.per_distance + actor.vehicle.costs.per_distance)
             + duration * (actor.driver.costs.per_driving_time + actor.vehicle.costs.per_driving_time)
