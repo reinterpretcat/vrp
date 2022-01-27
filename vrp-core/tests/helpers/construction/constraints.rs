@@ -26,7 +26,7 @@ pub fn create_constraint_pipeline_with_module(module: Arc<dyn ConstraintModule +
 pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
     create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
         TestTransportCost::new_shared(),
-        Arc::new(TestActivityCost::default()),
+        TestActivityCost::new_shared(),
         Arc::new(|_| (None, None)),
         1,
         2,
@@ -36,6 +36,7 @@ pub fn create_constraint_pipeline_with_transport() -> ConstraintPipeline {
 
 pub fn create_constraint_pipeline_with_simple_capacity() -> ConstraintPipeline {
     create_constraint_pipeline_with_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(
+        TestActivityCost::new_shared(),
         TestTransportCost::new_shared(),
         2,
     )))

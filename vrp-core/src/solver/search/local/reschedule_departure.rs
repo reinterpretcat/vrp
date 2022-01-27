@@ -16,6 +16,7 @@ impl LocalOperator for RescheduleDeparture {
         refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
     ) -> Option<InsertionContext> {
+        let activity = refinement_ctx.problem.activity.as_ref();
         let transport = refinement_ctx.problem.transport.as_ref();
 
         // TODO optionally, optimize only subset of the routes.
@@ -28,9 +29,9 @@ impl LocalOperator for RescheduleDeparture {
 
             match (route_ctx.route.tour.start(), earliest, random.is_head_not_tails()) {
                 (Some(start), Some(earliest), true) if can_recede_departure(start, earliest) => {
-                    TransportConstraintModule::recede_departure_time(route_ctx, transport)
+                    TransportConstraintModule::recede_departure_time(route_ctx, activity, transport)
                 }
-                _ => TransportConstraintModule::advance_departure_time(route_ctx, transport, true),
+                _ => TransportConstraintModule::advance_departure_time(route_ctx, activity, transport, true),
             };
         });
 

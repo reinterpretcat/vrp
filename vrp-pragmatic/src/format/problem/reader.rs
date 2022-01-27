@@ -262,10 +262,10 @@ fn create_constraint_pipeline(
         DURATION_LIMIT_CONSTRAINT_CODE,
     )));
 
-    add_capacity_module(&mut constraint, props, transport.clone());
+    add_capacity_module(&mut constraint, props, activity.clone(), transport.clone());
 
     if props.has_breaks {
-        constraint.add_module(Arc::new(BreakModule::new(transport.clone(), BREAK_CONSTRAINT_CODE)));
+        constraint.add_module(Arc::new(BreakModule::new(activity.clone(), transport.clone(), BREAK_CONSTRAINT_CODE)));
     }
 
     if props.has_compatibility {
@@ -298,27 +298,30 @@ fn create_constraint_pipeline(
 fn add_capacity_module(
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 ) {
     constraint.add_module(if props.has_reloads {
         let threshold = 0.9;
         if props.has_multi_dimen_capacity {
             Arc::new(CapacityConstraintModule::<MultiDimLoad>::new_with_multi_trip(
+                activity,
                 transport,
                 CAPACITY_CONSTRAINT_CODE,
                 Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
             ))
         } else {
             Arc::new(CapacityConstraintModule::<SingleDimLoad>::new_with_multi_trip(
+                activity,
                 transport,
                 CAPACITY_CONSTRAINT_CODE,
                 Arc::new(ReloadMultiTrip::new(Box::new(move |capacity| *capacity * threshold))),
             ))
         }
     } else if props.has_multi_dimen_capacity {
-        Arc::new(CapacityConstraintModule::<MultiDimLoad>::new(transport, CAPACITY_CONSTRAINT_CODE))
+        Arc::new(CapacityConstraintModule::<MultiDimLoad>::new(activity, transport, CAPACITY_CONSTRAINT_CODE))
     } else {
-        Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(transport, CAPACITY_CONSTRAINT_CODE))
+        Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(activity, transport, CAPACITY_CONSTRAINT_CODE))
     });
 }
 

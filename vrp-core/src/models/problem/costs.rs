@@ -90,6 +90,12 @@ pub trait ActivityCost {
         waiting * (actor.driver.costs.per_waiting_time + actor.vehicle.costs.per_waiting_time)
             + service * (actor.driver.costs.per_service_time + actor.vehicle.costs.per_service_time)
     }
+
+    /// Returns time-dependent departure from given activity specific for given actor.
+    #[allow(unused_variables)]
+    fn departure(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Duration {
+        arrival.max(activity.place.time.start) + activity.place.duration
+    }
 }
 
 /// Default activity costs.

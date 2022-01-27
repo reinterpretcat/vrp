@@ -23,6 +23,7 @@ pub type TravelLimitFunc = Arc<dyn Fn(&Actor) -> (Option<Distance>, Option<Durat
 pub struct TransportConstraintModule {
     state_keys: Vec<i32>,
     constraints: Vec<ConstraintVariant>,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
     limit_func: TravelLimitFunc,
 }
@@ -34,28 +35,32 @@ impl ConstraintModule for TransportConstraintModule {
     }
 
     fn accept_route_state(&self, ctx: &mut RouteContext) {
-        Self::update_route_schedules(ctx, self.transport.as_ref());
-        Self::update_route_states(ctx, self.transport.as_ref());
+        let activity = self.activity.as_ref();
+        let transport = self.transport.as_ref();
+
+        Self::update_route_schedules(ctx, activity, transport);
+        Self::update_route_states(ctx, transport);
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
         match (self.limit_func)(&ctx.route.actor) {
             (None, None) => {}
             (_, limit_duration) => {
-                Self::advance_departure_time(ctx, self.transport.as_ref(), false);
+                Self::advance_departure_time(ctx, activity, transport, false);
                 if let Some(limit_duration) = limit_duration {
                     ctx.state_mut().put_route_state(LIMIT_DURATION_KEY, limit_duration);
                 }
             }
         }
 
-        Self::update_statistics(ctx, self.transport.as_ref());
+        Self::update_statistics(ctx, transport);
     }
 
     fn accept_solution_state(&self, ctx: &mut SolutionContext) {
         ctx.routes.iter_mut().filter(|route_ctx| route_ctx.is_stale()).for_each(|route_ctx| {
+            let activity = self.activity.as_ref();
             let transport = self.transport.as_ref();
 
-            Self::update_route_schedules(route_ctx, transport);
+            Self::update_route_schedules(route_ctx, activity, transport);
             Self::update_route_states(route_ctx, transport);
             Self::update_statistics(route_ctx, transport);
         })
@@ -98,6 +103,7 @@ impl TransportConstraintModule {
                 ConstraintVariant::SoftRoute(Arc::new(RouteCostSoftRouteConstraint {})),
                 ConstraintVariant::HardActivity(Arc::new(TimeHardActivityConstraint {
                     code: time_window_code,
+                    activity: activity.clone(),
                     transport: transport.clone(),
                 })),
                 ConstraintVariant::HardActivity(Arc::new(TravelHardActivityConstraint {
@@ -108,15 +114,20 @@ impl TransportConstraintModule {
                 })),
                 ConstraintVariant::SoftActivity(Arc::new(CostSoftActivityConstraint {
                     transport: transport.clone(),
-                    activity,
+                    activity: activity.clone(),
                 })),
             ],
+            activity,
             transport,
             limit_func,
         }
     }
 
-    pub(crate) fn update_route_schedules(ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
+    pub(crate) fn update_route_schedules(
+        ctx: &mut RouteContext,
+        activity: &(dyn ActivityCost + Send + Sync),
+        transport: &(dyn TransportCost + Send + Sync),
+    ) {
         let (init, actor) = {
             let start = ctx.route.tour.start().unwrap();
             ((start.place.location, start.schedule.departure), ctx.route.actor.clone())
@@ -124,7 +135,7 @@ impl TransportConstraintModule {
 
         ctx.route_mut().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
             a.schedule.arrival = dep + transport.duration(&actor, loc, a.place.location, dep);
-            a.schedule.departure = a.schedule.arrival.max(a.place.time.start) + a.place.duration;
+            a.schedule.departure = activity.departure(&actor, a, a.schedule.arrival);
 
             (a.place.location, a.schedule.departure)
         });
@@ -185,28 +196,34 @@ impl TransportConstraintModule {
     /// Tries to move forward route's departure time.
     pub(crate) fn advance_departure_time(
         route_ctx: &mut RouteContext,
+        activity: &(dyn ActivityCost + Send + Sync),
         transport: &(dyn TransportCost + Send + Sync),
         consider_whole_tour: bool,
     ) {
         let new_departure_time = try_advance_departure_time(route_ctx, transport, consider_whole_tour);
-        Self::try_update_route_departure(route_ctx, transport, new_departure_time);
+        Self::try_update_route_departure(route_ctx, activity, transport, new_departure_time);
     }
 
     /// Tries to move backward route's departure time.
-    pub(crate) fn recede_departure_time(route_ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
+    pub(crate) fn recede_departure_time(
+        route_ctx: &mut RouteContext,
+        activity: &(dyn ActivityCost + Send + Sync),
+        transport: &(dyn TransportCost + Send + Sync),
+    ) {
         let new_departure_time = try_recede_departure_time(route_ctx);
-        Self::try_update_route_departure(route_ctx, transport, new_departure_time);
+        Self::try_update_route_departure(route_ctx, activity, transport, new_departure_time);
     }
 
     fn try_update_route_departure(
         ctx: &mut RouteContext,
+        activity: &(dyn ActivityCost + Send + Sync),
         transport: &(dyn TransportCost + Send + Sync),
         new_departure_time: Option<f64>,
     ) {
         if let Some(new_departure_time) = new_departure_time {
             let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
             start.schedule.departure = new_departure_time;
-            Self::update_route_schedules(ctx, transport);
+            Self::update_route_schedules(ctx, activity, transport);
             Self::update_route_states(ctx, transport);
         }
     }
@@ -243,6 +260,7 @@ impl HardRouteConstraint for TimeHardRouteConstraint {
 /// Checks time windows of actor and job.
 struct TimeHardActivityConstraint {
     code: i32,
+    activity: Arc<dyn ActivityCost + Send + Sync>,
     transport: Arc<dyn TransportCost + Send + Sync>,
 }
 
@@ -294,7 +312,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         let arr_time_at_target_act =
             departure + self.transport.duration(actor, prev.place.location, target.place.location, departure);
 
-        let end_time_at_new_act = arr_time_at_target_act.max(target.place.time.start) + target.place.duration;
+        let end_time_at_new_act = self.activity.departure(actor, target, arr_time_at_target_act);
 
         let latest_arr_time_at_new_act = target.place.time.end.min(
             latest_arr_time_at_next_act
@@ -428,7 +446,7 @@ impl CostSoftActivityConstraint {
         time: Timestamp,
     ) -> (Cost, Cost, Timestamp) {
         let arrival = time + self.transport.duration(actor, start.place.location, end.place.location, time);
-        let departure = arrival.max(end.place.time.start) + end.place.duration;
+        let departure = self.activity.departure(actor, end, arrival);
 
         let transport_cost = self.transport.cost(actor, start.place.location, end.place.location, time);
         let activity_cost = self.activity.cost(actor, end, arrival);

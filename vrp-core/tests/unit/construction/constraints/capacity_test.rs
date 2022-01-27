@@ -164,7 +164,11 @@ fn can_merge_jobs_with_demand_impl(
     } else {
         Arc::new(test_single())
     });
-    let constraint = CapacityConstraintModule::<SingleDimLoad>::new(TestTransportCost::new_shared(), 2);
+    let constraint = CapacityConstraintModule::<SingleDimLoad>::new(
+        TestActivityCost::new_shared(),
+        TestTransportCost::new_shared(),
+        2,
+    );
 
     let result: Result<Demand<SingleDimLoad>, i32> =
         constraint.merge(cluster, candidate).and_then(|job| job.dimens().get_demand().cloned().ok_or(-1));

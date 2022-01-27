@@ -47,3 +47,9 @@ impl Default for TestActivityCost {
         Self {}
     }
 }
+
+impl TestActivityCost {
+    pub fn new_shared() -> Arc<dyn ActivityCost + Sync + Send> {
+        Arc::new(Self::default())
+    }
+}

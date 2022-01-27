@@ -94,13 +94,13 @@ pub(crate) fn create_constraint(
     let mut constraint = ConstraintPipeline::default();
     constraint.add_module(Arc::new(TransportConstraintModule::new(
         transport.clone(),
-        activity,
+        activity.clone(),
         Arc::new(|_| (None, None)),
         1,
         2,
         3,
     )));
-    constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(transport, 4)));
+    constraint.add_module(Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(activity, transport, 4)));
     constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
 
     constraint
