@@ -1,4 +1,3 @@
-use crate::helpers::models::common::DEFAULT_PROFILE_IDX;
 use crate::models::common::*;
 use crate::models::problem::*;
 use hashbrown::{HashMap, HashSet};
@@ -76,7 +75,7 @@ pub struct VehicleBuilder {
 
 impl Default for VehicleBuilder {
     fn default() -> VehicleBuilder {
-        VehicleBuilder { vehicle: test_vehicle(DEFAULT_PROFILE_IDX) }
+        VehicleBuilder { vehicle: test_vehicle(0) }
     }
 }
 

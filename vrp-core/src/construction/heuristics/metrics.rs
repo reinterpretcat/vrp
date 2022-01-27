@@ -53,12 +53,7 @@ pub fn get_longest_distance_between_customers_mean(insertion_ctx: &InsertionCont
         route_ctx.route.tour.legs().fold(0., |acc, (activities, _)| match activities {
             [_] => acc,
             [prev, next] => transport
-                .distance(
-                    &route_ctx.route.actor.vehicle.profile,
-                    prev.place.location,
-                    next.place.location,
-                    prev.schedule.departure,
-                )
+                .distance(&route_ctx.route.actor, prev.place.location, next.place.location, prev.schedule.departure)
                 .max(acc),
             _ => panic!("Unexpected route leg configuration."),
         })
@@ -74,7 +69,7 @@ pub fn get_average_distance_between_depot_customer_mean(insertion_ctx: &Insertio
 
         get_mean_iter(route_ctx.route.tour.all_activities().skip(1).map(|activity| {
             transport.distance(
-                &route_ctx.route.actor.vehicle.profile,
+                &route_ctx.route.actor,
                 depot.place.location,
                 activity.place.location,
                 depot.schedule.departure,
@@ -97,7 +92,7 @@ pub fn get_longest_distance_between_depot_customer_mean(insertion_ctx: &Insertio
             .skip(1)
             .map(|activity| {
                 transport.distance(
-                    &route_ctx.route.actor.vehicle.profile,
+                    &route_ctx.route.actor,
                     depot.place.location,
                     activity.place.location,
                     depot.schedule.departure,
@@ -125,7 +120,7 @@ pub fn get_distance_gravity_mean(insertion_ctx: &InsertionContext) -> f64 {
 
         for i in 0..medoids.len() {
             for j in (i + 1)..medoids.len() {
-                let distance = transport.distance(profile, medoids[i], medoids[j], Default::default());
+                let distance = transport.distance_approx(profile, medoids[i], medoids[j]);
                 // NOTE assume that negative distance is used between unroutable locations
                 distances.push(distance.max(0.));
             }
@@ -145,14 +140,7 @@ pub fn get_medoid(route_ctx: &RouteContext, transport: &(dyn TransportCost + Sen
         .map(|outer_loc| {
             let sum = locations
                 .iter()
-                .map(|inner_loc| {
-                    transport.distance(
-                        &route_ctx.route.actor.vehicle.profile,
-                        *outer_loc,
-                        *inner_loc,
-                        Default::default(),
-                    )
-                })
+                .map(|inner_loc| transport.distance(&route_ctx.route.actor, *outer_loc, *inner_loc, Default::default()))
                 .sum::<f64>();
             (sum, *outer_loc)
         })
@@ -186,8 +174,7 @@ pub fn group_routes_by_proximity(insertion_ctx: &InsertionContext) -> RouteProxi
                     .map(move |(inner_idx, inner_medoid)| {
                         let distance = match (outer_medoid, inner_medoid) {
                             (Some(outer_medoid), Some(inner_medoid)) => {
-                                let distance =
-                                    transport.distance(profile, *outer_medoid, *inner_medoid, Default::default());
+                                let distance = transport.distance_approx(profile, *outer_medoid, *inner_medoid);
                                 if distance < 0. {
                                     None
                                 } else {

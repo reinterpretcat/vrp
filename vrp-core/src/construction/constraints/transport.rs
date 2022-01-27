@@ -4,7 +4,7 @@ mod transport_test;
 
 use crate::construction::constraints::*;
 use crate::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
-use crate::models::common::{Cost, Distance, Duration, Profile, Timestamp};
+use crate::models::common::{Cost, Distance, Duration, Timestamp};
 use crate::models::problem::{ActivityCost, Actor, Job, Single, TransportCost};
 use crate::models::solution::Activity;
 use crate::models::OP_START_MSG;
@@ -123,7 +123,7 @@ impl TransportConstraintModule {
         };
 
         ctx.route_mut().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
-            a.schedule.arrival = dep + transport.duration(&actor.vehicle.profile, loc, a.place.location, dep);
+            a.schedule.arrival = dep + transport.duration(&actor, loc, a.place.location, dep);
             a.schedule.departure = a.schedule.arrival.max(a.place.time.start) + a.place.duration;
 
             (a.place.location, a.schedule.departure)
@@ -152,9 +152,8 @@ impl TransportConstraintModule {
             }
 
             let (end_time, prev_loc, waiting) = acc;
-            let potential_latest = end_time
-                - transport.duration(&actor.vehicle.profile, act.place.location, prev_loc, end_time)
-                - act.place.duration;
+            let potential_latest =
+                end_time - transport.duration(&actor, act.place.location, prev_loc, end_time) - act.place.duration;
 
             let latest_arrival_time = act.place.time.end.min(potential_latest);
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
@@ -174,8 +173,7 @@ impl TransportConstraintModule {
 
         let init = (start.place.location, start.schedule.departure, Distance::default());
         let (_, _, total_dist) = ctx.route.tour.all_activities().skip(1).fold(init, |(loc, dep, total_dist), a| {
-            let total_dist =
-                total_dist + transport.distance(&ctx.route.actor.vehicle.profile, loc, a.place.location, dep);
+            let total_dist = total_dist + transport.distance(&ctx.route.actor, loc, a.place.location, dep);
 
             (a.place.location, a.schedule.departure, total_dist)
         });
@@ -261,7 +259,6 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         let next = activity_ctx.next;
 
         let departure = prev.schedule.departure;
-        let profile = &actor.vehicle.profile;
 
         if actor.detail.time.end < prev.place.time.start
             || actor.detail.time.end < target.place.time.start
@@ -285,7 +282,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         };
 
         let arr_time_at_next =
-            departure + self.transport.duration(profile, prev.place.location, next_act_location, departure);
+            departure + self.transport.duration(actor, prev.place.location, next_act_location, departure);
 
         if arr_time_at_next > latest_arr_time_at_next_act {
             return fail(self.code);
@@ -295,18 +292,13 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         }
 
         let arr_time_at_target_act =
-            departure + self.transport.duration(profile, prev.place.location, target.place.location, departure);
+            departure + self.transport.duration(actor, prev.place.location, target.place.location, departure);
 
         let end_time_at_new_act = arr_time_at_target_act.max(target.place.time.start) + target.place.duration;
 
         let latest_arr_time_at_new_act = target.place.time.end.min(
             latest_arr_time_at_next_act
-                - self.transport.duration(
-                    profile,
-                    target.place.location,
-                    next_act_location,
-                    latest_arr_time_at_next_act,
-                )
+                - self.transport.duration(actor, target.place.location, next_act_location, latest_arr_time_at_next_act)
                 + target.place.duration,
         );
 
@@ -319,7 +311,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         }
 
         let arr_time_at_next_act = end_time_at_new_act
-            + self.transport.duration(profile, target.place.location, next_act_location, end_time_at_new_act);
+            + self.transport.duration(actor, target.place.location, next_act_location, end_time_at_new_act);
 
         if arr_time_at_next_act > latest_arr_time_at_next_act {
             stop(self.code)
@@ -367,7 +359,6 @@ impl HardActivityConstraint for TravelHardActivityConstraint {
 impl TravelHardActivityConstraint {
     fn calculate_travel(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> (Distance, Duration) {
         let actor = &route_ctx.route.actor;
-        let profile = &actor.vehicle.profile;
 
         let prev = activity_ctx.prev;
         let tar = activity_ctx.target;
@@ -375,7 +366,7 @@ impl TravelHardActivityConstraint {
 
         let prev_dep = prev.schedule.departure;
 
-        let (prev_to_tar_dis, prev_to_tar_dur) = self.calculate_leg_travel_info(profile, prev, tar, prev_dep);
+        let (prev_to_tar_dis, prev_to_tar_dur) = self.calculate_leg_travel_info(actor, prev, tar, prev_dep);
         if next.is_none() {
             return (prev_to_tar_dis, prev_to_tar_dur);
         }
@@ -383,23 +374,23 @@ impl TravelHardActivityConstraint {
         let next = next.unwrap();
         let tar_dep = prev_dep + prev_to_tar_dur;
 
-        let (prev_to_next_dis, prev_to_next_dur) = self.calculate_leg_travel_info(profile, prev, next, prev_dep);
-        let (tar_to_next_dis, tar_to_next_dur) = self.calculate_leg_travel_info(profile, tar, next, tar_dep);
+        let (prev_to_next_dis, prev_to_next_dur) = self.calculate_leg_travel_info(actor, prev, next, prev_dep);
+        let (tar_to_next_dis, tar_to_next_dur) = self.calculate_leg_travel_info(actor, tar, next, tar_dep);
 
         (prev_to_tar_dis + tar_to_next_dis - prev_to_next_dis, prev_to_tar_dur + tar_to_next_dur - prev_to_next_dur)
     }
 
     fn calculate_leg_travel_info(
         &self,
-        profile: &Profile,
+        actor: &Actor,
         first: &Activity,
         second: &Activity,
         departure: Timestamp,
     ) -> (Distance, Duration) {
         let first_to_second_dis =
-            self.transport.distance(profile, first.place.location, second.place.location, departure);
+            self.transport.distance(actor, first.place.location, second.place.location, departure);
         let first_to_second_dur =
-            self.transport.duration(profile, first.place.location, second.place.location, departure);
+            self.transport.duration(actor, first.place.location, second.place.location, departure);
 
         let second_arr = departure + first_to_second_dur;
         let second_wait = (second.place.time.start - second_arr).max(0.);
@@ -436,8 +427,7 @@ impl CostSoftActivityConstraint {
         end: &Activity,
         time: Timestamp,
     ) -> (Cost, Cost, Timestamp) {
-        let arrival =
-            time + self.transport.duration(&actor.vehicle.profile, start.place.location, end.place.location, time);
+        let arrival = time + self.transport.duration(&actor, start.place.location, end.place.location, time);
         let departure = arrival.max(end.place.time.start) + end.place.duration;
 
         let transport_cost = self.transport.cost(actor, start.place.location, end.place.location, time);
@@ -512,12 +502,8 @@ fn try_advance_departure_time(
 
         (start.schedule.departure + departure_shift).min(latest_allowed_departure)
     } else {
-        let start_to_first = transport.duration(
-            &route_ctx.route.actor.vehicle.profile,
-            start.place.location,
-            first.place.location,
-            last_departure_time,
-        );
+        let start_to_first =
+            transport.duration(&route_ctx.route.actor, start.place.location, first.place.location, last_departure_time);
 
         last_departure_time.max(first.place.time.start - start_to_first).min(latest_allowed_departure)
     };

@@ -265,7 +265,6 @@ pub fn get_job_locations<'a>(job: &'a Job) -> Box<dyn Iterator<Item = Option<Loc
 }
 
 // TODO: we don't know actual departure and zero-cost when we create job index.
-const DEFAULT_DEPARTURE: Timestamp = 0.;
 const DEFAULT_COST: Cost = 0.;
 const UNREACHABLE_COST: Cost = f64::MAX;
 
@@ -322,8 +321,8 @@ fn get_cost_between_locations(
     from: Location,
     to: Location,
 ) -> f64 {
-    let distance = transport.distance(profile, from, to, DEFAULT_DEPARTURE);
-    let duration = transport.duration(profile, from, to, DEFAULT_DEPARTURE);
+    let distance = transport.distance_approx(profile, from, to);
+    let duration = transport.duration_approx(profile, from, to);
 
     if distance < 0. || duration < 0. {
         // NOTE this happens if matrix uses negative values as a marker of unreachable location
@@ -367,7 +366,7 @@ fn get_cost_between_jobs(
         .map(|pair| match pair {
             (Some(from), Some(to)) => {
                 let total = get_cost_between_locations(profile, costs, transport, from, to);
-                let duration = transport.duration(profile, from, to, DEFAULT_DEPARTURE);
+                let duration = transport.duration_approx(profile, from, to);
                 (total, duration)
             }
             _ => (DEFAULT_COST, 0.),

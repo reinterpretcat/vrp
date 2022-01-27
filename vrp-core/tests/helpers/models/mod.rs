@@ -1,5 +1,3 @@
-pub mod common;
+pub mod domain;
 pub mod problem;
 pub mod solution;
-
-pub mod domain;

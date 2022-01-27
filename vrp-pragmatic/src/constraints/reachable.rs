@@ -57,10 +57,10 @@ impl HardActivityConstraint for ReachableHardActivityConstraint {
         let target = activity_ctx.target;
         let next = activity_ctx.next;
 
-        let profile = &route_ctx.route.actor.vehicle.profile;
+        let actor = &route_ctx.route.actor;
 
         let prev_to_target =
-            self.transport.distance(profile, prev.place.location, target.place.location, prev.schedule.departure);
+            self.transport.distance(actor, prev.place.location, target.place.location, prev.schedule.departure);
 
         if prev_to_target < 0. {
             return Some(ActivityConstraintViolation { code: self.code, stopped: false });
@@ -68,7 +68,7 @@ impl HardActivityConstraint for ReachableHardActivityConstraint {
 
         if let Some(next) = next {
             let target_to_next =
-                self.transport.distance(profile, target.place.location, next.place.location, target.schedule.departure);
+                self.transport.distance(actor, target.place.location, next.place.location, target.schedule.departure);
             if target_to_next < 0. {
                 return Some(ActivityConstraintViolation { code: self.code, stopped: false });
             }

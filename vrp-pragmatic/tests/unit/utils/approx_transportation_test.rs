@@ -37,8 +37,8 @@ fn can_use_approximated_with_matrix_costs() {
         .expect("Cannot create matrix transport costs");
 
     vec![(0, 1, 3048.), (1, 2, 2056.), (2, 0, 5078.)].into_iter().for_each(|(from, to, expected)| {
-        let distance = costs.distance(&profile, from, to, 0.);
-        let duration = costs.duration(&profile, from, to, 0.);
+        let distance = costs.distance_approx(&profile, from, to);
+        let duration = costs.duration_approx(&profile, from, to);
 
         assert_eq!(distance.round(), expected);
         assert_eq!(duration.round(), (distance / speed).round());

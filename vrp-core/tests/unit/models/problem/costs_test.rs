@@ -1,4 +1,5 @@
 use super::*;
+use crate::helpers::models::solution::test_actor_with_profile;
 
 fn create_matrix_data(
     profile: Profile,
@@ -70,8 +71,11 @@ fn can_return_error_when_mixing_timestamps() {
 
 #[test]
 fn can_interpolate_durations() {
-    let p0 = Profile::default();
-    let p1 = Profile::new(1, None);
+    let actor0 = test_actor_with_profile(0);
+    let actor1 = test_actor_with_profile(1);
+    let p0 = actor0.vehicle.profile.clone();
+    let p1 = actor1.vehicle.profile.clone();
+
     let costs = TimeAwareMatrixTransportCost::new(
         vec![
             create_matrix_data(p0.clone(), Some(0.), (100., 2), (1., 2)),
@@ -84,15 +88,18 @@ fn can_interpolate_durations() {
     .unwrap();
 
     for &(timestamp, duration) in &[(0., 100.), (10., 200.), (15., 200.), (3., 130.), (5., 150.), (7., 170.)] {
-        assert_eq!(costs.duration(&p0, 0, 1, timestamp), duration);
+        assert_eq!(costs.duration(&actor0, 0, 1, timestamp), duration);
     }
 
     for &(timestamp, duration) in &[(0., 300.), (10., 400.), (15., 400.), (3., 330.), (5., 350.), (7., 370.)] {
-        assert_eq!(costs.duration(&p1, 0, 1, timestamp), duration);
+        assert_eq!(costs.duration(&actor1, 0, 1, timestamp), duration);
     }
 
-    assert_eq!(costs.distance(&p0, 0, 1, 0.), 1.);
-    assert_eq!(costs.distance(&p1, 0, 1, 0.), 5.);
+    assert_eq!(costs.distance(&actor0, 0, 1, 0.), 1.);
+    assert_eq!(costs.distance(&actor1, 0, 1, 0.), 5.);
+
+    assert_eq!(costs.distance_approx(&p0, 0, 1), 1.);
+    assert_eq!(costs.distance_approx(&p1, 0, 1), 5.);
 }
 
 mod objective {

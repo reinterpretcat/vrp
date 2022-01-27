@@ -146,13 +146,11 @@ fn get_dissimilarities(
                         .unwrap_or(0.);
 
                     if shared_time > min_shared_time {
-                        let departure = Default::default();
+                        let fwd_distance = transport.distance_approx(&config.profile, outer_loc, inner_loc);
+                        let fwd_duration = transport.duration_approx(&config.profile, outer_loc, inner_loc);
 
-                        let fwd_distance = transport.distance(&config.profile, outer_loc, inner_loc, departure);
-                        let fwd_duration = transport.duration(&config.profile, outer_loc, inner_loc, departure);
-
-                        let bck_distance = transport.distance(&config.profile, inner_loc, outer_loc, departure);
-                        let bck_duration = transport.duration(&config.profile, inner_loc, outer_loc, departure);
+                        let bck_distance = transport.distance_approx(&config.profile, inner_loc, outer_loc);
+                        let bck_duration = transport.duration_approx(&config.profile, inner_loc, outer_loc);
 
                         let reachable = compare_floats(fwd_distance, 0.) != Ordering::Less
                             && compare_floats(bck_distance, 0.) != Ordering::Less;

@@ -1,15 +1,23 @@
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::{ActivityCost, TransportCost};
+use crate::models::problem::{ActivityCost, Actor, TransportCost};
 use std::sync::Arc;
 
 pub struct TestTransportCost {}
 
 impl TransportCost for TestTransportCost {
-    fn duration(&self, _: &Profile, from: Location, to: Location, _departure: Timestamp) -> Duration {
+    fn duration_approx(&self, _: &Profile, from: Location, to: Location) -> Duration {
         fake_routing(from, to)
     }
 
-    fn distance(&self, _: &Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
+    fn distance_approx(&self, _: &Profile, from: Location, to: Location) -> Distance {
+        fake_routing(from, to)
+    }
+
+    fn duration(&self, _: &Actor, from: Location, to: Location, _: Timestamp) -> Duration {
+        fake_routing(from, to)
+    }
+
+    fn distance(&self, _: &Actor, from: Location, to: Location, _: Timestamp) -> Distance {
         fake_routing(from, to)
     }
 }

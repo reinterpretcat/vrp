@@ -1,3 +1,5 @@
+use crate::core::models::common::{Distance, Duration};
+use crate::core::models::problem::Actor;
 use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassignedJobs};
 use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
@@ -277,11 +279,19 @@ pub fn get_costs() -> (Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCos
     struct ExampleTransportCost {}
 
     impl TransportCost for ExampleTransportCost {
-        fn duration(&self, _: &CoreProfile, _: usize, _: usize, _: f64) -> f64 {
+        fn duration_approx(&self, _: &CoreProfile, _: usize, _: usize) -> Duration {
             42.
         }
 
-        fn distance(&self, _: &CoreProfile, _: usize, _: usize, _: f64) -> f64 {
+        fn distance_approx(&self, _: &CoreProfile, _: usize, _: usize) -> Distance {
+            42.
+        }
+
+        fn duration(&self, _: &Actor, _: usize, _: usize, _: f64) -> f64 {
+            42.
+        }
+
+        fn distance(&self, _: &Actor, _: usize, _: usize, _: f64) -> f64 {
             42.
         }
     }

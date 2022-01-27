@@ -1,4 +1,3 @@
-use crate::helpers::models::common::DEFAULT_PROFILE_IDX;
 use crate::helpers::models::domain::test_random;
 use crate::helpers::models::problem::*;
 use crate::models::common::TimeInterval;
@@ -7,8 +6,12 @@ use crate::models::solution::Registry;
 use std::sync::Arc;
 
 pub fn test_actor() -> Arc<Actor> {
+    test_actor_with_profile(0)
+}
+
+pub fn test_actor_with_profile(profile_idx: usize) -> Arc<Actor> {
     Arc::new(Actor {
-        vehicle: Arc::new(test_vehicle(DEFAULT_PROFILE_IDX)),
+        vehicle: Arc::new(test_vehicle(profile_idx)),
         driver: Arc::new(test_driver()),
         detail: ActorDetail {
             start: Some(VehiclePlace {

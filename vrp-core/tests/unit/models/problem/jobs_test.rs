@@ -1,15 +1,23 @@
 use super::*;
 use crate::helpers::models::problem::*;
-use crate::models::problem::{VehicleDetail, VehiclePlace};
+use crate::models::problem::{Actor, VehicleDetail, VehiclePlace};
 
 struct OnlyDistanceCost {}
 
 impl TransportCost for OnlyDistanceCost {
-    fn duration(&self, _: &Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
+    fn duration_approx(&self, _: &Profile, _: Location, _: Location) -> Duration {
         0.
     }
 
-    fn distance(&self, _: &Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
+    fn distance_approx(&self, _: &Profile, from: Location, to: Location) -> Distance {
+        fake_routing(from, to)
+    }
+
+    fn duration(&self, _: &Actor, _: Location, _: Location, _: Timestamp) -> Duration {
+        0.
+    }
+
+    fn distance(&self, _: &Actor, from: Location, to: Location, _: Timestamp) -> Distance {
         fake_routing(from, to)
     }
 }
@@ -31,12 +39,20 @@ impl ProfileAwareTransportCost {
 }
 
 impl TransportCost for ProfileAwareTransportCost {
-    fn duration(&self, _: &Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
+    fn duration_approx(&self, _: &Profile, _: Location, _: Location) -> Duration {
         0.
     }
 
-    fn distance(&self, profile: &Profile, from: Location, to: Location, _departure: Timestamp) -> Distance {
+    fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
         (self.func)(profile, fake_routing(from, to))
+    }
+
+    fn duration(&self, _: &Actor, _: Location, _: Location, _: Timestamp) -> Duration {
+        0.
+    }
+
+    fn distance(&self, actor: &Actor, from: Location, to: Location, _departure: Timestamp) -> Distance {
+        (self.func)(&actor.vehicle.profile, fake_routing(from, to))
     }
 }
 
@@ -46,11 +62,19 @@ struct FixedTransportCost {
 }
 
 impl TransportCost for FixedTransportCost {
-    fn duration(&self, _: &Profile, _from: Location, _to: Location, _departure: Timestamp) -> Duration {
+    fn duration_approx(&self, _: &Profile, _: Location, _: Location) -> Duration {
         self.duration_cost
     }
 
-    fn distance(&self, _: &Profile, _from: Location, _to: Location, _departure: Timestamp) -> Distance {
+    fn distance_approx(&self, _: &Profile, _: Location, _: Location) -> Distance {
+        self.distance_cost
+    }
+
+    fn duration(&self, _: &Actor, _: Location, _: Location, _: Timestamp) -> Duration {
+        self.duration_cost
+    }
+
+    fn distance(&self, _: &Actor, _: Location, _: Location, _: Timestamp) -> Distance {
         self.distance_cost
     }
 }

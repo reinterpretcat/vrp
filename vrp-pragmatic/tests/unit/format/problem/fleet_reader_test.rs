@@ -2,7 +2,9 @@ use super::create_transport_costs;
 use crate::format::problem::*;
 use crate::format_time;
 use crate::helpers::*;
-use vrp_core::models::common::{Distance, Profile as CoreProfile, Timestamp};
+use std::sync::Arc;
+use vrp_core::models::common::{Distance, Profile as CoreProfile, TimeWindow, Timestamp};
+use vrp_core::models::problem::{Actor, ActorDetail, Vehicle};
 
 fn matrix(profile: Option<&str>, timestamp: Option<f64>, fill_value: i64, size: usize) -> Matrix {
     Matrix {
@@ -154,8 +156,13 @@ fn can_create_transport_costs_positive_cases_impl(
     let transport = create_transport_costs(&problem, matrices).unwrap();
 
     probes.iter().for_each(|&(profile_idx, timestamp, distance)| {
-        let profile = CoreProfile::new(profile_idx, None);
-        let result = transport.distance(&profile, 0, 1, timestamp);
+        let actor = Actor {
+            vehicle: Arc::new(Vehicle { profile: CoreProfile::new(profile_idx, None), ..test_vehicle("v1") }),
+            driver: Arc::new(test_driver()),
+            detail: ActorDetail { start: None, end: None, time: TimeWindow::new(0., 1.) },
+        };
+
+        let result = transport.distance(&actor, 0, 1, timestamp);
         assert_eq!(result, distance);
     });
 }

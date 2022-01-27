@@ -112,7 +112,6 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
     let actor = route.actor.as_ref();
     let vehicle = actor.vehicle.as_ref();
-    let profile = &vehicle.profile;
     let transport = problem.transport.as_ref();
 
     let mut tour = Tour {
@@ -212,7 +211,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
                 let (driving, transport_cost) = if commute.is_zero_distance() {
                     // NOTE: use original cost traits to adapt time-based costs (except waiting/commuting)
-                    let duration = transport.duration(profile, prev_location, act.place.location, prev_departure);
+                    let duration = transport.duration(actor, prev_location, act.place.location, prev_departure);
                     let transport_cost = transport.cost(actor, prev_location, act.place.location, prev_departure);
                     (duration, transport_cost)
                 } else {
@@ -239,7 +238,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let total_cost = serving_cost + transport_cost + waiting * vehicle.costs.per_waiting_time;
 
                 let location_distance =
-                    transport.distance(profile, prev_location, act.place.location, prev_departure) as i64;
+                    transport.distance(actor, prev_location, act.place.location, prev_departure) as i64;
                 let distance = leg.statistic.distance + location_distance - commute.forward.distance as i64;
 
                 let is_new_stop = match (act.commute.as_ref(), prev_location == act.place.location) {

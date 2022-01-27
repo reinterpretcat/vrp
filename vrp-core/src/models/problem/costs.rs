@@ -100,20 +100,26 @@ impl ActivityCost for SimpleActivityCost {}
 
 /// Provides the way to get routing information for specific locations and actor.
 pub trait TransportCost {
-    /// Returns transport cost between two locations.
+    /// Returns time-dependent transport cost between two locations for given actor.
     fn cost(&self, actor: &Actor, from: Location, to: Location, departure: Timestamp) -> Cost {
-        let distance = self.distance(&actor.vehicle.profile, from, to, departure);
-        let duration = self.duration(&actor.vehicle.profile, from, to, departure);
+        let distance = self.distance(&actor, from, to, departure);
+        let duration = self.duration(&actor, from, to, departure);
 
         distance * (actor.driver.costs.per_distance + actor.vehicle.costs.per_distance)
             + duration * (actor.driver.costs.per_driving_time + actor.vehicle.costs.per_driving_time)
     }
 
-    /// Returns transport time between two locations.
-    fn duration(&self, profile: &Profile, from: Location, to: Location, departure: Timestamp) -> Duration;
+    /// Returns time-independent travel duration between locations specific for given profile.
+    fn duration_approx(&self, profile: &Profile, from: Location, to: Location) -> Duration;
 
-    /// Returns transport distance between two locations.
-    fn distance(&self, profile: &Profile, from: Location, to: Location, departure: Timestamp) -> Distance;
+    /// Returns time-independent travel distance between locations specific for given profile.
+    fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance;
+
+    /// Returns time-dependent travel duration between locations specific for given actor.
+    fn duration(&self, actor: &Actor, from: Location, to: Location, departure: Timestamp) -> Duration;
+
+    /// Returns time-dependent travel distance between locations specific for given actor.
+    fn distance(&self, actor: &Actor, from: Location, to: Location, departure: Timestamp) -> Distance;
 }
 
 /// Contains matrix routing data for specific profile and, optionally, time.
@@ -195,12 +201,20 @@ impl TimeAgnosticMatrixTransportCost {
 }
 
 impl TransportCost for TimeAgnosticMatrixTransportCost {
-    fn duration(&self, profile: &Profile, from: Location, to: Location, _: Timestamp) -> Duration {
+    fn duration_approx(&self, profile: &Profile, from: Location, to: Location) -> Duration {
         *self.durations.get(profile.index).unwrap().get(from * self.size + to).unwrap() * profile.scale
     }
 
-    fn distance(&self, profile: &Profile, from: Location, to: Location, _: Timestamp) -> Distance {
+    fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
         *self.distances.get(profile.index).unwrap().get(from * self.size + to).unwrap()
+    }
+
+    fn duration(&self, actor: &Actor, from: Location, to: Location, _: Timestamp) -> Duration {
+        self.duration_approx(&actor.vehicle.profile, from, to)
+    }
+
+    fn distance(&self, actor: &Actor, from: Location, to: Location, _: Timestamp) -> Distance {
+        self.distance_approx(&actor.vehicle.profile, from, to)
     }
 }
 
@@ -235,10 +249,8 @@ impl TimeAwareMatrixTransportCost {
 
         Ok(Self { costs, size })
     }
-}
 
-impl TransportCost for TimeAwareMatrixTransportCost {
-    fn duration(&self, profile: &Profile, from: Location, to: Location, timestamp: Timestamp) -> Duration {
+    fn interpolate_duration(&self, profile: &Profile, from: Location, to: Location, timestamp: Timestamp) -> Duration {
         let (timestamps, matrices) = self.costs.get(&profile.index).unwrap();
         let data_idx = from * self.size + to;
 
@@ -265,7 +277,7 @@ impl TransportCost for TimeAwareMatrixTransportCost {
             }
     }
 
-    fn distance(&self, profile: &Profile, from: Location, to: Location, timestamp: Timestamp) -> Distance {
+    fn interpolate_distance(&self, profile: &Profile, from: Location, to: Location, timestamp: Timestamp) -> Distance {
         let (timestamps, matrices) = self.costs.get(&profile.index).unwrap();
         let data_idx = from * self.size + to;
 
@@ -277,5 +289,23 @@ impl TransportCost for TimeAwareMatrixTransportCost {
             }
             Err(matrix_idx) => *matrices.get(matrix_idx - 1).unwrap().distances.get(data_idx).unwrap(),
         }
+    }
+}
+
+impl TransportCost for TimeAwareMatrixTransportCost {
+    fn duration_approx(&self, profile: &Profile, from: Location, to: Location) -> Duration {
+        self.interpolate_duration(profile, from, to, 0.)
+    }
+
+    fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
+        self.interpolate_distance(profile, from, to, 0.)
+    }
+
+    fn duration(&self, actor: &Actor, from: Location, to: Location, timestamp: Timestamp) -> Duration {
+        self.interpolate_duration(&actor.vehicle.profile, from, to, timestamp)
+    }
+
+    fn distance(&self, actor: &Actor, from: Location, to: Location, timestamp: Timestamp) -> Distance {
+        self.interpolate_distance(&actor.vehicle.profile, from, to, timestamp)
     }
 }
