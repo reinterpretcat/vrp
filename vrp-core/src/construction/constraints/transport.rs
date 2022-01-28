@@ -135,7 +135,7 @@ impl TransportConstraintModule {
 
         ctx.route_mut().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
             a.schedule.arrival = dep + transport.duration(&actor, loc, a.place.location, dep);
-            a.schedule.departure = activity.departure(&actor, a, a.schedule.arrival);
+            a.schedule.departure = a.schedule.arrival + activity.duration(&actor, a, a.schedule.arrival);
 
             (a.place.location, a.schedule.departure)
         });
@@ -312,15 +312,17 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         let arr_time_at_target_act =
             departure + self.transport.duration(actor, prev.place.location, target.place.location, departure);
 
-        let end_time_at_new_act = self.activity.departure(actor, target, arr_time_at_target_act);
+        let target_act_duration = self.activity.duration(actor, target, arr_time_at_target_act);
 
-        let latest_arr_time_at_new_act = target.place.time.end.min(
+        let end_time_at_target_act = arr_time_at_target_act + target_act_duration;
+
+        let latest_arr_time_at_target_act = target.place.time.end.min(
             latest_arr_time_at_next_act
                 - self.transport.duration(actor, target.place.location, next_act_location, latest_arr_time_at_next_act)
-                + target.place.duration,
+                + target_act_duration,
         );
 
-        if arr_time_at_target_act > latest_arr_time_at_new_act {
+        if arr_time_at_target_act > latest_arr_time_at_target_act {
             return stop(self.code);
         }
 
@@ -328,8 +330,8 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             return success();
         }
 
-        let arr_time_at_next_act = end_time_at_new_act
-            + self.transport.duration(actor, target.place.location, next_act_location, end_time_at_new_act);
+        let arr_time_at_next_act = end_time_at_target_act
+            + self.transport.duration(actor, target.place.location, next_act_location, end_time_at_target_act);
 
         if arr_time_at_next_act > latest_arr_time_at_next_act {
             stop(self.code)
@@ -446,7 +448,7 @@ impl CostSoftActivityConstraint {
         time: Timestamp,
     ) -> (Cost, Cost, Timestamp) {
         let arrival = time + self.transport.duration(actor, start.place.location, end.place.location, time);
-        let departure = self.activity.departure(actor, end, arrival);
+        let departure = arrival + self.activity.duration(actor, end, arrival);
 
         let transport_cost = self.transport.cost(actor, start.place.location, end.place.location, time);
         let activity_cost = self.activity.cost(actor, end, arrival);
