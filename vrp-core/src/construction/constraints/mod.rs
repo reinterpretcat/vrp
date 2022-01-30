@@ -108,6 +108,6 @@ pub fn update_route_schedule(
     transport: &(dyn TransportCost + Send + Sync),
 ) {
     TransportConstraintModule::update_route_schedules(route_ctx, activity, transport);
-    TransportConstraintModule::update_route_states(route_ctx, transport);
+    TransportConstraintModule::update_route_states(route_ctx, activity, transport);
     TransportConstraintModule::update_statistics(route_ctx, transport);
 }

@@ -39,7 +39,7 @@ impl ConstraintModule for TransportConstraintModule {
         let transport = self.transport.as_ref();
 
         Self::update_route_schedules(ctx, activity, transport);
-        Self::update_route_states(ctx, transport);
+        Self::update_route_states(ctx, activity, transport);
         // NOTE Rescheduling during the insertion process makes sense only if the traveling limit
         // is set (for duration limit, not for distance).
         match (self.limit_func)(&ctx.route.actor) {
@@ -61,7 +61,7 @@ impl ConstraintModule for TransportConstraintModule {
             let transport = self.transport.as_ref();
 
             Self::update_route_schedules(route_ctx, activity, transport);
-            Self::update_route_states(route_ctx, transport);
+            Self::update_route_states(route_ctx, activity, transport);
             Self::update_statistics(route_ctx, transport);
         })
     }
@@ -135,13 +135,17 @@ impl TransportConstraintModule {
 
         ctx.route_mut().tour.all_activities_mut().skip(1).fold(init, |(loc, dep), a| {
             a.schedule.arrival = dep + transport.duration(&actor, loc, a.place.location, dep);
-            a.schedule.departure = a.schedule.arrival + activity.duration(&actor, a, a.schedule.arrival);
+            a.schedule.departure = activity.estimate_departure(&actor, a, a.schedule.arrival);
 
             (a.place.location, a.schedule.departure)
         });
     }
 
-    pub(crate) fn update_route_states(ctx: &mut RouteContext, transport: &(dyn TransportCost + Send + Sync)) {
+    pub(crate) fn update_route_states(
+        ctx: &mut RouteContext,
+        activity: &(dyn ActivityCost + Send + Sync),
+        transport: &(dyn TransportCost + Send + Sync),
+    ) {
         // update latest arrival and waiting states of non-terminate (jobs) activities
         let actor = ctx.route.actor.clone();
         let init = (
@@ -163,8 +167,8 @@ impl TransportConstraintModule {
             }
 
             let (end_time, prev_loc, waiting) = acc;
-            let potential_latest =
-                end_time - transport.duration(&actor, act.place.location, prev_loc, end_time) - act.place.duration;
+            let latest_departure = end_time - transport.duration(&actor, act.place.location, prev_loc, end_time);
+            let potential_latest = activity.estimate_arrival(&actor, act, latest_departure);
 
             let latest_arrival_time = act.place.time.end.min(potential_latest);
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
@@ -224,7 +228,7 @@ impl TransportConstraintModule {
             let mut start = ctx.route_mut().tour.get_mut(0).unwrap();
             start.schedule.departure = new_departure_time;
             Self::update_route_schedules(ctx, activity, transport);
-            Self::update_route_states(ctx, transport);
+            Self::update_route_states(ctx, activity, transport);
         }
     }
 }
@@ -285,7 +289,7 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             return fail(self.code);
         }
 
-        let (next_act_location, latest_arr_time_at_next_act) = if let Some(next) = next {
+        let (next_act_location, latest_arr_time_at_next) = if let Some(next) = next {
             // closed vrp
             if actor.detail.time.end < next.place.time.start {
                 return fail(self.code);
@@ -302,27 +306,23 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
         let arr_time_at_next =
             departure + self.transport.duration(actor, prev.place.location, next_act_location, departure);
 
-        if arr_time_at_next > latest_arr_time_at_next_act {
+        if arr_time_at_next > latest_arr_time_at_next {
             return fail(self.code);
         }
-        if target.place.time.start > latest_arr_time_at_next_act {
+        if target.place.time.start > latest_arr_time_at_next {
             return stop(self.code);
         }
 
-        let arr_time_at_target_act =
+        let arr_time_at_target =
             departure + self.transport.duration(actor, prev.place.location, target.place.location, departure);
 
-        let target_act_duration = self.activity.duration(actor, target, arr_time_at_target_act);
+        let latest_departure_at_target = latest_arr_time_at_next
+            - self.transport.duration(actor, target.place.location, next_act_location, latest_arr_time_at_next);
 
-        let end_time_at_target_act = arr_time_at_target_act + target_act_duration;
+        let latest_arr_time_at_target =
+            target.place.time.end.min(self.activity.estimate_arrival(actor, target, latest_departure_at_target));
 
-        let latest_arr_time_at_target_act = target.place.time.end.min(
-            latest_arr_time_at_next_act
-                - self.transport.duration(actor, target.place.location, next_act_location, latest_arr_time_at_next_act)
-                + target_act_duration,
-        );
-
-        if arr_time_at_target_act > latest_arr_time_at_target_act {
+        if arr_time_at_target > latest_arr_time_at_target {
             return stop(self.code);
         }
 
@@ -330,10 +330,12 @@ impl HardActivityConstraint for TimeHardActivityConstraint {
             return success();
         }
 
-        let arr_time_at_next_act = end_time_at_target_act
-            + self.transport.duration(actor, target.place.location, next_act_location, end_time_at_target_act);
+        let end_time_at_target = self.activity.estimate_departure(actor, target, arr_time_at_target);
 
-        if arr_time_at_next_act > latest_arr_time_at_next_act {
+        let arr_time_at_next = end_time_at_target
+            + self.transport.duration(actor, target.place.location, next_act_location, end_time_at_target);
+
+        if arr_time_at_next > latest_arr_time_at_next {
             stop(self.code)
         } else {
             success()
@@ -448,7 +450,7 @@ impl CostSoftActivityConstraint {
         time: Timestamp,
     ) -> (Cost, Cost, Timestamp) {
         let arrival = time + self.transport.duration(actor, start.place.location, end.place.location, time);
-        let departure = arrival + self.activity.duration(actor, end, arrival);
+        let departure = self.activity.estimate_departure(actor, end, arrival);
 
         let transport_cost = self.transport.cost(actor, start.place.location, end.place.location, time);
         let activity_cost = self.activity.cost(actor, end, arrival);

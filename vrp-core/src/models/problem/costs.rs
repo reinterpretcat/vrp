@@ -91,10 +91,16 @@ pub trait ActivityCost {
             + service * (actor.driver.costs.per_service_time + actor.vehicle.costs.per_service_time)
     }
 
-    /// Returns time-dependent duration since arrival for given activity specific for given actor.
+    /// Estimates departure time for activity and actor at given arrival time.
     #[allow(unused_variables)]
-    fn duration(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Duration {
-        (arrival.max(activity.place.time.start) + activity.place.duration) - arrival
+    fn estimate_departure(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Timestamp {
+        arrival.max(activity.place.time.start) + activity.place.duration
+    }
+
+    /// Estimates arrival time for activity and actor at given departure time.
+    #[allow(unused_variables)]
+    fn estimate_arrival(&self, actor: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp {
+        departure - activity.place.duration
     }
 }
 
