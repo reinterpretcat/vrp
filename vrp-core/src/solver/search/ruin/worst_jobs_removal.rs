@@ -5,7 +5,7 @@ mod worst_jobs_removal_test;
 use super::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::{Cost, Timestamp};
-use crate::models::problem::{Actor, Job, TransportCost};
+use crate::models::problem::{Actor, Job, TransportCost, TravelTime};
 use crate::models::solution::Activity;
 use crate::solver::search::get_route_jobs;
 use crate::solver::RefinementContext;
@@ -140,5 +140,5 @@ fn get_cost_savings(
 
 #[inline(always)]
 fn get_cost(actor: &Actor, from: &Activity, to: &Activity, transport: &Arc<dyn TransportCost + Send + Sync>) -> Cost {
-    transport.cost(actor, from.place.location, to.place.location, from.schedule.departure)
+    transport.cost(actor, from.place.location, to.place.location, TravelTime::Departure(from.schedule.departure))
 }

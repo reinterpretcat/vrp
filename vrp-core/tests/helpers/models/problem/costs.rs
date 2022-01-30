@@ -1,5 +1,5 @@
-use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::{ActivityCost, Actor, TransportCost};
+use crate::models::common::{Distance, Duration, Location, Profile};
+use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
 use std::sync::Arc;
 
 pub struct TestTransportCost {}
@@ -13,11 +13,11 @@ impl TransportCost for TestTransportCost {
         fake_routing(from, to)
     }
 
-    fn duration(&self, _: &Actor, from: Location, to: Location, _: Timestamp) -> Duration {
+    fn duration(&self, _: &Actor, from: Location, to: Location, _: TravelTime) -> Duration {
         fake_routing(from, to)
     }
 
-    fn distance(&self, _: &Actor, from: Location, to: Location, _: Timestamp) -> Distance {
+    fn distance(&self, _: &Actor, from: Location, to: Location, _: TravelTime) -> Distance {
         fake_routing(from, to)
     }
 }

@@ -4,6 +4,7 @@ use crate::format_time;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::models::common::{Distance, Profile as CoreProfile, TimeWindow, Timestamp};
+use vrp_core::models::problem::TravelTime;
 use vrp_core::models::problem::{Actor, ActorDetail, Vehicle};
 
 fn matrix(profile: Option<&str>, timestamp: Option<f64>, fill_value: i64, size: usize) -> Matrix {
@@ -162,7 +163,7 @@ fn can_create_transport_costs_positive_cases_impl(
             detail: ActorDetail { start: None, end: None, time: TimeWindow::new(0., 1.) },
         };
 
-        let result = transport.distance(&actor, 0, 1, timestamp);
+        let result = transport.distance(&actor, 0, 1, TravelTime::Departure(timestamp));
         assert_eq!(result, distance);
     });
 }

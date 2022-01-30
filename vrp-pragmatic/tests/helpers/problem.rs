@@ -1,5 +1,5 @@
 use crate::core::models::common::{Distance, Duration};
-use crate::core::models::problem::Actor;
+use crate::core::models::problem::{Actor, TravelTime};
 use crate::format::problem::Objective::{MinimizeCost, MinimizeUnassignedJobs};
 use crate::format::problem::*;
 use crate::format::{CoordIndex, Location};
@@ -287,11 +287,11 @@ pub fn get_costs() -> (Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCos
             42.
         }
 
-        fn duration(&self, _: &Actor, _: usize, _: usize, _: f64) -> f64 {
+        fn duration(&self, _: &Actor, _: usize, _: usize, _: TravelTime) -> f64 {
             42.
         }
 
-        fn distance(&self, _: &Actor, _: usize, _: usize, _: f64) -> f64 {
+        fn distance(&self, _: &Actor, _: usize, _: usize, _: TravelTime) -> f64 {
             42.
         }
     }

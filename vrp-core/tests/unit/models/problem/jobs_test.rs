@@ -1,6 +1,6 @@
 use super::*;
 use crate::helpers::models::problem::*;
-use crate::models::problem::{Actor, VehicleDetail, VehiclePlace};
+use crate::models::problem::{Actor, TravelTime, VehicleDetail, VehiclePlace};
 
 struct OnlyDistanceCost {}
 
@@ -13,11 +13,11 @@ impl TransportCost for OnlyDistanceCost {
         fake_routing(from, to)
     }
 
-    fn duration(&self, _: &Actor, _: Location, _: Location, _: Timestamp) -> Duration {
+    fn duration(&self, _: &Actor, _: Location, _: Location, _: TravelTime) -> Duration {
         0.
     }
 
-    fn distance(&self, _: &Actor, from: Location, to: Location, _: Timestamp) -> Distance {
+    fn distance(&self, _: &Actor, from: Location, to: Location, _: TravelTime) -> Distance {
         fake_routing(from, to)
     }
 }
@@ -47,11 +47,11 @@ impl TransportCost for ProfileAwareTransportCost {
         (self.func)(profile, fake_routing(from, to))
     }
 
-    fn duration(&self, _: &Actor, _: Location, _: Location, _: Timestamp) -> Duration {
+    fn duration(&self, _: &Actor, _: Location, _: Location, _: TravelTime) -> Duration {
         0.
     }
 
-    fn distance(&self, actor: &Actor, from: Location, to: Location, _departure: Timestamp) -> Distance {
+    fn distance(&self, actor: &Actor, from: Location, to: Location, _: TravelTime) -> Distance {
         (self.func)(&actor.vehicle.profile, fake_routing(from, to))
     }
 }
@@ -70,11 +70,11 @@ impl TransportCost for FixedTransportCost {
         self.distance_cost
     }
 
-    fn duration(&self, _: &Actor, _: Location, _: Location, _: Timestamp) -> Duration {
+    fn duration(&self, _: &Actor, _: Location, _: Location, _: TravelTime) -> Duration {
         self.duration_cost
     }
 
-    fn distance(&self, _: &Actor, _: Location, _: Location, _: Timestamp) -> Distance {
+    fn distance(&self, _: &Actor, _: Location, _: Location, _: TravelTime) -> Distance {
         self.distance_cost
     }
 }

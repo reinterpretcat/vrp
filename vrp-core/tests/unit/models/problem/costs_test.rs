@@ -88,15 +88,15 @@ fn can_interpolate_durations() {
     .unwrap();
 
     for &(timestamp, duration) in &[(0., 100.), (10., 200.), (15., 200.), (3., 130.), (5., 150.), (7., 170.)] {
-        assert_eq!(costs.duration(&actor0, 0, 1, timestamp), duration);
+        assert_eq!(costs.duration(&actor0, 0, 1, TravelTime::Departure(timestamp)), duration);
     }
 
     for &(timestamp, duration) in &[(0., 300.), (10., 400.), (15., 400.), (3., 330.), (5., 350.), (7., 370.)] {
-        assert_eq!(costs.duration(&actor1, 0, 1, timestamp), duration);
+        assert_eq!(costs.duration(&actor1, 0, 1, TravelTime::Departure(timestamp)), duration);
     }
 
-    assert_eq!(costs.distance(&actor0, 0, 1, 0.), 1.);
-    assert_eq!(costs.distance(&actor1, 0, 1, 0.), 5.);
+    assert_eq!(costs.distance(&actor0, 0, 1, TravelTime::Departure(0.)), 1.);
+    assert_eq!(costs.distance(&actor1, 0, 1, TravelTime::Departure(0.)), 5.);
 
     assert_eq!(costs.distance_approx(&p0, 0, 1), 1.);
     assert_eq!(costs.distance_approx(&p1, 0, 1), 5.);

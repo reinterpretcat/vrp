@@ -11,7 +11,7 @@ use crate::format_time;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::route_intervals;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::Multi;
+use vrp_core::models::problem::{Multi, TravelTime};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
@@ -211,6 +211,7 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
 
                 let (driving, transport_cost) = if commute.is_zero_distance() {
                     // NOTE: use original cost traits to adapt time-based costs (except waiting/commuting)
+                    let prev_departure = TravelTime::Departure(prev_departure);
                     let duration = transport.duration(actor, prev_location, act.place.location, prev_departure);
                     let transport_cost = transport.cost(actor, prev_location, act.place.location, prev_departure);
                     (duration, transport_cost)
@@ -238,7 +239,8 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let total_cost = serving_cost + transport_cost + waiting * vehicle.costs.per_waiting_time;
 
                 let location_distance =
-                    transport.distance(actor, prev_location, act.place.location, prev_departure) as i64;
+                    transport.distance(actor, prev_location, act.place.location, TravelTime::Departure(prev_departure))
+                        as i64;
                 let distance = leg.statistic.distance + location_distance - commute.forward.distance as i64;
 
                 let is_new_stop = match (act.commute.as_ref(), prev_location == act.place.location) {

@@ -2,7 +2,7 @@ use std::slice::Iter;
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::construction::heuristics::{ActivityContext, RouteContext, SolutionContext};
-use vrp_core::models::problem::{Job, TransportCost};
+use vrp_core::models::problem::{Job, TransportCost, TravelTime};
 
 pub struct ReachableModule {
     constraints: Vec<ConstraintVariant>,
@@ -59,16 +59,24 @@ impl HardActivityConstraint for ReachableHardActivityConstraint {
 
         let actor = &route_ctx.route.actor;
 
-        let prev_to_target =
-            self.transport.distance(actor, prev.place.location, target.place.location, prev.schedule.departure);
+        let prev_to_target = self.transport.distance(
+            actor,
+            prev.place.location,
+            target.place.location,
+            TravelTime::Departure(prev.schedule.departure),
+        );
 
         if prev_to_target < 0. {
             return Some(ActivityConstraintViolation { code: self.code, stopped: false });
         }
 
         if let Some(next) = next {
-            let target_to_next =
-                self.transport.distance(actor, target.place.location, next.place.location, target.schedule.departure);
+            let target_to_next = self.transport.distance(
+                actor,
+                target.place.location,
+                next.place.location,
+                TravelTime::Departure(target.schedule.departure),
+            );
             if target_to_next < 0. {
                 return Some(ActivityConstraintViolation { code: self.code, stopped: false });
             }

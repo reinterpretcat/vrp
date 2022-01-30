@@ -15,11 +15,11 @@ impl TransportCost for ExampleTransportCost {
         42.
     }
 
-    fn duration(&self, _: &Actor, _: usize, _: usize, _: f64) -> f64 {
+    fn duration(&self, _: &Actor, _: usize, _: usize, _: TravelTime) -> f64 {
         42.
     }
 
-    fn distance(&self, _: &Actor, _: usize, _: usize, _: f64) -> f64 {
+    fn distance(&self, _: &Actor, _: usize, _: usize, _: TravelTime) -> f64 {
         42.
     }
 }
