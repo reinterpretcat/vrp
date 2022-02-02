@@ -39,6 +39,15 @@ pub fn test_activity_with_location_and_tw(location: Location, tw: TimeWindow) ->
     }
 }
 
+pub fn test_activity_with_location_tw_and_duration(location: Location, tw: TimeWindow, duration: Duration) -> Activity {
+    Activity {
+        place: Place { location, duration, time: tw },
+        schedule: Schedule::new(location as f64, location as f64 + duration),
+        job: Some(test_single_with_location(Some(location))),
+        commute: None,
+    }
+}
+
 pub fn test_activity_with_schedule(schedule: Schedule) -> Activity {
     Activity {
         place: Place {
