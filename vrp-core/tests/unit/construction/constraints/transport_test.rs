@@ -6,6 +6,9 @@ use crate::models::common::*;
 use crate::models::problem::{VehicleDetail, VehiclePlace};
 use std::sync::Arc;
 
+type VehicleData = (Location, Location, Timestamp, Timestamp);
+type ActivityData = (Location, (Timestamp, Timestamp), Duration);
+
 fn create_detail(
     locations: (Option<Location>, Option<Location>),
     time: Option<(Timestamp, Timestamp)>,
@@ -33,9 +36,7 @@ mod timing {
     use rosomaxa::prelude::compare_floats;
     use std::cmp::Ordering;
 
-    fn create_constraint_pipeline_and_route(
-        vehicle_detail_data: (Location, Location, Timestamp, Timestamp),
-    ) -> (ConstraintPipeline, RouteContext) {
+    fn create_constraint_pipeline_and_route(vehicle_detail_data: VehicleData) -> (ConstraintPipeline, RouteContext) {
         let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
         let fleet = FleetBuilder::default()
@@ -72,11 +73,7 @@ mod timing {
         case09: ((40, 40, 0., 100.), 2, 80.),
     }
 
-    fn can_properly_calculate_latest_arrival_impl(
-        vehicle_detail_data: (Location, Location, Timestamp, Timestamp),
-        activity: usize,
-        time: f64,
-    ) {
+    fn can_properly_calculate_latest_arrival_impl(vehicle_detail_data: VehicleData, activity: usize, time: f64) {
         let (pipeline, mut route_ctx) = create_constraint_pipeline_and_route(vehicle_detail_data);
 
         pipeline.accept_route_state(&mut route_ctx);
@@ -105,7 +102,7 @@ mod timing {
     }
 
     fn can_detect_activity_constraint_violation_impl(
-        vehicle_detail_data: (Location, Location, Timestamp, Timestamp),
+        vehicle_detail_data: VehicleData,
         location: Location,
         prev_index: usize,
         next_index: usize,
@@ -436,6 +433,8 @@ mod time_dependent {
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
     use crate::models::problem::{Actor, TravelTime};
     use crate::models::solution::Activity;
+    use crate::prelude::compare_floats;
+    use std::cmp::Ordering;
     use std::ops::Deref;
 
     struct DynamicActivityCost {
@@ -447,26 +446,6 @@ mod time_dependent {
             let activity_start = arrival.max(activity.place.time.start);
             let departure = activity_start + activity.place.duration;
             let schedule = TimeWindow::new(arrival, departure);
-
-            // use cases to validate:
-            //
-            // 1. condition:   break starts after arrival, but before time window start and it ends after time window end
-            //    expectation: disallow insertion
-            //    NOTE: should be handled by estimate_arrival api to return earliest arrival time as be time?
-            // arr----------tws----------twe------
-            //    bs---------------------------be
-            //
-            // arr----------tws----------twe------
-            //    bs----be
-            //
-            // arr----------tws----------twe------
-            //    bs------------be
-            //
-            // arr----------tws----------twe------
-            //                  bs------------be
-            //
-            // arr----------tws----------twe------
-            //    bs---------------------------be
 
             self.reserved_time_func.deref()(actor, &schedule).map_or(departure, |reserved_time: TimeWindow| {
                 assert!(reserved_time.intersects(&schedule));
@@ -482,7 +461,12 @@ mod time_dependent {
                     reserved_time.duration()
                 };
 
-                departure + extra_duration
+                // NOTE: do not allow to start or restart work after break finished
+                if activity_start + extra_duration > activity.place.time.end {
+                    f64::MAX
+                } else {
+                    departure + extra_duration
+                }
             })
         }
 
@@ -529,22 +513,22 @@ mod time_dependent {
     }
 
     fn create_constraint_pipeline_and_route(
-        vehicle_detail_data: (Location, Location, Timestamp, Timestamp),
-        activities: Vec<(Location, (Timestamp, Timestamp), Duration)>,
+        vehicle_detail_data: VehicleData,
+        activities: Vec<ActivityData>,
         reserved_time: TimeWindow,
     ) -> (ConstraintPipeline, RouteContext) {
         let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
-        let reserved_time_func =
-            Arc::new(
-                move |_: &Actor, time_window: &TimeWindow| {
-                    if time_window.intersects(&reserved_time) {
-                        Some(reserved_time.clone())
-                    } else {
-                        None
-                    }
-                },
-            );
+        let reserved_time_func = Arc::new(move |_: &Actor, time_window: &TimeWindow| {
+            let intersects_ceiling = compare_floats(time_window.start, reserved_time.end) == Ordering::Less
+                && compare_floats(reserved_time.start, time_window.end) == Ordering::Less;
+
+            if intersects_ceiling {
+                Some(reserved_time.clone())
+            } else {
+                None
+            }
+        });
 
         let activities = activities
             .into_iter()
@@ -590,9 +574,9 @@ mod time_dependent {
         route_ctx.route.tour.all_activities().map(|a| (a.schedule.arrival, a.schedule.departure)).collect()
     }
 
-    parameterized_test! {can_update_state_for_reserved_time, (vehicle_detail_data, reserved_time, activities, late_arrival_expected, schedules_expected), {
+    parameterized_test! {can_update_state_for_reserved_time, (vehicle_detail_data, reserved_time, activities, late_arrival_expected, expected_schedules), {
         let reserved_time =  TimeWindow::new(reserved_time.0, reserved_time.1);
-        can_update_state_for_reserved_time_impl(vehicle_detail_data, reserved_time, activities, late_arrival_expected, schedules_expected);
+        can_update_state_for_reserved_time_impl(vehicle_detail_data, reserved_time, activities, late_arrival_expected, expected_schedules);
     }}
 
     can_update_state_for_reserved_time! {
@@ -618,11 +602,11 @@ mod time_dependent {
     }
 
     fn can_update_state_for_reserved_time_impl(
-        vehicle_detail_data: (Location, Location, Timestamp, Timestamp),
+        vehicle_detail_data: VehicleData,
         reserved_time: TimeWindow,
-        activities: Vec<(Location, (Timestamp, Timestamp), Duration)>,
+        activities: Vec<ActivityData>,
         late_arrival_expected: Vec<Option<f64>>,
-        schedules_expected: Vec<(Timestamp, Timestamp)>,
+        expected_schedules: Vec<(Timestamp, Timestamp)>,
     ) {
         let (pipeline, mut route_ctx) =
             create_constraint_pipeline_and_route(vehicle_detail_data, activities, reserved_time);
@@ -631,7 +615,82 @@ mod time_dependent {
         let schedules = get_schedules(&route_ctx);
         let late_arrival_result = get_activity_states(&route_ctx, LATEST_ARRIVAL_KEY);
 
-        assert_eq!(schedules, schedules_expected);
+        assert_eq!(schedules, expected_schedules);
         assert_eq!(late_arrival_result, late_arrival_expected);
+    }
+
+    parameterized_test! {can_evaluate_activity, (vehicle_detail_data, reserved_time, target, activities, expected_schedules), {
+        let reserved_time =  TimeWindow::new(reserved_time.0, reserved_time.1);
+        can_evaluate_activity_impl(vehicle_detail_data, reserved_time, target, activities, expected_schedules);
+    }}
+
+    can_evaluate_activity! {
+        case01_break_starts_at_target_then_next_at_end:
+            ((0, 0, 0., 100.), (10., 20.),
+            (10, (0., 100.), 10.),
+            vec![(20, (0., 40.), 10.)],
+            vec![(0., 0.), (10., 30.), (40., 50.), (70., 70.)]),
+
+        case02_break_starts_at_target_then_next_is_late:
+            ((0, 0, 0., 100.), (10., 20.),
+            (10, (0., 100.), 10.),
+            vec![(20, (0., 39.), 10.)],
+            vec![]),
+
+        case03_break_with_waiting_time:
+            ((0, 0, 0., 100.), (10., 20.),
+            (10, (20., 100.), 10.),
+            vec![(20, (0., 100.), 10.)],
+            vec![(0., 0.), (10., 30.), (40., 50.), (70., 70.)]),
+
+        case04_break_during_traveling:
+            ((0, 0, 0., 100.), (5., 10.),
+            (10, (0., 100.), 10.),
+            vec![(20, (0., 100.), 10.)],
+            vec![(0., 0.), (15., 25.), (35., 45.), (65., 65.)]),
+
+        case05_break_on_whole_time_window_exclusive:
+            ((0, 0, 0., 100.), (10., 20.),
+            (10, (0., 20.), 10.),
+            vec![(20, (0., 100.), 10.)],
+            vec![(0., 0.), (10., 30.), (40., 50.), (70., 70.)]),
+
+        case06_break_on_whole_time_window_inclusive:
+            ((0, 0, 0., 100.), (10., 21.),
+            (10, (0., 20.), 10.),
+            vec![(20, (0., 100.), 10.)],
+            vec![]),
+
+        case07_break_on_whole_time_window_inclusive:
+            ((0, 0, 0., 100.), (9., 21.),
+            (10, (10., 20.), 10.),
+            vec![(20, (0., 100.), 10.)],
+            vec![]),
+    }
+
+    fn can_evaluate_activity_impl(
+        vehicle_detail_data: VehicleData,
+        reserved_time: TimeWindow,
+        target: ActivityData,
+        activities: Vec<ActivityData>,
+        expected_schedules: Vec<(Timestamp, Timestamp)>,
+    ) {
+        let (pipeline, mut route_ctx) =
+            create_constraint_pipeline_and_route(vehicle_detail_data, activities, reserved_time);
+        pipeline.accept_route_state(&mut route_ctx);
+        let (loc, (start, end), dur) = target;
+        let prev = route_ctx.route.tour.get(0).unwrap();
+        let target = test_activity_with_location_tw_and_duration(loc, TimeWindow::new(start, end), dur);
+        let next = route_ctx.route.tour.get(1);
+        let activity_ctx = ActivityContext { index: 1, prev, target: &target, next };
+
+        let is_violation = pipeline.evaluate_hard_activity(&route_ctx, &activity_ctx).is_some();
+
+        assert_eq!(is_violation, expected_schedules.is_empty());
+        if !is_violation {
+            route_ctx.route_mut().tour.insert_at(target, 1);
+            pipeline.accept_route_state(&mut route_ctx);
+            assert_eq!(get_schedules(&route_ctx), expected_schedules)
+        }
     }
 }
