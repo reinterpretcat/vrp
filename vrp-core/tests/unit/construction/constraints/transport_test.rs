@@ -431,86 +431,8 @@ mod traveling {
 mod time_dependent {
     use super::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_module;
-    use crate::models::problem::{Actor, TravelTime};
-    use crate::models::solution::Activity;
-    use crate::prelude::compare_floats;
-    use std::cmp::Ordering;
-    use std::ops::Deref;
-
-    struct DynamicActivityCost {
-        reserved_time_func: Arc<dyn Fn(&Actor, &TimeWindow) -> Option<TimeWindow> + Send + Sync>,
-    }
-
-    impl ActivityCost for DynamicActivityCost {
-        fn estimate_departure(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Timestamp {
-            let activity_start = arrival.max(activity.place.time.start);
-            let departure = activity_start + activity.place.duration;
-            let schedule = TimeWindow::new(arrival, departure);
-
-            self.reserved_time_func.deref()(actor, &schedule).map_or(departure, |reserved_time: TimeWindow| {
-                assert!(reserved_time.intersects(&schedule));
-
-                let time_window = &activity.place.time;
-
-                let extra_duration = if reserved_time.start < time_window.start {
-                    let waiting_time = TimeWindow::new(arrival, time_window.start);
-                    let overlapping = waiting_time.overlapping(&reserved_time).map(|tw| tw.duration()).unwrap_or(0.);
-
-                    reserved_time.duration() - overlapping
-                } else {
-                    reserved_time.duration()
-                };
-
-                // NOTE: do not allow to start or restart work after break finished
-                if activity_start + extra_duration > activity.place.time.end {
-                    f64::MAX
-                } else {
-                    departure + extra_duration
-                }
-            })
-        }
-
-        fn estimate_arrival(&self, actor: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp {
-            let arrival = activity.place.time.end.min(departure - activity.place.duration);
-            let schedule = TimeWindow::new(arrival, departure);
-
-            self.reserved_time_func.deref()(actor, &schedule).map_or(arrival, |reserved_time: TimeWindow| {
-                // TODO consider overlapping break with waiting time?
-                arrival - reserved_time.duration()
-            })
-        }
-    }
-
-    struct DynamicTransportCost {
-        reserved_time_func: Arc<dyn Fn(&Actor, &TimeWindow) -> Option<TimeWindow> + Send + Sync>,
-        inner: TestTransportCost,
-    }
-
-    impl TransportCost for DynamicTransportCost {
-        fn duration_approx(&self, profile: &Profile, from: Location, to: Location) -> Duration {
-            self.inner.duration_approx(profile, from, to)
-        }
-
-        fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
-            self.inner.distance_approx(profile, from, to)
-        }
-
-        fn duration(&self, actor: &Actor, from: Location, to: Location, travel_time: TravelTime) -> Duration {
-            let duration = self.inner.duration(actor, from, to, travel_time);
-
-            let time_window = match travel_time {
-                TravelTime::Arrival(arrival) => TimeWindow::new(arrival - duration, arrival),
-                TravelTime::Departure(departure) => TimeWindow::new(departure, departure + duration),
-            };
-
-            self.reserved_time_func.deref()(actor, &time_window)
-                .map_or(duration, |reserved_time: TimeWindow| duration + reserved_time.duration())
-        }
-
-        fn distance(&self, actor: &Actor, from: Location, to: Location, travel_time: TravelTime) -> Distance {
-            self.inner.distance(actor, from, to, travel_time)
-        }
-    }
+    use crate::models::problem::{DynamicActivityCost, DynamicTransportCost};
+    use hashbrown::HashMap;
 
     fn create_constraint_pipeline_and_route(
         vehicle_detail_data: VehicleData,
@@ -518,17 +440,6 @@ mod time_dependent {
         reserved_time: TimeWindow,
     ) -> (ConstraintPipeline, RouteContext) {
         let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
-
-        let reserved_time_func = Arc::new(move |_: &Actor, time_window: &TimeWindow| {
-            let intersects_ceiling = compare_floats(time_window.start, reserved_time.end) == Ordering::Less
-                && compare_floats(reserved_time.start, time_window.end) == Ordering::Less;
-
-            if intersects_ceiling {
-                Some(reserved_time.clone())
-            } else {
-                None
-            }
-        });
 
         let activities = activities
             .into_iter()
@@ -544,14 +455,18 @@ mod time_dependent {
                 .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
                 .build()])
             .build();
+        let reserved_times = fleet
+            .actors
+            .first()
+            .map(|actor| vec![(actor.clone(), vec![reserved_time])].into_iter().collect::<HashMap<_, _>>())
+            .unwrap();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", activities);
 
         let pipeline = create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
-            Arc::new(DynamicTransportCost {
-                reserved_time_func: reserved_time_func.clone(),
-                inner: TestTransportCost::default(),
-            }),
-            Arc::new(DynamicActivityCost { reserved_time_func }),
+            Arc::new(
+                DynamicTransportCost::new(reserved_times.clone(), Box::new(TestTransportCost::default())).unwrap(),
+            ),
+            Arc::new(DynamicActivityCost::new(reserved_times).unwrap()),
             Arc::new(|_| (None, None)),
             1,
             2,

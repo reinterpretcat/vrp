@@ -14,6 +14,7 @@ use rosomaxa::population::Shuffled;
 use rosomaxa::prelude::*;
 use rosomaxa::utils::CollectGroupBy;
 use std::cmp::Ordering;
+use std::ops::Deref;
 use std::sync::Arc;
 
 /// A hierarchical multi objective for vehicle routing problem.
@@ -101,23 +102,81 @@ pub trait ActivityCost {
     }
 
     /// Estimates departure time for activity and actor at given arrival time.
-    #[allow(unused_variables)]
-    fn estimate_departure(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Timestamp {
+    fn estimate_departure(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Timestamp;
+
+    /// Estimates arrival time for activity and actor at given departure time.
+    fn estimate_arrival(&self, actor: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp;
+}
+
+/// An actor independent activity costs.
+#[derive(Default)]
+pub struct SimpleActivityCost {}
+
+impl ActivityCost for SimpleActivityCost {
+    fn estimate_departure(&self, _: &Actor, activity: &Activity, arrival: Timestamp) -> Timestamp {
         arrival.max(activity.place.time.start) + activity.place.duration
     }
 
-    /// Estimates arrival time for activity and actor at given departure time.
-    #[allow(unused_variables)]
-    fn estimate_arrival(&self, actor: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp {
+    fn estimate_arrival(&self, _: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp {
         activity.place.time.end.min(departure - activity.place.duration)
     }
 }
 
-/// Default activity costs.
-#[derive(Default)]
-pub struct SimpleActivityCost {}
+/// Specifies a function which returns an extra reserved time for given actor and time window
+/// which will be considered by specific costs.
+type ReservedTimeFunc = Arc<dyn Fn(&Actor, &TimeWindow) -> Option<TimeWindow> + Send + Sync>;
 
-impl ActivityCost for SimpleActivityCost {}
+/// Provides way to calculate activity costs which might contain reserved time.
+pub struct DynamicActivityCost {
+    reserved_time_func: ReservedTimeFunc,
+}
+
+impl DynamicActivityCost {
+    /// Creates a new instance of `DynamicActivityCost` with given reserved time function.
+    pub fn new(reserved_times: HashMap<Arc<Actor>, Vec<TimeWindow>>) -> Result<Self, String> {
+        Ok(Self { reserved_time_func: create_reserved_time_func(reserved_times)? })
+    }
+}
+
+impl ActivityCost for DynamicActivityCost {
+    fn estimate_departure(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Timestamp {
+        let activity_start = arrival.max(activity.place.time.start);
+        let departure = activity_start + activity.place.duration;
+        let schedule = TimeWindow::new(arrival, departure);
+
+        self.reserved_time_func.deref()(actor, &schedule).map_or(departure, |reserved_time: TimeWindow| {
+            assert!(reserved_time.intersects(&schedule));
+
+            let time_window = &activity.place.time;
+
+            let extra_duration = if reserved_time.start < time_window.start {
+                let waiting_time = TimeWindow::new(arrival, time_window.start);
+                let overlapping = waiting_time.overlapping(&reserved_time).map(|tw| tw.duration()).unwrap_or(0.);
+
+                reserved_time.duration() - overlapping
+            } else {
+                reserved_time.duration()
+            };
+
+            // NOTE: do not allow to start or restart work after break finished
+            if activity_start + extra_duration > activity.place.time.end {
+                f64::MAX
+            } else {
+                departure + extra_duration
+            }
+        })
+    }
+
+    fn estimate_arrival(&self, actor: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp {
+        let arrival = activity.place.time.end.min(departure - activity.place.duration);
+        let schedule = TimeWindow::new(arrival, departure);
+
+        self.reserved_time_func.deref()(actor, &schedule).map_or(arrival, |reserved_time: TimeWindow| {
+            // TODO consider overlapping break with waiting time?
+            arrival - reserved_time.duration()
+        })
+    }
+}
 
 /// Provides the way to get routing information for specific locations and actor.
 pub trait TransportCost {
@@ -141,6 +200,48 @@ pub trait TransportCost {
 
     /// Returns time-dependent travel distance between locations specific for given actor.
     fn distance(&self, actor: &Actor, from: Location, to: Location, travel_time: TravelTime) -> Distance;
+}
+
+/// Provides way to calculate transport costs which might contain reserved time.
+pub struct DynamicTransportCost {
+    reserved_time_func: ReservedTimeFunc,
+    inner: Box<dyn TransportCost + Send + Sync>,
+}
+
+impl DynamicTransportCost {
+    /// Creates a new instance of `DynamicTransportCost`.
+    pub fn new(
+        reserved_times: HashMap<Arc<Actor>, Vec<TimeWindow>>,
+        inner: Box<dyn TransportCost + Send + Sync>,
+    ) -> Result<Self, String> {
+        Ok(Self { reserved_time_func: create_reserved_time_func(reserved_times)?, inner })
+    }
+}
+
+impl TransportCost for DynamicTransportCost {
+    fn duration_approx(&self, profile: &Profile, from: Location, to: Location) -> Duration {
+        self.inner.duration_approx(profile, from, to)
+    }
+
+    fn distance_approx(&self, profile: &Profile, from: Location, to: Location) -> Distance {
+        self.inner.distance_approx(profile, from, to)
+    }
+
+    fn duration(&self, actor: &Actor, from: Location, to: Location, travel_time: TravelTime) -> Duration {
+        let duration = self.inner.duration(actor, from, to, travel_time);
+
+        let time_window = match travel_time {
+            TravelTime::Arrival(arrival) => TimeWindow::new(arrival - duration, arrival),
+            TravelTime::Departure(departure) => TimeWindow::new(departure, departure + duration),
+        };
+
+        self.reserved_time_func.deref()(actor, &time_window)
+            .map_or(duration, |reserved_time: TimeWindow| duration + reserved_time.duration())
+    }
+
+    fn distance(&self, actor: &Actor, from: Location, to: Location, travel_time: TravelTime) -> Distance {
+        self.inner.distance(actor, from, to, travel_time)
+    }
 }
 
 /// Contains matrix routing data for specific profile and, optionally, time.
@@ -351,4 +452,47 @@ impl TransportCost for TimeAwareMatrixTransportCost {
     fn distance(&self, actor: &Actor, from: Location, to: Location, travel_time: TravelTime) -> Distance {
         self.interpolate_distance(&actor.vehicle.profile, from, to, travel_time)
     }
+}
+
+fn create_reserved_time_func(reserved_times: HashMap<Arc<Actor>, Vec<TimeWindow>>) -> Result<ReservedTimeFunc, String> {
+    if reserved_times.is_empty() {
+        return Ok(Arc::new(|_, _| None));
+    }
+
+    let reserved_times =
+        reserved_times.into_iter().try_fold(HashMap::<_, (Vec<_>, Vec<_>)>::new(), |mut acc, (actor, mut times)| {
+            times.sort_by(|a, b| compare_floats(a.start, b.start));
+            let has_no_intersections =
+                times.windows(2).all(|pair| if let [a, b] = pair { !a.intersects(b) } else { false });
+
+            if has_no_intersections {
+                let (indices, intervals): (Vec<_>, Vec<_>) = times.into_iter().map(|tw| (tw.start as u64, tw)).unzip();
+                acc.insert(actor, (indices, intervals));
+
+                Ok(acc)
+            } else {
+                Err("reserved times have intersections".to_string())
+            }
+        })?;
+
+    Ok(Arc::new(move |actor: &Actor, time_window: &TimeWindow| {
+        reserved_times
+            .get(actor)
+            .and_then(|(indices, intervals)| {
+                match indices.binary_search(&(time_window.start as u64)) {
+                    Ok(idx) => intervals.get(idx),
+                    Err(idx) => (idx.max(1) - 1..=idx) // NOTE left (earliest) wins
+                        .map(|idx| intervals.get(idx))
+                        .find(|reserved_time| {
+                            reserved_time.map_or(false, |reserved_time| {
+                                // NOTE use exclusive intersection
+                                compare_floats(time_window.start, reserved_time.end) == Ordering::Less
+                                    && compare_floats(reserved_time.start, time_window.end) == Ordering::Less
+                            })
+                        })
+                        .flatten(),
+                }
+            })
+            .cloned()
+    }))
 }
