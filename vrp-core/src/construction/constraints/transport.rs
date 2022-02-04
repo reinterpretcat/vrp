@@ -169,9 +169,7 @@ impl TransportConstraintModule {
             let (end_time, prev_loc, waiting) = acc;
             let latest_departure =
                 end_time - transport.duration(&actor, act.place.location, prev_loc, TravelTime::Arrival(end_time));
-            let potential_latest = activity.estimate_arrival(&actor, act, latest_departure);
-
-            let latest_arrival_time = act.place.time.end.min(potential_latest);
+            let latest_arrival_time = activity.estimate_arrival(&actor, act, latest_departure);
             let future_waiting = waiting + (act.place.time.start - act.schedule.arrival).max(0.);
 
             state.put_activity_state(LATEST_ARRIVAL_KEY, act, latest_arrival_time);

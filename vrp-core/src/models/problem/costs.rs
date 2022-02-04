@@ -109,7 +109,7 @@ pub trait ActivityCost {
     /// Estimates arrival time for activity and actor at given departure time.
     #[allow(unused_variables)]
     fn estimate_arrival(&self, actor: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp {
-        departure - activity.place.duration
+        activity.place.time.end.min(departure - activity.place.duration)
     }
 }
 

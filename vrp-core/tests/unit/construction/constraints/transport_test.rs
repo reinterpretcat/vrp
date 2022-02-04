@@ -471,7 +471,7 @@ mod time_dependent {
         }
 
         fn estimate_arrival(&self, actor: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp {
-            let arrival = departure - activity.place.duration;
+            let arrival = activity.place.time.end.min(departure - activity.place.duration);
             let schedule = TimeWindow::new(arrival, departure);
 
             self.reserved_time_func.deref()(actor, &schedule).map_or(arrival, |reserved_time: TimeWindow| {
@@ -587,17 +587,17 @@ mod time_dependent {
 
         case02_single_inside: ((0, 0, 0., 100.), (25., 30.),
                   vec![(20, (0., 25.), 10.)],
-                  vec![None, Some(25.), None],
+                  vec![None, Some(20.), None],
                   vec![(0., 0.), (20., 35.), (55., 55.)]),
 
         case03_two_inside_travel: ((0, 0, 0., 100.), (25., 30.),
                   vec![(10, (0., 20.), 10.), (20, (0., 40.), 10.)],
-                  vec![None, Some(10.), Some(40.), None],
+                  vec![None, Some(15.), Some(40.), None],
                   vec![(0., 0.), (10., 20.), (35., 45.), (65., 65.)]),
 
         case04_two_inside_service: ((0, 0, 0., 100.), (35., 40.),
                   vec![(10, (0., 20.), 10.), (20, (0., 50.), 10.)],
-                  vec![None, Some(20.), Some(50.), None],
+                  vec![None, Some(15.), Some(50.), None],
                   vec![(0., 0.), (10., 20.), (30., 45.), (65., 65.)]),
     }
 
@@ -665,6 +665,18 @@ mod time_dependent {
             ((0, 0, 0., 100.), (9., 21.),
             (10, (10., 20.), 10.),
             vec![(20, (0., 100.), 10.)],
+            vec![]),
+
+        case08_break_constraints_next:
+            ((0, 0, 0., 100.), (50., 60.),
+            (30, (0., 100.), 10.),
+            vec![(20, (0., 50.), 10.)],
+            vec![]),
+
+        case09_break_constraints_next:
+            ((0, 0, 0., 100.), (45., 60.),
+            (30, (0., 100.), 10.),
+            vec![(20, (0., 50.), 10.)],
             vec![]),
     }
 
