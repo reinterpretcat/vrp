@@ -184,7 +184,7 @@ fn map_to_problem(
 
     let coord_index = Arc::new(coord_index);
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
-    let reserved_times = read_reserved_times(&api_problem, &fleet);
+    let _reserved_times = read_reserved_times(&api_problem, &fleet);
 
     let transport = create_transport_costs(&api_problem, &matrices).map_err(|err| {
         vec![FormatError::new(
@@ -256,14 +256,13 @@ fn read_reserved_times(api_problem: &ApiProblem, fleet: &Fleet) -> HashMap<Arc<A
             })
         })
         .collect_group_by_key(|(type_id, shift_idx, _, _)| (type_id.clone(), *shift_idx));
-    //.collect::<HashMap<_, _>>();
 
     fleet
         .actors
         .iter()
         .filter_map(|actor| {
             let type_id = actor.vehicle.dimens.get_value::<String>("type_id").unwrap().clone();
-            let shift_idx = *actor.vehicle.dimens.get_value::<usize>("shift_idx").unwrap();
+            let shift_idx = *actor.vehicle.dimens.get_value::<usize>("shift_index").unwrap();
 
             let times = breaks_map
                 .get(&(type_id, shift_idx))

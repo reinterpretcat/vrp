@@ -57,10 +57,8 @@ impl HardActivityConstraint for ReachableHardActivityConstraint {
         let target = activity_ctx.target;
         let next = activity_ctx.next;
 
-        let actor = &route_ctx.route.actor;
-
         let prev_to_target = self.transport.distance(
-            actor,
+            &route_ctx.route,
             prev.place.location,
             target.place.location,
             TravelTime::Departure(prev.schedule.departure),
@@ -72,7 +70,7 @@ impl HardActivityConstraint for ReachableHardActivityConstraint {
 
         if let Some(next) = next {
             let target_to_next = self.transport.distance(
-                actor,
+                &route_ctx.route,
                 target.place.location,
                 next.place.location,
                 TravelTime::Departure(target.schedule.departure),

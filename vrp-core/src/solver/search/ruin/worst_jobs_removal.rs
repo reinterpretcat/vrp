@@ -5,8 +5,8 @@ mod worst_jobs_removal_test;
 use super::*;
 use crate::construction::heuristics::{InsertionContext, RouteContext};
 use crate::models::common::{Cost, Timestamp};
-use crate::models::problem::{Actor, Job, TransportCost, TravelTime};
-use crate::models::solution::Activity;
+use crate::models::problem::{Job, TransportCost, TravelTime};
+use crate::models::solution::{Activity, Route};
 use crate::solver::search::get_route_jobs;
 use crate::solver::RefinementContext;
 use hashbrown::HashMap;
@@ -96,17 +96,16 @@ impl Ruin for WorstJobRemoval {
 }
 
 fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContext, Vec<(Job, Cost)>)> {
-    parallel_collect(&insertion_ctx.solution.routes, |rc| {
-        let actor = rc.route.actor.as_ref();
-        let mut savings: Vec<(Job, Cost)> = rc
-            .route
+    parallel_collect(&insertion_ctx.solution.routes, |route_ctx| {
+        let route = route_ctx.route.as_ref();
+        let mut savings: Vec<(Job, Cost)> = route
             .tour
             .all_activities()
             .as_slice()
             .windows(3)
             .fold(HashMap::<Job, Cost>::default(), |mut acc, iter| match iter {
                 [start, eval, end] => {
-                    let savings = get_cost_savings(actor, start, eval, end, &insertion_ctx.problem.transport);
+                    let savings = get_cost_savings(route, start, eval, end, &insertion_ctx.problem.transport);
                     let job = eval.retrieve_job().unwrap_or_else(|| panic!("Unexpected activity without job"));
                     *acc.entry(job).or_insert(0.) += savings;
 
@@ -118,27 +117,29 @@ fn get_routes_cost_savings(insertion_ctx: &InsertionContext) -> Vec<(RouteContex
             .collect();
         savings.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Less));
 
-        (rc.clone(), savings)
+        (route_ctx.clone(), savings)
     })
 }
 
 fn get_cost_savings(
-    actor: &Actor,
+    route: &Route,
     start: &Activity,
     middle: &Activity,
     end: &Activity,
     transport: &Arc<dyn TransportCost + Send + Sync>,
 ) -> Cost {
+    let actor = route.actor.as_ref();
+
     let waiting_costs = (middle.place.time.start - middle.schedule.arrival).max(0.)
         * (actor.driver.costs.per_waiting_time + actor.vehicle.costs.per_waiting_time);
 
-    let transport_costs = get_cost(actor, start, middle, transport) + get_cost(actor, middle, end, transport)
-        - get_cost(actor, start, end, transport);
+    let transport_costs = get_cost(route, start, middle, transport) + get_cost(route, middle, end, transport)
+        - get_cost(route, start, end, transport);
 
     waiting_costs + transport_costs
 }
 
 #[inline(always)]
-fn get_cost(actor: &Actor, from: &Activity, to: &Activity, transport: &Arc<dyn TransportCost + Send + Sync>) -> Cost {
-    transport.cost(actor, from.place.location, to.place.location, TravelTime::Departure(from.schedule.departure))
+fn get_cost(route: &Route, from: &Activity, to: &Activity, transport: &Arc<dyn TransportCost + Send + Sync>) -> Cost {
+    transport.cost(route, from.place.location, to.place.location, TravelTime::Departure(from.schedule.departure))
 }

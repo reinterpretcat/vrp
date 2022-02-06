@@ -1,6 +1,6 @@
 use crate::models::common::{Distance, Duration, Location, Profile, Timestamp};
-use crate::models::problem::{ActivityCost, Actor, SimpleActivityCost, TransportCost, TravelTime};
-use crate::models::solution::Activity;
+use crate::models::problem::{ActivityCost, SimpleActivityCost, TransportCost, TravelTime};
+use crate::models::solution::{Activity, Route};
 use std::sync::Arc;
 
 pub struct TestTransportCost {}
@@ -14,11 +14,11 @@ impl TransportCost for TestTransportCost {
         fake_routing(from, to)
     }
 
-    fn duration(&self, _: &Actor, from: Location, to: Location, _: TravelTime) -> Duration {
+    fn duration(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Duration {
         fake_routing(from, to)
     }
 
-    fn distance(&self, _: &Actor, from: Location, to: Location, _: TravelTime) -> Distance {
+    fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         fake_routing(from, to)
     }
 }
@@ -45,12 +45,12 @@ pub struct TestActivityCost {
 }
 
 impl ActivityCost for TestActivityCost {
-    fn estimate_departure(&self, actor: &Actor, activity: &Activity, arrival: Timestamp) -> Timestamp {
-        self.inner.estimate_departure(actor, activity, arrival)
+    fn estimate_departure(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Timestamp {
+        self.inner.estimate_departure(route, activity, arrival)
     }
 
-    fn estimate_arrival(&self, actor: &Actor, activity: &Activity, departure: Timestamp) -> Timestamp {
-        self.inner.estimate_arrival(actor, activity, departure)
+    fn estimate_arrival(&self, route: &Route, activity: &Activity, departure: Timestamp) -> Timestamp {
+        self.inner.estimate_arrival(route, activity, departure)
     }
 }
 

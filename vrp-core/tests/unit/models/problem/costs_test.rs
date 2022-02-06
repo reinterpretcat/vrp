@@ -1,5 +1,5 @@
 use super::*;
-use crate::helpers::models::solution::{test_actor, test_actor_with_profile};
+use crate::helpers::models::solution::{create_empty_route_ctx, test_actor_with_profile};
 
 fn create_matrix_data(
     profile: Profile,
@@ -71,10 +71,10 @@ fn can_return_error_when_mixing_timestamps() {
 
 #[test]
 fn can_interpolate_durations() {
-    let actor0 = test_actor_with_profile(0);
-    let actor1 = test_actor_with_profile(1);
-    let p0 = actor0.vehicle.profile.clone();
-    let p1 = actor1.vehicle.profile.clone();
+    let route0 = Route { actor: test_actor_with_profile(0), tour: Default::default() };
+    let route1 = Route { actor: test_actor_with_profile(1), tour: Default::default() };
+    let p0 = route0.actor.vehicle.profile.clone();
+    let p1 = route1.actor.vehicle.profile.clone();
 
     let costs = TimeAwareMatrixTransportCost::new(
         vec![
@@ -88,15 +88,15 @@ fn can_interpolate_durations() {
     .unwrap();
 
     for &(timestamp, duration) in &[(0., 100.), (10., 200.), (15., 200.), (3., 130.), (5., 150.), (7., 170.)] {
-        assert_eq!(costs.duration(&actor0, 0, 1, TravelTime::Departure(timestamp)), duration);
+        assert_eq!(costs.duration(&route0, 0, 1, TravelTime::Departure(timestamp)), duration);
     }
 
     for &(timestamp, duration) in &[(0., 300.), (10., 400.), (15., 400.), (3., 330.), (5., 350.), (7., 370.)] {
-        assert_eq!(costs.duration(&actor1, 0, 1, TravelTime::Departure(timestamp)), duration);
+        assert_eq!(costs.duration(&route1, 0, 1, TravelTime::Departure(timestamp)), duration);
     }
 
-    assert_eq!(costs.distance(&actor0, 0, 1, TravelTime::Departure(0.)), 1.);
-    assert_eq!(costs.distance(&actor1, 0, 1, TravelTime::Departure(0.)), 5.);
+    assert_eq!(costs.distance(&route0, 0, 1, TravelTime::Departure(0.)), 1.);
+    assert_eq!(costs.distance(&route1, 0, 1, TravelTime::Departure(0.)), 5.);
 
     assert_eq!(costs.distance_approx(&p0, 0, 1), 1.);
     assert_eq!(costs.distance_approx(&p1, 0, 1), 5.);
@@ -115,10 +115,10 @@ can_search_for_reserved_time! {
 }
 
 fn can_search_for_reserved_time_impl(times: Vec<(f64, f64)>, tests: Vec<((f64, f64), Option<usize>)>) {
-    let actor = test_actor();
+    let route = create_empty_route_ctx().route;
     let reserved_times = vec![(
-        actor.clone(),
-        times.iter().cloned().map(|(start, end)| TimeWindow::new(start, end)).collect::<Vec<_>>(),
+        route.actor.clone(),
+        times.iter().cloned().map(|(start, end)| TimeSpan::Window(TimeWindow::new(start, end))).collect::<Vec<_>>(),
     )]
     .into_iter()
     .collect();
@@ -130,7 +130,7 @@ fn can_search_for_reserved_time_impl(times: Vec<(f64, f64)>, tests: Vec<((f64, f
             let interval = TimeWindow::new(*s, *e);
             let expected = expected.and_then(|idx| times.get(idx)).map(|(s, e)| TimeWindow::new(*s, *e));
 
-            let result = reserved_time_func.deref()(&actor, &interval);
+            let result = reserved_time_func.deref()(&route, &interval);
 
             assert_eq!(result, expected);
         });

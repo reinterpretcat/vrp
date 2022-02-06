@@ -212,8 +212,8 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let (driving, transport_cost) = if commute.is_zero_distance() {
                     // NOTE: use original cost traits to adapt time-based costs (except waiting/commuting)
                     let prev_departure = TravelTime::Departure(prev_departure);
-                    let duration = transport.duration(actor, prev_location, act.place.location, prev_departure);
-                    let transport_cost = transport.cost(actor, prev_location, act.place.location, prev_departure);
+                    let duration = transport.duration(route, prev_location, act.place.location, prev_departure);
+                    let transport_cost = transport.cost(route, prev_location, act.place.location, prev_departure);
                     (duration, transport_cost)
                 } else {
                     // NOTE: no need to drive in case of non-zero commute, this goes to commuting time
@@ -235,11 +235,11 @@ fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> To
                 let activity_departure = service_end;
 
                 // TODO: add better support of time based activity costs
-                let serving_cost = problem.activity.cost(actor, act, service_start);
+                let serving_cost = problem.activity.cost(route, act, service_start);
                 let total_cost = serving_cost + transport_cost + waiting * vehicle.costs.per_waiting_time;
 
                 let location_distance =
-                    transport.distance(actor, prev_location, act.place.location, TravelTime::Departure(prev_departure))
+                    transport.distance(route, prev_location, act.place.location, TravelTime::Departure(prev_departure))
                         as i64;
                 let distance = leg.statistic.distance + location_distance - commute.forward.distance as i64;
 

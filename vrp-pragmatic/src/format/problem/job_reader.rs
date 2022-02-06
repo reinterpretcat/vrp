@@ -258,8 +258,6 @@ fn read_optional_breaks(
         .for_each(|(job_id, single)| add_conditional_job(job_index, jobs, job_id, single));
 }
 
-fn read_required_breaks() {}
-
 fn read_dispatch(
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,

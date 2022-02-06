@@ -1,6 +1,7 @@
 use super::*;
 use crate::helpers::models::problem::*;
-use crate::models::problem::{Actor, TravelTime, VehicleDetail, VehiclePlace};
+use crate::models::problem::{TravelTime, VehicleDetail, VehiclePlace};
+use crate::models::solution::Route;
 
 struct OnlyDistanceCost {}
 
@@ -13,11 +14,11 @@ impl TransportCost for OnlyDistanceCost {
         fake_routing(from, to)
     }
 
-    fn duration(&self, _: &Actor, _: Location, _: Location, _: TravelTime) -> Duration {
+    fn duration(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Duration {
         0.
     }
 
-    fn distance(&self, _: &Actor, from: Location, to: Location, _: TravelTime) -> Distance {
+    fn distance(&self, _: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
         fake_routing(from, to)
     }
 }
@@ -47,12 +48,12 @@ impl TransportCost for ProfileAwareTransportCost {
         (self.func)(profile, fake_routing(from, to))
     }
 
-    fn duration(&self, _: &Actor, _: Location, _: Location, _: TravelTime) -> Duration {
+    fn duration(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Duration {
         0.
     }
 
-    fn distance(&self, actor: &Actor, from: Location, to: Location, _: TravelTime) -> Distance {
-        (self.func)(&actor.vehicle.profile, fake_routing(from, to))
+    fn distance(&self, route: &Route, from: Location, to: Location, _: TravelTime) -> Distance {
+        (self.func)(&route.actor.vehicle.profile, fake_routing(from, to))
     }
 }
 
@@ -70,11 +71,11 @@ impl TransportCost for FixedTransportCost {
         self.distance_cost
     }
 
-    fn duration(&self, _: &Actor, _: Location, _: Location, _: TravelTime) -> Duration {
+    fn duration(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Duration {
         self.duration_cost
     }
 
-    fn distance(&self, _: &Actor, _: Location, _: Location, _: TravelTime) -> Distance {
+    fn distance(&self, _: &Route, _: Location, _: Location, _: TravelTime) -> Distance {
         self.distance_cost
     }
 }

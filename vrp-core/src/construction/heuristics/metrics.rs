@@ -54,7 +54,7 @@ pub fn get_longest_distance_between_customers_mean(insertion_ctx: &InsertionCont
             [_] => acc,
             [prev, next] => transport
                 .distance(
-                    &route_ctx.route.actor,
+                    &route_ctx.route,
                     prev.place.location,
                     next.place.location,
                     TravelTime::Departure(prev.schedule.departure),
@@ -74,7 +74,7 @@ pub fn get_average_distance_between_depot_customer_mean(insertion_ctx: &Insertio
 
         get_mean_iter(route_ctx.route.tour.all_activities().skip(1).map(|activity| {
             transport.distance(
-                &route_ctx.route.actor,
+                &route_ctx.route,
                 depot.place.location,
                 activity.place.location,
                 TravelTime::Departure(depot.schedule.departure),
@@ -97,7 +97,7 @@ pub fn get_longest_distance_between_depot_customer_mean(insertion_ctx: &Insertio
             .skip(1)
             .map(|activity| {
                 transport.distance(
-                    &route_ctx.route.actor,
+                    &route_ctx.route,
                     depot.place.location,
                     activity.place.location,
                     TravelTime::Departure(depot.schedule.departure),

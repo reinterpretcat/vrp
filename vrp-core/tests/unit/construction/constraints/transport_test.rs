@@ -458,7 +458,9 @@ mod time_dependent {
         let reserved_times = fleet
             .actors
             .first()
-            .map(|actor| vec![(actor.clone(), vec![reserved_time])].into_iter().collect::<HashMap<_, _>>())
+            .map(|actor| {
+                vec![(actor.clone(), vec![TimeSpan::Window(reserved_time)])].into_iter().collect::<HashMap<_, _>>()
+            })
             .unwrap();
         let route_ctx = create_route_context_with_activities(&fleet, "v1", activities);
 
