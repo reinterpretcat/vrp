@@ -209,14 +209,14 @@ pub trait TransportCost {
 /// Provides way to calculate transport costs which might contain reserved time.
 pub struct DynamicTransportCost {
     reserved_time_func: ReservedTimeFunc,
-    inner: Box<dyn TransportCost + Send + Sync>,
+    inner: Arc<dyn TransportCost + Send + Sync>,
 }
 
 impl DynamicTransportCost {
     /// Creates a new instance of `DynamicTransportCost`.
     pub fn new(
         reserved_times: HashMap<Arc<Actor>, Vec<TimeSpan>>,
-        inner: Box<dyn TransportCost + Send + Sync>,
+        inner: Arc<dyn TransportCost + Send + Sync>,
     ) -> Result<Self, String> {
         Ok(Self { reserved_time_func: create_reserved_time_func(reserved_times)?, inner })
     }

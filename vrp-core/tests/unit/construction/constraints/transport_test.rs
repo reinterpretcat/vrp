@@ -466,7 +466,7 @@ mod time_dependent {
 
         let pipeline = create_constraint_pipeline_with_module(Arc::new(TransportConstraintModule::new(
             Arc::new(
-                DynamicTransportCost::new(reserved_times.clone(), Box::new(TestTransportCost::default())).unwrap(),
+                DynamicTransportCost::new(reserved_times.clone(), Arc::new(TestTransportCost::default())).unwrap(),
             ),
             Arc::new(DynamicActivityCost::new(reserved_times).unwrap()),
             Arc::new(|_| (None, None)),

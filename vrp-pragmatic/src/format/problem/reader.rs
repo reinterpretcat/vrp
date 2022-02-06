@@ -32,13 +32,14 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{ActivityCost, Actor, Fleet, Jobs, TransportCost};
+use vrp_core::models::problem::*;
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::prelude::*;
 use vrp_core::rosomaxa::utils::CollectGroupBy;
 use vrp_core::solver::processing::VicinityDimension;
 
 pub type ApiProblem = crate::format::problem::Problem;
+pub type CoreFleet = vrp_core::models::problem::Fleet;
 
 /// Reads specific problem definition from various sources.
 pub trait PragmaticProblem {
@@ -184,7 +185,7 @@ fn map_to_problem(
 
     let coord_index = Arc::new(coord_index);
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
-    let _reserved_times = read_reserved_times(&api_problem, &fleet);
+    let reserved_times = read_reserved_times(&api_problem, &fleet);
 
     let transport = create_transport_costs(&api_problem, &matrices).map_err(|err| {
         vec![FormatError::new(
@@ -193,7 +194,24 @@ fn map_to_problem(
             format!("check matrix routing data: '{}'", err),
         )]
     })?;
-    let activity = Arc::new(OnlyVehicleActivityCost::default());
+    let activity: Arc<dyn ActivityCost + Send + Sync> = Arc::new(OnlyVehicleActivityCost::default());
+
+    let (transport, activity) = if reserved_times.is_empty() {
+        (transport, activity)
+    } else {
+        DynamicTransportCost::new(reserved_times.clone(), transport)
+            .and_then(|transport| DynamicActivityCost::new(reserved_times).map(|activity| (transport, activity)))
+            .map_err(|err| {
+                vec![FormatError::new(
+                    "E0002".to_string(),
+                    "cannot create transport costs".to_string(),
+                    format!("check fleet definition: '{}'", err),
+                )]
+            })
+            .map::<(Arc<dyn TransportCost + Send + Sync>, Arc<dyn ActivityCost + Send + Sync>), _>(
+                |(transport, activity)| (Arc::new(transport), Arc::new(activity)),
+            )?
+    };
 
     // TODO pass random from outside as there might be need to have it initialized with seed
     //      at the moment, this random instance is used only by multi job permutation generator
@@ -240,7 +258,7 @@ fn map_to_problem(
     })
 }
 
-fn read_reserved_times(api_problem: &ApiProblem, fleet: &Fleet) -> HashMap<Arc<Actor>, Vec<TimeSpan>> {
+fn read_reserved_times(api_problem: &ApiProblem, fleet: &CoreFleet) -> HashMap<Arc<Actor>, Vec<TimeSpan>> {
     let breaks_map = api_problem
         .fleet
         .vehicles
@@ -291,7 +309,7 @@ fn read_reserved_times(api_problem: &ApiProblem, fleet: &Fleet) -> HashMap<Arc<A
 #[allow(clippy::too_many_arguments)]
 fn create_constraint_pipeline(
     jobs: &Jobs,
-    fleet: &Fleet,
+    fleet: &CoreFleet,
     transport: Arc<dyn TransportCost + Send + Sync>,
     activity: Arc<dyn ActivityCost + Send + Sync>,
     props: &ProblemProperties,
