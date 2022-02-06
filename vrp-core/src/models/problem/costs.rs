@@ -455,6 +455,8 @@ impl TransportCost for TimeAwareMatrixTransportCost {
 }
 
 fn create_reserved_time_func(reserved_times: HashMap<Arc<Actor>, Vec<TimeWindow>>) -> Result<ReservedTimeFunc, String> {
+    // TODO use TimeSpan to support time offset
+
     if reserved_times.is_empty() {
         return Ok(Arc::new(|_, _| None));
     }

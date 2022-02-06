@@ -188,7 +188,7 @@ fn read_conditional_jobs(
             }
 
             if let Some(breaks) = &shift.breaks {
-                read_breaks(coord_index, job_index, &mut jobs, vehicle, shift_index, breaks);
+                read_optional_breaks(coord_index, job_index, &mut jobs, vehicle, shift_index, breaks);
             }
 
             if let Some(reloads) = &shift.reloads {
@@ -200,7 +200,7 @@ fn read_conditional_jobs(
     (jobs, vec![])
 }
 
-fn read_breaks(
+fn read_optional_breaks(
     coord_index: &CoordIndex,
     job_index: &mut JobIndex,
     jobs: &mut Vec<Job>,
@@ -257,6 +257,8 @@ fn read_breaks(
         })
         .for_each(|(job_id, single)| add_conditional_job(job_index, jobs, job_id, single));
 }
+
+fn read_required_breaks() {}
 
 fn read_dispatch(
     coord_index: &CoordIndex,

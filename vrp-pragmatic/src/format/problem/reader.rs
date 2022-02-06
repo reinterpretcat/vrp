@@ -21,7 +21,7 @@ use self::objective_reader::create_objective;
 use crate::constraints::*;
 use crate::extensions::{get_route_modifier, OnlyVehicleActivityCost};
 use crate::format::coord_index::CoordIndex;
-use crate::format::problem::{deserialize_matrix, deserialize_problem, get_job_tasks, Matrix};
+use crate::format::problem::*;
 use crate::format::*;
 use crate::utils::get_approx_transportation;
 use crate::validation::ValidationContext;
@@ -31,10 +31,11 @@ use std::cmp::Ordering::Equal;
 use std::io::{BufReader, Read};
 use std::sync::Arc;
 use vrp_core::construction::constraints::*;
-use vrp_core::models::common::{MultiDimLoad, SingleDimLoad, TimeWindow, ValueDimension};
-use vrp_core::models::problem::{ActivityCost, Fleet, Jobs, TransportCost};
+use vrp_core::models::common::*;
+use vrp_core::models::problem::{ActivityCost, Actor, Fleet, Jobs, TransportCost};
 use vrp_core::models::{Extras, Lock, Problem};
 use vrp_core::prelude::*;
+use vrp_core::rosomaxa::utils::CollectGroupBy;
 use vrp_core::solver::processing::VicinityDimension;
 
 pub type ApiProblem = crate::format::problem::Problem;
@@ -182,6 +183,9 @@ fn map_to_problem(
     let problem_props = get_problem_properties(&api_problem, &matrices);
 
     let coord_index = Arc::new(coord_index);
+    let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
+    let reserved_times = read_reserved_times(&api_problem, &fleet);
+
     let transport = create_transport_costs(&api_problem, &matrices).map_err(|err| {
         vec![FormatError::new(
             "E0002".to_string(),
@@ -190,7 +194,6 @@ fn map_to_problem(
         )]
     })?;
     let activity = Arc::new(OnlyVehicleActivityCost::default());
-    let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
 
     // TODO pass random from outside as there might be need to have it initialized with seed
     //      at the moment, this random instance is used only by multi job permutation generator
@@ -235,6 +238,55 @@ fn map_to_problem(
         objective,
         extras,
     })
+}
+
+fn read_reserved_times(api_problem: &ApiProblem, fleet: &Fleet) -> HashMap<Arc<Actor>, Vec<TimeSpan>> {
+    let breaks_map = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .flat_map(|vehicle| {
+            vehicle.shifts.iter().enumerate().flat_map(move |(shift_idx, shift)| {
+                shift.breaks.iter().flat_map(|br| br.iter()).filter_map(move |br| match br {
+                    VehicleBreak::Required { time, duration } => {
+                        Some((vehicle.type_id.clone(), shift_idx, time.clone(), *duration))
+                    }
+                    VehicleBreak::Optional { .. } => None,
+                })
+            })
+        })
+        .collect_group_by_key(|(type_id, shift_idx, _, _)| (type_id.clone(), *shift_idx));
+    //.collect::<HashMap<_, _>>();
+
+    fleet
+        .actors
+        .iter()
+        .filter_map(|actor| {
+            let type_id = actor.vehicle.dimens.get_value::<String>("type_id").unwrap().clone();
+            let shift_idx = *actor.vehicle.dimens.get_value::<usize>("shift_idx").unwrap();
+
+            let times = breaks_map
+                .get(&(type_id, shift_idx))
+                .iter()
+                .flat_map(|data| data.iter())
+                .map(|(_, _, time, duration)| match time {
+                    VehicleRequiredBreakTime::ExactTime(time) => {
+                        let time = parse_time(time);
+                        TimeSpan::Window(TimeWindow::new(time, time + duration))
+                    }
+                    VehicleRequiredBreakTime::OffsetTime(offset) => {
+                        TimeSpan::Offset(TimeOffset::new(*offset, *offset + duration))
+                    }
+                })
+                .collect::<Vec<_>>();
+
+            if times.is_empty() {
+                None
+            } else {
+                Some((actor.clone(), times))
+            }
+        })
+        .collect()
 }
 
 #[allow(clippy::too_many_arguments)]
