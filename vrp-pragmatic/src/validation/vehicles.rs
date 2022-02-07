@@ -3,9 +3,9 @@
 mod vehicles_test;
 
 use super::*;
-use crate::parse_time;
 use crate::utils::combine_error_results;
 use crate::validation::common::get_time_windows;
+use crate::{parse_time, parse_time_safe};
 use hashbrown::HashSet;
 use std::cmp::Ordering;
 use std::ops::Deref;
@@ -82,12 +82,13 @@ fn check_e1303_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
                 .map(|breaks| {
                     let tws = breaks
                         .iter()
-                        .map(|b| match b {
-                            VehicleBreak::Optional { time, .. } => time,
-                            VehicleBreak::Required { .. } => unimplemented!(),
-                        })
-                        .filter_map(|time| match &time {
-                            VehicleOptionalBreakTime::TimeWindow(tw) => Some(get_time_window_from_vec(tw)),
+                        .filter_map(|b| match b {
+                            VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeWindow(tw), .. } => {
+                                Some(get_time_window_from_vec(tw))
+                            }
+                            VehicleBreak::Required { time: VehicleRequiredBreakTime::ExactTime(time), duration } => {
+                                Some(parse_time_safe(time).ok().map(|start| TimeWindow::new(start, start + *duration)))
+                            }
                             _ => None,
                         })
                         .collect::<Vec<_>>();

@@ -209,17 +209,15 @@ fn read_optional_breaks(
     breaks: &[VehicleBreak],
 ) {
     (1..)
-        .zip(breaks.iter())
-        .flat_map(|(break_idx, vehicle_break)| {
+        .zip(breaks.iter().filter_map(|vehicle_break| match vehicle_break {
+            VehicleBreak::Optional { time, places, policy } => Some((time, places, policy)),
+            VehicleBreak::Required { .. } => None,
+        }))
+        .flat_map(|(break_idx, (break_time, break_places, policy))| {
             vehicle
                 .vehicle_ids
                 .iter()
                 .map(|vehicle_id| {
-                    let (break_time, break_places, policy) = match vehicle_break {
-                        VehicleBreak::Optional { time, places, policy } => (time, places, policy),
-                        VehicleBreak::Required { .. } => unimplemented!(),
-                    };
-
                     let times = match &break_time {
                         VehicleOptionalBreakTime::TimeWindow(time) if time.len() != 2 => {
                             panic!("Break with invalid time window specified: must have start and end!")

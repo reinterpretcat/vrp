@@ -4,3 +4,4 @@ mod interval_break_test;
 mod multi_break_test;
 mod policy_break_test;
 mod relation_break_test;
+mod required_break;
