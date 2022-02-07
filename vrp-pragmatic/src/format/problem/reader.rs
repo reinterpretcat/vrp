@@ -185,7 +185,7 @@ fn map_to_problem(
 
     let coord_index = Arc::new(coord_index);
     let fleet = read_fleet(&api_problem, &problem_props, &coord_index);
-    let reserved_times = read_reserved_times(&api_problem, &fleet);
+    let reserved_times_index = read_reserved_times_index(&api_problem, &fleet);
 
     let transport = create_transport_costs(&api_problem, &matrices).map_err(|err| {
         vec![FormatError::new(
@@ -196,11 +196,13 @@ fn map_to_problem(
     })?;
     let activity: Arc<dyn ActivityCost + Send + Sync> = Arc::new(OnlyVehicleActivityCost::default());
 
-    let (transport, activity) = if reserved_times.is_empty() {
+    let (transport, activity) = if reserved_times_index.is_empty() {
         (transport, activity)
     } else {
-        DynamicTransportCost::new(reserved_times.clone(), transport)
-            .and_then(|transport| DynamicActivityCost::new(reserved_times).map(|activity| (transport, activity)))
+        DynamicTransportCost::new(reserved_times_index.clone(), transport)
+            .and_then(|transport| {
+                DynamicActivityCost::new(reserved_times_index.clone()).map(|activity| (transport, activity))
+            })
             .map_err(|err| {
                 vec![FormatError::new(
                     "E0002".to_string(),
@@ -234,16 +236,23 @@ fn map_to_problem(
     let objective = create_objective(&api_problem, &mut constraint, &problem_props);
     let constraint = Arc::new(constraint);
     let extras = Arc::new(
-        create_extras(&api_problem, constraint.clone(), random, &problem_props, job_index, coord_index).map_err(
-            |err| {
-                // TODO make sure that error matches actual reason
-                vec![FormatError::new(
-                    "E0002".to_string(),
-                    "cannot create transport costs".to_string(),
-                    format!("check clustering config: '{}'", err),
-                )]
-            },
-        )?,
+        create_extras(
+            &api_problem,
+            constraint.clone(),
+            random,
+            &problem_props,
+            job_index,
+            coord_index,
+            reserved_times_index,
+        )
+        .map_err(|err| {
+            // TODO make sure that error matches actual reason
+            vec![FormatError::new(
+                "E0002".to_string(),
+                "cannot create transport costs".to_string(),
+                format!("check clustering config: '{}'", err),
+            )]
+        })?,
     );
 
     Ok(Problem {
@@ -258,7 +267,7 @@ fn map_to_problem(
     })
 }
 
-fn read_reserved_times(api_problem: &ApiProblem, fleet: &CoreFleet) -> HashMap<Arc<Actor>, Vec<TimeSpan>> {
+fn read_reserved_times_index(api_problem: &ApiProblem, fleet: &CoreFleet) -> ReservedTimesIndex {
     let breaks_map = api_problem
         .fleet
         .vehicles
@@ -408,6 +417,7 @@ fn create_extras(
     props: &ProblemProperties,
     job_index: JobIndex,
     coord_index: Arc<CoordIndex>,
+    reserved_times_index: ReservedTimesIndex,
 ) -> Result<Extras, String> {
     let mut extras = Extras::default();
     extras.insert(
@@ -416,6 +426,7 @@ fn create_extras(
     );
     extras.insert("coord_index".to_owned(), coord_index);
     extras.insert("job_index".to_owned(), Arc::new(job_index.clone()));
+    extras.insert("reserved_times_index".to_owned(), Arc::new(reserved_times_index));
 
     if props.has_dispatch {
         extras.insert("route_modifier".to_owned(), Arc::new(get_route_modifier(constraint, random, job_index)));

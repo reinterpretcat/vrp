@@ -124,19 +124,22 @@ impl ActivityCost for SimpleActivityCost {
     }
 }
 
+/// Specifies reserved time index type.
+pub type ReservedTimesIndex = HashMap<Arc<Actor>, Vec<TimeSpan>>;
+
 /// Specifies a function which returns an extra reserved time for given actor and time window
 /// which will be considered by specific costs.
-type ReservedTimeFunc = Arc<dyn Fn(&Route, &TimeWindow) -> Option<TimeWindow> + Send + Sync>;
+type ReservedTimesFunc = Arc<dyn Fn(&Route, &TimeWindow) -> Option<TimeWindow> + Send + Sync>;
 
 /// Provides way to calculate activity costs which might contain reserved time.
 pub struct DynamicActivityCost {
-    reserved_time_func: ReservedTimeFunc,
+    reserved_times_func: ReservedTimesFunc,
 }
 
 impl DynamicActivityCost {
     /// Creates a new instance of `DynamicActivityCost` with given reserved time function.
-    pub fn new(reserved_times: HashMap<Arc<Actor>, Vec<TimeSpan>>) -> Result<Self, String> {
-        Ok(Self { reserved_time_func: create_reserved_time_func(reserved_times)? })
+    pub fn new(reserved_times_index: ReservedTimesIndex) -> Result<Self, String> {
+        Ok(Self { reserved_times_func: create_reserved_times_func(reserved_times_index)? })
     }
 }
 
@@ -146,7 +149,7 @@ impl ActivityCost for DynamicActivityCost {
         let departure = activity_start + activity.place.duration;
         let schedule = TimeWindow::new(arrival, departure);
 
-        self.reserved_time_func.deref()(route, &schedule).map_or(departure, |reserved_time: TimeWindow| {
+        self.reserved_times_func.deref()(route, &schedule).map_or(departure, |reserved_time: TimeWindow| {
             assert!(reserved_time.intersects(&schedule));
 
             let time_window = &activity.place.time;
@@ -173,7 +176,7 @@ impl ActivityCost for DynamicActivityCost {
         let arrival = activity.place.time.end.min(departure - activity.place.duration);
         let schedule = TimeWindow::new(arrival, departure);
 
-        self.reserved_time_func.deref()(route, &schedule).map_or(arrival, |reserved_time: TimeWindow| {
+        self.reserved_times_func.deref()(route, &schedule).map_or(arrival, |reserved_time: TimeWindow| {
             // TODO consider overlapping break with waiting time?
             arrival - reserved_time.duration()
         })
@@ -208,17 +211,17 @@ pub trait TransportCost {
 
 /// Provides way to calculate transport costs which might contain reserved time.
 pub struct DynamicTransportCost {
-    reserved_time_func: ReservedTimeFunc,
+    reserved_times_func: ReservedTimesFunc,
     inner: Arc<dyn TransportCost + Send + Sync>,
 }
 
 impl DynamicTransportCost {
     /// Creates a new instance of `DynamicTransportCost`.
     pub fn new(
-        reserved_times: HashMap<Arc<Actor>, Vec<TimeSpan>>,
+        reserved_times_index: ReservedTimesIndex,
         inner: Arc<dyn TransportCost + Send + Sync>,
     ) -> Result<Self, String> {
-        Ok(Self { reserved_time_func: create_reserved_time_func(reserved_times)?, inner })
+        Ok(Self { reserved_times_func: create_reserved_times_func(reserved_times_index)?, inner })
     }
 }
 
@@ -239,7 +242,7 @@ impl TransportCost for DynamicTransportCost {
             TravelTime::Departure(departure) => TimeWindow::new(departure, departure + duration),
         };
 
-        self.reserved_time_func.deref()(route, &time_window)
+        self.reserved_times_func.deref()(route, &time_window)
             .map_or(duration, |reserved_time: TimeWindow| duration + reserved_time.duration())
     }
 
@@ -458,13 +461,14 @@ impl TransportCost for TimeAwareMatrixTransportCost {
     }
 }
 
-fn create_reserved_time_func(reserved_times: HashMap<Arc<Actor>, Vec<TimeSpan>>) -> Result<ReservedTimeFunc, String> {
-    if reserved_times.is_empty() {
+fn create_reserved_times_func(reserved_times_index: ReservedTimesIndex) -> Result<ReservedTimesFunc, String> {
+    if reserved_times_index.is_empty() {
         return Ok(Arc::new(|_, _| None));
     }
 
-    let reserved_times =
-        reserved_times.into_iter().try_fold(HashMap::<_, (Vec<_>, Vec<_>)>::new(), |mut acc, (actor, mut times)| {
+    let reserved_times = reserved_times_index.into_iter().try_fold(
+        HashMap::<_, (Vec<_>, Vec<_>)>::new(),
+        |mut acc, (actor, mut times)| {
             // NOTE do not allow different types to simplify interval searching
             let are_same_types = times.windows(2).all(|pair| {
                 if let [a, b] = pair {
@@ -512,7 +516,8 @@ fn create_reserved_time_func(reserved_times: HashMap<Arc<Actor>, Vec<TimeSpan>>)
             } else {
                 Err("reserved times have intersections".to_string())
             }
-        })?;
+        },
+    )?;
 
     Ok(Arc::new(move |route: &Route, time_window: &TimeWindow| {
         let offset = route.tour.start().map(|a| a.schedule.departure).unwrap_or(0.);

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::io::BufWriter;
 use vrp_core::models::problem::Job as CoreJob;
+use vrp_core::models::problem::ReservedTimesIndex;
 use vrp_core::models::Problem as CoreProblem;
 
 mod coord_index;
@@ -154,4 +155,13 @@ pub fn get_coord_index(problem: &CoreProblem) -> &CoordIndex {
         .get("coord_index")
         .and_then(|s| s.downcast_ref::<CoordIndex>())
         .unwrap_or_else(|| panic!("cannot get coord index!"))
+}
+
+/// Gets reserved times index.
+pub fn get_reserved_times_index(problem: &CoreProblem) -> &ReservedTimesIndex {
+    problem
+        .extras
+        .get("reserved_times_index")
+        .and_then(|s| s.downcast_ref::<ReservedTimesIndex>())
+        .unwrap_or_else(|| panic!("cannot get reserved time index!"))
 }

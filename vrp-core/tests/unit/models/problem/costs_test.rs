@@ -123,7 +123,7 @@ fn can_search_for_reserved_time_impl(times: Vec<(f64, f64)>, tests: Vec<((f64, f
     .into_iter()
     .collect();
 
-    let reserved_time_func = create_reserved_time_func(reserved_times);
+    let reserved_time_func = create_reserved_times_func(reserved_times);
 
     if let Some(reserved_time_func) = reserved_time_func.ok() {
         tests.iter().for_each(|((s, e), expected)| {

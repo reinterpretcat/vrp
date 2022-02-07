@@ -93,8 +93,13 @@ impl Leg {
 /// Creates solution.
 pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&TelemetryMetrics>) -> ApiSolution {
     let coord_index = get_coord_index(problem);
+    let reserved_times_index = get_reserved_times_index(problem);
 
-    let tours = solution.routes.iter().map(|r| create_tour(problem, r, coord_index)).collect::<Vec<Tour>>();
+    let tours = solution
+        .routes
+        .iter()
+        .map(|r| create_tour(problem, r, coord_index, reserved_times_index))
+        .collect::<Vec<Tour>>();
 
     let statistic = tours.iter().fold(Statistic::default(), |acc, tour| acc + tour.statistic.clone());
 
@@ -106,7 +111,12 @@ pub fn create_solution(problem: &Problem, solution: &Solution, metrics: Option<&
     ApiSolution { statistic, tours, unassigned, violations, extras }
 }
 
-fn create_tour(problem: &Problem, route: &Route, coord_index: &CoordIndex) -> Tour {
+fn create_tour(
+    problem: &Problem,
+    route: &Route,
+    coord_index: &CoordIndex,
+    _reserved_times_index: &ReservedTimesIndex,
+) -> Tour {
     let is_multi_dimen = has_multi_dimensional_capacity(problem.extras.as_ref());
     let parking = get_parking_time(problem.extras.as_ref());
 
