@@ -426,7 +426,7 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                             });
 
                             if activity_tw.intersects(&reserved_time) {
-                                Some(activity_idx)
+                                Some(activity_idx + 1)
                             } else {
                                 None
                             }
