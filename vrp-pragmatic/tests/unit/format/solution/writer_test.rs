@@ -179,7 +179,7 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
         .collect();
     let route = create_route_with_activities(&problem.fleet, "v1", activities);
 
-    let tour = create_tour(&problem, &route, &coord_index);
+    let tour = create_tour(&problem, &route, &coord_index, &Default::default());
     assert_eq!(expected.len(), tour.stops.len() - 2);
     expected.iter().zip(tour.stops.iter().skip(1)).for_each(|((expected_stop_idx, expected_acts), actual_stop)| {
         assert_eq!(Some(*expected_stop_idx), coord_index.get_by_loc(&actual_stop.location));

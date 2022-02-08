@@ -60,14 +60,13 @@ fn can_assign_break_during_travel() {
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
                         5,
                     ),
-                    create_stop_with_activity_with_tag(
+                    create_stop_with_activity(
                         "break",
                         "break",
                         (0., 0.),
                         1,
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
-                        6,
-                        "break_tag"
+                        5,
                     ),
                     create_stop_with_activity(
                         "job2",

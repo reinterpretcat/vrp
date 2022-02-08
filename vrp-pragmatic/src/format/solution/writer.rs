@@ -7,7 +7,7 @@ use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
-use crate::format_time;
+use crate::{format_time, parse_time};
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::route_intervals;
 use vrp_core::models::common::*;
@@ -17,6 +17,7 @@ use vrp_core::models::{Problem, Solution};
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
 
+type ApiLocation = crate::format::Location;
 type ApiActivity = crate::format::solution::model::Activity;
 type ApiSolution = crate::format::solution::model::Solution;
 type ApiSchedule = crate::format::solution::model::Schedule;
@@ -115,8 +116,10 @@ fn create_tour(
     problem: &Problem,
     route: &Route,
     coord_index: &CoordIndex,
-    _reserved_times_index: &ReservedTimesIndex,
+    reserved_times_index: &ReservedTimesIndex,
 ) -> Tour {
+    // TODO reduce complexity
+
     let is_multi_dimen = has_multi_dimensional_capacity(problem.extras.as_ref());
     let parking = get_parking_time(problem.extras.as_ref());
 
@@ -351,7 +354,105 @@ fn create_tour(
     tour.type_id = vehicle.dimens.get_value::<String>("type_id").unwrap().clone();
     tour.statistic = leg.statistic;
 
+    insert_reserved_times(route, &mut tour, reserved_times_index);
+
     tour
+}
+
+fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &ReservedTimesIndex) {
+    let shift_time = route
+        .tour
+        .start()
+        .zip(route.tour.end())
+        .map(|(start, end)| TimeWindow::new(start.schedule.departure, end.schedule.arrival))
+        .expect("empty tour");
+
+    reserved_times_index
+        .get(&route.actor)
+        .iter()
+        .flat_map(|times| times.iter())
+        .map(|time| match time {
+            TimeSpan::Offset(offset) => TimeWindow::new(offset.start + shift_time.start, offset.end + shift_time.start),
+            TimeSpan::Window(tw) => tw.clone(),
+        })
+        .filter(|time| shift_time.intersects(time))
+        .for_each(|reserved_time| {
+            // NOTE scan and insert new stop if necessary
+            if let Some((leg_idx, load, distance)) = tour
+                .stops
+                .windows(2)
+                .enumerate()
+                .filter_map(|(leg_idx, stops)| {
+                    if let &[prev, next] = &stops {
+                        let travel_tw =
+                            TimeWindow::new(parse_time(&prev.time.departure), parse_time(&next.time.arrival));
+                        if travel_tw.intersects(&reserved_time) {
+                            return Some((leg_idx, prev.load.clone(), prev.distance));
+                        }
+                    }
+
+                    None
+                })
+                .next()
+            {
+                tour.stops.insert(
+                    leg_idx + 1,
+                    Stop {
+                        // NOTE use MAX value as marker value
+                        location: ApiLocation::Reference { index: usize::MAX },
+                        time: ApiSchedule {
+                            arrival: format_time(reserved_time.start),
+                            departure: format_time(reserved_time.end),
+                        },
+                        distance,
+                        load,
+                        parking: None,
+                        activities: vec![],
+                    },
+                )
+            }
+
+            // NOTE insert activity
+            tour.stops.iter_mut().for_each(|stop| {
+                let stop_tw = TimeWindow::new(parse_time(&stop.time.arrival), parse_time(&stop.time.departure));
+                if stop_tw.intersects(&reserved_time) {
+                    let idx = stop
+                        .activities
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(activity_idx, activity)| {
+                            let activity_tw = activity.time.as_ref().map_or(stop_tw.clone(), |interval| {
+                                TimeWindow::new(parse_time(&interval.start), parse_time(&interval.end))
+                            });
+
+                            if activity_tw.intersects(&reserved_time) {
+                                Some(activity_idx)
+                            } else {
+                                None
+                            }
+                        })
+                        .next()
+                        .unwrap_or(0);
+
+                    stop.activities.insert(
+                        idx,
+                        ApiActivity {
+                            job_id: "break".to_string(),
+                            activity_type: "break".to_string(),
+                            location: None,
+                            time: Some(Interval {
+                                start: format_time(reserved_time.start),
+                                end: format_time(reserved_time.end),
+                            }),
+                            job_tag: None,
+                            commute: None,
+                        },
+                    )
+                }
+            });
+
+            tour.statistic.times.break_time += reserved_time.duration() as i64;
+        });
 }
 
 fn format_schedule(schedule: &DomainSchedule) -> ApiSchedule {
