@@ -3,11 +3,13 @@
 mod objective_reader_test;
 
 use crate::constraints::{AreaModule, TOTAL_VALUE_KEY, TOUR_ORDER_KEY};
+use crate::core::models::common::IdDimension;
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::TourOrder as FormatTourOrder;
 use crate::format::problem::Objective::*;
 use crate::format::{AREA_CONSTRAINT_CODE, TOUR_ORDER_CONSTRAINT_CODE};
+use hashbrown::HashMap;
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
@@ -182,8 +184,23 @@ fn get_area(
 ) -> (TargetConstraint, Vec<TargetObjective>) {
     let break_value = break_value.unwrap_or(100.);
 
-    let order_fn: ActorOrderFn = Arc::new(|_actor, _single| unimplemented!());
-    let value_fn: ActorValueFn = Arc::new(|_actor, _job| unimplemented!());
+    let order_fn: ActorOrderFn = Arc::new(|actor, single| {
+        actor
+            .vehicle
+            .dimens
+            .get_value::<HashMap<String, (usize, f64)>>("areas")
+            .and_then(|index| single.dimens.get_id().and_then(|id| index.get(id)))
+            .map(|(order, _)| *order as f64)
+    });
+    let value_fn: ActorValueFn = Arc::new(|actor, job| {
+        actor
+            .vehicle
+            .dimens
+            .get_value::<HashMap<String, (usize, f64)>>("areas")
+            .and_then(|index| job.dimens().get_id().and_then(|id| index.get(id)))
+            .map(|(_, value)| *value)
+            .unwrap_or(0.)
+    });
     let solution_fn: SolutionValueFn = Arc::new(move |solution| {
         solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimate(job, break_value, 0.)).sum()
     });

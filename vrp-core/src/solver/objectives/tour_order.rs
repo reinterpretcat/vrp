@@ -16,10 +16,10 @@ use std::sync::Arc;
 pub type ActorOrderFn = Arc<dyn Fn(&Actor, &Single) -> Option<f64> + Send + Sync>;
 
 /// Specifies an activity order function which takes into account only single job.
-pub type SimpleOrderFn = Arc<dyn Fn(&Single) -> Option<f64> + Send + Sync>;
+pub type SingleOrderFn = Arc<dyn Fn(&Single) -> Option<f64> + Send + Sync>;
 
 /// Specifies an order func as a variant of two functions.
-pub type OrderFn = Either<SimpleOrderFn, ActorOrderFn>;
+pub type OrderFn = Either<SingleOrderFn, ActorOrderFn>;
 
 /// Allows to control desired activity order in tours.
 pub struct TourOrder {}
