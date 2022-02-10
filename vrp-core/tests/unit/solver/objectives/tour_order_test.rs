@@ -36,8 +36,9 @@ fn can_get_violations() {
         )),
         Arc::new(RouteState::default()),
     );
+    let order_fn: OrderFn = Either::Left(Arc::new(|single| single.dimens.get_value::<f64>("order").cloned()));
 
-    let violations = get_violations(&[route], &|single| single.dimens.get_value::<f64>("order").cloned());
+    let violations = get_violations(&[route], &order_fn);
 
     assert_eq!(violations, 1);
 }
@@ -56,7 +57,7 @@ can_merge_order! {
 
 fn can_merge_order_impl(source: Option<f64>, candidate: Option<f64>, expected: Result<Option<f64>, i32>) {
     let (constraint, _) =
-        TourOrder::new_unconstrained(Arc::new(|single| single.dimens.get_value::<f64>("order").cloned()));
+        TourOrder::new_unconstrained(Either::Left(Arc::new(|single| single.dimens.get_value::<f64>("order").cloned())));
     let source_job = Job::Single(create_single_with_order("source", source));
     let candidate_job = Job::Single(create_single_with_order("candidate", candidate));
 

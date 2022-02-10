@@ -16,6 +16,7 @@ use vrp_core::models::problem::Job;
 use vrp_core::models::problem::{ProblemObjective, Single, TargetConstraint, TargetObjective};
 use vrp_core::solver::objectives::TourOrder as CoreTourOrder;
 use vrp_core::solver::objectives::*;
+use vrp_core::utils::Either;
 
 pub fn create_objective(
     api_problem: &ApiProblem,
@@ -154,7 +155,8 @@ fn get_value(
 }
 
 fn get_order(is_constrained: bool) -> (TargetConstraint, TargetObjective) {
-    let order_func = Arc::new(|single: &Single| single.dimens.get_value::<i32>("order").map(|order| *order as f64));
+    let order_func: OrderFn =
+        Either::Left(Arc::new(|single: &Single| single.dimens.get_value::<i32>("order").map(|order| *order as f64)));
 
     if is_constrained {
         CoreTourOrder::new_constrained(order_func, TOUR_ORDER_CONSTRAINT_CODE)

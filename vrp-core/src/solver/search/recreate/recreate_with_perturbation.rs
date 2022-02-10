@@ -62,16 +62,16 @@ impl ResultSelector for CostPerturbationResultSelector {
         InsertionResult::choose_best_result(self.try_perturbation(left), self.try_perturbation(right))
     }
 
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either {
+    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
         let random = self.random.as_ref();
 
         let left = left * random.uniform_real(self.min, self.max);
         let right = right * random.uniform_real(self.min, self.max);
 
         if left < right {
-            Either::Left
+            Either::Left(left)
         } else {
-            Either::Right
+            Either::Right(right)
         }
     }
 }

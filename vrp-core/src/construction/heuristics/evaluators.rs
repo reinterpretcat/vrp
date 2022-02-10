@@ -267,8 +267,8 @@ fn analyze_insertion_in_route_leg(
             let other_costs = in2.cost.unwrap_or(f64::MAX);
 
             match eval_ctx.result_selector.select_cost(route_ctx, costs, other_costs) {
-                Either::Left => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
-                Either::Right => SingleContext::skip(in2),
+                Either::Left(_) => SingleContext::success(activity_ctx.index, costs, target.place.clone()),
+                Either::Right(_) => SingleContext::skip(in2),
             }
         })
     })

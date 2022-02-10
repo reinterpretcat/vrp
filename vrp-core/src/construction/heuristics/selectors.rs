@@ -199,11 +199,11 @@ pub trait ResultSelector {
     ) -> InsertionResult;
 
     /// Selects one insertion result from two to promote as best.
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either {
+    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
         if left < right {
-            Either::Left
+            Either::Left(left)
         } else {
-            Either::Right
+            Either::Right(right)
         }
     }
 }
@@ -249,14 +249,14 @@ impl ResultSelector for NoiseResultSelector {
         }
     }
 
-    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either {
+    fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
         let left = self.noise.add(left);
         let right = self.noise.add(right);
 
         if left < right {
-            Either::Left
+            Either::Left(left)
         } else {
-            Either::Right
+            Either::Right(right)
         }
     }
 }

@@ -19,7 +19,7 @@ mod total_value;
 pub use self::total_value::TotalValue;
 
 mod tour_order;
-pub use self::tour_order::TourOrder;
+pub use self::tour_order::*;
 
 mod work_balance;
 pub use self::work_balance::WorkBalance;

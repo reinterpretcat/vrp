@@ -224,8 +224,8 @@ fn choose_best_result(
         .fold((0, &failure), |(acc_idx, acc_result), (idx, result)| match (acc_result, result) {
             (InsertionResult::Success(acc_success), InsertionResult::Success(success)) => {
                 match search_ctx.2.select_cost(&acc_success.context, acc_success.cost, success.cost) {
-                    Either::Left => (acc_idx, acc_result),
-                    Either::Right => (idx, result),
+                    Either::Left(_) => (acc_idx, acc_result),
+                    Either::Right(_) => (idx, result),
                 }
             }
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => (acc_idx, acc_result),
