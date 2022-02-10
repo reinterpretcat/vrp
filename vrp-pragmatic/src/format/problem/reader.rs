@@ -206,16 +206,8 @@ fn map_to_problem(
     );
     let locks = locks.into_iter().chain(read_locks(&api_problem, &job_index).into_iter()).collect::<Vec<_>>();
     let limits = read_travel_limits(&api_problem).unwrap_or_else(|| Arc::new(|_| (None, None)));
-    let mut constraint = create_constraint_pipeline(
-        coord_index.clone(),
-        &jobs,
-        &fleet,
-        transport.clone(),
-        activity.clone(),
-        &problem_props,
-        &locks,
-        limits,
-    );
+    let mut constraint =
+        create_constraint_pipeline(&jobs, &fleet, transport.clone(), activity.clone(), &problem_props, &locks, limits);
 
     let objective = create_objective(&api_problem, &mut constraint, &problem_props);
     let constraint = Arc::new(constraint);
@@ -246,7 +238,6 @@ fn map_to_problem(
 
 #[allow(clippy::too_many_arguments)]
 fn create_constraint_pipeline(
-    coord_index: Arc<CoordIndex>,
     jobs: &Jobs,
     fleet: &Fleet,
     transport: Arc<dyn TransportCost + Send + Sync>,
@@ -301,7 +292,7 @@ fn create_constraint_pipeline(
     }
 
     if props.has_area_limits {
-        add_area_module(&mut constraint, coord_index);
+        add_area_module(&mut constraint);
     }
 
     constraint
@@ -334,8 +325,9 @@ fn add_capacity_module(
     });
 }
 
-fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIndex>) {
-    constraint.add_module(Arc::new(AreaModule::new(
+fn add_area_module(_constraint: &mut ConstraintPipeline) {
+    unimplemented!()
+    /* constraint.add_module(Arc::new(AreaModule::new(
         Arc::new(|actor| actor.vehicle.dimens.get_value::<Vec<Area>>("areas")),
         Arc::new(move |location| {
             coord_index
@@ -343,7 +335,7 @@ fn add_area_module(constraint: &mut ConstraintPipeline, coord_index: Arc<CoordIn
                 .map_or_else(|| panic!("cannot find location!"), |location| location.to_lat_lng())
         }),
         AREA_CONSTRAINT_CODE,
-    )));
+    )));*/
 }
 
 fn add_tour_size_module(constraint: &mut ConstraintPipeline) {
@@ -437,7 +429,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .fleet
         .vehicles
         .iter()
-        .any(|v| v.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map_or(false, |a| !a.is_empty()));
+        .any(|v| v.limits.as_ref().and_then(|l| l.areas.as_ref()).map_or(false, |a| !a.is_empty()));
     let has_tour_size_limits =
         api_problem.fleet.vehicles.iter().any(|v| v.limits.as_ref().map_or(false, |l| l.tour_size.is_some()));
 

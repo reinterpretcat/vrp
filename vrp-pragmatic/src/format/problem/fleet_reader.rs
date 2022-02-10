@@ -9,7 +9,7 @@ use crate::format::problem::Matrix;
 use crate::parse_time;
 use hashbrown::{HashMap, HashSet};
 use std::sync::Arc;
-use vrp_core::construction::constraints::{Area, TravelLimitFunc};
+use vrp_core::construction::constraints::TravelLimitFunc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::*;
 
@@ -86,6 +86,12 @@ pub(crate) fn create_transport_costs(
 
 pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> Fleet {
     let profile_indices = get_profile_index_map(api_problem);
+    let area_index = api_problem
+        .plan
+        .areas
+        .iter()
+        .flat_map(|areas| areas.iter().map(|area| (&area.id, area)))
+        .collect::<HashMap<_, _>>();
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 
     api_problem.fleet.vehicles.iter().for_each(|vehicle| {
@@ -101,14 +107,24 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         let profile = Profile::new(index, vehicle.profile.scale);
 
         let tour_size = vehicle.limits.as_ref().and_then(|l| l.tour_size);
-        let mut areas = vehicle.limits.as_ref().and_then(|l| l.allowed_areas.as_ref()).map(|areas| {
-            areas
-                .iter()
-                .map(|area| Area {
-                    priority: area.priority,
-                    outer_shape: area.outer_shape.iter().map(|l| l.to_lat_lng()).collect::<Vec<_>>(),
-                })
-                .collect::<Vec<_>>()
+        let mut area_jobs = vehicle.limits.as_ref().and_then(|l| l.areas.as_ref()).map({
+            let area_index = &area_index;
+            move |areas| {
+                areas
+                    .iter()
+                    .enumerate()
+                    .flat_map(move |(order, area_ids)| {
+                        area_ids.iter().flat_map(move |area_id| {
+                            area_index
+                                .get(area_id)
+                                .iter()
+                                .flat_map(|&&area| area.jobs.iter().map(|job_id| (job_id.clone(), (order, area.value))))
+                                .collect::<Vec<_>>()
+                                .into_iter()
+                        })
+                    })
+                    .collect::<HashMap<_, _>>()
+            }
         });
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
@@ -142,8 +158,8 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                 dimens.set_value("shift_index", shift_index);
                 dimens.set_id(vehicle_id);
 
-                if let Some(areas) = areas.take() {
-                    dimens.set_value("areas", areas);
+                if let Some(area_jobs) = area_jobs.take() {
+                    dimens.set_value("areas", area_jobs);
                 }
 
                 if let Some(tour_size) = tour_size {

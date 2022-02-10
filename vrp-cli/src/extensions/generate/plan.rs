@@ -72,7 +72,7 @@ pub(crate) fn generate_plan(
         })
         .collect();
 
-    Ok(Plan { jobs, relations: None, clustering: None })
+    Ok(Plan { jobs, relations: None, areas: None, clustering: None })
 }
 
 fn get_location_fn(

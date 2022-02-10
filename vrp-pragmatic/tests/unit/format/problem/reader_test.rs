@@ -172,7 +172,7 @@ fn can_read_complex_problem() {
                     max_distance: Some(123.1),
                     shift_time: Some(100.),
                     tour_size: Some(3),
-                    allowed_areas: None,
+                    areas: None,
                 }),
             }],
             profiles: create_default_matrix_profiles(),

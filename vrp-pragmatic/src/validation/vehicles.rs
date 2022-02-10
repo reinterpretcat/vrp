@@ -140,14 +140,45 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
 
 /// Checks that vehicle area restrictions are valid.
 fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let area_index = ctx
+        .problem
+        .plan
+        .areas
+        .iter()
+        .flat_map(|areas| areas.iter().map(|area| (&area.id, &area.jobs)))
+        .collect::<HashMap<_, _>>();
+
     let type_ids = ctx
         .vehicles()
         .filter(|vehicle| {
-            vehicle
+            let area_ids = vehicle
                 .limits
                 .as_ref()
-                .and_then(|l| l.allowed_areas.as_ref())
-                .map_or(false, |areas| areas.is_empty() || areas.iter().any(|area| area.outer_shape.len() < 3))
+                .and_then(|l| l.areas.as_ref())
+                .iter()
+                .flat_map(|areas| areas.iter())
+                .flat_map(|areas| areas.iter())
+                .collect::<Vec<_>>();
+
+            // check area presence
+            if !area_ids.iter().all(|area_id| area_index.get(area_id).is_some()) {
+                return true;
+            }
+
+            let all_jobs = area_ids
+                .iter()
+                .flat_map(|area_id| area_index.get(area_id).iter().cloned().collect::<Vec<_>>().into_iter())
+                .flat_map(|job_ids| job_ids.iter())
+                .collect::<Vec<_>>();
+
+            // check job presence
+            if !all_jobs.iter().all(|&job_id| ctx.job_index.contains_key(job_id)) {
+                return true;
+            }
+
+            // check job uniqueness
+            let unique_jobs = all_jobs.iter().collect::<HashSet<_>>();
+            all_jobs.len() != unique_jobs.len()
         })
         .map(|vehicle| vehicle.type_id.to_string())
         .collect::<Vec<_>>();
@@ -159,7 +190,7 @@ fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<
             "E1305".to_string(),
             "invalid allowed area definition in vehicle limits".to_string(),
             format!(
-                "ensure that areas list is not empty and each area has at least three coordinates, \
+                "ensure that areas for the same vehicle contains unique and valid job ids, \
                  vehicle type ids: '{}'",
                 type_ids.join(", ")
             ),

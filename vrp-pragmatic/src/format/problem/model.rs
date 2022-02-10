@@ -38,6 +38,17 @@ pub struct Relation {
     pub shift_index: Option<usize>,
 }
 
+/// An area is the way to control job execution order.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct Area {
+    /// An unique id of the area.
+    pub id: String,
+    /// A value added to the total value once job is served in given area.
+    pub value: f64,
+    /// List of job ids.
+    pub jobs: Vec<String>,
+}
+
 /// A job skills limitation for a vehicle.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -222,6 +233,10 @@ pub struct Plan {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relations: Option<Vec<Relation>>,
 
+    /// List of areas.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub areas: Option<Vec<Area>>,
+
     /// Specifies clustering parameters.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub clustering: Option<Clustering>,
@@ -364,21 +379,10 @@ pub struct VehicleLimits {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tour_size: Option<usize>,
 
-    /// Specifies a list of areas where vehicle can serve jobs.
+    /// Specifies a list of area ids where vehicle can serve jobs.
     /// No area restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub allowed_areas: Option<Vec<AreaLimit>>,
-}
-
-/// Specifies area limit.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AreaLimit {
-    /// An area priority, bigger value - less important.
-    /// Default is 1.
-    pub priority: Option<usize>,
-    /// An area outer shape.
-    pub outer_shape: Vec<Location>,
+    pub areas: Option<Vec<Vec<String>>>,
 }
 
 /// Vehicle break time variant.

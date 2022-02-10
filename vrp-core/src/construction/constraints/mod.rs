@@ -84,9 +84,6 @@ pub const TOUR_ORDER_KEY: i32 = 17;
 mod pipeline;
 pub use self::pipeline::*;
 
-mod area;
-pub use self::area::*;
-
 mod transport;
 pub use self::transport::*;
 

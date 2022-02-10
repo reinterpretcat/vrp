@@ -159,7 +159,7 @@ mod actual {
         let matrix_profile_names = vehicles.iter().map(|v| v.profile.matrix.clone()).collect::<HashSet<_>>();
 
         Ok(Problem {
-            plan: Plan { jobs, relations: None, clustering: None },
+            plan: Plan { jobs, relations: None, areas: None, clustering: None },
             fleet: Fleet {
                 vehicles,
                 profiles: matrix_profile_names.into_iter().map(|name| MatrixProfile { name, speed: None }).collect(),

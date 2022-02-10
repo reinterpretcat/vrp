@@ -3,10 +3,6 @@ use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
 
-fn coord(lat: f64, lng: f64) -> Location {
-    Location::Coordinate { lat, lng }
-}
-
 #[test]
 fn can_detect_invalid_break_time() {
     let problem = Problem {
@@ -33,33 +29,46 @@ fn can_detect_invalid_break_time() {
     assert_eq!(result.err().map(|err| err.code), Some("E1303".to_string()));
 }
 
-parameterized_test! {can_detect_invalid_area, (allowed_areas, expected), {
-    can_detect_invalid_area_impl(allowed_areas, expected);
+parameterized_test! {can_detect_invalid_area, (areas, area_ids, expected), {
+    can_detect_invalid_area_impl(areas, area_ids, expected);
 }}
 
 can_detect_invalid_area! {
-    case01: (None, None),
-    case02: (Some(vec![vec![coord(0., 0.), coord(0., 1.), coord(1., 1.)]]), None),
-    case03: (Some(vec![vec![coord(0., 0.), coord(0., 1.), coord(1., 1.), coord(1., 0.)]]), None),
-
-    case04: (Some(vec![]), Some(())),
-    case05: (Some(vec![vec![]]), Some(())),
-    case06: (Some(vec![vec![coord(0., 0.)]]), Some(())),
-    case07: (Some(vec![vec![coord(0., 0.), coord(0., 1.)]]), Some(())),
-    case08: (Some(vec![vec![coord(0., 0.), coord(0., 1.), coord(1., 1.)], vec![coord(0., 1.)]]), Some(())),
+    case01: (None, None, None),
+    case02: (Some(vec![("1", vec!["job1", "job2"])]), Some(vec!["1"]), None),
+    case03: (Some(vec![("1", vec!["job1", "job2", "job2"])]), Some(vec!["1", "2"]), Some(())),
+    case05: (Some(vec![("1", vec!["job1"]), ("2", vec!["job2"])]), Some(vec!["1", "2"]), None),
+    case06: (Some(vec![("1", vec!["job1"]), ("2", vec!["job1"])]), Some(vec!["1"]), None),
+    case07: (Some(vec![("1", vec!["job1", "job2"]), ("2", vec!["job2"])]), Some(vec!["1", "2"]), Some(())),
 }
 
-fn can_detect_invalid_area_impl(allowed_shapes: Option<Vec<Vec<Location>>>, expected: Option<()>) {
+fn can_detect_invalid_area_impl(
+    areas: Option<Vec<(&str, Vec<&str>)>>,
+    area_ids: Option<Vec<&str>>,
+    expected: Option<()>,
+) {
     let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![2., 0.])],
+            areas: areas.as_ref().map(|areas| {
+                areas
+                    .iter()
+                    .map(|(area_id, job_ids)| Area {
+                        id: area_id.to_string(),
+                        value: 1.,
+                        jobs: job_ids.iter().map(|job_id| job_id.to_string()).collect(),
+                    })
+                    .collect()
+            }),
+            ..create_empty_plan()
+        },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 limits: Some(VehicleLimits {
                     max_distance: None,
                     shift_time: None,
                     tour_size: None,
-                    allowed_areas: allowed_shapes.map(|shapes| {
-                        shapes.into_iter().map(|shape| AreaLimit { priority: None, outer_shape: shape }).collect()
-                    }),
+                    areas: area_ids.map(|area_ids| vec![area_ids.iter().map(|area_id| area_id.to_string()).collect()]),
                 }),
                 ..create_default_vehicle_type()
             }],

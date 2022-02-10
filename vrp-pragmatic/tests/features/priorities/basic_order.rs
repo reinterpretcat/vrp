@@ -14,7 +14,7 @@ fn create_test_plan_with_three_jobs() -> Plan {
 }
 
 fn create_test_limit() -> Option<VehicleLimits> {
-    Some(VehicleLimits { max_distance: Some(15.), shift_time: None, tour_size: None, allowed_areas: None })
+    Some(VehicleLimits { max_distance: Some(15.), shift_time: None, tour_size: None, areas: None })
 }
 
 #[test]

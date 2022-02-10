@@ -82,7 +82,6 @@ fn can_handle_waiting_time_with_parking_impl(
                 .into_iter()
                 .map(|(id, coordinates, times)| create_delivery_job_with_times(id, coordinates, times, 1.))
                 .collect(),
-            relations: None,
             clustering: Some(Clustering::Vicinity {
                 profile: VehicleProfile { matrix: "car".to_string(), scale: None },
                 threshold: VicinityThresholdPolicy {
@@ -96,6 +95,7 @@ fn can_handle_waiting_time_with_parking_impl(
                 serving: VicinityServingPolicy::Original { parking: 300.0 },
                 filtering: None,
             }),
+            ..create_empty_plan()
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {

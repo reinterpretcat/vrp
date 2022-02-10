@@ -25,14 +25,15 @@ pub type OrderFn = Either<SimpleOrderFn, ActorOrderFn>;
 pub struct TourOrder {}
 
 impl TourOrder {
-    /// Creates instances of unconstrained tour order logic. Unconstrained means that more prioritized
-    /// job can be assigned after less prioritized in the tour if it leads to a better solution.
+    /// Creates instances of unconstrained tour order logic. Unconstrained means that a job with less
+    /// order can be assigned after a job with larger order in the tour. Violations are counted by the
+    /// objective.
     pub fn new_unconstrained(order_fn: OrderFn) -> (TargetConstraint, TargetObjective) {
         Self::new_objective(order_fn, None)
     }
 
-    /// Creates instances of constrained tour order logic: more prioritized jobs are not allowed to
-    /// be assigned after less prioritized in the tour.
+    /// Creates instances of constrained tour order logic: a job with less order cannot be assigned after
+    /// a job with larger order in the tour.
     pub fn new_constrained(order_fn: OrderFn, constraint_code: i32) -> (TargetConstraint, TargetObjective) {
         Self::new_objective(order_fn, Some(constraint_code))
     }
@@ -61,6 +62,7 @@ impl TourOrder {
             order_fn: order_fn.clone(),
         };
 
+        // TODO do not use this objective for constrained variant as there should be no violations?
         let objective = OrderActivityObjective { order_fn, state_key: TOUR_ORDER_KEY };
 
         (Arc::new(constraint), Arc::new(objective))
