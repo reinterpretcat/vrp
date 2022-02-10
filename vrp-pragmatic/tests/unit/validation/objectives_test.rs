@@ -235,3 +235,19 @@ fn can_detect_missing_value_objective_impl(objectives: Option<Vec<Vec<Objective>
 
     assert_eq!(result.err().map(|e| e.code), expected);
 }
+
+#[test]
+fn can_detect_missing_area_objective() {
+    let problem = Problem {
+        plan: Plan { areas: Some(vec![Area { id: "area1".to_string(), jobs: vec![] }]), ..create_empty_plan() },
+        objectives: Some(vec![vec![MinimizeUnassignedJobs { breaks: None }], vec![MinimizeCost]]),
+        ..create_empty_problem()
+    };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+    let objectives = get_objectives(&ctx).unwrap();
+
+    let result = check_e1608_areas_but_no_objective(&ctx, &objectives);
+
+    assert_eq!(result.err().unwrap().code, "E1608".to_string());
+}

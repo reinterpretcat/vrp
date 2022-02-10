@@ -189,6 +189,22 @@ fn check_e1607_jobs_with_value_but_no_objective(
     }
 }
 
+/// Checks that order objective is specified when some jobs have order property set.
+fn check_e1608_areas_but_no_objective(ctx: &ValidationContext, objectives: &[&Objective]) -> Result<(), FormatError> {
+    let has_no_area_objective = !objectives.iter().any(|objective| matches!(objective, AreaOrder { .. }));
+    let has_areas = ctx.problem.plan.areas.as_ref().map_or(false, |areas| !areas.is_empty());
+
+    if has_no_area_objective && has_areas {
+        Err(FormatError::new(
+            "E1608".to_string(),
+            "missing area order objective".to_string(),
+            "specify 'area-order' objective or remove areas definitions".to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
     ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().flatten().collect())
 }
@@ -204,6 +220,7 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), Vec<FormatErro
             check_e1605_check_positive_value_and_order(ctx),
             check_e1606_jobs_with_order_but_no_objective(ctx, &objectives),
             check_e1607_jobs_with_value_but_no_objective(ctx, &objectives),
+            check_e1608_areas_but_no_objective(ctx, &objectives),
         ])
     } else {
         Ok(())

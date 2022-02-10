@@ -668,3 +668,9 @@ include the `tour-order` objective.
 
 `missing value objective` error is returned when plan has jobs with value set, but user defined objective doesn't
 include the `maximize-value` objective.
+
+
+#### E1608
+
+`missing area order objective` error is returned when plan has areas, but `area-order` objective is not specified. To
+fix the issue, add `tour-order` objective or remove areas.
