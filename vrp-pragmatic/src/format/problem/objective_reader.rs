@@ -2,12 +2,12 @@
 #[path = "../../../tests/unit/format/problem/objective_reader_test.rs"]
 mod objective_reader_test;
 
-use crate::constraints::{TOTAL_VALUE_KEY, TOUR_ORDER_KEY};
+use crate::constraints::{AreaModule, TOTAL_VALUE_KEY, TOUR_ORDER_KEY};
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::TourOrder as FormatTourOrder;
 use crate::format::problem::Objective::*;
-use crate::format::TOUR_ORDER_CONSTRAINT_CODE;
+use crate::format::{AREA_CONSTRAINT_CODE, TOUR_ORDER_CONSTRAINT_CODE};
 use std::sync::Arc;
 use vrp_core::construction::clustering::vicinity::ClusterDimension;
 use vrp_core::construction::constraints::{ConstraintPipeline, FleetUsageConstraintModule};
@@ -17,7 +17,6 @@ use vrp_core::models::problem::Job;
 use vrp_core::models::problem::{ProblemObjective, Single, TargetConstraint, TargetObjective};
 use vrp_core::solver::objectives::TourOrder as CoreTourOrder;
 use vrp_core::solver::objectives::*;
-use vrp_core::utils::Either;
 
 pub fn create_objective(
     api_problem: &ApiProblem,
@@ -84,6 +83,14 @@ pub fn create_objective(
                             let (module, objective) = get_order(*is_constrained);
                             constraint.add_module(module);
                             core_objectives.push(objective);
+                        }
+                        AreaOrder { breaks, is_constrained, is_value_preferred } => {
+                            let max_value = props.max_area_value.unwrap_or(1.);
+                            let (module, objectives) =
+                                get_area(max_value, *breaks, *is_constrained, is_value_preferred.unwrap_or(false));
+
+                            constraint.add_module(module);
+                            objectives.into_iter().for_each(|objective| core_objectives.push(objective));
                         }
                     });
                     core_objectives
@@ -158,13 +165,33 @@ fn get_value(
 }
 
 fn get_order(is_constrained: bool) -> (TargetConstraint, TargetObjective) {
-    let order_func: OrderFn =
-        Either::Left(Arc::new(|single: &Single| single.dimens.get_value::<i32>("order").map(|order| *order as f64)));
+    let order_fn = OrderFn::Left(Arc::new(|single| single.dimens.get_value::<i32>("order").map(|order| *order as f64)));
 
     if is_constrained {
-        CoreTourOrder::new_constrained(order_func, TOUR_ORDER_KEY, TOUR_ORDER_CONSTRAINT_CODE)
+        CoreTourOrder::new_constrained(order_fn, TOUR_ORDER_KEY, TOUR_ORDER_CONSTRAINT_CODE)
     } else {
-        CoreTourOrder::new_unconstrained(order_func, TOUR_ORDER_KEY)
+        CoreTourOrder::new_unconstrained(order_fn, TOUR_ORDER_KEY)
+    }
+}
+
+fn get_area(
+    max_value: f64,
+    break_value: Option<f64>,
+    is_constrained: bool,
+    is_value_preferred: bool,
+) -> (TargetConstraint, Vec<TargetObjective>) {
+    let break_value = break_value.unwrap_or(100.);
+
+    let order_fn: ActorOrderFn = Arc::new(|_actor, _single| unimplemented!());
+    let value_fn: ActorValueFn = Arc::new(|_actor, _job| unimplemented!());
+    let solution_fn: SolutionValueFn = Arc::new(move |solution| {
+        solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimate(job, break_value, 0.)).sum()
+    });
+
+    if is_constrained {
+        AreaModule::new_constrained(order_fn, value_fn, solution_fn, max_value, AREA_CONSTRAINT_CODE)
+    } else {
+        AreaModule::new_unconstrained(order_fn, value_fn, solution_fn, max_value, is_value_preferred)
     }
 }
 

@@ -122,6 +122,7 @@ pub struct ProblemProperties {
     has_area_limits: bool,
     has_tour_size_limits: bool,
     max_job_value: Option<f64>,
+    max_area_value: Option<f64>,
 }
 
 /// Creates a matrices using approximation.
@@ -386,6 +387,17 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .filter(|value| *value > 0.)
         .max_by(|a, b| compare_floats(*a, *b));
 
+    let max_area_value = api_problem
+        .fleet
+        .vehicles
+        .iter()
+        .flat_map(|vehicle| vehicle.limits.iter())
+        .flat_map(|limits| limits.areas.iter())
+        .flat_map(|areas| areas.iter())
+        .flat_map(|areas| areas.iter())
+        .filter_map(|limit| if limit.job_value > 0. { Some(limit.job_value) } else { None })
+        .max_by(|a, b| compare_floats(*a, *b));
+
     let has_dispatch = api_problem
         .fleet
         .vehicles
@@ -429,5 +441,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_area_limits,
         has_tour_size_limits,
         max_job_value,
+        max_area_value,
     }
 }
