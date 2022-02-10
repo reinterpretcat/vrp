@@ -291,10 +291,6 @@ fn create_constraint_pipeline(
         add_tour_size_module(&mut constraint)
     }
 
-    if props.has_area_limits {
-        add_area_module(&mut constraint);
-    }
-
     constraint
 }
 
@@ -323,19 +319,6 @@ fn add_capacity_module(
     } else {
         Arc::new(CapacityConstraintModule::<SingleDimLoad>::new(transport, CAPACITY_CONSTRAINT_CODE))
     });
-}
-
-fn add_area_module(_constraint: &mut ConstraintPipeline) {
-    unimplemented!()
-    /* constraint.add_module(Arc::new(AreaModule::new(
-        Arc::new(|actor| actor.vehicle.dimens.get_value::<Vec<Area>>("areas")),
-        Arc::new(move |location| {
-            coord_index
-                .get_by_idx(location)
-                .map_or_else(|| panic!("cannot find location!"), |location| location.to_lat_lng())
-        }),
-        AREA_CONSTRAINT_CODE,
-    )));*/
 }
 
 fn add_tour_size_module(constraint: &mut ConstraintPipeline) {

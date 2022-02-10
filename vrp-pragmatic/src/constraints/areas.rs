@@ -6,6 +6,7 @@ use vrp_core::construction::heuristics::*;
 use vrp_core::models::problem::Job;
 use vrp_core::models::problem::*;
 use vrp_core::solver::objectives::*;
+use vrp_core::utils::Either;
 
 /// An area module provides way to restrict given actor to work in specific areas.
 pub struct AreaModule {
@@ -23,8 +24,9 @@ impl AreaModule {
         value_fn: ActorValueFn,
         solution_fn: SolutionValueFn,
         max_value: f64,
+        value_preferred: bool,
     ) -> (TargetConstraint, Vec<TargetObjective>) {
-        Self::new_objective(order_fn, value_fn, solution_fn, max_value, None)
+        Self::new_objective(order_fn, value_fn, solution_fn, max_value, Either::Right(value_preferred))
     }
 
     /// Creates instances of constrained area logic. Constrained means that a job from area with
@@ -36,7 +38,7 @@ impl AreaModule {
         max_value: f64,
         constraint_code: i32,
     ) -> (TargetConstraint, Vec<TargetObjective>) {
-        Self::new_objective(order_fn, value_fn, solution_fn, max_value, Some(constraint_code))
+        Self::new_objective(order_fn, value_fn, solution_fn, max_value, Either::Left(constraint_code))
     }
 
     fn new_objective(
@@ -44,14 +46,13 @@ impl AreaModule {
         value_fn: ActorValueFn,
         solution_fn: SolutionValueFn,
         max_value: f64,
-        constraint_code: Option<i32>,
+        optimization_type: Either<i32, bool>,
     ) -> (TargetConstraint, Vec<TargetObjective>) {
         let order_fn = OrderFn::Right(order_fn);
 
-        let (order_constraint, order_objective) = if let Some(constraint_code) = constraint_code {
-            TourOrder::new_constrained(order_fn, AREA_ORDER_KEY, constraint_code)
-        } else {
-            TourOrder::new_unconstrained(order_fn, AREA_ORDER_KEY)
+        let (order_constraint, order_objective) = match &optimization_type {
+            Either::Left(constraint_code) => TourOrder::new_constrained(order_fn, AREA_ORDER_KEY, *constraint_code),
+            Either::Right(_) => TourOrder::new_unconstrained(order_fn, AREA_ORDER_KEY),
         };
 
         let (value_constraint, value_objective) = TotalValue::maximize(
@@ -74,7 +75,12 @@ impl AreaModule {
             modules: vec![order_constraint, value_constraint],
         };
 
-        (Arc::new(area_module), vec![order_objective, value_objective])
+        let objectives = match optimization_type {
+            Either::Right(value_preferred) if value_preferred => vec![value_objective, order_objective],
+            _ => vec![order_objective, value_objective],
+        };
+
+        (Arc::new(area_module), objectives)
     }
 }
 
