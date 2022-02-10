@@ -65,6 +65,7 @@ pub struct ActivityConstraintViolation {
 }
 
 /// A variant type for constraint types.
+#[derive(Clone)]
 pub enum ConstraintVariant {
     /// Stores HardRoute variants.
     HardRoute(Arc<dyn HardRouteConstraint + Send + Sync>),

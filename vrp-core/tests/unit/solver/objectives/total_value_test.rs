@@ -20,11 +20,19 @@ can_estimate_job_value! {
 }
 
 fn can_estimate_job_value_impl(value: f64, max_cost: f64, expected: f64) {
-    let (constraint, _) =
-        TotalValue::maximize(1000., 0.1, Arc::new(|_| 0.), Arc::new(move |_| value), Arc::new(|job, _| job));
+    let state_key = 1;
+    let (constraint, _) = TotalValue::maximize(
+        1000.,
+        0.1,
+        Arc::new(|_| 0.),
+        ValueFn::Left(Arc::new(move |_| value)),
+        Arc::new(|job, _| job),
+        state_key,
+        1,
+    );
     let constraint = create_constraint_pipeline_with_module(constraint);
     let mut route_ctx = create_empty_route_ctx();
-    route_ctx.state_mut().put_route_state(TOTAL_VALUE_KEY, max_cost);
+    route_ctx.state_mut().put_route_state(state_key, max_cost);
     let solution_ctx = create_empty_solution_context();
 
     let result = constraint.evaluate_soft_route(&solution_ctx, &route_ctx, &Job::Single(test_single_with_id("job")));
@@ -34,12 +42,15 @@ fn can_estimate_job_value_impl(value: f64, max_cost: f64, expected: f64) {
 
 #[test]
 fn can_estimate_solution_value() {
+    let state_key = 1;
     let (_, objective) = TotalValue::maximize(
         1000.,
         0.1,
         Arc::new(|solution_ctx| solution_ctx.unassigned.len() as f64 * -100.),
-        Arc::new(move |_| 0.),
+        ValueFn::Left(Arc::new(move |_| 0.)),
         Arc::new(|job, _| job),
+        state_key,
+        1,
     );
     let mut solution = create_empty_solution_context();
     solution.unassigned.insert(Job::Single(test_single_with_id("job1")), 0);
@@ -53,15 +64,16 @@ fn can_estimate_solution_value() {
 
 #[test]
 fn can_merge_value() {
+    let state_key = 1;
     let (constraint, _) = TotalValue::maximize(
         1000.,
         0.1,
         Arc::new(|solution_ctx| solution_ctx.unassigned.len() as f64 * -100.),
-        Arc::new(move |job| match get_job_id(job).as_str() {
+        ValueFn::Left(Arc::new(move |job| match get_job_id(job).as_str() {
             "source" => 10.,
             "candidate" => 2.,
             _ => unreachable!(),
-        }),
+        })),
         Arc::new(|job, value| {
             let single = job.to_single();
             let mut dimens = single.dimens.clone();
@@ -69,6 +81,8 @@ fn can_merge_value() {
 
             Job::Single(Arc::new(Single { places: single.places.clone(), dimens }))
         }),
+        state_key,
+        1,
     );
     let source = Job::Single(test_single_with_id("source"));
     let candidate = Job::Single(test_single_with_id("candidate"));

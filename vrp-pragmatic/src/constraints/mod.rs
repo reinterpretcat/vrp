@@ -8,7 +8,18 @@ use vrp_core::models::solution::{Activity, Route};
 
 /// A key which tracks job group state.
 pub const GROUP_KEY: i32 = 1000;
+/// A key which tracks compatibility key.
 pub const COMPATIBILITY_KEY: i32 = 1001;
+
+/// A key which tracks total value.
+pub const TOTAL_VALUE_KEY: i32 = 1002;
+/// A key which tracks tour order state.
+pub const TOUR_ORDER_KEY: i32 = 1003;
+
+/// A key which tracks area value state.
+pub const AREA_VALUE_KEY: i32 = 1004;
+/// A key which tracks area order state.
+pub const AREA_ORDER_KEY: i32 = 1005;
 
 fn as_single_job<F>(activity: &Activity, condition: F) -> Option<&Arc<Single>>
 where
@@ -36,6 +47,9 @@ fn is_single_belongs_to_route(ctx: &RouteContext, single: &Arc<Single>) -> bool 
 
     is_correct_vehicle(&ctx.route, vehicle_id, shift_index)
 }
+
+mod areas;
+pub use self::areas::AreaModule;
 
 mod breaks;
 pub use self::breaks::{BreakModule, BreakPolicy};

@@ -28,17 +28,25 @@ impl TourOrder {
     /// Creates instances of unconstrained tour order logic. Unconstrained means that a job with less
     /// order can be assigned after a job with larger order in the tour. Violations are counted by the
     /// objective.
-    pub fn new_unconstrained(order_fn: OrderFn) -> (TargetConstraint, TargetObjective) {
-        Self::new_objective(order_fn, None)
+    pub fn new_unconstrained(order_fn: OrderFn, state_key: i32) -> (TargetConstraint, TargetObjective) {
+        Self::new_objective(order_fn, state_key, None)
     }
 
     /// Creates instances of constrained tour order logic: a job with less order cannot be assigned after
     /// a job with larger order in the tour.
-    pub fn new_constrained(order_fn: OrderFn, constraint_code: i32) -> (TargetConstraint, TargetObjective) {
-        Self::new_objective(order_fn, Some(constraint_code))
+    pub fn new_constrained(
+        order_fn: OrderFn,
+        state_key: i32,
+        constraint_code: i32,
+    ) -> (TargetConstraint, TargetObjective) {
+        Self::new_objective(order_fn, state_key, Some(constraint_code))
     }
 
-    fn new_objective(order_fn: OrderFn, constraint_code: Option<i32>) -> (TargetConstraint, TargetObjective) {
+    fn new_objective(
+        order_fn: OrderFn,
+        state_key: i32,
+        constraint_code: Option<i32>,
+    ) -> (TargetConstraint, TargetObjective) {
         let constraints = if let Some(constraint_code) = constraint_code {
             vec![
                 ConstraintVariant::SoftActivity(Arc::new(TourOrderSoftActivityConstraint {
@@ -58,12 +66,12 @@ impl TourOrder {
         let constraint = TourOrderConstraint {
             code: constraint_code.unwrap_or(-1),
             constraints,
-            keys: vec![TOUR_ORDER_KEY],
+            keys: vec![state_key],
             order_fn: order_fn.clone(),
         };
 
         // TODO do not use this objective for constrained variant as there should be no violations?
-        let objective = OrderActivityObjective { order_fn, state_key: TOUR_ORDER_KEY };
+        let objective = OrderActivityObjective { order_fn, state_key };
 
         (Arc::new(constraint), Arc::new(objective))
     }

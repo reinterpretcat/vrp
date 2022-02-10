@@ -4,7 +4,7 @@ use crate::construction::heuristics::InsertionContext;
 use std::cmp::Ordering;
 
 mod generic_value;
-pub(crate) use self::generic_value::GenericValue;
+pub use self::generic_value::*;
 
 mod total_routes;
 pub use self::total_routes::TotalRoutes;
@@ -16,7 +16,7 @@ mod total_unassigned_jobs;
 pub use self::total_unassigned_jobs::TotalUnassignedJobs;
 
 mod total_value;
-pub use self::total_value::TotalValue;
+pub use self::total_value::*;
 
 mod tour_order;
 pub use self::tour_order::*;

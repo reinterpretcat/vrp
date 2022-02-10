@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/format/problem/objective_reader_test.rs"]
 mod objective_reader_test;
 
+use crate::constraints::{TOTAL_VALUE_KEY, TOUR_ORDER_KEY};
 use crate::format::problem::reader::{ApiProblem, ProblemProperties};
 use crate::format::problem::BalanceOptions;
 use crate::format::problem::Objective::TourOrder as FormatTourOrder;
@@ -141,7 +142,7 @@ fn get_value(
         Arc::new(move |solution| {
             solution.unassigned.iter().map(|(job, _)| get_unassigned_job_estimate(job, break_value, 0.)).sum()
         }),
-        Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.)),
+        ValueFn::Left(Arc::new(|job| job.dimens().get_value::<f64>("value").cloned().unwrap_or(0.))),
         Arc::new(|job, value| match job {
             Job::Single(single) => {
                 let mut dimens = single.dimens.clone();
@@ -151,6 +152,8 @@ fn get_value(
             }
             _ => job.clone(),
         }),
+        TOTAL_VALUE_KEY,
+        -1,
     )
 }
 
@@ -159,9 +162,9 @@ fn get_order(is_constrained: bool) -> (TargetConstraint, TargetObjective) {
         Either::Left(Arc::new(|single: &Single| single.dimens.get_value::<i32>("order").map(|order| *order as f64)));
 
     if is_constrained {
-        CoreTourOrder::new_constrained(order_func, TOUR_ORDER_CONSTRAINT_CODE)
+        CoreTourOrder::new_constrained(order_func, TOUR_ORDER_KEY, TOUR_ORDER_CONSTRAINT_CODE)
     } else {
-        CoreTourOrder::new_unconstrained(order_func)
+        CoreTourOrder::new_unconstrained(order_func, TOUR_ORDER_KEY)
     }
 }
 

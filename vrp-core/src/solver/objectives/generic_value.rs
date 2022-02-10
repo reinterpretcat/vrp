@@ -7,17 +7,26 @@ use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
+/// Job merge function.
+pub type JobMergeFn = Arc<dyn Fn(Job, Job) -> Result<Job, i32> + Send + Sync>;
+/// Route value function.
+pub type RouteValueFn = Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>;
+/// Solution value function.
+pub type SolutionValueFn = Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>;
+/// Estimate value function.
+pub type EstimateValueFn = Arc<dyn Fn(&SolutionContext, &RouteContext, &Job, f64) -> f64 + Send + Sync>;
+
 /// A helper for building objective functions.
-pub(crate) struct GenericValue {}
+pub struct GenericValue {}
 
 impl GenericValue {
     /// Creates a new instance of constraint and related objective.
     pub fn new_constrained_objective(
         threshold: Option<f64>,
-        job_merge_func: Arc<dyn Fn(Job, Job) -> Result<Job, i32> + Send + Sync>,
-        route_value_func: Arc<dyn Fn(&RouteContext) -> f64 + Send + Sync>,
-        solution_value_func: Arc<dyn Fn(&SolutionContext) -> f64 + Send + Sync>,
-        estimate_value_func: Arc<dyn Fn(&SolutionContext, &RouteContext, &Job, f64) -> f64 + Send + Sync>,
+        job_merge_func: JobMergeFn,
+        route_value_func: RouteValueFn,
+        solution_value_func: SolutionValueFn,
+        estimate_value_func: EstimateValueFn,
         state_key: i32,
     ) -> (TargetConstraint, TargetObjective) {
         let objective = GenericValueObjective {
