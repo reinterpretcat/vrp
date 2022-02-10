@@ -161,13 +161,13 @@ fn check_e1305_vehicle_limit_area_is_correct(ctx: &ValidationContext) -> Result<
                 .collect::<Vec<_>>();
 
             // check area presence
-            if !area_ids.iter().all(|area_id| area_index.get(area_id).is_some()) {
+            if !area_ids.iter().all(|limit| area_index.get(&limit.area_id).is_some()) {
                 return true;
             }
 
             let all_jobs = area_ids
                 .iter()
-                .flat_map(|area_id| area_index.get(area_id).iter().cloned().collect::<Vec<_>>().into_iter())
+                .flat_map(|limit| area_index.get(&limit.area_id).iter().cloned().collect::<Vec<_>>().into_iter())
                 .flat_map(|job_ids| job_ids.iter())
                 .collect::<Vec<_>>();
 

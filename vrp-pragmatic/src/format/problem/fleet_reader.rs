@@ -114,11 +114,13 @@ pub(crate) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                     .iter()
                     .enumerate()
                     .flat_map(move |(order, area_ids)| {
-                        area_ids.iter().flat_map(move |area_id| {
+                        area_ids.iter().flat_map(move |limit| {
                             area_index
-                                .get(area_id)
+                                .get(&limit.area_id)
                                 .iter()
-                                .flat_map(|&&area| area.jobs.iter().map(|job_id| (job_id.clone(), (order, area.value))))
+                                .flat_map(|&&area| {
+                                    area.jobs.iter().map(|job_id| (job_id.clone(), (order, limit.job_value)))
+                                })
                                 .collect::<Vec<_>>()
                                 .into_iter()
                         })

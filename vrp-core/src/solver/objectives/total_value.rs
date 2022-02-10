@@ -5,6 +5,7 @@ mod total_value_test;
 use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::problem::{Actor, Job, TargetConstraint, TargetObjective};
 use crate::solver::objectives::{GenericValue, SolutionValueFn};
+use crate::utils::Either;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
 use std::ops::Deref;

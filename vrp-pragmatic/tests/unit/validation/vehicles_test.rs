@@ -55,7 +55,6 @@ fn can_detect_invalid_area_impl(
                     .iter()
                     .map(|(area_id, job_ids)| Area {
                         id: area_id.to_string(),
-                        value: 1.,
                         jobs: job_ids.iter().map(|job_id| job_id.to_string()).collect(),
                     })
                     .collect()
@@ -68,7 +67,12 @@ fn can_detect_invalid_area_impl(
                     max_distance: None,
                     shift_time: None,
                     tour_size: None,
-                    areas: area_ids.map(|area_ids| vec![area_ids.iter().map(|area_id| area_id.to_string()).collect()]),
+                    areas: area_ids.map(|area_ids| {
+                        vec![area_ids
+                            .iter()
+                            .map(|area_id| AreaLimit { area_id: area_id.to_string(), job_value: 1. })
+                            .collect()]
+                    }),
                 }),
                 ..create_default_vehicle_type()
             }],

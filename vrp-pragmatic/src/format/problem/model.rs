@@ -43,8 +43,6 @@ pub struct Relation {
 pub struct Area {
     /// An unique id of the area.
     pub id: String,
-    /// A value added to the total value once job is served in given area.
-    pub value: f64,
     /// List of job ids.
     pub jobs: Vec<String>,
 }
@@ -382,7 +380,17 @@ pub struct VehicleLimits {
     /// Specifies a list of area ids where vehicle can serve jobs.
     /// No area restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub areas: Option<Vec<Vec<String>>>,
+    pub areas: Option<Vec<Vec<AreaLimit>>>,
+}
+
+/// An area limit.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaLimit {
+    /// An area id.
+    pub area_id: String,
+    /// A value added to the total value once job is served in given area.
+    pub job_value: f64,
 }
 
 /// Vehicle break time variant.
