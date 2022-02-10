@@ -87,9 +87,9 @@ fn can_detect_index_mismatch() {
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, Some(&matrices), &coord_index);
 
-    let result = check_e1505_index_size_mismatch(&ctx);
+    let result = check_e1504_index_size_mismatch(&ctx);
 
-    assert_eq!(result.err().map(|err| err.code), Some("E1505".to_string()));
+    assert_eq!(result.err().map(|err| err.code), Some("E1504".to_string()));
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn can_detect_missing_profile() {
     let coord_index = CoordIndex::new(&problem);
     let ctx = ValidationContext::new(&problem, None, &coord_index);
 
-    let result = check_e1506_profiles_exist(&ctx);
+    let result = check_e1505_profiles_exist(&ctx);
 
-    assert_eq!(result.err().map(|err| err.code), Some("E1506".to_string()));
+    assert_eq!(result.err().map(|err| err.code), Some("E1505".to_string()));
 }

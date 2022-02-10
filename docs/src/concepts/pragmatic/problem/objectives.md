@@ -38,6 +38,10 @@ constraints such as time windows. The objective has the following optional param
     * `breaks`: a value penalty for skipping a break. Default value is 100.
 * `tour-order`: controls desired activity order in tours
     * `isConstrained`: violating order is not allowed, even if it leads to less assigned jobs (default is false).
+* `area-order`: controls jobs assignment for vehicles using areas
+    * `isConstrained`: violating are order is not allowed
+    * `isValuePreferred`: prefer total value over order violations (can be used with `isConstrained=false`) 
+    * `breaks`: a value penalty for skipping a break. Default value is 100.
 
 ### Work balance objectives
 

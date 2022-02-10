@@ -35,5 +35,5 @@ location indices.
 * [E1501 empty profile collection](../errors/index.md#e1501)
 * [E1502 mixing different location types](../errors/index.md#e1502)
 * [E1503 location indices requires routing matrix to be specified](../errors/index.md#e1503)
-* [E1504 area limit constraint requires coordinates to be used everywhere](../errors/index.md#e1504)
-* [E1505 amount of locations does not match matrix dimension](../errors/index.md#e1505)
+* [E1504 amount of locations does not match matrix dimension](../errors/index.md#e1504)
+* [E1505 unknown matrix profile name in vehicle or vicinity clustering profile](../errors/index.md#e1505)

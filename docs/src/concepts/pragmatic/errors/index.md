@@ -463,25 +463,13 @@ Additionally, reload time should be inside vehicle shift it is specified:
 
 #### E1305
 
-`invalid allowed area definition in vehicle limits` error is returned when `allowedArea` property in `fleet.vehicles`
+`invalid allowed area definition in vehicle limits` error is returned when `areas` property in `fleet.vehicles.limits`
 violates one of the following rules:
 
-* no empty arrays
-* each area has more than 2 coordinates
+* no invalid area ids
+* no invalid job ids
+* no job id duplicates in vehicle areas
 
-```json
-{
-  "limits": {
-    "allowedAreas": [
-      /** Error: at least three locations has to be defined **/
-      [
-        { "lat": 52.12, "lng":  13.14 },
-        { "lat": 52.13, "lng":  13.15 }
-      ]
-    ]
-  }
-}
-```
 
 #### E1306
 
@@ -570,12 +558,6 @@ routing matrix provided.
 
 #### E1504
 
-`area limit constraint requires coordinates to be used everywhere` is returned when location indices are used within
-area limit on `fleet.vehicles.limits.allowedAreas`.
-
-
-#### E1505
-
 `amount of locations does not match matrix dimension` is returned when:
 
 * location indices are used and max index is greater than matrix size
@@ -584,7 +566,7 @@ area limit on `fleet.vehicles.limits.allowedAreas`.
 Check locations in problem definition and matrix size.
 
 
-#### E1506
+#### E1505
 
 `unknown matrix profile name in vehicle or vicinity clustering profile` is returned when vehicle has in `fleet.vehicles.profile.matrix`
 or `plan.clustering.profile` value which is not specified in `fleet.profiles` collection. To fix issue, either change

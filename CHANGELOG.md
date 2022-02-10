@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* `breaking`: rework area constraint
+
 
 ## [v1.14.0] - 2022-01-23
 

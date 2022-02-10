@@ -29,6 +29,14 @@ lock jobs to a specific vehicle in any or predefined order.
 Check [relations section](./relations.md) for more details.
 
 
+## Relation between jobs and areas
+
+A `plan.areas` property allows to control the order of job execution in given areas. Each area here is defined by:
+* **id** (required): a unique area id
+* **jobs** (required): a list of job ids belong to the given area. Please note, that job id can be defined more than
+  once in different areas, but once in the given area.
+
+
 ## Job and vehicle constraints
 
 There are multiple strict constraints that should be matched on jobs and vehicles.
