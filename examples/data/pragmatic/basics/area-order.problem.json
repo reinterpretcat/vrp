@@ -1,0 +1,322 @@
+{
+  "plan": {
+    "areas": [
+      {
+        "id": "A",
+        "jobs": [
+          "job4",
+          "job10",
+          "job1"
+        ]
+      },
+      {
+        "id": "B",
+        "jobs": [
+          "job8",
+          "job5",
+          "job3"
+        ]
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job1",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.59241,
+                  "lng": 13.50974
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job2",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.61066,
+                  "lng": 13.45378
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job3",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.36284,
+                  "lng": 13.68558
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job4",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.35415,
+                  "lng": 13.19889
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job5",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.47351,
+                  "lng": 13.52510
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job6",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.63608,
+                  "lng": 13.38014
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job7",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.67531,
+                  "lng": 13.26834
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job8",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.68782,
+                  "lng": 13.39262
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job9",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.45387,
+                  "lng": 13.53358
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "job10",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.51858,
+                  "lng": 13.28350
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "type1",
+        "vehicleIds": [
+          "vehicle_1"
+        ],
+        "profile": {
+          "matrix": "car"
+        },
+        "costs": {
+          "fixed": 25.0,
+          "distance": 0.0002,
+          "time": 0.005
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2020-05-01T09:00:00.00Z",
+              "location": {
+                "lat": 52.4181,
+                "lng": 13.4637
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ],
+        "limits": {
+          "areas": [
+            [
+              {
+                "areaId": "A",
+                "jobValue": 10
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "typeId": "type2",
+        "vehicleIds": [
+          "vehicle_2"
+        ],
+        "profile": {
+          "matrix": "car"
+        },
+        "costs": {
+          "fixed": 25.0,
+          "distance": 0.0002,
+          "time": 0.005
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2020-05-01T09:00:00.00Z",
+              "location": {
+                "lat": 52.4181,
+                "lng": 13.4637
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ],
+        "limits": {
+          "areas": [
+            [
+              {
+                "areaId": "B",
+                "jobValue": 10
+              }
+            ]
+          ]
+        }
+      }
+    ],
+    "profiles": [
+      {
+        "name": "car",
+        "type": "car"
+      }
+    ]
+  },
+  "objectives": [
+    [
+      {
+        "type": "area-order",
+        "isConstrained": false,
+        "isValuePreferred": true
+      },
+      {
+        "type": "minimize-unassigned"
+      }
+    ],
+    [
+      {
+        "type": "minimize-tours"
+      }
+    ],
+    [
+      {
+        "type": "minimize-cost"
+      }
+    ]
+  ]
+}

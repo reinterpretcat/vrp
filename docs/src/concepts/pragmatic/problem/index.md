@@ -36,6 +36,8 @@ A `plan.areas` property allows to control the order of job execution in given ar
 * **jobs** (required): a list of job ids belong to the given area. Please note, that job id can be defined more than
   once in different areas, but once in the given area.
 
+For more details, see [area oder](../../../examples/pragmatic/basics/area-order.md) example.
+
 
 ## Job and vehicle constraints
 
