@@ -13,6 +13,7 @@ WORKDIR /src/
 
 # copy source code
 COPY Cargo.toml ./
+COPY experiments/heuristic-research ./experiments/heuristic-research
 COPY examples ./examples
 COPY rosomaxa ./rosomaxa
 COPY vrp-core ./vrp-core
