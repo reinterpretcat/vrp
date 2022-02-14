@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [v1.15.0] - 2022-02-15
+
 ### Changed
 
 * `breaking`: rework area constraint
@@ -429,7 +432,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.14.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.15.0...HEAD
+[v1.15.0]: https://github.com/reinterpretcat/vrp/compare/v1.14.0...v1.15.0
 [v1.14.0]: https://github.com/reinterpretcat/vrp/compare/v1.13.0...v1.14.0
 [v1.13.0]: https://github.com/reinterpretcat/vrp/compare/v1.12.0...v1.13.0
 [v1.12.0]: https://github.com/reinterpretcat/vrp/compare/v1.11.5...v1.12.0
