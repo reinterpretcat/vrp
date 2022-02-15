@@ -53,8 +53,10 @@ pub(crate) fn create_transport_costs(
         })
         .map(|(profile, timestamp, matrix)| {
             let (durations, distances) = if let Some(error_codes) = &matrix.error_codes {
-                let mut durations: Vec<Duration> = Default::default();
-                let mut distances: Vec<Distance> = Default::default();
+                let capacity = matrix.distances.len();
+
+                let mut durations: Vec<Duration> = Vec::with_capacity(capacity);
+                let mut distances: Vec<Distance> = Vec::with_capacity(capacity);
                 for (i, error) in error_codes.iter().enumerate() {
                     if *error > 0 {
                         durations.push(-1.);
