@@ -40,17 +40,16 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
                         .and_then(|activity| activity.commute.as_ref())
                         .and_then(|commute| commute.backward.as_ref())
                         .map(|info| &info.location);
+                    let check_loc = || *from_loc == actual_loc || backward_loc.map_or(false, |loc| *loc == actual_loc);
 
-                    let optional_break_places = match vehicle_break {
-                        VehicleBreak::Optional { places, .. } => places,
-                        VehicleBreak::Required { .. } => unimplemented!(),
+                    let has_match = match vehicle_break {
+                        // TODO check tag and duration
+                        VehicleBreak::Optional { places, .. } => places.iter().any(|place| match &place.location {
+                            Some(location) => actual_loc == *location,
+                            None => check_loc(),
+                        }),
+                        VehicleBreak::Required { .. } => check_loc(),
                     };
-
-                    // TODO check tag and duration
-                    let has_match = optional_break_places.iter().any(|place| match &place.location {
-                        Some(location) => actual_loc == *location,
-                        None => *from_loc == actual_loc || backward_loc.map_or(false, |loc| *loc == actual_loc),
-                    });
 
                     if !has_match {
                         return Err(format!(

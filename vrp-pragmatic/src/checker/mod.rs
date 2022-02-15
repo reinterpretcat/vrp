@@ -176,19 +176,29 @@ impl CheckerContext {
                 .as_ref()
                 .and_then(|breaks| {
                     breaks.iter().find(|b| {
-                        let break_time = match b {
-                            VehicleBreak::Optional { time, .. } => time,
-                            VehicleBreak::Required { .. } => unimplemented!(),
-                        };
-
-                        match break_time {
-                            VehicleOptionalBreakTime::TimeWindow(tw) => parse_time_window(tw).intersects(&time),
-                            VehicleOptionalBreakTime::TimeOffset(offset) => {
+                        match b {
+                            VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeWindow(tw), .. } => {
+                                parse_time_window(tw).intersects(&time)
+                            }
+                            VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeOffset(offset), .. } => {
                                 assert_eq!(offset.len(), 2);
                                 // NOTE make expected time window wider due to reschedule departure
                                 let stops = &tour.stops;
                                 let start = parse_time(&stops.first().unwrap().time.arrival) + *offset.first().unwrap();
                                 let end = parse_time(&stops.first().unwrap().time.departure) + *offset.last().unwrap();
+
+                                TimeWindow::new(start, end).intersects(&time)
+                            }
+                            VehicleBreak::Required { time: VehicleRequiredBreakTime::ExactTime(b_time), duration } => {
+                                let start = parse_time(b_time);
+                                let end = start + *duration;
+
+                                TimeWindow::new(start, end).intersects(&time)
+                            }
+                            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime(offset), duration } => {
+                                let departure = parse_time(&tour.stops.first().unwrap().time.departure);
+                                let start = departure + *offset;
+                                let end = start + *duration;
 
                                 TimeWindow::new(start, end).intersects(&time)
                             }
