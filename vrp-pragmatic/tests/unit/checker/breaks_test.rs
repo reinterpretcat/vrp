@@ -147,7 +147,7 @@ fn can_check_breaks_impl(
                     ("1970-01-01T00:00:01Z", "1970-01-01T00:00:02Z"),
                     5,
                 ),
-                Stop {
+                Stop::Point(PointStop {
                     location: vec![2., 0.].to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:03Z".to_string(),
@@ -157,7 +157,7 @@ fn can_check_breaks_impl(
                     parking: None,
                     load: vec![0],
                     activities,
-                },
+                }),
                 create_stop_with_activity(
                     "arrival",
                     "arrival",

@@ -17,7 +17,6 @@ use vrp_core::models::{Problem, Solution};
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
 
-type ApiLocation = crate::format::Location;
 type ApiActivity = crate::format::solution::model::Activity;
 type ApiSolution = crate::format::solution::model::Solution;
 type ApiSchedule = crate::format::solution::model::Schedule;
@@ -163,7 +162,7 @@ fn create_tour(
                 (has_dispatch, is_same_location)
             });
 
-            tour.stops.push(Stop {
+            tour.stops.push(Stop::Point(PointStop {
                 location: coord_index.get_by_idx(start.place.location).unwrap(),
                 time: format_schedule(&start.schedule),
                 load: if has_dispatch { vec![0] } else { start_delivery.as_vec() },
@@ -184,7 +183,7 @@ fn create_tour(
                     commute: None,
                 }],
                 parking: None,
-            });
+            }));
             (start_idx + 1, start)
         } else {
             (start_idx, route.tour.get(start_idx - 1).unwrap())
@@ -263,7 +262,7 @@ fn create_tour(
                 };
 
                 if is_new_stop {
-                    tour.stops.push(Stop {
+                    tour.stops.push(Stop::Point(PointStop {
                         location: coord_index.get_by_idx(act.place.location).unwrap(),
                         time: format_schedule(&act.schedule),
                         load: prev_load.as_vec(),
@@ -277,13 +276,16 @@ fn create_tour(
                             None
                         },
                         activities: vec![],
-                    });
+                    }));
                 }
 
                 let load = calculate_load(prev_load, act, is_multi_dimen);
 
                 let last = tour.stops.len() - 1;
-                let mut last = tour.stops.get_mut(last).unwrap();
+                let mut last = match tour.stops.get_mut(last).unwrap() {
+                    Stop::Point(point) => point,
+                    Stop::Transit(_) => unreachable!(),
+                };
 
                 last.time.departure = format_time(act.schedule.departure);
                 last.load = load.as_vec();
@@ -309,6 +311,7 @@ fn create_tour(
                 } else {
                     tour.stops
                         .last()
+                        .and_then(|stop| stop.as_point())
                         .and_then(|stop| coord_index.get_by_loc(&stop.location))
                         .expect("expect to have at least one stop")
                 };
@@ -341,8 +344,11 @@ fn create_tour(
     // NOTE remove redundant info
     tour.stops
         .iter_mut()
-        .filter(|stop| stop.activities.len() == 1)
-        .flat_map(|stop| stop.activities.iter_mut())
+        .filter(|stop| stop.activities().len() == 1)
+        .flat_map(|stop| match stop {
+            Stop::Point(point) => point.activities.iter_mut(),
+            Stop::Transit(transit) => transit.activities.iter_mut(),
+        })
         .for_each(|activity| {
             activity.location = None;
             activity.time = None;
@@ -378,16 +384,18 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
         .filter(|time| shift_time.intersects(time))
         .for_each(|reserved_time| {
             // NOTE scan and insert new stop if necessary
-            if let Some((leg_idx, load, distance)) = tour
+            if let Some((leg_idx, load)) = tour
                 .stops
                 .windows(2)
                 .enumerate()
                 .filter_map(|(leg_idx, stops)| {
                     if let &[prev, next] = &stops {
-                        let travel_tw =
-                            TimeWindow::new(parse_time(&prev.time.departure), parse_time(&next.time.arrival));
+                        let travel_tw = TimeWindow::new(
+                            parse_time(&prev.schedule().departure),
+                            parse_time(&next.schedule().arrival),
+                        );
                         if travel_tw.intersects(&reserved_time) {
-                            return Some((leg_idx, prev.load.clone(), prev.distance));
+                            return Some((leg_idx, prev.load().clone()));
                         }
                     }
 
@@ -397,27 +405,24 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
             {
                 tour.stops.insert(
                     leg_idx + 1,
-                    Stop {
-                        // NOTE use MAX value as marker value
-                        location: ApiLocation::Reference { index: usize::MAX },
+                    Stop::Transit(TransitStop {
                         time: ApiSchedule {
                             arrival: format_time(reserved_time.start),
                             departure: format_time(reserved_time.end),
                         },
-                        distance,
                         load,
-                        parking: None,
                         activities: vec![],
-                    },
+                    }),
                 )
             }
 
             // NOTE insert activity
             tour.stops.iter_mut().for_each(|stop| {
-                let stop_tw = TimeWindow::new(parse_time(&stop.time.arrival), parse_time(&stop.time.departure));
+                let stop_tw =
+                    TimeWindow::new(parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure));
                 if stop_tw.intersects(&reserved_time) {
                     let idx = stop
-                        .activities
+                        .activities()
                         .iter()
                         .enumerate()
                         .filter_map(|(activity_idx, activity)| {
@@ -434,7 +439,12 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                         .next()
                         .unwrap_or(0);
 
-                    stop.activities.insert(
+                    let activities = match stop {
+                        Stop::Point(point) => &mut point.activities,
+                        Stop::Transit(transit) => &mut transit.activities,
+                    };
+
+                    activities.insert(
                         idx,
                         ApiActivity {
                             job_id: "break".to_string(),

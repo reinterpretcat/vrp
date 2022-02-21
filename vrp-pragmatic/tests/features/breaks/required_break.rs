@@ -61,7 +61,7 @@ fn can_assign_break_during_travel() {
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
                         5,
                     ),
-                    Stop {
+                    Stop::Point(PointStop {
                         location: Location::Reference { index: usize::MAX },
                         time: Schedule {
                             arrival: "1970-01-01T00:00:07Z".to_string(),
@@ -81,7 +81,7 @@ fn can_assign_break_during_travel() {
                             job_tag: None,
                             commute: None
                         }],
-                    },
+                    }),
                     create_stop_with_activity(
                         "job2",
                         "delivery",
@@ -157,7 +157,7 @@ fn can_assign_break_during_activity() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0,
                     ),
-                    Stop {
+                    Stop::Point(PointStop {
                         location: vec![5., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
@@ -190,7 +190,7 @@ fn can_assign_break_during_activity() {
                                 commute: None
                             }
                         ],
-                    },
+                    }),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",

@@ -206,7 +206,12 @@ fn can_handle_two_clusters_impl(
         solution
             .tours
             .iter_mut()
-            .flat_map(|tour| tour.stops.iter_mut().flat_map(|stop| stop.activities.iter_mut()))
+            .flat_map(|tour| {
+                tour.stops.iter_mut().flat_map(|stop| match stop {
+                    Stop::Point(point) => point.activities.iter_mut(),
+                    Stop::Transit(transit) => transit.activities.iter_mut(),
+                })
+            })
             .for_each(|a| {
                 if a.activity_type == "delivery" {
                     a.job_id = "x".to_string()

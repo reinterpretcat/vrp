@@ -106,7 +106,7 @@ fn get_activity_ids(tour: &Tour) -> Vec<String> {
         .iter()
         .flat_map(|stop| {
             // TODO consider job tags within multi jobs
-            stop.activities.iter().map(|a| a.job_id.clone())
+            stop.activities().iter().map(|a| a.job_id.clone())
         })
         .collect()
 }

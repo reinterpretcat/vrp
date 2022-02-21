@@ -116,7 +116,7 @@ fn can_merge_activities_with_same_location_in_one_stop() {
     );
     assert_eq!(solution.tours.len(), 1);
     assert_eq!(solution.tours.first().unwrap().stops.len(), 3);
-    assert_eq!(solution.tours.first().unwrap().stops.get(1).unwrap().activities.len(), 2);
+    assert_eq!(solution.tours.first().unwrap().stops.get(1).unwrap().activities().len(), 2);
 }
 
 parameterized_test! {can_merge_activities_with_commute_in_one_stop, (jobs_data, expected), {
@@ -182,10 +182,10 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
     let tour = create_tour(&problem, &route, &coord_index, &Default::default());
     assert_eq!(expected.len(), tour.stops.len() - 2);
     expected.iter().zip(tour.stops.iter().skip(1)).for_each(|((expected_stop_idx, expected_acts), actual_stop)| {
-        assert_eq!(Some(*expected_stop_idx), coord_index.get_by_loc(&actual_stop.location));
+        assert_eq!(Some(*expected_stop_idx), coord_index.get_by_loc(&actual_stop.as_point().unwrap().location));
 
-        assert_eq!(expected_acts.len(), actual_stop.activities.len());
-        expected_acts.iter().zip(actual_stop.activities.iter()).for_each(|((location, commute), actual)| {
+        assert_eq!(expected_acts.len(), actual_stop.activities().len());
+        expected_acts.iter().zip(actual_stop.activities().iter()).for_each(|((location, commute), actual)| {
             assert_eq!(*location, actual.location.as_ref().and_then(|l| coord_index.get_by_loc(l)));
 
             match (commute, &actual.commute) {

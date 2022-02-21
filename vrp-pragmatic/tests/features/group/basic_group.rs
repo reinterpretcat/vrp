@@ -42,7 +42,7 @@ fn can_group_jobs() {
     assert!(solution.tours.iter().any(|tour| {
         tour.stops
             .iter()
-            .flat_map(|stop| stop.activities.iter())
+            .flat_map(|stop| stop.activities().iter())
             .map(|activity| activity.job_id.as_str())
             .filter(|id| *id == "job1" || *id == "job3")
             .collect::<HashSet<_>>()

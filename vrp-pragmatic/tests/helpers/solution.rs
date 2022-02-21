@@ -51,7 +51,7 @@ fn create_stop_with_activity_impl(
     distance: i64,
     job_tag: Option<String>,
 ) -> Stop {
-    Stop {
+    Stop::Point(PointStop {
         location: vec![location.0, location.1].to_loc(),
         time: Schedule { arrival: time.0.to_string(), departure: time.1.to_string() },
         load,
@@ -65,20 +65,20 @@ fn create_stop_with_activity_impl(
             commute: None,
         }],
         parking: None,
-    }
+    })
 }
 
 pub fn assert_vehicle_agnostic(result: Solution, expected: Solution) {
     let mut result = result;
 
     let tour_map = expected.tours.iter().fold(HashMap::new(), |mut acc, tour| {
-        acc.insert(tour.stops.get(1).unwrap().activities.first().unwrap().job_id.clone(), tour.vehicle_id.clone());
+        acc.insert(tour.stops.get(1).unwrap().activities().first().unwrap().job_id.clone(), tour.vehicle_id.clone());
 
         acc
     });
 
     result.tours.iter_mut().for_each(|tour| {
-        let job_id = tour.stops.get(1).unwrap().activities.first().unwrap().job_id.clone();
+        let job_id = tour.stops.get(1).unwrap().activities().first().unwrap().job_id.clone();
         if let Some(vehicle_id) = tour_map.get(&job_id) {
             tour.vehicle_id = vehicle_id.to_string();
         }
@@ -112,7 +112,7 @@ pub fn create_empty_solution() -> Solution {
 }
 
 pub fn get_ids_from_tour(tour: &Tour) -> Vec<Vec<String>> {
-    tour.stops.iter().map(|stop| stop.activities.iter().map(|a| a.job_id.clone()).collect()).collect()
+    tour.stops.iter().map(|stop| stop.activities().iter().map(|a| a.job_id.clone()).collect()).collect()
 }
 
 pub fn create_random() -> Arc<dyn Random + Send + Sync> {

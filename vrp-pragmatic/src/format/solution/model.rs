@@ -102,15 +102,77 @@ pub struct Activity {
     pub commute: Option<Commute>,
 }
 
-/// A stop is a place where vehicle is supposed to be parked.
+/// A stop is a place where vehicle is supposed to do some work.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
-pub struct Stop {
-    /// Stop location.
+#[serde(untagged)]
+pub enum Stop {
+    /// A point stop is a stop where vehicle is supposed to be parked and do some work.
+    Point(PointStop),
+    /// A transit stop specifies some transit place to stay without concrete location.
+    Transit(TransitStop),
+}
+
+impl Stop {
+    /// Returns stop's schedule time.
+    pub fn schedule(&self) -> &Schedule {
+        match self {
+            Self::Transit(transit) => &transit.time,
+            Self::Point(point) => &point.time,
+        }
+    }
+
+    /// Returns stop's load.
+    pub fn load(&self) -> &Vec<i32> {
+        match self {
+            Self::Transit(transit) => &transit.load,
+            Self::Point(point) => &point.load,
+        }
+    }
+
+    /// Returns stop activities.
+    pub fn activities(&self) -> &Vec<Activity> {
+        match self {
+            Stop::Transit(transit) => &transit.activities,
+            Stop::Point(point) => &point.activities,
+        }
+    }
+
+    /// A helper method used to get stop point variant safely.
+    pub fn as_point(&self) -> Option<&PointStop> {
+        match self {
+            Self::Point(point) => Some(point),
+            _ => None,
+        }
+    }
+
+    /// A helper method used to unwrap stop point variant.
+    pub fn to_point(self) -> PointStop {
+        match self {
+            Self::Point(point) => point,
+            _ => panic!("non point type"),
+        }
+    }
+}
+
+/// A transit stop specifies some transit place to stay without concrete location.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+pub struct TransitStop {
+    /// Stop schedule.
+    pub time: Schedule,
+    /// Vehicle load after departure from this stop.
+    pub load: Vec<i32>,
+    /// Activities performed at the stop.
+    pub activities: Vec<Activity>,
+}
+
+/// A point stop is a stop where vehicle is supposed to be parked and do some work.
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+pub struct PointStop {
+    /// Stop location. When omitted vehicle can stop anywhere.
     pub location: Location,
     /// Stop schedule.
     pub time: Schedule,
     /// Distance traveled since departure from start.
-    #[serde(default)]
     pub distance: i64,
     /// Vehicle load after departure from this stop.
     pub load: Vec<i32>,

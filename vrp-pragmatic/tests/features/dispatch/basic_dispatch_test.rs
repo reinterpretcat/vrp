@@ -113,11 +113,11 @@ fn can_assign_dispatch_at_start() {
     assert_eq!(solution.tours.len(), 1);
 
     let first_stop = &solution.tours[0].stops[0];
-    assert_eq!(first_stop.time.arrival, format_time(0.));
-    assert_eq!(first_stop.time.departure, format_time(2.));
-    assert_eq!(first_stop.activities.len(), 2);
-    assert_eq!(first_stop.activities[0].activity_type, "departure");
-    assert_eq!(first_stop.activities[1].activity_type, "dispatch");
+    assert_eq!(first_stop.schedule().arrival, format_time(0.));
+    assert_eq!(first_stop.schedule().departure, format_time(2.));
+    assert_eq!(first_stop.activities().len(), 2);
+    assert_eq!(first_stop.activities()[0].activity_type, "departure");
+    assert_eq!(first_stop.activities()[1].activity_type, "dispatch");
 }
 
 #[test]
@@ -176,8 +176,9 @@ fn can_handle_two_dispatch_impl(
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
     assert!(!solution.tours.is_empty());
-    assert_eq!(solution.tours[0].stops[1].location, expected_location.to_vec().to_loc());
-    assert_eq!(solution.tours[0].stops[1].activities[0].activity_type, "dispatch");
+    let second_stop = solution.tours[0].stops[1].as_point().unwrap();
+    assert_eq!(second_stop.location, expected_location.to_vec().to_loc());
+    assert_eq!(second_stop.activities[0].activity_type, "dispatch");
     assert_eq!(solution.statistic.cost, expected_cost);
 }
 
@@ -210,14 +211,16 @@ fn assert_tours(tours: &[Tour], values: (f64, f64, f64)) {
     tours.iter().for_each(|tour| {
         assert_eq!(tour.stops.len(), 4);
 
-        assert_eq!(tour.stops[0].time.departure, format_time(values.0));
-        assert_eq!(tour.stops[0].activities.len(), 1);
-        assert_eq!(tour.stops[0].activities[0].activity_type, "departure");
+        let first_stop = tour.stops[0].as_point().unwrap();
+        assert_eq!(first_stop.time.departure, format_time(values.0));
+        assert_eq!(first_stop.activities.len(), 1);
+        assert_eq!(first_stop.activities[0].activity_type, "departure");
 
-        assert_eq!(tour.stops[1].activities.len(), 1);
-        assert_eq!(tour.stops[1].activities[0].activity_type, "dispatch");
-        assert_eq!(tour.stops[1].time.arrival, format_time(values.1));
-        assert_eq!(tour.stops[1].time.departure, format_time(values.2));
+        let second_stop = tour.stops[1].as_point().unwrap();
+        assert_eq!(second_stop.activities.len(), 1);
+        assert_eq!(second_stop.activities[0].activity_type, "dispatch");
+        assert_eq!(second_stop.time.arrival, format_time(values.1));
+        assert_eq!(second_stop.time.departure, format_time(values.2));
     });
 }
 

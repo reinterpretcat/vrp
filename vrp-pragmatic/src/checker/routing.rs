@@ -20,9 +20,10 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
     context.solution.tours.iter().try_for_each::<_, Result<_, String>>(|tour| {
         let profile = context.get_vehicle_profile(&tour.vehicle_id)?;
         let time_offset =
-            parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.time.departure) as i64;
+            parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.schedule().departure) as i64;
 
-        let (departure_time, total_distance) = tour.stops.windows(2).enumerate().try_fold::<_, _, Result<_, String>>(
+        let stops = tour.stops.iter().filter_map(|stop| stop.as_point()).collect::<Vec<_>>();
+        let (departure_time, total_distance) = stops.windows(2).enumerate().try_fold::<_, _, Result<_, String>>(
             (time_offset, 0),
             |(arrival_time, total_distance), (leg_idx, stops)| {
                 let (from, to) = match stops {
@@ -53,7 +54,7 @@ fn check_stop_statistic(
     arrival_time: i64,
     total_distance: i64,
     stop_idx: usize,
-    to: &Stop,
+    to: &PointStop,
     tour: &Tour,
     skip_distance_check: bool,
 ) -> Result<(), String> {
@@ -94,7 +95,7 @@ fn check_tour_statistic(
     let dispatch_at_start_correction =
         tour.stops
             .first()
-            .and_then(|stop| stop.activities.get(1))
+            .and_then(|stop| stop.activities().get(1))
             .and_then(|activity| {
                 if activity.activity_type == "dispatch" {
                     Some(
@@ -132,7 +133,12 @@ fn check_solution_statistic(solution: &Solution) -> Result<(), String> {
 
 /// A workaround method for hre format output where distance is not defined.
 fn skip_distance_check(solution: &Solution) -> bool {
-    let skip_distance_check = solution.tours.iter().flat_map(|tour| tour.stops.iter()).all(|stop| stop.distance == 0);
+    let skip_distance_check = solution
+        .tours
+        .iter()
+        .flat_map(|tour| tour.stops.iter())
+        .filter_map(|stop| stop.as_point())
+        .all(|stop| stop.distance == 0);
 
     if skip_distance_check {
         // TODO use logging lib instead of println

@@ -72,7 +72,7 @@ impl StopData {
 
 impl From<StopData> for Stop {
     fn from(stop: StopData) -> Self {
-        Stop {
+        Stop::Point(PointStop {
             location: stop.location,
             time: Schedule { arrival: format_time(stop.time.0), departure: format_time(stop.time.1) },
             distance: stop.distance,
@@ -83,7 +83,7 @@ impl From<StopData> for Stop {
             },
             load: vec![stop.load],
             activities: stop.activities.into_iter().map(ActivityData::into).collect(),
-        }
+        })
     }
 }
 

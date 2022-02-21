@@ -66,7 +66,7 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
     ctx.solution.tours.iter().try_for_each(|tour| {
         tour.stops
             .iter()
-            .flat_map(|stop| stop.activities.iter())
+            .flat_map(|stop| stop.activities())
             .enumerate()
             .filter(|(_, activity)| activity_types.contains(&activity.activity_type.as_str()))
             .try_for_each(|(idx, activity)| {
@@ -161,7 +161,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
         .iter()
         .flat_map(move |tour| {
             tour.stops.iter().flat_map(move |stop| {
-                stop.activities
+                stop.activities()
                     .iter()
                     .enumerate()
                     .filter({
@@ -266,7 +266,7 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
             .iter()
             .enumerate()
             .flat_map(|(stop_idx, stop)| {
-                stop.activities
+                stop.activities()
                     .iter()
                     .enumerate()
                     .map(move |(activity_index, activity)| (stop_idx, activity_index, activity))
@@ -288,12 +288,18 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
 
         if should_have_dispatch {
             let (stop_idx, activity_idx, dispatch_activity) = dispatch_in_tour.first().unwrap();
-            let first_stop = tour.stops.first().unwrap();
+            let first_stop_location = tour
+                .stops
+                .first()
+                .unwrap()
+                .as_point()
+                .map(|point| point.location.clone())
+                .ok_or_else(|| "first stop has no location".to_string())?;
 
             match (stop_idx, activity_idx) {
                 (0, 1) => {
                     if let Some(location) = &dispatch_activity.location {
-                        if *location != first_stop.location {
+                        if *location != first_stop_location {
                             return Err(format!(
                                 "invalid dispatch location: {}, expected to match the first stop",
                                 location
@@ -303,7 +309,7 @@ fn check_dispatch(ctx: &CheckerContext) -> Result<(), String> {
                 }
                 (1, 0) => {
                     if let Some(location) = &dispatch_activity.location {
-                        if *location == first_stop.location {
+                        if *location == first_stop_location {
                             return Err(format!(
                                 "invalid dispatch location: {}, expected not to match the first stop",
                                 location
@@ -327,7 +333,7 @@ fn check_groups(ctx: &CheckerContext) -> Result<(), String> {
         .fold(HashMap::<String, HashSet<_>>::default(), |mut acc, tour| {
             tour.stops
                 .iter()
-                .flat_map(|stop| stop.activities.iter())
+                .flat_map(|stop| stop.activities().iter())
                 .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
                 .flat_map(|job| job.group.as_ref())
                 .for_each(|group| {

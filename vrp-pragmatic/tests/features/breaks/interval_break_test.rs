@@ -58,7 +58,7 @@ fn can_assign_interval_break_between_jobs() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0
                     ),
-                    Stop {
+                    Stop::Point(PointStop {
                         location: vec![5., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:05Z".to_string(),
@@ -91,7 +91,7 @@ fn can_assign_interval_break_between_jobs() {
                                 commute: None
                             }
                         ],
-                    },
+                    }),
                     create_stop_with_activity(
                         "job2",
                         "delivery",
@@ -193,7 +193,7 @@ fn can_assign_interval_break_with_reload() {
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0
                     ),
-                    Stop {
+                    Stop::Point(PointStop {
                         location: vec![10., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:10Z".to_string(),
@@ -226,7 +226,7 @@ fn can_assign_interval_break_with_reload() {
                                 commute: None
                             }
                         ],
-                    },
+                    }),
                     create_stop_with_activity(
                         "job2",
                         "delivery",

@@ -16,12 +16,12 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
         let actual_break_count = tour
             .stops
             .iter()
-            .flat_map(|stop| stop.activities.iter())
+            .flat_map(|stop| stop.activities().iter())
             .filter(|activity| activity.activity_type == "break")
             .count();
         let matched_break_count = tour.stops.iter().try_fold(0, |acc, stop| {
-            stop.activities
-                .windows(stop.activities.len().min(2))
+            stop.activities()
+                .windows(stop.activities().len().min(2))
                 .flat_map(|leg| as_leg_info_with_break(context, tour, stop, leg))
                 .try_fold(acc, |acc, (from_loc, from, to, vehicle_break)| {
                     // check time
@@ -39,16 +39,16 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
                     let backward_loc = from
                         .and_then(|activity| activity.commute.as_ref())
                         .and_then(|commute| commute.backward.as_ref())
-                        .map(|info| &info.location);
-                    let check_loc = || *from_loc == actual_loc || backward_loc.map_or(false, |loc| *loc == actual_loc);
+                        .map(|info| &info.location)
+                        .cloned();
 
                     let has_match = match vehicle_break {
                         // TODO check tag and duration
                         VehicleBreak::Optional { places, .. } => places.iter().any(|place| match &place.location {
-                            Some(location) => actual_loc == *location,
-                            None => check_loc(),
+                            Some(location) => actual_loc.as_ref().map_or(false, |actual_loc| actual_loc == location),
+                            None => from_loc == actual_loc || backward_loc == actual_loc,
                         }),
-                        VehicleBreak::Required { .. } => check_loc(),
+                        VehicleBreak::Required { .. } => actual_loc.is_none(),
                     };
 
                     if !has_match {
@@ -71,13 +71,13 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
         let departure = tour
             .stops
             .first()
-            .map(|stop| parse_time(&stop.time.departure))
+            .map(|stop| parse_time(&stop.schedule().departure))
             .ok_or_else(|| format!("cannot get departure for tour '{}'", tour.vehicle_id))?;
 
         let arrival = tour
             .stops
             .last()
-            .map(|stop| parse_time(&stop.time.arrival))
+            .map(|stop| parse_time(&stop.schedule().arrival))
             .ok_or_else(|| format!("cannot get arrival for tour '{}'", tour.vehicle_id))?;
 
         let tour_tw = TimeWindow::new(departure, arrival);
@@ -123,7 +123,7 @@ fn as_leg_info_with_break<'a>(
     tour: &Tour,
     stop: &'a Stop,
     leg: &'a [Activity],
-) -> Option<(&'a Location, Option<&'a Activity>, &'a Activity, VehicleBreak)> {
+) -> Option<(Option<Location>, Option<&'a Activity>, &'a Activity, VehicleBreak)> {
     let leg = match leg {
         [from, to] => Some((Some(from), to)),
         [to] => Some((None, to)),
@@ -133,8 +133,11 @@ fn as_leg_info_with_break<'a>(
     if let Some((from, to)) = leg {
         if let Ok(ActivityType::Break(vehicle_break)) = context.get_activity_type(tour, stop, to) {
             let from_loc =
-                leg.and_then(|(from, _)| from).and_then(|action| action.location.as_ref()).unwrap_or(&stop.location);
-            return Some((from_loc, from, to, vehicle_break));
+                leg.and_then(|(from, _)| from).and_then(|action| action.location.as_ref()).or_else(|| match stop {
+                    Stop::Point(point) => Some(&point.location),
+                    Stop::Transit(_) => None,
+                });
+            return Some((from_loc.cloned(), from, to, vehicle_break));
         }
     }
     None
@@ -144,7 +147,7 @@ fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<Ti
     let departure = tour
         .stops
         .first()
-        .map(|stop| parse_time(&stop.time.departure))
+        .map(|stop| parse_time(&stop.schedule().departure))
         .ok_or_else(|| format!("cannot get departure time for tour: '{}'", tour.vehicle_id))?;
 
     match vehicle_break {

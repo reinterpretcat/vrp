@@ -58,7 +58,7 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), String>
                     .zip(0..)
                     .filter_map(|(stop, idx)| if idx == 0 || idx % 2 == 1 { Some(stop) } else { None })
                     .flat_map(|stop| {
-                        stop.activities
+                        stop.activities()
                             .iter()
                             .map(move |activity| (activity.clone(), context.get_activity_type(tour, stop, activity)))
                     })
@@ -77,14 +77,14 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> Result<(), String>
                     )?;
 
                 let end_capacity = interval.iter().try_fold(start_delivery, |acc, (idx, (from, to))| {
-                    let from_load = MultiDimLoad::new(from.load.clone());
-                    let to_load = MultiDimLoad::new(to.load.clone());
+                    let from_load = MultiDimLoad::new(from.load().clone());
+                    let to_load = MultiDimLoad::new(to.load().clone());
 
                     if !capacity.can_fit(&from_load) || !capacity.can_fit(&to_load) {
                         return Err(format!("load exceeds capacity in tour '{}'", tour.vehicle_id));
                     }
 
-                    let change = to.activities.iter().try_fold::<_, _, Result<_, String>>(
+                    let change = to.activities().iter().try_fold::<_, _, Result<_, String>>(
                         MultiDimLoad::default(),
                         |acc, activity| {
                             let activity_type = context.get_activity_type(tour, to, activity)?;
@@ -171,7 +171,7 @@ fn is_reload_stop(context: &CheckerContext, stop: &Stop) -> bool {
 fn has_dispatch(tour: &Tour) -> bool {
     tour.stops
         .iter()
-        .flat_map(|stop| stop.activities.iter())
+        .flat_map(|stop| stop.activities())
         .nth(1)
         .map_or(false, |activity| activity.activity_type == "dispatch")
 }

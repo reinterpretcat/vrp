@@ -63,7 +63,7 @@ fn can_create_geo_json_from_named_locations() {
 
 #[test]
 fn can_create_geo_json_for_cluster_geometry() {
-    let stop = Stop {
+    let stop = PointStop {
         location: Location::Coordinate { lat: 1., lng: 0. },
         time: Schedule { arrival: format_time(0.), departure: format_time(10.) },
         distance: 0,

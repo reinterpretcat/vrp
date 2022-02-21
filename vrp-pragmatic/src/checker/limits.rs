@@ -40,7 +40,7 @@ fn check_shift_limits(context: &CheckerContext) -> Result<(), String> {
                 let shift = context.get_vehicle_shift(tour)?;
 
                 let extra_activities = if shift.end.is_some() { 2 } else { 1 };
-                let tour_activities = tour.stops.iter().flat_map(|stop| stop.activities.iter()).count();
+                let tour_activities = tour.stops.iter().flat_map(|stop| stop.activities()).count();
                 let tour_activities = if tour_activities > extra_activities { tour_activities - extra_activities } else { 0 };
 
                 if tour_activities > tour_size_limit {
@@ -62,8 +62,8 @@ fn check_shift_time(context: &CheckerContext) -> Result<(), String> {
 
         let (start, end) = tour.stops.first().zip(tour.stops.last()).ok_or("empty tour")?;
 
-        let departure = parse_time(&start.time.departure);
-        let arrival = parse_time(&end.time.arrival);
+        let departure = parse_time(&start.schedule().departure);
+        let arrival = parse_time(&end.schedule().arrival);
 
         let has_match = vehicle
             .shifts

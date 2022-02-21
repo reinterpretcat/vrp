@@ -84,7 +84,7 @@ fn can_use_two_breaks() {
                         ("1970-01-01T00:00:07Z", "1970-01-01T00:00:09Z"),
                         6,
                     ),
-                    Stop {
+                    Stop::Point(PointStop {
                         location: vec![99., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:01:42Z".to_string(),
@@ -117,7 +117,7 @@ fn can_use_two_breaks() {
                                 commute: None
                             }
                         ],
-                    },
+                    }),
                     create_stop_with_activity(
                         "arrival",
                         "arrival",

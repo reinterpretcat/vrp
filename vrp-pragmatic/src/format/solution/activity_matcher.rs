@@ -27,16 +27,21 @@ pub(crate) fn try_match_job(
         route_start_time: tour
             .stops
             .first()
-            .map(|stop| parse_time(&stop.time.departure))
+            .map(|stop| parse_time(&stop.schedule().departure))
             .ok_or_else(|| "empty route".to_owned())?,
-        location: coord_index
-            .get_by_loc(activity.location.as_ref().unwrap_or(&stop.location))
+        location: activity
+            .location
+            .as_ref()
+            .or_else(|| stop.as_point().map(|stop| &stop.location))
+            .and_then(|location| coord_index.get_by_loc(location))
             .ok_or_else(|| format!("cannot get location for activity for job '{}'", activity.job_id))?,
         time: activity
             .time
             .as_ref()
             .map(|time| TimeWindow::new(parse_time(&time.start), parse_time(&time.end)))
-            .unwrap_or_else(|| TimeWindow::new(parse_time(&stop.time.arrival), parse_time(&stop.time.departure))),
+            .unwrap_or_else(|| {
+                TimeWindow::new(parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure))
+            }),
         act_type: &activity.activity_type,
         job_id: &activity.job_id,
         tag: activity.job_tag.as_ref(),

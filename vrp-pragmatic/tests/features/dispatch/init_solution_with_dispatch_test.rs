@@ -53,7 +53,7 @@ fn can_use_init_solution_with_dispatch() {
                 type_id: "my_vehicle".to_string(),
                 shift_index: 0,
                 stops: vec![
-                    Stop {
+                    Stop::Point(PointStop {
                         location: vec![0., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:00Z".to_string(),
@@ -86,7 +86,7 @@ fn can_use_init_solution_with_dispatch() {
                                 commute: None,
                             },
                         ],
-                    },
+                    }),
                     create_stop_with_activity(
                         "job1",
                         "delivery",
@@ -116,7 +116,7 @@ fn can_use_init_solution_with_dispatch() {
                 type_id: "my_vehicle".to_string(),
                 shift_index: 0,
                 stops: vec![
-                    Stop {
+                    Stop::Point(PointStop {
                         location: vec![0., 0.].to_loc(),
                         time: Schedule {
                             arrival: "1970-01-01T00:00:00Z".to_string(),
@@ -149,7 +149,7 @@ fn can_use_init_solution_with_dispatch() {
                                 commute: None,
                             },
                         ],
-                    },
+                    }),
                     create_stop_with_activity(
                         "job2",
                         "delivery",

@@ -3,7 +3,7 @@
 mod geo_serializer_test;
 
 use super::Solution;
-use crate::format::solution::{Activity, Stop, Tour, UnassignedJob};
+use crate::format::solution::{Activity, PointStop, Tour, UnassignedJob};
 use crate::format::{get_coord_index, get_job_index, CoordIndex, Location};
 use serde::Serialize;
 use std::cmp::Ordering;
@@ -117,7 +117,7 @@ fn slice_to_map(vec: &[(&str, &str)]) -> HashMap<String, String> {
     vec.iter().map(|&(key, value)| (key.to_string(), value.to_string())).collect()
 }
 
-fn get_marker_symbol(stop: &Stop) -> String {
+fn get_marker_symbol(stop: &PointStop) -> String {
     let contains_activity_type =
         |activity_type: &&str| stop.activities.iter().any(|activity| activity.activity_type == *activity_type);
     match (
@@ -131,7 +131,7 @@ fn get_marker_symbol(stop: &Stop) -> String {
     .to_string()
 }
 
-fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &Stop, color: &str) -> Result<Feature, Error> {
+fn get_stop_point(tour_idx: usize, stop_idx: usize, stop: &PointStop, color: &str) -> Result<Feature, Error> {
     // TODO add parking
     Ok(Feature {
         properties: slice_to_map(&[
@@ -175,7 +175,7 @@ fn get_activity_point(
     })
 }
 
-fn get_cluster_geometry(tour_idx: usize, stop_idx: usize, stop: &Stop) -> Result<Vec<Feature>, Error> {
+fn get_cluster_geometry(tour_idx: usize, stop_idx: usize, stop: &PointStop) -> Result<Vec<Feature>, Error> {
     let features = stop.activities.iter().enumerate().try_fold::<_, _, Result<_, Error>>(
         Vec::<Feature>::new(),
         |mut features, (activity_idx, activity)| {
@@ -248,17 +248,19 @@ fn get_unassigned_points(
 }
 
 fn get_tour_line(tour_idx: usize, tour: &Tour, color: &str) -> Result<Feature, Error> {
-    let coordinates = tour.stops.iter().map(|stop| get_lng_lat(&stop.location)).collect::<Result<_, Error>>()?;
+    let stops = tour.stops.iter().filter_map(|stop| stop.as_point()).collect::<Vec<_>>();
+
+    let coordinates = stops.iter().map(|stop| get_lng_lat(&stop.location)).collect::<Result<_, Error>>()?;
 
     Ok(Feature {
         properties: slice_to_map(&[
             ("vehicle_id", tour.vehicle_id.as_str()),
             ("tour_idx", tour_idx.to_string().as_str()),
             ("shift_idx", tour.shift_index.to_string().as_str()),
-            ("activities", tour.stops.iter().map(|stop| stop.activities.len()).sum::<usize>().to_string().as_str()),
-            ("distance", (tour.stops.last().unwrap().distance).to_string().as_str()),
-            ("departure", tour.stops.first().unwrap().time.departure.as_str()),
-            ("arrival", tour.stops.last().unwrap().time.arrival.as_str()),
+            ("activities", stops.iter().map(|stop| stop.activities.len()).sum::<usize>().to_string().as_str()),
+            ("distance", (stops.last().unwrap().distance).to_string().as_str()),
+            ("departure", stops.first().unwrap().time.departure.as_str()),
+            ("arrival", stops.last().unwrap().time.arrival.as_str()),
             ("stroke-width", "4"),
             ("stroke", color),
         ]),
@@ -273,9 +275,13 @@ fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<Fea
         .iter()
         .enumerate()
         .flat_map(|(tour_idx, tour)| {
-            tour.stops.iter().enumerate().map(move |(stop_idx, stop)| {
-                get_stop_point(tour_idx, stop_idx, stop, get_color_inverse(tour_idx).as_str())
-            })
+            tour.stops
+                .iter()
+                .enumerate()
+                .filter_map(|(stop_idx, stop)| stop.as_point().map(|stop| (stop_idx, stop)))
+                .map(move |(stop_idx, stop)| {
+                    get_stop_point(tour_idx, stop_idx, stop, get_color_inverse(tour_idx).as_str())
+                })
         })
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -287,6 +293,7 @@ fn create_geojson_solution(problem: &Problem, solution: &Solution) -> Result<Fea
             tour.stops
                 .iter()
                 .enumerate()
+                .filter_map(|(stop_idx, stop)| stop.as_point().map(|stop| (stop_idx, stop)))
                 .filter(|(_, stop)| stop.parking.is_some())
                 .map(move |(stop_idx, stop)| get_cluster_geometry(tour_idx, stop_idx, stop))
         })

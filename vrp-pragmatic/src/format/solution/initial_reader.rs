@@ -46,7 +46,7 @@ pub fn read_init_solution<R: Read>(
             let mut core_route = create_core_route(actor, tour)?;
 
             tour.stops.iter().try_for_each(|stop| {
-                stop.activities.iter().try_for_each::<_, Result<_, String>>(|activity| {
+                stop.activities().iter().try_for_each::<_, Result<_, String>>(|activity| {
                     try_insert_activity(&mut core_route, tour, stop, activity, job_index, coord_index, &mut added_jobs)
                 })
             })?;
@@ -122,7 +122,7 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
                              format_activity: &FormatActivity,
                              core_activity: &mut Activity|
      -> Result<(), String> {
-        let time = &format_stop.time;
+        let time = &format_stop.schedule();
         let (arrival, departure) = format_activity
             .time
             .as_ref()
@@ -135,14 +135,14 @@ fn create_core_route(actor: Arc<Actor>, format_tour: &FormatTour) -> Result<Rout
     };
 
     let start_stop = format_tour.stops.first().ok_or_else(|| "empty tour in init solution".to_string())?;
-    let start_activity = start_stop.activities.first().ok_or_else(|| "start stop has no activities".to_string())?;
+    let start_activity = start_stop.activities().first().ok_or_else(|| "start stop has no activities".to_string())?;
     let core_start = core_tour.all_activities_mut().next().expect("cannot get start activity from core tour");
 
     set_activity_time(start_stop, start_activity, core_start)?;
 
     if core_tour.end().is_some() {
         let end_stop = format_tour.stops.last().unwrap();
-        let end_activity = end_stop.activities.first().ok_or_else(|| "end stop has no activities".to_string())?;
+        let end_activity = end_stop.activities().first().ok_or_else(|| "end stop has no activities".to_string())?;
         let core_end = core_tour.all_activities_mut().last().unwrap();
 
         set_activity_time(end_stop, end_activity, core_end)?;

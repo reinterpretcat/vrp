@@ -35,7 +35,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                     ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                     0,
                 ),
-                Stop {
+                Stop::Point(PointStop {
                     location: vec![1., 0.].to_loc(),
                     time: Schedule { arrival: format_time(first.0), departure: "1970-01-01T00:00:02Z".to_string() },
                     distance: first.1,
@@ -49,8 +49,8 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                         job_tag: None,
                         commute: None,
                     }],
-                },
-                Stop {
+                }),
+                Stop::Point(PointStop {
                     location: vec![2., 0.].to_loc(),
                     time: Schedule { arrival: format_time(second.0), departure: "1970-01-01T00:00:04Z".to_string() },
                     distance: second.1,
@@ -64,7 +64,7 @@ fn create_test_solution(statistic: Statistic, stop_data: &[(f64, i64); 3]) -> So
                         job_tag: None,
                         commute: None,
                     }],
-                },
+                }),
                 create_stop_with_activity(
                     "arrival",
                     "arrival",

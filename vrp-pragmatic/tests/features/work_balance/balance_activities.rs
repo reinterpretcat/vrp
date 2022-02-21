@@ -6,7 +6,7 @@ use crate::helpers::*;
 fn get_activities_count(tour: &Tour) -> usize {
     tour.stops
         .iter()
-        .map(|stop| stop.activities.iter().filter(|activity| activity.activity_type == "delivery").count())
+        .map(|stop| stop.activities().iter().filter(|activity| activity.activity_type == "delivery").count())
         .sum()
 }
 

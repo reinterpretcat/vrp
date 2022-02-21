@@ -78,7 +78,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                     ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                     0,
                 ),
-                Stop {
+                Stop::Point(PointStop {
                     location: vec![1., 0.].to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:03Z".to_string(),
@@ -105,8 +105,8 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                             commute: None,
                         },
                     ],
-                },
-                Stop {
+                }),
+                Stop::Point(PointStop {
                     location: vec![0., 0.].to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:03Z".to_string(),
@@ -123,8 +123,8 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                         job_tag: None,
                         commute: None,
                     }],
-                },
-                Stop {
+                }),
+                Stop::Point(PointStop {
                     location: vec![2., 0.].to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:07Z".to_string(),
@@ -157,7 +157,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Str
                             commute: None,
                         },
                     ],
-                },
+                }),
                 create_stop_with_activity(
                     "job4",
                     "pickup",
@@ -226,7 +226,7 @@ fn can_check_load_when_departure_has_other_activity() {
             type_id: "my_vehicle".to_string(),
             shift_index: 0,
             stops: vec![
-                Stop {
+                Stop::Point(PointStop {
                     location: vec![0., 0.].to_loc(),
                     time: Schedule {
                         arrival: "1970-01-01T00:00:00Z".to_string(),
@@ -253,7 +253,7 @@ fn can_check_load_when_departure_has_other_activity() {
                             commute: None,
                         },
                     ],
-                },
+                }),
                 create_stop_with_activity_with_tag(
                     "job1",
                     "delivery",

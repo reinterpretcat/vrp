@@ -116,26 +116,33 @@ impl CheckerContext {
 
     /// Gets activity operation time range in seconds since Unix epoch.
     fn get_activity_time(&self, stop: &Stop, activity: &Activity) -> TimeWindow {
+        let schedule = stop.schedule();
+
         let time = activity
             .time
             .clone()
-            .unwrap_or_else(|| Interval { start: stop.time.arrival.clone(), end: stop.time.departure.clone() });
+            .unwrap_or_else(|| Interval { start: schedule.arrival.clone(), end: schedule.departure.clone() });
 
         TimeWindow::new(parse_time(&time.start), parse_time(&time.end))
     }
 
     /// Gets activity location.
-    fn get_activity_location(&self, stop: &Stop, activity: &Activity) -> Location {
-        activity.location.clone().unwrap_or_else(|| stop.location.clone())
+    fn get_activity_location(&self, stop: &Stop, activity: &Activity) -> Option<Location> {
+        activity.location.clone().or_else(|| match stop {
+            Stop::Point(stop) => Some(stop.location.clone()),
+            Stop::Transit(_) => None,
+        })
     }
 
     /// Gets vehicle shift where activity is used.
     fn get_vehicle_shift(&self, tour: &Tour) -> Result<VehicleShift, String> {
         let tour_time = TimeWindow::new(
             parse_time(
-                &tour.stops.first().as_ref().ok_or_else(|| "cannot get first activity".to_string())?.time.arrival,
+                &tour.stops.first().as_ref().ok_or_else(|| "cannot get first activity".to_string())?.schedule().arrival,
             ),
-            parse_time(&tour.stops.last().as_ref().ok_or_else(|| "cannot get last activity".to_string())?.time.arrival),
+            parse_time(
+                &tour.stops.last().as_ref().ok_or_else(|| "cannot get last activity".to_string())?.schedule().arrival,
+            ),
         );
 
         self.get_vehicle(&tour.vehicle_id)?
@@ -154,7 +161,7 @@ impl CheckerContext {
 
     /// Returns stop's activity type names.
     fn get_stop_activity_types(&self, stop: &Stop) -> Vec<String> {
-        stop.activities.iter().map(|a| a.activity_type.clone()).collect()
+        stop.activities().iter().map(|a| a.activity_type.clone()).collect()
     }
 
     /// Gets wrapped activity type.
@@ -184,8 +191,9 @@ impl CheckerContext {
                                 assert_eq!(offset.len(), 2);
                                 // NOTE make expected time window wider due to reschedule departure
                                 let stops = &tour.stops;
-                                let start = parse_time(&stops.first().unwrap().time.arrival) + *offset.first().unwrap();
-                                let end = parse_time(&stops.first().unwrap().time.departure) + *offset.last().unwrap();
+                                let schedule = &stops.first().unwrap().schedule();
+                                let start = parse_time(&schedule.arrival) + *offset.first().unwrap();
+                                let end = parse_time(&schedule.departure) + *offset.last().unwrap();
 
                                 TimeWindow::new(start, end).intersects(&time)
                             }
@@ -196,7 +204,7 @@ impl CheckerContext {
                                 TimeWindow::new(start, end).intersects(&time)
                             }
                             VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime(offset), duration } => {
-                                let departure = parse_time(&tour.stops.first().unwrap().time.departure);
+                                let departure = parse_time(&tour.stops.first().unwrap().schedule().departure);
                                 let start = departure + *offset;
                                 let end = start + *duration;
 
@@ -211,13 +219,19 @@ impl CheckerContext {
                 .reloads
                 .as_ref()
                 // TODO match reload's time windows
-                .and_then(|reload| reload.iter().find(|r| r.location == location && r.tag == activity.job_tag))
+                .and_then(|reload| {
+                    reload.iter().find(|r| {
+                        location.as_ref().map_or(false, |location| r.location == *location) && r.tag == activity.job_tag
+                    })
+                })
                 .map(|r| ActivityType::Reload(r.clone()))
                 .ok_or_else(|| format!("cannot find reload for tour '{}'", tour.vehicle_id)),
             "dispatch" => shift
                 .dispatch
                 .as_ref()
-                .and_then(|dispatch| dispatch.iter().find(|d| d.location == location))
+                .and_then(|dispatch| {
+                    dispatch.iter().find(|d| location.as_ref().map_or(false, |location| d.location == *location))
+                })
                 .map(|d| ActivityType::Depot(d.clone()))
                 .ok_or_else(|| format!("cannot find dispatch for tour '{}'", tour.vehicle_id)),
             _ => Err(format!("unknown activity type: '{}'", activity.activity_type)),
@@ -236,14 +250,14 @@ impl CheckerContext {
         activity_idx: usize,
     ) -> Result<Option<DomainCommute>, String> {
         let get_activity_location_by_idx = |idx: usize| {
-            stop.activities
+            stop.activities()
                 .get(idx)
                 .and_then(|activity| activity.location.as_ref())
                 .and_then(|location| self.get_location_index(location).ok())
         };
 
         let get_activity_commute_by_idx = |idx: usize| -> Option<DomainCommute> {
-            stop.activities
+            stop.activities()
                 .get(idx)
                 .and_then(|activity| activity.commute.as_ref())
                 .map(|commute| commute.to_domain(&self.coord_index))
@@ -251,6 +265,12 @@ impl CheckerContext {
 
         match (&self.clustering, &profile, get_activity_commute_by_idx(activity_idx)) {
             (Some(config), Some(profile), Some(commute)) => {
+                let stop_location = match stop {
+                    Stop::Point(point) => Some(&point.location),
+                    Stop::Transit(_) => unimplemented!(),
+                }
+                .and_then(|location| self.get_location_index(location).ok());
+
                 // NOTE we don't check whether zero time commute is correct here
                 match (commute.is_zero_distance(), activity_idx) {
                     (true, _) => Ok(Some(commute)),
@@ -258,7 +278,7 @@ impl CheckerContext {
                     (false, idx) if idx == 0 => Err("cannot have commute at first activity in the stop".to_string()),
                     (false, idx) => {
                         let prev_location = if matches!(config.visiting, VisitPolicy::Return) {
-                            self.get_location_index(&stop.location).ok()
+                            stop_location
                         } else {
                             get_activity_location_by_idx(idx - 1)
                         };
@@ -274,7 +294,7 @@ impl CheckerContext {
                                     .is_some();
                                 let (b_location, b_distance, b_duration) = match (&config.visiting, has_next_commute) {
                                     (VisitPolicy::Return, _) | (VisitPolicy::ClosedContinuation, false) => {
-                                        let stop_location = self.get_location_index(&stop.location)?;
+                                        let stop_location = stop_location.ok_or("no location for clustered stop")?;
                                         let (b_distance, b_duration) =
                                             self.get_matrix_data(profile, curr_location, stop_location)?;
 
@@ -392,10 +412,11 @@ fn parse_time_window(tw: &[String]) -> TimeWindow {
 }
 
 fn get_time_window(stop: &Stop, activity: &Activity) -> TimeWindow {
+    let schedule = stop.schedule();
     let (start, end) = activity
         .time
         .as_ref()
-        .map_or_else(|| (&stop.time.arrival, &stop.time.departure), |interval| (&interval.start, &interval.end));
+        .map_or_else(|| (&schedule.arrival, &schedule.departure), |interval| (&interval.start, &interval.end));
 
     TimeWindow::new(parse_time(start), parse_time(end))
 }

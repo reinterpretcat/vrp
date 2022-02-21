@@ -59,7 +59,7 @@ fn can_use_location_index() {
                 type_id: "my_vehicle".to_string(),
                 shift_index: 0,
                 stops: vec![
-                    Stop {
+                    Stop::Point(PointStop {
                         location: Location::Reference { index: 2 },
                         ..create_stop_with_activity(
                             "departure",
@@ -69,8 +69,9 @@ fn can_use_location_index() {
                             ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                             0
                         )
-                    },
-                    Stop {
+                        .to_point()
+                    }),
+                    Stop::Point(PointStop {
                         location: Location::Reference { index: 1 },
                         ..create_stop_with_activity(
                             "job2",
@@ -80,8 +81,9 @@ fn can_use_location_index() {
                             ("1970-01-01T00:00:02Z", "1970-01-01T00:00:03Z"),
                             2
                         )
-                    },
-                    Stop {
+                        .to_point()
+                    }),
+                    Stop::Point(PointStop {
                         location: Location::Reference { index: 0 },
                         ..create_stop_with_activity(
                             "job1",
@@ -91,7 +93,8 @@ fn can_use_location_index() {
                             ("1970-01-01T00:00:04Z", "1970-01-01T00:00:05Z"),
                             3
                         )
-                    }
+                        .to_point()
+                    })
                 ],
                 statistic: Statistic {
                     cost: 18.,
