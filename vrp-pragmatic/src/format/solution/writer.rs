@@ -341,6 +341,8 @@ fn create_tour(
         leg
     });
 
+    insert_reserved_times(route, &mut tour, reserved_times_index);
+
     // NOTE remove redundant info
     tour.stops
         .iter_mut()
@@ -359,8 +361,6 @@ fn create_tour(
     tour.vehicle_id = vehicle.dimens.get_id().unwrap().clone();
     tour.type_id = vehicle.dimens.get_value::<String>("type_id").unwrap().clone();
     tour.statistic = leg.statistic;
-
-    insert_reserved_times(route, &mut tour, reserved_times_index);
 
     tour
 }

@@ -155,6 +155,8 @@ fn check_jobs_presence(ctx: &CheckerContext) -> Result<(), String> {
 
 /// Checks job constraint violations.
 fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
+    let job_index = get_job_index(&ctx.core_problem);
+    let coord_index = get_coord_index(&ctx.core_problem);
     let job_ids = ctx
         .solution
         .tours
@@ -166,13 +168,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                     .enumerate()
                     .filter({
                         move |(idx, activity)| {
-                            let result = try_match_job(
-                                tour,
-                                stop,
-                                activity,
-                                get_job_index(&ctx.core_problem),
-                                get_coord_index(&ctx.core_problem),
-                            );
+                            let result = try_match_job(tour, stop, activity, job_index, coord_index);
                             let not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
 
                             match result {
