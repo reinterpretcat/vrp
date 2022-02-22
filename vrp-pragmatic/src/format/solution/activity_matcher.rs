@@ -1,21 +1,24 @@
+use crate::format::problem::VehicleBreak;
+use crate::format::problem::{Problem as FormatProblem, VehicleRequiredBreakTime};
+use crate::format::solution::{Activity as FormatActivity, Schedule as FormatSchedule, Tour as FormatTour};
+use crate::format::solution::{PointStop, TransitStop};
 use crate::format::{CoordIndex, JobIndex};
 use crate::parse_time;
+use hashbrown::HashSet;
+use std::cmp::Ordering;
 use std::iter::once;
 use std::sync::Arc;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Place};
-
-use crate::format::solution::Tour as FormatTour;
-use crate::format::solution::{Activity as FormatActivity, PointStop};
-use hashbrown::HashSet;
+use vrp_core::utils::compare_floats;
 
 /// Aggregates job specific information for a job activity.
 pub(crate) struct JobInfo(pub Job, pub Arc<Single>, pub Place, pub TimeWindow);
 
 /// Tries to match given activity to core job models. None is returned in case of
 /// non-job activity (departure, arrival).
-pub(crate) fn try_match_job(
+pub(crate) fn try_match_point_job(
     tour: &FormatTour,
     stop: &PointStop,
     activity: &FormatActivity,
@@ -23,19 +26,11 @@ pub(crate) fn try_match_job(
     coord_index: &CoordIndex,
 ) -> Result<Option<JobInfo>, String> {
     let ctx = ActivityContext {
-        route_start_time: tour
-            .stops
-            .first()
-            .map(|stop| parse_time(&stop.schedule().departure))
-            .ok_or_else(|| "empty route".to_owned())?,
+        route_start_time: get_route_start_time(tour)?,
         location: coord_index
             .get_by_loc(activity.location.as_ref().unwrap_or(&stop.location))
             .ok_or_else(|| format!("cannot get location for activity for job '{}'", activity.job_id))?,
-        time: activity
-            .time
-            .as_ref()
-            .map(|time| TimeWindow::new(parse_time(&time.start), parse_time(&time.end)))
-            .unwrap_or_else(|| TimeWindow::new(parse_time(&stop.time.arrival), parse_time(&stop.time.departure))),
+        time: get_activity_time(activity, &stop.time),
         act_type: &activity.activity_type,
         job_id: &activity.job_id,
         tag: activity.job_tag.as_ref(),
@@ -86,6 +81,41 @@ pub(crate) fn try_match_job(
         )),
         _ => Err(format!("unknown activity type: {}", activity.activity_type)),
     }
+}
+
+/// Tries to return activity from transit stop to a break.
+pub(crate) fn try_match_transit_activity(
+    problem: &FormatProblem,
+    tour: &FormatTour,
+    stop: &TransitStop,
+    activity: &FormatActivity,
+) -> Result<TimeWindow, String> {
+    let route_start_time = get_route_start_time(tour)?;
+    let activity_time = get_activity_time(activity, &stop.time);
+
+    problem
+        .fleet
+        .vehicles
+        .iter()
+        .flat_map(|vehicle| vehicle.shifts.iter())
+        .map(|shift| shift.breaks.iter())
+        .flatten()
+        .flat_map(|brs| brs.iter())
+        .filter_map(|br| match br {
+            VehicleBreak::Required { time: VehicleRequiredBreakTime::ExactTime(time), duration } => {
+                Some((parse_time(time), *duration))
+            }
+            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime(offset), duration } => {
+                Some((route_start_time + *offset, *duration))
+            }
+            VehicleBreak::Optional { .. } => None,
+        })
+        .map(|(start, duration)| TimeWindow::new(start, start + duration))
+        .find(|time| {
+            compare_floats(activity_time.start, time.start) == Ordering::Equal
+                && compare_floats(activity_time.end, time.end) == Ordering::Equal
+        })
+        .ok_or_else(|| "cannot match activity to required break".to_string())
 }
 
 struct ActivityContext<'a> {
@@ -179,4 +209,16 @@ fn get_job_id(single: &Arc<Single>) -> String {
     .get_id()
     .cloned()
     .expect("cannot get job id")
+}
+
+fn get_activity_time(activity: &FormatActivity, stop_schedule: &FormatSchedule) -> TimeWindow {
+    activity
+        .time
+        .as_ref()
+        .map(|time| TimeWindow::new(parse_time(&time.start), parse_time(&time.end)))
+        .unwrap_or_else(|| TimeWindow::new(parse_time(&stop_schedule.arrival), parse_time(&stop_schedule.departure)))
+}
+
+fn get_route_start_time(tour: &FormatTour) -> Result<Timestamp, String> {
+    tour.stops.first().map(|stop| parse_time(&stop.schedule().departure)).ok_or_else(|| "empty route".to_owned())
 }

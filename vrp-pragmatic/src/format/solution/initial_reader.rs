@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/format/solution/initial_reader_test.rs"]
 mod initial_reader_test;
 
-use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
+use crate::format::solution::activity_matcher::{try_match_point_job, JobInfo};
 use crate::format::solution::Activity as FormatActivity;
 use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
@@ -99,7 +99,8 @@ fn try_insert_activity(
         FormatStop::Point(stop) => stop,
     };
 
-    if let Some(JobInfo(job, single, place, time)) = try_match_job(tour, stop, activity, job_index, coord_index)? {
+    if let Some(JobInfo(job, single, place, time)) = try_match_point_job(tour, stop, activity, job_index, coord_index)?
+    {
         added_jobs.insert(job);
         insert_new_activity(route, single, place, time);
     } else if activity.activity_type != "departure" && activity.activity_type != "arrival" {

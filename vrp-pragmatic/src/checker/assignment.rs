@@ -3,7 +3,7 @@
 mod assignment_test;
 
 use super::*;
-use crate::format::solution::activity_matcher::{try_match_job, JobInfo};
+use crate::format::solution::activity_matcher::*;
 use crate::format::{get_coord_index, get_job_index};
 use crate::utils::combine_error_results;
 use hashbrown::HashSet;
@@ -170,7 +170,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                         move |(idx, activity)| {
                             match stop {
                                 Stop::Point(stop) => {
-                                    let result = try_match_job(tour, stop, activity, job_index, coord_index);
+                                    let result = try_match_point_job(tour, stop, activity, job_index, coord_index);
                                     let not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
 
                                     match result {
@@ -227,8 +227,8 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                         _ => false,
                                     }
                                 }
-                                Stop::Transit(_) => {
-                                    unimplemented!()
+                                Stop::Transit(stop) => {
+                                    try_match_transit_activity(&ctx.problem, tour, stop, activity).is_err()
                                 }
                             }
                         }
