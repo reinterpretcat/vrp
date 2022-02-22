@@ -246,18 +246,18 @@ impl CheckerContext {
         &self,
         profile: Option<Profile>,
         parking: Duration,
-        stop: &Stop,
+        stop: &PointStop,
         activity_idx: usize,
     ) -> Result<Option<DomainCommute>, String> {
         let get_activity_location_by_idx = |idx: usize| {
-            stop.activities()
+            stop.activities
                 .get(idx)
                 .and_then(|activity| activity.location.as_ref())
                 .and_then(|location| self.get_location_index(location).ok())
         };
 
         let get_activity_commute_by_idx = |idx: usize| -> Option<DomainCommute> {
-            stop.activities()
+            stop.activities
                 .get(idx)
                 .and_then(|activity| activity.commute.as_ref())
                 .map(|commute| commute.to_domain(&self.coord_index))
@@ -265,12 +265,7 @@ impl CheckerContext {
 
         match (&self.clustering, &profile, get_activity_commute_by_idx(activity_idx)) {
             (Some(config), Some(profile), Some(commute)) => {
-                let stop_location = match stop {
-                    Stop::Point(point) => Some(&point.location),
-                    Stop::Transit(_) => unimplemented!(),
-                }
-                .and_then(|location| self.get_location_index(location).ok());
-
+                let stop_location = self.get_location_index(&stop.location).ok();
                 // NOTE we don't check whether zero time commute is correct here
                 match (commute.is_zero_distance(), activity_idx) {
                     (true, _) => Ok(Some(commute)),

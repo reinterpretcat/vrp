@@ -94,6 +94,11 @@ fn try_insert_activity(
         return Err("commute property in initial solution is not supported".to_string());
     }
 
+    let stop = match stop {
+        FormatStop::Transit(_) => return Err("transit property in initial solution is not yet supported".to_string()),
+        FormatStop::Point(stop) => stop,
+    };
+
     if let Some(JobInfo(job, single, place, time)) = try_match_job(tour, stop, activity, job_index, coord_index)? {
         added_jobs.insert(job);
         insert_new_activity(route, single, place, time);

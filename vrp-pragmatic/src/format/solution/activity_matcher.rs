@@ -6,9 +6,8 @@ use vrp_core::models::common::*;
 use vrp_core::models::problem::{Job, Single};
 use vrp_core::models::solution::{Activity, Place};
 
-use crate::format::solution::Activity as FormatActivity;
-use crate::format::solution::Stop as FormatStop;
 use crate::format::solution::Tour as FormatTour;
+use crate::format::solution::{Activity as FormatActivity, PointStop};
 use hashbrown::HashSet;
 
 /// Aggregates job specific information for a job activity.
@@ -18,7 +17,7 @@ pub(crate) struct JobInfo(pub Job, pub Arc<Single>, pub Place, pub TimeWindow);
 /// non-job activity (departure, arrival).
 pub(crate) fn try_match_job(
     tour: &FormatTour,
-    stop: &FormatStop,
+    stop: &PointStop,
     activity: &FormatActivity,
     job_index: &JobIndex,
     coord_index: &CoordIndex,
@@ -29,19 +28,14 @@ pub(crate) fn try_match_job(
             .first()
             .map(|stop| parse_time(&stop.schedule().departure))
             .ok_or_else(|| "empty route".to_owned())?,
-        location: activity
-            .location
-            .as_ref()
-            .or_else(|| stop.as_point().map(|stop| &stop.location))
-            .and_then(|location| coord_index.get_by_loc(location))
+        location: coord_index
+            .get_by_loc(activity.location.as_ref().unwrap_or(&stop.location))
             .ok_or_else(|| format!("cannot get location for activity for job '{}'", activity.job_id))?,
         time: activity
             .time
             .as_ref()
             .map(|time| TimeWindow::new(parse_time(&time.start), parse_time(&time.end)))
-            .unwrap_or_else(|| {
-                TimeWindow::new(parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure))
-            }),
+            .unwrap_or_else(|| TimeWindow::new(parse_time(&stop.time.arrival), parse_time(&stop.time.departure))),
         act_type: &activity.activity_type,
         job_id: &activity.job_id,
         tag: activity.job_tag.as_ref(),
