@@ -341,6 +341,9 @@ fn create_tour(
         leg
     });
 
+    leg.statistic.cost += vehicle.costs.fixed;
+    tour.statistic = leg.statistic;
+
     insert_reserved_times(route, &mut tour, reserved_times_index);
 
     // NOTE remove redundant info
@@ -356,11 +359,8 @@ fn create_tour(
             activity.time = None;
         });
 
-    leg.statistic.cost += vehicle.costs.fixed;
-
     tour.vehicle_id = vehicle.dimens.get_id().unwrap().clone();
     tour.type_id = vehicle.dimens.get_value::<String>("type_id").unwrap().clone();
-    tour.statistic = leg.statistic;
 
     tour
 }
@@ -461,7 +461,9 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                 }
             });
 
-            tour.statistic.times.break_time += reserved_time.duration() as i64;
+            let break_time = reserved_time.duration() as i64;
+            tour.statistic.times.break_time += break_time;
+            tour.statistic.times.driving -= break_time;
         });
 }
 

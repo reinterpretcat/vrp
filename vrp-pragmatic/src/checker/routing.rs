@@ -22,8 +22,14 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
         let time_offset =
             parse_time(&tour.stops.first().ok_or_else(|| "empty tour".to_string())?.schedule().departure) as i64;
 
-        let stops = tour.stops.iter().filter_map(|stop| stop.as_point()).collect::<Vec<_>>();
-        let (departure_time, total_distance) = stops.windows(2).enumerate().try_fold::<_, _, Result<_, String>>(
+        let get_matrix_data = |from: &PointStop, to: &PointStop| -> Result<(i64, i64), String> {
+            let from_idx = context.get_location_index(&from.location)?;
+            let to_idx = context.get_location_index(&to.location)?;
+            context.get_matrix_data(&profile, from_idx, to_idx)
+        };
+
+        //let stops = tour.stops.iter().filter_map(|stop| stop.as_point()).collect::<Vec<_>>();
+        let (departure_time, total_distance) = tour.stops.windows(2).enumerate().try_fold::<_, _, Result<_, String>>(
             (time_offset, 0),
             |(arrival_time, total_distance), (leg_idx, stops)| {
                 let (from, to) = match stops {
@@ -31,16 +37,42 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
                     _ => unreachable!(),
                 };
 
-                let from_idx = context.get_location_index(&from.location)?;
-                let to_idx = context.get_location_index(&to.location)?;
-                let (distance, duration) = context.get_matrix_data(&profile, from_idx, to_idx)?;
+                let (distance, duration, to_distance) = match (from, to) {
+                    (Stop::Point(from), Stop::Point(to)) => {
+                        let (distance, duration) = get_matrix_data(from, to)?;
+                        (distance, duration, to.distance)
+                    }
+                    (_, Stop::Transit(transit)) => {
+                        let duration = parse_time(&transit.time.departure) - parse_time(&transit.time.arrival);
+                        (0_i64, duration as i64, total_distance)
+                    }
+                    (Stop::Transit(_), Stop::Point(to)) => {
+                        assert!(leg_idx > 0);
+                        let from = tour
+                            .stops
+                            .get(leg_idx - 1)
+                            .unwrap()
+                            .as_point()
+                            .expect("two consistent transit stops are not supported");
+                        let (distance, duration) = get_matrix_data(from, to)?;
+                        (distance, duration, to.distance)
+                    }
+                };
 
                 let arrival_time = arrival_time + duration;
                 let total_distance = total_distance + distance;
 
-                check_stop_statistic(arrival_time, total_distance, leg_idx + 1, to, tour, skip_distance_check)?;
+                check_stop_statistic(
+                    arrival_time,
+                    total_distance,
+                    to.schedule(),
+                    to_distance,
+                    leg_idx + 1,
+                    tour,
+                    skip_distance_check,
+                )?;
 
-                Ok((parse_time(&to.time.departure) as i64, to.distance))
+                Ok((parse_time(&to.schedule().departure) as i64, to_distance))
             },
         )?;
 
@@ -53,25 +85,26 @@ fn check_routing_rules(context: &CheckerContext) -> Result<(), String> {
 fn check_stop_statistic(
     arrival_time: i64,
     total_distance: i64,
+    schedule: &Schedule,
+    distance: i64,
     stop_idx: usize,
-    to: &PointStop,
     tour: &Tour,
     skip_distance_check: bool,
 ) -> Result<(), String> {
-    if (arrival_time - parse_time(&to.time.arrival) as i64).abs() > 1 {
+    if (arrival_time - parse_time(&schedule.arrival) as i64).abs() > 1 {
         return Err(format!(
             "arrival time mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
             stop_idx,
             tour.vehicle_id,
             format_time(arrival_time as f64),
-            to.time.arrival
+            schedule.arrival
         ));
     }
 
-    if !skip_distance_check && (total_distance - to.distance).abs() > 1 {
+    if !skip_distance_check && (total_distance - distance).abs() > 1 {
         return Err(format!(
             "distance mismatch for {} stop in the tour: {}, expected: '{}', got: '{}'",
-            stop_idx, tour.vehicle_id, total_distance, to.distance,
+            stop_idx, tour.vehicle_id, total_distance, distance,
         ));
     }
 

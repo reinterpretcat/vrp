@@ -61,23 +61,17 @@ fn can_assign_break_during_travel() {
                         ("1970-01-01T00:00:05Z", "1970-01-01T00:00:06Z"),
                         5,
                     ),
-                    Stop::Point(PointStop {
-                        location: Location::Reference { index: usize::MAX },
+                    Stop::Transit(TransitStop {
                         time: Schedule {
                             arrival: "1970-01-01T00:00:07Z".to_string(),
                             departure: "1970-01-01T00:00:09Z".to_string(),
                         },
-                        distance: 5,
-                        parking: None,
                         load: vec![1],
                         activities: vec![Activity {
                             job_id: "break".to_string(),
                             activity_type: "break".to_string(),
-                            location: Some(Location::Reference { index: usize::MAX }),
-                            time: Some(Interval {
-                                start: "1970-01-01T00:00:07Z".to_string(),
-                                end: "1970-01-01T00:00:09Z".to_string(),
-                            }),
+                            location: None,
+                            time: None,
                             job_tag: None,
                             commute: None
                         }],
