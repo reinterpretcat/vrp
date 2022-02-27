@@ -171,11 +171,17 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                             match stop {
                                 Stop::Point(stop) => {
                                     let result = try_match_point_job(tour, stop, activity, job_index, coord_index);
-                                    let not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
-
                                     match result {
-                                        Err(_) => true,
+                                        Err(_) => {
+                                            // NOTE required break is not a job
+                                            if activity.activity_type == "break" {
+                                                try_match_break_activity(&ctx.problem, tour, &stop.time, activity).is_err()
+                                            } else {
+                                                true
+                                            }
+                                        },
                                         Ok(Some(JobInfo(_, _, place, time))) => {
+                                            let not_equal = |left: f64, right: f64| compare_floats(left, right) != Ordering::Equal;
                                             let parking = ctx
                                                 .clustering
                                                 .as_ref()
@@ -183,6 +189,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                                 .unwrap_or(0.);
                                             let commute_profile = ctx.clustering.as_ref().map(|config| config.profile.clone());
                                             let domain_commute = ctx.get_commute_info(commute_profile, parking, stop, *idx);
+                                            let extra_time = get_extra_time(stop, activity, &place).unwrap_or(0.);
 
                                             match (&ctx.clustering, &activity.commute, domain_commute) {
                                                 (_, _, Err(_))
@@ -190,7 +197,7 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
                                                 | (_, Some(_), Ok(None))
                                                 | (&None, &Some(_), Ok(Some(_))) => true,
                                                 (_, None, Ok(None)) => {
-                                                    let expected_departure = time.start.max(place.time.start) + place.duration;
+                                                    let expected_departure = time.start.max(place.time.start) + place.duration + extra_time;
                                                     not_equal(time.end, expected_departure)
                                                 }
                                                 (Some(config), Some(commute), Ok(Some(d_commute))) => {
@@ -210,7 +217,8 @@ fn check_jobs_match(ctx: &CheckerContext) -> Result<(), String> {
 
                                                     let expected_departure = time.start.max(place.time.start)
                                                         + service_time
-                                                        + d_commute.backward.duration;
+                                                        + d_commute.backward.duration
+                                                        + extra_time;
                                                     let actual_departure = time.end + d_commute.backward.duration;
 
                                                     // NOTE: a "workaroundish" approach for two clusters in the same stop

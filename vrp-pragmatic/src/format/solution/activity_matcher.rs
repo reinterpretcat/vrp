@@ -90,8 +90,18 @@ pub(crate) fn try_match_transit_activity(
     stop: &TransitStop,
     activity: &FormatActivity,
 ) -> Result<TimeWindow, String> {
+    try_match_break_activity(problem, tour, &stop.time, activity)
+}
+
+/// Tries to match break activity.
+pub(crate) fn try_match_break_activity(
+    problem: &FormatProblem,
+    tour: &FormatTour,
+    stop_schedule: &FormatSchedule,
+    activity: &FormatActivity,
+) -> Result<TimeWindow, String> {
     let route_start_time = get_route_start_time(tour)?;
-    let activity_time = get_activity_time(activity, &stop.time);
+    let activity_time = get_activity_time(activity, stop_schedule);
 
     problem
         .fleet
@@ -194,6 +204,27 @@ pub(crate) fn get_job_tag(single: &Single, place: (Location, (TimeWindow, Timest
                 .map(|(_, tag)| tag)
         },
     )
+}
+
+pub(crate) fn get_extra_time(stop: &PointStop, activity: &FormatActivity, place: &Place) -> Option<f64> {
+    let activity_time = get_activity_time(activity, &stop.time);
+    stop.activities
+        .iter()
+        .filter_map(|a| {
+            if a.activity_type == "break" && a != activity {
+                a.time.as_ref().and_then(|time| {
+                    let break_time = TimeWindow::new(parse_time(&time.start), parse_time(&time.end));
+                    let activity_time = TimeWindow::new(activity_time.start, activity_time.start + place.duration);
+                    activity_time
+                        .overlapping(&break_time)
+                        .filter(|overlap| compare_floats(overlap.start, overlap.end) != Ordering::Equal)
+                        .map(|overlap| break_time.end - overlap.end + overlap.duration())
+                })
+            } else {
+                None
+            }
+        })
+        .next()
 }
 
 fn get_job_id(single: &Arc<Single>) -> String {

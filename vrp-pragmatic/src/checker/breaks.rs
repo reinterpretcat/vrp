@@ -48,7 +48,7 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
                             Some(location) => actual_loc.as_ref().map_or(false, |actual_loc| actual_loc == location),
                             None => from_loc == actual_loc || backward_loc == actual_loc,
                         }),
-                        VehicleBreak::Required { .. } => actual_loc.is_none(),
+                        VehicleBreak::Required { .. } => actual_loc.is_none() || from_loc == actual_loc,
                     };
 
                     if !has_match {

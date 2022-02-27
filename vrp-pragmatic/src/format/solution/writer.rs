@@ -416,6 +416,8 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                 )
             }
 
+            let break_time = reserved_time.duration() as i64;
+
             // NOTE insert activity
             tour.stops.iter_mut().for_each(|stop| {
                 let stop_tw =
@@ -439,9 +441,16 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                         .next()
                         .unwrap_or(0);
 
+                    // TODO costs may not match?
                     let activities = match stop {
-                        Stop::Point(point) => &mut point.activities,
-                        Stop::Transit(transit) => &mut transit.activities,
+                        Stop::Point(point) => {
+                            tour.statistic.cost += break_time as f64 * route.actor.vehicle.costs.per_service_time;
+                            &mut point.activities
+                        }
+                        Stop::Transit(transit) => {
+                            tour.statistic.times.driving -= break_time;
+                            &mut transit.activities
+                        }
                     };
 
                     activities.insert(
@@ -457,13 +466,26 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                             job_tag: None,
                             commute: None,
                         },
-                    )
+                    );
+
+                    let activity_count = activities.len() - 1;
+
+                    activities.iter_mut().take(activity_count).for_each(|activity| {
+                        if let Some(time) = &mut activity.time {
+                            let start = parse_time(&time.start);
+                            let end = parse_time(&time.end);
+                            let overlap = TimeWindow::new(start, end).overlapping(&reserved_time);
+
+                            if let Some(overlap) = overlap {
+                                let extra_time = reserved_time.end - overlap.end + overlap.duration();
+                                time.end = format_time(end + extra_time);
+                            }
+                        }
+                    });
                 }
             });
 
-            let break_time = reserved_time.duration() as i64;
             tour.statistic.times.break_time += break_time;
-            tour.statistic.times.driving -= break_time;
         });
 }
 

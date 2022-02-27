@@ -1,6 +1,5 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
-use crate::format::Location;
 use crate::format_time;
 use crate::helpers::*;
 
@@ -147,7 +146,7 @@ fn can_assign_break_during_activity() {
                         "departure",
                         "departure",
                         (0., 0.),
-                        2,
+                        1,
                         ("1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"),
                         0,
                     ),
@@ -162,7 +161,7 @@ fn can_assign_break_during_activity() {
                         load: vec![0],
                         activities: vec![
                             Activity {
-                                job_id: "job2".to_string(),
+                                job_id: "job1".to_string(),
                                 activity_type: "delivery".to_string(),
                                 location: Some(vec![5., 0.].to_loc()),
                                 time: Some(Interval {
@@ -175,7 +174,7 @@ fn can_assign_break_during_activity() {
                             Activity {
                                 job_id: "break".to_string(),
                                 activity_type: "break".to_string(),
-                                location: Some(Location::Reference { index: usize::MAX }),
+                                location: None,
                                 time: Some(Interval {
                                     start: "1970-01-01T00:00:07Z".to_string(),
                                     end: "1970-01-01T00:00:09Z".to_string(),
@@ -195,7 +194,7 @@ fn can_assign_break_during_activity() {
                     )
                 ],
                 statistic: Statistic {
-                    cost: 33.,
+                    cost: 35.,
                     distance: 10,
                     duration: 15,
                     times: Timing { driving: 10, serving: 3, break_time: 2, ..Timing::default() },
