@@ -87,7 +87,7 @@ fn can_check_breaks_impl(
                     dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: break_times,
-                        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
                         policy: None,
                     }]),
                     reloads: None,

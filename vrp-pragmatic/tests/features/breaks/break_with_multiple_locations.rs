@@ -22,12 +22,12 @@ fn can_assign_break_using_second_place() {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(10.), format_time(30.)]),
                         places: vec![
-                            VehicleBreakPlace {
+                            VehicleOptionalBreakPlace {
                                 duration: 2.0,
                                 location: Some(vec![1., 0.].to_loc()),
                                 tag: Some("first".to_string()),
                             },
-                            VehicleBreakPlace {
+                            VehicleOptionalBreakPlace {
                                 duration: 2.0,
                                 location: Some(vec![11., 0.].to_loc()),
                                 tag: Some("second".to_string()),

@@ -20,7 +20,7 @@ fn can_assign_interval_break_between_jobs() {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeOffset(vec![5., 10.]),
-                        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
                         policy: None,
                     }]),
                     ..create_default_vehicle_shift()
@@ -149,7 +149,7 @@ fn can_assign_interval_break_with_reload() {
                     dispatch: None,
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeOffset(vec![8., 12.]),
-                        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
                         policy: None,
                     }]),
                     reloads: Some(vec![VehicleReload {
@@ -295,7 +295,7 @@ fn can_consider_departure_rescheduling() {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeOffset(vec![10., 12.]),
-                        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
                         policy: None,
                     }]),
                     ..create_default_vehicle_shift()

@@ -96,7 +96,7 @@ mod single {
                         dispatch: None,
                         breaks: Some(vec![VehicleBreak::Optional {
                             time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(0.), format_time(1000.)]),
-                            places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                            places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
                             policy: None,
                         }]),
                         reloads: Some(vec![VehicleReload {

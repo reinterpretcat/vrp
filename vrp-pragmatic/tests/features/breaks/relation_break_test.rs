@@ -39,7 +39,7 @@ fn get_solution(
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: break_time,
-                        places: vec![VehicleBreakPlace { duration: 2.0, location: break_location, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: break_location, tag: None }],
                         policy: None,
                     }]),
                     ..create_default_vehicle_shift()

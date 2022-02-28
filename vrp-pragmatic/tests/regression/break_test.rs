@@ -134,7 +134,7 @@ fn can_handle_properly_invalid_break_removal() {
                                 "2020-07-04T12:00:00Z".to_string(),
                                 "2020-07-04T14:00:00Z".to_string(),
                             ]),
-                            places: vec![VehicleBreakPlace { duration: 3600.0, location: None, tag: None }],
+                            places: vec![VehicleOptionalBreakPlace { duration: 3600.0, location: None, tag: None }],
                             policy: None,
                         }]),
                         reloads: None,

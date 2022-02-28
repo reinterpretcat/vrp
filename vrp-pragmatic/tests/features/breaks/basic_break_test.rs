@@ -16,7 +16,7 @@ fn can_assign_break_between_jobs() {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
-                        places: vec![VehicleBreakPlace {
+                        places: vec![VehicleOptionalBreakPlace {
                             duration: 2.0,
                             location: Some(vec![6., 0.].to_loc()),
                             tag: Some("break_tag".to_string()),

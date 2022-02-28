@@ -11,7 +11,7 @@ fn can_detect_invalid_break_time() {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![]),
-                        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
                         policy: None,
                     }]),
                     ..create_default_vehicle_shift()

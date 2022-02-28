@@ -88,11 +88,12 @@ fn check_break_assignment(context: &CheckerContext) -> Result<(), String> {
 
                 let should_assign = match vehicle_break {
                     VehicleBreak::Optional { policy, .. } => {
-                        let policy = policy.as_ref().cloned().unwrap_or(VehicleBreakPolicy::SkipIfNoIntersection);
+                        let policy =
+                            policy.as_ref().cloned().unwrap_or(VehicleOptionalBreakPolicy::SkipIfNoIntersection);
 
                         match policy {
-                            VehicleBreakPolicy::SkipIfNoIntersection => break_tw.start < arrival,
-                            VehicleBreakPolicy::SkipIfArrivalBeforeEnd => arrival > break_tw.end,
+                            VehicleOptionalBreakPolicy::SkipIfNoIntersection => break_tw.start < arrival,
+                            VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd => arrival > break_tw.end,
                         }
                     }
                     VehicleBreak::Required { .. } => break_tw.intersects(&tour_tw),

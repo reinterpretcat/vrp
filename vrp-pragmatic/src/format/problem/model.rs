@@ -415,7 +415,7 @@ pub enum VehicleRequiredBreakTime {
 
 /// Vehicle break place.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct VehicleBreakPlace {
+pub struct VehicleOptionalBreakPlace {
     /// Break duration.
     pub duration: f64,
     /// Break location.
@@ -428,7 +428,7 @@ pub struct VehicleBreakPlace {
 
 /// Vehicle break policy.
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub enum VehicleBreakPolicy {
+pub enum VehicleOptionalBreakPolicy {
     /// Allows to skip break if actual tour schedule doesn't intersect with vehicle time window.
     #[serde(rename(deserialize = "skip-if-no-intersection", serialize = "skip-if-no-intersection"))]
     SkipIfNoIntersection,
@@ -446,9 +446,9 @@ pub enum VehicleBreak {
         /// Break time.
         time: VehicleOptionalBreakTime,
         /// Vehicle break places.
-        places: Vec<VehicleBreakPlace>,
+        places: Vec<VehicleOptionalBreakPlace>,
         /// Specifies vehicle break policy.
-        policy: Option<VehicleBreakPolicy>,
+        policy: Option<VehicleOptionalBreakPolicy>,
     },
     /// A break which has to be assigned. It is less flexible than optional break, but has strong
     /// assignment guarantee.

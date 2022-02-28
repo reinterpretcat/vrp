@@ -9,11 +9,11 @@ parameterized_test! {can_skip_break_when_vehicle_not_used, policy, {
 
 can_skip_break_when_vehicle_not_used! {
     case_01: None,
-    case_02: Some(VehicleBreakPolicy::SkipIfNoIntersection),
-    case_03: Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd),
+    case_02: Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection),
+    case_03: Some(VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd),
 }
 
-fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleBreakPolicy>) {
+fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreakPolicy>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
@@ -36,7 +36,7 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleBreakPolicy>)
                         dispatch: None,
                         breaks: Some(vec![VehicleBreak::Optional {
                             time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
-                            places: vec![VehicleBreakPlace {
+                            places: vec![VehicleOptionalBreakPlace {
                                 duration: 2.0,
                                 location: Some(vec![6., 0.].to_loc()),
                                 tag: None,
@@ -122,11 +122,11 @@ parameterized_test! {can_skip_break_when_jobs_completed, policy, {
 
 can_skip_break_when_jobs_completed! {
     case_01: None,
-    case_02: Some(VehicleBreakPolicy::SkipIfNoIntersection),
-    case_03: Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd),
+    case_02: Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection),
+    case_03: Some(VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd),
 }
 
-fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleBreakPolicy>) {
+fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleOptionalBreakPolicy>) {
     let problem = Problem {
         plan: Plan { jobs: vec![create_delivery_job_with_duration("job1", vec![1., 0.], 10.)], ..create_empty_plan() },
         fleet: Fleet {
@@ -134,7 +134,7 @@ fn can_skip_break_when_jobs_completed_impl(policy: Option<VehicleBreakPolicy>) {
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(8.)]),
-                        places: vec![VehicleBreakPlace {
+                        places: vec![VehicleOptionalBreakPlace {
                             duration: 2.0,
                             location: Some(vec![6., 0.].to_loc()),
                             tag: None,
@@ -211,10 +211,10 @@ parameterized_test! {can_skip_second_break_when_jobs_completed, policy, {
 
 can_skip_second_break_when_jobs_completed! {
     case_01: None,
-    case_02: Some(VehicleBreakPolicy::SkipIfNoIntersection),
+    case_02: Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection),
 }
 
-fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleBreakPolicy>) {
+fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleOptionalBreakPolicy>) {
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job("job1", vec![5., 0.]), create_delivery_job("job2", vec![10., 0.])],
@@ -226,7 +226,7 @@ fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleBreakPol
                     breaks: Some(vec![
                         VehicleBreak::Optional {
                             time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(10.)]),
-                            places: vec![VehicleBreakPlace {
+                            places: vec![VehicleOptionalBreakPlace {
                                 duration: 2.0,
                                 location: Some(vec![6., 0.].to_loc()),
                                 tag: None,
@@ -235,7 +235,7 @@ fn can_skip_second_break_when_jobs_completed_impl(policy: Option<VehicleBreakPol
                         },
                         VehicleBreak::Optional {
                             time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100.), format_time(120.)]),
-                            places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                            places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
                             policy,
                         },
                     ]),
@@ -323,15 +323,15 @@ parameterized_test! {can_skip_break_depending_on_policy, (policy, location, time
 }}
 
 can_skip_break_depending_on_policy! {
-    case_01: (Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 11.), 0),
-    case_02: (Some(VehicleBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 8.), 2),
+    case_01: (Some(VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 11.), 0),
+    case_02: (Some(VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd), 5., (5., 8.), 2),
 
-    case_03: (Some(VehicleBreakPolicy::SkipIfNoIntersection), 5., (5., 11.), 2),
-    case_04: (Some(VehicleBreakPolicy::SkipIfNoIntersection), 5., (5., 8.), 2),
+    case_03: (Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection), 5., (5., 11.), 2),
+    case_04: (Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection), 5., (5., 8.), 2),
 }
 
 fn can_skip_break_depending_on_policy_impl(
-    policy: Option<VehicleBreakPolicy>,
+    policy: Option<VehicleOptionalBreakPolicy>,
     location: f64,
     time: (f64, f64),
     expected: i64,
@@ -346,7 +346,7 @@ fn can_skip_break_depending_on_policy_impl(
                 shifts: vec![VehicleShift {
                     breaks: Some(vec![VehicleBreak::Optional {
                         time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(time.0), format_time(time.1)]),
-                        places: vec![VehicleBreakPlace { duration: 2.0, location: None, tag: None }],
+                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
                         policy,
                     }]),
                     ..create_default_vehicle_shift()

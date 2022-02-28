@@ -242,8 +242,8 @@ fn read_optional_breaks(
 
                     if let Some(policy) = policy {
                         let policy = match policy {
-                            VehicleBreakPolicy::SkipIfNoIntersection => BreakPolicy::SkipIfNoIntersection,
-                            VehicleBreakPolicy::SkipIfArrivalBeforeEnd => BreakPolicy::SkipIfArrivalBeforeEnd,
+                            VehicleOptionalBreakPolicy::SkipIfNoIntersection => BreakPolicy::SkipIfNoIntersection,
+                            VehicleOptionalBreakPolicy::SkipIfArrivalBeforeEnd => BreakPolicy::SkipIfArrivalBeforeEnd,
                         };
 
                         job.dimens.set_value("policy", policy);

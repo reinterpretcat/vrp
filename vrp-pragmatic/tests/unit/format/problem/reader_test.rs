@@ -157,7 +157,7 @@ fn can_read_complex_problem() {
                             "1970-01-01T00:00:10Z".to_string(),
                             "1970-01-01T00:01:20Z".to_string(),
                         ]),
-                        places: vec![VehicleBreakPlace {
+                        places: vec![VehicleOptionalBreakPlace {
                             duration: 100.0,
                             location: Some(vec![52.48315, 13.4330].to_loc()),
                             tag: None,
