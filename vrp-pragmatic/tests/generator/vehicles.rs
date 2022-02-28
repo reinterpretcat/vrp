@@ -59,25 +59,6 @@ prop_compose! {
     }
 }
 
-prop_compose! {
-    pub fn generate_break(
-      places_proto: impl Strategy<Value = Vec<VehicleOptionalBreakPlace>>,
-      time_proto: impl Strategy<Value = VehicleOptionalBreakTime>,
-      policy_proto: impl Strategy<Value = Option<VehicleOptionalBreakPolicy>>,
-    )
-    (
-     places in places_proto,
-     time in time_proto,
-     policy in policy_proto,
-    ) -> VehicleBreak {
-        VehicleBreak::Optional {
-            time,
-            places,
-            policy
-        }
-    }
-}
-
 /// Generates shifts.
 pub fn generate_shifts(
     shift_proto: impl Strategy<Value = VehicleShift>,
