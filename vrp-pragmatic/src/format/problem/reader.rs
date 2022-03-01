@@ -121,7 +121,6 @@ pub struct ProblemProperties {
     has_order: bool,
     has_group: bool,
     has_compatibility: bool,
-    _has_area_limits: bool,
     has_tour_size_limits: bool,
     max_job_value: Option<f64>,
     max_area_value: Option<f64>,
@@ -502,12 +501,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
 
     let has_group = api_problem.plan.jobs.iter().any(|job| job.group.is_some());
     let has_compatibility = api_problem.plan.jobs.iter().any(|job| job.compatibility.is_some());
-
-    let has_area_limits = api_problem
-        .fleet
-        .vehicles
-        .iter()
-        .any(|v| v.limits.as_ref().and_then(|l| l.areas.as_ref()).map_or(false, |a| !a.is_empty()));
     let has_tour_size_limits =
         api_problem.fleet.vehicles.iter().any(|v| v.limits.as_ref().map_or(false, |l| l.tour_size.is_some()));
 
@@ -521,7 +514,6 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_order,
         has_group,
         has_compatibility,
-        _has_area_limits: has_area_limits,
         has_tour_size_limits,
         max_job_value,
         max_area_value,
