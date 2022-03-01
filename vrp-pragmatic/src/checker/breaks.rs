@@ -161,12 +161,11 @@ fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> Result<Ti
             Ok(TimeWindow::new(departure + *offset.first().unwrap(), departure + *offset.last().unwrap()))
         }
         VehicleBreak::Required { time, duration } => {
-            let time = match time {
-                VehicleRequiredBreakTime::OffsetTime(offset) => *offset,
+            let start = match time {
+                VehicleRequiredBreakTime::OffsetTime(offset) => departure + *offset,
                 VehicleRequiredBreakTime::ExactTime(time) => parse_time(time),
             };
 
-            let start = departure + time;
             Ok(TimeWindow::new(start, start + duration))
         }
     }
