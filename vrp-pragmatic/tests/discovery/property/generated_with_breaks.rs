@@ -98,7 +98,11 @@ mod optional {
 
 mod required {
     use super::*;
-    use crate::format_time;
+    use crate::{format_time, parse_time};
+
+    fn from_hours_as_usize(hours: i32) -> i32 {
+        parse_time(&START_DAY) as i32 + from_hours(hours).as_secs() as i32
+    }
 
     fn get_required_breaks() -> impl Strategy<Value = Option<Vec<VehicleBreak>>> {
         let break_proto = generate_required_break(
@@ -134,7 +138,7 @@ mod required {
     prop_compose! {
         fn get_required_break_exact_time()
         (
-         start in 3600..14400,
+         start in from_hours_as_usize(10)..from_hours_as_usize(13),
         ) -> VehicleRequiredBreakTime {
             VehicleRequiredBreakTime::ExactTime(format_time(start as f64))
         }
