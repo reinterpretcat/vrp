@@ -25,8 +25,8 @@ pub fn create_objective(
     constraint: &mut ConstraintPipeline,
     props: &ProblemProperties,
 ) -> Arc<ProblemObjective> {
-    Arc::new(match (&api_problem.objectives, props.max_job_value, props.has_order) {
-        (Some(objectives), _, _) => ProblemObjective::new(
+    Arc::new(match &api_problem.objectives {
+        Some(objectives) => ProblemObjective::new(
             objectives
                 .iter()
                 .map(|objectives| {
@@ -99,37 +99,27 @@ pub fn create_objective(
                 })
                 .collect(),
         ),
-        (None, Some(max_value), has_order) => {
-            let (value_module, value_objective) = get_value(max_value, None, None);
-
-            constraint.add_module(value_module);
+        None => {
+            let mut objectives: Vec<Vec<TargetObjective>> = vec![
+                vec![Arc::new(get_unassigned_objective(1.))],
+                vec![Arc::new(TotalRoutes::default())],
+                vec![TotalCost::minimize()],
+            ];
             constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
 
-            let mut objectives =
-                std::iter::once(vec![value_objective]).chain(get_default_objectives().into_iter()).collect::<Vec<_>>();
+            if let Some(max_value) = props.max_job_value {
+                let (value_module, value_objective) = get_value(max_value, None, None);
+                objectives.insert(0, vec![value_objective]);
+                constraint.add_module(value_module);
+            }
 
-            if has_order {
+            if props.has_order {
                 let (order_module, order_objective) = get_order(false);
                 constraint.add_module(order_module);
-                objectives.insert(2, vec![order_objective]);
+                objectives.insert(if props.max_job_value.is_some() { 2 } else { 1 }, vec![order_objective]);
             }
 
             ProblemObjective::new(objectives)
-        }
-        (None, None, true) => {
-            let (order_module, order_objective) = get_order(false);
-
-            constraint.add_module(order_module);
-            constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
-
-            let mut objectives = get_default_objectives();
-            objectives.insert(1, vec![order_objective]);
-
-            ProblemObjective::new(objectives)
-        }
-        _ => {
-            constraint.add_module(Arc::new(FleetUsageConstraintModule::new_minimized()));
-            ProblemObjective::new(get_default_objectives())
         }
     })
 }
@@ -237,14 +227,6 @@ fn get_load_balance(
             Arc::new(|loaded, capacity| loaded.value as f64 / capacity.value as f64),
         )
     }
-}
-
-fn get_default_objectives() -> Vec<Vec<TargetObjective>> {
-    vec![
-        vec![Arc::new(get_unassigned_objective(1.))],
-        vec![Arc::new(TotalRoutes::default())],
-        vec![TotalCost::minimize()],
-    ]
 }
 
 fn get_unassigned_objective(break_value: f64) -> TotalUnassignedJobs {
