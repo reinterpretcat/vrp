@@ -74,13 +74,18 @@ Each shift can have the following properties:
 - **dispatch** (optional) a list of dispatch places. When specified, shift start location is not considered as depot and
     vehicle has to navigate first to one of these places to load goods with dispatching constraints.
   Check example [here](../../../examples/pragmatic/basics/dispatch.md).
-- **breaks** (optional) a list of vehicle breaks. A break is specified by:
-     - `time` (required): time window or interval after which a break should happen (e.g. between 3 or 4 hours after start).
-     - `places`: list of alternative places defined by `location` (optional), `duration` (required) and `tag` (optional).
-       If location of a break is omitted then break is stick to location of job served before break.
-     - `policy` (optional): a break skip policy. Possible values:
-       * `skip-if-no-intersection`: allows to skip break if actual tour schedule doesn't intersect with vehicle time window (default)
-       * `skip-if-arrival-before-end`: allows to skip break if vehicle arrives before break's time window end.
+- **breaks** (optional) a list of vehicle breaks. There are two types of breaks:
+    * required: this break is guaranteed to be assigned at cost of flexibility. It has the following properties:
+      - `time` (required): a fixed time or offset when the break should happen
+      - `duration` (required): duration of the break
+    * optional: although such break is not guaranteed for assignment, the algorithm has more flexibility for assignment.
+      It is specified by:
+      - `time` (required): time window or interval after which a break should happen (e.g. between 3 or 4 hours after start).
+      - `places`: list of alternative places defined by `location` (optional), `duration` (required) and `tag` (optional).
+        If location of a break is omitted then break is stick to location of job served before break.
+      - `policy` (optional): a break skip policy. Possible values:
+        * `skip-if-no-intersection`: allows to skip break if actual tour schedule doesn't intersect with vehicle time window (default)
+        * `skip-if-arrival-before-end`: allows to skip break if vehicle arrives before break's time window end.
 
   Please note that break is a soft constraint and can be unassigned in some cases due to other hard constraints, such
   as time windows. You can control its unassignment weight using specific property on `minimize-unassigned` objective.

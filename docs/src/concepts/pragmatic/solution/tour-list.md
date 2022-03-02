@@ -25,19 +25,22 @@ List of tours is essentially individual vehicle routes. Each tour consists of th
 Stop represents a location vehicle has to visit within activities to be performed. It has the following properties:
 
 * **location**: a stop location
-* **time**: arrival and departure time from the stop
+* **time** (required): arrival and departure time from the stop
 * **distance**: distance traveled since departure from start location
-* **load**: vehicle capacity after departure from the stop
+* **load**: (required) vehicle capacity after departure from the stop
 * **parking** (optional): parking time. Used only with vicinity clustering.
-* **activities**: list of activities to be performed at the stop. Each stop can have more than one activity.
+* **activities** (required): list of activities to be performed at the stop. Each stop can have more than one activity.
     See activity structure below.
+
+Please note, that `location` and `distance` are not required: they are omitted in case of the stop for a required break
+which during traveling.
 
 ## Activity structure
 
 An activity specifies work to be done and has the following structure:
 
-* **jobId**: id of the job or special id (`departure`, `arrival`, `break`, `reload`)
-* **type**:  activity type: `departure`, `arrival`, `break`, `reload`, `pickup` or `delivery`
+* **jobId** (required): id of the job or special id (`departure`, `arrival`, `break`, `reload`, `dispatch`)
+* **type** (required):  activity type: `departure`, `arrival`, `break`, `reload`, `dispatch`, `pickup` or `delivery`
 * **location** (optional): activity location. Omitted if stop list has one activity
 * **time** (optional): start and end time of activity. Omitted if stop list has one activity
 * **jobTag** (optional): a job place tag
