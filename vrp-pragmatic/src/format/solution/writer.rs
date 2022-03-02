@@ -8,12 +8,14 @@ use crate::format::solution::model::Timing;
 use crate::format::solution::*;
 use crate::format::*;
 use crate::{format_time, parse_time};
+use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 use vrp_core::construction::constraints::route_intervals;
 use vrp_core::models::common::*;
 use vrp_core::models::problem::{Multi, TravelTime};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::models::{Problem, Solution};
+use vrp_core::prelude::compare_floats;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
 use vrp_core::solver::processing::VicinityDimension;
 
@@ -394,7 +396,10 @@ fn insert_reserved_times(route: &Route, tour: &mut Tour, reserved_times_index: &
                             parse_time(&prev.schedule().departure),
                             parse_time(&next.schedule().arrival),
                         );
-                        if travel_tw.intersects(&reserved_time) {
+
+                        if compare_floats(travel_tw.start, reserved_time.end) == Ordering::Less
+                            && compare_floats(reserved_time.start, travel_tw.end) == Ordering::Less
+                        {
                             return Some((leg_idx, prev.load().clone()));
                         }
                     }

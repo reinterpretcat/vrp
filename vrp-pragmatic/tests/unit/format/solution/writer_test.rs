@@ -4,13 +4,31 @@ use crate::format::solution::*;
 use crate::helpers::*;
 use std::cmp::Ordering;
 use std::sync::Arc;
+use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::examples::create_example_problem;
 use vrp_core::utils::{as_mut, compare_floats};
 
+type DomainProblem = vrp_core::models::Problem;
 type DomainActivity = vrp_core::models::solution::Activity;
 type DomainCommute = vrp_core::models::solution::Commute;
 type DomainCommuteInfo = vrp_core::models::solution::CommuteInfo;
 type DomainSchedule = vrp_core::models::common::Schedule;
+
+fn create_test_problem_and_coord_index() -> (DomainProblem, CoordIndex) {
+    let problem = {
+        let mut problem = Arc::try_unwrap(create_example_problem()).unwrap_or_else(|_| unreachable!());
+        problem.fleet = Arc::new(test_fleet());
+        unsafe {
+            as_mut(problem.extras.as_ref()).insert("capacity_type".to_string(), Arc::new("single".to_string()));
+        }
+
+        problem
+    };
+    let mut coord_index = CoordIndex::new(&create_empty_problem());
+    coord_index.add(&Location::Reference { index: 0 });
+
+    (problem, coord_index)
+}
 
 #[test]
 fn can_create_solution() {
@@ -149,17 +167,7 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
     jobs_data: Vec<(usize, Option<(f64, f64)>)>,
     expected: Vec<(usize, Vec<(Option<usize>, Option<(f64, f64)>)>)>,
 ) {
-    let problem = {
-        let mut problem = Arc::try_unwrap(create_example_problem()).unwrap_or_else(|_| unreachable!());
-        problem.fleet = Arc::new(test_fleet());
-        unsafe {
-            as_mut(problem.extras.as_ref()).insert("capacity_type".to_string(), Arc::new("single".to_string()));
-        }
-
-        problem
-    };
-    let mut coord_index = CoordIndex::new(&create_empty_problem());
-    coord_index.add(&Location::Reference { index: 0 });
+    let (problem, mut coord_index) = create_test_problem_and_coord_index();
     let activities = jobs_data
         .into_iter()
         .map(|(index, commute)| {
@@ -180,6 +188,7 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
     let route = create_route_with_activities(&problem.fleet, "v1", activities);
 
     let tour = create_tour(&problem, &route, &coord_index, &Default::default());
+
     assert_eq!(expected.len(), tour.stops.len() - 2);
     expected.iter().zip(tour.stops.iter().skip(1)).for_each(|((expected_stop_idx, expected_acts), actual_stop)| {
         assert_eq!(Some(*expected_stop_idx), coord_index.get_by_loc(&actual_stop.as_point().unwrap().location));
@@ -207,4 +216,23 @@ fn can_merge_activities_with_commute_in_one_stop_impl(
             }
         });
     });
+}
+
+#[test]
+fn can_merge_required_break_on_stop_arrival_time_properly() {
+    let (problem, mut coord_index) = create_test_problem_and_coord_index();
+    coord_index.add(&Location::Reference { index: 1 });
+    let activities = vec![DomainActivity {
+        schedule: DomainSchedule { arrival: 4., departure: 5. },
+        ..create_activity_with_job_at_location(create_single(&format!("job{}", 1)), 1)
+    }];
+    let mut route = create_route_with_activities(&problem.fleet, "v1", activities);
+    route.tour.all_activities_mut().last().unwrap().schedule.arrival = 6.;
+    let reserved_times_index =
+        vec![(route.actor.clone(), vec![TimeSpan::Window(TimeWindow::new(4., 5.))])].into_iter().collect();
+
+    let tour = create_tour(&problem, &route, &coord_index, &reserved_times_index);
+
+    assert_eq!(tour.stops.len(), 3);
+    assert_eq!(get_ids_from_tour(&tour).into_iter().flatten().filter(|id| id == "break").count(), 1);
 }
