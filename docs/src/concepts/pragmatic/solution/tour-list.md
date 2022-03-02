@@ -35,6 +35,9 @@ Stop represents a location vehicle has to visit within activities to be performe
 Please note, that `location` and `distance` are not required: they are omitted in case of the stop for a required break
 which during traveling.
 
+Please check examples [here](../../../examples/pragmatic/basics/break.md).
+
+
 ## Activity structure
 
 An activity specifies work to be done and has the following structure:
