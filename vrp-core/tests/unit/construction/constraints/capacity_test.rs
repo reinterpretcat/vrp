@@ -180,8 +180,8 @@ fn can_merge_jobs_with_demand_impl(
             assert_eq!(result.delivery.0, SingleDimLoad::new(delivery0));
             assert_eq!(result.delivery.1, SingleDimLoad::new(delivery1));
         }
-        (Ok(_), Err(err)) => unreachable!(format!("unexpected ok, when err '{}' expected", err)),
-        (Err(err), Ok(_)) => unreachable!(format!("unexpected err: '{}'", err)),
+        (Ok(_), Err(err)) => unreachable!("unexpected ok, when err '{}' expected", err),
+        (Err(err), Ok(_)) => unreachable!("unexpected err: '{}'", err),
         (Err(result), Err(expected)) => assert_eq!(result, expected),
     }
 }

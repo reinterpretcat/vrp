@@ -122,8 +122,7 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
                     let tws = reloads
                         .iter()
                         .filter_map(|reload| reload.times.as_ref())
-                        .map(|tws| get_time_windows(tws))
-                        .flatten()
+                        .flat_map(|tws| get_time_windows(tws))
                         .collect::<Vec<_>>();
 
                     check_shift_time_windows(shift_time, tws, true)
@@ -278,8 +277,7 @@ fn check_e1308_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> R
                 .breaks
                 .as_ref()
                 .map(|breaks| {
-                    let has_required_break =
-                        breaks.iter().find(|br| matches!(br, VehicleBreak::Required { .. })).is_some();
+                    let has_required_break = breaks.iter().any(|br| matches!(br, VehicleBreak::Required { .. }));
                     let has_rescheduling =
                         shift.start.latest.as_ref().map_or(true, |latest| *latest != shift.start.earliest);
 

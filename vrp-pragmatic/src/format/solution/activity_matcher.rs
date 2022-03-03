@@ -108,8 +108,7 @@ pub(crate) fn try_match_break_activity(
         .vehicles
         .iter()
         .flat_map(|vehicle| vehicle.shifts.iter())
-        .map(|shift| shift.breaks.iter())
-        .flatten()
+        .flat_map(|shift| shift.breaks.iter())
         .flat_map(|brs| brs.iter())
         .filter_map(|br| match br {
             VehicleBreak::Required { time: VehicleRequiredBreakTime::ExactTime(time), duration } => {

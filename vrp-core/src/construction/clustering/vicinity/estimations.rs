@@ -472,7 +472,7 @@ fn with_cluster_dimension(cluster: Job, visit_info: ClusterInfo) -> Job {
 
     let mut cluster = Single { places: cluster.places.clone(), dimens: cluster.dimens.clone() };
 
-    let mut jobs = cluster.dimens.get_cluster().cloned().unwrap_or_else(Vec::new);
+    let mut jobs = cluster.dimens.get_cluster().cloned().unwrap_or_default();
     jobs.push(visit_info);
 
     cluster.dimens.set_cluster(jobs);

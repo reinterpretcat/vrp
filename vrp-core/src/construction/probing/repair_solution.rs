@@ -30,7 +30,7 @@ pub fn repair_solution_from_unknown(
         .routes
         .iter()
         .filter(|route_ctx| route_ctx.route.tour.has_jobs())
-        .map(|route_ctx| {
+        .flat_map(|route_ctx| {
             let route_idx = get_new_route_ctx_idx(&mut new_insertion_ctx, route_ctx);
 
             let synchronized =
@@ -44,7 +44,6 @@ pub fn repair_solution_from_unknown(
 
             unassign_invalid_multi_jobs(&mut new_insertion_ctx, route_idx, synchronized)
         })
-        .flatten()
         .collect::<HashSet<_>>();
 
     finalize_synchronization(&mut new_insertion_ctx, insertion_ctx, unassigned);
