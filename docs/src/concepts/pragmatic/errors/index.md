@@ -506,6 +506,11 @@ following rules:
 
 You can fix the error by defining a small value (e.g. 0.0000001) for duration or time costs.
 
+#### E1308
+
+`required break is used with departure rescheduling` is returned when required break is used, but `start.latest` is not
+set equal to `start.earliest` in the shift.
+
 
 ### E15xx: Routing profiles
 

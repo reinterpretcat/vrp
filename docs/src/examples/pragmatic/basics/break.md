@@ -26,9 +26,10 @@ This example demonstrates how to use optional vehicle break with time window and
 </p></details>
 
 
-## Required break
+## Required break (experimental)
 
-This example demonstrates how to use required vehicle break which has to be scheduled during travel between two stops.
+This example demonstrates how to use required vehicle break which has to be scheduled at specific time during travel
+between two stops.
 
 <details>
     <summary>Problem</summary><p>
@@ -47,3 +48,6 @@ This example demonstrates how to use required vehicle break which has to be sche
 ```
 
 </p></details>
+
+Please note, that departure rescheduling is disabled by setting `shift.start.earliest` equal to `shift.start.latest`.
+At the moment, this is a hard requirement when such break type is used.

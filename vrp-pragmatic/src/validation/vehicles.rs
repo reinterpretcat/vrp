@@ -270,6 +270,36 @@ fn check_e1307_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
     }
 }
 
+fn check_e1308_vehicle_required_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let type_ids = get_invalid_type_ids(
+        ctx,
+        Box::new(|_, shift, _| {
+            shift
+                .breaks
+                .as_ref()
+                .map(|breaks| {
+                    let has_required_break =
+                        breaks.iter().find(|br| matches!(br, VehicleBreak::Required { .. })).is_some();
+                    let has_rescheduling =
+                        shift.start.latest.as_ref().map_or(true, |latest| *latest != shift.start.earliest);
+
+                    !(has_required_break && has_rescheduling)
+                })
+                .unwrap_or(true)
+        }),
+    );
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1308".to_string(),
+            "required break is used with departure rescheduling".to_string(),
+            format!("when required break is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'", type_ids.join(", ")),
+        ))
+    }
+}
+
 fn get_invalid_type_ids(
     ctx: &ValidationContext,
     check_shift: Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>,
@@ -318,5 +348,6 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), Vec<FormatError>
         check_e1305_vehicle_limit_area_is_correct(ctx),
         check_e1306_vehicle_dispatch_is_correct(ctx),
         check_e1307_vehicle_has_no_zero_costs(ctx),
+        check_e1308_vehicle_required_break_rescheduling(ctx),
     ])
 }

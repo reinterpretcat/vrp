@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* `breaking`: added required break functionality (experimental)
+
 
 ## [v1.15.0] - 2022-02-15
 

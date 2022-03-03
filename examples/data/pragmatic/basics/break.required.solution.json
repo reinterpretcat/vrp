@@ -1,0 +1,92 @@
+{
+  "statistic": {
+    "cost": 148.0972,
+    "distance": 165136,
+    "duration": 18614,
+    "times": {
+      "driving": 16514,
+      "serving": 300,
+      "waiting": 0,
+      "break": 1800,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "time": {
+            "arrival": "2019-07-04T11:00:00Z",
+            "departure": "2019-07-04T11:30:00Z"
+          },
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "break",
+              "type": "break"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 51.06251,
+            "lng": 13.72133
+          },
+          "time": {
+            "arrival": "2019-07-04T14:05:14Z",
+            "departure": "2019-07-04T14:10:14Z"
+          },
+          "distance": 165136,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "job1",
+              "type": "delivery"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 148.0972,
+        "distance": 165136,
+        "duration": 18614,
+        "times": {
+          "driving": 16514,
+          "serving": 300,
+          "waiting": 0,
+          "break": 1800,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ]
+}

@@ -105,3 +105,4 @@ Each shift can have the following properties:
 * [E1305 invalid allowed area definition in vehicle limits](../errors/index.md#e1305)
 * [E1306 invalid dispatch in vehicle shift](../errors/index.md#e1306)
 * [E1307 time and duration costs are zeros](../errors/index.md#e1307)
+* [E1308 required break is used with departure rescheduling](../errors/index.md#e1308)

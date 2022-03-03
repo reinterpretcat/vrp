@@ -165,6 +165,8 @@ impl ActivityCost for DynamicActivityCost {
 
             // NOTE: do not allow to start or restart work after break finished
             if activity_start + extra_duration > activity.place.time.end {
+                // TODO this branch is the reason why departure rescheduling is disabled.
+                //      theoretically, rescheduling should be aware somehow about dynamic costs
                 f64::MAX
             } else {
                 departure + extra_duration

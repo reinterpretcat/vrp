@@ -160,3 +160,45 @@ fn can_detect_zero_costs_impl(costs: (f64, f64), expected: Option<String>) {
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
+
+parameterized_test! {can_handle_rescheduling_with_required_break, (latest, expected), {
+    can_handle_rescheduling_with_required_break_impl(latest, expected);
+}}
+
+can_handle_rescheduling_with_required_break! {
+    case01: (None, Some("E1308".to_string())),
+    case02: (Some(1.), Some("E1308".to_string())),
+    case03: (Some(0.), None),
+}
+
+fn can_handle_rescheduling_with_required_break_impl(latest: Option<f64>, expected: Option<String>) {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: latest.map(|latest| format_time(latest)),
+                        location: vec![0., 0.].to_loc(),
+                    },
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::OffsetTime(10.),
+                        duration: 2.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            profiles: vec![],
+        },
+        ..create_empty_problem()
+    };
+
+    let result = check_e1308_vehicle_required_break_rescheduling(&ValidationContext::new(
+        &problem,
+        None,
+        &CoordIndex::new(&problem),
+    ));
+
+    assert_eq!(result.err().map(|err| err.code), expected);
+}
