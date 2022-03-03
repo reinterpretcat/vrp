@@ -9,8 +9,8 @@ const PROBLEM_ARG_NAME: &str = "problem-file";
 const SOLUTION_ARG_NAME: &str = "solution-file";
 const MATRIX_ARG_NAME: &str = "matrix";
 
-pub fn get_check_app() -> App<'static> {
-    App::new("check")
+pub fn get_check_app() -> Command<'static> {
+    Command::new("check")
         .about("Provides the way to check solution feasibility")
         .arg(
             Arg::new(FORMAT_ARG_NAME)

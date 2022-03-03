@@ -17,8 +17,8 @@ pub const VEHICLES_SIZE_ARG_NAME: &str = "vehicles-size";
 pub const LOCATIONS_ARG_NAME: &str = "locations";
 pub const AREA_SIZE_ARG_NAME: &str = "area-size";
 
-pub fn get_generate_app() -> App<'static> {
-    App::new("generate")
+pub fn get_generate_app() -> Command<'static> {
+    Command::new("generate")
         .about("Provides the way to generate meaningful problems for testing")
         .arg(
             Arg::new(FORMAT_ARG_NAME)

@@ -1,9 +1,10 @@
-use pyo3::prelude::*;
-use pyo3::types::IntoPyDict;
+/*use pyo3::prelude::*;
+use pyo3::types::IntoPyDict;*/
 
-fn main() -> PyResult<()> {
+fn main() /*-> PyResult<()> */
+{
     // docs: https://pyo3.rs/v0.15.1/python_from_rust.html
-    Python::with_gil(|py| {
+    /*  Python::with_gil(|py| {
         let sys = py.import("sys")?;
         let version: String = sys.getattr("version")?.extract()?;
 
@@ -13,5 +14,5 @@ fn main() -> PyResult<()> {
 
         println!("Hello {}, I'm Python {}", user, version);
         Ok(())
-    })
+    })*/
 }

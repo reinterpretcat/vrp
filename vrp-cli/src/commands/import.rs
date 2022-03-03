@@ -11,8 +11,8 @@ pub const FORMAT_ARG_NAME: &str = "FORMAT";
 pub const INPUT_ARG_NAME: &str = "input-files";
 pub const OUT_RESULT_ARG_NAME: &str = "out-result";
 
-pub fn get_import_app() -> App<'static> {
-    App::new("import")
+pub fn get_import_app() -> Command<'static> {
+    Command::new("import")
         .about("Provides the way to import problem from various formats")
         .arg(Arg::new(FORMAT_ARG_NAME).help("Specifies input type").required(true).possible_values(&["csv"]).index(1))
         .arg(

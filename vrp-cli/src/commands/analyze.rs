@@ -12,9 +12,9 @@ const MIN_POINTS_ARG_NAME: &str = "min-points";
 const EPSILON_ARG_NAME: &str = "epsilon";
 const OUT_RESULT_ARG_NAME: &str = "out-result";
 
-pub fn get_analyze_app() -> App<'static> {
-    App::new("analyze").about("Provides helper functionality to analyze problem or solution").subcommand(
-        App::new("clusters")
+pub fn get_analyze_app() -> Command<'static> {
+    Command::new("analyze").about("Provides helper functionality to analyze problem or solution").subcommand(
+        Command::new("clusters")
             .about("Analyzes job clusters")
             .arg(
                 Arg::new(FORMAT_ARG_NAME)

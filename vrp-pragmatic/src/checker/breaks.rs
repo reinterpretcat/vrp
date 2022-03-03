@@ -133,11 +133,10 @@ fn as_leg_info_with_break<'a>(
 
     if let Some((from, to)) = leg {
         if let Ok(ActivityType::Break(vehicle_break)) = context.get_activity_type(tour, stop, to) {
-            let from_loc =
-                leg.and_then(|(from, _)| from).and_then(|action| action.location.as_ref()).or(match stop {
-                    Stop::Point(point) => Some(&point.location),
-                    Stop::Transit(_) => None,
-                });
+            let from_loc = leg.and_then(|(from, _)| from).and_then(|action| action.location.as_ref()).or(match stop {
+                Stop::Point(point) => Some(&point.location),
+                Stop::Transit(_) => None,
+            });
             return Some((from_loc.cloned(), from, to, vehicle_break));
         }
     }

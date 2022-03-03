@@ -15,6 +15,6 @@ publish = false
 [dependencies]
 rosomaxa = { path = "../../rosomaxa" }
 
-[dependencies.pyo3]
-version = "0.15.1"
-features = ["auto-initialize"]
+#[dependencies.pyo3]
+#version = "0.15.1"
+#features = ["auto-initialize"]

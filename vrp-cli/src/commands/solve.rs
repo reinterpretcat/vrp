@@ -166,8 +166,8 @@ fn get_formats<'a>(matches: &ArgMatches, random: Arc<dyn Random + Send + Sync>) 
     formats
 }
 
-pub fn get_solve_app() -> App<'static> {
-    App::new("solve")
+pub fn get_solve_app() -> Command<'static> {
+    Command::new("solve")
         .about("Solves variations of Vehicle Routing Problem")
         .arg(
             Arg::new(FORMAT_ARG_NAME)

@@ -3,6 +3,10 @@ use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
 
+fn create_shift_start() -> ShiftStart {
+    ShiftStart { earliest: format_time(0.), latest: Some(format_time(0.)), location: vec![0., 0.].to_loc() }
+}
+
 #[test]
 fn can_assign_break_during_travel() {
     let problem = Problem {
@@ -14,6 +18,7 @@ fn can_assign_break_during_travel() {
             vehicles: vec![VehicleType {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
+                    start: create_shift_start(),
                     breaks: Some(vec![VehicleBreak::Required {
                         time: VehicleRequiredBreakTime::ExactTime(format_time(7.)),
                         duration: 2.,
@@ -112,6 +117,7 @@ fn can_assign_break_during_activity() {
             vehicles: vec![VehicleType {
                 costs: create_default_vehicle_costs(),
                 shifts: vec![VehicleShift {
+                    start: create_shift_start(),
                     breaks: Some(vec![VehicleBreak::Required {
                         time: VehicleRequiredBreakTime::ExactTime(format_time(7.)),
                         duration: 2.,

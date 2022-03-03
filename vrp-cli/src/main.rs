@@ -20,15 +20,15 @@ mod cli {
     use crate::commands::check::{get_check_app, run_check};
     use crate::commands::create_write_buffer;
     use crate::commands::generate::{get_generate_app, run_generate};
-    use clap::{App, ArgMatches};
+    use clap::{ArgMatches, Command};
     use std::process;
 
     pub fn run_app() {
         run_subcommand(get_app().get_matches());
     }
 
-    pub fn get_app() -> App<'static> {
-        App::new("Vehicle Routing Problem Solver")
+    pub fn get_app() -> Command<'static> {
+        Command::new("Vehicle Routing Problem Solver")
             .version("1.15.0")
             .author("Ilya Builuk <ilya.builuk@gmail.com>")
             .about("A command line interface to Vehicle Routing Problem solver")

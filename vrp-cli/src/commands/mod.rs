@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches, Values};
+use clap::{Arg, ArgMatches, Command, Values};
 
 pub mod analyze;
 pub mod check;
