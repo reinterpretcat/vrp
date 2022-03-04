@@ -150,6 +150,11 @@ mod required {
          vehicle in default_vehicle_type_prototype(),
          breaks in get_required_breaks()
         ) -> VehicleType {
+           let mut vehicle = vehicle;
+             vehicle.shifts.iter_mut().for_each(|shift| {
+             shift.start.latest = Some(shift.start.earliest.clone());
+           });
+
            with_breaks(vehicle, breaks)
         }
     }
