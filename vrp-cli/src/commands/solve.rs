@@ -37,7 +37,7 @@ const CONFIG_ARG_NAME: &str = "config";
 const LOG_ARG_NAME: &str = "log";
 const CHECK_ARG_NAME: &str = "check";
 const SEARCH_MODE_ARG_NAME: &str = "search-mode";
-const PARALELLISM_ARG_NAME: &str = "parallelism";
+const PARALLELISM_ARG_NAME: &str = "parallelism";
 const HEURISTIC_ARG_NAME: &str = "heuristic";
 const EXPERIMENTAL_ARG_NAME: &str = "experimental";
 const ROUNDED_ARG_NAME: &str = "round";
@@ -283,9 +283,9 @@ pub fn get_solve_app() -> Command<'static> {
                 .default_value("broad"),
         )
         .arg(
-            Arg::new(PARALELLISM_ARG_NAME)
+            Arg::new(PARALLELISM_ARG_NAME)
                 .help("Specifies data parallelism settings in format \"num_thread_pools,threads_per_pool\"")
-                .long(PARALELLISM_ARG_NAME)
+                .long(PARALLELISM_ARG_NAME)
                 .short('p')
                 .required(false)
                 .takes_value(true),
@@ -463,7 +463,7 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
     let quota = Some(create_interruption_quota(max_time));
 
     matches
-        .value_of(PARALELLISM_ARG_NAME)
+        .value_of(PARALLELISM_ARG_NAME)
         .map(|arg| {
             if let [num_thread_pools, threads_per_pool] =
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
