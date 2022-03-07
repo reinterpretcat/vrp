@@ -10,6 +10,7 @@ use std::io::{BufReader, BufWriter, Write};
 use std::sync::Arc;
 use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
+use vrp_cli::extensions::solve::interruption::create_interruption_quota;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::construction::heuristics::InsertionContext;
@@ -18,7 +19,7 @@ use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::*;
 use vrp_core::rosomaxa::{get_default_population, get_default_selection_size};
 use vrp_core::solver::*;
-use vrp_core::utils::{Parallelism, Quota, TimeQuota};
+use vrp_core::utils::Parallelism;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -459,7 +460,7 @@ fn get_init_size(matches: &ArgMatches) -> Result<Option<usize>, String> {
 }
 
 fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<Environment>, String> {
-    let quota = max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64)));
+    let quota = Some(create_interruption_quota(max_time));
 
     matches
         .value_of(PARALELLISM_ARG_NAME)
@@ -468,7 +469,7 @@ fn get_environment(matches: &ArgMatches, max_time: Option<usize>) -> Result<Arc<
                 arg.split(',').filter_map(|line| line.parse::<usize>().ok()).collect::<Vec<_>>().as_slice()
             {
                 let parallelism = Parallelism::new(*num_thread_pools, *threads_per_pool);
-                let logger: Arc<fn(&str)> = if matches.is_present(LOG_ARG_NAME) {
+                let logger: InfoLogger = if matches.is_present(LOG_ARG_NAME) {
                     Arc::new(|msg: &str| println!("{}", msg))
                 } else {
                     Arc::new(|_: &str| {})

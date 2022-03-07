@@ -14,4 +14,5 @@ pub use rosomaxa::utils::compare_floats;
 pub use rosomaxa::utils::unwrap_from_result;
 pub use rosomaxa::utils::DefaultRandom;
 pub use rosomaxa::utils::Environment;
+pub use rosomaxa::utils::InfoLogger;
 pub use rosomaxa::utils::Random;

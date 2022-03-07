@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+* add stopping by terminal signal
+
 
 ## [v1.16.0] - 2022-03-03
 

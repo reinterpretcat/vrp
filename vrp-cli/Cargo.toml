@@ -32,6 +32,7 @@ serde = { version = "1.0.136", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 clap = "3.1.5"
+ctrlc = { version = "3.0", features = ["termination"] }
 num_cpus = "1.13.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
