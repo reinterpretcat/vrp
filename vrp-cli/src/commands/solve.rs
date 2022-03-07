@@ -7,10 +7,10 @@ use super::*;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use vrp_cli::core::solver::TargetHeuristic;
 use vrp_cli::extensions::solve::config::create_builder_from_config_file;
-use vrp_cli::extensions::solve::interruption::create_interruption_quota;
 use vrp_cli::scientific::tsplib::{TsplibProblem, TsplibSolution};
 use vrp_cli::{get_errors_serialized, get_locations_serialized};
 use vrp_core::construction::heuristics::InsertionContext;
@@ -19,7 +19,7 @@ use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::*;
 use vrp_core::rosomaxa::{get_default_population, get_default_selection_size};
 use vrp_core::solver::*;
-use vrp_core::utils::Parallelism;
+use vrp_core::utils::*;
 
 const FORMAT_ARG_NAME: &str = "FORMAT";
 const PROBLEM_ARG_NAME: &str = "PROBLEM";
@@ -527,4 +527,32 @@ fn get_heuristic(
 
 fn check_pragmatic_solution_with_args(matches: &ArgMatches) -> Result<(), String> {
     check_solution(matches, "pragmatic", PROBLEM_ARG_NAME, OUT_RESULT_ARG_NAME, MATRIX_ARG_NAME)
+}
+
+/// Creates interruption quota.
+pub fn create_interruption_quota(max_time: Option<usize>) -> Arc<dyn Quota + Send + Sync> {
+    struct InterruptionQuota {
+        inner: Option<Arc<dyn Quota + Send + Sync>>,
+        should_interrupt: Arc<AtomicBool>,
+    }
+
+    impl Quota for InterruptionQuota {
+        fn is_reached(&self) -> bool {
+            self.inner.as_ref().map_or(false, |inner| inner.is_reached())
+                || self.should_interrupt.load(Ordering::Relaxed)
+        }
+    }
+
+    let inner = max_time.map::<Arc<dyn Quota + Send + Sync>, _>(|time| Arc::new(TimeQuota::new(time as f64)));
+    let should_interrupt = Arc::new(AtomicBool::new(false));
+
+    // NOTE ignore error which happens in unit tests
+    let _ = ctrlc::set_handler({
+        let should_interrupt = should_interrupt.clone();
+        move || {
+            should_interrupt.store(true, Ordering::Relaxed);
+        }
+    });
+
+    Arc::new(InterruptionQuota { inner, should_interrupt })
 }
