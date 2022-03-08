@@ -381,7 +381,7 @@ pub fn run_solve(
                             .unwrap_or_else(|| Ok(Vec::new()))?;
 
                         let solver = if let Some(config) = config {
-                            create_builder_from_config_file(problem.clone(), BufReader::new(config))
+                            create_builder_from_config_file(problem.clone(), solutions, BufReader::new(config))
                                 .and_then(|builder| builder.build())
                                 .map(|config| Solver::new(problem.clone(), config))
                                 .map_err(|err| format!("cannot read config: '{}'", err))?

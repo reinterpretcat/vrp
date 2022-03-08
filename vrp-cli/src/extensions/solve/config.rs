@@ -815,19 +815,25 @@ pub fn read_config<R: Read>(reader: BufReader<R>) -> Result<Config, String> {
 /// Creates a solver `Builder` from config file.
 pub fn create_builder_from_config_file<R>(
     problem: Arc<Problem>,
+    solutions: Vec<InsertionContext>,
     reader: BufReader<R>,
 ) -> Result<ProblemConfigBuilder, String>
 where
     R: Read,
 {
-    read_config(reader).and_then(|config| create_builder_from_config(problem, &config))
+    read_config(reader).and_then(|config| create_builder_from_config(problem, solutions, &config))
 }
 
 /// Creates a solver `Builder` from config.
-pub fn create_builder_from_config(problem: Arc<Problem>, config: &Config) -> Result<ProblemConfigBuilder, String> {
+pub fn create_builder_from_config(
+    problem: Arc<Problem>,
+    solutions: Vec<InsertionContext>,
+    config: &Config,
+) -> Result<ProblemConfigBuilder, String> {
     let environment =
         configure_from_environment(&config.environment, config.termination.as_ref().and_then(|t| t.max_time));
-    let mut builder = create_default_config_builder(problem.clone(), environment.clone());
+    let mut builder =
+        create_default_config_builder(problem.clone(), environment.clone()).with_init_solutions(solutions, None);
 
     builder = configure_from_telemetry(builder, environment.clone(), &config.telemetry);
     builder = configure_from_evolution(builder, problem.clone(), environment.clone(), &config.evolution)?;
