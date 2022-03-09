@@ -281,6 +281,7 @@ fn can_assign_interval_break_with_reload() {
 }
 
 #[test]
+#[ignore]
 fn can_consider_departure_rescheduling() {
     let problem = Problem {
         plan: Plan {
