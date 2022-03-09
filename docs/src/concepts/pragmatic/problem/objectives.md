@@ -34,6 +34,11 @@ constraints such as time windows. The objective has the following optional param
 * `minimize-tours`: minimizes total amount of tours present in solution
 * `maximize-tours`: maximizes total amount of tours present in solution
 * `minimize-arrival-time`: prefers solutions where work is finished earlier
+
+### Job distribution objectives
+
+These objectives provide some extra control on job assignment:
+
 * `maximize-value`: maximizes total value of served jobs. It has optional parameters:
     * `reductionFactor`: a factor to reduce value cost compared to max routing costs
     * `breaks`: a value penalty for skipping a break. Default value is 100.
@@ -41,8 +46,9 @@ constraints such as time windows. The objective has the following optional param
     * `isConstrained`: violating order is not allowed, even if it leads to less assigned jobs (default is false).
 * `area-order`: controls jobs assignment for vehicles using areas
     * `isConstrained`: violating are order is not allowed
-    * `isValuePreferred`: prefer total value over order violations (can be used with `isConstrained=false`) 
+    * `isValuePreferred`: prefer total value over order violations (can be used with `isConstrained=false`)
     * `breaks`: a value penalty for skipping a break. Default value is 100.
+
 
 ### Work balance objectives
 
