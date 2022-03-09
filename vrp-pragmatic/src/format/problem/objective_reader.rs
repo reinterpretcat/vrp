@@ -17,6 +17,7 @@ use vrp_core::models::common::ValueDimension;
 use vrp_core::models::common::{MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::Job;
 use vrp_core::models::problem::{ProblemObjective, Single, TargetConstraint, TargetObjective};
+use vrp_core::solver::objectives::MinimizeArrivalTime as CoreMinimizeArrivalTime;
 use vrp_core::solver::objectives::TourOrder as CoreTourOrder;
 use vrp_core::solver::objectives::*;
 
@@ -57,6 +58,10 @@ pub fn create_objective(
                             } else {
                                 core_objectives.push(Arc::new(get_unassigned_objective(1.)))
                             }
+                        }
+                        MinimizeArrivalTime => {
+                            constraint.add_module(Arc::new(FleetUsageConstraintModule::new_earliest()));
+                            core_objectives.push(Arc::new(CoreMinimizeArrivalTime::default()))
                         }
                         BalanceMaxLoad { options } => {
                             let (module, objective) = get_load_balance(props, options);

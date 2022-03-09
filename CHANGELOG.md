@@ -6,7 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-* add stopping by terminal signal
+* stopping by terminal signal
+* `minimize-arrival-time` objective to prefer solutions where work is finished earlier.
 
 
 ## [v1.16.0] - 2022-03-03

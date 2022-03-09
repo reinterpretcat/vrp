@@ -2,6 +2,7 @@ use crate::construction::constraints::{ConstraintModule, ConstraintVariant, Soft
 use crate::construction::heuristics::{RouteContext, SolutionContext};
 use crate::models::common::Cost;
 use crate::models::problem::Job;
+use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
@@ -34,31 +35,38 @@ impl ConstraintModule for FleetUsageConstraintModule {
 impl FleetUsageConstraintModule {
     /// Creates `FleetUsageConstraintModule` to minimize used fleet size.
     pub fn new_minimized() -> Self {
-        Self::new_with_cost(1E12)
+        Self::new_with_cost(Box::new(|_| 1E12))
     }
 
     /// Creates `FleetUsageConstraintModule` to maximize used fleet size.
     pub fn new_maximized() -> Self {
-        Self::new_with_cost(-1E12)
+        Self::new_with_cost(Box::new(|_| -1E12))
     }
 
-    /// Creates `FleetUsageConstraintModule` with custom extra cost.
-    pub fn new_with_cost(extra_cost: Cost) -> Self {
+    /// Creates `FleetUsageConstraintModule` to minimize total arrival time.
+    pub fn new_earliest() -> Self {
+        Self::new_with_cost(Box::new(|route_ctx| {
+            // TODO find better approach to penalize later departures
+            route_ctx.route.actor.detail.time.start
+        }))
+    }
+
+    fn new_with_cost(extra_cost_fn: Box<dyn Fn(&RouteContext) -> Cost + Send + Sync>) -> Self {
         Self {
             state_keys: vec![],
-            constraints: vec![ConstraintVariant::SoftRoute(Arc::new(FleetCostSoftRouteConstraint { extra_cost }))],
+            constraints: vec![ConstraintVariant::SoftRoute(Arc::new(FleetCostSoftRouteConstraint { extra_cost_fn }))],
         }
     }
 }
 
 struct FleetCostSoftRouteConstraint {
-    extra_cost: Cost,
+    extra_cost_fn: Box<dyn Fn(&RouteContext) -> Cost + Send + Sync>,
 }
 
 impl SoftRouteConstraint for FleetCostSoftRouteConstraint {
-    fn estimate_job(&self, _: &SolutionContext, ctx: &RouteContext, _job: &Job) -> Cost {
-        if ctx.route.tour.job_count() == 0 {
-            self.extra_cost
+    fn estimate_job(&self, _: &SolutionContext, route_ctx: &RouteContext, _job: &Job) -> Cost {
+        if route_ctx.route.tour.job_count() == 0 {
+            self.extra_cost_fn.deref()(route_ctx)
         } else {
             0.
         }

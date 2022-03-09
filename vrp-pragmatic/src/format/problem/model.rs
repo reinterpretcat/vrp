@@ -575,6 +575,10 @@ pub enum Objective {
         breaks: Option<f64>,
     },
 
+    /// An objective to minimize sum of arrival times from all routes.
+    #[serde(rename(deserialize = "minimize-arrival-time", serialize = "minimize-arrival-time"))]
+    MinimizeArrivalTime,
+
     /// An objective to balance max load across all tours.
     #[serde(rename(deserialize = "balance-max-load", serialize = "balance-max-load"))]
     BalanceMaxLoad {

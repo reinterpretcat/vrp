@@ -6,6 +6,9 @@ use std::cmp::Ordering;
 mod generic_value;
 pub use self::generic_value::*;
 
+mod minimize_arrival_time;
+pub use self::minimize_arrival_time::*;
+
 mod total_routes;
 pub use self::total_routes::TotalRoutes;
 

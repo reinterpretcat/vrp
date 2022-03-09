@@ -1,7 +1,8 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
-use crate::format_time;
 use crate::helpers::*;
+use crate::{format_time, parse_time};
+use vrp_core::utils::compare_floats;
 
 #[test]
 fn can_use_multiple_times_from_vehicle_and_job() {
@@ -138,4 +139,51 @@ fn can_use_multiple_times_from_vehicle_and_job() {
             ..create_empty_solution()
         },
     );
+}
+
+#[test]
+fn can_prefer_first_days_with_minimize_arrival_time_objective() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", vec![1., 0.]), create_delivery_job("job2", vec![1., 0.])],
+            ..create_empty_plan()
+        },
+        objectives: Some(vec![
+            vec![Objective::MinimizeUnassignedJobs { breaks: None }],
+            vec![Objective::MinimizeArrivalTime],
+            vec![Objective::MinimizeCost],
+        ]),
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![0., 100., 200., 300., 400.]
+                    .iter()
+                    .map(|earliest| VehicleShift {
+                        start: ShiftStart {
+                            earliest: format_time(*earliest),
+                            latest: None,
+                            location: vec![0., 0.].to_loc(),
+                        },
+                        end: None,
+                        ..create_default_vehicle_shift()
+                    })
+                    .collect(),
+                capacity: vec![1],
+                ..create_default_vehicle_type()
+            }],
+            profiles: create_default_matrix_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    let mut departures = solution
+        .tours
+        .iter()
+        .filter_map(|tour| tour.stops.first())
+        .map(|stop| parse_time(&stop.schedule().departure))
+        .collect::<Vec<_>>();
+    departures.sort_by(|a, b| compare_floats(*a, *b));
+    assert_eq!(departures, vec![0., 100.]);
 }

@@ -19,7 +19,7 @@ split into two groups.
 
 ### Scalar objectives
 
-This objectives targeting for some scalar characteristic of solution:
+These objectives targeting for some scalar characteristic of solution:
 
 * `minimize-cost`: minimizes total transport cost calculated for all routes
 * `minimize-distance`: minimizes total distance of all routes
@@ -33,6 +33,7 @@ constraints such as time windows. The objective has the following optional param
      assignment leads to more jobs unassigned.
 * `minimize-tours`: minimizes total amount of tours present in solution
 * `maximize-tours`: maximizes total amount of tours present in solution
+* `minimize-arrival-time`: prefers solutions where work is finished earlier
 * `maximize-value`: maximizes total value of served jobs. It has optional parameters:
     * `reductionFactor`: a factor to reduce value cost compared to max routing costs
     * `breaks`: a value penalty for skipping a break. Default value is 100.
