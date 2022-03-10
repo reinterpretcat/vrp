@@ -2,7 +2,7 @@
 [![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli)
 ![build](https://github.com/reinterpretcat/vrp/workflows/build/badge.svg)
 [![codecov](https://codecov.io/gh/reinterpretcat/vrp/branch/master/graph/badge.svg)](https://codecov.io/gh/reinterpretcat/vrp)
-[![dependency status](https://deps.rs/crate/vrp-cli/1.16.0/status.svg)](https://deps.rs/crate/vrp-cli/1.16.0)
+[![dependency status](https://deps.rs/crate/vrp-cli/1.16.1/status.svg)](https://deps.rs/crate/vrp-cli/1.16.1)
 [![DOI](https://zenodo.org/badge/238436117.svg)](https://zenodo.org/badge/latestdoi/238436117)
 
 ![VRP example](docs/resources/vrp-example.png "VRP with Route Balance")
@@ -15,10 +15,10 @@ custom hyper- and meta-heuristic implementations, shortly described [here](https
 If you use the project in academic work, please consider citing:
 
 ```
-@misc{builuk_rosomaxa_2021,
+@misc{builuk_rosomaxa_2022,
     author       = {Ilya Builuk},
     title        = {{A new solver for rich Vehicle Routing Problem}},
-    year         = 2021,
+    year         = 2022,
     doi          = {10.5281/zenodo.4624037},
     publisher    = {Zenodo},
     url          = {https://doi.org/10.5281/zenodo.4624037}
@@ -49,7 +49,7 @@ The fastest way to try vrp solver on your environment is to use `docker` image (
 * **run public image** from `Github Container Registry`:
 
 ```bash
-    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.16.0
+    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.16.1
 ```
 
 * **build image locally** using `Dockerfile` provided:

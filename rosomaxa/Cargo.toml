@@ -1,6 +1,6 @@
 [package]
 name = "rosomaxa"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
@@ -9,7 +9,7 @@ categories = ["algorithms", "science"]
 readme = "README.md"
 homepage = "https://github.com/reinterpretcat/vrp"
 repository = "https://github.com/reinterpretcat/vrp"
-description = "A rosomaxa algorithm and other building blocks for building a solver for optimization problems"
+description = "A rosomaxa algorithm and other building blocks for creating a solver for optimization problems"
 
 [dependencies]
 rayon = "1.5.1"

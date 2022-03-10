@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.16.1] - 2022-03-10
+
 ### Added
 
 * stopping by terminal signal
@@ -445,7 +447,8 @@ with Self Organizing MAps and eXtrAs (pronounced as "rosomaha", from russian "р
 
 - Initial commit
 
-[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.16.0...HEAD
+[Unreleased]: https://github.com/reinterpretcat/vrp/compare/v1.16.1...HEAD
+[v1.16.1]: https://github.com/reinterpretcat/vrp/compare/v1.16.0...v1.16.1
 [v1.16.0]: https://github.com/reinterpretcat/vrp/compare/v1.15.0...v1.16.0
 [v1.15.0]: https://github.com/reinterpretcat/vrp/compare/v1.14.0...v1.15.0
 [v1.14.0]: https://github.com/reinterpretcat/vrp/compare/v1.13.0...v1.14.0
