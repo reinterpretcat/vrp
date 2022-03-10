@@ -12,4 +12,4 @@ edition = "2021"
 description = "An extension logic for solving scientific VRP"
 
 [dependencies]
-vrp-core = { path = "../vrp-core" }
+vrp-core = { path = "../vrp-core", version = "1.16.1" }

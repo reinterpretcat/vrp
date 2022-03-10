@@ -12,7 +12,7 @@ edition = "2021"
 description = "A core algorithms to solve a Vehicle Routing Problem"
 
 [dependencies]
-rosomaxa = { path = "../rosomaxa" }
+rosomaxa = { path = "../rosomaxa", version = "0.1.1" }
 
 rayon = "1.5.1"
 rand = "0.8.5"
