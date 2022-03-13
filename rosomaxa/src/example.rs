@@ -248,6 +248,7 @@ pub struct Solver {
     min_cv: Option<(String, usize, f64, bool)>,
     target_proximity: Option<(Vec<f64>, f64)>,
     operators: Vec<(TargetHeuristicOperator, String, f64)>,
+    context_factory: Option<Box<dyn Fn(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>>,
 }
 
 impl Default for Solver {
@@ -261,6 +262,7 @@ impl Default for Solver {
             min_cv: None,
             target_proximity: None,
             operators: vec![],
+            context_factory: None,
         }
     }
 }
@@ -308,6 +310,15 @@ impl Solver {
         self
     }
 
+    /// Sets heuristic context factory.
+    pub fn with_context_factory(
+        mut self,
+        context_factory: Box<dyn Fn(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>,
+    ) -> Self {
+        self.context_factory = Some(context_factory);
+        self
+    }
+
     /// Runs the solver using configuration provided through fluent interface methods.
     pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), String> {
         let environment = Arc::new(Environment::new_with_time_quota(self.max_time));
@@ -341,11 +352,18 @@ impl Solver {
             .collect();
 
         // create a heuristic context
-        let context = VectorContext::new(
-            objective.clone(),
-            get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone()),
-            environment.clone(),
-        );
+        let context = {
+            self.context_factory.map_or_else(
+                || {
+                    VectorContext::new(
+                        objective.clone(),
+                        get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone()),
+                        environment.clone(),
+                    )
+                },
+                |context_factory| context_factory.deref()(objective.clone(), environment.clone()),
+            )
+        };
 
         // create a telemetry which will log population
         let telemetry = Telemetry::new(TelemetryMode::OnlyLogging {
