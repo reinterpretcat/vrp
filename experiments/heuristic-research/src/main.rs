@@ -1,20 +1,21 @@
-/*use pyo3::prelude::*;
-use pyo3::types::IntoPyDict;*/
+use crate::extensions::{create_channels, ProxyPopulation};
+use rosomaxa::example::*;
+use rosomaxa::get_default_population;
+use std::time::Duration;
 
 mod extensions;
 
-fn main() /*-> PyResult<()> */
-{
-    // docs: https://pyo3.rs/v0.15.1/python_from_rust.html
-    /*  Python::with_gil(|py| {
-        let sys = py.import("sys")?;
-        let version: String = sys.getattr("version")?.extract()?;
+fn main() {
+    let bound = 1;
+    let delay = Some(Duration::from_secs(1));
 
-        let locals = [("os", py.import("os")?)].into_py_dict(py);
-        let code = "os.getenv('USER') or os.getenv('USERNAME') or 'Unknown'";
-        let user: String = py.eval(code, None, Some(locals))?.extract()?;
-
-        println!("Hello {}, I'm Python {}", user, version);
-        Ok(())
-    })*/
+    // TODO handle callbacks from receivers with some visualizations
+    let (senders, _receivers) = create_channels(bound, delay);
+    let _solver = Solver::default()
+        .with_context_factory(Box::new(move |objective, environment| {
+            let inner = get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone());
+            let population = Box::new(ProxyPopulation::new(inner, senders));
+            VectorContext::new(objective, population, environment)
+        }))
+        .solve();
 }

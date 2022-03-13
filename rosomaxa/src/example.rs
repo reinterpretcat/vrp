@@ -249,7 +249,7 @@ pub struct Solver {
     min_cv: Option<(String, usize, f64, bool)>,
     target_proximity: Option<(Vec<f64>, f64)>,
     operators: Vec<(TargetHeuristicOperator, String, f64)>,
-    context_factory: Option<Box<dyn Fn(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>>,
+    context_factory: Option<Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>>,
 }
 
 impl Default for Solver {
@@ -314,7 +314,7 @@ impl Solver {
     /// Sets heuristic context factory.
     pub fn with_context_factory(
         mut self,
-        context_factory: Box<dyn Fn(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>,
+        context_factory: Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>,
     ) -> Self {
         self.context_factory = Some(context_factory);
         self
@@ -362,7 +362,7 @@ impl Solver {
                         environment.clone(),
                     )
                 },
-                |context_factory| context_factory.deref()(objective.clone(), environment.clone()),
+                |context_factory| context_factory(objective.clone(), environment.clone()),
             )
         };
 
