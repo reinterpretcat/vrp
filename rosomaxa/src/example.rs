@@ -33,6 +33,7 @@ pub struct VectorObjective {
 }
 
 /// An example heuristic solution.
+#[derive(Clone)]
 pub struct VectorSolution {
     /// Solution payload.
     pub data: Vec<f64>,

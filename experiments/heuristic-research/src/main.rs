@@ -1,6 +1,8 @@
 /*use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;*/
 
+mod extensions;
+
 fn main() /*-> PyResult<()> */
 {
     // docs: https://pyo3.rs/v0.15.1/python_from_rust.html
