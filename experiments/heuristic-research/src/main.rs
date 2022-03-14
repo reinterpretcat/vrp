@@ -13,7 +13,9 @@ fn main() {
     let (senders, _receivers) = create_channels(bound, delay);
     let _solver = Solver::default()
         .with_context_factory(Box::new(move |objective, environment| {
-            let inner = get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone());
+            let selection_size = 8;
+            let inner =
+                get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone(), selection_size);
             let population = Box::new(ProxyPopulation::new(inner, senders));
             VectorContext::new(objective, population, environment)
         }))

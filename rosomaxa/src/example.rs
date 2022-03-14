@@ -5,11 +5,11 @@
 mod example_test;
 
 use crate::evolution::*;
-use crate::get_default_population;
 use crate::hyper::*;
 use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuffled};
 use crate::prelude::*;
 use crate::utils::Noise;
+use crate::{get_default_population, get_default_selection_size};
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::ops::Deref;
@@ -356,9 +356,14 @@ impl Solver {
         let context = {
             self.context_factory.map_or_else(
                 || {
+                    let selection_size = get_default_selection_size(environment.as_ref());
                     VectorContext::new(
                         objective.clone(),
-                        get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone()),
+                        get_default_population::<VectorContext, _, _>(
+                            objective.clone(),
+                            environment.clone(),
+                            selection_size,
+                        ),
                         environment.clone(),
                     )
                 },

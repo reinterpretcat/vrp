@@ -49,7 +49,13 @@ pub type ProblemConfigBuilder = EvolutionConfigBuilder<RefinementContext, Proble
 
 /// Creates config builder with default settings.
 pub fn create_default_config_builder(problem: Arc<Problem>, environment: Arc<Environment>) -> ProblemConfigBuilder {
-    let population = get_default_population::<RefinementContext, _, _>(problem.objective.clone(), environment.clone());
+    let selection_size = get_default_selection_size(environment.as_ref());
+
+    let population = get_default_population::<RefinementContext, _, _>(
+        problem.objective.clone(),
+        environment.clone(),
+        selection_size,
+    );
 
     ProblemConfigBuilder::default()
         .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))

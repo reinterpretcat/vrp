@@ -165,13 +165,13 @@ pub fn get_default_selection_size(environment: &Environment) -> usize {
 pub fn get_default_population<C, O, S>(
     objective: Arc<O>,
     environment: Arc<Environment>,
+    selection_size: usize,
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where
     C: HeuristicContext<Objective = O, Solution = S> + 'static,
     O: HeuristicObjective<Solution = S> + Shuffled + 'static,
     S: HeuristicSolution + RosomaxaWeighted + DominanceOrdered + 'static,
 {
-    let selection_size = get_default_selection_size(environment.as_ref());
     if selection_size == 1 {
         Box::new(Greedy::new(objective, 1, None))
     } else {

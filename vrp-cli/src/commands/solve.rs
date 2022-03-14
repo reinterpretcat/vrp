@@ -501,14 +501,11 @@ fn get_population(
     objective: Arc<ProblemObjective>,
     environment: Arc<Environment>,
 ) -> TargetPopulation {
+    let selection_size = get_default_selection_size(environment.as_ref());
+
     match mode {
-        Some("deep") => Box::new(ElitismPopulation::new(
-            objective,
-            environment.random.clone(),
-            4,
-            get_default_selection_size(environment.as_ref()),
-        )),
-        _ => get_default_population::<RefinementContext, _, _>(objective, environment),
+        Some("deep") => Box::new(ElitismPopulation::new(objective, environment.random.clone(), 4, selection_size)),
+        _ => get_default_population::<RefinementContext, _, _>(objective, environment, selection_size),
     }
 }
 
