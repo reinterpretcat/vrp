@@ -238,6 +238,8 @@ type TargetHeuristicOperator = Arc<
 
 /// Specifies solver solutions.
 pub type SolverSolutions = Vec<(Vec<f64>, f64)>;
+/// Specifies heuristic context factory type.
+pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>;
 
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
@@ -249,7 +251,7 @@ pub struct Solver {
     min_cv: Option<(String, usize, f64, bool)>,
     target_proximity: Option<(Vec<f64>, f64)>,
     operators: Vec<(TargetHeuristicOperator, String, f64)>,
-    context_factory: Option<Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>>,
+    context_factory: Option<ContextFactory>,
 }
 
 impl Default for Solver {
@@ -312,10 +314,7 @@ impl Solver {
     }
 
     /// Sets heuristic context factory.
-    pub fn with_context_factory(
-        mut self,
-        context_factory: Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>) -> VectorContext>,
-    ) -> Self {
+    pub fn with_context_factory(mut self, context_factory: ContextFactory) -> Self {
         self.context_factory = Some(context_factory);
         self
     }
