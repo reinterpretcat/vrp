@@ -1,5 +1,6 @@
 use super::*;
 use std::iter::empty;
+use std::ops::Deref;
 use web_sys::HtmlCanvasElement;
 
 #[global_allocator]
@@ -37,7 +38,10 @@ impl Chart {
                 axes: Axes { x: (-2.0..2.0, 0.15), y: (0.0..3610.0), z: (-2.0..2.0, 0.15) },
                 projection: Projection { pitch, yaw, scale: 0.8 },
                 series: Series {
-                    surface: Box::new(|x, z| (x - 1.).powi(2) + 100. * (z - x * x).powi(2)),
+                    surface: {
+                        let objective_func = get_objective_function_by_name("rosenbrock");
+                        Box::new(move |x, z| objective_func.deref()(&[x, z]))
+                    },
                     points: Box::new(|| {
                         // TODO get data points from the solver
                         Box::new(empty())
