@@ -1,11 +1,9 @@
-use crate::extensions::{create_channels, get_objective_function_by_name, ProxyPopulation};
-use rosomaxa::example::*;
-use rosomaxa::get_default_population;
+use crate::solver::*;
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
 
-mod extensions;
 mod plots;
+mod solver;
 
 #[wasm_bindgen]
 pub fn run_experiment() {
@@ -16,13 +14,6 @@ pub fn run_experiment() {
 
     // TODO handle callbacks from receivers with some visualizations
     let (senders, _receivers) = create_channels(bound, delay);
-    let _solver = Solver::default()
-        .with_objective_fun(get_objective_function_by_name(objective_name))
-        .with_context_factory(Box::new(move |objective, environment| {
-            let inner =
-                get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone(), selection_size);
-            let population = Box::new(ProxyPopulation::new(inner, senders));
-            VectorContext::new(objective, population, environment)
-        }))
-        .solve();
+
+    run_solver(objective_name, selection_size, senders)
 }
