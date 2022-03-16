@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+	<meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Heuristic Research Playground</title>
+	<link rel="stylesheet" href="./style.css">
+    </head>
+    <body>
+        <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+        <script src="./bootstrap.js"></script>
+	<main>
+	    <h1>Heuristic Research Playground</h1>
+	    <div id="coord"></div>
+        <canvas id="canvas" width="600" height="400"></canvas>
+	    <div id="status">Loading WebAssembly...</div>
+	    <div id="control">
+			<label for="plot-type">Function: </label>
+			<select id="plot-type">
+				<option value="rosenbrock">Rosenbrock</option>
+			</select>
+			<div id="3d-control" class="hide">
+				<label for="pitch">Pitch: </label> <input type="range" min="0" max="157" id="pitch" value="10"> <br/>
+				<label for="yaw">Yaw: </label> <input type="range" min="0" max="314" id="yaw" value="50">
+			</div>
+	    </div>
+	</main>
+	<footer>
+	    <a href="https://github.com/reinterpretcat/vrp" target="a">Repo</a> |
+	    <a href="https://crates.io/crates/vrp-cli" target="a">Crates</a> |
+	    <a href="https://docs.rs/vrp-core" target="a">Docs</a>
+	</footer>
+    </body>
+</html>
