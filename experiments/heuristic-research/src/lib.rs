@@ -2,10 +2,13 @@ use crate::extensions::{create_channels, ProxyPopulation};
 use rosomaxa::example::*;
 use rosomaxa::get_default_population;
 use std::time::Duration;
+use wasm_bindgen::prelude::*;
 
 mod extensions;
+mod plots;
 
-fn main() {
+#[wasm_bindgen]
+pub fn run_experiment() {
     let bound = 1;
     let delay = Some(Duration::from_secs(1));
 

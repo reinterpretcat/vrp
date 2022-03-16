@@ -12,7 +12,14 @@ repository = "https://github.com/reinterpretcat/vrp"
 description = "A playground for heuristic research"
 publish = false
 
+[lib]
+crate-type=["cdylib"]
+
 [dependencies]
 rosomaxa = { path = "../../rosomaxa" }
 
-# pyo3 = { version = "0.16.0", features = ["auto-initialize"] }
+plotters = "0.3.1"
+plotters-canvas = "0.3.0"
+wasm-bindgen = "0.2.62"
+web-sys = { version = "0.3.39", features = ["HtmlCanvasElement"] }
+wee_alloc = "0.4.5"
