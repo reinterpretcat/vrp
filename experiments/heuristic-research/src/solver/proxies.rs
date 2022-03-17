@@ -1,84 +1,48 @@
+use crate::{DataPoint, EXPERIMENT_DATA};
 use rosomaxa::example::*;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
-use std::time::Duration;
+use std::sync::MutexGuard;
 
 /// A type alias for vector based population.
 pub type VectorPopulation =
     Box<dyn HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution> + Send + Sync>;
 
-/// Keeps track of senders.
-pub struct Senders {
-    /// Called on new individual addition.
-    pub on_add: SyncSender<VectorSolution>,
+#[derive(Default)]
+pub struct ExperimentData {
+    /// Current generation.
+    pub generation: usize,
     /// Called on new individuals addition.
-    pub on_add_all: SyncSender<Vec<VectorSolution>>,
+    pub on_add: HashMap<usize, Vec<DataPoint>>,
     /// Called on individual selection.
-    pub on_select: SyncSender<VectorSolution>,
+    pub on_select: HashMap<usize, Vec<DataPoint>>,
     /// Called on generation.
-    pub on_generation: SyncSender<(HeuristicStatistics, Vec<(VectorSolution, usize)>)>,
-    /// Specifies thread delay duration.
-    pub delay: Option<Duration>,
+    pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<(DataPoint, usize)>)>,
 }
 
-/// Keeps track of receivers.
-pub struct Receivers {
-    /// Called on new individual addition.
-    pub on_add: Receiver<VectorSolution>,
-    /// Called on new individuals addition.
-    pub on_add_all: Receiver<Vec<VectorSolution>>,
-    /// Called on individual selection.
-    pub on_select: Receiver<VectorSolution>,
-    /// Called on generation.
-    pub on_generation: Receiver<(HeuristicStatistics, Vec<(VectorSolution, usize)>)>,
-}
-
-/// Creates channels to get population invocation callbacks.
-pub fn create_channels(bound: usize, delay: Option<Duration>) -> (Senders, Receivers) {
-    let (on_add_sender, on_add_receiver) = sync_channel(bound);
-    let (on_add_all_sender, on_add_all_receiver) = sync_channel(bound);
-    let (on_select_sender, on_select_receiver) = sync_channel(bound);
-    let (on_generation_sender, on_generation_receiver) = sync_channel(bound);
-
-    let senders = Senders {
-        on_add: on_add_sender,
-        on_add_all: on_add_all_sender,
-        on_select: on_select_sender,
-        on_generation: on_generation_sender,
-        delay,
-    };
-
-    let receiver = Receivers {
-        on_add: on_add_receiver,
-        on_add_all: on_add_all_receiver,
-        on_select: on_select_receiver,
-        on_generation: on_generation_receiver,
-    };
-
-    (senders, receiver)
-}
-
-impl Senders {
-    /// Calls thread delay if it is configured.
-    pub fn delay(&self) {
-        if let Some(delay) = self.delay {
-            std::thread::sleep(delay);
-        }
+impl From<&VectorSolution> for DataPoint {
+    fn from(solution: &VectorSolution) -> Self {
+        assert_eq!(solution.data.len(), 2);
+        DataPoint(solution.data[0], solution.fitness(), solution.data[1])
     }
 }
 
 /// A population type which provides way to intercept some of population data.
 pub struct ProxyPopulation {
+    generation: usize,
     inner: VectorPopulation,
-    senders: Senders,
 }
 
 impl ProxyPopulation {
     /// Creates a new instance of `ProxyPopulation`.
-    pub fn new(inner: VectorPopulation, senders: Senders) -> Self {
-        Self { inner, senders }
+    pub fn new(inner: VectorPopulation) -> Self {
+        Self { generation: 0, inner }
+    }
+
+    fn acquire(&self) -> MutexGuard<ExperimentData> {
+        EXPERIMENT_DATA.lock().unwrap()
     }
 }
 
@@ -87,21 +51,28 @@ impl HeuristicPopulation for ProxyPopulation {
     type Individual = VectorSolution;
 
     fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
-        self.senders.on_add_all.send(individuals.iter().map(|i| i.deep_copy()).collect()).unwrap();
-        self.senders.delay();
+        self.acquire()
+            .on_add
+            .entry(self.generation)
+            .or_insert_with(Vec::new)
+            .extend(individuals.iter().map(|i| i.into()));
+
         self.inner.add_all(individuals)
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {
-        self.senders.on_add.send(individual.deep_copy()).unwrap();
-        self.senders.delay();
+        self.acquire().on_add.entry(self.generation).or_insert_with(Vec::new).push((&individual).into());
+
         self.inner.add(individual)
     }
 
     fn on_generation(&mut self, statistics: &HeuristicStatistics) {
-        let individuals = self.inner.ranked().map(|(individual, rank)| (individual.deep_copy(), rank)).collect();
-        self.senders.on_generation.send((statistics.clone(), individuals)).unwrap();
-        self.senders.delay();
+        self.generation = statistics.generation;
+        self.acquire().generation = statistics.generation;
+
+        let individuals = self.inner.ranked().map(|(individual, rank)| (individual.into(), rank)).collect();
+        self.acquire().on_generation.insert(self.generation, (statistics.clone(), individuals));
+
         self.inner.on_generation(statistics)
     }
 
@@ -111,7 +82,8 @@ impl HeuristicPopulation for ProxyPopulation {
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         Box::new(self.inner.select().map(|individual| {
-            self.senders.on_select.send(individual.deep_copy()).unwrap();
+            self.acquire().on_select.entry(self.generation).or_insert_with(Vec::new).push(individual.into());
+
             individual
         }))
     }

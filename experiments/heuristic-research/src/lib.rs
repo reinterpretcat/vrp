@@ -1,19 +1,27 @@
+#[macro_use]
+extern crate lazy_static;
+
 use crate::solver::*;
-use std::time::Duration;
+use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
+
+/// Specifies a data point type.
+#[derive(Clone)]
+pub struct DataPoint(f64, f64, f64);
 
 mod plots;
 mod solver;
 
+lazy_static! {
+    /// Keeps track of data used by the solver population.
+    static ref EXPERIMENT_DATA: Mutex<ExperimentData> = Mutex::new(ExperimentData::default());
+
+}
+
 #[wasm_bindgen]
 pub fn run_experiment() {
-    let bound = 1;
-    let delay = Some(Duration::from_secs(1));
     let selection_size = 8;
     let objective_name = "rosenbrock";
 
-    // TODO handle callbacks from receivers with some visualizations
-    let (senders, _receivers) = create_channels(bound, delay);
-
-    run_solver(objective_name, selection_size, senders)
+    run_solver(objective_name, selection_size)
 }

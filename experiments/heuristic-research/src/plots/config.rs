@@ -1,5 +1,9 @@
+use crate::DataPoint;
 use plotters::style::RGBColor;
 use std::ops::Range;
+
+/// Specifies a data point with color type.
+pub type ColoredDataPoint = (DataPoint, RGBColor);
 
 /// A drawing configuration.
 pub struct DrawConfig {
@@ -36,5 +40,5 @@ pub struct Series {
     /// Surface function.
     pub surface: Box<dyn Fn(f64, f64) -> f64>,
     /// Points iterator.
-    pub points: Box<dyn Fn() -> Box<dyn Iterator<Item = ((f64, f64, f64), RGBColor)>>>,
+    pub points: Box<dyn Fn() -> Vec<ColoredDataPoint>>,
 }

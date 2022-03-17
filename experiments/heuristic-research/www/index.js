@@ -71,6 +71,7 @@ function onMouseMove(event) {
 /** Redraw currently selected plot. */
 function updatePlot() {
     const selected = plotType.selectedOptions[0];
+	let generation_value = 0;
 	let yaw_value = Number(yaw.value) / 100.0;
 	let pitch_value = Number(pitch.value) / 100.0;
 
@@ -82,7 +83,7 @@ function updatePlot() {
 	switch(selected.value) {
 		case "rosenbrock":
 			control.classList.remove("hide");
-			Chart.rosenbrock(canvas, pitch_value, yaw_value);
+			Chart.rosenbrock(canvas, generation_value, pitch_value, yaw_value);
 			break;
 		default:
 			control.classList.add("hide");

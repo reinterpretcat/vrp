@@ -1,5 +1,6 @@
 use super::DrawResult;
 use crate::plots::DrawConfig;
+use crate::DataPoint;
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
 use std::ops::Deref;
@@ -29,7 +30,10 @@ pub fn draw(canvas: HtmlCanvasElement, config: &DrawConfig) -> DrawResult<()> {
         SurfaceSeries::xoz(x_axis.values(), z_axis.values(), &config.series.surface)
             .style_func(&|&v| (&HSLColor(240.0 / 360.0 - 240.0 / 360.0 * v / config.axes.y.end, 1.0, 0.7)).into()),
     )?;
-    chart.draw_series(config.series.points.deref()().map(|(coord, color)| Circle::new(coord, 3, color)))?;
+
+    chart.draw_series(
+        config.series.points.deref()().into_iter().map(|(DataPoint(x, y, z), color)| Circle::new((x, y, z), 3, color)),
+    )?;
 
     Ok(())
 }

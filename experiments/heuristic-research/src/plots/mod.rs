@@ -1,5 +1,5 @@
 use super::*;
-use std::iter::empty;
+use plotters::style::BLACK;
 use std::ops::Deref;
 use web_sys::HtmlCanvasElement;
 
@@ -31,7 +31,7 @@ pub struct Point {
 #[wasm_bindgen]
 impl Chart {
     /// Renders plot for rosenbrock function.
-    pub fn rosenbrock(canvas: HtmlCanvasElement, pitch: f64, yaw: f64) -> Result<(), JsValue> {
+    pub fn rosenbrock(canvas: HtmlCanvasElement, generation: usize, pitch: f64, yaw: f64) -> Result<(), JsValue> {
         drawing::draw(
             canvas,
             &DrawConfig {
@@ -42,10 +42,7 @@ impl Chart {
                         let objective_func = get_objective_function_by_name("rosenbrock");
                         Box::new(move |x, z| objective_func.deref()(&[x, z]))
                     },
-                    points: Box::new(|| {
-                        // TODO get data points from the solver
-                        Box::new(empty())
-                    }),
+                    points: Box::new(move || Self::get_points(generation)),
                 },
             },
         )
@@ -56,5 +53,21 @@ impl Chart {
     /// This function can be used to convert screen coordinates to chart coordinates.
     pub fn coord(&self, x: i32, y: i32) -> Option<Point> {
         (self.convert)((x, y)).map(|(x, y)| Point { x, y })
+    }
+
+    fn get_points(generation: usize) -> Vec<ColoredDataPoint> {
+        EXPERIMENT_DATA
+            .lock()
+            .ok()
+            .and_then(|data| {
+                // NOTE use generation arg only if it is not zero
+                let generation = if generation > 0 { generation } else { data.generation };
+
+                // TODO use different data with different colors
+                data.on_generation
+                    .get(&generation)
+                    .map(|(_, points)| points.iter().map(|(point, _)| (point.clone(), BLACK)).collect())
+            })
+            .unwrap_or_else(Vec::new)
     }
 }

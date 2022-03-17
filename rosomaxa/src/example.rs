@@ -41,6 +41,13 @@ pub struct VectorSolution {
     order: DominanceOrder,
 }
 
+impl VectorSolution {
+    /// Returns a fitness value of given solution.
+    pub fn fitness(&self) -> f64 {
+        self.objective.fitness(&self)
+    }
+}
+
 impl VectorContext {
     /// Creates a new instance of `VectorContext`.
     pub fn new(
