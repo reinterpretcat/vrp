@@ -5,38 +5,37 @@ const coord = document.getElementById("coord");
 const plotType = document.getElementById("plot-type");
 const pitch = document.getElementById("pitch");
 const yaw = document.getElementById("yaw");
-const control = document.getElementById("3d-control");
 const status = document.getElementById("status");
-
-let chart = null;
+const run = document.getElementById("run");
 
 /** Main entry point */
 export function main() {
-	let hash = location.hash.substr(1);
-	for(var i = 0; i < plotType.options.length; i++) {
-		if(hash === plotType.options[i].value) {
-			plotType.value = hash;
-		}
-	}
+    let hash = location.hash.substr(1);
+    for(var i = 0; i < plotType.options.length; i++) {
+        if(hash === plotType.options[i].value) {
+            plotType.value = hash;
+        }
+    }
     setupUI();
     setupCanvas();
 }
 
 /** This function is used in `bootstrap.js` to setup imports. */
-export function setup(WasmChart) {
+export function setup(WasmChart, run_experiment) {
     Chart = WasmChart;
+    Chart.run_experiment = run_experiment;
 }
 
 /** Add event listeners. */
 function setupUI() {
     status.innerText = "WebAssembly loaded!";
     plotType.addEventListener("change", updatePlot);
-	yaw.addEventListener("change", updatePlot);
-	pitch.addEventListener("change", updatePlot);
-	yaw.addEventListener("input", updatePlot);
-	pitch.addEventListener("input", updatePlot);
+    yaw.addEventListener("change", updatePlot);
+    pitch.addEventListener("change", updatePlot);
+    yaw.addEventListener("input", updatePlot);
+    pitch.addEventListener("input", updatePlot);
+    run.addEventListener("click", runExperiment)
     window.addEventListener("resize", setupCanvas);
-    window.addEventListener("mousemove", onMouseMove);
 }
 
 /** Setup canvas to properly handle high DPI and redraw current plot. */
@@ -50,47 +49,32 @@ function setupCanvas() {
     updatePlot();
 }
 
-/** Update displayed coordinates. */
-function onMouseMove(event) {
-    if (chart) {
-		var text = "Mouse pointer is out of range";
-
-		if(event.target === canvas) {
-			let actualRect = canvas.getBoundingClientRect();
-			let logicX = event.offsetX * canvas.width / actualRect.width;
-			let logicY = event.offsetY * canvas.height / actualRect.height;
-			const point = chart.coord(logicX, logicY);
-			text = (point) 
-				? `(${point.x.toFixed(3)}, ${point.y.toFixed(3)})`
-				: text;
-		}
-        coord.innerText = text;
-    }
-}
-
 /** Redraw currently selected plot. */
 function updatePlot() {
     const selected = plotType.selectedOptions[0];
-	let generation_value = 0;
-	let yaw_value = Number(yaw.value) / 100.0;
-	let pitch_value = Number(pitch.value) / 100.0;
+    let generation_value = 0;
+    let yaw_value = Number(yaw.value) / 100.0;
+    let pitch_value = Number(pitch.value) / 100.0;
 
     status.innerText = `Rendering ${selected.innerText}...`;
-    chart = null;
 
-	const start = performance.now();
+    const start = performance.now();
 
-	switch(selected.value) {
-		case "rosenbrock":
-			control.classList.remove("hide");
-			Chart.rosenbrock(canvas, generation_value, pitch_value, yaw_value);
-			break;
-		default:
-			control.classList.add("hide");
-	}
-	
+    switch(selected.value) {
+        case "rosenbrock":
+            Chart.rosenbrock(canvas, generation_value, pitch_value, yaw_value);
+            break;
+        default:
+            break;
+    }
+    
     const end = performance.now();
 
-	coord.innerText = `Pitch:${pitch_value}, Yaw:${yaw_value}`
+    coord.innerText = `Pitch:${pitch_value}, Yaw:${yaw_value}`
     status.innerText = `Rendered ${selected.innerText} in ${Math.ceil(end - start)}ms`;
+}
+
+/** Runs experiment. */
+function runExperiment() {
+    Chart.run_experiment(2.0, 2.0, 100)
 }
