@@ -122,6 +122,10 @@ where
         Box::new(self.individuals.iter().map(|individual| (individual, individual.get_order().rank)))
     }
 
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+        Box::new(self.individuals.iter())
+    }
+
     fn size(&self) -> usize {
         self.individuals.len()
     }

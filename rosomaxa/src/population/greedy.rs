@@ -63,6 +63,10 @@ where
         Box::new(self.best_known.iter().map(|individual| (individual, 0)))
     }
 
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+        Box::new(self.best_known.iter())
+    }
+
     fn size(&self) -> usize {
         if self.best_known.is_some() {
             1

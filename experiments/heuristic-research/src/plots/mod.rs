@@ -1,5 +1,5 @@
 use super::*;
-use plotters::style::BLACK;
+use plotters::prelude::*;
 use std::ops::Deref;
 use web_sys::HtmlCanvasElement;
 
@@ -53,11 +53,22 @@ fn get_points(generation: usize) -> Vec<ColoredDataPoint> {
     EXPERIMENT_DATA
         .lock()
         .ok()
-        .and_then(|data| {
-            // TODO use different data with different colors
-            data.on_generation
-                .get(&generation)
-                .map(|(_, points)| points.iter().map(|(point, _)| (point.clone(), BLACK)).collect())
+        .map(|data| {
+            let mut data_points = vec![];
+
+            if let Some((_, points)) = data.on_generation.get(&generation) {
+                data_points.extend(points.iter().map(|point| (point.clone(), BLACK)));
+            }
+
+            if let Some(points) = data.on_add.get(&generation) {
+                data_points.extend(points.iter().map(|point| (point.clone(), RED)));
+            }
+
+            if let Some(points) = data.on_select.get(&generation) {
+                data_points.extend(points.iter().map(|point| (point.clone(), BLUE)));
+            }
+
+            data_points
         })
         .unwrap_or_else(Vec::new)
 }

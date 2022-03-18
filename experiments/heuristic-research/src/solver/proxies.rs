@@ -19,7 +19,7 @@ pub struct ExperimentData {
     /// Called on individual selection.
     pub on_select: HashMap<usize, Vec<DataPoint>>,
     /// Called on generation.
-    pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<(DataPoint, usize)>)>,
+    pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<DataPoint>)>,
 }
 
 impl From<&VectorSolution> for DataPoint {
@@ -70,7 +70,7 @@ impl HeuristicPopulation for ProxyPopulation {
         self.generation = statistics.generation;
         self.acquire().generation = statistics.generation;
 
-        let individuals = self.inner.ranked().map(|(individual, rank)| (individual.into(), rank)).collect();
+        let individuals = self.inner.all().map(|individual| individual.into()).collect();
         self.acquire().on_generation.insert(self.generation, (statistics.clone(), individuals));
 
         self.inner.on_generation(statistics)
@@ -90,6 +90,10 @@ impl HeuristicPopulation for ProxyPopulation {
 
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Individual, usize)> + 'a> {
         self.inner.ranked()
+    }
+
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+        self.inner.all()
     }
 
     fn size(&self) -> usize {

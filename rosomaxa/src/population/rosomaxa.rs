@@ -180,6 +180,19 @@ where
         self.elite.ranked()
     }
 
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
+        match &self.phase {
+            RosomaxaPhases::Exploration { network, .. } => {
+                Box::new(self.elite.all().chain(network.get_nodes().flat_map(|node| {
+                    // NOTE see above
+                    let node = node.read().unwrap();
+                    unsafe { &*(&node.storage.population as *const Elitism<O, S>) as &Elitism<O, S> }.all()
+                })))
+            }
+            _ => self.elite.all(),
+        }
+    }
+
     fn size(&self) -> usize {
         self.elite.size()
     }

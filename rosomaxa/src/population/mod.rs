@@ -57,6 +57,9 @@ pub trait HeuristicPopulation: Display + Send + Sync {
     /// Returns subset of individuals within their rank sorted according their quality.
     fn ranked<'a>(&'a self) -> Box<dyn Iterator<Item = (&Self::Individual, usize)> + 'a>;
 
+    /// Returns all individuals in arbitrary order.
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a>;
+
     /// Returns population size.
     fn size(&self) -> usize;
 
