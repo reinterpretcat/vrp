@@ -57,15 +57,15 @@ fn get_points(generation: usize) -> Vec<ColoredDataPoint> {
             let mut data_points = vec![];
 
             if let Some((_, points)) = data.on_generation.get(&generation) {
-                data_points.extend(points.iter().map(|point| (point.clone(), BLACK)));
+                data_points.extend(points.iter().map(|point| (point.clone(), PointType::Circle, BLACK)));
             }
 
             if let Some(points) = data.on_add.get(&generation) {
-                data_points.extend(points.iter().map(|point| (point.clone(), RED)));
+                data_points.extend(points.iter().map(|point| (point.clone(), PointType::Triangle, RED)));
             }
 
             if let Some(points) = data.on_select.get(&generation) {
-                data_points.extend(points.iter().map(|point| (point.clone(), BLUE)));
+                data_points.extend(points.iter().map(|point| (point.clone(), PointType::Triangle, BLUE)));
             }
 
             data_points

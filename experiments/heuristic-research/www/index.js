@@ -86,8 +86,9 @@ function updatePlot() {
 function runExperiment() {
     // NOTE: a blocking call here
     // TODO configure parameters from outside
-    Chart.run_experiment(-2.0, -2.0, 500);
+    let max_gen = 2000
+    Chart.run_experiment(-2.0, -2.0, max_gen);
     updatePlot();
-    generations.max = 500;
+    generations.max = max_gen;
     generations.classList.remove("hide");
 }

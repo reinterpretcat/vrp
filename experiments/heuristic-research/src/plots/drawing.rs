@@ -1,5 +1,5 @@
 use super::DrawResult;
-use crate::plots::DrawConfig;
+use crate::plots::{DrawConfig, PointType};
 use crate::DataPoint;
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
@@ -31,8 +31,20 @@ pub fn draw(canvas: HtmlCanvasElement, config: &DrawConfig) -> DrawResult<()> {
             .style_func(&|&v| (&HSLColor(240.0 / 360.0 - 240.0 / 360.0 * v / config.axes.y.end, 1.0, 0.7)).into()),
     )?;
 
+    let data_points = config.series.points.deref()();
+
     chart.draw_series(
-        config.series.points.deref()().into_iter().map(|(DataPoint(x, y, z), color)| Circle::new((x, y, z), 3, color)),
+        data_points
+            .iter()
+            .filter(|(_, point_type, _)| matches!(point_type, PointType::Circle))
+            .map(|(DataPoint(x, y, z), _, color)| Circle::new((*x, *y, *z), 3, color)),
+    )?;
+
+    chart.draw_series(
+        data_points
+            .iter()
+            .filter(|(_, point_type, _)| matches!(point_type, PointType::Triangle))
+            .map(|(DataPoint(x, y, z), _, color)| TriangleMarker::new((*x, *y, *z), 5, color)),
     )?;
 
     Ok(())
