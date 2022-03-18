@@ -7,6 +7,7 @@ const pitch = document.getElementById("pitch");
 const yaw = document.getElementById("yaw");
 const status = document.getElementById("status");
 const run = document.getElementById("run");
+const generations = document.getElementById("generations");
 
 /** Main entry point */
 export function main() {
@@ -21,19 +22,25 @@ export function main() {
 }
 
 /** This function is used in `bootstrap.js` to setup imports. */
-export function setup(WasmChart, run_experiment) {
+export function setup(WasmChart, run_experiment, get_generation) {
     Chart = WasmChart;
     Chart.run_experiment = run_experiment;
+    Chart.get_generation = get_generation;
 }
 
 /** Add event listeners. */
 function setupUI() {
     status.innerText = "WebAssembly loaded!";
     plotType.addEventListener("change", updatePlot);
+
     yaw.addEventListener("change", updatePlot);
     pitch.addEventListener("change", updatePlot);
+    generations.addEventListener("change", updatePlot);
+
     yaw.addEventListener("input", updatePlot);
     pitch.addEventListener("input", updatePlot);
+    generations.addEventListener("input", updatePlot);
+
     run.addEventListener("click", runExperiment)
     window.addEventListener("resize", setupCanvas);
 }
@@ -52,9 +59,10 @@ function setupCanvas() {
 /** Redraw currently selected plot. */
 function updatePlot() {
     const selected = plotType.selectedOptions[0];
-    let generation_value = 0;
+
     let yaw_value = Number(yaw.value) / 100.0;
     let pitch_value = Number(pitch.value) / 100.0;
+    let generation_value = Number(generations.value);
 
     status.innerText = `Rendering ${selected.innerText}...`;
 
@@ -71,10 +79,15 @@ function updatePlot() {
     const end = performance.now();
 
     coord.innerText = `Pitch:${pitch_value}, Yaw:${yaw_value}`
-    status.innerText = `Rendered ${selected.innerText} in ${Math.ceil(end - start)}ms`;
+    status.innerText = `Generation: ${generation_value}, rendered ${selected.innerText} in ${Math.ceil(end - start)}ms`;
 }
 
 /** Runs experiment. */
 function runExperiment() {
-    Chart.run_experiment(2.0, 2.0, 100)
+    // NOTE: a blocking call here
+    // TODO configure parameters from outside
+    Chart.run_experiment(-2.0, -2.0, 500);
+    updatePlot();
+    generations.max = 500;
+    generations.classList.remove("hide");
 }

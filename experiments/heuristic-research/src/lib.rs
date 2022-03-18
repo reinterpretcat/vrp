@@ -15,13 +15,19 @@ mod solver;
 lazy_static! {
     /// Keeps track of data used by the solver population.
     static ref EXPERIMENT_DATA: Mutex<ExperimentData> = Mutex::new(ExperimentData::default());
-
 }
 
+/// Runs experiment.
 #[wasm_bindgen]
 pub fn run_experiment(x: f64, z: f64, generations: usize) {
     let selection_size = 8;
     let objective_name = "rosenbrock";
 
     run_solver(objective_name, selection_size, vec![x, z], generations)
+}
+
+/// Gets current (last) generation.
+#[wasm_bindgen]
+pub fn get_generation() -> usize {
+    EXPERIMENT_DATA.lock().unwrap().generation
 }

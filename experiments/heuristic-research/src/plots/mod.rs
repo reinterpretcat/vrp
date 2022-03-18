@@ -54,9 +54,6 @@ fn get_points(generation: usize) -> Vec<ColoredDataPoint> {
         .lock()
         .ok()
         .and_then(|data| {
-            // NOTE use generation arg only if it is not zero
-            let generation = if generation > 0 { generation } else { data.generation };
-
             // TODO use different data with different colors
             data.on_generation
                 .get(&generation)
