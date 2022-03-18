@@ -250,6 +250,7 @@ pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>)
 
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
+    logger: Option<InfoLogger>,
     initial_solutions: Vec<Vec<f64>>,
     initial_params: (usize, f64),
     objective_func: Option<VectorFunction>,
@@ -264,6 +265,7 @@ pub struct Solver {
 impl Default for Solver {
     fn default() -> Self {
         Self {
+            logger: None,
             initial_solutions: vec![],
             initial_params: (4, 0.05),
             objective_func: None,
@@ -278,6 +280,12 @@ impl Default for Solver {
 }
 
 impl Solver {
+    /// Sets logger.
+    pub fn with_logger(mut self, logger: InfoLogger) -> Self {
+        self.logger = Some(logger);
+        self
+    }
+
     /// Sets initial parameters.
     pub fn with_init_params(mut self, max_size: usize, quota: f64) -> Self {
         self.initial_params = (max_size, quota);
@@ -328,7 +336,10 @@ impl Solver {
 
     /// Runs the solver using configuration provided through fluent interface methods.
     pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), String> {
-        let environment = Arc::new(Environment::new_with_time_quota(self.max_time));
+        // create an environment based on max_time and logger parameters supplied
+        let environment = Environment::new_with_time_quota(self.max_time);
+        let environment =
+            Arc::new(if let Some(logger) = self.logger { Environment { logger, ..environment } } else { environment });
 
         // build instances of implementation types from submitted data
         let func = self.objective_func.ok_or_else(|| "objective function must be set".to_string())?;
