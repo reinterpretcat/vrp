@@ -243,6 +243,9 @@ type TargetHeuristicOperator = Arc<
         + Sync,
 >;
 
+type TargetHeuristic =
+    Box<dyn HyperHeuristic<Context = VectorContext, Objective = VectorObjective, Solution = VectorSolution>>;
+
 /// Specifies solver solutions.
 pub type SolverSolutions = Vec<(Vec<f64>, f64)>;
 /// Specifies heuristic context factory type.
@@ -251,6 +254,7 @@ pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>)
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
     logger: Option<InfoLogger>,
+    use_dynamic_heuristic_only: bool,
     initial_solutions: Vec<Vec<f64>>,
     initial_params: (usize, f64),
     objective_func: Option<VectorFunction>,
@@ -266,6 +270,7 @@ impl Default for Solver {
     fn default() -> Self {
         Self {
             logger: None,
+            use_dynamic_heuristic_only: false,
             initial_solutions: vec![],
             initial_params: (4, 0.05),
             objective_func: None,
@@ -283,6 +288,12 @@ impl Solver {
     /// Sets logger.
     pub fn with_logger(mut self, logger: InfoLogger) -> Self {
         self.logger = Some(logger);
+        self
+    }
+
+    /// Use dynamic selective only
+    pub fn use_dynamic_heuristic_only(mut self) -> Self {
+        self.use_dynamic_heuristic_only = true;
         self
     }
 
@@ -338,30 +349,23 @@ impl Solver {
     pub fn solve(self) -> Result<(SolverSolutions, Option<TelemetryMetrics>), String> {
         // create an environment based on max_time and logger parameters supplied
         let environment = Environment::new_with_time_quota(self.max_time);
-        let environment =
-            Arc::new(if let Some(logger) = self.logger { Environment { logger, ..environment } } else { environment });
+        let environment = Arc::new(if let Some(logger) = self.logger.clone() {
+            Environment { logger, ..environment }
+        } else {
+            environment
+        });
 
         // build instances of implementation types from submitted data
+        let heuristic = if self.use_dynamic_heuristic_only {
+            self.create_dynamic_heuristic(environment.clone())
+        } else {
+            Box::new(MultiSelective::new(
+                self.create_dynamic_heuristic(environment.clone()),
+                self.create_static_heuristic(environment.clone()),
+            ))
+        };
         let func = self.objective_func.ok_or_else(|| "objective function must be set".to_string())?;
         let objective = Arc::new(VectorObjective::new(func));
-        let heuristic = Box::new(MultiSelective::new(
-            Box::new(DynamicSelective::new(
-                self.operators.iter().map(|(op, name, _)| (op.clone(), name.clone())).collect(),
-                environment.random.clone(),
-            )),
-            Box::new(StaticSelective::new(
-                self.operators
-                    .iter()
-                    .map(|(op, _, probability)| {
-                        let random = environment.random.clone();
-                        let probability = *probability;
-                        let probability_func: HeuristicProbability<VectorContext, VectorObjective, VectorSolution> =
-                            (Box::new(move |_, _| random.is_hit(probability)), Default::default());
-                        (op.clone(), probability_func)
-                    })
-                    .collect(),
-            )),
-        ));
         let initial_operators = self
             .initial_solutions
             .into_iter()
@@ -421,6 +425,28 @@ impl Solver {
             .collect();
 
         Ok((solutions, metrics))
+    }
+
+    fn create_dynamic_heuristic(&self, environment: Arc<Environment>) -> TargetHeuristic {
+        Box::new(DynamicSelective::new(
+            self.operators.iter().map(|(op, name, _)| (op.clone(), name.clone())).collect(),
+            environment.random.clone(),
+        ))
+    }
+
+    fn create_static_heuristic(&self, environment: Arc<Environment>) -> TargetHeuristic {
+        Box::new(StaticSelective::new(
+            self.operators
+                .iter()
+                .map(|(op, _, probability)| {
+                    let random = environment.random.clone();
+                    let probability = *probability;
+                    let probability_func: HeuristicProbability<VectorContext, VectorObjective, VectorSolution> =
+                        (Box::new(move |_, _| random.is_hit(probability)), Default::default());
+                    (op.clone(), probability_func)
+                })
+                .collect(),
+        ))
     }
 }
 

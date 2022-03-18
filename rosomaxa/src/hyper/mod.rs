@@ -62,7 +62,7 @@ where
         self.is_slow_search = match (self.is_slow_search, &heuristic_ctx.statistics().speed) {
             (false, HeuristicSpeed::Slow(ratio)) => {
                 heuristic_ctx.environment().logger.deref()(&format!(
-                    "slow refinement speed ({}), switch to slower hyper-heuristic",
+                    "slow refinement speed ({}), switch to simpler hyper-heuristic",
                     *ratio
                 ));
 

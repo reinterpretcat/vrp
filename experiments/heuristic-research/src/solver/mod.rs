@@ -20,6 +20,7 @@ pub fn run_solver(objective_name: &str, selection_size: usize, init_solution: Ve
         .with_logger(Arc::new(|message| {
             web_sys::console::log_1(&message.into());
         }))
+        .use_dynamic_heuristic_only()
         .with_init_solutions(vec![init_solution])
         .with_operator(noise_op, "first", 1.)
         .with_termination(None, Some(generations), None, None)
