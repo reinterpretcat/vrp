@@ -254,6 +254,7 @@ pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>)
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
     logger: Option<InfoLogger>,
+    telemetry_mode: Option<TelemetryMode>,
     use_dynamic_heuristic_only: bool,
     initial_solutions: Vec<Vec<f64>>,
     initial_params: (usize, f64),
@@ -270,6 +271,7 @@ impl Default for Solver {
     fn default() -> Self {
         Self {
             logger: None,
+            telemetry_mode: None,
             use_dynamic_heuristic_only: false,
             initial_solutions: vec![],
             initial_params: (4, 0.05),
@@ -285,15 +287,21 @@ impl Default for Solver {
 }
 
 impl Solver {
+    /// Use dynamic selective only
+    pub fn use_dynamic_heuristic_only(mut self) -> Self {
+        self.use_dynamic_heuristic_only = true;
+        self
+    }
+
     /// Sets logger.
     pub fn with_logger(mut self, logger: InfoLogger) -> Self {
         self.logger = Some(logger);
         self
     }
 
-    /// Use dynamic selective only
-    pub fn use_dynamic_heuristic_only(mut self) -> Self {
-        self.use_dynamic_heuristic_only = true;
+    /// Sets telemetry mode.
+    pub fn with_telemetry_mode(mut self, mode: TelemetryMode) -> Self {
+        self.telemetry_mode = Some(mode);
         self
     }
 
@@ -393,12 +401,12 @@ impl Solver {
         };
 
         // create a telemetry which will log population
-        let telemetry = Telemetry::new(TelemetryMode::OnlyLogging {
+        let telemetry = Telemetry::new(self.telemetry_mode.unwrap_or_else(|| TelemetryMode::OnlyLogging {
             logger: environment.logger.clone(),
             log_best: 100,
             log_population: 500,
             dump_population: false,
-        });
+        }));
 
         // build evolution config using fluent interface
         let config = EvolutionConfigBuilder::default()

@@ -1,3 +1,4 @@
+use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::example::*;
 use rosomaxa::get_default_population;
 use rosomaxa::prelude::*;
@@ -12,15 +13,22 @@ pub use self::proxies::*;
 /// Runs the solver to minimize objective function with given name.
 pub fn run_solver(objective_name: &str, selection_size: usize, init_solution: Vec<f64>, generations: usize) {
     let objective_fn = get_objective_function_by_name(objective_name);
+    let logger = Arc::new(|message: &str| {
+        web_sys::console::log_1(&message.into());
+    });
 
     let random = Arc::new(DefaultRandom::default());
     let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
 
     let _ = Solver::default()
-        .with_logger(Arc::new(|message| {
-            web_sys::console::log_1(&message.into());
-        }))
         .use_dynamic_heuristic_only()
+        .with_logger(logger.clone())
+        .with_telemetry_mode(TelemetryMode::OnlyLogging {
+            logger,
+            log_best: 10,
+            log_population: 100,
+            dump_population: false,
+        })
         .with_init_solutions(vec![init_solution])
         .with_operator(noise_op, "first", 1.)
         .with_termination(None, Some(generations), None, None)
