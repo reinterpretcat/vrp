@@ -17,8 +17,8 @@ impl Noise {
         Self { probability, range, random }
     }
 
-    /// Adds some noise to given value.
-    pub fn add(&self, value: f64) -> f64 {
+    /// Generate some noise based on given value.
+    pub fn generate(&self, value: f64) -> f64 {
         if self.random.is_hit(self.probability) {
             value * self.random.uniform_real(self.range.0, self.range.1)
         } else {

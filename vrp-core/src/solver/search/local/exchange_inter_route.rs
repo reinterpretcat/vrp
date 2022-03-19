@@ -192,8 +192,8 @@ fn reduce_pair_with_noise(
 ) -> Option<InsertionSuccessPair> {
     match (&left_result, &right_result) {
         (Some(left), Some(right)) => {
-            let left_cost = noise.add(left.0.cost + left.1.cost);
-            let right_cost = noise.add(right.0.cost + right.1.cost);
+            let left_cost = noise.generate(left.0.cost + left.1.cost);
+            let right_cost = noise.generate(right.0.cost + right.1.cost);
 
             if left_cost < right_cost {
                 left_result

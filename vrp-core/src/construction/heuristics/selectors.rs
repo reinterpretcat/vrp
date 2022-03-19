@@ -236,8 +236,8 @@ impl ResultSelector for NoiseResultSelector {
             (InsertionResult::Success(_), InsertionResult::Failure(_)) => left,
             (InsertionResult::Failure(_), InsertionResult::Success(_)) => right,
             (InsertionResult::Success(left_success), InsertionResult::Success(right_success)) => {
-                let left_cost = self.noise.add(left_success.cost);
-                let right_cost = self.noise.add(right_success.cost);
+                let left_cost = left_success.cost + self.noise.generate(left_success.cost);
+                let right_cost = right_success.cost + self.noise.generate(right_success.cost);
 
                 if left_cost < right_cost {
                     left
@@ -250,8 +250,8 @@ impl ResultSelector for NoiseResultSelector {
     }
 
     fn select_cost(&self, _route_ctx: &RouteContext, left: f64, right: f64) -> Either<f64, f64> {
-        let left = self.noise.add(left);
-        let right = self.noise.add(right);
+        let left = left + self.noise.generate(left);
+        let right = right + self.noise.generate(right);
 
         if left < right {
             Either::Left(left)

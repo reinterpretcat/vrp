@@ -219,13 +219,13 @@ impl HeuristicOperator for VectorHeuristicOperator {
         Self::Solution::new(
             match &self.mode {
                 VectorHeuristicOperatorMode::JustNoise(noise) => {
-                    solution.data.iter().map(|d| *d + noise.add(*d)).collect()
+                    solution.data.iter().map(|d| *d + noise.generate(*d)).collect()
                 }
                 VectorHeuristicOperatorMode::DimensionNoise(noise, dimens) => solution
                     .data
                     .iter()
                     .enumerate()
-                    .map(|(idx, d)| if dimens.contains(&idx) { *d + noise.add(*d) } else { *d })
+                    .map(|(idx, d)| if dimens.contains(&idx) { *d + noise.generate(*d) } else { *d })
                     .collect(),
             },
             context.objective.clone(),
