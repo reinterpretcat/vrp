@@ -87,8 +87,15 @@ function runExperiment() {
     // NOTE: a blocking call here
     // TODO configure parameters from outside
     let max_gen = 2000
-    Chart.run_experiment(-2.0, -2.0, max_gen);
+    let x = getRandomInRange(-2.0, 2.0)
+    let z = getRandomInRange(-2.0, 2.0)
+
+    Chart.run_experiment(x, z, max_gen);
     updatePlot();
     generations.max = max_gen;
     generations.classList.remove("hide");
+}
+
+function getRandomInRange(min, max) {
+    return (Math.random() * (max - min) + min)
 }
