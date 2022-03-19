@@ -1,9 +1,8 @@
 use super::*;
 use crate::example::*;
-use crate::helpers::example::create_default_heuristic_context;
+use crate::helpers::example::{create_default_heuristic_context, create_example_objective};
 use crate::utils::compare_floats;
 use std::cmp::Ordering;
-use std::sync::Arc;
 
 fn compare_statistic(statistics: &HeuristicStatistics, expected: (usize, f64, f64)) {
     assert_eq!(statistics.generation, expected.0);
@@ -14,7 +13,7 @@ fn compare_statistic(statistics: &HeuristicStatistics, expected: (usize, f64, f6
 #[test]
 fn can_update_statistic() {
     let mut heuristic_ctx = create_default_heuristic_context();
-    let objective = Arc::new(VectorObjective::new(create_rosenbrock_function()));
+    let objective = create_example_objective();
     let mut telemetry = Telemetry::new(TelemetryMode::None);
 
     let solution = VectorSolution::new(vec![], objective);

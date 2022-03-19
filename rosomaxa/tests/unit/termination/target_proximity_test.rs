@@ -1,5 +1,4 @@
 use super::*;
-use crate::example::create_rosenbrock_function;
 use crate::helpers::example::create_heuristic_context_with_solutions;
 
 parameterized_test! {can_use_target_proximity, (solutions, target_fitness, distance_threshold, expected), {
@@ -18,7 +17,7 @@ fn can_use_target_proximity_impl(
     distance_threshold: f64,
     expected: bool,
 ) {
-    let mut context = create_heuristic_context_with_solutions(solutions, create_rosenbrock_function());
+    let mut context = create_heuristic_context_with_solutions(solutions);
 
     let result = TargetProximity::<_, _, _>::new(target_fitness, distance_threshold).is_termination(&mut context);
 

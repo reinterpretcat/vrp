@@ -37,8 +37,8 @@ impl Chart {
                 projection: Projection { pitch, yaw, scale: 0.8 },
                 series: Series {
                     surface: {
-                        let objective_func = get_objective_function_by_name("rosenbrock");
-                        Box::new(move |x, z| objective_func.deref()(&[x, z]))
+                        let fitness_fn = get_fitness_fn_by_name("rosenbrock");
+                        Box::new(move |x, z| fitness_fn.deref()(&[x, z]))
                     },
                     points: Box::new(move || get_points(generation)),
                 },

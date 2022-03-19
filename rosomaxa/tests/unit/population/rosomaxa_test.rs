@@ -1,13 +1,13 @@
 use super::*;
 use crate::example::*;
+use crate::helpers::example::create_example_objective;
 use crate::utils::Timer;
 
 fn create_rosomaxa(rebalance_memory: usize) -> (Arc<VectorObjective>, Rosomaxa<VectorObjective, VectorSolution>) {
     let mut config = RosomaxaConfig::new_with_defaults(4);
     config.rebalance_memory = rebalance_memory;
 
-    let objective_func = create_rosenbrock_function();
-    let objective = Arc::new(VectorObjective::new(objective_func));
+    let objective = create_example_objective();
     let population = Rosomaxa::new(objective.clone(), Arc::new(Environment::default()), config).unwrap();
 
     (objective, population)

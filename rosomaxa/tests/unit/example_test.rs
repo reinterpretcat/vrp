@@ -35,7 +35,7 @@ pub fn can_create_and_use_rosenbrock_function_2d() {
 fn can_solve_rosenbrock() {
     let random = Arc::new(DefaultRandom::default());
     let (solutions, _) = Solver::default()
-        .with_objective_fun(create_rosenbrock_function())
+        .with_fitness_fn(create_rosenbrock_function())
         .with_init_solutions(vec![vec![2., 2.]])
         .with_operator(just_noise(1., (-0.05, 0.05), random.clone()), "first", 1.)
         .with_operator(just_noise(1., (0., 0.1), random.clone()), "second", 0.25)

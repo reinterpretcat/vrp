@@ -15,8 +15,10 @@ use std::any::Any;
 use std::ops::Deref;
 use std::sync::Arc;
 
-/// An example objective function.
-pub type VectorFunction = Arc<dyn Fn(&[f64]) -> f64 + Send + Sync>;
+/// An objective function which calculates a fitness of a vector.
+pub type FitnessFn = Arc<dyn Fn(&[f64]) -> f64 + Send + Sync>;
+/// A weight function which calculates rosomaxa weights of a vector.
+pub type WeightFn = Arc<dyn Fn(&[f64]) -> Vec<f64> + Send + Sync>;
 
 /// An example heuristic context.
 pub struct VectorContext {
@@ -29,7 +31,8 @@ pub struct VectorContext {
 
 /// An example heuristic objective.
 pub struct VectorObjective {
-    func: VectorFunction,
+    fitness_fn: FitnessFn,
+    weight_fn: WeightFn,
 }
 
 /// An example heuristic solution.
@@ -108,8 +111,8 @@ impl Stateful for VectorContext {
 
 impl VectorObjective {
     /// Creates a new instance `VectorObjective`.
-    pub fn new(func: VectorFunction) -> Self {
-        Self { func }
+    pub fn new(fitness_fn: FitnessFn, weight_fn: WeightFn) -> Self {
+        Self { fitness_fn: fitness_fn, weight_fn }
     }
 }
 
@@ -119,7 +122,7 @@ impl Objective for VectorObjective {
     type Solution = VectorSolution;
 
     fn fitness(&self, solution: &Self::Solution) -> f64 {
-        self.func.deref()(solution.data.as_slice())
+        self.fitness_fn.deref()(solution.data.as_slice())
     }
 }
 
@@ -135,7 +138,7 @@ impl MultiObjective for VectorObjective {
 
 impl Shuffled for VectorObjective {
     fn get_shuffled(&self, _: &(dyn Random + Send + Sync)) -> Self {
-        Self::new(self.func.clone())
+        Self::new(self.fitness_fn.clone(), self.weight_fn.clone())
     }
 }
 
@@ -161,10 +164,7 @@ impl DominanceOrdered for VectorSolution {
 
 impl RosomaxaWeighted for VectorSolution {
     fn weights(&self) -> Vec<f64> {
-        // TODO:
-        //  for the sake of experimentation, consider to provide some configuration here to allow
-        //  usage of some noise, smoothing or optional weights, but not only direct mapping of data.
-        self.data.clone()
+        self.objective.weight_fn.deref()(self.data.as_slice())
     }
 }
 
@@ -258,7 +258,8 @@ pub struct Solver {
     use_dynamic_heuristic_only: bool,
     initial_solutions: Vec<Vec<f64>>,
     initial_params: (usize, f64),
-    objective_func: Option<VectorFunction>,
+    fitness_fn: Option<FitnessFn>,
+    weight_fn: Option<WeightFn>,
     max_time: Option<usize>,
     max_generations: Option<usize>,
     min_cv: Option<(String, usize, f64, bool)>,
@@ -275,7 +276,8 @@ impl Default for Solver {
             use_dynamic_heuristic_only: false,
             initial_solutions: vec![],
             initial_params: (4, 0.05),
-            objective_func: None,
+            fitness_fn: None,
+            weight_fn: None,
             max_time: Some(10),
             max_generations: Some(100),
             min_cv: None,
@@ -341,9 +343,15 @@ impl Solver {
         self
     }
 
-    /// Sets objective function.
-    pub fn with_objective_fun(mut self, objective_func: VectorFunction) -> Self {
-        self.objective_func = Some(objective_func);
+    /// Sets fitness function.
+    pub fn with_fitness_fn(mut self, objective_fn: FitnessFn) -> Self {
+        self.fitness_fn = Some(objective_fn);
+        self
+    }
+
+    /// Sets weight function.
+    pub fn with_weight_fn(mut self, weight_fn: WeightFn) -> Self {
+        self.weight_fn = Some(weight_fn);
         self
     }
 
@@ -372,8 +380,9 @@ impl Solver {
                 self.create_static_heuristic(environment.clone()),
             ))
         };
-        let func = self.objective_func.ok_or_else(|| "objective function must be set".to_string())?;
-        let objective = Arc::new(VectorObjective::new(func));
+        let fitness_fn = self.fitness_fn.ok_or_else(|| "objective function must be set".to_string())?;
+        let weight_fn = self.weight_fn.unwrap_or_else(|| Arc::new(|data| data.iter().cloned().collect()));
+        let objective = Arc::new(VectorObjective::new(fitness_fn, weight_fn));
         let initial_operators = self
             .initial_solutions
             .into_iter()
@@ -449,9 +458,9 @@ impl Solver {
                 .map(|(op, _, probability)| {
                     let random = environment.random.clone();
                     let probability = *probability;
-                    let probability_func: HeuristicProbability<VectorContext, VectorObjective, VectorSolution> =
+                    let probability_fn: HeuristicProbability<VectorContext, VectorObjective, VectorSolution> =
                         (Box::new(move |_, _| random.is_hit(probability)), Default::default());
-                    (op.clone(), probability_func)
+                    (op.clone(), probability_fn)
                 })
                 .collect(),
         ))
@@ -461,7 +470,7 @@ impl Solver {
 /// Creates multidimensional Rosenbrock function, also referred to as the Valley or Banana function.
 /// The function is usually evaluated on the hypercube xi ∈ [-5, 10], for all i = 1, …, d, although
 /// it may be restricted to the hypercube xi ∈ [-2.048, 2.048], for all i = 1, …, d.
-pub fn create_rosenbrock_function() -> VectorFunction {
+pub fn create_rosenbrock_function() -> FitnessFn {
     Arc::new(|input| {
         assert!(input.len() > 1);
 

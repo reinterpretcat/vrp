@@ -11,8 +11,8 @@ mod proxies;
 pub use self::proxies::*;
 
 /// Runs the solver to minimize objective function with given name.
-pub fn run_solver(objective_name: &str, selection_size: usize, init_solution: Vec<f64>, generations: usize) {
-    let objective_fn = get_objective_function_by_name(objective_name);
+pub fn run_solver(function_name: &str, selection_size: usize, init_solution: Vec<f64>, generations: usize) {
+    let fitness_fn = get_fitness_fn_by_name(function_name);
     let logger = Arc::new(|message: &str| {
         web_sys::console::log_1(&message.into());
     });
@@ -32,7 +32,7 @@ pub fn run_solver(objective_name: &str, selection_size: usize, init_solution: Ve
         .with_init_solutions(vec![init_solution])
         .with_operator(noise_op, "first", 1.)
         .with_termination(None, Some(generations), None, None)
-        .with_objective_fun(objective_fn)
+        .with_fitness_fn(fitness_fn)
         .with_context_factory(Box::new(move |objective, environment| {
             let inner =
                 get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone(), selection_size);

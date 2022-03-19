@@ -1,5 +1,6 @@
 use super::*;
 use crate::example::*;
+use crate::helpers::example::create_example_objective;
 
 fn get_best_fitness(population: &Elitism<VectorObjective, VectorSolution>) -> f64 {
     population.objective.fitness(population.ranked().next().unwrap().0)
@@ -13,8 +14,7 @@ fn create_objective_population(
     max_population_size: usize,
     selection_size: usize,
 ) -> (Arc<VectorObjective>, Elitism<VectorObjective, VectorSolution>) {
-    let objective_func = create_rosenbrock_function();
-    let objective = Arc::new(VectorObjective::new(objective_func));
+    let objective = create_example_objective();
     let population =
         Elitism::<_, _>::new(objective.clone(), Environment::default().random, max_population_size, selection_size);
 

@@ -18,7 +18,7 @@
 //!
 //! // add some configuration and run the solver
 //! let (solutions, _) = Solver::default()
-//!     .with_objective_fun(create_rosenbrock_function())
+//!     .with_fitness_fn(create_rosenbrock_function())
 //!     .with_init_solutions(vec![vec![2., 2.]])
 //!     .with_operator(noise_op, "first", 1.)
 //!     .with_termination(Some(5), Some(1000), None, None)

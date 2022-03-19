@@ -21,9 +21,9 @@ lazy_static! {
 #[wasm_bindgen]
 pub fn run_experiment(x: f64, z: f64, generations: usize) {
     let selection_size = 8;
-    let objective_name = "rosenbrock";
+    let function_name = "rosenbrock";
 
-    run_solver(objective_name, selection_size, vec![x, z], generations)
+    run_solver(function_name, selection_size, vec![x, z], generations)
 }
 
 /// Gets current (last) generation.
