@@ -22,6 +22,16 @@ pub struct ExperimentData {
     pub on_generation: HashMap<usize, (HeuristicStatistics, Vec<DataPoint>)>,
 }
 
+impl ExperimentData {
+    /// Clears all data strored.
+    pub fn clear(&mut self) {
+        self.generation = 0;
+        self.on_add.clear();
+        self.on_select.clear();
+        self.on_generation.clear();
+    }
+}
+
 impl From<&VectorSolution> for DataPoint {
     fn from(solution: &VectorSolution) -> Self {
         assert_eq!(solution.data.len(), 2);
@@ -38,6 +48,7 @@ pub struct ProxyPopulation {
 impl ProxyPopulation {
     /// Creates a new instance of `ProxyPopulation`.
     pub fn new(inner: VectorPopulation) -> Self {
+        EXPERIMENT_DATA.lock().unwrap().clear();
         Self { generation: 0, inner }
     }
 

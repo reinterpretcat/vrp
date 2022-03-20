@@ -18,7 +18,7 @@ pub fn run_solver(function_name: &str, selection_size: usize, init_solution: Vec
     });
 
     let random = Arc::new(DefaultRandom::default());
-    let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.5, 0.5), random));
+    let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
 
     let _ = Solver::default()
         .use_dynamic_heuristic_only()
