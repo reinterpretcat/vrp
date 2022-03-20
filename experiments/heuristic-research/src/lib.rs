@@ -1,3 +1,5 @@
+#![allow(clippy::unused_unit)]
+
 #[macro_use]
 extern crate lazy_static;
 

@@ -1,3 +1,5 @@
+#![allow(clippy::unused_unit)]
+
 use super::*;
 use plotters::prelude::*;
 use std::ops::Deref;
@@ -18,13 +20,6 @@ pub use self::drawing::*;
 /// Type used on the JS side to convert screen coordinates to chart coordinates.
 #[wasm_bindgen]
 pub struct Chart {}
-
-/// Result of screen to chart coordinates conversion.
-#[wasm_bindgen]
-pub struct Point {
-    pub x: f64,
-    pub y: f64,
-}
 
 #[wasm_bindgen]
 impl Chart {

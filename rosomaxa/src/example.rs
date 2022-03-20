@@ -47,7 +47,7 @@ pub struct VectorSolution {
 impl VectorSolution {
     /// Returns a fitness value of given solution.
     pub fn fitness(&self) -> f64 {
-        self.objective.fitness(&self)
+        self.objective.fitness(self)
     }
 }
 
@@ -112,7 +112,7 @@ impl Stateful for VectorContext {
 impl VectorObjective {
     /// Creates a new instance `VectorObjective`.
     pub fn new(fitness_fn: FitnessFn, weight_fn: WeightFn) -> Self {
-        Self { fitness_fn: fitness_fn, weight_fn }
+        Self { fitness_fn, weight_fn }
     }
 }
 
@@ -381,7 +381,7 @@ impl Solver {
             ))
         };
         let fitness_fn = self.fitness_fn.ok_or_else(|| "objective function must be set".to_string())?;
-        let weight_fn = self.weight_fn.unwrap_or_else(|| Arc::new(|data| data.iter().cloned().collect()));
+        let weight_fn = self.weight_fn.unwrap_or_else(|| Arc::new(|data| data.to_vec()));
         let objective = Arc::new(VectorObjective::new(fitness_fn, weight_fn));
         let initial_operators = self
             .initial_solutions
