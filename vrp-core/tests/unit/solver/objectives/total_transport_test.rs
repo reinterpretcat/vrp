@@ -1,11 +1,10 @@
-use crate::construction::heuristics::{InsertionContext, RegistryContext, RouteContext, RouteState, SolutionContext};
+use crate::construction::heuristics::{InsertionContext, RouteContext, RouteState, SolutionContext};
 use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
-use crate::helpers::models::domain::{create_empty_solution_context, test_random};
+use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::Schedule;
 use crate::models::problem::{Job, Jobs, ProblemObjective, SimpleActivityCost};
-use crate::models::solution::Registry;
 use crate::models::{Extras, Problem};
 use crate::solver::objectives::TotalCost;
 use hashbrown::HashMap;
@@ -61,7 +60,7 @@ fn can_calculate_transport_cost() {
         solution: SolutionContext {
             unassigned,
             routes: vec![route1, route2],
-            registry: RegistryContext::new(Registry::new(&fleet, test_random())),
+            registry: create_registry_context(&fleet),
             ..create_empty_solution_context()
         },
         environment: Arc::new(Environment::default()),

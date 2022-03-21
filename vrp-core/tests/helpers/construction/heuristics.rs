@@ -11,13 +11,11 @@ pub fn create_insertion_context(
     constraint: ConstraintPipeline,
     routes: Vec<RouteContext>,
 ) -> InsertionContext {
+    let problem = create_empty_problem_with_constraint(constraint);
+    let registry = RegistryContext::new(problem.constraint.clone(), registry);
     InsertionContext {
-        problem: create_empty_problem_with_constraint(constraint),
-        solution: SolutionContext {
-            routes,
-            registry: RegistryContext::new(registry),
-            ..create_empty_solution_context()
-        },
+        problem,
+        solution: SolutionContext { routes, registry, ..create_empty_solution_context() },
         environment: Arc::new(Environment::default()),
     }
 }

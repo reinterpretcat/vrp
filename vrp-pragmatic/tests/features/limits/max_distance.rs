@@ -1,5 +1,6 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
+use crate::format_time;
 use crate::helpers::*;
 
 #[test]
@@ -22,6 +23,50 @@ fn can_limit_by_max_distance() {
         distances: vec![1, 100, 100, 1],
         error_codes: Option::None,
     };
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert_eq!(
+        solution,
+        Solution {
+            statistic: Statistic {
+                cost: 0.,
+                distance: 0,
+                duration: 0,
+                times: Timing { driving: 0, serving: 0, ..Timing::default() },
+            },
+            tours: vec![],
+            unassigned: Some(vec![UnassignedJob {
+                job_id: "job1".to_string(),
+                reasons: vec![UnassignedJobReason {
+                    code: "MAX_DISTANCE_CONSTRAINT".to_string(),
+                    description: "cannot be assigned due to max distance constraint of vehicle".to_string()
+                }]
+            }]),
+            ..create_empty_solution()
+        }
+    );
+}
+
+#[test]
+fn can_handle_empty_route() {
+    let problem = Problem {
+        plan: Plan { jobs: vec![create_delivery_job("job1", vec![5., 0.])], ..create_empty_plan() },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: vec![0., 0.].to_loc() },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(100.), location: vec![10., 0.].to_loc() }),
+                    ..create_default_open_vehicle_shift()
+                }],
+                limits: Some(VehicleLimits { max_distance: Some(9.), shift_time: None, tour_size: None, areas: None }),
+                ..create_default_vehicle_type()
+            }],
+            profiles: create_default_matrix_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 

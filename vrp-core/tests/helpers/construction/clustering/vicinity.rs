@@ -34,9 +34,7 @@ impl ConstraintModule for VicinityTestModule {
         unimplemented!()
     }
 
-    fn accept_route_state(&self, _: &mut RouteContext) {
-        unimplemented!()
-    }
+    fn accept_route_state(&self, _: &mut RouteContext) {}
 
     fn accept_solution_state(&self, _: &mut SolutionContext) {
         unimplemented!()

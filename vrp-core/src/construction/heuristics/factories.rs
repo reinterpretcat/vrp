@@ -181,11 +181,12 @@ pub fn create_empty_insertion_context(problem: Arc<Problem>, environment: Arc<En
 
 fn create_registry_context(problem: &Problem, registry: Registry) -> RegistryContext {
     let modifier = problem.extras.get("route_modifier").and_then(|s| s.downcast_ref::<RouteModifier>());
+    let constraint = problem.constraint.clone();
 
     if let Some(modifier) = modifier {
-        RegistryContext::new_with_modifier(registry, modifier)
+        RegistryContext::new_with_modifier(constraint, registry, modifier)
     } else {
-        RegistryContext::new(registry)
+        RegistryContext::new(constraint, registry)
     }
 }
 

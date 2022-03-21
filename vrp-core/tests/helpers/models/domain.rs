@@ -1,5 +1,6 @@
 use crate::construction::constraints::{ConstraintPipeline, TOTAL_DISTANCE_KEY, TOTAL_DURATION_KEY};
 use crate::construction::heuristics::{InsertionContext, RegistryContext, SolutionContext};
+use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::create_route_context_with_activities;
 use crate::models::common::IdDimension;
@@ -51,6 +52,11 @@ pub fn create_empty_solution() -> Solution {
     }
 }
 
+pub fn create_registry_context(fleet: &Fleet) -> RegistryContext {
+    let constraint = Arc::new(create_constraint_pipeline_with_transport());
+    RegistryContext::new(constraint, Registry::new(fleet, test_random()))
+}
+
 pub fn create_empty_solution_context() -> SolutionContext {
     SolutionContext {
         required: vec![],
@@ -58,7 +64,7 @@ pub fn create_empty_solution_context() -> SolutionContext {
         unassigned: Default::default(),
         locked: Default::default(),
         routes: vec![],
-        registry: RegistryContext::new(Registry::new(&test_fleet(), test_random())),
+        registry: create_registry_context(&test_fleet()),
         state: Default::default(),
     }
 }

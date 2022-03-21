@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * fix tour order issue related to break/reload activities
+* fix limit violation issue in specific use cases
 
 
 ## [v1.16.1] - 2022-03-10

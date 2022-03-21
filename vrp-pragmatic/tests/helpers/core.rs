@@ -1,5 +1,6 @@
 use crate::extensions::create_typed_actor_groups;
 use std::sync::Arc;
+use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::construction::heuristics::{RegistryContext, SolutionContext};
 use vrp_core::models::common::*;
@@ -113,6 +114,7 @@ pub fn single_demand_as_multi(pickup: (i32, i32), delivery: (i32, i32)) -> Deman
 }
 
 pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
+    let constraint = Arc::new(ConstraintPipeline::default());
     SolutionContext {
         required: vec![],
         ignored: vec![],
@@ -120,7 +122,7 @@ pub fn create_solution_context_for_fleet(fleet: &Fleet) -> SolutionContext {
         locked: Default::default(),
         state: Default::default(),
         routes: Default::default(),
-        registry: RegistryContext::new(Registry::new(&fleet, Arc::new(DefaultRandom::default()))),
+        registry: RegistryContext::new(constraint, Registry::new(&fleet, Arc::new(DefaultRandom::default()))),
     }
 }
 

@@ -30,9 +30,9 @@ mod timing {
     use super::super::{try_advance_departure_time, try_recede_departure_time};
     use super::*;
     use crate::helpers::construction::constraints::create_constraint_pipeline_with_transport;
-    use crate::helpers::models::domain::{create_empty_solution_context, test_random};
+    use crate::helpers::models::domain::{create_empty_solution_context, create_registry_context};
     use crate::models::problem::Vehicle;
-    use crate::models::solution::{Activity, Place, Registry};
+    use crate::models::solution::{Activity, Place};
     use rosomaxa::prelude::compare_floats;
     use std::cmp::Ordering;
 
@@ -142,7 +142,7 @@ mod timing {
                         .build(),
                 ],
             )],
-            registry: RegistryContext::new(Registry::new(&fleet, test_random())),
+            registry: create_registry_context(&fleet),
             ..create_empty_solution_context()
         };
 
