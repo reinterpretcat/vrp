@@ -1,12 +1,13 @@
 use crate::constraints::{TOTAL_VALUE_KEY, TOUR_ORDER_KEY};
-use crate::format::problem::reader::objective_reader::create_objective;
+use crate::format::problem::reader::objective_reader::{create_objective, get_default_order};
 use crate::format::problem::reader::ProblemProperties;
-use crate::helpers::create_empty_insertion_context;
 use crate::helpers::create_empty_problem;
+use crate::helpers::{create_empty_insertion_context, create_single_with_type};
 use std::sync::Arc;
 use vrp_core::construction::constraints::ConstraintPipeline;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::rosomaxa::prelude::MultiObjective;
+use vrp_core::solver::objectives::OrderResult;
 
 fn create_problem_props() -> ProblemProperties {
     ProblemProperties {
@@ -71,4 +72,21 @@ fn can_define_proper_places_for_mixed_priority_and_order_objectives_by_default()
 
     assert_eq!(objectives[0].fitness(&insertion_ctx), 123.);
     assert_eq!(objectives[2].fitness(&insertion_ctx), 321.);
+}
+
+#[test]
+fn can_get_default_order() {
+    let compare_for_type = |activity_type: &str, expected: OrderResult| {
+        let order_result = get_default_order(&create_single_with_type("job1", activity_type));
+        match (order_result, expected) {
+            (OrderResult::Ignored, OrderResult::Ignored) | (OrderResult::Default, OrderResult::Default) => {}
+            _ => unreachable!(),
+        };
+    };
+
+    compare_for_type("break", OrderResult::Ignored);
+    compare_for_type("reload", OrderResult::Ignored);
+    compare_for_type("pickup", OrderResult::Default);
+    compare_for_type("delivery", OrderResult::Default);
+    compare_for_type("service", OrderResult::Default);
 }

@@ -162,7 +162,13 @@ fn get_value(
 }
 
 fn get_order(is_constrained: bool) -> (TargetConstraint, TargetObjective) {
-    let order_fn = OrderFn::Left(Arc::new(|single| single.dimens.get_value::<i32>("order").map(|order| *order as f64)));
+    let order_fn = OrderFn::Left(Arc::new(|single| {
+        single
+            .dimens
+            .get_value::<i32>("order")
+            .map(|order| OrderResult::Value(*order as f64))
+            .unwrap_or_else(|| get_default_order(single))
+    }));
 
     if is_constrained {
         CoreTourOrder::new_constrained(order_fn, TOUR_ORDER_KEY, TOUR_ORDER_CONSTRAINT_CODE)
@@ -185,7 +191,8 @@ fn get_area(
             .dimens
             .get_value::<HashMap<String, (usize, f64)>>("areas")
             .and_then(|index| single.dimens.get_id().and_then(|id| index.get(id)))
-            .map(|(order, _)| *order as f64)
+            .map(|(order, _)| OrderResult::Value(*order as f64))
+            .unwrap_or_else(|| get_default_order(single))
     });
     let value_fn: ActorValueFn = Arc::new(|actor, job| {
         actor
@@ -249,5 +256,12 @@ fn get_unassigned_job_estimate(job: &Job, break_value: f64, default_value: f64) 
                 default_value
             }
         })
+    }
+}
+
+fn get_default_order(single: &Single) -> OrderResult {
+    match single.dimens.get_value::<String>("type").map(|v| v.as_str()) {
+        Some("break") | Some("reload") => OrderResult::Ignored,
+        _ => OrderResult::Default,
     }
 }

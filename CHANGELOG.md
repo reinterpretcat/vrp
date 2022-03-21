@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+* fix tour order issue related to break/reload activities
+
+
 ## [v1.16.1] - 2022-03-10
 
 ### Added

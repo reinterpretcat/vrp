@@ -81,6 +81,14 @@ pub fn create_single(id: &str) -> Arc<Single> {
     Arc::new(single)
 }
 
+pub fn create_single_with_type(id: &str, activity_type: &str) -> Arc<Single> {
+    let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
+    single.dimens.set_id(id);
+    single.dimens.set_value("type", activity_type.to_string());
+
+    Arc::new(single)
+}
+
 pub fn create_single_with_location(location: Option<Location>) -> Single {
     Single {
         places: vec![vrp_core::models::problem::Place {

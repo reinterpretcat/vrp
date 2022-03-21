@@ -12,11 +12,22 @@ use std::ops::Deref;
 use std::slice::Iter;
 use std::sync::Arc;
 
+/// Specifies order result.
+#[derive(Copy, Clone)]
+pub enum OrderResult {
+    /// Returns a specified value.
+    Value(f64),
+    /// No value specified.
+    Default,
+    /// No value specified, but constraint should be ignored
+    Ignored,
+}
+
 /// Specifies an activity order function which takes into account actor and single job.
-pub type ActorOrderFn = Arc<dyn Fn(&Actor, &Single) -> Option<f64> + Send + Sync>;
+pub type ActorOrderFn = Arc<dyn Fn(&Actor, &Single) -> OrderResult + Send + Sync>;
 
 /// Specifies an activity order function which takes into account only single job.
-pub type SingleOrderFn = Arc<dyn Fn(&Single) -> Option<f64> + Send + Sync>;
+pub type SingleOrderFn = Arc<dyn Fn(&Single) -> OrderResult + Send + Sync>;
 
 /// Specifies an order func as a variant of two functions.
 pub type OrderFn = Either<SingleOrderFn, ActorOrderFn>;
@@ -100,7 +111,17 @@ impl ConstraintModule for TourOrderConstraint {
         match &self.order_fn {
             Either::Left(left) => {
                 let order_fn = left.deref();
-                let order_fn_cmp = |source: &Single, candidate: &Single| order_fn(source) == order_fn(candidate);
+                let order_fn_cmp = |source: &Single, candidate: &Single| {
+                    let source = order_fn(source);
+                    let candidate = order_fn(candidate);
+                    match (source, candidate) {
+                        (OrderResult::Value(s), OrderResult::Value(c)) => compare_floats(s, c) == Ordering::Equal,
+                        (OrderResult::Default, OrderResult::Default) | (OrderResult::Ignored, OrderResult::Ignored) => {
+                            true
+                        }
+                        _ => false,
+                    }
+                };
 
                 match (&source, &candidate) {
                     (Job::Single(s_source), Job::Single(s_candidate)) if order_fn_cmp(s_source, s_candidate) => {
@@ -134,7 +155,7 @@ impl HardActivityConstraint for TourOrderHardActivityConstraint {
         activity_ctx: &ActivityContext,
     ) -> Option<ActivityConstraintViolation> {
         evaluate_result(route_ctx, activity_ctx, &self.order_fn, &|first, second, stopped| {
-            if compare_floats(first, second) == Ordering::Greater {
+            if compare_order_results(first, second) == Ordering::Greater {
                 Some(ActivityConstraintViolation { code: self.constraint_code, stopped })
             } else {
                 None
@@ -150,11 +171,18 @@ struct TourOrderSoftActivityConstraint {
 impl SoftActivityConstraint for TourOrderSoftActivityConstraint {
     fn estimate_activity(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> f64 {
         evaluate_result(route_ctx, activity_ctx, &self.order_fn, &|first, second, _| {
-            if compare_floats(first, second) == Ordering::Greater {
+            if compare_order_results(first, second) == Ordering::Greater {
                 let max_cost = route_ctx.get_route_cost();
                 let penalty = if compare_floats(max_cost, 0.) == Ordering::Equal { 1E9 } else { max_cost * 2. };
 
-                Some((first - second) * penalty)
+                let value = match (first, second) {
+                    (OrderResult::Value(first), OrderResult::Value(second)) => first - second,
+                    (OrderResult::Default, OrderResult::Value(value)) => -value,
+                    (OrderResult::Value(value), OrderResult::Default) => value,
+                    _ => 0.,
+                };
+
+                Some(value * penalty)
             } else {
                 None
             }
@@ -187,7 +215,7 @@ fn evaluate_result<T>(
     route_ctx: &RouteContext,
     activity_ctx: &ActivityContext,
     order_fn: &OrderFn,
-    check_order: &(dyn Fn(f64, f64, bool) -> Option<T>),
+    check_order: &(dyn Fn(OrderResult, OrderResult, bool) -> Option<T>),
 ) -> Option<T> {
     let prev = activity_ctx.prev.job.as_ref();
     let target = activity_ctx.target.job.as_ref();
@@ -195,12 +223,9 @@ fn evaluate_result<T>(
 
     let actor = route_ctx.route.actor.as_ref();
 
-    let get_order = |single: &Single| {
-        match order_fn {
-            Either::Left(left) => left.deref()(single),
-            Either::Right(right) => right.deref()(actor, single),
-        }
-        .unwrap_or(f64::MAX)
+    let get_order = |single: &Single| match order_fn {
+        Either::Left(left) => left.deref()(single),
+        Either::Right(right) => right.deref()(actor, single),
     };
 
     match (prev, target, next) {
@@ -221,24 +246,18 @@ fn get_violations(routes: &[RouteContext], order_fn: &OrderFn) -> usize {
                 .tour
                 .all_activities()
                 .filter_map(|activity| activity.job.as_ref())
-                .map(|single| {
-                    match order_fn {
-                        Either::Left(left) => left.deref()(single.as_ref()),
-                        Either::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), single.as_ref()),
-                    }
-                    .unwrap_or(f64::MAX)
+                .map(|single| match order_fn {
+                    Either::Left(left) => left.deref()(single.as_ref()),
+                    Either::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), single.as_ref()),
                 })
-                .collect::<Vec<f64>>();
+                .collect::<Vec<OrderResult>>();
 
             orders.windows(2).fold(0_usize, |acc, pair| {
                 let value = match *pair {
-                    [prev, next] => {
-                        if prev > next {
-                            1
-                        } else {
-                            0
-                        }
-                    }
+                    [prev, next] => match compare_order_results(prev, next) {
+                        Ordering::Greater => 1,
+                        _ => 0,
+                    },
                     _ => unreachable!(),
                 };
 
@@ -246,4 +265,13 @@ fn get_violations(routes: &[RouteContext], order_fn: &OrderFn) -> usize {
             })
         })
         .sum::<usize>()
+}
+
+fn compare_order_results(left: OrderResult, right: OrderResult) -> Ordering {
+    match (left, right) {
+        (OrderResult::Value(left), OrderResult::Value(right)) => compare_floats(left, right),
+        (OrderResult::Value(_), OrderResult::Default) => Ordering::Less,
+        (OrderResult::Default, OrderResult::Value(_)) => Ordering::Greater,
+        _ => Ordering::Equal,
+    }
 }
