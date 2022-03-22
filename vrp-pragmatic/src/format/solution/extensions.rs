@@ -1,12 +1,6 @@
 use crate::format::solution::{Statistic, Timing};
 use std::ops::Add;
 
-impl Default for Statistic {
-    fn default() -> Self {
-        Statistic { cost: 0.0, distance: 0, duration: 0, times: Timing::default() }
-    }
-}
-
 impl Add for Statistic {
     type Output = Statistic;
 

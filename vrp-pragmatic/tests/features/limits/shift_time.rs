@@ -32,12 +32,7 @@ fn can_limit_one_job_by_shift_time() {
     assert_eq!(
         solution,
         Solution {
-            statistic: Statistic {
-                cost: 0.,
-                distance: 0,
-                duration: 0,
-                times: Timing { driving: 0, serving: 0, ..Timing::default() },
-            },
+            statistic: Statistic::default(),
             tours: vec![],
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),

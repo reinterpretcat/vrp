@@ -26,12 +26,7 @@ fn can_have_unassigned_due_to_missing_vehicle_skill() {
     assert_eq!(
         solution,
         Solution {
-            statistic: Statistic {
-                cost: 0.,
-                distance: 0,
-                duration: 0,
-                times: Timing { driving: 0, serving: 0, ..Timing::default() },
-            },
+            statistic: Statistic::default(),
             tours: vec![],
             unassigned: Some(vec![UnassignedJob {
                 job_id: "job1".to_string(),

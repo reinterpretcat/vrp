@@ -27,7 +27,7 @@ pub struct Timing {
 }
 
 /// Represents statistic.
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, Default, Serialize, PartialEq, Debug)]
 pub struct Statistic {
     /// Total cost.
     pub cost: f64,
