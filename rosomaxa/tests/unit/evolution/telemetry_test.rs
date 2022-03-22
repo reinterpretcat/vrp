@@ -17,7 +17,6 @@ fn can_update_statistic() {
     let mut telemetry = Telemetry::new(TelemetryMode::None);
 
     let solution = VectorSolution::new(vec![], objective);
-    telemetry.start();
     telemetry.on_initial(&solution, 0, 1, Timer::start());
 
     let statistics = telemetry.on_generation(&mut heuristic_ctx, 0., Timer::start(), true);

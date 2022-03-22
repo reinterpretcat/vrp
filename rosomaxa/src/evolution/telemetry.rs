@@ -124,11 +124,6 @@ where
         }
     }
 
-    /// Starts telemetry reporting.
-    pub fn start(&mut self) {
-        self.time = Timer::start();
-    }
-
     /// Reports initial solution statistics.
     pub fn on_initial(&mut self, solution: &S, item_idx: usize, total_items: usize, item_time: Timer) {
         match &self.mode {
