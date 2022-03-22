@@ -89,16 +89,6 @@ pub enum TelemetryMode {
     },
 }
 
-/// Specifies the type which observers a search progress.
-pub trait EvolutionObserver<O, S>
-where
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    /// Called after each generation.
-    fn on_generation(&self, heuristic_context: &(dyn HeuristicContext<Objective = O, Solution = S>));
-}
-
 /// Provides way to collect metrics and write information into log.
 pub struct Telemetry<C, O, S>
 where
@@ -112,7 +102,6 @@ where
     improvement_tracker: ImprovementTracker,
     speed_tracker: SpeedTracker,
     next_generation: Option<usize>,
-    observers: Vec<Box<dyn EvolutionObserver<O, S>>>,
     _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
 }
 
@@ -131,15 +120,8 @@ where
             improvement_tracker: ImprovementTracker::new(1000),
             speed_tracker: SpeedTracker::default(),
             next_generation: None,
-            observers: vec![],
             _marker: Default::default(),
         }
-    }
-
-    /// Adds evolution observer.
-    pub fn add_observer(mut self, observer: Box<dyn EvolutionObserver<O, S>>) -> Self {
-        self.observers.push(observer);
-        self
     }
 
     /// Starts telemetry reporting.
@@ -218,9 +200,6 @@ where
         } else {
             self.log("no progress yet");
         }
-
-        // TODO statistic is not updated in the context
-        self.observers.iter().for_each(|o| o.on_generation(heuristic_ctx));
 
         statistics
     }
