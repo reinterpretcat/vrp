@@ -402,15 +402,7 @@ pub struct RegistryContext {
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
     pub fn new(constraint: Arc<ConstraintPipeline>, registry: Registry) -> Self {
-        Self::new_with_modifier(
-            constraint.clone(),
-            registry,
-            &RouteModifier::new(move |route_ctx| {
-                let mut route_ctx = route_ctx;
-                constraint.accept_route_state(&mut route_ctx);
-                route_ctx
-            }),
-        )
+        Self::new_with_modifier(constraint.clone(), registry, &RouteModifier::new(move |route_ctx| route_ctx))
     }
 
     /// Creates a new instance of `RouteRegistry` using route context modifier.
