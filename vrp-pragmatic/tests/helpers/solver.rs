@@ -6,6 +6,7 @@ use std::sync::Arc;
 use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::Problem as CoreProblem;
 use vrp_core::models::Solution as CoreSolution;
+use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::RefinementContext;
 use vrp_core::solver::{create_default_config_builder, create_elitism_population, Solver};
@@ -16,7 +17,8 @@ pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matr
     let environment = Arc::new(Environment::default());
     get_core_solution(problem, matrices, true, |problem: Arc<CoreProblem>| {
         let population = create_elitism_population(problem.objective.clone(), environment.clone());
-        let mut refinement_ctx = RefinementContext::new(problem.clone(), population, environment.clone());
+        let mut refinement_ctx =
+            RefinementContext::new(problem.clone(), population, TelemetryMode::None, environment.clone());
 
         RecreateWithCheapest::new(environment.random.clone())
             .run(&mut refinement_ctx, InsertionContext::new(problem.clone(), environment.clone()))

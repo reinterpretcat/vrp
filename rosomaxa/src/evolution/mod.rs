@@ -31,7 +31,6 @@ pub trait EvolutionStrategy {
             dyn HyperHeuristic<Context = Self::Context, Objective = Self::Objective, Solution = Self::Solution>,
         >,
         termination: Box<dyn Termination<Context = Self::Context, Objective = Self::Objective>>,
-        telemetry: Telemetry<Self::Context, Self::Objective, Self::Solution>,
     ) -> EvolutionResult<Self::Solution>;
 }
 

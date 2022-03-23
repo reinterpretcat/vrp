@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::example::*;
+use crate::Timer;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -25,9 +26,10 @@ fn can_detect_termination_with_sample_impl(
 
     let result = (0..sample)
         .map(|i| {
-            context.statistics_mut().generation = i;
             let other = if no_other_variance { 0. } else { i as f64 };
             let cost = 1. + (i + 1) as f64 * delta;
+
+            context.on_generation(vec![], 0.1, Timer::start());
 
             termination.update_and_check(&mut context, vec![other, other, cost])
         })

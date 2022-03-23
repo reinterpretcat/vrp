@@ -15,7 +15,7 @@ use vrp_core::construction::heuristics::InsertionContext;
 use vrp_core::models::common::SingleDimLoad;
 use vrp_core::models::problem::ProblemObjective;
 use vrp_core::prelude::*;
-use vrp_core::rosomaxa::evolution::{InitialOperator, Telemetry, TelemetryMode};
+use vrp_core::rosomaxa::evolution::{InitialOperator, TelemetryMode};
 use vrp_core::rosomaxa::get_default_selection_size;
 use vrp_core::rosomaxa::prelude::*;
 use vrp_core::rosomaxa::utils::*;
@@ -433,6 +433,7 @@ fn configure_from_evolution(
     mut builder: ProblemConfigBuilder,
     problem: Arc<Problem>,
     environment: Arc<Environment>,
+    telemetry_config: &Option<TelemetryConfig>,
     population_config: &Option<EvolutionConfig>,
 ) -> Result<ProblemConfigBuilder, String> {
     if let Some(config) = population_config {
@@ -529,7 +530,9 @@ fn configure_from_evolution(
                 }
             };
 
-            builder = builder.with_context(RefinementContext::new(problem, population, environment));
+            let telemetry_mode = get_telemetry_mode(environment.clone(), telemetry_config);
+
+            builder = builder.with_context(RefinementContext::new(problem, population, telemetry_mode, environment));
         }
     }
 
@@ -733,11 +736,7 @@ fn create_local_search(
     Arc::new(CompositeLocalOperator::new(operators, times.min, times.max))
 }
 
-fn configure_from_telemetry(
-    builder: ProblemConfigBuilder,
-    environment: Arc<Environment>,
-    telemetry_config: &Option<TelemetryConfig>,
-) -> ProblemConfigBuilder {
+fn get_telemetry_mode(environment: Arc<Environment>, telemetry_config: &Option<TelemetryConfig>) -> TelemetryMode {
     const LOG_BEST: usize = 100;
     const LOG_POPULATION: usize = 1000;
     const TRACK_POPULATION: usize = 1000;
@@ -755,7 +754,7 @@ fn configure_from_telemetry(
         }
     };
 
-    let telemetry_mode = match telemetry_config.as_ref().map(|t| (&t.progress, &t.metrics)) {
+    match telemetry_config.as_ref().map(|t| (&t.progress, &t.metrics)) {
         Some((None, Some(MetricsConfig { enabled, track_population }))) if *enabled => create_metrics(track_population),
         Some((Some(ProgressConfig { enabled, log_best, log_population, dump_population }), None)) if *enabled => {
             create_progress(log_best, log_population, dump_population)
@@ -776,9 +775,7 @@ fn configure_from_telemetry(
             _ => TelemetryMode::None,
         },
         _ => TelemetryMode::None,
-    };
-
-    builder.with_telemetry(Telemetry::new(telemetry_mode))
+    }
 }
 
 fn configure_from_environment(
@@ -835,8 +832,8 @@ pub fn create_builder_from_config(
     let mut builder =
         create_default_config_builder(problem.clone(), environment.clone()).with_init_solutions(solutions, None);
 
-    builder = configure_from_telemetry(builder, environment.clone(), &config.telemetry);
-    builder = configure_from_evolution(builder, problem.clone(), environment.clone(), &config.evolution)?;
+    builder =
+        configure_from_evolution(builder, problem.clone(), environment.clone(), &config.telemetry, &config.evolution)?;
     builder = configure_from_hyper(builder, problem, environment, &config.hyper)?;
     builder = configure_from_termination(builder, &config.termination);
 

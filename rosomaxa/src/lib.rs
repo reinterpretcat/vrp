@@ -51,6 +51,7 @@ pub mod termination;
 pub mod utils;
 
 use crate::algorithms::nsga2::MultiObjective;
+use crate::evolution::{Telemetry, TelemetryMetrics, TelemetryMode};
 use crate::population::*;
 use crate::utils::Environment;
 use crate::utils::Timer;
@@ -68,6 +69,9 @@ pub trait HeuristicSolution: Send + Sync {
 /// Represents a heuristic objective function.
 pub trait HeuristicObjective: MultiObjective + Send + Sync {}
 
+/// Specifies a dynamically dispatched type for heuristic population.
+pub type DynHeuristicPopulation<O, S> = dyn HeuristicPopulation<Objective = O, Individual = S>;
+
 /// Represents heuristic context.
 pub trait HeuristicContext: Send + Sync {
     /// A heuristic objective function type.
@@ -78,22 +82,25 @@ pub trait HeuristicContext: Send + Sync {
     /// Returns objective function used by the population.
     fn objective(&self) -> &Self::Objective;
 
-    /// Returns population.
-    fn population(&self) -> &(dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>);
-
-    /// Returns population as mutable reference.
-    fn population_mut(
-        &mut self,
-    ) -> &mut (dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>);
+    /// Returns current population.
+    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution>;
 
     /// Returns current statistic used to track the search progress.
     fn statistics(&self) -> &HeuristicStatistics;
 
-    /// Returns statistics as mutable reference.
-    fn statistics_mut(&mut self) -> &mut HeuristicStatistics;
-
     /// Returns environment.
     fn environment(&self) -> &Environment;
+
+    /// Updates population with initial solution.
+    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer);
+
+    /// Updates population with a new offspring.
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer);
+
+    /// Returns final population and telemetry metrics
+    fn on_result(
+        self,
+    ) -> Result<(Box<DynHeuristicPopulation<Self::Objective, Self::Solution>>, Option<TelemetryMetrics>), String>;
 }
 
 /// A refinement statistics to track evolution progress.
@@ -128,6 +135,90 @@ impl Default for HeuristicStatistics {
             improvement_1000_ratio: 0.,
             termination_estimate: 0.,
         }
+    }
+}
+
+/// A default heuristic context implementation which uses telemetry to track search progression parameters.
+pub struct TelemetryHeuristicContext<O, S>
+where
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    objective: Arc<O>,
+    population: Box<DynHeuristicPopulation<O, S>>,
+    statistics: HeuristicStatistics,
+    telemetry: Telemetry<O, S>,
+    environment: Arc<Environment>,
+}
+
+impl<O, S> TelemetryHeuristicContext<O, S>
+where
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    /// Creates a new instance of `TelemetryHeuristicContext`.
+    pub fn new(
+        objective: Arc<O>,
+        population: Box<DynHeuristicPopulation<O, S>>,
+        telemetry_mode: TelemetryMode,
+        environment: Arc<Environment>,
+    ) -> Self {
+        let telemetry = Telemetry::new(telemetry_mode);
+        Self { objective, population, statistics: Default::default(), telemetry, environment }
+    }
+
+    /// Adds solution to population.
+    pub fn add_solution(&mut self, solution: S) {
+        self.population.add(solution);
+    }
+}
+
+impl<O, S> HeuristicContext for TelemetryHeuristicContext<O, S>
+where
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    type Objective = O;
+    type Solution = S;
+
+    fn objective(&self) -> &Self::Objective {
+        &self.objective
+    }
+
+    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution> {
+        self.population.as_ref()
+    }
+
+    fn statistics(&self) -> &HeuristicStatistics {
+        &self.statistics
+    }
+
+    fn environment(&self) -> &Environment {
+        self.environment.as_ref()
+    }
+
+    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
+        self.telemetry.on_initial(&solution, item_time);
+        self.population.add(solution);
+    }
+
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer) {
+        let is_improved = self.population.add_all(offspring);
+        self.statistics = self.telemetry.on_generation(
+            self.objective.as_ref(),
+            self.population.as_ref(),
+            termination_estimate,
+            generation_time,
+            is_improved,
+        );
+    }
+
+    fn on_result(self) -> Result<(Box<DynHeuristicPopulation<O, S>>, Option<TelemetryMetrics>), String> {
+        let mut telemetry = self.telemetry;
+
+        telemetry.on_result(self.objective.as_ref(), self.population.as_ref(), &self.statistics);
+
+        Ok((self.population, telemetry.take_metrics()))
     }
 }
 

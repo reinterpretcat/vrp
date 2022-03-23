@@ -57,11 +57,18 @@ pub fn create_default_config_builder(problem: Arc<Problem>, environment: Arc<Env
         selection_size,
     );
 
+    let telemetry_mode = get_default_telemetry_mode(environment.logger.clone());
+
     ProblemConfigBuilder::default()
         .with_heuristic(get_default_heuristic(problem.clone(), environment.clone()))
-        .with_context(RefinementContext::new(problem.clone(), population, environment.clone()))
+        .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
         .with_initial(4, 0.05, create_default_init_operators(problem, environment))
         .with_processing(create_default_processing())
+}
+
+/// Creates default telemetry mode.B
+pub fn get_default_telemetry_mode(logger: InfoLogger) -> TelemetryMode {
+    TelemetryMode::OnlyLogging { logger, log_best: 100, log_population: 1000, dump_population: false }
 }
 
 /// Gets default heuristic.
@@ -170,7 +177,7 @@ pub fn create_context_operator_probability(
                 return false;
             }
 
-            let phase_probability = phases.get(&refinement_ctx.population.selection_phase()).cloned().unwrap_or(0.);
+            let phase_probability = phases.get(&refinement_ctx.population().selection_phase()).cloned().unwrap_or(0.);
             random.is_hit(phase_probability)
         }),
         PhantomData::default(),

@@ -9,7 +9,7 @@ use crate::hyper::*;
 use crate::population::{DominanceOrder, DominanceOrdered, RosomaxaWeighted, Shuffled};
 use crate::prelude::*;
 use crate::utils::Noise;
-use crate::{get_default_population, get_default_selection_size};
+use crate::*;
 use hashbrown::{HashMap, HashSet};
 use std::any::Any;
 use std::ops::Deref;
@@ -19,13 +19,13 @@ use std::sync::Arc;
 pub type FitnessFn = Arc<dyn Fn(&[f64]) -> f64 + Send + Sync>;
 /// A weight function which calculates rosomaxa weights of a vector.
 pub type WeightFn = Arc<dyn Fn(&[f64]) -> Vec<f64> + Send + Sync>;
+/// Specifies a population type which stores vector solutions.
+pub type VectorPopulation = DynHeuristicPopulation<VectorObjective, VectorSolution>;
 
 /// An example heuristic context.
 pub struct VectorContext {
+    inner_context: TelemetryHeuristicContext<VectorObjective, VectorSolution>,
     objective: Arc<VectorObjective>,
-    population: Box<dyn HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution>>,
-    statistics: HeuristicStatistics,
-    environment: Arc<Environment>,
     state: HashMap<i32, Box<dyn Any + Send + Sync>>,
 }
 
@@ -56,9 +56,14 @@ impl VectorContext {
     pub fn new(
         objective: Arc<VectorObjective>,
         population: Box<dyn HeuristicPopulation<Objective = VectorObjective, Individual = VectorSolution>>,
+        telemetry_mode: TelemetryMode,
         environment: Arc<Environment>,
     ) -> Self {
-        Self { objective, population, statistics: Default::default(), environment, state: Default::default() }
+        Self {
+            inner_context: TelemetryHeuristicContext::new(objective.clone(), population, telemetry_mode, environment),
+            objective,
+            state: Default::default(),
+        }
     }
 }
 
@@ -67,29 +72,31 @@ impl HeuristicContext for VectorContext {
     type Solution = VectorSolution;
 
     fn objective(&self) -> &Self::Objective {
-        &self.objective
+        self.inner_context.objective()
     }
 
-    fn population(&self) -> &dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution> {
-        self.population.as_ref()
-    }
-
-    fn population_mut(
-        &mut self,
-    ) -> &mut dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution> {
-        self.population.as_mut()
+    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution> {
+        self.inner_context.population()
     }
 
     fn statistics(&self) -> &HeuristicStatistics {
-        &self.statistics
-    }
-
-    fn statistics_mut(&mut self) -> &mut HeuristicStatistics {
-        &mut self.statistics
+        self.inner_context.statistics()
     }
 
     fn environment(&self) -> &Environment {
-        self.environment.as_ref()
+        self.inner_context.environment()
+    }
+
+    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
+        self.inner_context.on_initial(solution, item_time)
+    }
+
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer) {
+        self.inner_context.on_generation(offspring, termination_estimate, generation_time)
+    }
+
+    fn on_result(self) -> Result<(Box<VectorPopulation>, Option<TelemetryMetrics>), String> {
+        self.inner_context.on_result()
     }
 }
 
@@ -193,7 +200,7 @@ impl InitialOperator for VectorInitialOperator {
     type Solution = VectorSolution;
 
     fn create(&self, context: &Self::Context) -> Self::Solution {
-        Self::Solution::new(self.data.clone(), context.objective.clone())
+        Self::Solution::new(self.data.clone(), context.inner_context.objective.clone())
     }
 }
 
@@ -254,7 +261,6 @@ pub type ContextFactory = Box<dyn FnOnce(Arc<VectorObjective>, Arc<Environment>)
 /// An example of the optimization solver to solve trivial problems.
 pub struct Solver {
     logger: Option<InfoLogger>,
-    telemetry_mode: Option<TelemetryMode>,
     use_dynamic_heuristic_only: bool,
     initial_solutions: Vec<Vec<f64>>,
     initial_params: (usize, f64),
@@ -272,7 +278,6 @@ impl Default for Solver {
     fn default() -> Self {
         Self {
             logger: None,
-            telemetry_mode: None,
             use_dynamic_heuristic_only: false,
             initial_solutions: vec![],
             initial_params: (4, 0.05),
@@ -298,12 +303,6 @@ impl Solver {
     /// Sets logger.
     pub fn with_logger(mut self, logger: InfoLogger) -> Self {
         self.logger = Some(logger);
-        self
-    }
-
-    /// Sets telemetry mode.
-    pub fn with_telemetry_mode(mut self, mode: TelemetryMode) -> Self {
-        self.telemetry_mode = Some(mode);
         self
     }
 
@@ -402,20 +401,18 @@ impl Solver {
                             environment.clone(),
                             selection_size,
                         ),
+                        TelemetryMode::OnlyLogging {
+                            logger: environment.logger.clone(),
+                            log_best: 100,
+                            log_population: 500,
+                            dump_population: false,
+                        },
                         environment.clone(),
                     )
                 },
                 |context_factory| context_factory(objective.clone(), environment.clone()),
             )
         };
-
-        // create a telemetry which will log population
-        let telemetry = Telemetry::new(self.telemetry_mode.unwrap_or_else(|| TelemetryMode::OnlyLogging {
-            logger: environment.logger.clone(),
-            log_best: 100,
-            log_population: 500,
-            dump_population: false,
-        }));
 
         // build evolution config using fluent interface
         let config = EvolutionConfigBuilder::default()
@@ -427,7 +424,6 @@ impl Solver {
             .with_max_generations(self.max_generations)
             .with_target_proximity(self.target_proximity)
             .with_initial(self.initial_params.0, self.initial_params.1, initial_operators)
-            .with_telemetry(telemetry)
             .build()?;
 
         // solve the problem

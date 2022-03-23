@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::example::create_default_heuristic_context;
+use crate::Timer;
 
 parameterized_test! {can_detect_termination, (generation, limit, expected), {
     can_detect_termination_impl(generation, limit, expected);
@@ -13,7 +14,10 @@ can_detect_termination! {
 
 fn can_detect_termination_impl(generation: usize, limit: usize, expected: bool) {
     let mut context = create_default_heuristic_context();
-    context.statistics_mut().generation = generation;
+
+    (0..=generation).for_each(|_| {
+        context.on_generation(vec![], 0.1, Timer::start());
+    });
 
     let result = MaxGeneration::<_, _, _>::new(limit).is_termination(&mut context);
 

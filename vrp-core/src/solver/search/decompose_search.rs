@@ -64,9 +64,9 @@ impl DecomposeSearch {
         // do actual refinement independently for each decomposed context
         let decomposed = parallel_into_collect(decomposed, |mut decomposed| {
             (0..self.repeat_count).for_each(|_| {
-                let insertion_ctx = decomposed.0.population.select().next().expect(GREEDY_ERROR);
+                let insertion_ctx = decomposed.0.population().select().next().expect(GREEDY_ERROR);
                 let insertion_ctx = self.inner_search.search(&decomposed.0, insertion_ctx);
-                decomposed.0.population.add(insertion_ctx);
+                decomposed.0.add_solution(insertion_ctx);
             });
             decomposed
         });
@@ -211,13 +211,12 @@ fn decompose_insertion_ctx(
                 .into_iter()
                 .map(|(insertion_ctx, indices)| {
                     (
-                        RefinementContext {
-                            problem: refinement_ctx.problem.clone(),
-                            population: create_population(insertion_ctx),
-                            state: Default::default(),
-                            environment: refinement_ctx.environment.clone(),
-                            statistics: Default::default(),
-                        },
+                        RefinementContext::new(
+                            refinement_ctx.problem.clone(),
+                            create_population(insertion_ctx),
+                            TelemetryMode::None,
+                            refinement_ctx.environment.clone(),
+                        ),
                         indices,
                     )
                 })
@@ -232,7 +231,7 @@ fn merge_best(
     accumulated: InsertionContext,
 ) -> InsertionContext {
     let (decomposed_ctx, route_indices) = decomposed;
-    let (decomposed_insertion_ctx, _) = decomposed_ctx.population.ranked().next().expect(GREEDY_ERROR);
+    let (decomposed_insertion_ctx, _) = decomposed_ctx.population().ranked().next().expect(GREEDY_ERROR);
 
     let (partial_insertion_ctx, _) = create_partial_insertion_ctx(original_insertion_ctx, route_indices);
     let objective = partial_insertion_ctx.problem.objective.as_ref();

@@ -8,6 +8,7 @@ use crate::models::problem::*;
 use crate::models::solution::{Registry, Route};
 use crate::models::{Problem, Solution};
 use crate::solver::{create_elitism_population, RefinementContext};
+use rosomaxa::evolution::TelemetryMode;
 use rosomaxa::prelude::Environment;
 use std::sync::Arc;
 
@@ -19,6 +20,7 @@ pub fn create_default_refinement_ctx(problem: Arc<Problem>) -> RefinementContext
     RefinementContext::new(
         problem.clone(),
         create_elitism_population(problem.objective.clone(), environment.clone()),
+        TelemetryMode::None,
         environment,
     )
 }

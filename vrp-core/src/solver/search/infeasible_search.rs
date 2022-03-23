@@ -42,7 +42,7 @@ impl HeuristicOperator for InfeasibleSearch {
             self.shuffle_objectives_probability,
             self.skip_constraint_check_probability,
         );
-        let mut new_refinement_ctx = create_relaxed_refinement_ctx(refinement_ctx, &new_insertion_ctx);
+        let mut new_refinement_ctx = create_relaxed_refinement_ctx(&new_insertion_ctx);
 
         let repeat_count = refinement_ctx.environment.random.uniform_int(1, self.repeat_count as i32);
 
@@ -54,7 +54,7 @@ impl HeuristicOperator for InfeasibleSearch {
                 self.inner_search.search(&new_refinement_ctx, get_random_individual(&new_refinement_ctx))
             };
 
-            new_refinement_ctx.population.add(new_insertion_ctx);
+            new_refinement_ctx.add_solution(new_insertion_ctx);
 
             None
         });
@@ -67,21 +67,13 @@ impl HeuristicOperator for InfeasibleSearch {
     }
 }
 
-fn create_relaxed_refinement_ctx(
-    refinement_ctx: &RefinementContext,
-    new_insertion_ctx: &InsertionContext,
-) -> RefinementContext {
+fn create_relaxed_refinement_ctx(new_insertion_ctx: &InsertionContext) -> RefinementContext {
     let problem = new_insertion_ctx.problem.clone();
     let environment = new_insertion_ctx.environment.clone();
     let population = Box::new(ElitismPopulation::new(problem.objective.clone(), environment.random.clone(), 4, 4));
 
-    RefinementContext {
-        problem,
-        population,
-        state: Default::default(),
-        environment,
-        statistics: refinement_ctx.statistics.clone(),
-    }
+    // NOTE statistic is reset to default
+    RefinementContext::new(problem, population, TelemetryMode::None, environment)
 }
 
 fn create_relaxed_insertion_ctx(
@@ -204,17 +196,17 @@ fn use_permissive_rule(
 }
 
 fn get_random_individual(new_refinement_ctx: &RefinementContext) -> &InsertionContext {
-    let size = new_refinement_ctx.population.size();
+    let size = new_refinement_ctx.population().size();
     let skip = new_refinement_ctx.environment.random.uniform_int(0, size as i32 - 1) as usize;
 
-    new_refinement_ctx.population.select().nth(skip).expect("no individual")
+    new_refinement_ctx.population().select().nth(skip).expect("no individual")
 }
 
 fn get_best_or_random_individual<'a>(
     new_refinement_ctx: &'a RefinementContext,
     old_insertion_ctx: &InsertionContext,
 ) -> &'a InsertionContext {
-    let new_insertion_ctx = new_refinement_ctx.population.select().next().expect("no individual");
+    let new_insertion_ctx = new_refinement_ctx.population().select().next().expect("no individual");
 
     if new_refinement_ctx.problem.objective.total_order(new_insertion_ctx, old_insertion_ctx) == Ordering::Less {
         new_insertion_ctx

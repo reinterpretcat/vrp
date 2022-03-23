@@ -333,16 +333,11 @@ pub fn run_solve(
 
     // optional
     let max_generations = parse_int_value::<usize>(matches, GENERATIONS_ARG_NAME, "max generations")?;
-    let telemetry = Telemetry::new(if matches.is_present(LOG_ARG_NAME) {
-        TelemetryMode::OnlyLogging {
-            logger: environment.logger.clone(),
-            log_best: 100,
-            log_population: 1000,
-            dump_population: false,
-        }
+    let telemetry_mode = if matches.is_present(LOG_ARG_NAME) {
+        get_default_telemetry_mode(environment.logger.clone())
     } else {
         TelemetryMode::None
-    });
+    };
 
     let is_check_requested = matches.is_present(CHECK_ARG_NAME);
     let min_cv = get_min_cv(matches)?;
@@ -388,13 +383,13 @@ pub fn run_solve(
                         } else {
                             let config = create_default_config_builder(problem.clone(), environment.clone())
                                 .with_init_solutions(solutions, init_size)
-                                .with_telemetry(telemetry)
                                 .with_max_generations(max_generations)
                                 .with_max_time(max_time)
                                 .with_min_cv(min_cv, "min_cv".to_string())
                                 .with_context(RefinementContext::new(
                                     problem.clone(),
                                     get_population(mode, problem.objective.clone(), environment.clone()),
+                                    telemetry_mode,
                                     environment.clone(),
                                 ))
                                 .with_heuristic(get_heuristic(matches, problem.clone(), environment)?)

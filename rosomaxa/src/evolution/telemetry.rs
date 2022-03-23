@@ -6,6 +6,7 @@ mod telemetry_test;
 
 use crate::prelude::*;
 use crate::utils::Timer;
+use crate::DynHeuristicPopulation;
 use std::fmt::Write;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -90,9 +91,8 @@ pub enum TelemetryMode {
 }
 
 /// Provides way to collect metrics and write information into log.
-pub struct Telemetry<C, O, S>
+pub struct Telemetry<O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
@@ -102,12 +102,11 @@ where
     improvement_tracker: ImprovementTracker,
     speed_tracker: SpeedTracker,
     next_generation: Option<usize>,
-    _marker: (PhantomData<C>, PhantomData<O>, PhantomData<S>),
+    _marker: (PhantomData<O>, PhantomData<S>),
 }
 
-impl<C, O, S> Telemetry<C, O, S>
+impl<O, S> Telemetry<O, S>
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
@@ -125,15 +124,13 @@ where
     }
 
     /// Reports initial solution statistics.
-    pub fn on_initial(&mut self, solution: &S, item_idx: usize, total_items: usize, item_time: Timer) {
+    pub fn on_initial(&mut self, solution: &S, item_time: Timer) {
         match &self.mode {
             TelemetryMode::OnlyLogging { .. } | TelemetryMode::All { .. } => {
                 self.log(
                     format!(
-                        "[{}s] created {} of {} initial solutions in {}ms",
+                        "[{}s] created initial solution in {}ms",
                         self.time.elapsed_secs(),
-                        item_idx + 1,
-                        total_items,
                         item_time.elapsed_millis(),
                     )
                     .as_str(),
@@ -147,7 +144,8 @@ where
     /// Reports generation statistics.
     pub fn on_generation(
         &mut self,
-        heuristic_ctx: &C,
+        objective: &O,
+        population: &DynHeuristicPopulation<O, S>,
         termination_estimate: f64,
         generation_time: Timer,
         is_improved: bool,
@@ -179,19 +177,26 @@ where
             }
         };
 
-        if let Some((best_individual, rank)) = heuristic_ctx.population().ranked().next() {
+        if let Some((best_individual, rank)) = population.ranked().next() {
             let should_log_best = generation % *log_best.unwrap_or(&usize::MAX) == 0;
             let should_log_population = generation % *log_population.unwrap_or(&usize::MAX) == 0;
             let should_track_population = generation % *track_population.unwrap_or(&usize::MAX) == 0;
 
             if should_log_best {
                 self.log_individual(
-                    &self.get_individual_metrics(heuristic_ctx, best_individual, rank),
+                    &self.get_individual_metrics(objective, population, best_individual, rank),
                     Some((generation, generation_time)),
                 )
             }
 
-            self.on_population(heuristic_ctx, should_log_population, should_track_population, should_dump_population);
+            self.on_population(
+                objective,
+                population,
+                &statistics,
+                should_log_population,
+                should_track_population,
+                should_dump_population,
+            );
         } else {
             self.log("no progress yet");
         }
@@ -202,7 +207,9 @@ where
     /// Reports population state.
     fn on_population(
         &mut self,
-        heuristic_ctx: &C,
+        objective: &O,
+        population: &DynHeuristicPopulation<O, S>,
+        statistics: &HeuristicStatistics,
         should_log_population: bool,
         should_track_population: bool,
         should_dump_population: bool,
@@ -211,14 +218,20 @@ where
             return;
         }
 
-        let generation = heuristic_ctx.statistics().generation;
+        let generation = statistics.generation;
 
         if should_log_population {
+            let selection_phase = match population.selection_phase() {
+                SelectionPhase::Initial => "initial",
+                SelectionPhase::Exploration => "exploration",
+                SelectionPhase::Exploitation => "exploitation",
+            };
+
             self.log(
                 format!(
                     "[{}s] population state (phase: {}, speed: {:.2} gen/sec, improvement ratio: {:.3}:{:.3}):",
                     self.time.elapsed_secs(),
-                    get_selection_phase(heuristic_ctx),
+                    selection_phase,
                     generation as f64 / self.time.elapsed_secs_as_f64(),
                     self.improvement_tracker.i_all_ratio,
                     self.improvement_tracker.i_1000_ratio,
@@ -227,16 +240,17 @@ where
             );
         }
 
-        let individuals = heuristic_ctx
-            .population()
+        let individuals = population
             .ranked()
-            .map(|(insertion_ctx, rank)| self.get_individual_metrics(heuristic_ctx, insertion_ctx, rank))
+            .map(|(insertion_ctx, rank)| self.get_individual_metrics(objective, population, insertion_ctx, rank))
             .collect::<Vec<_>>();
 
         if should_log_population {
             individuals.iter().for_each(|metrics| self.log_individual(metrics, None));
             if should_dump_population {
-                self.log(&format!("\t{}", get_population_state(heuristic_ctx)));
+                let mut state = String::new();
+                write!(state, "{}", population).unwrap();
+                self.log(&format!("\t{}", state));
             }
         }
 
@@ -253,8 +267,13 @@ where
     }
 
     /// Reports final statistic.
-    pub fn on_result(&mut self, heuristic_ctx: &C) {
-        let generations = heuristic_ctx.statistics().generation;
+    pub fn on_result(
+        &mut self,
+        objective: &O,
+        population: &DynHeuristicPopulation<O, S>,
+        statistics: &HeuristicStatistics,
+    ) {
+        let generations = statistics.generation;
 
         let (should_log_population, should_track_population) = match &self.mode {
             TelemetryMode::OnlyLogging { .. } => (true, false),
@@ -263,7 +282,7 @@ where
             _ => return,
         };
 
-        self.on_population(heuristic_ctx, should_log_population, should_track_population, false);
+        self.on_population(objective, population, statistics, should_log_population, should_track_population, false);
 
         let elapsed = self.time.elapsed_secs() as usize;
         let speed = generations as f64 / self.time.elapsed_secs_as_f64();
@@ -291,10 +310,16 @@ where
         }
     }
 
-    fn get_individual_metrics(&self, heuristic_ctx: &C, solution: &S, rank: usize) -> TelemetryIndividual {
+    fn get_individual_metrics(
+        &self,
+        objective: &O,
+        population: &DynHeuristicPopulation<O, S>,
+        solution: &S,
+        rank: usize,
+    ) -> TelemetryIndividual {
         let fitness = solution.get_fitness().collect::<Vec<_>>();
 
-        let (_, improvement) = get_fitness_value(heuristic_ctx, solution);
+        let (_, improvement) = get_fitness_value(objective, population, solution);
 
         TelemetryIndividual { rank, improvement, fitness }
     }
@@ -394,48 +419,21 @@ impl SpeedTracker {
     }
 }
 
-fn get_fitness_value<C, O, S>(heuristic_ctx: &C, solution: &S) -> (f64, f64)
+fn get_fitness_value<O, S>(objective: &O, population: &DynHeuristicPopulation<O, S>, solution: &S) -> (f64, f64)
 where
-    C: HeuristicContext<Objective = O, Solution = S>,
     O: HeuristicObjective<Solution = S>,
     S: HeuristicSolution,
 {
-    let fitness_value = heuristic_ctx.objective().fitness(solution);
+    let fitness_value = objective.fitness(solution);
 
-    let fitness_change = heuristic_ctx
-        .population()
+    let fitness_change = population
         .ranked()
         .next()
-        .map(|(best_ctx, _)| heuristic_ctx.objective().fitness(best_ctx))
+        .map(|(best_ctx, _)| objective.fitness(best_ctx))
         .map(|best_fitness| (fitness_value - best_fitness) / best_fitness * 100.)
         .unwrap_or(0.);
 
     (fitness_value, fitness_change)
-}
-
-fn get_population_state<C, O, S>(heuristic_ctx: &C) -> String
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    let mut state = String::new();
-    write!(state, "{}", heuristic_ctx.population()).unwrap();
-
-    state
-}
-
-fn get_selection_phase<C, O, S>(heuristic_ctx: &C) -> &str
-where
-    C: HeuristicContext<Objective = O, Solution = S>,
-    O: HeuristicObjective<Solution = S>,
-    S: HeuristicSolution,
-{
-    match heuristic_ctx.population().selection_phase() {
-        SelectionPhase::Initial => "initial",
-        SelectionPhase::Exploration => "exploration",
-        SelectionPhase::Exploitation => "exploitation",
-    }
 }
 
 fn format_fitness(fitness: impl Iterator<Item = f64>) -> String {

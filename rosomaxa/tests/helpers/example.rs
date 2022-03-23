@@ -1,6 +1,6 @@
 use crate::example::*;
 use crate::utils::Environment;
-use crate::{get_default_population, get_default_selection_size};
+use crate::{get_default_population, get_default_selection_size, TelemetryMode};
 use std::sync::Arc;
 
 /// Creates an example objective.
@@ -28,5 +28,5 @@ pub fn create_heuristic_context_with_solutions(solutions: Vec<Vec<f64>>) -> Vect
     let solutions = solutions.into_iter().map(|data| VectorSolution::new(data, objective.clone())).collect();
     population.add_all(solutions);
 
-    VectorContext::new(objective, population, environment)
+    VectorContext::new(objective, population, TelemetryMode::None, environment)
 }

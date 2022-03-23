@@ -23,12 +23,6 @@ pub fn run_solver(function_name: &str, selection_size: usize, init_solution: Vec
     let _ = Solver::default()
         .use_dynamic_heuristic_only()
         .with_logger(logger.clone())
-        .with_telemetry_mode(TelemetryMode::OnlyLogging {
-            logger,
-            log_best: 10,
-            log_population: 100,
-            dump_population: false,
-        })
         .with_init_solutions(vec![init_solution])
         .with_operator(noise_op, "first", 1.)
         .with_termination(None, Some(generations), None, None)
@@ -37,7 +31,9 @@ pub fn run_solver(function_name: &str, selection_size: usize, init_solution: Vec
             let inner =
                 get_default_population::<VectorContext, _, _>(objective.clone(), environment.clone(), selection_size);
             let population = Box::new(ProxyPopulation::new(inner));
-            VectorContext::new(objective, population, environment)
+            let telemetry_mode =
+                TelemetryMode::OnlyLogging { logger, log_best: 10, log_population: 100, dump_population: false };
+            VectorContext::new(objective, population, telemetry_mode, environment)
         }))
         .solve();
 }

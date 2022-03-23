@@ -2,6 +2,9 @@
 
 use crate::construction::heuristics::*;
 use crate::solver::RefinementContext;
+use hashbrown::HashMap;
+use rosomaxa::prelude::SelectionPhase;
+use rosomaxa::HeuristicContext;
 use std::sync::Arc;
 
 /// A trait which specifies logic to produce a new feasible solution from partial one.
@@ -39,9 +42,6 @@ pub use self::recreate_with_skip_random::RecreateWithSkipRandom;
 
 mod recreate_with_slice;
 pub use self::recreate_with_slice::RecreateWithSlice;
-
-use hashbrown::HashMap;
-use rosomaxa::prelude::SelectionPhase;
 
 /// Provides the way to run one of multiple recreate methods.
 pub struct WeightedRecreate {
@@ -116,6 +116,6 @@ impl PhasedRecreate {
 
 impl Recreate for PhasedRecreate {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext {
-        self.recreates.get(&refinement_ctx.population.selection_phase()).unwrap().run(refinement_ctx, insertion_ctx)
+        self.recreates.get(&refinement_ctx.population().selection_phase()).unwrap().run(refinement_ctx, insertion_ctx)
     }
 }

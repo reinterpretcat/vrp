@@ -2,6 +2,7 @@ use crate::evolution::*;
 use crate::hyper::*;
 use crate::termination::*;
 use std::hash::Hash;
+use std::ops::Deref;
 use std::sync::Arc;
 
 /// A configuration which controls evolution execution.
@@ -28,9 +29,6 @@ where
 
     /// A termination defines when evolution should stop.
     pub termination: Box<dyn Termination<Context = C, Objective = O>>,
-
-    /// A telemetry to be used.
-    pub telemetry: Telemetry<C, O, S>,
 }
 
 /// Specifies an operator which builds initial solution.
@@ -102,8 +100,6 @@ where
 
     objective: Option<Arc<dyn HeuristicObjective<Solution = S>>>,
 
-    telemetry: Option<Telemetry<C, O, S>>,
-
     initial: InitialConfig<C, O, S>,
     processing: ProcessingConfig<C, O, S>,
 }
@@ -128,7 +124,6 @@ where
             heuristic_operators: None,
             heuristic_group: None,
             objective: None,
-            telemetry: None,
             initial: InitialConfig { operators: vec![], max_size: 4, quota: 0.05, individuals: vec![] },
             processing: ProcessingConfig { context: vec![], solution: vec![] },
         }
@@ -203,12 +198,6 @@ where
         self
     }
 
-    /// Sets telemetry. Default telemetry is set to do nothing.
-    pub fn with_telemetry(mut self, telemetry: Telemetry<C, O, S>) -> Self {
-        self.telemetry = Some(telemetry);
-        self
-    }
-
     /// Sets termination.
     pub fn with_termination(mut self, termination: Box<dyn Termination<Context = C, Objective = O>>) -> Self {
         self.termination = Some(termination);
@@ -247,31 +236,34 @@ where
 
     /// Gets termination criterias.
     #[allow(clippy::type_complexity)]
-    fn get_termination(&self) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, String> {
-        let telemetry = Telemetry::new(TelemetryMode::None);
-        let telemetry = self.telemetry.as_ref().unwrap_or(&telemetry);
-
+    fn get_termination(
+        logger: &InfoLogger,
+        max_generations: Option<usize>,
+        max_time: Option<usize>,
+        min_cv: Option<(String, usize, f64, bool, K)>,
+        target_proximity: Option<(Vec<f64>, f64)>,
+    ) -> Result<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>, String> {
         let terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> =
-            match (self.max_generations, self.max_time, &self.min_cv, &self.target_proximity) {
+            match (max_generations, max_time, &min_cv, &target_proximity) {
                 (None, None, None, None) => {
-                    telemetry.log("configured to use default max-generations (3000) and max-time (300secs)");
+                    logger.deref()("configured to use default max-generations (3000) and max-time (300secs)");
                     vec![Box::new(MaxGeneration::new(3000)), Box::new(MaxTime::new(300.))]
                 }
                 _ => {
                     let mut terminations: Vec<Box<dyn Termination<Context = C, Objective = O> + Send + Sync>> = vec![];
 
-                    if let Some(limit) = self.max_generations {
-                        telemetry.log(format!("configured to use max-generations: {}", limit).as_str());
+                    if let Some(limit) = max_generations {
+                        logger.deref()(format!("configured to use max-generations: {}", limit).as_str());
                         terminations.push(Box::new(MaxGeneration::new(limit)))
                     }
 
-                    if let Some(limit) = self.max_time {
-                        telemetry.log(format!("configured to use max-time: {}s", limit).as_str());
+                    if let Some(limit) = max_time {
+                        logger.deref()(format!("configured to use max-time: {}s", limit).as_str());
                         terminations.push(Box::new(MaxTime::new(limit as f64)));
                     }
 
-                    if let Some((interval_type, value, threshold, is_global, key)) = self.min_cv.clone() {
-                        telemetry.log(
+                    if let Some((interval_type, value, threshold, is_global, key)) = min_cv.clone() {
+                        logger.deref()(
                             format!(
                                 "configured to use variation coefficient {} with sample: {}, threshold: {}",
                                 interval_type, value, threshold
@@ -293,8 +285,8 @@ where
                         terminations.push(variation)
                     }
 
-                    if let Some((target_fitness, distance_threshold)) = self.target_proximity.clone() {
-                        telemetry.log(
+                    if let Some((target_fitness, distance_threshold)) = target_proximity.clone() {
+                        logger.deref()(
                             format!(
                                 "configured to use target fitness: {:?}, distance threshold: {}",
                                 target_fitness, distance_threshold
@@ -313,15 +305,15 @@ where
 
     /// Builds the evolution config.
     pub fn build(self) -> Result<EvolutionConfig<C, O, S>, String> {
-        let termination = self.get_termination()?;
-
         let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
-        let telemetry = self.telemetry.unwrap_or_else(|| Telemetry::new(TelemetryMode::None));
+        let logger = context.environment().logger.clone();
+        let termination =
+            Self::get_termination(&logger, self.max_generations, self.max_time, self.min_cv, self.target_proximity)?;
 
         Ok(EvolutionConfig {
             initial: self.initial,
             heuristic: if let Some(heuristic) = self.heuristic {
-                telemetry.log("configured to use custom heuristic");
+                logger.deref()("configured to use custom heuristic");
                 heuristic
             } else {
                 Box::new(MultiSelective::new(
@@ -337,14 +329,13 @@ where
             },
             context,
             strategy: if let Some(strategy) = self.strategy {
-                telemetry.log("configured to use custom strategy");
+                logger.deref()("configured to use custom strategy");
                 strategy
             } else {
                 Box::new(RunSimple::new(1))
             },
             termination,
             processing: self.processing,
-            telemetry,
         })
     }
 }

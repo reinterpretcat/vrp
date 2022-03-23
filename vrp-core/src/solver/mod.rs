@@ -99,13 +99,14 @@ use crate::models::{Problem, Solution};
 use crate::solver::search::Recreate;
 use hashbrown::HashMap;
 use rosomaxa::evolution::*;
-use rosomaxa::get_default_population;
 use rosomaxa::prelude::*;
+use rosomaxa::{get_default_population, DynHeuristicPopulation, TelemetryHeuristicContext};
 use std::any::Any;
 use std::sync::Arc;
 
 pub use self::heuristic::*;
 use rosomaxa::population::Rosomaxa;
+use rosomaxa::utils::Timer;
 
 pub mod objectives;
 pub mod processing;
@@ -126,18 +127,12 @@ const BALANCE_DURATION_KEY: i32 = 23;
 pub struct RefinementContext {
     /// Original problem definition.
     pub problem: Arc<Problem>,
-
-    /// A population which tracks best discovered solutions.
-    pub population: TargetPopulation,
-
-    /// A collection of data associated with refinement process.
-    pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
-
     /// An environmental context.
     pub environment: Arc<Environment>,
-
-    /// A refinement statistics.
-    pub statistics: HeuristicStatistics,
+    /// A collection of data associated with refinement process.
+    pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
+    /// Provides some basic implementation of context functionality.
+    inner_context: TelemetryHeuristicContext<ProblemObjective, InsertionContext>,
 }
 
 /// Defines instant refinement speed type.
@@ -152,8 +147,20 @@ pub enum RefinementSpeed {
 
 impl RefinementContext {
     /// Creates a new instance of `RefinementContext`.
-    pub fn new(problem: Arc<Problem>, population: TargetPopulation, environment: Arc<Environment>) -> Self {
-        Self { problem, population, state: Default::default(), environment, statistics: HeuristicStatistics::default() }
+    pub fn new(
+        problem: Arc<Problem>,
+        population: TargetPopulation,
+        telemetry_mode: TelemetryMode,
+        environment: Arc<Environment>,
+    ) -> Self {
+        let inner_context =
+            TelemetryHeuristicContext::new(problem.objective.clone(), population, telemetry_mode, environment.clone());
+        Self { problem, environment, inner_context, state: Default::default() }
+    }
+
+    /// Adds solution to population.
+    pub fn add_solution(&mut self, solution: InsertionContext) {
+        self.inner_context.add_solution(solution);
     }
 }
 
@@ -162,29 +169,33 @@ impl HeuristicContext for RefinementContext {
     type Solution = InsertionContext;
 
     fn objective(&self) -> &Self::Objective {
-        self.problem.objective.as_ref()
+        self.inner_context.objective()
     }
 
-    fn population(&self) -> &(dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>) {
-        self.population.as_ref()
-    }
-
-    fn population_mut(
-        &mut self,
-    ) -> &mut (dyn HeuristicPopulation<Objective = Self::Objective, Individual = Self::Solution>) {
-        self.population.as_mut()
+    fn population(&self) -> &DynHeuristicPopulation<Self::Objective, Self::Solution> {
+        self.inner_context.population()
     }
 
     fn statistics(&self) -> &HeuristicStatistics {
-        &self.statistics
-    }
-
-    fn statistics_mut(&mut self) -> &mut HeuristicStatistics {
-        &mut self.statistics
+        self.inner_context.statistics()
     }
 
     fn environment(&self) -> &Environment {
-        self.environment.as_ref()
+        self.inner_context.environment()
+    }
+
+    fn on_initial(&mut self, solution: Self::Solution, item_time: Timer) {
+        self.inner_context.on_initial(solution, item_time)
+    }
+
+    fn on_generation(&mut self, offspring: Vec<Self::Solution>, termination_estimate: f64, generation_time: Timer) {
+        self.inner_context.on_generation(offspring, termination_estimate, generation_time)
+    }
+
+    fn on_result(
+        self,
+    ) -> Result<(Box<DynHeuristicPopulation<Self::Objective, Self::Solution>>, Option<TelemetryMetrics>), String> {
+        self.inner_context.on_result()
     }
 }
 

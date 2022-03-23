@@ -5,6 +5,7 @@ use vrp_core::construction::heuristics::*;
 use vrp_core::models::common::IdDimension;
 use vrp_core::models::problem::Job;
 use vrp_core::models::Problem;
+use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::rosomaxa::prelude::Objective;
 use vrp_core::solver::create_elitism_population;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
@@ -65,6 +66,7 @@ fn can_solve_problem_with_cheapest_insertion_heuristic_impl(
     let mut refinement_ctx = RefinementContext::new(
         problem.clone(),
         create_elitism_population(problem.objective.clone(), environment.clone()),
+        TelemetryMode::None,
         environment.clone(),
     );
     let insertion_ctx = RecreateWithCheapest::new(environment.random.clone())
