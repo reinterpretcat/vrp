@@ -86,6 +86,7 @@ fn can_get_default_order() {
 
     compare_for_type("break", OrderResult::Ignored);
     compare_for_type("reload", OrderResult::Ignored);
+    compare_for_type("dispatch", OrderResult::Ignored);
     compare_for_type("pickup", OrderResult::Default);
     compare_for_type("delivery", OrderResult::Default);
     compare_for_type("service", OrderResult::Default);

@@ -261,7 +261,7 @@ fn get_unassigned_job_estimate(job: &Job, break_value: f64, default_value: f64) 
 
 fn get_default_order(single: &Single) -> OrderResult {
     match single.dimens.get_value::<String>("type").map(|v| v.as_str()) {
-        Some("break") | Some("reload") => OrderResult::Ignored,
+        Some("break") | Some("reload") | Some("dispatch") => OrderResult::Ignored,
         _ => OrderResult::Default,
     }
 }
