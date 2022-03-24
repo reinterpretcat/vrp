@@ -95,7 +95,7 @@ impl HeuristicContext for VectorContext {
         self.inner_context.on_generation(offspring, termination_estimate, generation_time)
     }
 
-    fn on_result(self) -> Result<(Box<VectorPopulation>, Option<TelemetryMetrics>), String> {
+    fn on_result(self) -> HeuristicResult<Self::Objective, Self::Solution> {
         self.inner_context.on_result()
     }
 }

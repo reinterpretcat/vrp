@@ -29,7 +29,7 @@ pub type ElitismPopulation = Elitism<ProblemObjective, InsertionContext>;
 pub type RosomaxaPopulation = Rosomaxa<ProblemObjective, InsertionContext>;
 
 /// A type alias for domain specific termination type.
-pub type TargetTermination = dyn Termination<Context = RefinementContext, Objective = ProblemObjective> + Send + Sync;
+pub type DynTermination = dyn Termination<Context = RefinementContext, Objective = ProblemObjective> + Send + Sync;
 /// A type for composite termination.
 pub type TargetCompositeTermination = CompositeTermination<RefinementContext, ProblemObjective, InsertionContext>;
 /// A type for max time termination.

@@ -9,38 +9,35 @@ process such as costs, amount of routes, time, etc.:
 
 ```
 configured to use max-time: 300s
+configured to use custom heuristic
 preparing initial solution(-s)
-[0s] created 1 of 4 initial solutions in 502ms
-        fitness: (0.000, 104.000, 70928.735)
-[1s] created 2 of 4 initial solutions in 510ms
-        fitness: (0.000, 109.000, 74500.133)
-[2s] created 3 of 4 initial solutions in 1032ms
-        fitness: (0.000, 104.000, 70928.735)
-[2s] created 4 of 4 initial solutions in 166ms
-        fitness: (0.000, 127.000, 99956.273)
-[2s] generation 0 took 2214ms, rank: 0, fitness: (0.000, 104.000, 70928.735), improvement: 0.000%
+[0s] created initial solution in 536ms, fitness: (0.000, 104.000, 70928.735)
+[1s] created initial solution in 513ms, fitness: (0.000, 109.000, 74500.133)
+[2s] created initial solution in 1097ms, fitness: (0.000, 104.000, 70928.735)
+[2s] created initial solution in 168ms, fitness: (0.000, 125.000, 94305.015)
+created initial population in 2317ms
+[2s] generation 0 took 21ms, fitness: (0.000, 104.000, 70669.056)
 [2s] population state (phase: initial, speed: 0.00 gen/sec, improvement ratio: 1.000:1.000):
-         rank: 0, fitness: (0.000, 104.000, 70928.735), improvement: 0.000%
-[5s] generation 100 took 15ms, rank: 0, fitness: (0.000, 97.000, 63075.095), improvement: 0.000%
+        rank: 0, fitness: (0.000, 104.000, 70669.056), improvement: 0.000%
+        rank: 1, fitness: (0.000, 104.000, 70705.550), improvement: 0.052%
+[5s] generation 100 took 27ms, fitness: (0.000, 96.000, 64007.851)
+[7s] generation 200 took 19ms, fitness: (0.000, 95.000, 63087.282)
 ..
-[38s] generation 900 took 19ms, rank: 0, fitness: (0.000, 94.000, 55739.089), improvement: 0.000%
-[43s] generation 1000 took 113ms, rank: 0, fitness: (0.000, 94.000, 55356.272), improvement: 0.000%
-[43s] population state (phase: exploration, speed: 23.13 gen/sec, improvement ratio: 0.386:0.385):
-         rank: 0, fitness: (0.000, 94.000, 55356.272), improvement: 0.000%
-         rank: 1, fitness: (0.000, 94.000, 55376.441), improvement: 0.036%
+149s] generation 4000 took 44ms, fitness: (0.000, 92.000, 54032.930)
+[149s] population state (phase: exploration, speed: 26.78 gen/sec, improvement ratio: 0.235:0.155):
+        rank: 0, fitness: (0.000, 92.000, 54032.930), improvement: 0.000%
+        rank: 1, fitness: (0.000, 92.000, 54032.930), improvement: 0.000%
+[153s] generation 4100 took 42ms, fitness: (0.000, 92.000, 54021.021)
 ..
-[227s] generation 5300 took 28ms, rank: 0, fitness: (0.000, 92.000, 53623.011), improvement: 0.000%
-[232s] generation 5400 took 25ms, rank: 0, fitness: (0.000, 92.000, 53323.363), improvement: 0.000%
-[236s] generation 5500 took 33ms, rank: 0, fitness: (0.000, 91.000, 55788.493), improvement: 0.000%
+[297s] generation 7200 took 20ms, fitness: (0.000, 92.000, 53264.644)
+[299s] population state (phase: exploitation, speed: 24.16 gen/sec, improvement ratio: 0.165:0.058):
+        rank: 0, fitness: (0.000, 92.000, 53264.026), improvement: 0.000%
+        rank: 1, fitness: (0.000, 92.000, 53264.026), improvement: 0.000%
+[299s] total generations: 7246, speed: 24.16 gen/sec
+Route 1: 144 925 689 739 358 32 783 924 461 111 766 842 433
 ..
-[300s] population state (phase: exploitation, speed: 23.47 gen/sec, improvement ratio: 0.193:0.179):
-         rank: 0, fitness: (0.000, 91.000, 54009.256), improvement: 0.000%
-         rank: 1, fitness: (0.000, 91.000, 54009.256), improvement: 0.000%
-[300s] total generations: 7042, speed: 23.47 gen/sec
-Route 1: 179 892 828 821 431 211 55 512 473 95 897 758
-Route 2: 798 962 999 773 443 3 949 213 499 848 392 72
-..
-Route 91: 844 364 377 452 165 41 336 380 172 403
+Route 92: 837 539 628 847 740 585 328 666 785 745
+Cost 53264.03
 ```
 Once the problem is solved, it will save solution in `pragmatic` and `geojson` (optional) format.
 

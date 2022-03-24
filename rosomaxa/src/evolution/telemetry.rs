@@ -99,6 +99,7 @@ where
     metrics: TelemetryMetrics,
     time: Timer,
     mode: TelemetryMode,
+    statistics: HeuristicStatistics,
     improvement_tracker: ImprovementTracker,
     speed_tracker: SpeedTracker,
     next_generation: Option<usize>,
@@ -116,6 +117,7 @@ where
             time: Timer::start(),
             metrics: TelemetryMetrics { duration: 0, generations: 0, speed: 0.0, evolution: vec![] },
             mode,
+            statistics: Default::default(),
             improvement_tracker: ImprovementTracker::new(1000),
             speed_tracker: SpeedTracker::default(),
             next_generation: None,
@@ -129,13 +131,13 @@ where
             TelemetryMode::OnlyLogging { .. } | TelemetryMode::All { .. } => {
                 self.log(
                     format!(
-                        "[{}s] created initial solution in {}ms",
+                        "[{}s] created initial solution in {}ms, fitness: ({})",
                         self.time.elapsed_secs(),
                         item_time.elapsed_millis(),
+                        format_fitness(solution.get_fitness())
                     )
                     .as_str(),
                 );
-                self.log(format!("\tfitness: ({})", format_fitness(solution.get_fitness())).as_str());
             }
             _ => {}
         };
@@ -149,7 +151,7 @@ where
         termination_estimate: f64,
         generation_time: Timer,
         is_improved: bool,
-    ) -> HeuristicStatistics {
+    ) {
         let generation = self.next_generation.unwrap_or(0);
 
         self.metrics.generations = generation;
@@ -157,7 +159,7 @@ where
         self.speed_tracker.track(generation, termination_estimate);
         self.next_generation = Some(generation + 1);
 
-        let statistics = HeuristicStatistics {
+        self.statistics = HeuristicStatistics {
             generation,
             time: self.time.clone(),
             speed: self.speed_tracker.get_current_speed(),
@@ -167,7 +169,7 @@ where
         };
 
         let (log_best, log_population, track_population, should_dump_population) = match &self.mode {
-            TelemetryMode::None => return statistics,
+            TelemetryMode::None => return,
             TelemetryMode::OnlyLogging { log_best, log_population, dump_population, .. } => {
                 (Some(log_best), Some(log_population), None, *dump_population)
             }
@@ -192,7 +194,6 @@ where
             self.on_population(
                 objective,
                 population,
-                &statistics,
                 should_log_population,
                 should_track_population,
                 should_dump_population,
@@ -200,8 +201,6 @@ where
         } else {
             self.log("no progress yet");
         }
-
-        statistics
     }
 
     /// Reports population state.
@@ -209,7 +208,6 @@ where
         &mut self,
         objective: &O,
         population: &DynHeuristicPopulation<O, S>,
-        statistics: &HeuristicStatistics,
         should_log_population: bool,
         should_track_population: bool,
         should_dump_population: bool,
@@ -218,7 +216,7 @@ where
             return;
         }
 
-        let generation = statistics.generation;
+        let generation = self.statistics.generation;
 
         if should_log_population {
             let selection_phase = match population.selection_phase() {
@@ -267,13 +265,8 @@ where
     }
 
     /// Reports final statistic.
-    pub fn on_result(
-        &mut self,
-        objective: &O,
-        population: &DynHeuristicPopulation<O, S>,
-        statistics: &HeuristicStatistics,
-    ) {
-        let generations = statistics.generation;
+    pub fn on_result(&mut self, objective: &O, population: &DynHeuristicPopulation<O, S>) {
+        let generations = self.statistics.generation;
 
         let (should_log_population, should_track_population) = match &self.mode {
             TelemetryMode::OnlyLogging { .. } => (true, false),
@@ -282,7 +275,7 @@ where
             _ => return,
         };
 
-        self.on_population(objective, population, statistics, should_log_population, should_track_population, false);
+        self.on_population(objective, population, should_log_population, should_track_population, false);
 
         let elapsed = self.time.elapsed_secs() as usize;
         let speed = generations as f64 / self.time.elapsed_secs_as_f64();
@@ -310,6 +303,11 @@ where
         }
     }
 
+    /// Returns current statistics.
+    pub fn get_statistics(&self) -> &HeuristicStatistics {
+        &self.statistics
+    }
+
     fn get_individual_metrics(
         &self,
         objective: &O,
@@ -325,21 +323,21 @@ where
     }
 
     fn log_individual(&self, metrics: &TelemetryIndividual, gen_info: Option<(usize, Timer)>) {
-        self.log(
+        let fitness = format_fitness(metrics.fitness.iter().cloned());
+
+        let value = if let Some((gen, gen_time)) = gen_info {
             format!(
-                "{} rank: {}, fitness: ({}), improvement: {:.3}%",
-                gen_info.map_or("\t".to_string(), |(gen, gen_time)| format!(
-                    "[{}s] generation {} took {}ms,",
-                    self.time.elapsed_secs(),
-                    gen,
-                    gen_time.elapsed_millis()
-                )),
-                metrics.rank,
-                format_fitness(metrics.fitness.iter().cloned()),
-                metrics.improvement,
+                "[{}s] generation {} took {}ms, fitness: ({})",
+                self.time.elapsed_secs(),
+                gen,
+                gen_time.elapsed_millis(),
+                fitness
             )
-            .as_str(),
-        );
+        } else {
+            format!("\trank: {}, fitness: ({}), improvement: {:.3}%", metrics.rank, fitness, metrics.improvement)
+        };
+
+        self.log(value.as_str());
     }
 }
 

@@ -20,20 +20,19 @@ fn can_update_statistic() {
     let solution = VectorSolution::new(vec![], create_example_objective());
     telemetry.on_initial(&solution, Timer::start());
 
-    let statistics = telemetry.on_generation(objective, population, 0., Timer::start(), true);
-    compare_statistic(&statistics, (0, 1., 1.));
-
-    let statistics = telemetry.on_generation(objective, population, 0., Timer::start(), false);
-    compare_statistic(&statistics, (1, 0.5, 0.5));
+    telemetry.on_generation(objective, population, 0., Timer::start(), true);
+    compare_statistic(telemetry.get_statistics(), (0, 1., 1.));
 
     telemetry.on_generation(objective, population, 0., Timer::start(), false);
-    let statistics = telemetry.on_generation(objective, population, 0., Timer::start(), false);
-    compare_statistic(&statistics, (3, 0.25, 0.25));
+    compare_statistic(telemetry.get_statistics(), (1, 0.5, 0.5));
 
-    let statistics =
-        (0..996).fold(statistics, |_, _| telemetry.on_generation(objective, population, 0., Timer::start(), false));
-    compare_statistic(&statistics, (999, 0.001, 0.001));
+    telemetry.on_generation(objective, population, 0., Timer::start(), false);
+    telemetry.on_generation(objective, population, 0., Timer::start(), false);
+    compare_statistic(telemetry.get_statistics(), (3, 0.25, 0.25));
 
-    let statistics = telemetry.on_generation(objective, population, 0., Timer::start(), true);
-    compare_statistic(&statistics, (1000, 2. / 1001., 0.001));
+    (0..996).for_each(|_| telemetry.on_generation(objective, population, 0., Timer::start(), false));
+    compare_statistic(&telemetry.get_statistics(), (999, 0.001, 0.001));
+
+    telemetry.on_generation(objective, population, 0., Timer::start(), true);
+    compare_statistic(&telemetry.get_statistics(), (1000, 2. / 1001., 0.001));
 }

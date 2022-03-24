@@ -2,6 +2,7 @@
 
 pub use crate::HeuristicContext;
 pub use crate::HeuristicObjective;
+pub use crate::HeuristicResult;
 pub use crate::HeuristicSolution;
 pub use crate::HeuristicSpeed;
 pub use crate::HeuristicStatistics;
