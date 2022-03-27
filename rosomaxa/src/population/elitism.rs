@@ -100,7 +100,7 @@ where
 
     fn select<'a>(&'a self) -> Box<dyn Iterator<Item = &Self::Individual> + 'a> {
         let selection_size = match &self.speed {
-            Some(HeuristicSpeed::Slow(ratio)) => (self.selection_size as f64 * ratio).max(1.).round() as usize,
+            Some(HeuristicSpeed::Slow { ratio, .. }) => (self.selection_size as f64 * ratio).max(1.).round() as usize,
             _ => self.selection_size,
         };
 

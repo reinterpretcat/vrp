@@ -60,17 +60,17 @@ where
 
     fn search(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
         self.is_slow_search = match (self.is_slow_search, &heuristic_ctx.statistics().speed) {
-            (false, HeuristicSpeed::Slow(ratio)) => {
+            (false, HeuristicSpeed::Slow { ratio, average }) => {
                 heuristic_ctx.environment().logger.deref()(&format!(
-                    "slow refinement speed ({}), switch to simpler hyper-heuristic",
-                    *ratio
+                    "slow refinement speed (ratio: {}, average: {} gen/sec), switch to simpler hyper-heuristic",
+                    *ratio, *average
                 ));
 
                 std::mem::swap(&mut self.actual, &mut self.slow);
 
                 true
             }
-            (true, HeuristicSpeed::Slow(_)) => true,
+            (true, HeuristicSpeed::Slow { .. }) => true,
             _ => false,
         };
 

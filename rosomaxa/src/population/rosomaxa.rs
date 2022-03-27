@@ -230,8 +230,8 @@ where
 
     fn update_phase(&mut self, statistics: &HeuristicStatistics) {
         let selection_size = match statistics.speed {
-            HeuristicSpeed::Slow(ratio) => (self.config.selection_size as f64 * ratio).max(1.).round() as usize,
-            HeuristicSpeed::Moderate => self.config.selection_size,
+            HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } => self.config.selection_size,
+            HeuristicSpeed::Slow { ratio, .. } => (self.config.selection_size as f64 * ratio).max(1.).round() as usize,
         };
 
         match &mut self.phase {
@@ -260,8 +260,8 @@ where
                 selection_size: old_selection_size,
             } => {
                 let exploration_ratio = match old_statistics.speed {
-                    HeuristicSpeed::Slow(ratio) => self.config.exploration_ratio * ratio,
-                    HeuristicSpeed::Moderate => self.config.exploration_ratio,
+                    HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } => self.config.exploration_ratio,
+                    HeuristicSpeed::Slow { ratio, .. } => self.config.exploration_ratio * ratio,
                 };
 
                 if statistics.termination_estimate < exploration_ratio {

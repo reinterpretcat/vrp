@@ -129,7 +129,7 @@ impl Default for HeuristicStatistics {
         Self {
             generation: 0,
             time: Timer::start(),
-            speed: HeuristicSpeed::Moderate,
+            speed: HeuristicSpeed::Unknown,
             improvement_all_ratio: 0.,
             improvement_1000_ratio: 0.,
             termination_estimate: 0.,
@@ -224,11 +224,22 @@ where
 /// Defines instant refinement speed type.
 #[derive(Clone)]
 pub enum HeuristicSpeed {
-    /// Slow speed with ratio estimation
-    Slow(f64),
+    /// Not yet calculated
+    Unknown,
+
+    /// Slow speed.
+    Slow {
+        /// Ratio.
+        ratio: f64,
+        /// Average refinement speed in generations per second.
+        average: f64,
+    },
 
     /// Moderate speed.
-    Moderate,
+    Moderate {
+        /// Average refinement speed in generations per second.
+        average: f64,
+    },
 }
 
 /// A trait which specifies object with state behavior.

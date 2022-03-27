@@ -7,6 +7,7 @@ mod telemetry_test;
 use crate::prelude::*;
 use crate::utils::Timer;
 use crate::DynHeuristicPopulation;
+use std::cmp::Ordering;
 use std::fmt::Write;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -156,7 +157,7 @@ where
 
         self.metrics.generations = generation;
         self.improvement_tracker.track(generation, is_improved);
-        self.speed_tracker.track(generation, termination_estimate);
+        self.speed_tracker.track(generation, &self.time, termination_estimate);
         self.next_generation = Some(generation + 1);
 
         self.statistics = HeuristicStatistics {
@@ -379,35 +380,41 @@ impl ImprovementTracker {
 }
 
 struct SpeedTracker {
-    initial: f64,
+    initial_estimate: f64,
+    initial_time: f64,
     speed: HeuristicSpeed,
 }
 
 impl Default for SpeedTracker {
     fn default() -> Self {
-        Self { initial: 0., speed: HeuristicSpeed::Moderate }
+        Self { initial_estimate: 0., initial_time: 0., speed: HeuristicSpeed::Unknown }
     }
 }
 
 impl SpeedTracker {
-    pub fn track(&mut self, generation: usize, termination_estimate: f64) {
+    pub fn track(&mut self, generation: usize, time: &Timer, termination_estimate: f64) {
+        let elapsed = (time.elapsed_millis() as f64) * 1000.;
         if generation == 0 {
-            self.initial = termination_estimate;
+            self.initial_estimate = termination_estimate;
+            self.initial_time = elapsed;
         } else {
-            match &self.speed {
-                HeuristicSpeed::Moderate => {
-                    let delta = (termination_estimate - self.initial).max(0.);
-                    let speed = match (generation, delta) {
-                        (generation, delta) if generation < 10 && delta > 0.1 => 0.1,
-                        (generation, delta) if generation < 100 && delta > 0.1 => 0.25,
-                        (generation, delta) if generation < 200 && delta > 0.1 => 0.5,
-                        (generation, delta) if generation < 500 && delta > 0.2 => 0.5,
-                        _ => return,
-                    };
+            let average = (elapsed - self.initial_time) / generation as f64;
 
-                    self.speed = HeuristicSpeed::Slow(speed);
+            let delta = (termination_estimate - self.initial_estimate).max(0.);
+            let ratio = match (generation, delta) {
+                (generation, delta) if generation < 10 && delta > 0.1 => 0.1,
+                (generation, delta) if generation < 100 && delta > 0.1 => 0.25,
+                (generation, delta) if generation < 200 && delta > 0.1 => 0.5,
+                (generation, delta) if generation < 500 && delta > 0.2 => 0.5,
+                _ => 1.,
+            };
+            let is_slow = compare_floats(ratio, 1.) == Ordering::Equal;
+
+            self.speed = match &self.speed {
+                HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } if !is_slow => {
+                    HeuristicSpeed::Moderate { average }
                 }
-                HeuristicSpeed::Slow(_) => {}
+                _ => HeuristicSpeed::Slow { ratio, average },
             }
         }
     }
