@@ -13,7 +13,7 @@ description = "A playground for heuristic research"
 publish = false
 
 [lib]
-crate-type=["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 rosomaxa = { path = "../../rosomaxa" }

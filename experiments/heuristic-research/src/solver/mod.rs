@@ -11,12 +11,14 @@ mod proxies;
 pub use self::proxies::*;
 
 /// Runs the solver to minimize objective function with given name.
-pub fn run_solver(function_name: &str, selection_size: usize, init_solution: Vec<f64>, generations: usize) {
+pub fn run_solver(
+    function_name: &str,
+    selection_size: usize,
+    init_solution: Vec<f64>,
+    generations: usize,
+    logger: InfoLogger,
+) {
     let fitness_fn = get_fitness_fn_by_name(function_name);
-    let logger = Arc::new(|message: &str| {
-        web_sys::console::log_1(&message.into());
-    });
-
     let random = Arc::new(DefaultRandom::default());
     let noise_op = VectorHeuristicOperatorMode::JustNoise(Noise::new(1., (-0.1, 0.1), random));
 

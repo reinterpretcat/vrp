@@ -4,7 +4,7 @@
 extern crate lazy_static;
 
 use crate::solver::*;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
 /// Specifies a data point type.
@@ -13,6 +13,7 @@ pub struct DataPoint(f64, f64, f64);
 
 mod plots;
 mod solver;
+pub use self::solver::run_solver;
 
 lazy_static! {
     /// Keeps track of data used by the solver population.
@@ -25,7 +26,11 @@ pub fn run_experiment(x: f64, z: f64, generations: usize) {
     let selection_size = 8;
     let function_name = "rosenbrock";
 
-    run_solver(function_name, selection_size, vec![x, z], generations)
+    let logger = Arc::new(|message: &str| {
+        web_sys::console::log_1(&message.into());
+    });
+
+    run_solver(function_name, selection_size, vec![x, z], generations, logger)
 }
 
 /// Gets current (last) generation.
