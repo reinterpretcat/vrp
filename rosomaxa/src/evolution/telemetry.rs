@@ -408,7 +408,7 @@ impl SpeedTracker {
                 (generation, delta) if generation < 500 && delta > 0.2 => 0.5,
                 _ => 1.,
             };
-            let is_slow = compare_floats(ratio, 1.) == Ordering::Equal;
+            let is_slow = compare_floats(ratio, 1.) == Ordering::Less && average < 5.;
 
             self.speed = match &self.speed {
                 HeuristicSpeed::Unknown | HeuristicSpeed::Moderate { .. } if !is_slow => {
