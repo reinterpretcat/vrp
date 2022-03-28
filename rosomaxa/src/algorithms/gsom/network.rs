@@ -182,38 +182,38 @@ where
         match (exceeds_ae, is_boundary) {
             // error distribution
             (true, false) => {
-                let distribute_error = |node: Option<&NodeLink<I, S>>| {
-                    let mut node = node.unwrap().write().unwrap();
-                    node.error += self.distribution_factor * node.error;
-                };
-
                 let mut node = node.write().unwrap();
-
                 node.error = 0.5 * self.growing_threshold;
 
-                distribute_error(node.topology.left.as_ref());
-                distribute_error(node.topology.right.as_ref());
-                distribute_error(node.topology.up.as_ref());
-                distribute_error(node.topology.down.as_ref());
+                node.topology.iter().for_each(|(neighbour, _)| {
+                    let mut node = neighbour.write().unwrap();
+                    node.error += self.distribution_factor * node.error;
+                });
             }
             // weight distribution
             (true, true) => {
-                // NOTE clone to fight with borrow checker
-                let coordinate = node.read().unwrap().coordinate.clone();
-                let weights = node.read().unwrap().weights.clone();
-                let topology = node.read().unwrap().topology.clone();
+                let (coordinate, weights, topology) = {
+                    let node = node.read().unwrap();
 
-                let mut distribute_weight = |offset: (i32, i32), link: Option<&NodeLink<I, S>>| {
-                    if link.is_none() {
-                        let coordinate = Coordinate(coordinate.0 + offset.0, coordinate.1 + offset.1);
-                        self.insert(coordinate, weights.as_slice());
-                    }
+                    let coordinate = node.coordinate.clone();
+                    let weights = node.weights.clone();
+                    let topology = node.topology.clone();
+
+                    (coordinate, weights, topology)
                 };
 
-                distribute_weight((-1, 0), topology.left.as_ref());
-                distribute_weight((1, 0), topology.right.as_ref());
-                distribute_weight((0, 1), topology.up.as_ref());
-                distribute_weight((0, -1), topology.down.as_ref());
+                [
+                    (topology.left.as_ref(), (-1, 0)),
+                    (topology.right.as_ref(), (1, 0)),
+                    (topology.up.as_ref(), (0, 1)),
+                    (topology.down.as_ref(), (0, -1)),
+                ]
+                .into_iter()
+                .filter_map(|(node, coord)| if node.is_none() { Some(coord) } else { None })
+                .for_each(|(x, y)| {
+                    let coordinate = Coordinate(coordinate.0 + x, coordinate.1 + y);
+                    self.insert(coordinate, weights.as_slice());
+                });
             }
             _ => {}
         }
@@ -223,7 +223,7 @@ where
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
 
         node.adjust(input.weights(), learning_rate);
-        (node.topology.neighbours().map(|n| n.write().unwrap())).for_each(|mut neighbor| {
+        (node.topology.iter().map(|(n, _)| n.write().unwrap())).for_each(|mut neighbor| {
             neighbor.adjust(input.weights(), learning_rate);
         });
     }

@@ -118,14 +118,14 @@ impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
         Self { dimension, right: None, left: None, up: None, down: None }
     }
 
-    /// Gets neighbors.
-    pub fn neighbours(&self) -> impl Iterator<Item = &NodeLink<I, S>> {
-        TopologyIterator { topology: self, state: 0 }
-    }
-
     /// Checks if the cell is at the boundary of the network.
     pub fn is_boundary(&self) -> bool {
-        self.right.is_none() || self.left.is_none() || self.up.is_none() || self.down.is_none()
+        self.iter().count() < 4
+    }
+
+    /// Iterates over neighbors.
+    pub fn iter(&self) -> impl Iterator<Item = (&NodeLink<I, S>, Coordinate)> {
+        TopologyIterator { topology: self, state: 0 }
     }
 }
 
@@ -134,36 +134,24 @@ struct TopologyIterator<'a, I: Input, S: Storage<Item = I>> {
     state: usize,
 }
 
-impl<'a, I: Input, S: Storage<Item = I>> TopologyIterator<'a, I, S> {
-    fn transition(&mut self, state: usize, node: Option<&'a NodeLink<I, S>>) -> Result<(), Option<&'a NodeLink<I, S>>> {
-        if self.state == state {
-            self.state = state + 1;
-            if node.is_some() {
-                return Err(node);
-            }
-        }
-
-        Ok(())
-    }
-
-    fn iterate(&mut self) -> Result<(), Option<&'a NodeLink<I, S>>> {
-        self.transition(0, self.topology.left.as_ref())?;
-        self.transition(1, self.topology.right.as_ref())?;
-        self.transition(2, self.topology.down.as_ref())?;
-        self.transition(3, self.topology.up.as_ref())?;
-
-        Ok(())
-    }
-}
-
 impl<'a, I: Input, S: Storage<Item = I>> Iterator for TopologyIterator<'a, I, S> {
-    type Item = &'a NodeLink<I, S>;
+    type Item = (&'a NodeLink<I, S>, Coordinate);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Err(node) = self.iterate() {
-            node
+        let (node, coordinate) = match self.state {
+            0 => (self.topology.left.as_ref(), Coordinate(-1, 0)),
+            1 => (self.topology.right.as_ref(), Coordinate(1, 0)),
+            2 => (self.topology.up.as_ref(), Coordinate(0, 1)),
+            3 => (self.topology.down.as_ref(), Coordinate(0, -1)),
+            _ => return None,
+        };
+
+        self.state += 1;
+
+        if let Some(node) = node {
+            Some((node, coordinate))
         } else {
-            None
+            self.next()
         }
     }
 }
