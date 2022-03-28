@@ -202,18 +202,11 @@ where
                     (coordinate, weights, topology)
                 };
 
-                [
-                    (topology.left.as_ref(), (-1, 0)),
-                    (topology.right.as_ref(), (1, 0)),
-                    (topology.up.as_ref(), (0, 1)),
-                    (topology.down.as_ref(), (0, -1)),
-                ]
-                .into_iter()
-                .filter_map(|(node, coord)| if node.is_none() { Some(coord) } else { None })
-                .for_each(|(x, y)| {
-                    let coordinate = Coordinate(coordinate.0 + x, coordinate.1 + y);
-                    self.insert(coordinate, weights.as_slice());
-                });
+                topology.all().filter_map(|(node, coord)| if node.is_none() { Some(coord) } else { None }).for_each(
+                    |Coordinate(x, y)| {
+                        self.insert(Coordinate(coordinate.0 + x, coordinate.1 + y), weights.as_slice());
+                    },
+                );
             }
             _ => {}
         }

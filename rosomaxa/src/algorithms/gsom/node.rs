@@ -4,6 +4,7 @@ mod node_test;
 
 use super::*;
 use std::collections::VecDeque;
+use std::iter::once;
 use std::sync::{Arc, RwLock};
 
 /// Represents a node in network.
@@ -123,9 +124,17 @@ impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
         self.iter().count() < 4
     }
 
-    /// Iterates over neighbors.
+    /// Iterates over non-empty nodes in neighborhood.
     pub fn iter(&self) -> impl Iterator<Item = (&NodeLink<I, S>, Coordinate)> {
         TopologyIterator { topology: self, state: 0 }
+    }
+
+    /// Iterates over all neighbour nodes, including, potentially, empty.
+    pub fn all(&self) -> impl Iterator<Item = (Option<&NodeLink<I, S>>, Coordinate)> {
+        once((self.left.as_ref(), Coordinate(-1, 0)))
+            .chain(once((self.right.as_ref(), Coordinate(1, 0))))
+            .chain(once((self.up.as_ref(), Coordinate(0, 1))))
+            .chain(once((self.down.as_ref(), Coordinate(0, -1))))
     }
 }
 
