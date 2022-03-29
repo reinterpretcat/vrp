@@ -4,7 +4,6 @@ mod node_test;
 
 use super::*;
 use std::collections::VecDeque;
-use std::iter::once;
 use std::sync::{Arc, RwLock};
 
 /// Represents a node in network.
@@ -121,20 +120,12 @@ impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
 
     /// Checks if the cell is at the boundary of the network.
     pub fn is_boundary(&self) -> bool {
-        self.iter().count() < 4
+        self.iter().filter_map(|(n, _)| n).count() < 4
     }
 
     /// Iterates over non-empty nodes in neighborhood.
-    pub fn iter(&self) -> impl Iterator<Item = (&NodeLink<I, S>, Coordinate)> {
+    pub fn iter(&self) -> impl Iterator<Item = (Option<&NodeLink<I, S>>, Coordinate)> {
         TopologyIterator { topology: self, state: 0 }
-    }
-
-    /// Iterates over all neighbour nodes, including, potentially, empty.
-    pub fn all(&self) -> impl Iterator<Item = (Option<&NodeLink<I, S>>, Coordinate)> {
-        once((self.left.as_ref(), Coordinate(-1, 0)))
-            .chain(once((self.right.as_ref(), Coordinate(1, 0))))
-            .chain(once((self.up.as_ref(), Coordinate(0, 1))))
-            .chain(once((self.down.as_ref(), Coordinate(0, -1))))
     }
 }
 
@@ -144,10 +135,10 @@ struct TopologyIterator<'a, I: Input, S: Storage<Item = I>> {
 }
 
 impl<'a, I: Input, S: Storage<Item = I>> Iterator for TopologyIterator<'a, I, S> {
-    type Item = (&'a NodeLink<I, S>, Coordinate);
+    type Item = (Option<&'a NodeLink<I, S>>, Coordinate);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (node, coordinate) = match self.state {
+        let item = match self.state {
             0 => (self.topology.left.as_ref(), Coordinate(-1, 0)),
             1 => (self.topology.right.as_ref(), Coordinate(1, 0)),
             2 => (self.topology.up.as_ref(), Coordinate(0, 1)),
@@ -157,10 +148,6 @@ impl<'a, I: Input, S: Storage<Item = I>> Iterator for TopologyIterator<'a, I, S>
 
         self.state += 1;
 
-        if let Some(node) = node {
-            Some((node, coordinate))
-        } else {
-            self.next()
-        }
+        Some(item)
     }
 }

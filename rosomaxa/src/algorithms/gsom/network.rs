@@ -185,8 +185,8 @@ where
                 let mut node = node.write().unwrap();
                 node.error = 0.5 * self.growing_threshold;
 
-                node.topology.iter().for_each(|(neighbour, _)| {
-                    let mut node = neighbour.write().unwrap();
+                node.topology.iter().filter_map(|(n, _)| n).for_each(|n| {
+                    let mut node = n.write().unwrap();
                     node.error += self.distribution_factor * node.error;
                 });
             }
@@ -202,7 +202,7 @@ where
                     (coordinate, weights, topology)
                 };
 
-                topology.all().filter_map(|(node, coord)| if node.is_none() { Some(coord) } else { None }).for_each(
+                topology.iter().filter_map(|(node, coord)| if node.is_none() { Some(coord) } else { None }).for_each(
                     |Coordinate(x, y)| {
                         self.insert(Coordinate(coordinate.0 + x, coordinate.1 + y), weights.as_slice());
                     },
@@ -216,8 +216,8 @@ where
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
 
         node.adjust(input.weights(), learning_rate);
-        (node.topology.iter().map(|(n, _)| n.write().unwrap())).for_each(|mut neighbor| {
-            neighbor.adjust(input.weights(), learning_rate);
+        node.topology.iter().filter_map(|(n, _)| n).for_each(|n| {
+            n.write().unwrap().adjust(input.weights(), learning_rate);
         });
     }
 
