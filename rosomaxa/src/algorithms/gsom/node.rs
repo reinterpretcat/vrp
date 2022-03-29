@@ -120,29 +120,46 @@ impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
 
     /// Checks if the cell is at the boundary of the network.
     pub fn is_boundary(&self) -> bool {
-        self.iter().filter_map(|(n, _)| n).count() < 4
+        self.right.is_none() || self.left.is_none() || self.up.is_none() || self.down.is_none()
     }
 
-    /// Iterates over non-empty nodes in neighborhood.
-    pub fn iter(&self) -> impl Iterator<Item = (Option<&NodeLink<I, S>>, Coordinate)> {
-        TopologyIterator { topology: self, state: 0 }
+    /// Gets iterator over nodes in neighbourhood.
+    pub fn neighbours(&self, radius: usize) -> impl Iterator<Item = (Option<NodeLink<I, S>>, Coordinate)> {
+        let extras = match radius {
+            1 => vec![],
+            2 => vec![
+                (self.left.as_ref().and_then(|node| node.read().unwrap().topology.up.clone()), Coordinate(-1, 1)),
+                (self.right.as_ref().and_then(|node| node.read().unwrap().topology.up.clone()), Coordinate(1, 1)),
+                (self.left.as_ref().and_then(|node| node.read().unwrap().topology.down.clone()), Coordinate(-1, -1)),
+                (self.right.as_ref().and_then(|node| node.read().unwrap().topology.up.clone()), Coordinate(1, -1)),
+            ],
+            _ => unimplemented!("neighbourhood radius is supported only in [1, 2] range"),
+        };
+
+        TopologyIterator { topology: self.clone(), state: 0, extras }
     }
 }
 
-struct TopologyIterator<'a, I: Input, S: Storage<Item = I>> {
-    topology: &'a Topology<I, S>,
+struct TopologyIterator<I: Input, S: Storage<Item = I>> {
+    topology: Topology<I, S>,
     state: usize,
+    extras: Vec<(Option<NodeLink<I, S>>, Coordinate)>,
 }
 
-impl<'a, I: Input, S: Storage<Item = I>> Iterator for TopologyIterator<'a, I, S> {
-    type Item = (Option<&'a NodeLink<I, S>>, Coordinate);
+impl<I: Input, S: Storage<Item = I>> Iterator for TopologyIterator<I, S> {
+    type Item = (Option<NodeLink<I, S>>, Coordinate);
 
     fn next(&mut self) -> Option<Self::Item> {
+        let ext_len = self.extras.len();
+
+        debug_assert!(ext_len == 0 || ext_len == 4);
+
         let item = match self.state {
-            0 => (self.topology.left.as_ref(), Coordinate(-1, 0)),
-            1 => (self.topology.right.as_ref(), Coordinate(1, 0)),
-            2 => (self.topology.up.as_ref(), Coordinate(0, 1)),
-            3 => (self.topology.down.as_ref(), Coordinate(0, -1)),
+            0 => (self.topology.left.clone(), Coordinate(-1, 0)),
+            1 => (self.topology.right.clone(), Coordinate(1, 0)),
+            2 => (self.topology.up.clone(), Coordinate(0, 1)),
+            3 => (self.topology.down.clone(), Coordinate(0, -1)),
+            state if ext_len > (state - ext_len) => self.extras.get(state - ext_len).cloned().unwrap(),
             _ => return None,
         };
 

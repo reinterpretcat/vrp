@@ -167,6 +167,8 @@ where
 
     /// Updates network according to the error.
     fn update(&mut self, node: &NodeLink<I, S>, input: &I, error: f64, is_new_input: bool) {
+        let radius = 2;
+
         let (exceeds_ae, is_boundary) = {
             let mut node = node.write().unwrap();
             node.error += error;
@@ -185,9 +187,12 @@ where
                 let mut node = node.write().unwrap();
                 node.error = 0.5 * self.growing_threshold;
 
-                node.topology.iter().filter_map(|(n, _)| n).for_each(|n| {
-                    let mut node = n.write().unwrap();
-                    node.error += self.distribution_factor * node.error;
+                node.topology.neighbours(radius).for_each(|(n, coord)| {
+                    if let Some(n) = n {
+                        let mut node = n.write().unwrap();
+                        let distribution_factor = self.distribution_factor / (coord.0.abs() + coord.1.abs()) as f64;
+                        node.error += distribution_factor * node.error;
+                    }
                 });
             }
             // weight distribution
@@ -202,11 +207,13 @@ where
                     (coordinate, weights, topology)
                 };
 
-                topology.iter().filter_map(|(node, coord)| if node.is_none() { Some(coord) } else { None }).for_each(
-                    |Coordinate(x, y)| {
+                // NOTE: radius is 1 to insert new nodes only in main directions
+                topology
+                    .neighbours(1)
+                    .filter_map(|(node, coord)| if node.is_none() { Some(coord) } else { None })
+                    .for_each(|Coordinate(x, y)| {
                         self.insert(Coordinate(coordinate.0 + x, coordinate.1 + y), weights.as_slice());
-                    },
-                );
+                    });
             }
             _ => {}
         }
@@ -216,7 +223,7 @@ where
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
 
         node.adjust(input.weights(), learning_rate);
-        node.topology.iter().filter_map(|(n, _)| n).for_each(|n| {
+        node.topology.neighbours(radius).filter_map(|(n, _)| n).for_each(|n| {
             n.write().unwrap().adjust(input.weights(), learning_rate);
         });
     }

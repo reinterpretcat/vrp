@@ -1,11 +1,14 @@
 use crate::algorithms::gsom::{Coordinate, Node};
 use crate::helpers::algorithms::gsom::{Data, DataStorage};
 
+fn create_test_node(hit_memory_size: usize) -> Node<Data, DataStorage> {
+    Node::new(Coordinate(0, 0), &[1., 2.], 0., hit_memory_size, DataStorage::default())
+}
+
 #[test]
 fn can_track_last_hits() {
     let hit_memory_size = 100;
-    let mut node: Node<Data, DataStorage> =
-        Node::new(Coordinate(0, 0), &[1., 2.], 0., hit_memory_size, DataStorage::default());
+    let mut node = create_test_node(hit_memory_size);
 
     node.new_hit(1);
     assert_eq!(node.get_last_hits(1), 1);
@@ -22,4 +25,17 @@ fn can_track_last_hits() {
 
     node.new_hit(hit_memory_size + 100);
     assert_eq!(node.get_last_hits(hit_memory_size + 100), 2);
+}
+
+#[test]
+fn can_iterate_with_neighbours() {
+    let node = create_test_node(100);
+
+    assert_eq!(node.topology.neighbours(1).count(), 4);
+    assert_eq!(node.topology.neighbours(2).count(), 8);
+
+    let result = std::panic::catch_unwind(|| {
+        node.topology.neighbours(3).count();
+    });
+    assert!(result.is_err());
 }
