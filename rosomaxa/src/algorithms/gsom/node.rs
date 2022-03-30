@@ -28,8 +28,6 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
 
 /// Represents a node neighbourhood.
 pub struct Topology<I: Input, S: Storage<Item = I>> {
-    /// An input dimension.
-    pub dimension: usize,
     /// A link to right neighbour.
     pub right: Option<NodeLink<I, S>>,
     /// A link to left neighbour.
@@ -56,7 +54,7 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             total_hits: 0,
             last_hits: VecDeque::with_capacity(hit_memory_size + 1),
             coordinate,
-            topology: Topology::empty(weights.len()),
+            topology: Topology::empty(),
             storage,
             hit_memory_size,
         }
@@ -102,20 +100,14 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
 
 impl<I: Input, S: Storage<Item = I>> Clone for Topology<I, S> {
     fn clone(&self) -> Self {
-        Self {
-            dimension: self.dimension,
-            right: self.right.clone(),
-            left: self.left.clone(),
-            up: self.up.clone(),
-            down: self.down.clone(),
-        }
+        Self { right: self.right.clone(), left: self.left.clone(), up: self.up.clone(), down: self.down.clone() }
     }
 }
 
 impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
     /// Creates an empty cell at given coordinate.
-    pub fn empty(dimension: usize) -> Self {
-        Self { dimension, right: None, left: None, up: None, down: None }
+    pub fn empty() -> Self {
+        Self { right: None, left: None, up: None, down: None }
     }
 
     /// Checks if the cell is at the boundary of the network.
