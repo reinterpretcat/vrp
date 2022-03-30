@@ -90,6 +90,8 @@ function runExperiment() {
     let x = getRandomInRange(-2.0, 2.0)
     let z = getRandomInRange(-2.0, 2.0)
 
+    console.log(`init point is: (${x}, ${z})`)
+
     Chart.run_experiment(x, z, max_gen);
     updatePlot();
     generations.max = max_gen;
