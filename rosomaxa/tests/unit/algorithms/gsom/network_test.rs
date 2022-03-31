@@ -1,6 +1,7 @@
 use crate::algorithms::gsom::{Coordinate, Network};
 use crate::helpers::algorithms::gsom::{create_test_network, Data, DataStorage, DataStorageFactory};
-use crate::utils::{DefaultRandom, Random};
+use crate::utils::{compare_floats, DefaultRandom, Random};
+use std::cmp::Ordering;
 
 #[test]
 fn can_train_network() {
@@ -57,6 +58,7 @@ fn get_coord_data(coord: (i32, i32), relative: (i32, i32), network: &NetworkType
         (0, -1) => topology.down,
         (1, 0) => topology.right,
         (-1, 0) => topology.left,
+        (-1, -1) => topology.left.unwrap().read().unwrap().topology.down.clone(),
         _ => unreachable!(),
     }
     .unwrap();
@@ -66,6 +68,18 @@ fn get_coord_data(coord: (i32, i32), relative: (i32, i32), network: &NetworkType
     let weights = node.weights.clone();
 
     (coordinate, weights)
+}
+
+fn add_node(x: i32, y: i32, network: &mut NetworkType) {
+    network.insert(Coordinate(x, y), &[x as f64, y as f64]);
+}
+
+fn update_zero_neighborhood(network: &mut NetworkType) {
+    add_node(-1, 1, network);
+    add_node(-1, 0, network);
+    add_node(-1, -1, network);
+    add_node(0, -1, network);
+    add_node(1, -1, network);
 }
 
 #[test]
@@ -87,15 +101,50 @@ fn can_insert_initial_node_neighborhood() {
 }
 
 #[test]
-fn can_insert_nodes_updating_neighbourhood() {
-    type NetworkType = Network<Data, DataStorage, DataStorageFactory>;
+fn can_create_and_update_extended_neighbourhood() {
     let mut network = create_test_network(false);
-    let add_node = |x: i32, y: i32, network: &mut NetworkType| {
-        network.insert(Coordinate(x, y), &[x as f64, y as f64]);
-    };
-    // 10-11
-    // 00-10
+    update_zero_neighborhood(&mut network);
+    network.nodes.get(&Coordinate(0, 0)).unwrap().read().unwrap().topology.neighbours(2).for_each(|(node, _)| {
+        let node = node.unwrap();
+        let mut node = node.write().unwrap();
+        node.error = 42.;
+    });
 
-    add_node(-1, 0, &mut network);
-    assert_eq!(get_coord_data((0, 0), (-1, 0), &network).0, Coordinate(-1, 0));
+    // -1+1  0+1  +1+1
+    // -1+0  0 0  +1 0
+    // -1-1  0-1  +1-1
+    assert_eq!(network.nodes.len(), 9);
+    network.nodes.iter().filter(|(coord, _)| **coord != Coordinate(0, 0)).for_each(|(coord, node)| {
+        let error = node.read().unwrap().error;
+        if compare_floats(error, 42.) != Ordering::Equal {
+            unreachable!("node is not updated: ({},{}), value: {}", coord.0, coord.1, error);
+        }
+    });
+    [
+        ((0, 0), 8),
+        ((0, -1), 5),
+        ((0, 1), 5),
+        ((1, 0), 5),
+        ((-1, 0), 5),
+        ((-1, 1), 3),
+        ((1, 1), 3),
+        ((-1, -1), 3),
+        ((1, -1), 3),
+    ]
+    .into_iter()
+    .for_each(|((x, y), expected_count)| {
+        let count = network
+            .nodes
+            .get(&Coordinate(x, y))
+            .unwrap()
+            .read()
+            .unwrap()
+            .topology
+            .neighbours(2)
+            .filter(|(node, _)| node.is_some())
+            .count();
+        if count != expected_count {
+            unreachable!("unexpected neighbourhood for: ({},{}), {} vs {}", x, y, count, expected_count)
+        }
+    });
 }

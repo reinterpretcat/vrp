@@ -123,7 +123,7 @@ impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
                 (self.left.as_ref().and_then(|node| node.read().unwrap().topology.up.clone()), Coordinate(-1, 1)),
                 (self.right.as_ref().and_then(|node| node.read().unwrap().topology.up.clone()), Coordinate(1, 1)),
                 (self.left.as_ref().and_then(|node| node.read().unwrap().topology.down.clone()), Coordinate(-1, -1)),
-                (self.right.as_ref().and_then(|node| node.read().unwrap().topology.up.clone()), Coordinate(1, -1)),
+                (self.right.as_ref().and_then(|node| node.read().unwrap().topology.down.clone()), Coordinate(1, -1)),
             ],
             _ => unimplemented!("neighbourhood radius is supported only in [1, 2] range"),
         };
