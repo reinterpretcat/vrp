@@ -49,21 +49,10 @@ fn can_use_initial_error_parameter_impl(has_initial_error: bool, size: usize) {
 
 type NetworkType = Network<Data, DataStorage, DataStorageFactory>;
 
-fn get_coord_data(coord: (i32, i32), relative: (i32, i32), network: &NetworkType) -> (Coordinate, Vec<f64>) {
-    let node = network.nodes.get(&Coordinate(coord.0, coord.1)).unwrap().read();
-    let topology = node.unwrap().topology.clone();
-
-    let node = match relative {
-        (0, 1) => topology.up,
-        (0, -1) => topology.down,
-        (1, 0) => topology.right,
-        (-1, 0) => topology.left,
-        (-1, -1) => topology.left.unwrap().read().unwrap().topology.down.clone(),
-        _ => unreachable!(),
-    }
-    .unwrap();
-
+fn get_coord_data(coord: (i32, i32), offset: (i32, i32), network: &NetworkType) -> (Coordinate, Vec<f64>) {
+    let node = network.nodes.get(&Coordinate(coord.0 + offset.0, coord.1 + offset.1)).unwrap();
     let node = node.read().unwrap();
+
     let coordinate = node.coordinate.clone();
     let weights = node.weights.clone();
 
@@ -104,7 +93,7 @@ fn can_insert_initial_node_neighborhood() {
 fn can_create_and_update_extended_neighbourhood() {
     let mut network = create_test_network(false);
     update_zero_neighborhood(&mut network);
-    network.nodes.get(&Coordinate(0, 0)).unwrap().read().unwrap().topology.neighbours(2).for_each(|(node, _)| {
+    network.nodes.get(&Coordinate(0, 0)).unwrap().read().unwrap().neighbours(&network, 1).for_each(|(node, _)| {
         let node = node.unwrap();
         let mut node = node.write().unwrap();
         node.error = 42.;
@@ -121,26 +110,25 @@ fn can_create_and_update_extended_neighbourhood() {
         }
     });
     [
-        ((0, 0), 8),
-        ((0, -1), 5),
-        ((0, 1), 5),
-        ((1, 0), 5),
-        ((-1, 0), 5),
-        ((-1, 1), 3),
-        ((1, 1), 3),
-        ((-1, -1), 3),
-        ((1, -1), 3),
+        (1, (0, 0), 8),
+        (1, (0, -1), 5),
+        (1, (0, 1), 5),
+        (1, (1, 0), 5),
+        (1, (-1, 0), 5),
+        (1, (-1, 1), 3),
+        (1, (1, 1), 3),
+        (1, (-1, -1), 3),
+        (1, (1, -1), 3),
     ]
     .into_iter()
-    .for_each(|((x, y), expected_count)| {
+    .for_each(|(radius, (x, y), expected_count)| {
         let count = network
             .nodes
             .get(&Coordinate(x, y))
             .unwrap()
             .read()
             .unwrap()
-            .topology
-            .neighbours(2)
+            .neighbours(&network, radius)
             .filter(|(node, _)| node.is_some())
             .count();
         if count != expected_count {

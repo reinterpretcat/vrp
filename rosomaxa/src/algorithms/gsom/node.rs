@@ -18,25 +18,15 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
     pub last_hits: VecDeque<usize>,
     /// A coordinate in network.
     pub coordinate: Coordinate,
-    /// A reference to topology.
-    pub topology: Topology<I, S>,
     /// Remembers passed data.
     pub storage: S,
     /// How many last hits should be remembered.
     hit_memory_size: usize,
 }
 
-/// Represents a node neighbourhood.
-pub struct Topology<I: Input, S: Storage<Item = I>> {
-    /// A link to right neighbour.
-    pub right: Option<NodeLink<I, S>>,
-    /// A link to left neighbour.
-    pub left: Option<NodeLink<I, S>>,
-    /// A link to up neighbour.
-    pub up: Option<NodeLink<I, S>>,
-    /// A link to down neighbour.
-    pub down: Option<NodeLink<I, S>>,
-}
+/*/// Represents a node neighbourhood.
+#[derive(Clone)]
+pub struct Topology<I: Input, S: Storage<Item = I>> { }*/
 
 /// A reference to the node.
 pub type NodeLink<I, S> = Arc<RwLock<Node<I, S>>>;
@@ -54,7 +44,6 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             total_hits: 0,
             last_hits: VecDeque::with_capacity(hit_memory_size + 1),
             coordinate,
-            topology: Topology::empty(),
             storage,
             hit_memory_size,
         }
@@ -96,67 +85,25 @@ impl<I: Input, S: Storage<Item = I>> Node<I, S> {
             })
             .count()
     }
-}
-
-impl<I: Input, S: Storage<Item = I>> Clone for Topology<I, S> {
-    fn clone(&self) -> Self {
-        Self { right: self.right.clone(), left: self.left.clone(), up: self.up.clone(), down: self.down.clone() }
-    }
-}
-
-impl<I: Input, S: Storage<Item = I>> Topology<I, S> {
-    /// Creates an empty cell at given coordinate.
-    pub fn empty() -> Self {
-        Self { right: None, left: None, up: None, down: None }
-    }
 
     /// Checks if the cell is at the boundary of the network.
-    pub fn is_boundary(&self) -> bool {
-        self.right.is_none() || self.left.is_none() || self.up.is_none() || self.down.is_none()
+    pub fn is_boundary<F: StorageFactory<I, S>>(&self, network: &Network<I, S, F>) -> bool {
+        self.neighbours(network, 1).any(|(node, _)| node.is_none())
     }
 
     /// Gets iterator over nodes in neighbourhood.
-    pub fn neighbours(&self, radius: usize) -> impl Iterator<Item = (Option<NodeLink<I, S>>, Coordinate)> {
-        let extras = match radius {
-            1 => vec![],
-            2 => vec![
-                (self.left.as_ref().and_then(|node| node.read().unwrap().topology.up.clone()), Coordinate(-1, 1)),
-                (self.right.as_ref().and_then(|node| node.read().unwrap().topology.up.clone()), Coordinate(1, 1)),
-                (self.left.as_ref().and_then(|node| node.read().unwrap().topology.down.clone()), Coordinate(-1, -1)),
-                (self.right.as_ref().and_then(|node| node.read().unwrap().topology.down.clone()), Coordinate(1, -1)),
-            ],
-            _ => unimplemented!("neighbourhood radius is supported only in [1, 2] range"),
-        };
+    pub fn neighbours<'a, F: StorageFactory<I, S>>(
+        &self,
+        network: &'a Network<I, S, F>,
+        radius: usize,
+    ) -> impl Iterator<Item = (Option<&'a NodeLink<I, S>>, (i32, i32))> {
+        let radius = radius as i32;
+        let Coordinate(node_x, node_y) = self.coordinate;
 
-        TopologyIterator { topology: self.clone(), state: 0, extras }
-    }
-}
-
-struct TopologyIterator<I: Input, S: Storage<Item = I>> {
-    topology: Topology<I, S>,
-    state: usize,
-    extras: Vec<(Option<NodeLink<I, S>>, Coordinate)>,
-}
-
-impl<I: Input, S: Storage<Item = I>> Iterator for TopologyIterator<I, S> {
-    type Item = (Option<NodeLink<I, S>>, Coordinate);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let ext_len = self.extras.len();
-
-        debug_assert!(ext_len == 0 || ext_len == 4);
-
-        let item = match self.state {
-            0 => (self.topology.left.clone(), Coordinate(-1, 0)),
-            1 => (self.topology.right.clone(), Coordinate(1, 0)),
-            2 => (self.topology.up.clone(), Coordinate(0, 1)),
-            3 => (self.topology.down.clone(), Coordinate(0, -1)),
-            state if ext_len > (state - ext_len) => self.extras.get(state - ext_len).cloned().unwrap(),
-            _ => return None,
-        };
-
-        self.state += 1;
-
-        Some(item)
+        (-radius..=radius).flat_map(move |x| {
+            (-radius..=radius)
+                .filter(move |&y| !(x == 0 && y == 0))
+                .map(move |y| (network.find(&Coordinate(node_x + x, node_y + y)), (x, y)))
+        })
     }
 }

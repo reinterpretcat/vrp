@@ -178,7 +178,7 @@ where
                 node.new_hit(self.time);
             }
 
-            (node.error > self.growing_threshold, node.topology.is_boundary())
+            (node.error > self.growing_threshold, node.is_boundary(&self))
         };
 
         match (exceeds_ae, is_boundary) {
@@ -187,33 +187,30 @@ where
                 let mut node = node.write().unwrap();
                 node.error = 0.5 * self.growing_threshold;
 
-                node.topology.neighbours(radius).for_each(|(n, coord)| {
+                node.neighbours(&self, radius).for_each(|(n, (x, y))| {
                     if let Some(n) = n {
                         let mut node = n.write().unwrap();
-                        let distribution_factor = self.distribution_factor / (coord.0.abs() + coord.1.abs()) as f64;
+                        let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as f64;
                         node.error += distribution_factor * node.error;
                     }
                 });
             }
             // weight distribution
             (true, true) => {
-                let (coordinate, weights, topology) = {
-                    let node = node.read().unwrap();
+                let node = node.read().unwrap();
+                let node_coord = node.coordinate.clone();
+                let weights = node.weights.clone();
 
-                    let coordinate = node.coordinate.clone();
-                    let weights = node.weights.clone();
-                    let topology = node.topology.clone();
+                // NOTE insert new nodes only in main directions
+                let offsets = node
+                    .neighbours(&self, 1)
+                    .filter(|(_, (x, y))| x.abs() + y.abs() < 2)
+                    .filter_map(|(node, offset)| if node.is_none() { Some(offset) } else { None })
+                    .collect::<Vec<_>>();
 
-                    (coordinate, weights, topology)
-                };
-
-                // NOTE: radius is 1 to insert new nodes only in main directions
-                topology
-                    .neighbours(1)
-                    .filter_map(|(node, coord)| if node.is_none() { Some(coord) } else { None })
-                    .for_each(|Coordinate(x, y)| {
-                        self.insert(Coordinate(coordinate.0 + x, coordinate.1 + y), weights.as_slice());
-                    });
+                offsets.into_iter().for_each(|(x, y)| {
+                    self.insert(Coordinate(node_coord.0 + x, node_coord.1 + y), weights.as_slice());
+                });
             }
             _ => {}
         }
@@ -223,7 +220,7 @@ where
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
 
         node.adjust(input.weights(), learning_rate);
-        node.topology.neighbours(radius).filter_map(|(n, _)| n).for_each(|n| {
+        node.neighbours(&self, radius).filter_map(|(n, _)| n).for_each(|n| {
             n.write().unwrap().adjust(input.weights(), learning_rate);
         });
     }
@@ -237,31 +234,6 @@ where
             self.rebalance_memory,
             self.storage_factory.eval(),
         )));
-        {
-            let mut new_node_mut = new_node.write().unwrap();
-            let (new_x, new_y) = (coordinate.0, coordinate.1);
-
-            if let Some(node) = self.nodes.get(&Coordinate(new_x - 1, new_y)) {
-                new_node_mut.topology.left = Some(node.clone());
-                node.write().unwrap().topology.right = Some(new_node.clone());
-            }
-
-            if let Some(node) = self.nodes.get(&Coordinate(new_x + 1, new_y)) {
-                new_node_mut.topology.right = Some(node.clone());
-                node.write().unwrap().topology.left = Some(new_node.clone());
-            }
-
-            if let Some(node) = self.nodes.get(&Coordinate(new_x, new_y - 1)) {
-                new_node_mut.topology.down = Some(node.clone());
-                node.write().unwrap().topology.up = Some(new_node.clone());
-            }
-
-            if let Some(node) = self.nodes.get(&Coordinate(new_x, new_y + 1)) {
-                new_node_mut.topology.up = Some(node.clone());
-                node.write().unwrap().topology.down = Some(new_node.clone());
-            }
-        }
-
         self.nodes.insert(coordinate, new_node);
     }
 
@@ -283,45 +255,22 @@ where
     fn compact(&mut self, node_filter: &(dyn Fn(&NodeLink<I, S>) -> bool)) {
         let original = self.nodes.len();
         let mut removed = vec![];
-        let mut remove_node = |coordinate: &Coordinate, node: &mut NodeLink<I, S>| {
+        let mut remove_node = |coordinate: &Coordinate| {
+            // NOTE: prevent network to be less than 4 nodes
             if (original - removed.len()) > 4 {
-                Self::disconnect_node(node);
                 removed.push(coordinate.clone());
-                Ok(())
-            } else {
-                Err(())
             }
         };
 
         // remove user defined nodes
-        let _ = self
-            .nodes
+        self.nodes
             .iter_mut()
             .filter(|(_, node)| !node_filter.deref()(node))
-            .try_for_each(|(coordinate, node)| remove_node(coordinate, node));
-
-        // remove empty nodes which are not at boundary
-        let _ = self
-            .nodes
-            .iter_mut()
-            .filter(|(_, node)| {
-                let node = node.read().unwrap();
-                node.storage.size() == 0 && node.topology.is_boundary()
-            })
-            .try_for_each(|(coordinate, node)| remove_node(coordinate, node));
+            .for_each(|(coordinate, _)| remove_node(coordinate));
 
         removed.iter().for_each(|coordinate| {
             self.nodes.remove(coordinate);
         });
-    }
-
-    /// Disconnects node from network.
-    fn disconnect_node(node: &mut NodeLink<I, S>) {
-        let topology = &mut node.write().unwrap().topology;
-        topology.left.iter_mut().for_each(|link| link.write().unwrap().topology.right = None);
-        topology.right.iter_mut().for_each(|link| link.write().unwrap().topology.left = None);
-        topology.up.iter_mut().for_each(|link| link.write().unwrap().topology.down = None);
-        topology.down.iter_mut().for_each(|link| link.write().unwrap().topology.up = None);
     }
 
     /// Creates nodes for initial topology.
@@ -345,34 +294,9 @@ where
         let n11 = create_node_link(Coordinate(1, 1), n11);
         let n10 = create_node_link(Coordinate(1, 0), n10);
 
-        n00.write().unwrap().topology.right = Some(n10.clone());
-        n00.write().unwrap().topology.up = Some(n01.clone());
-
-        n01.write().unwrap().topology.right = Some(n11.clone());
-        n01.write().unwrap().topology.down = Some(n00.clone());
-
-        n10.write().unwrap().topology.up = Some(n11.clone());
-        n10.write().unwrap().topology.left = Some(n00.clone());
-
-        n11.write().unwrap().topology.left = Some(n01.clone());
-        n11.write().unwrap().topology.down = Some(n10.clone());
-
         [(Coordinate(0, 0), n00), (Coordinate(0, 1), n01), (Coordinate(1, 1), n11), (Coordinate(1, 0), n10)]
             .iter()
             .cloned()
             .collect()
-    }
-}
-
-impl<I, S, F> Drop for Network<I, S, F>
-where
-    I: Input,
-    S: Storage<Item = I>,
-    F: StorageFactory<I, S>,
-{
-    fn drop(&mut self) {
-        self.nodes.drain().for_each(|(_, mut node)| {
-            Self::disconnect_node(&mut node);
-        })
     }
 }

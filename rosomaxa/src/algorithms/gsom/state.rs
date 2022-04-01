@@ -50,7 +50,7 @@ where
         .map(|node| {
             let node = node.read().unwrap();
 
-            let (sum, count) = node.topology.neighbours(1).filter_map(|(n, _)| n).fold((0., 0), |(sum, count), n| {
+            let (sum, count) = node.neighbours(network, 1).filter_map(|(n, _)| n).fold((0., 0), |(sum, count), n| {
                 let distance = node.storage.distance(node.weights.as_slice(), n.read().unwrap().weights.as_slice());
                 (sum + distance, count + 1)
             });
