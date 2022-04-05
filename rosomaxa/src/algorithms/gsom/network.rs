@@ -28,7 +28,6 @@ where
     storage_factory: F,
     time: usize,
     rebalance_memory: usize,
-    noise: Noise,
 }
 
 /// GSOM network configuration.
@@ -73,7 +72,6 @@ where
             storage_factory,
             time: 0,
             rebalance_memory: config.rebalance_memory,
-            noise,
         }
     }
 
@@ -191,7 +189,7 @@ where
                     if let Some(n) = n {
                         let mut node = n.write().unwrap();
                         let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as f64;
-                        node.error += self.noise.generate(distribution_factor * node.error);
+                        node.error += distribution_factor * node.error;
                     }
                 });
             }
@@ -230,7 +228,7 @@ where
     fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
         let new_node = Arc::new(RwLock::new(Node::new(
             coordinate.clone(),
-            weights.iter().map(|&value| self.noise.generate(value)).collect::<Vec<_>>(),
+            weights,
             0.,
             self.rebalance_memory,
             self.storage_factory.eval(),
@@ -284,8 +282,13 @@ where
     ) -> HashMap<Coordinate, NodeLink<I, S>> {
         let create_node_link = |coordinate: Coordinate, input: I| {
             let weights = input.weights().iter().map(|&value| noise.generate(value)).collect::<Vec<_>>();
-            let mut node =
-                Node::<I, S>::new(coordinate, weights, initial_error, rebalance_memory, storage_factory.eval());
+            let mut node = Node::<I, S>::new(
+                coordinate,
+                weights.as_slice(),
+                initial_error,
+                rebalance_memory,
+                storage_factory.eval(),
+            );
             node.storage.add(input);
             Arc::new(RwLock::new(node))
         };
