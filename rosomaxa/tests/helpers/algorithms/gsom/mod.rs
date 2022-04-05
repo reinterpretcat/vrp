@@ -1,6 +1,8 @@
 use crate::algorithms::gsom::{Input, Network, NetworkConfig, Storage, StorageFactory};
+use crate::utils::DefaultRandom;
 use std::fmt::{Display, Formatter};
 use std::ops::RangeBounds;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Data {
@@ -81,6 +83,7 @@ pub fn create_test_network(has_initial_error: bool) -> Network<Data, DataStorage
             learning_rate: 0.1,
             rebalance_memory: 500,
             has_initial_error,
+            random: Arc::new(DefaultRandom::default()),
         },
         DataStorageFactory,
     )

@@ -430,6 +430,7 @@ where
                 learning_rate: config.learning_rate,
                 rebalance_memory: config.rebalance_memory,
                 has_initial_error: true,
+                random: environment.random.clone(),
             },
             storage_factory,
         )

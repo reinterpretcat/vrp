@@ -3,7 +3,7 @@
 mod network_test;
 
 use super::*;
-use crate::utils::parallel_into_collect;
+use crate::utils::{parallel_into_collect, Noise, Random};
 use hashbrown::HashMap;
 use rand::prelude::SliceRandom;
 use std::cmp::Ordering;
@@ -23,16 +23,12 @@ where
     growing_threshold: f64,
     /// The factor of distribution (FD), used in error distribution stage, 0 < FD < 1
     distribution_factor: f64,
-    /// Initial learning rate.
     learning_rate: f64,
-    /// All nodes in the network.
     nodes: HashMap<Coordinate, NodeLink<I, S>>,
-    /// Creates input storage for new nodes.
     storage_factory: F,
-    /// A current time which is used to track node update statistics.
     time: usize,
-    /// A rebalance memory.
     rebalance_memory: usize,
+    noise: Noise,
 }
 
 /// GSOM network configuration.
@@ -47,6 +43,8 @@ pub struct NetworkConfig {
     pub rebalance_memory: usize,
     /// If set to true, initial nodes have error set to the value equal to growing threshold.
     pub has_initial_error: bool,
+    /// A random used to generate a noise applied internally to errors and weights.
+    pub random: Arc<dyn Random + Send + Sync>,
 }
 
 impl<I, S, F> Network<I, S, F>
@@ -64,16 +62,18 @@ where
 
         let growing_threshold = -1. * dimension as f64 * config.spread_factor.log2();
         let initial_error = if config.has_initial_error { growing_threshold } else { 0. };
+        let noise = Noise::new(1., (0.95, 1.05), config.random);
 
         Self {
             dimension,
             growing_threshold,
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
-            nodes: Self::create_initial_nodes(roots, initial_error, config.rebalance_memory, &storage_factory),
+            nodes: Self::create_initial_nodes(roots, initial_error, config.rebalance_memory, &noise, &storage_factory),
             storage_factory,
             time: 0,
             rebalance_memory: config.rebalance_memory,
+            noise,
         }
     }
 
@@ -178,7 +178,7 @@ where
                 node.new_hit(self.time);
             }
 
-            (node.error > self.growing_threshold, node.is_boundary(&self))
+            (node.error > self.growing_threshold, node.is_boundary(self))
         };
 
         match (exceeds_ae, is_boundary) {
@@ -187,11 +187,11 @@ where
                 let mut node = node.write().unwrap();
                 node.error = 0.5 * self.growing_threshold;
 
-                node.neighbours(&self, radius).for_each(|(n, (x, y))| {
+                node.neighbours(self, radius).for_each(|(n, (x, y))| {
                     if let Some(n) = n {
                         let mut node = n.write().unwrap();
                         let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as f64;
-                        node.error += distribution_factor * node.error;
+                        node.error += self.noise.generate(distribution_factor * node.error);
                     }
                 });
             }
@@ -202,8 +202,9 @@ where
                 let weights = node.weights.clone();
 
                 // NOTE insert new nodes only in main directions
+                #[allow(clippy::needless_collect)]
                 let offsets = node
-                    .neighbours(&self, 1)
+                    .neighbours(self, 1)
                     .filter(|(_, (x, y))| x.abs() + y.abs() < 2)
                     .filter_map(|(node, offset)| if node.is_none() { Some(offset) } else { None })
                     .collect::<Vec<_>>();
@@ -220,7 +221,7 @@ where
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as f64));
 
         node.adjust(input.weights(), learning_rate);
-        node.neighbours(&self, radius).filter_map(|(n, _)| n).for_each(|n| {
+        node.neighbours(self, radius).filter_map(|(n, _)| n).for_each(|n| {
             n.write().unwrap().adjust(input.weights(), learning_rate);
         });
     }
@@ -229,7 +230,7 @@ where
     fn insert(&mut self, coordinate: Coordinate, weights: &[f64]) {
         let new_node = Arc::new(RwLock::new(Node::new(
             coordinate.clone(),
-            weights,
+            weights.iter().map(|&value| self.noise.generate(value)).collect::<Vec<_>>(),
             0.,
             self.rebalance_memory,
             self.storage_factory.eval(),
@@ -278,11 +279,13 @@ where
         roots: [I; 4],
         initial_error: f64,
         rebalance_memory: usize,
+        noise: &Noise,
         storage_factory: &F,
     ) -> HashMap<Coordinate, NodeLink<I, S>> {
         let create_node_link = |coordinate: Coordinate, input: I| {
+            let weights = input.weights().iter().map(|&value| noise.generate(value)).collect::<Vec<_>>();
             let mut node =
-                Node::<I, S>::new(coordinate, input.weights(), initial_error, rebalance_memory, storage_factory.eval());
+                Node::<I, S>::new(coordinate, weights, initial_error, rebalance_memory, storage_factory.eval());
             node.storage.add(input);
             Arc::new(RwLock::new(node))
         };

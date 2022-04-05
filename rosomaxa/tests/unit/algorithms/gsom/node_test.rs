@@ -2,7 +2,7 @@ use crate::algorithms::gsom::{Coordinate, Node};
 use crate::helpers::algorithms::gsom::{Data, DataStorage};
 
 fn create_test_node(hit_memory_size: usize) -> Node<Data, DataStorage> {
-    Node::new(Coordinate(0, 0), &[1., 2.], 0., hit_memory_size, DataStorage::default())
+    Node::new(Coordinate(0, 0), vec![1., 2.], 0., hit_memory_size, DataStorage::default())
 }
 
 #[test]

@@ -24,10 +24,6 @@ pub struct Node<I: Input, S: Storage<Item = I>> {
     hit_memory_size: usize,
 }
 
-/*/// Represents a node neighbourhood.
-#[derive(Clone)]
-pub struct Topology<I: Input, S: Storage<Item = I>> { }*/
-
 /// A reference to the node.
 pub type NodeLink<I, S> = Arc<RwLock<Node<I, S>>>;
 
@@ -37,9 +33,9 @@ pub struct Coordinate(pub i32, pub i32);
 
 impl<I: Input, S: Storage<Item = I>> Node<I, S> {
     /// Creates a new instance of `Node`.
-    pub fn new(coordinate: Coordinate, weights: &[f64], error: f64, hit_memory_size: usize, storage: S) -> Self {
+    pub fn new(coordinate: Coordinate, weights: Vec<f64>, error: f64, hit_memory_size: usize, storage: S) -> Self {
         Self {
-            weights: weights.to_vec(),
+            weights,
             error,
             total_hits: 0,
             last_hits: VecDeque::with_capacity(hit_memory_size + 1),
