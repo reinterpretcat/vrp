@@ -1,5 +1,6 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
+use crate::format_time;
 use crate::helpers::*;
 
 fn create_test_plan_with_three_jobs() -> Plan {
@@ -149,5 +150,55 @@ fn can_follow_order_when_prioritized_property_set() {
                 description: "cannot be assigned due to max distance constraint of vehicle".to_string()
             }]
         }])
+    );
+}
+
+#[test]
+fn can_handle_order_between_special_activities() {
+    let create_test_job = |id: &str, location: Vec<f64>, order: i32| Job {
+        deliveries: Some(vec![JobTask {
+            places: vec![JobPlace { times: None, location: location.to_loc(), duration: 100., tag: None }],
+            demand: Some(vec![1]),
+            order: Some(order),
+        }]),
+        ..create_job(id)
+    };
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_test_job("job1", vec![1., 0.], 2), create_test_job("job2", vec![2., 0.], 1)],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    end: Some(ShiftEnd {
+                        earliest: None,
+                        latest: format_time(1000.).to_string(),
+                        location: vec![10., 0.].to_loc(),
+                    }),
+                    breaks: Some(vec![VehicleBreak::Optional {
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(100.), format_time(200.)]),
+                        places: vec![VehicleOptionalBreakPlace {
+                            duration: 1.,
+                            location: Some(vec![0., 0.].to_loc()),
+                            tag: None,
+                        }],
+                        policy: Some(VehicleOptionalBreakPolicy::SkipIfNoIntersection),
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            profiles: create_default_matrix_profiles(),
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert_eq!(
+        get_ids_from_tour(&solution.tours[0]),
+        vec![vec!["departure"], vec!["job2"], vec!["break"], vec!["job1"], vec!["arrival"]]
     );
 }

@@ -228,6 +228,9 @@ fn evaluate_result<T>(
         Either::Right(right) => right.deref()(actor, single),
     };
 
+    // NOTE this check is O(1), but it doesn't guarantee correctness in case when prev and next
+    // are special activities (with OrderResult::Ignore). get_violations handles such scenarious,
+    // but it might be not enough in some edge cases. At the moment, decision is to accept this.
     match (prev, target, next) {
         (Some(prev), Some(target), None) => check_order.deref()(get_order(prev), get_order(target), true),
         (None, Some(target), Some(next)) => check_order.deref()(get_order(target), get_order(next), false),
@@ -250,6 +253,7 @@ fn get_violations(routes: &[RouteContext], order_fn: &OrderFn) -> usize {
                     Either::Left(left) => left.deref()(single.as_ref()),
                     Either::Right(right) => right.deref()(route_ctx.route.actor.as_ref(), single.as_ref()),
                 })
+                .filter(|order| !matches!(order, OrderResult::Ignored))
                 .collect::<Vec<OrderResult>>();
 
             orders.windows(2).fold(0_usize, |acc, pair| {
